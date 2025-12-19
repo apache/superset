@@ -21,16 +21,18 @@ import { SupersetClientClass, ClientConfig, CallApi } from '@superset-ui/core';
 import { LOGIN_GLOB } from './fixtures/constants';
 
 describe('SupersetClientClass', () => {
-  beforeAll(() => {
+  beforeEach(() => {
+    fetchMock.reset();
     fetchMock.get(LOGIN_GLOB, { result: '' });
   });
 
-  afterAll(fetchMock.restore);
+  afterAll(() => fetchMock.restore());
 
   describe('new SupersetClientClass()', () => {
     it('fallback protocol to https when setting only host', () => {
       const client = new SupersetClientClass({ host: 'TEST-HOST' });
-      expect(client.baseUrl).toEqual('https://test-host');
+      expect(client.protocol).toEqual('https:');
+      expect(client.host).toEqual('test-host');
     });
   });
 
@@ -71,6 +73,15 @@ describe('SupersetClientClass', () => {
       );
     });
 
+    it('constructs a valid url if url, endpoint, and host are all empty and appRoot is defined', () => {
+      client = new SupersetClientClass({
+        protocol: 'https:',
+        host: 'config_host',
+        appRoot: '/prefix',
+      });
+      expect(client.getUrl()).toBe('https://config_host/prefix/');
+    });
+
     it('does not throw if url, endpoint, and host are all empty', () => {
       client = new SupersetClientClass({ protocol: 'https:', host: '' });
       expect(client.getUrl()).toBe('https://localhost/');
@@ -78,11 +89,10 @@ describe('SupersetClientClass', () => {
   });
 
   describe('.init()', () => {
-    afterEach(() => {
-      fetchMock.reset();
-      // reset
-      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { overwriteRoutes: true });
-    });
+    beforeEach(() =>
+      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { overwriteRoutes: true }),
+    );
+    afterEach(() => fetchMock.reset());
 
     it('calls api/v1/security/csrf_token/ when init() is called if no CSRF token is passed', async () => {
       expect.assertions(1);
@@ -165,7 +175,7 @@ describe('SupersetClientClass', () => {
   });
 
   describe('.isAuthenticated()', () => {
-    afterEach(fetchMock.reset);
+    afterEach(() => fetchMock.reset());
 
     it('returns true if there is a token and false if not', async () => {
       expect.assertions(2);
@@ -254,7 +264,8 @@ describe('SupersetClientClass', () => {
   });
 
   describe('requests', () => {
-    afterEach(fetchMock.reset);
+    afterEach(() => fetchMock.restore());
+
     const protocol = 'https:';
     const host = 'host';
     const mockGetEndpoint = '/get/url';
@@ -272,13 +283,15 @@ describe('SupersetClientClass', () => {
     const mockTextJsonResponse = '{ "value": 9223372036854775807 }';
     const mockPayload = { json: () => Promise.resolve('payload') };
 
-    fetchMock.get(mockGetUrl, mockPayload);
-    fetchMock.post(mockPostUrl, mockPayload);
-    fetchMock.put(mockPutUrl, mockPayload);
-    fetchMock.delete(mockDeleteUrl, mockPayload);
-    fetchMock.delete(mockRequestUrl, mockPayload);
-    fetchMock.get(mockTextUrl, mockTextJsonResponse);
-    fetchMock.post(mockTextUrl, mockTextJsonResponse);
+    beforeEach(() => {
+      fetchMock.get(mockGetUrl, mockPayload);
+      fetchMock.post(mockPostUrl, mockPayload);
+      fetchMock.put(mockPutUrl, mockPayload);
+      fetchMock.delete(mockDeleteUrl, mockPayload);
+      fetchMock.delete(mockRequestUrl, mockPayload);
+      fetchMock.get(mockTextUrl, mockTextJsonResponse);
+      fetchMock.post(mockTextUrl, mockTextJsonResponse);
+    });
 
     it('checks for authentication before every get and post request', async () => {
       expect.assertions(6);
@@ -623,6 +636,8 @@ describe('SupersetClientClass', () => {
     let createElement: any;
 
     beforeEach(async () => {
+      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { overwriteRoutes: true });
+
       client = new SupersetClientClass({ protocol, host });
       authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
       await client.init();
@@ -643,26 +658,36 @@ describe('SupersetClientClass', () => {
       jest.restoreAllMocks();
     });
 
-    it('makes postForm request', async () => {
-      await client.postForm(mockPostFormUrl, {});
+    it.each(['', '/prefix'])(
+      "makes postForm request when appRoot is '%s'",
+      async appRoot => {
+        if (appRoot !== '') {
+          client = new SupersetClientClass({ protocol, host, appRoot });
+          authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
+          await client.init();
+        }
+        await client.postForm(mockPostFormEndpoint, {});
 
-      const hiddenForm = createElement.mock.results[0].value;
-      const csrfTokenInput = createElement.mock.results[1].value;
+        const hiddenForm = createElement.mock.results[0].value;
+        const csrfTokenInput = createElement.mock.results[1].value;
 
-      expect(createElement.mock.calls).toHaveLength(2);
+        expect(createElement.mock.calls).toHaveLength(2);
 
-      expect(hiddenForm.action).toBe(mockPostFormUrl);
-      expect(hiddenForm.method).toBe('POST');
-      expect(hiddenForm.target).toBe('_blank');
+        expect(hiddenForm.action).toBe(
+          `${protocol}//${host}${appRoot}${mockPostFormEndpoint}`,
+        );
+        expect(hiddenForm.method).toBe('POST');
+        expect(hiddenForm.target).toBe('_blank');
 
-      expect(csrfTokenInput.type).toBe('hidden');
-      expect(csrfTokenInput.name).toBe('csrf_token');
-      expect(csrfTokenInput.value).toBe(1234);
+        expect(csrfTokenInput.type).toBe('hidden');
+        expect(csrfTokenInput.name).toBe('csrf_token');
+        expect(csrfTokenInput.value).toBe(1234);
 
-      expect(appendChild.mock.calls).toHaveLength(1);
-      expect(removeChild.mock.calls).toHaveLength(1);
-      expect(authSpy).toHaveBeenCalledTimes(1);
-    });
+        expect(appendChild.mock.calls).toHaveLength(1);
+        expect(removeChild.mock.calls).toHaveLength(1);
+        expect(authSpy).toHaveBeenCalledTimes(1);
+      },
+    );
 
     it('makes postForm request with guest token', async () => {
       client = new SupersetClientClass({ protocol, host, guestToken });

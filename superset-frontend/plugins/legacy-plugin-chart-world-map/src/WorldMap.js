@@ -24,13 +24,14 @@ import {
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import Datamap from 'datamaps/dist/datamaps.world.min';
+import Datamap from 'datamaps/dist/datamaps.all.min';
 import { ColorBy } from './utils';
 
 const propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
       country: PropTypes.string,
+      code: PropTypes.string,
       latitude: PropTypes.number,
       longitude: PropTypes.number,
       name: PropTypes.string,
@@ -43,6 +44,7 @@ const propTypes = {
   showBubbles: PropTypes.bool,
   linearColorScheme: PropTypes.string,
   color: PropTypes.string,
+  colorScheme: PropTypes.string,
   setDataMask: PropTypes.func,
   onContextMenu: PropTypes.func,
   emitCrossFilters: PropTypes.bool,
@@ -85,24 +87,24 @@ function WorldMap(element, props) {
     .range([1, maxBubbleSize]);
 
   let processedData;
-  let colorScale;
+  let colorFn;
   if (colorBy === ColorBy.Country) {
-    colorScale = CategoricalColorNamespace.getScale(colorScheme);
+    colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
     processedData = filteredData.map(d => ({
       ...d,
       radius: radiusScale(Math.sqrt(d.m2)),
-      fillColor: colorScale(d.name, sliceId),
+      fillColor: colorFn(d.name, sliceId),
     }));
   } else {
-    colorScale = getSequentialSchemeRegistry()
+    colorFn = getSequentialSchemeRegistry()
       .get(linearColorScheme)
       .createLinearScale(d3Extent(filteredData, d => d.m1));
 
     processedData = filteredData.map(d => ({
       ...d,
       radius: radiusScale(Math.sqrt(d.m2)),
-      fillColor: colorScale(d.m1),
+      fillColor: colorFn(d.m1),
     }));
   }
 
@@ -115,7 +117,7 @@ function WorldMap(element, props) {
     const selected = Object.values(filterState.selectedValues || {});
     const key = source.id || source.country;
     const country =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
 
     if (!country) {
       return undefined;
@@ -169,7 +171,7 @@ function WorldMap(element, props) {
     pointerEvent.preventDefault();
     const key = source.id || source.country;
     const val =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {
@@ -202,14 +204,14 @@ function WorldMap(element, props) {
     height,
     data: processedData,
     fills: {
-      defaultFill: theme.colors.grayscale.light2,
+      defaultFill: theme.colorBorder,
     },
     geographyConfig: {
       popupOnHover: !inContextMenu,
       highlightOnHover: !inContextMenu,
       borderWidth: 1,
-      borderColor: theme.colors.grayscale.light5,
-      highlightBorderColor: theme.colors.grayscale.light5,
+      borderColor: theme.colorSplit,
+      highlightBorderColor: theme.colorIcon,
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
@@ -231,7 +233,7 @@ function WorldMap(element, props) {
       animate: true,
       highlightOnHover: !inContextMenu,
       highlightFillColor: color,
-      highlightBorderColor: theme.colors.grayscale.dark2,
+      highlightBorderColor: theme.colorTextSecondary,
       highlightBorderWidth: 2,
       highlightBorderOpacity: 1,
       highlightFillOpacity: 0.85,
@@ -264,7 +266,7 @@ function WorldMap(element, props) {
         countryFeature =>
           !filterState.selectedValues.includes(countryFeature.id),
       )
-      .style('fill-opacity', theme.opacity.mediumLight);
+      .style('fill-opacity', 0.35);
 
     // hack to ensure that the clicked country's color is preserved
     // sometimes the fill color would get default grey value after applying cross filter

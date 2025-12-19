@@ -9,7 +9,7 @@ on:
 
 jobs:
   superbot-orglabel:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: write
@@ -17,7 +17,7 @@ jobs:
     steps:
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 

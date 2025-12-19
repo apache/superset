@@ -18,7 +18,8 @@
  */
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { css, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import { useSqlLabInitialState } from 'src/hooks/apiResources/sqlLab';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import { resetState } from 'src/SqlLab/actions/sqlLab';
@@ -26,7 +27,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { SqlLabGlobalStyles } from 'src/SqlLab//SqlLabGlobalStyles';
 import App from 'src/SqlLab/components/App';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import EditorAutoSync from 'src/SqlLab/components/EditorAutoSync';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { LocationProvider } from './LocationContext';

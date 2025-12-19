@@ -33,10 +33,10 @@ import EstimateQueryCostButton, {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('src/components/Select/Select', () => () => (
+jest.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('src/components/Select/AsyncSelect', () => () => (
+jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 
@@ -53,23 +53,24 @@ const setup = (props: Partial<EstimateQueryCostButtonProps>, store?: Store) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('EstimateQueryCostButton', () => {
-  it('renders EstimateQueryCostButton', async () => {
+  test('renders EstimateQueryCostButton', async () => {
     const { queryByText } = setup({}, mockStore(initialState));
 
-    expect(queryByText('Estimate cost')).toBeTruthy();
+    expect(queryByText('Estimate cost')).toBeInTheDocument();
   });
 
-  it('renders label for selected query', async () => {
+  test('renders label for selected query', async () => {
     const { queryByText } = setup(
       { queryEditorId: extraQueryEditor1.id },
       mockStore(initialState),
     );
 
-    expect(queryByText('Estimate selected query cost')).toBeTruthy();
+    expect(queryByText('Estimate selected query cost')).toBeInTheDocument();
   });
 
-  it('renders label for selected query from unsaved', async () => {
+  test('renders label for selected query from unsaved', async () => {
     const { queryByText } = setup(
       {},
       mockStore({
@@ -84,10 +85,10 @@ describe('EstimateQueryCostButton', () => {
       }),
     );
 
-    expect(queryByText('Estimate selected query cost')).toBeTruthy();
+    expect(queryByText('Estimate selected query cost')).toBeInTheDocument();
   });
 
-  it('renders estimation error result', async () => {
+  test('renders estimation error result', async () => {
     const { queryByText, getByText } = setup(
       {},
       mockStore({
@@ -103,14 +104,14 @@ describe('EstimateQueryCostButton', () => {
       }),
     );
 
-    expect(queryByText('Estimate cost')).toBeTruthy();
+    expect(queryByText('Estimate cost')).toBeInTheDocument();
     fireEvent.click(getByText('Estimate cost'));
 
-    expect(queryByText('Estimate error')).toBeTruthy();
+    expect(queryByText('Estimate error')).toBeInTheDocument();
   });
 
-  it('renders estimation success result', async () => {
-    const { queryByText, getByText } = setup(
+  test('renders estimation success result', async () => {
+    const { queryByText, getByText, findByTitle } = setup(
       {},
       mockStore({
         ...initialState,
@@ -126,9 +127,9 @@ describe('EstimateQueryCostButton', () => {
       }),
     );
 
-    expect(queryByText('Estimate cost')).toBeTruthy();
+    expect(queryByText('Estimate cost')).toBeInTheDocument();
     fireEvent.click(getByText('Estimate cost'));
-
-    expect(queryByText('Total cost')).toBeTruthy();
+    const totalCostTitle = await findByTitle('Total cost');
+    expect(totalCostTitle).toBeInTheDocument();
   });
 });

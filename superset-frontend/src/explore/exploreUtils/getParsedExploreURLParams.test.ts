@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { VizType } from '@superset-ui/core';
 import { getParsedExploreURLParams } from './getParsedExploreURLParams';
 
 const EXPLORE_BASE_URL = 'http://localhost:9000/explore/';
@@ -45,7 +46,7 @@ test('get datasource and viz type from form_data search param - url when creatin
     `${EXPLORE_BASE_URL}?form_data=%7B%22viz_type%22%3A%22big_number%22%2C%22datasource%22%3A%222__table%22%7D`,
   );
   expect(getParsedExploreURLParams().toString()).toEqual(
-    'viz_type=big_number&datasource_id=2&datasource_type=table',
+    `viz_type=${VizType.BigNumber}&datasource_id=2&datasource_type=table`,
   );
 });
 

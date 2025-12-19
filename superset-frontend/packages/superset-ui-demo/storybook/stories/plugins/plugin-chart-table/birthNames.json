@@ -30,7 +30,6 @@
     "cache_timeout": null,
     "params": null,
     "perm": "[examples].[birth_names](id:3)",
-    "edit_url": "/tablemodelview/edit/3",
     "sql": null,
     "columns": [
       {

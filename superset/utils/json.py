@@ -69,7 +69,7 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(obj: Any) -> Any:
+def base_json_conv(obj: Any) -> Any:  # noqa: C901
     """
     Tries to convert additional types to JSON compatible forms.
 
@@ -95,6 +95,9 @@ def base_json_conv(obj: Any) -> Any:
         return str(obj)
     if isinstance(obj, timedelta):
         return format_timedelta(obj)
+    if isinstance(obj, pd.DateOffset):
+        offset_attrs = ", ".join(f"{k}={v}" for k, v in obj.kwds.items())
+        return f"DateOffset({offset_attrs})"
     if isinstance(obj, bytes):
         try:
             return obj.decode("utf-8")
@@ -174,7 +177,11 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
     :param obj: an object that should be parseable to JSON
     """
     if obj:
-        loads(obj)
+        try:
+            loads(obj)
+        except JSONDecodeError as ex:
+            logger.error("JSON is not valid %s", str(ex), exc_info=True)
+            raise
 
 
 def dumps(  # pylint: disable=too-many-arguments
@@ -236,16 +243,12 @@ def loads(
     :param object_hook: function that will be called to decode objects values
     :returns: A Python object deserialized from string
     """
-    try:
-        return simplejson.loads(
-            obj,
-            encoding=encoding,
-            allow_nan=allow_nan,
-            object_hook=object_hook,
-        )
-    except JSONDecodeError as ex:
-        logger.error("JSON is not valid %s", str(ex), exc_info=True)
-        raise
+    return simplejson.loads(
+        obj,
+        encoding=encoding,
+        allow_nan=allow_nan,
+        object_hook=object_hook,
+    )
 
 
 def redact_sensitive(

@@ -70,7 +70,7 @@ def load_world_bank_data():
             engine.execute("DROP TABLE IF EXISTS wb_health_population")
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_world_bank_dashboard_with_slices(load_world_bank_data):
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = create_dashboard_for_loaded_data()
@@ -177,19 +177,19 @@ def _get_world_bank_data() -> list[dict[Any, Any]]:
         data.append(
             {
                 "country_name": "".join(
-                    choice(string.ascii_uppercase + string.ascii_lowercase + " ")
-                    for _ in range(randint(3, 10))
+                    choice(string.ascii_uppercase + string.ascii_lowercase + " ")  # noqa: S311
+                    for _ in range(randint(3, 10))  # noqa: S311
                 ),
                 "country_code": "".join(
-                    choice(string.ascii_uppercase + string.ascii_lowercase)
+                    choice(string.ascii_uppercase + string.ascii_lowercase)  # noqa: S311
                     for _ in range(3)
                 ),
                 "region": "".join(
-                    choice(string.ascii_uppercase + string.ascii_lowercase)
-                    for _ in range(randint(3, 10))
+                    choice(string.ascii_uppercase + string.ascii_lowercase)  # noqa: S311
+                    for _ in range(randint(3, 10))  # noqa: S311
                 ),
                 "year": "-".join(
-                    [str(randint(1900, 2020)), str(randint(1, 12)), str(randint(1, 28))]
+                    [str(randint(1900, 2020)), str(randint(1, 12)), str(randint(1, 28))]  # noqa: S311
                 ),
                 "NY_GNP_PCAP_CD": get_random_float_or_none(0, 100, 0.3),
                 "SE_ADT_1524_LT_FM_ZS": get_random_float_or_none(0, 100, 0.3),
@@ -522,7 +522,7 @@ def _get_world_bank_data() -> list[dict[Any, Any]]:
 
 
 def get_random_float_or_none(min_value, max_value, none_probability):
-    if random() < none_probability:
+    if random() < none_probability:  # noqa: S311
         return None
     else:
-        return uniform(min_value, max_value)
+        return uniform(min_value, max_value)  # noqa: S311

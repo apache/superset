@@ -30,7 +30,7 @@ from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 logger = logging.getLogger()
 
@@ -131,7 +131,7 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             # uses the max size for redshift nvarchar(65335)
             # the default object and string types create a varchar(256)
             col_name: NVARCHAR(length=65535)
-            for col_name, type in zip(df.columns, df.dtypes)
+            for col_name, type in zip(df.columns, df.dtypes, strict=False)
             if isinstance(type, pd.StringDtype)
         }
 
@@ -176,7 +176,7 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         try:
             logger.info("Killing Redshift PID:%s", str(cancel_query_id))
             cursor.execute(
-                "SELECT pg_cancel_backend(procpid) "
+                "SELECT pg_cancel_backend(procpid) "  # noqa: S608
                 "FROM pg_stat_activity "
                 f"WHERE procpid='{cancel_query_id}'"
             )

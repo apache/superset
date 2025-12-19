@@ -30,8 +30,10 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { URL_PARAMS } from 'src/constants';
 import {
+  DISABLE_INPUT_OPERATORS,
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   UNSAVED_CHART_ID,
@@ -68,7 +70,7 @@ export function getAnnotationJsonUrl(slice_id, force) {
 
   const uri = URI(window.location.search);
   return uri
-    .pathname('/api/v1/chart/data')
+    .pathname(ensureAppRoot('/api/v1/chart/data'))
     .search({
       form_data: safeStringify({ slice_id }),
       force,
@@ -83,9 +85,9 @@ export function getURIDirectory(endpointType = 'base') {
       endpointType,
     )
   ) {
-    return '/superset/explore_json/';
+    return ensureAppRoot('/superset/explore_json/');
   }
-  return '/explore/';
+  return ensureAppRoot('/explore/');
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
@@ -112,7 +114,7 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
     protocol: window.location.protocol.slice(0, -1),
     hostname: getHostName(allowDomainSharding),
     port: window.location.port ? window.location.port : '',
-    path,
+    path: ensureAppRoot(path),
   });
   if (qs) {
     uri = uri.search(qs);
@@ -142,7 +144,10 @@ export function getExploreUrl({
   // eslint-disable-next-line no-param-reassign
   delete formData.label_colors;
 
-  let uri = getChartDataUri({ path: '/', allowDomainSharding });
+  let uri = getChartDataUri({
+    path: '/',
+    allowDomainSharding,
+  });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
@@ -202,7 +207,7 @@ export const getQuerySettings = formData => {
   ];
 };
 
-export const buildV1ChartDataPayload = ({
+export const buildV1ChartDataPayload = async ({
   formData,
   force,
   resultFormat,
@@ -237,12 +242,13 @@ export const buildV1ChartDataPayload = ({
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
 
-export const exportChart = ({
+export const exportChart = async ({
   formData,
   resultFormat = 'json',
   resultType = 'full',
   force = false,
   ownState = {},
+  onStartStreamingExport = null,
 }) => {
   let url;
   let payload;
@@ -256,8 +262,8 @@ export const exportChart = ({
     });
     payload = formData;
   } else {
-    url = '/api/v1/chart/data';
-    payload = buildV1ChartDataPayload({
+    url = ensureAppRoot('/api/v1/chart/data');
+    payload = await buildV1ChartDataPayload({
       formData,
       force,
       resultFormat,
@@ -267,7 +273,18 @@ export const exportChart = ({
     });
   }
 
-  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  // Check if streaming export handler is provided (from dashboard Chart.jsx)
+  if (onStartStreamingExport) {
+    // Streaming is handled by the caller - pass URL, payload, and export type
+    onStartStreamingExport({
+      url,
+      payload,
+      exportType: resultFormat,
+    });
+  } else {
+    // Fallback to original behavior for non-streaming exports
+    SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  }
 };
 
 export const exploreChart = (formData, requestParams) => {
@@ -300,6 +317,10 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
     [...MULTI_OPERATORS]
       .map(op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation)
       .indexOf(operator) >= 0;
+  const showComparator =
+    DISABLE_INPUT_OPERATORS.map(
+      op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
+    ).indexOf(operator) === -1;
   // If returned value is an object after changing dataset
   let expression =
     typeof subject === 'object'
@@ -314,13 +335,13 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
       firstValue !== undefined && Number.isNaN(Number(firstValue));
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
-    const formattedComparators = comparatorArray
-      .map(val => optionLabel(val))
-      .map(
-        val =>
-          `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
-      );
-    if (comparatorArray.length > 0) {
+    if (comparatorArray.length > 0 && showComparator) {
+      const formattedComparators = comparatorArray
+        .map(val => optionLabel(val))
+        .map(
+          val =>
+            `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
+        );
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }
   }

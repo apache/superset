@@ -38,7 +38,7 @@ from superset.migrations.shared.security_converge import (  # noqa: E402
     Pvm,
 )
 
-NEW_PVMS = {"Dashboard": ("can_view_chart_as_table",)}
+NEW_PVMS = {"Dashboard": ("can_view_chart_as_table", "can_view_query")}
 
 PVM_MAP = {
     Pvm("Dashboard", "can_view_and_drill"): (

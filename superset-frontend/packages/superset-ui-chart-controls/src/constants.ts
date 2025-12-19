@@ -16,16 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DTTM_ALIAS,
-  GenericDataType,
-  QueryColumn,
-  QueryMode,
-  t,
-} from '@superset-ui/core';
+import { DTTM_ALIAS, QueryColumn, QueryMode, t } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta, SortSeriesData, SortSeriesType } from './types';
 
 export const DEFAULT_MAX_ROW = 100000;
+export const DEFAULT_MAX_ROW_TABLE_SERVER = 500000;
 
 // eslint-disable-next-line import/prefer-default-export
 export const TIME_FILTER_LABELS = {
@@ -80,3 +76,6 @@ export const DEFAULT_XAXIS_SORT_SERIES_DATA: SortSeriesData = {
 };
 
 export const DEFAULT_DATE_PATTERN = /\d{4}-\d{2}-\d{2}/g;
+
+// When it fails to parse a date
+export const INVALID_DATE = 'Invalid date';

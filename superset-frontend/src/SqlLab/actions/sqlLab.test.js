@@ -20,8 +20,7 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { waitFor } from '@testing-library/react';
-import * as uiCore from '@superset-ui/core';
+import { waitFor } from 'spec/helpers/testing-library';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { LOG_EVENT } from 'src/logger/actions';
 import {
@@ -30,6 +29,9 @@ import {
   initialState,
   queryId,
 } from 'src/SqlLab/fixtures';
+import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { ToastType } from '../../components/MessageToasts/types';
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
@@ -42,6 +44,12 @@ afterAll(() => {
   jest.resetAllMocks();
 });
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getUpToDateQuery', () => {
   test('should return the up to date query editor state', () => {
     const outOfUpdatedQueryEditor = {
@@ -65,6 +73,7 @@ describe('getUpToDateQuery', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('async actions', () => {
   const mockBigNumber = '9223372036854775807';
   const queryEditor = {
@@ -82,7 +91,7 @@ describe('async actions', () => {
     dispatch = sinon.spy();
   });
 
-  afterEach(fetchMock.resetHistory);
+  afterEach(() => fetchMock.resetHistory());
 
   const fetchQueryEndpoint = 'glob:*/api/v1/sqllab/results/*';
   fetchMock.get(
@@ -93,6 +102,7 @@ describe('async actions', () => {
   const runQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
   fetchMock.post(runQueryEndpoint, `{ "data": ${mockBigNumber} }`);
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('saveQuery', () => {
     const saveQueryEndpoint = 'glob:*/api/v1/saved_query/';
     fetchMock.post(saveQueryEndpoint, { results: { json: {} } });
@@ -102,7 +112,7 @@ describe('async actions', () => {
       return request(dispatch, () => initialState);
     };
 
-    it('posts to the correct url', () => {
+    test('posts to the correct url', () => {
       expect.assertions(1);
 
       const store = mockStore(initialState);
@@ -111,7 +121,7 @@ describe('async actions', () => {
       });
     });
 
-    it('posts the correct query object', () => {
+    test('posts the correct query object', () => {
       const store = mockStore(initialState);
       return store.dispatch(actions.saveQuery(query, queryId)).then(() => {
         const call = fetchMock.calls(saveQueryEndpoint)[0];
@@ -124,7 +134,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls 3 dispatch actions', () => {
+    test('calls 3 dispatch actions', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -132,7 +142,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls QUERY_EDITOR_SAVED after making a request', () => {
+    test('calls QUERY_EDITOR_SAVED after making a request', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -140,7 +150,7 @@ describe('async actions', () => {
       });
     });
 
-    it('onSave calls QUERY_EDITOR_SAVED and QUERY_EDITOR_SET_TITLE', () => {
+    test('onSave calls QUERY_EDITOR_SAVED and QUERY_EDITOR_SET_TITLE', () => {
       expect.assertions(1);
 
       const store = mockStore(initialState);
@@ -156,10 +166,20 @@ describe('async actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('formatQuery', () => {
     const formatQueryEndpoint = 'glob:*/api/v1/sqllab/format_sql/';
     const expectedSql = 'SELECT 1';
-    fetchMock.post(formatQueryEndpoint, { result: expectedSql });
+
+    beforeEach(() => {
+      fetchMock.post(
+        formatQueryEndpoint,
+        { result: expectedSql },
+        {
+          overwriteRoutes: true,
+        },
+      );
+    });
 
     test('posts to the correct url', async () => {
       const store = mockStore(initialState);
@@ -170,15 +190,201 @@ describe('async actions', () => {
       expect(store.getActions()[0].type).toBe(actions.QUERY_EDITOR_SET_SQL);
       expect(store.getActions()[0].sql).toBe(expectedSql);
     });
+
+    test('sends only sql in request body when no dbId or templateParams', async () => {
+      const queryEditorWithoutExtras = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM table',
+        dbId: null,
+        templateParams: null,
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [queryEditorWithoutExtras],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      store.dispatch(actions.formatQuery(queryEditorWithoutExtras));
+
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+
+      const call = fetchMock.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call[1].body);
+
+      expect(body).toEqual({ sql: 'SELECT * FROM table' });
+      expect(body.database_id).toBeUndefined();
+      expect(body.template_params).toBeUndefined();
+    });
+
+    test('includes database_id in request when dbId is provided', async () => {
+      const queryEditorWithDb = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM table',
+        dbId: 5,
+        templateParams: null,
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [queryEditorWithDb],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      store.dispatch(actions.formatQuery(queryEditorWithDb));
+
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+
+      const call = fetchMock.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call[1].body);
+
+      expect(body).toEqual({
+        sql: 'SELECT * FROM table',
+        database_id: 5,
+      });
+    });
+
+    test('includes template_params as string when provided as string', async () => {
+      const queryEditorWithTemplateString = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM table WHERE id = {{ user_id }}',
+        dbId: 5,
+        templateParams: '{"user_id": 123}',
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [queryEditorWithTemplateString],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      store.dispatch(actions.formatQuery(queryEditorWithTemplateString));
+
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+
+      const call = fetchMock.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call[1].body);
+
+      expect(body).toEqual({
+        sql: 'SELECT * FROM table WHERE id = {{ user_id }}',
+        database_id: 5,
+        template_params: '{"user_id": 123}',
+      });
+    });
+
+    test('stringifies template_params when provided as object', async () => {
+      const queryEditorWithTemplateObject = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM table WHERE id = {{ user_id }}',
+        dbId: 5,
+        templateParams: { user_id: 123, status: 'active' },
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [queryEditorWithTemplateObject],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      store.dispatch(actions.formatQuery(queryEditorWithTemplateObject));
+
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+
+      const call = fetchMock.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call[1].body);
+
+      expect(body).toEqual({
+        sql: 'SELECT * FROM table WHERE id = {{ user_id }}',
+        database_id: 5,
+        template_params: '{"user_id":123,"status":"active"}',
+      });
+    });
+
+    test('dispatches QUERY_EDITOR_SET_SQL with formatted result', async () => {
+      const formattedSql = 'SELECT\n  *\nFROM\n  table';
+      fetchMock.post(
+        formatQueryEndpoint,
+        { result: formattedSql },
+        {
+          overwriteRoutes: true,
+        },
+      );
+
+      const queryEditorToFormat = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM table',
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [queryEditorToFormat],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      await store.dispatch(actions.formatQuery(queryEditorToFormat));
+
+      const dispatchedActions = store.getActions();
+      expect(dispatchedActions).toHaveLength(1);
+      expect(dispatchedActions[0].type).toBe(actions.QUERY_EDITOR_SET_SQL);
+      expect(dispatchedActions[0].sql).toBe(formattedSql);
+    });
+
+    test('uses up-to-date query editor state from store', async () => {
+      const outdatedQueryEditor = {
+        ...defaultQueryEditor,
+        sql: 'OLD SQL',
+        dbId: 1,
+      };
+      const upToDateQueryEditor = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM updated_table',
+        dbId: 10,
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [upToDateQueryEditor],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      // Pass outdated query editor, but expect the function to use the up-to-date one from store
+      store.dispatch(actions.formatQuery(outdatedQueryEditor));
+
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+
+      const call = fetchMock.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call[1].body);
+
+      expect(body.sql).toBe('SELECT * FROM updated_table');
+      expect(body.database_id).toBe(10);
+    });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('fetchQueryResults', () => {
     const makeRequest = () => {
+      const store = mockStore(initialState);
       const request = actions.fetchQueryResults(query);
-      return request(dispatch);
+      return request(dispatch, store.getState);
     };
 
-    it('makes the fetch request', () => {
+    test('makes the fetch request', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -186,7 +392,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls requestQueryResults', () => {
+    test('calls requestQueryResults', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -194,7 +400,7 @@ describe('async actions', () => {
       });
     });
 
-    it.skip('parses large number result without losing precision', () =>
+    test.skip('parses large number result without losing precision', () =>
       makeRequest().then(() => {
         expect(fetchMock.calls(fetchQueryEndpoint)).toHaveLength(1);
         expect(dispatch.callCount).toBe(2);
@@ -203,7 +409,7 @@ describe('async actions', () => {
         );
       }));
 
-    it('calls querySuccess on fetch success', () => {
+    test('calls querySuccess on fetch success', () => {
       expect.assertions(1);
 
       const store = mockStore({});
@@ -218,7 +424,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls queryFailed on fetch error', () => {
+    test('calls queryFailed on fetch error', () => {
       expect.assertions(1);
 
       fetchMock.get(
@@ -240,13 +446,14 @@ describe('async actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('runQuery without query params', () => {
     const makeRequest = () => {
       const request = actions.runQuery(query);
       return request(dispatch, () => initialState);
     };
 
-    it('makes the fetch request', () => {
+    test('makes the fetch request', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -254,7 +461,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls startQuery', () => {
+    test('calls startQuery', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -262,7 +469,7 @@ describe('async actions', () => {
       });
     });
 
-    it.skip('parses large number result without losing precision', () =>
+    test.skip('parses large number result without losing precision', () =>
       makeRequest().then(() => {
         expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
         expect(dispatch.callCount).toBe(2);
@@ -271,7 +478,7 @@ describe('async actions', () => {
         );
       }));
 
-    it('calls querySuccess on fetch success', () => {
+    test('calls querySuccess on fetch success', () => {
       expect.assertions(1);
 
       const store = mockStore({});
@@ -285,8 +492,8 @@ describe('async actions', () => {
       });
     });
 
-    it('calls queryFailed on fetch error and logs the error details', () => {
-      expect.assertions(3);
+    test('calls queryFailed on fetch error and logs the error details', () => {
+      expect.assertions(2);
 
       fetchMock.post(
         runQueryEndpoint,
@@ -304,7 +511,6 @@ describe('async actions', () => {
       const expectedActionTypes = [
         actions.START_QUERY,
         LOG_EVENT,
-        LOG_EVENT,
         actions.QUERY_FAILED,
       ];
       const { dispatch } = store;
@@ -312,16 +518,12 @@ describe('async actions', () => {
       return request(dispatch, () => initialState).then(() => {
         const actions = store.getActions();
         expect(actions.map(a => a.type)).toEqual(expectedActionTypes);
-        expect(actions[1].payload.eventData.error_details).toContain(
-          'Issue 1000',
-        );
-        expect(actions[2].payload.eventData.error_details).toContain(
-          'Issue 1001',
-        );
+        expect(actions[1].payload.eventData.issue_codes).toEqual([1000, 1001]);
       });
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('runQuery with query params', () => {
     const { location } = window;
 
@@ -340,7 +542,7 @@ describe('async actions', () => {
       return request(dispatch, () => initialState);
     };
 
-    it('makes the fetch request', async () => {
+    test('makes the fetch request', async () => {
       const runQueryEndpointWithParams =
         'glob:*/api/v1/sqllab/execute/?foo=bar';
       fetchMock.post(
@@ -353,8 +555,9 @@ describe('async actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('reRunQuery', () => {
-    it('creates new query with a new id', () => {
+    test('creates new query with a new id', () => {
       const id = 'id';
       const state = {
         sqlLab: {
@@ -370,6 +573,7 @@ describe('async actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('postStopQuery', () => {
     const stopQueryEndpoint = 'glob:*/api/v1/query/stop';
     fetchMock.post(stopQueryEndpoint, {});
@@ -383,7 +587,7 @@ describe('async actions', () => {
       return request(dispatch);
     };
 
-    it('makes the fetch request', () => {
+    test('makes the fetch request', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -391,7 +595,7 @@ describe('async actions', () => {
       });
     });
 
-    it('calls stopQuery', () => {
+    test('calls stopQuery', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -399,7 +603,7 @@ describe('async actions', () => {
       });
     });
 
-    it('sends the correct data', () => {
+    test('sends the correct data', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
@@ -410,8 +614,9 @@ describe('async actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('cloneQueryToNewTab', () => {
-    it('creates new query editor', () => {
+    test('creates new query editor', () => {
       expect.assertions(1);
 
       const id = 'id';
@@ -439,6 +644,7 @@ describe('async actions', () => {
             queryLimit: undefined,
             maxRow: undefined,
             id: 'abcd',
+            immutableId: 'abcd',
             templateParams: undefined,
             inLocalStorage: true,
             loaded: true,
@@ -452,8 +658,116 @@ describe('async actions', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('popSavedQuery', () => {
+    const supersetClientGetSpy = jest.spyOn(SupersetClient, 'get');
+    const store = mockStore({});
+
+    const mockSavedQueryApiResponse = {
+      catalog: null,
+      changed_by: {
+        first_name: 'Superset',
+        id: 1,
+        last_name: 'Admin',
+      },
+      changed_on: '2024-12-28T20:06:14.246743',
+      changed_on_delta_humanized: '8 days ago',
+      created_by: {
+        first_name: 'Superset',
+        id: 1,
+        last_name: 'Admin',
+      },
+      database: {
+        database_name: 'examples',
+        id: 2,
+      },
+      description: '',
+      id: 1,
+      label: 'Query 1',
+      schema: 'public',
+      sql: 'SELECT * FROM channels',
+      sql_tables: [
+        {
+          catalog: null,
+          schema: null,
+          table: 'channels',
+        },
+      ],
+      template_parameters: null,
+    };
+
+    const makeRequest = id => {
+      const request = actions.popSavedQuery(id);
+      const { dispatch } = store;
+
+      return request(dispatch, () => initialState);
+    };
+
+    beforeEach(() => {
+      supersetClientGetSpy.mockClear();
+      store.clearActions();
+    });
+
+    afterAll(() => {
+      supersetClientGetSpy.mockRestore();
+    });
+
+    test('calls API endpint with correct params', async () => {
+      supersetClientGetSpy.mockResolvedValue({
+        json: { result: mockSavedQueryApiResponse },
+      });
+
+      await makeRequest(123);
+
+      expect(supersetClientGetSpy).toHaveBeenCalledWith({
+        endpoint: '/api/v1/saved_query/123',
+      });
+    });
+
+    test('dispatches addQueryEditor with correct params on successful API call', async () => {
+      supersetClientGetSpy.mockResolvedValue({
+        json: { result: mockSavedQueryApiResponse },
+      });
+
+      const expectedParams = {
+        name: 'Query 1',
+        dbId: 2,
+        catalog: null,
+        schema: 'public',
+        sql: 'SELECT * FROM channels',
+        templateParams: null,
+        remoteId: 1,
+      };
+
+      await makeRequest(1);
+
+      const addQueryEditorAction = store
+        .getActions()
+        .find(action => action.type === actions.ADD_QUERY_EDITOR);
+
+      expect(addQueryEditorAction).toBeTruthy();
+      expect(addQueryEditorAction?.queryEditor).toEqual(
+        expect.objectContaining(expectedParams),
+      );
+    });
+
+    test('should dispatch addDangerToast on API error', async () => {
+      supersetClientGetSpy.mockResolvedValue(new Error());
+
+      await makeRequest(1);
+
+      const addToastAction = store
+        .getActions()
+        .find(action => action.type === ADD_TOAST);
+
+      expect(addToastAction).toBeTruthy();
+      expect(addToastAction?.payload?.toastType).toBe(ToastType.Danger);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('addQueryEditor', () => {
-    it('creates new query editor', () => {
+    test('creates new query editor', () => {
       expect.assertions(1);
 
       const store = mockStore(initialState);
@@ -462,6 +776,7 @@ describe('async actions', () => {
           type: actions.ADD_QUERY_EDITOR,
           queryEditor: {
             ...queryEditor,
+            immutableId: 'abcd',
             inLocalStorage: true,
             loaded: true,
           },
@@ -472,8 +787,9 @@ describe('async actions', () => {
       expect(store.getActions()).toEqual(expectedActions);
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('addNewQueryEditor', () => {
-      it('creates new query editor with new tab name', () => {
+      test('creates new query editor with new tab name', () => {
         const store = mockStore({
           ...initialState,
           sqlLab: {
@@ -489,6 +805,7 @@ describe('async actions', () => {
             type: actions.ADD_QUERY_EDITOR,
             queryEditor: {
               id: 'abcd',
+              immutableId: 'abcd',
               sql: expect.stringContaining('SELECT ...'),
               name: `Untitled Query 7`,
               dbId: defaultQueryEditor.dbId,
@@ -510,7 +827,7 @@ describe('async actions', () => {
     });
   });
 
-  it('set current query editor', () => {
+  test('set current query editor', () => {
     expect.assertions(1);
 
     const store = mockStore(initialState);
@@ -525,6 +842,87 @@ describe('async actions', () => {
     expect(store.getActions()).toEqual(expectedActions);
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('swithQueryEditor', () => {
+    test('switch to the next tab editor', () => {
+      const store = mockStore(initialState);
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor: initialState.sqlLab.queryEditors[1],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor());
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+
+    test('switch to the first tab editor once it reaches the rightmost tab', () => {
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          tabHistory: [
+            initialState.sqlLab.queryEditors[
+              initialState.sqlLab.queryEditors.length - 1
+            ].id,
+          ],
+        },
+      });
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor: initialState.sqlLab.queryEditors[0],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor());
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+
+    test('switch to the previous tab editor', () => {
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          tabHistory: [initialState.sqlLab.queryEditors[1].id],
+        },
+      });
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor: initialState.sqlLab.queryEditors[0],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor(true));
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+
+    test('switch to the last tab editor once it reaches the leftmost tab', () => {
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          tabHistory: [initialState.sqlLab.queryEditors[0].id],
+        },
+      });
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor:
+            initialState.sqlLab.queryEditors[
+              initialState.sqlLab.queryEditors.length - 1
+            ],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor(true));
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('backend sync', () => {
     const updateTabStateEndpoint = 'glob:*/tabstateview/*';
     fetchMock.put(updateTabStateEndpoint, {});
@@ -543,24 +941,21 @@ describe('async actions', () => {
       'glob:**/api/v1/database/*/table_metadata/extra/*';
     fetchMock.get(getExtraTableMetadataEndpoint, {});
 
-    let isFeatureEnabledMock;
-
     beforeEach(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(
-          feature => feature === 'SQLLAB_BACKEND_PERSISTENCE',
-        );
+      isFeatureEnabled.mockImplementation(
+        feature => feature === 'SQLLAB_BACKEND_PERSISTENCE',
+      );
     });
 
     afterEach(() => {
-      isFeatureEnabledMock.mockRestore();
+      isFeatureEnabled.mockRestore();
     });
 
-    afterEach(fetchMock.resetHistory);
+    afterEach(() => fetchMock.resetHistory());
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('addQueryEditor', () => {
-      it('creates the tab state in the local storage', () => {
+      test('creates the tab state in the local storage', () => {
         expect.assertions(2);
 
         const store = mockStore({});
@@ -570,6 +965,7 @@ describe('async actions', () => {
             queryEditor: {
               ...queryEditor,
               id: 'abcd',
+              immutableId: 'abcd',
               loaded: true,
               inLocalStorage: true,
             },
@@ -582,8 +978,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('removeQueryEditor', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const store = mockStore({});
@@ -598,8 +995,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('queryEditorSetDb', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const dbId = 42;
@@ -616,8 +1014,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('queryEditorSetCatalog', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const catalog = 'public';
@@ -634,8 +1033,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('queryEditorSetSchema', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const schema = 'schema';
@@ -652,8 +1052,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('queryEditorSetAutorun', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const autorun = true;
@@ -670,8 +1071,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('queryEditorSetTitle', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const name = 'name';
@@ -690,6 +1092,7 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('queryEditorSetAndSaveSql', () => {
       const sql = 'SELECT * ';
       const expectedActions = [
@@ -699,8 +1102,9 @@ describe('async actions', () => {
           sql,
         },
       ];
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('with backend persistence flag on', () => {
-        it('updates the tab state in the backend', () => {
+        test('updates the tab state in the backend', () => {
           expect.assertions(2);
 
           const store = mockStore({
@@ -717,13 +1121,12 @@ describe('async actions', () => {
           });
         });
       });
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('with backend persistence flag off', () => {
-        it('does not update the tab state in the backend', () => {
-          const backendPersistenceOffMock = jest
-            .spyOn(uiCore, 'isFeatureEnabled')
-            .mockImplementation(
-              feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
-            );
+        test('does not update the tab state in the backend', () => {
+          isFeatureEnabled.mockImplementation(
+            feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
+          );
 
           const store = mockStore({
             ...initialState,
@@ -737,13 +1140,14 @@ describe('async actions', () => {
 
           expect(store.getActions()).toEqual(expectedActions);
           expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
-          backendPersistenceOffMock.mockRestore();
+          isFeatureEnabled.mockRestore();
         });
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('queryEditorSetQueryLimit', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const queryLimit = 10;
@@ -762,8 +1166,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('queryEditorSetTemplateParams', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(1);
 
         const templateParams = '{"foo": "bar"}';
@@ -783,8 +1188,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('addTable', () => {
-      it('dispatches table state from unsaved change', () => {
+      test('dispatches table state from unsaved change', () => {
         const tableName = 'table';
         const catalogName = null;
         const schemaName = 'schema';
@@ -817,10 +1223,90 @@ describe('async actions', () => {
           }),
         );
       });
+
+      test('uses tabViewId when available', () => {
+        const tableName = 'table';
+        const catalogName = null;
+        const schemaName = 'schema';
+        const expectedDbId = 473892;
+        const tabViewId = '123';
+        const queryWithTabViewId = { ...query, tabViewId };
+
+        const store = mockStore({
+          ...initialState,
+          sqlLab: {
+            ...initialState.sqlLab,
+            unsavedQueryEditor: {
+              id: query.id,
+              dbId: expectedDbId,
+            },
+          },
+        });
+
+        const request = actions.addTable(
+          queryWithTabViewId,
+          tableName,
+          catalogName,
+          schemaName,
+        );
+        request(store.dispatch, store.getState);
+
+        expect(store.getActions()[0]).toEqual(
+          expect.objectContaining({
+            table: expect.objectContaining({
+              name: tableName,
+              catalog: catalogName,
+              schema: schemaName,
+              dbId: expectedDbId,
+              queryEditorId: tabViewId, // Should use tabViewId, not id
+            }),
+          }),
+        );
+      });
+
+      test('falls back to id when tabViewId is not available', () => {
+        const tableName = 'table';
+        const catalogName = null;
+        const schemaName = 'schema';
+        const expectedDbId = 473892;
+        const queryWithoutTabViewId = { ...query, tabViewId: undefined };
+
+        const store = mockStore({
+          ...initialState,
+          sqlLab: {
+            ...initialState.sqlLab,
+            unsavedQueryEditor: {
+              id: query.id,
+              dbId: expectedDbId,
+            },
+          },
+        });
+
+        const request = actions.addTable(
+          queryWithoutTabViewId,
+          tableName,
+          catalogName,
+          schemaName,
+        );
+        request(store.dispatch, store.getState);
+
+        expect(store.getActions()[0]).toEqual(
+          expect.objectContaining({
+            table: expect.objectContaining({
+              name: tableName,
+              catalog: catalogName,
+              schema: schemaName,
+              dbId: expectedDbId,
+              queryEditorId: query.id, // Should use id when tabViewId is not available
+            }),
+          }),
+        );
+      });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('syncTable', () => {
-      it('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend', () => {
         expect.assertions(4);
 
         const tableName = 'table';
@@ -843,31 +1329,40 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('runTablePreviewQuery', () => {
-      it('updates and runs data preview query when configured', () => {
-        expect.assertions(3);
+      const results = {
+        data: mockBigNumber,
+        query: { sqlEditorId: 'null', dbId: 1 },
+        query_id: 'efgh',
+      };
+      const tableName = 'table';
+      const catalogName = null;
+      const schemaName = 'schema';
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          databases: {
+            1: { disable_data_preview: false },
+          },
+        },
+      });
 
-        const results = {
-          data: mockBigNumber,
-          query: { sqlEditorId: 'null', dbId: 1 },
-          query_id: 'efgh',
-        };
+      beforeEach(() => {
         fetchMock.post(runQueryEndpoint, JSON.stringify(results), {
           overwriteRoutes: true,
         });
+      });
 
-        const tableName = 'table';
-        const catalogName = null;
-        const schemaName = 'schema';
-        const store = mockStore({
-          ...initialState,
-          sqlLab: {
-            ...initialState.sqlLab,
-            databases: {
-              1: { disable_data_preview: false },
-            },
-          },
-        });
+      afterEach(() => {
+        store.clearActions();
+        fetchMock.resetHistory();
+      });
+
+      test('updates and runs data preview query when configured', () => {
+        expect.assertions(3);
+
         const expectedActionTypes = [
           actions.MERGE_TABLE, // addTable (data preview)
           actions.START_QUERY, // runQuery (data preview)
@@ -888,10 +1383,35 @@ describe('async actions', () => {
           expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
         });
       });
+
+      test('runs data preview query only', () => {
+        const expectedActionTypes = [
+          actions.START_QUERY, // runQuery (data preview)
+          actions.QUERY_SUCCESS, // querySuccess
+        ];
+        const request = actions.runTablePreviewQuery(
+          {
+            dbId: 1,
+            name: tableName,
+            catalog: catalogName,
+            schema: schemaName,
+          },
+          true,
+        );
+        return request(store.dispatch, store.getState).then(() => {
+          expect(store.getActions().map(a => a.type)).toEqual(
+            expectedActionTypes,
+          );
+          expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
+          // tab state is not updated, since the query is a data preview
+          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+        });
+      });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('expandTable', () => {
-      it('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend', () => {
         expect.assertions(2);
 
         const table = { id: 1 };
@@ -909,8 +1429,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('collapseTable', () => {
-      it('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend', () => {
         expect.assertions(2);
 
         const table = { id: 1 };
@@ -928,8 +1449,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('removeTables', () => {
-      it('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend', () => {
         expect.assertions(2);
 
         const table = { id: 1, initialized: true };
@@ -946,7 +1468,7 @@ describe('async actions', () => {
         });
       });
 
-      it('deletes multiple tables and updates the table schema state in the backend', () => {
+      test('deletes multiple tables and updates the table schema state in the backend', () => {
         expect.assertions(2);
 
         const tables = [
@@ -966,7 +1488,7 @@ describe('async actions', () => {
         });
       });
 
-      it('only updates the initialized table schema state in the backend', () => {
+      test('only updates the initialized table schema state in the backend', () => {
         expect.assertions(2);
 
         const tables = [{ id: 1 }, { id: 2, initialized: true }];
@@ -984,8 +1506,9 @@ describe('async actions', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('syncQueryEditor', () => {
-      it('updates the tab state in the backend', () => {
+      test('updates the tab state in the backend', () => {
         expect.assertions(3);
 
         const results = {
@@ -1039,15 +1562,10 @@ describe('async actions', () => {
             // new qe has a different id
             newQueryEditor: {
               ...oldQueryEditor,
-              id: '1',
+              tabViewId: '1',
               inLocalStorage: false,
               loaded: true,
             },
-          },
-          {
-            type: actions.MIGRATE_TAB_HISTORY,
-            newId: '1',
-            oldId: 'abcd',
           },
           {
             type: actions.MIGRATE_TABLE,

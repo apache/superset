@@ -25,10 +25,20 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
-import { isNumber } from 'lodash';
+import { Color } from '@deck.gl/core';
+import { GeoBoundingBox, TileLayer } from '@deck.gl/geo-layers';
+import { BitmapLayer, PathLayer } from '@deck.gl/layers';
 import { hexToRGB } from './utils/colors';
+import { ColorBreakpointType } from './types';
+
+export const TRANSPARENT_COLOR_ARRAY = [0, 0, 0, 0] as Color;
+export const HIGHLIGHT_COLOR_ARRAY = [255, 0, 0, 255] as Color;
 
 const DEFAULT_NUM_BUCKETS = 10;
+
+export const MAPBOX_LAYER_PREFIX = 'mapbox://';
+export const TILE_LAYER_PREFIX = 'tile://';
+export const OSM_LAYER_KEYWORDS = ['openstreetmap', 'osm'];
 
 export type Buckets = {
   break_points: string[];
@@ -65,19 +75,35 @@ export function getBreakPoints(
     if (minValue === undefined || maxValue === undefined) {
       return [];
     }
+    // Handle Infinity values
+    if (!Number.isFinite(minValue) || !Number.isFinite(maxValue)) {
+      return [];
+    }
     const delta = (maxValue - minValue) / numBuckets;
     const precision =
       delta === 0 ? 0 : Math.max(0, Math.ceil(Math.log10(1 / delta)));
-    const extraBucket =
-      maxValue > parseFloat(maxValue.toFixed(precision)) ? 1 : 0;
-    const startValue =
-      minValue < parseFloat(minValue.toFixed(precision))
-        ? minValue - 1
-        : minValue;
 
-    return new Array(numBuckets + 1 + extraBucket)
-      .fill(0)
-      .map((_, i) => (startValue + i * delta).toFixed(precision));
+    // Generate breakpoints
+    const breakPoints = new Array(numBuckets + 1).fill(0).map((_, i) => {
+      const value = minValue + i * delta;
+
+      // For the first breakpoint, floor to ensure minimum is included
+      if (i === 0) {
+        const scale = Math.pow(10, precision);
+        return (Math.floor(minValue * scale) / scale).toFixed(precision);
+      }
+
+      // For the last breakpoint, ceil to ensure maximum is included
+      if (i === numBuckets) {
+        const scale = Math.pow(10, precision);
+        return (Math.ceil(maxValue * scale) / scale).toFixed(precision);
+      }
+
+      // For middle breakpoints, use standard rounding
+      return value.toFixed(precision);
+    });
+
+    return breakPoints;
   }
 
   return formDataBreakPoints.sort(
@@ -94,7 +120,7 @@ export function getBreakPointColorScaler(
   }: BucketsWithColorScale,
   features: JsonObject[],
   accessor: (value: JsonObject) => number | undefined,
-) {
+): (data?: JsonObject) => Color {
   const breakPoints =
     formDataBreakPoints || formDataNumBuckets
       ? getBreakPoints(
@@ -114,7 +140,7 @@ export function getBreakPointColorScaler(
     : getSequentialSchemeRegistry().get(linearColorScheme);
 
   if (!colorScheme) {
-    return null;
+    return () => TRANSPARENT_COLOR_ARRAY;
   }
   let scaler: ScaleLinear<string, string> | ScaleThreshold<number, string>;
   let maskPoint: (v: number | undefined) => boolean;
@@ -136,11 +162,14 @@ export function getBreakPointColorScaler(
     scaler = scaleThreshold<number, string>()
       .domain(points)
       .range(bucketedColors);
-    maskPoint = value => !!value && (value > points[n] || value < points[0]);
+    // Only mask values that are strictly outside the min/max bounds
+    // Include values equal to the max breakpoint
+    maskPoint = value =>
+      !!value && (value > points[points.length - 1] || value < points[0]);
   } else {
     // interpolate colors linearly
     const linearScaleDomain = extent(features, accessor);
-    if (!linearScaleDomain.some(isNumber)) {
+    if (!linearScaleDomain.some(i => typeof i === 'number')) {
       scaler = colorScheme.createLinearScale();
     } else {
       scaler = colorScheme.createLinearScale(
@@ -150,10 +179,10 @@ export function getBreakPointColorScaler(
     maskPoint = () => false;
   }
 
-  return (d: JsonObject): [number, number, number, number] => {
+  return (d: JsonObject): Color => {
     const v = accessor(d);
     if (!v) {
-      return [0, 0, 0, 0];
+      return TRANSPARENT_COLOR_ARRAY;
     }
     const c = hexToRGB(scaler(v));
     if (maskPoint(v)) {
@@ -173,8 +202,11 @@ export function getBuckets(
 ) {
   const breakPoints = getBreakPoints(fd, features, accessor);
   const colorScaler = getBreakPointColorScaler(fd, features, accessor);
-  const buckets = {};
-  breakPoints.slice(1).forEach((value, i) => {
+  const buckets: Record<
+    string,
+    { color: Color | undefined; enabled: boolean }
+  > = {};
+  breakPoints.slice(1).forEach((_, i) => {
     const range = `${breakPoints[i]} - ${breakPoints[i + 1]}`;
     const mid =
       0.5 * (parseFloat(breakPoints[i]) + parseFloat(breakPoints[i + 1]));
@@ -187,4 +219,66 @@ export function getBuckets(
   });
 
   return buckets;
+}
+
+export function getColorBreakpointsBuckets(
+  colorBreakpoints: ColorBreakpointType[],
+) {
+  const breakpoints = colorBreakpoints || [];
+
+  const buckets: Record<string, { color: Color; enabled: boolean }> = {};
+
+  if (!breakpoints || !breakpoints.length) {
+    return buckets;
+  }
+
+  breakpoints.forEach((breakpoint: ColorBreakpointType) => {
+    const range = `${breakpoint.minValue} - ${breakpoint.maxValue}`;
+
+    buckets[range] = {
+      color: [breakpoint.color.r, breakpoint.color.g, breakpoint.color.b],
+      enabled: true,
+    };
+  });
+
+  return buckets;
+}
+
+export function buildTileLayer(url: string, id: string) {
+  interface TileLayerProps {
+    id: string;
+    data: string;
+    minZoom: number;
+    maxZoom: number;
+    tileSize: number;
+    renderSubLayers: (props: any) => (BitmapLayer | PathLayer)[];
+  }
+
+  interface RenderSubLayerProps {
+    tile: {
+      bbox: GeoBoundingBox;
+    };
+    data: any;
+  }
+
+  return new TileLayer({
+    data: url,
+    id,
+    minZoom: 0,
+    maxZoom: 19,
+    tileSize: 256,
+
+    renderSubLayers: (props: RenderSubLayerProps): BitmapLayer[] => {
+      const { west, north, east, south } = props.tile.bbox as GeoBoundingBox;
+
+      // Ajouter une BitmapLayer
+      const bitmapLayer = new BitmapLayer(props, {
+        data: undefined,
+        image: props.data,
+        bounds: [west, south, east, north],
+      });
+
+      return [bitmapLayer];
+    },
+  } as TileLayerProps);
 }

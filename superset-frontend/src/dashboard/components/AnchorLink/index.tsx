@@ -64,7 +64,7 @@ export default function AnchorLink({
   }, [id, scrollIntoView]);
 
   return (
-    <span className="anchor-link-container" id={id}>
+    <span className="anchor-link-container" id={id} data-test="anchor-link">
       {showShortLinkButton && dashboardId && (
         <URLShortLinkButton
           anchorLinkId={id}

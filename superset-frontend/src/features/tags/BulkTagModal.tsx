@@ -17,18 +17,21 @@
  * under the License.
  */
 import { useState, useEffect, FC } from 'react';
-
-import { t, styled, SupersetClient } from '@superset-ui/core';
-import { FormLabel } from 'src/components/Form';
-import Modal from 'src/components/Modal';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
-import Button from 'src/components/Button';
-import { loadTags } from 'src/components/Tags/utils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import { t, SupersetClient } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import {
+  FormLabel,
+  AsyncSelect,
+  Button,
+  Modal,
+} from '@superset-ui/core/components';
+import { loadTags } from 'src/components/Tag/utils';
 import { TaggableResourceOption } from 'src/features/tags/TagModal';
 
 const BulkTagModalContainer = styled.div`
   .bulk-tag-text {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2.5}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2.5}px;
   }
 `;
 
@@ -59,7 +62,7 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
       endpoint: `/api/v1/tag/bulk_create`,
       jsonPayload: {
         tags: tags.map(tag => ({
-          name: tag.value,
+          name: tag.label,
           objects_to_tag: selected.map(item => [
             resourceName,
             +item.original.id,
@@ -92,7 +95,7 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
 
   return (
     <Modal
-      title={t('Bulk tag')}
+      title={<ModalTitleWithIcon title={t('Bulk tag')} />}
       show={show}
       onHide={() => {
         setTags([]);

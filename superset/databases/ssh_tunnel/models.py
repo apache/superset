@@ -15,10 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 from typing import Any
 
 import sqlalchemy as sa
-from flask import current_app
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.types import Text
@@ -32,8 +33,6 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 
-app_config = current_app.config
-
 
 class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     """
@@ -44,11 +43,19 @@ class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
 
     id = sa.Column(sa.Integer, primary_key=True)
     database_id = sa.Column(
-        sa.Integer, sa.ForeignKey("dbs.id"), nullable=False, unique=True
+        sa.Integer,
+        sa.ForeignKey("dbs.id"),
+        nullable=False,
+        unique=True,
     )
     database: Database = relationship(
         "Database",
-        backref=backref("ssh_tunnels", uselist=False, cascade="all, delete-orphan"),
+        backref=backref(
+            "ssh_tunnel",
+            uselist=False,
+            cascade="all, delete-orphan",
+            lazy="joined",
+        ),
         foreign_keys=[database_id],
     )
 

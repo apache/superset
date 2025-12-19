@@ -30,7 +30,7 @@ import {
   isColumnMeta,
   isTemporalColumn,
 } from '@superset-ui/chart-controls';
-import Modal from 'src/components/Modal';
+import { Modal } from '@superset-ui/core/components';
 import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
@@ -66,8 +66,9 @@ const DND_ACCEPTED_TYPES = [
 const isDictionaryForAdhocFilter = (value: OptionValueType) =>
   !(value instanceof AdhocFilter) && value?.expressionType;
 
-export interface DndFilterSelectProps
-  extends ControlComponentProps<OptionValueType[]> {
+export interface DndFilterSelectProps extends ControlComponentProps<
+  OptionValueType[]
+> {
   columns: ColumnMeta[];
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
@@ -90,7 +91,10 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     let extra = {};
     if (datasource?.extra) {
       try {
-        extra = JSON.parse(datasource.extra);
+        extra =
+          typeof datasource.extra === 'string'
+            ? JSON.parse(datasource.extra)
+            : datasource.extra;
       } catch {} // eslint-disable-line no-empty
     }
     return extra;

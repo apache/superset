@@ -16,77 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, FC, useCallback, useState, memo } from 'react';
+import { ReactNode, FC, memo } from 'react';
 
-import { useDispatch } from 'react-redux';
-import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import Button from 'src/components/Button';
-import { FilterConfiguration, styled } from '@superset-ui/core';
-import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 import { getFilterBarTestId } from '../utils';
 
 export interface FCBProps {
-  createNewOnOpen?: boolean;
-  dashboardId?: number;
-  initialFilterId?: string;
   onClick?: () => void;
   children?: ReactNode;
 }
 
-const HeaderButton = styled(Button)`
-  padding: 0;
-`;
-
 export const FilterConfigurationLink: FC<FCBProps> = ({
-  createNewOnOpen,
-  dashboardId,
-  initialFilterId,
   onClick,
   children,
-}) => {
-  const dispatch = useDispatch();
-  const [isOpen, setOpen] = useState(false);
-
-  const close = useCallback(() => {
-    setOpen(false);
-  }, [setOpen]);
-
-  const submit = useCallback(
-    async (filterConfig: FilterConfiguration) => {
-      dispatch(await setFilterConfiguration(filterConfig));
-      close();
-    },
-    [dispatch, close],
-  );
-
-  const handleClick = useCallback(() => {
-    setOpen(true);
-    if (onClick) {
-      onClick();
-    }
-  }, [setOpen, onClick]);
-
-  return (
-    <>
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-      <HeaderButton
-        {...getFilterBarTestId('create-filter')}
-        buttonStyle="link"
-        buttonSize="xsmall"
-        onClick={handleClick}
-      >
-        {children}
-      </HeaderButton>
-      <FiltersConfigModal
-        isOpen={isOpen}
-        onSave={submit}
-        onCancel={close}
-        initialFilterId={initialFilterId}
-        createNewOnOpen={createNewOnOpen}
-        key={`filters-for-${dashboardId}`}
-      />
-    </>
-  );
-};
+}) => (
+  <div
+    {...getFilterBarTestId('create-filter')}
+    onClick={onClick}
+    role="button"
+    tabIndex={0}
+  >
+    {children}
+  </div>
+);
 
 export default memo(FilterConfigurationLink);

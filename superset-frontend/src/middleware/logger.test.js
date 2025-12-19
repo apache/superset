@@ -20,14 +20,19 @@ import sinon from 'sinon';
 import { SupersetClient } from '@superset-ui/core';
 import logger from 'src/middleware/loggerMiddleware';
 import { LOG_EVENT } from 'src/logger/actions';
-import { LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
+import {
+  LOG_ACTIONS_LOAD_CHART,
+  LOG_ACTIONS_SPA_NAVIGATION,
+} from 'src/logger/LogUtils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('logger middleware', () => {
+  const dashboardId = 123;
   const next = sinon.spy();
   const mockStore = {
     getState: () => ({
       dashboardInfo: {
-        id: 1,
+        id: dashboardId,
       },
       impressionId: 'impression_id',
     }),
@@ -57,7 +62,7 @@ describe('logger middleware', () => {
     timeSandbox.clock.reset();
   });
 
-  it('should listen to LOG_EVENT action type', () => {
+  test('should listen to LOG_EVENT action type', () => {
     const action1 = {
       type: 'ACTION_TYPE',
       payload: {
@@ -68,7 +73,7 @@ describe('logger middleware', () => {
     expect(next.callCount).toBe(1);
   });
 
-  it('should POST an event to /superset/log/ when called', () => {
+  test('should POST an event to /superset/log/ when called', () => {
     logger(mockStore)(next)(action);
     expect(next.callCount).toBe(0);
 
@@ -79,12 +84,20 @@ describe('logger middleware', () => {
     );
   });
 
-  it('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
-    logger(mockStore)(next)(action);
+  test('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
+    const fetchLog = logger(mockStore)(next);
+    fetchLog({
+      type: LOG_EVENT,
+      payload: {
+        eventName: LOG_ACTIONS_SPA_NAVIGATION,
+        eventData: { path: `/dashboard/${dashboardId}/` },
+      },
+    });
     timeSandbox.clock.tick(2000);
-
-    expect(SupersetClient.post.callCount).toBe(1);
-    const { events } = SupersetClient.post.getCall(0).args[0].postPayload;
+    fetchLog(action);
+    timeSandbox.clock.tick(2000);
+    expect(SupersetClient.post.callCount).toBe(2);
+    const { events } = SupersetClient.post.getCall(1).args[0].postPayload;
     const mockEventdata = action.payload.eventData;
     const mockEventname = action.payload.eventName;
     expect(events[0]).toMatchObject({
@@ -94,13 +107,14 @@ describe('logger middleware', () => {
       source: 'dashboard',
       source_id: mockStore.getState().dashboardInfo.id,
       event_type: 'timing',
+      dashboard_id: mockStore.getState().dashboardInfo.id,
     });
 
     expect(typeof events[0].ts).toBe('number');
     expect(typeof events[0].start_offset).toBe('number');
   });
 
-  it('should debounce a few log requests to one', () => {
+  test('should debounce a few log requests to one', () => {
     logger(mockStore)(next)(action);
     logger(mockStore)(next)(action);
     logger(mockStore)(next)(action);
@@ -112,7 +126,7 @@ describe('logger middleware', () => {
     ).toHaveLength(3);
   });
 
-  it('should use navigator.sendBeacon if it exists', () => {
+  test('should use navigator.sendBeacon if it exists', () => {
     const beaconMock = jest.fn();
     Object.defineProperty(navigator, 'sendBeacon', {
       writable: true,
@@ -128,7 +142,7 @@ describe('logger middleware', () => {
     expect(endpoint).toMatch('/superset/log/');
   });
 
-  it('should pass a guest token to sendBeacon if present', () => {
+  test('should pass a guest token to sendBeacon if present', () => {
     const beaconMock = jest.fn();
     Object.defineProperty(navigator, 'sendBeacon', {
       writable: true,

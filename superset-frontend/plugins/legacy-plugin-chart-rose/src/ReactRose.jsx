@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify, styled, css } from '@superset-ui/core';
+import { reactify } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 import Component from './Rose';
 
@@ -28,13 +29,13 @@ const Rose = ({ className, ...otherProps }) => (
       styles={theme => css`
         .tooltip {
           line-height: 1;
-          padding: ${theme.gridUnit * 3}px;
-          background: ${theme.colors.grayscale.dark2};
-          color: ${theme.colors.grayscale.light5};
+          padding: ${theme.sizeUnit * 3}px;
+          background: ${theme.colorBgElevated};
+          color: ${theme.colorText};
           border-radius: 4px;
           pointer-events: none;
           z-index: 1000;
-          font-size: ${theme.typography.sizes.s}px;
+          font-size: ${theme.fontSizeSM}px;
         }
       `}
     />
@@ -46,16 +47,15 @@ export default styled(Rose)`
   ${({ theme }) => `
     .superset-legacy-chart-rose path {
         transition: fill-opacity 180ms linear;
-        stroke: ${theme.colors.grayscale.light5};
+        stroke: ${theme.colorBorder};
         stroke-width: 1px;
         stroke-opacity: 1;
         fill-opacity: 0.75;
     }
 
     .superset-legacy-chart-rose text {
-        font-weight: ${theme.typography.weights.normal};
-        font-size: ${theme.typography.sizes.s}px;
-        font-family: ${theme.typography.families.sansSerif};
+        font-size: ${theme.fontSizeSM}px;
+        font-family: ${theme.fontFamily};
         pointer-events: none;
     }
 

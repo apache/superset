@@ -63,13 +63,13 @@ dashboard_user = Table(
 
 class AuditMixin:
     @declared_attr
-    def created_by_fk(cls):
+    def created_by_fk(cls):  # noqa: N805
         return Column(
             Integer, ForeignKey("ab_user.id"), default=get_user_id, nullable=False
         )
 
     @declared_attr
-    def created_by(cls):
+    def created_by(cls):  # noqa: N805
         return relationship(
             "User",
             primaryjoin=f"{cls.__name__}.created_by_fk == User.id",

@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import * as uiCore from '@superset-ui/core';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
 import * as actions from 'src/features/reports/ReportModal/actions';
-import { FeatureFlag } from '@superset-ui/core';
 import ReportModal from '.';
-
-let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
 
 const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
 fetchMock.get(REPORT_ENDPOINT, {});
@@ -45,29 +46,27 @@ const defaultProps = {
   creationMethod: 'dashboards',
   chart: {
     sliceFormData: {
-      viz_type: 'table',
+      viz_type: VizType.Table,
     },
   },
 };
 
-describe('Email Report Modal', () => {
-  beforeAll(() => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.AlertReports,
-      );
-  });
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('Email Report Modal', () => {
   beforeEach(() => {
+    mockedIsFeatureEnabled.mockImplementation(
+      featureFlag => featureFlag === FeatureFlag.AlertReports,
+    );
     render(<ReportModal {...defaultProps} />, { useRedux: true });
   });
 
-  afterAll(() => {
-    isFeatureEnabledMock.mockRestore();
-  });
-
-  it('inputs respond correctly', () => {
+  test('inputs respond correctly', () => {
     // ----- Report name textbox
     // Initial value
     const reportNameTextbox = screen.getByTestId('report-name-test');
@@ -94,7 +93,7 @@ describe('Email Report Modal', () => {
     expect(crontabInputs).toHaveLength(5);
   });
 
-  it('does not allow user to create a report without a name', () => {
+  test('does not allow user to create a report without a name', () => {
     // Grab name textbox and add button
     const reportNameTextbox = screen.getByTestId('report-name-test');
     const addButton = screen.getByRole('button', { name: /add/i });
@@ -111,22 +110,15 @@ describe('Email Report Modal', () => {
     expect(addButton).toBeDisabled();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Email Report Modal', () => {
-    let isFeatureEnabledMock: any;
     let dispatch: any;
 
     beforeEach(async () => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => true);
       dispatch = sinon.spy();
     });
 
-    afterAll(() => {
-      isFeatureEnabledMock.mockRestore();
-    });
-
-    it('creates a new email report', async () => {
+    test('creates a new email report', async () => {
       // ---------- Render/value setup ----------
       const reportValues = {
         id: 1,

@@ -22,6 +22,7 @@
 #
 import logging
 import os
+import sys
 
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
@@ -48,11 +49,17 @@ SQLALCHEMY_DATABASE_URI = (
     f"{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_DB}"
 )
 
-SQLALCHEMY_EXAMPLES_URI = (
-    f"{DATABASE_DIALECT}://"
-    f"{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
-    f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}"
+# Use environment variable if set, otherwise construct from components
+# This MUST take precedence over any other configuration
+SQLALCHEMY_EXAMPLES_URI = os.getenv(
+    "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
+    (
+        f"{DATABASE_DIALECT}://"
+        f"{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
+        f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}"
+    ),
 )
+
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = os.getenv("REDIS_PORT", "6379")
@@ -70,6 +77,7 @@ CACHE_CONFIG = {
     "CACHE_REDIS_DB": REDIS_RESULTS_DB,
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
+THUMBNAIL_CACHE_CONFIG = CACHE_CONFIG
 
 
 class CeleryConfig:
@@ -99,10 +107,27 @@ CELERY_CONFIG = CeleryConfig
 
 FEATURE_FLAGS = {"ALERT_REPORTS": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
-WEBDRIVER_BASEURL = "http://superset:8088/"  # When using docker compose baseurl should be http://superset_app:8088/
+WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
 # The base URL for the email report hyperlinks.
-WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+WEBDRIVER_BASEURL_USER_FRIENDLY = (
+    f"http://localhost:8888/{os.environ.get('SUPERSET_APP_ROOT', '/')}/"
+)
 SQLLAB_CTAS_NO_LIMIT = True
+
+log_level_text = os.getenv("SUPERSET_LOG_LEVEL", "INFO")
+LOG_LEVEL = getattr(logging, log_level_text.upper(), logging.INFO)
+
+if os.getenv("CYPRESS_CONFIG") == "true":
+    # When running the service as a cypress backend, we need to import the config
+    # located @ tests/integration_tests/superset_test_config.py
+    base_dir = os.path.dirname(__file__)
+    module_folder = os.path.abspath(
+        os.path.join(base_dir, "../../tests/integration_tests/")
+    )
+    sys.path.insert(0, module_folder)
+    from superset_test_config import *  # noqa
+
+    sys.path.pop(0)
 
 #
 # Optionally import superset_config_docker.py (which will have been included on
@@ -110,10 +135,10 @@ SQLLAB_CTAS_NO_LIMIT = True
 #
 try:
     import superset_config_docker
-    from superset_config_docker import *  # noqa
+    from superset_config_docker import *  # noqa: F403
 
     logger.info(
-        f"Loaded your Docker configuration at " f"[{superset_config_docker.__file__}]"
+        "Loaded your Docker configuration at [%s]", superset_config_docker.__file__
     )
 except ImportError:
     logger.info("Using default Docker config...")

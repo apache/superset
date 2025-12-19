@@ -17,24 +17,29 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { useMemo } from 'react';
-import {
-  Filter,
-  FilterConfiguration,
-  Divider,
-  isFilterDivider,
-} from '@superset-ui/core';
+import { useCallback, useMemo } from 'react';
+import { createSelector } from '@reduxjs/toolkit';
+import { Filter, Divider, isFilterDivider } from '@superset-ui/core';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
-import { TAB_TYPE } from '../../util/componentTypes';
+import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 
 const defaultFilterConfiguration: Filter[] = [];
 
-export function useFilterConfiguration() {
-  return useSelector<any, FilterConfiguration>(
-    state =>
-      state.dashboardInfo?.metadata?.native_filter_configuration ||
-      defaultFilterConfiguration,
-  );
+const selectFilterConfiguration = createSelector(
+  (state: RootState) =>
+    state.dashboardInfo?.metadata?.native_filter_configuration,
+  (nativeFilterConfig): (Filter | Divider)[] => {
+    if (!nativeFilterConfig) {
+      return defaultFilterConfiguration;
+    }
+    return nativeFilterConfig.filter(
+      (filter: any) => filter.type !== 'CHART_CUSTOMIZATION',
+    );
+  },
+);
+
+export function useFilterConfiguration(): (Filter | Divider)[] {
+  return useSelector(selectFilterConfiguration);
 }
 
 /**
@@ -45,12 +50,12 @@ export function useFilterConfigMap() {
   const filterConfig = useFilterConfiguration();
   return useMemo(
     () =>
-      filterConfig.reduce(
+      filterConfig.reduce<Record<string, Filter | Divider>>(
         (acc: Record<string, Filter | Divider>, filter: Filter) => {
           acc[filter.id] = filter;
           return acc;
         },
-        {} as Record<string, Filter | Divider>,
+        {},
       ),
     [filterConfig],
   );
@@ -79,34 +84,56 @@ function useActiveDashboardTabs() {
 
 function useSelectChartTabParents() {
   const dashboardLayout = useDashboardLayout();
-  return (chartId: number) => {
-    const chartLayoutItem = Object.values(dashboardLayout).find(
-      layoutItem => layoutItem.meta?.chartId === chartId,
-    );
-    return chartLayoutItem?.parents.filter(
-      (parent: string) => dashboardLayout[parent].type === TAB_TYPE,
-    );
-  };
+  const layoutChartItems = useMemo(
+    () =>
+      Object.values(dashboardLayout).filter(item => item.type === CHART_TYPE),
+    [dashboardLayout],
+  );
+  return useCallback(
+    (chartId: number) => {
+      const chartLayoutItem = layoutChartItems.find(
+        layoutItem => layoutItem.meta?.chartId === chartId,
+      );
+      return chartLayoutItem?.parents?.filter(
+        (parent: string) => dashboardLayout[parent]?.type === TAB_TYPE,
+      );
+    },
+    [dashboardLayout, layoutChartItems],
+  );
 }
 
 export function useIsFilterInScope() {
   const activeTabs = useActiveDashboardTabs();
   const selectChartTabParents = useSelectChartTabParents();
 
-  // Filter is in scope if any of it's charts is visible.
+  // Filter is in scope if any of its charts is visible.
   // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
-  // Chart is in an active tab tree if all of it's ancestors of type TAB are active
+  // Chart is in an active tab tree if all of its ancestors of type TAB are active
   // Dividers are always in scope
-  return (filter: Filter | Divider) =>
-    isFilterDivider(filter) ||
-    ('chartsInScope' in filter &&
-      filter.chartsInScope?.some((chartId: number) => {
-        const tabParents = selectChartTabParents(chartId);
-        return (
-          tabParents?.length === 0 ||
-          tabParents?.every(tab => activeTabs.includes(tab))
-        );
-      }));
+  return useCallback(
+    (filter: Filter | Divider) => {
+      if (isFilterDivider(filter)) return true;
+
+      const isChartInScope =
+        Array.isArray(filter.chartsInScope) &&
+        filter.chartsInScope.length > 0 &&
+        filter.chartsInScope.some((chartId: number) => {
+          const tabParents = selectChartTabParents(chartId);
+          return (
+            !tabParents ||
+            tabParents.length === 0 ||
+            tabParents.every(tab => activeTabs.includes(tab))
+          );
+        });
+
+      const isFilterInActiveTab =
+        filter.scope?.rootPath &&
+        filter.scope.rootPath.some(tab => activeTabs.includes(tab));
+
+      return isChartInScope || isFilterInActiveTab;
+    },
+    [selectChartTabParents, activeTabs],
+  );
 }
 
 export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {

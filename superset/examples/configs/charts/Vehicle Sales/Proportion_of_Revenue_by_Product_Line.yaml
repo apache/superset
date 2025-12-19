@@ -15,20 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Proportion of Revenue by Product Line
-viz_type: area
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_area
 params:
-  adhoc_filters: []
-  annotation_layers: []
-  bottom_margin: auto
-  color_scheme: supersetColors
-  comparison_type: values
-  contribution: true
-  datasource: 23__table
-  granularity_sqla: order_date
-  groupby:
-  - product_line
-  label_colors: {}
-  line_interpolation: linear
+  datasource: 21__table
+  viz_type: echarts_area
+  slice_id: 116
+  x_axis: order_date
+  time_grain_sqla: P1M
+  x_axis_sort_asc: true
+  x_axis_sort_series: name
+  x_axis_sort_series_ascending: true
   metrics:
   - aggregate: SUM
     column:
@@ -49,26 +48,51 @@ params:
     label: (Sales)
     optionName: metric_3is69ofceho_6d0ezok7ry6
     sqlExpression: null
-  order_desc: true
-  queryFields:
-    groupby: groupby
-    metrics: metrics
-  rich_tooltip: true
-  rolling_type: None
+  groupby:
+  - product_line
+  adhoc_filters:
+  - clause: WHERE
+    subject: order_date
+    operator: TEMPORAL_RANGE
+    comparator: '2003-01-01T00:00:00 : 2005-06-01T00:00:00'
+    expressionType: SIMPLE
   row_limit: null
-  show_brush: auto
+  truncate_metric: true
+  show_empty_columns: true
+  rolling_type: null
+  comparison_type: values
+  annotation_layers: []
+  forecastPeriods: 10
+  forecastInterval: 0.8
+  x_axis_title_margin: 15
+  y_axis_title_margin: 15
+  y_axis_title_position: Left
+  sort_series_type: sum
+  color_scheme: supersetColors
+  time_shift_color: true
+  seriesType: line
+  opacity: 0.2
+  stack: Stack
+  only_total: true
+  markerSize: 6
   show_legend: true
-  stacked_style: stack
-  time_grain_sqla: P1M
-  time_range: '2003-01-01T00:00:00 : 2005-06-01T00:00:00'
-  url_params: {}
-  viz_type: area
-  x_axis_format: smart_date
-  x_ticks_layout: auto
-  y_axis_bounds:
-  - null
-  - null
+  legendType: scroll
+  legendOrientation: top
+  x_axis_time_format: smart_date
+  rich_tooltip: true
+  showTooltipTotal: true
+  tooltipTimeFormat: smart_date
   y_axis_format: SMART_NUMBER
+  truncateXAxis: true
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":21,"type":"table"},"force":false,"queries":[{"filters":[{"col":"order_date","op":"TEMPORAL_RANGE","val":"2003-01-01T00:00:00
+  : 2005-06-01T00:00:00"}],"extras":{"time_grain_sqla":"P1M","having":"","where":""},"applied_time_extras":{},"columns":[{"timeGrain":"P1M","columnType":"BASE_AXIS","sqlExpression":"order_date","label":"order_date","expressionType":"SQL"},"product_line"],"metrics":[{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"(Sales)","optionName":"metric_3is69ofceho_6d0ezok7ry6","sqlExpression":null}],"orderby":[[{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"(Sales)","optionName":"metric_3is69ofceho_6d0ezok7ry6","sqlExpression":null},false]],"annotation_layers":[],"series_columns":["product_line"],"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"time_offsets":[],"post_processing":[{"operation":"pivot","options":{"index":["order_date"],"columns":["product_line"],"aggregates":{"(Sales)":{"operator":"mean"}},"drop_missing_columns":false}},{"operation":"rename","options":{"columns":{"(Sales)":null},"level":0,"inplace":true}},{"operation":"flatten"}]}],"form_data":{"datasource":"21__table","viz_type":"echarts_area","slice_id":116,"x_axis":"order_date","time_grain_sqla":"P1M","x_axis_sort_asc":true,"x_axis_sort_series":"name","x_axis_sort_series_ascending":true,"metrics":[{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"(Sales)","optionName":"metric_3is69ofceho_6d0ezok7ry6","sqlExpression":null}],"groupby":["product_line"],"adhoc_filters":[{"clause":"WHERE","subject":"order_date","operator":"TEMPORAL_RANGE","comparator":"2003-01-01T00:00:00
+  : 2005-06-01T00:00:00","expressionType":"SIMPLE"}],"row_limit":null,"truncate_metric":true,"show_empty_columns":true,"rolling_type":null,"comparison_type":"values","annotation_layers":[],"forecastPeriods":10,"forecastInterval":0.8,"x_axis_title_margin":15,"y_axis_title_margin":15,"y_axis_title_position":"Left","sort_series_type":"sum","color_scheme":"supersetColors","time_shift_color":true,"seriesType":"line","opacity":0.2,"stack":"Stack","only_total":true,"markerSize":6,"show_legend":true,"legendType":"scroll","legendOrientation":"top","x_axis_time_format":"smart_date","rich_tooltip":true,"showTooltipTotal":true,"tooltipTimeFormat":"smart_date","y_axis_format":"SMART_NUMBER","truncateXAxis":true,"extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
 cache_timeout: null
 uuid: 08aff161-f60c-4cb3-a225-dc9b1140d2e3
 version: 1.0.0

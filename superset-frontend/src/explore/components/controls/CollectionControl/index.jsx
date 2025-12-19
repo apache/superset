@@ -18,21 +18,21 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { List } from 'src/components';
+import { IconTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
-import { t, withTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { withTheme } from '@apache-superset/core/ui';
 import {
   SortableContainer,
   SortableHandle,
   SortableElement,
   arrayMove,
 } from 'react-sortable-hoc';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   HeaderContainer,
   AddIconButton,
 } from 'src/explore/components/controls/OptionControls';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import controlMap from '..';
@@ -65,10 +65,10 @@ const defaultProps = {
 const SortableListItem = SortableElement(CustomListItem);
 const SortableList = SortableContainer(List);
 const SortableDragger = SortableHandle(() => (
-  <i
+  <Icons.MenuOutlined
     role="img"
     aria-label="drag"
-    className="fa fa-bars text-primary"
+    className="text-primary"
     style={{ cursor: 'ns-resize' }}
   />
 ));
@@ -109,7 +109,7 @@ class CollectionControl extends Component {
         onSortEnd={this.onSortEnd.bind(this)}
         bordered
         css={theme => ({
-          borderRadius: theme.gridUnit,
+          borderRadius: theme.borderRadius,
         })}
       >
         {this.props.value.map((o, i) => {
@@ -118,7 +118,12 @@ class CollectionControl extends Component {
           return (
             <SortableListItem
               className="clearfix"
-              css={{ justifyContent: 'flex-start' }}
+              css={theme => ({
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                display: 'flex',
+                paddingInline: theme.sizeUnit * 6,
+              })}
               key={this.props.keyAccessor(o)}
               index={i}
             >
@@ -126,8 +131,8 @@ class CollectionControl extends Component {
               <div
                 css={theme => ({
                   flex: 1,
-                  marginLeft: theme.gridUnit * 2,
-                  marginRight: theme.gridUnit * 2,
+                  marginLeft: theme.sizeUnit * 2,
+                  marginRight: theme.sizeUnit * 2,
                 })}
               >
                 <Control
@@ -136,13 +141,30 @@ class CollectionControl extends Component {
                   onChange={this.onChange.bind(this, i)}
                 />
               </div>
-              <InfoTooltipWithTrigger
-                icon="times"
-                label="remove-item"
-                tooltip={t('Remove item')}
-                bsStyle="primary"
+              <IconTooltip
+                className="pointer"
+                placement="right"
                 onClick={this.removeItem.bind(this, i)}
-              />
+                tooltip={t('Remove item')}
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+                css={theme => ({
+                  padding: 0,
+                  minWidth: 'auto',
+                  height: 'auto',
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                  '& svg path': {
+                    fill: theme.colorIcon,
+                    transition: `fill ${theme.motionDurationMid} ease-out`,
+                  },
+                  '&:hover svg path': {
+                    fill: theme.colorError,
+                  },
+                })}
+              >
+                <Icons.CloseOutlined iconSize="s" />
+              </IconTooltip>
             </SortableListItem>
           );
         })}
@@ -151,15 +173,14 @@ class CollectionControl extends Component {
   }
 
   render() {
-    const { theme } = this.props;
     return (
       <div data-test="CollectionControl" className="CollectionControl">
         <HeaderContainer>
           <ControlHeader {...this.props} />
           <AddIconButton onClick={this.onAdd}>
-            <Icons.PlusLarge
+            <Icons.PlusOutlined
               iconSize="s"
-              iconColor={theme.colors.grayscale.light5}
+              iconColor={this.props.theme.colorTextLightSolid}
             />
           </AddIconButton>
         </HeaderContainer>

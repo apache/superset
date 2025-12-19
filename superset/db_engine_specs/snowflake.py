@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import re
 from datetime import datetime
@@ -25,20 +27,21 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset.constants import TimeGrain, USER_AGENT
+from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.utils import json
+from superset.utils.core import get_user_agent, QuerySource
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -80,12 +83,15 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 256
 
+    # Snowflake doesn't support IS true/false syntax, use = true/false instead
+    use_equality_for_boolean_filters = True
+
     parameters_schema = SnowflakeParametersSchema()
     default_driver = "snowflake"
     sqlalchemy_uri_placeholder = "snowflake://"
 
     supports_dynamic_schema = True
-    supports_catalog = supports_dynamic_catalog = True
+    supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
 
     # pylint: disable=invalid-name
     encrypted_extra_sensitive_fields = {
@@ -130,15 +136,18 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     }
 
     @staticmethod
-    def get_extra_params(database: "Database") -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.
         """
         extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
         engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
         connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
+        user_agent = get_user_agent(database, source)
 
-        connect_args.setdefault("application", USER_AGENT)
+        connect_args.setdefault("application", user_agent)
 
         return extra
 
@@ -183,7 +192,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return parse.unquote(database.split("/")[1])
 
     @classmethod
-    def get_default_catalog(cls, database: "Database") -> Optional[str]:
+    def get_default_catalog(cls, database: "Database") -> str:
         """
         Return the default catalog.
         """
@@ -336,7 +345,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         if missing := sorted(required - present):
             errors.append(
                 SupersetError(
-                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"missing": missing},
@@ -388,9 +397,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             else:
                 with open(auth_params["privatekey_path"], "rb") as key_temp:
                     key = key_temp.read()
+            privatekey_pass = auth_params.get("privatekey_pass", None)
+            password = privatekey_pass.encode() if privatekey_pass is not None else None
             p_key = serialization.load_pem_private_key(
                 key,
-                password=auth_params["privatekey_pass"].encode(),
+                password=password,
                 backend=default_backend(),
             )
             pkb = p_key.private_bytes(
@@ -400,9 +411,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             )
             connect_args["private_key"] = pkb
         else:
-            allowed_extra_auths = current_app.config[
-                "ALLOWED_EXTRA_AUTHENTICATIONS"
-            ].get("snowflake", {})
+            allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
+                "snowflake", {}
+            )
             if auth_method in allowed_extra_auths:
                 snowflake_auth = allowed_extra_auths.get(auth_method)
             else:

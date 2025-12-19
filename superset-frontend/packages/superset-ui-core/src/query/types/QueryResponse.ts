@@ -17,23 +17,14 @@
  * under the License.
  */
 
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { TimeseriesDataRecord } from '../../chart';
 import { AnnotationData } from './AnnotationLayer';
 
 /**
- * Generic data types, see enum of the same name in superset/utils/core.py.
- */
-export enum GenericDataType {
-  Numeric = 0,
-  String = 1,
-  Temporal = 2,
-  Boolean = 3,
-}
-
-/**
  * Primitive types for data field values.
  */
-export type DataRecordValue = number | string | boolean | Date | null;
+export type DataRecordValue = number | string | boolean | Date | null | bigint;
 
 export interface DataRecord {
   [key: string]: DataRecordValue;
@@ -79,10 +70,12 @@ export interface ChartDataResponseResult {
     | 'timed_out';
   from_dttm: number | null;
   to_dttm: number | null;
+  // TODO(hainenber): define proper type for below attributes
+  rejected_filters?: any[];
+  applied_filters?: any[];
 }
 
-export interface TimeseriesChartDataResponseResult
-  extends ChartDataResponseResult {
+export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {
   data: TimeseriesDataRecord[];
   label_map: Record<string, string[]>;
 }

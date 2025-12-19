@@ -56,7 +56,7 @@ def upgrade():
             KeyValueEntry.resource == DASHBOARD_PERMALINK_RESOURCE_TYPE
         )
     ):
-        value = pickle.loads(entry.value) or {}
+        value = pickle.loads(entry.value) or {}  # noqa: S301
         state = value.get("state")
         if state:
             if "filterState" in state:
@@ -76,7 +76,7 @@ def downgrade():
             KeyValueEntry.resource == DASHBOARD_PERMALINK_RESOURCE_TYPE
         ),
     ):
-        value = pickle.loads(entry.value) or {}
+        value = pickle.loads(entry.value) or {}  # noqa: S301
         state = value.get("state")
         if state:
             if "dataMask" in state:

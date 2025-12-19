@@ -24,6 +24,186 @@ assists people when migrating to a new version.
 
 ## Next
 
+### MCP Service
+
+The MCP (Model Context Protocol) service enables AI assistants and automation tools to interact programmatically with Superset.
+
+#### New Features
+- MCP service infrastructure with FastMCP framework
+- Tools for dashboards, charts, datasets, SQL Lab, and instance metadata
+- Optional dependency: install with `pip install apache-superset[fastmcp]`
+- Runs as separate process from Superset web server
+- JWT-based authentication for production deployments
+
+#### New Configuration Options
+
+**Development** (single-user, local testing):
+```python
+# superset_config.py
+MCP_DEV_USERNAME = "admin"  # User for MCP authentication
+MCP_SERVICE_HOST = "localhost"
+MCP_SERVICE_PORT = 5008
+```
+
+**Production** (JWT-based, multi-user):
+```python
+# superset_config.py
+MCP_AUTH_ENABLED = True
+MCP_JWT_ISSUER = "https://your-auth-provider.com"
+MCP_JWT_AUDIENCE = "superset-mcp"
+MCP_JWT_ALGORITHM = "RS256"  # or "HS256" for shared secrets
+
+# Option 1: Use JWKS endpoint (recommended for RS256)
+MCP_JWKS_URI = "https://auth.example.com/.well-known/jwks.json"
+
+# Option 2: Use static public key (RS256)
+MCP_JWT_PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----..."
+
+# Option 3: Use shared secret (HS256)
+MCP_JWT_ALGORITHM = "HS256"
+MCP_JWT_SECRET = "your-shared-secret-key"
+
+# Optional overrides
+MCP_SERVICE_HOST = "0.0.0.0"
+MCP_SERVICE_PORT = 5008
+MCP_SESSION_CONFIG = {
+    "SESSION_COOKIE_SECURE": True,
+    "SESSION_COOKIE_HTTPONLY": True,
+    "SESSION_COOKIE_SAMESITE": "Strict",
+}
+```
+
+#### Running the MCP Service
+
+```bash
+# Development
+superset mcp run --port 5008 --debug
+
+# Production
+superset mcp run --port 5008
+
+# With factory config
+superset mcp run --port 5008 --use-factory-config
+```
+
+#### Deployment Considerations
+
+The MCP service runs as a **separate process** from the Superset web server.
+
+**Important**:
+- Requires same Python environment and configuration as Superset
+- Shares database connections with main Superset app
+- Can be scaled independently from web server
+- Requires `fastmcp` package (optional dependency)
+
+**Installation**:
+```bash
+# Install with MCP support
+pip install apache-superset[fastmcp]
+
+# Or add to requirements.txt
+apache-superset[fastmcp]>=X.Y.Z
+```
+
+**Process Management**:
+Use systemd, supervisord, or Kubernetes to manage the MCP service process.
+See `superset/mcp_service/PRODUCTION.md` for deployment guides.
+
+**Security**:
+- Development: Uses `MCP_DEV_USERNAME` for single-user access
+- Production: **MUST** configure JWT authentication
+- See `superset/mcp_service/SECURITY.md` for details
+
+#### Documentation
+
+- Architecture: `superset/mcp_service/ARCHITECTURE.md`
+- Security: `superset/mcp_service/SECURITY.md`
+- Production: `superset/mcp_service/PRODUCTION.md`
+- Developer Guide: `superset/mcp_service/CLAUDE.md`
+- Quick Start: `superset/mcp_service/README.md`
+
+---
+
+- [35621](https://github.com/apache/superset/pull/35621): The default hash algorithm has changed from MD5 to SHA-256 for improved security and FedRAMP compliance. This affects cache keys for thumbnails, dashboard digests, chart digests, and filter option names. Existing cached data will be invalidated upon upgrade. To opt out of this change and maintain backward compatibility, set `HASH_ALGORITHM = "md5"` in your `superset_config.py`.
+- [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
+
+### Breaking Changes
+- [36317](https://github.com/apache/superset/pull/36317): The `CUSTOM_FONT_URLS` configuration option has been removed. Use the new per-theme `fontUrls` token in `THEME_DEFAULT` or database-managed themes instead.
+  - **Before:**
+  ```python
+  CUSTOM_FONT_URLS = [
+    "https://fonts.example.com/myfont.css",
+  ]
+  ```
+  - **After:**
+  ```python
+  THEME_DEFAULT = {
+    "token": {
+      "fontUrls": [
+        "https://fonts.example.com/myfont.css",
+        ],
+        # ... other tokens  
+    }
+  }
+  ```
+
+## 6.0.0
+- [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
+- [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
+- [34782](https://github.com/apache/superset/pull/34782): Dataset exports now include the dataset ID in their file name (similar to charts and dashboards). If managing assets as code, make sure to rename existing dataset YAMLs to include the ID (and avoid duplicated files).
+- [34536](https://github.com/apache/superset/pull/34536): The `ENVIRONMENT_TAG_CONFIG` color values have changed to support only Ant Design semantic colors. Update your `superset_config.py`:
+  - Change `"error.base"` to just `"error"` after this PR
+  - Change any hex color values to one of: `"success"`, `"processing"`, `"error"`, `"warning"`, `"default"`
+  - Custom colors are no longer supported to maintain consistency with Ant Design components
+- [34561](https://github.com/apache/superset/pull/34561) Added tiled screenshot functionality for Playwright-based reports to handle large dashboards more efficiently. When enabled (default: `SCREENSHOT_TILED_ENABLED = True`), dashboards with 20+ charts or height exceeding 5000px will be captured using multiple viewport-sized tiles and combined into a single image. This improves report generation performance and reliability for large dashboards.
+Note: Pillow is now a required dependency (previously optional) to support image processing for tiled screenshots.
+`thumbnails` optional dependency is now deprecated and will be removed in the next major release (7.0).
+- [33084](https://github.com/apache/superset/pull/33084) The DISALLOWED_SQL_FUNCTIONS configuration now includes additional potentially sensitive database functions across PostgreSQL, MySQL, SQLite, MS SQL Server, and ClickHouse. Existing queries using these functions may now be blocked. Review your SQL Lab queries and dashboards if you encounter "disallowed function" errors after upgrading
+- [34235](https://github.com/apache/superset/pull/34235) CSV exports now use `utf-8-sig` encoding by default to include a UTF-8 BOM, improving compatibility with Excel.
+- [34258](https://github.com/apache/superset/pull/34258) changing the default in Dockerfile to INCLUDE_CHROMIUM="false" (from "true") in the past. This ensures the `lean` layer is lean by default, and people can opt-in to the `chromium` layer by setting the build arg `INCLUDE_CHROMIUM=true`. This is a breaking change for anyone using the `lean` layer, as it will no longer include Chromium by default.
+- [34204](https://github.com/apache/superset/pull/33603) OpenStreetView has been promoted as the new default for Deck.gl visualization since it can be enabled by default without requiring an API key. If you have Mapbox set up and want to disable OpenStreeView in your environment, please follow the steps documented here [https://superset.apache.org/docs/configuration/map-tiles].
+- [33116](https://github.com/apache/superset/pull/33116) In Echarts Series charts (e.g. Line, Area, Bar, etc.) charts, the `x_axis_sort_series` and `x_axis_sort_series_ascending` form data items have been renamed with `x_axis_sort` and `x_axis_sort_asc`.
+  There's a migration added that can potentially affect a significant number of existing charts.
+- [32317](https://github.com/apache/superset/pull/32317) The horizontal filter bar feature is now out of testing/beta development and its feature flag `HORIZONTAL_FILTER_BAR` has been removed.
+- [31590](https://github.com/apache/superset/pull/31590) Marks the begining of intricate work around supporting dynamic Theming, and breaks support for [THEME_OVERRIDES](https://github.com/apache/superset/blob/732de4ac7fae88e29b7f123b6cbb2d7cd411b0e4/superset/config.py#L671) in favor of a new theming system based on AntD V5. Likely this will be in disrepair until settling over the 5.x lifecycle.
+- [32432](https://github.com/apache/superset/pull/31260) Moves the List Roles FAB view to the frontend and requires `FAB_ADD_SECURITY_API` to be enabled in the configuration and `superset init` to be executed.
+- [34319](https://github.com/apache/superset/pull/34319) Drill to Detail and Drill By is now supported in Embedded mode, and also with the `DASHBOARD_RBAC` FF. If you don't want to expose these features in Embedded / `DASHBOARD_RBAC`, make sure the roles used for Embedded / `DASHBOARD_RBAC`don't have the required permissions to perform D2D actions.
+
+## 5.0.0
+
+- [31976](https://github.com/apache/superset/pull/31976) Removed the `DISABLE_LEGACY_DATASOURCE_EDITOR` feature flag. The previous value of the feature flag was `True` and now the feature is permanently removed.
+- [31959](https://github.com/apache/superset/pull/32000) Removes CSV_UPLOAD_MAX_SIZE config, use your web server to control file upload size.
+- [31959](https://github.com/apache/superset/pull/31959) Removes the following endpoints from data uploads: `/api/v1/database/<id>/<file type>_upload` and `/api/v1/database/<file type>_metadata`, in favour of new one (Details on the PR). And simplifies permissions.
+- [31844](https://github.com/apache/superset/pull/31844) The `ALERT_REPORTS_EXECUTE_AS` and `THUMBNAILS_EXECUTE_AS` config parameters have been renamed to `ALERT_REPORTS_EXECUTORS` and `THUMBNAILS_EXECUTORS` respectively. A new config flag `CACHE_WARMUP_EXECUTORS` has also been introduced to be able to control which user is used to execute cache warmup tasks. Finally, the config flag `THUMBNAILS_SELENIUM_USER` has been removed. To use a fixed executor for async tasks, use the new `FixedExecutor` class. See the config and docs for more info on setting up different executor profiles.
+- [31894](https://github.com/apache/superset/pull/31894) Domain sharding is deprecated in favor of HTTP2. The `SUPERSET_WEBSERVER_DOMAINS` configuration will be removed in the next major version (6.0)
+- [31794](https://github.com/apache/superset/pull/31794) Removed the previously deprecated `DASHBOARD_CROSS_FILTERS` feature flag
+- [31774](https://github.com/apache/superset/pull/31774): Fixes the spelling of the `USE-ANALAGOUS-COLORS` feature flag. Please update any scripts/configuration item to use the new/corrected `USE-ANALOGOUS-COLORS` flag spelling.
+- [31582](https://github.com/apache/superset/pull/31582) Removed the legacy Area, Bar, Event Flow, Heatmap, Histogram, Line, Sankey, and Sankey Loop charts. They were all automatically migrated to their ECharts counterparts with the exception of the Event Flow and Sankey Loop charts which were removed as they were not actively maintained and not widely used. If you were using the Event Flow or Sankey Loop charts, you will need to find an alternative solution.
+- [31198](https://github.com/apache/superset/pull/31198) Disallows by default the use of the following ClickHouse functions: "version", "currentDatabase", "hostName".
+- [29798](https://github.com/apache/superset/pull/29798) Since 3.1.0, the intial schedule for an alert or report was mistakenly offset by the specified timezone's relation to UTC. The initial schedule should now begin at the correct time.
+- [30021](https://github.com/apache/superset/pull/30021) The `dev` layer in our Dockerfile no long includes firefox binaries, only Chromium to reduce bloat/docker-build-time.
+- [30099](https://github.com/apache/superset/pull/30099) Translations are no longer included in the default docker image builds. If your environment requires translations, you'll want to set the docker build arg `BUILD_TRANSLATIONS=true`.
+- [31262](https://github.com/apache/superset/pull/31262) NOTE: deprecated `pylint` in favor of `ruff` as our only python linter. Only affect development workflows positively (not the release itself). It should cover most important rules, be much faster, but some things linting rules that were enforced before may not be enforce in the exact same way as before.
+- [31173](https://github.com/apache/superset/pull/31173) Modified `fetch_csrf_token` to align with HTTP standards, particularly regarding how cookies are handled. If you encounter any issues related to CSRF functionality, please report them as a new issue and reference this PR for context.
+- [31413](https://github.com/apache/superset/pull/31413) Enable the DATE_FORMAT_IN_EMAIL_SUBJECT feature flag to allow users to specify a date format for the email subject, which will then be replaced with the actual date.
+- [31385](https://github.com/apache/superset/pull/31385) Significant docker refactor, reducing access levels for the `superset` user, streamlining layer building, ...
+- [31503](https://github.com/apache/superset/pull/31503) Deprecating python 3.9.x support, 3.11 is now the recommended version and 3.10 is still supported over the Superset 5.0 lifecycle.
+- [29121](https://github.com/apache/superset/pull/29121) Removed the `css`, `position_json`, and `json_metadata` from the payload of the dashboard list endpoint (`GET api/v1/dashboard`) for performance reasons.
+- [29163](https://github.com/apache/superset/pull/29163) Removed the `SHARE_QUERIES_VIA_KV_STORE` and `KV_STORE` feature flags and changed the way Superset shares SQL Lab queries to use permalinks. The legacy `/kv` API was removed but we still support legacy links in 5.0. In 6.0, only permalinks will be supported.
+- [25166](https://github.com/apache/superset/pull/25166) Changed the default configuration of `UPLOAD_FOLDER` from `/app/static/uploads/` to `/static/uploads/`. It also removed the unused `IMG_UPLOAD_FOLDER` and `IMG_UPLOAD_URL` configuration options.
+- [30284](https://github.com/apache/superset/pull/30284) Deprecated GLOBAL_ASYNC_QUERIES_REDIS_CONFIG in favor of the new GLOBAL_ASYNC_QUERIES_CACHE_BACKEND configuration. To leverage Redis Sentinel, set CACHE_TYPE to RedisSentinelCache, or use RedisCache for standalone Redis
+- [31961](https://github.com/apache/superset/pull/31961) Upgraded React from version 16.13.1 to 17.0.2. If you are using custom frontend extensions or plugins, you may need to update them to be compatible with React 17.
+- [31260](https://github.com/apache/superset/pull/31260) Docker images now use `uv pip install` instead of `pip install` to manage the python envrionment. Most docker-based deployments will be affected, whether you derive one of the published images, or have custom bootstrap script that install python libraries (drivers)
+
+### Potential Downtime
+
+## 4.1.2
+
+- [31198](https://github.com/apache/superset/pull/31198) Disallows by default the use of the following ClickHouse functions: "version", "currentDatabase", "hostName".
+- [31173](https://github.com/apache/superset/pull/31173) Modified `fetch_csrf_token` to align with HTTP standards, particularly regarding how cookies are handled. If you encounter any issues related to CSRF functionality, please report them as a new issue and reference this PR for context.
+
+## 4.1.0
+
 - [29274](https://github.com/apache/superset/pull/29274): We made it easier to trigger CI on your
   forks, whether they are public or private. Simply push to a branch that fits `[0-9].[0-9]*` and
   should run on your fork, giving you flexibility on naming your release branches and triggering
@@ -32,9 +212,9 @@ assists people when migrating to a new version.
   `requirements/` folder. If you use these files for your builds you may want to double
   check that your builds are not affected. `base.txt` should be the same as before, though
   `development.txt` becomes a bigger set, incorporating the now defunct local,testing,integration, and docker
-- [27434](https://github.com/apache/superset/pull/27434/files): DO NOT USE our docker-compose.\*
+- [27434](https://github.com/apache/superset/pull/27434/files): DO NOT USE our docker compose.\*
   files for production use cases! While we never really supported
-  or should have tried to support docker-compose for production use cases, we now actively
+  or should have tried to support docker compose for production use cases, we now actively
   have taken a stance against supporting it. See the PR for details.
 - [24112](https://github.com/apache/superset/pull/24112): Python 3.10 is now the recommended python version to use, 3.9 still
   supported but getting deprecated in the nearish future. CI/CD runs on py310 so you probably want to align. If you
@@ -58,7 +238,7 @@ assists people when migrating to a new version.
   backend, as well as the .json files used by the frontend. If you were doing anything before
   as part of your bundling to expose translation packages, it's probably not needed anymore.
 - [29264](https://github.com/apache/superset/pull/29264) Slack has updated its file upload api, and we are now supporting this new api in Superset, although the Slack api is not backward compatible. The original Slack integration is deprecated and we will require a new Slack scope `channels:read` to be added to Slack workspaces in order to use this new api. In an upcoming release, we will make this new Slack scope mandatory and remove the old Slack functionality.
-- [29798](https://github.com/apache/superset/pull/29798) Since 3.1.0, the intial schedule for an alert or report was mistakenly offset by the specified timezone's relation to UTC. The initial schedule should now begin at the correct time.
+- [30274](https://github.com/apache/superset/pull/30274) Moved SLACK_ENABLE_AVATAR from config.py to the feature flag framework, please adapt your configs.
 
 ### Potential Downtime
 
@@ -116,7 +296,7 @@ assists people when migrating to a new version.
 - [24911](https://github.com/apache/superset/pull/24911): Changes the column type from `TEXT` to `MediumText` in table `logs`, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
 - [24939](https://github.com/apache/superset/pull/24939): Augments the foreign key constraints for the `embedded_dashboards` table to include an explicit CASCADE ON DELETE to ensure the relevant records are deleted when a dashboard is deleted. Scheduled downtime may be advised.
 - [24938](https://github.com/apache/superset/pull/24938): Augments the foreign key constraints for the `dashboard_slices` table to include an explicit CASCADE ON DELETE to ensure the relevant records are deleted when a dashboard or slice is deleted. Scheduled downtime may be advised.
-- [24628]https://github.com/apache/superset/pull/24628): Augments the foreign key constraints for the `dashboard_owner`, `report_schedule_owner`, and `slice_owner` tables to include an explicit CASCADE ON DELETE to ensure the relevant ownership records are deleted when a dataset is deleted. Scheduled downtime may be advised.
+- [24628](https://github.com/apache/superset/pull/24628): Augments the foreign key constraints for the `dashboard_owner`, `report_schedule_owner`, and `slice_owner` tables to include an explicit CASCADE ON DELETE to ensure the relevant ownership records are deleted when a dataset is deleted. Scheduled downtime may be advised.
 - [24488](https://github.com/apache/superset/pull/24488): Augments the foreign key constraints for the `sql_metrics`, `sqlatable_user`, and `table_columns` tables which reference the `tables` table to include an explicit CASCADE ON DELETE to ensure the relevant records are deleted when a dataset is deleted. Scheduled downtime may be advised.
 - [24232](https://github.com/apache/superset/pull/24232): Enables ENABLE_TEMPLATE_REMOVE_FILTERS, DRILL_TO_DETAIL, DASHBOARD_CROSS_FILTERS by default, marks VERSIONED_EXPORT and ENABLE_TEMPLATE_REMOVE_FILTERS as deprecated.
 - [23652](https://github.com/apache/superset/pull/23652): Enables GENERIC_CHART_AXES feature flag by default.
@@ -132,7 +312,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
-- [24686]https://github.com/apache/superset/pull/24686): All dataset's custom explore_url are handled as relative URLs on the frontend, behaviour controlled by PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET.
+- [24686](https://github.com/apache/superset/pull/24686): All dataset's custom explore_url are handled as relative URLs on the frontend, behaviour controlled by PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET.
 - [24262](https://github.com/apache/superset/pull/24262): Enabled `TALISMAN_ENABLED` flag by default and provided stricter default Content Security Policy
 - [24415](https://github.com/apache/superset/pull/24415): Removed the obsolete Druid NoSQL REGEX operator.
 - [24423](https://github.com/apache/superset/pull/24423): Removed deprecated APIs `/superset/slice_json/...`, `/superset/annotation_json/...`
@@ -229,7 +409,7 @@ assists people when migrating to a new version.
 - [19231](https://github.com/apache/superset/pull/19231): The `ENABLE_REACT_CRUD_VIEWS` feature flag has been removed (permanently enabled). Any deployments which had set this flag to false will need to verify that the React views support their use case.
 - [19230](https://github.com/apache/superset/pull/19230): The `ROW_LEVEL_SECURITY` feature flag has been removed (permanently enabled). Any deployments which had set this flag to false will need to verify that the presence of the Row Level Security feature does not interfere with their use case.
 - [19168](https://github.com/apache/superset/pull/19168): Celery upgrade to 5.X resulted in breaking changes to its command line invocation.
-html#step-1-adjust-your-command-line-invocation) instructions for adjustments. Also consider migrating you Celery config per [here](https://docs.celeryq.dev/en/stable/userguide/configuration.html#conf-old-settings-map).
+  html#step-1-adjust-your-command-line-invocation) instructions for adjustments. Also consider migrating you Celery config per [here](https://docs.celeryq.dev/en/stable/userguide/configuration.html#conf-old-settings-map).
 - [19142](https://github.com/apache/superset/pull/19142): The `VERSIONED_EXPORT` config key is now `True` by default.
 - [19113](https://github.com/apache/superset/pull/19113): The `ENABLE_JAVASCRIPT_CONTROLS` config key has moved from an app config to a feature flag. Any deployments who overrode this setting will now need to override the feature flag from here onward.
 - [19107](https://github.com/apache/superset/pull/19107): The `SQLLAB_BACKEND_PERSISTENCE` feature flag is now `True` by default, which enables persisting SQL Lab tabs in the backend instead of the browser's `localStorage`.
@@ -317,8 +497,7 @@ html#step-1-adjust-your-command-line-invocation) instructions for adjustments. A
 ### Potential Downtime
 
 - [14234](https://github.com/apache/superset/pull/14234): Adds the `limiting_factor` column to the `query` table. Give the migration includes a DDL operation on a heavily trafficked table, potential service downtime may be required.
-
--[16454](https://github.com/apache/superset/pull/16454): Adds the `extra` column to the `table_columns` table. Users using MySQL will either need to schedule downtime or use the percona toolkit (or similar) to perform the migration.
+- [16454](https://github.com/apache/superset/pull/16454): Adds the `extra` column to the `table_columns` table. Users using MySQL will either need to schedule downtime or use the percona toolkit (or similar) to perform the migration.
 
 ## 1.2.0
 

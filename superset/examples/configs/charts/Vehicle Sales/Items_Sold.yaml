@@ -1,0 +1,73 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Items Sold
+description: null
+certified_by: null
+certification_details: null
+viz_type: big_number
+params:
+  datasource: 21__table
+  viz_type: big_number
+  slice_id: 115
+  x_axis: order_date
+  metric:
+    aggregate: SUM
+    column:
+      column_name: quantity_ordered
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 914
+      is_dttm: false
+      python_date_format: null
+      type: BIGINT
+      verbose_name: null
+    expressionType: SIMPLE
+    hasCustomLabel: false
+    isNew: false
+    label: SUM(Sales)
+    optionName: metric_twq59hf4ej_g70qjfmehsq
+    sqlExpression: null
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: order_date
+  show_trend_line: true
+  start_y_axis_at_zero: true
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  header_font_size: 0.4
+  subheader_font_size: 0.15
+  y_axis_format: SMART_NUMBER
+  time_format: smart_date
+  rolling_type: cumsum
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":21,"type":"table"},"force":false,"queries":[{"filters":[{"col":"order_date","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"having":"","where":""},"applied_time_extras":{},"columns":[{"columnType":"BASE_AXIS","sqlExpression":"order_date","label":"order_date","expressionType":"SQL"}],"metrics":[{"aggregate":"SUM","column":{"column_name":"quantity_ordered","description":null,"expression":null,"filterable":true,"groupby":true,"id":914,"is_dttm":false,"python_date_format":null,"type":"BIGINT","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"SUM(Sales)","optionName":"metric_twq59hf4ej_g70qjfmehsq","sqlExpression":null}],"annotation_layers":[],"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[{"operation":"pivot","options":{"index":["order_date"],"columns":[],"aggregates":{"SUM(Sales)":{"operator":"mean"}},"drop_missing_columns":true}},{"operation":"cum","options":{"operator":"sum","columns":{"SUM(Sales)":"SUM(Sales)"}}},{"operation":"flatten"}]}],"form_data":{"datasource":"21__table","viz_type":"big_number","slice_id":115,"x_axis":"order_date","metric":{"aggregate":"SUM","column":{"column_name":"quantity_ordered","description":null,"expression":null,"filterable":true,"groupby":true,"id":914,"is_dttm":false,"python_date_format":null,"type":"BIGINT","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"SUM(Sales)","optionName":"metric_twq59hf4ej_g70qjfmehsq","sqlExpression":null},"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","expressionType":"SIMPLE","operator":"TEMPORAL_RANGE","subject":"order_date"}],"show_trend_line":true,"start_y_axis_at_zero":true,"color_picker":{"a":1,"b":135,"g":122,"r":0},"header_font_size":0.4,"subheader_font_size":0.15,"y_axis_format":"SMART_NUMBER","time_format":"smart_date","rolling_type":"cumsum","extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: c3d643cd-fd6f-4659-a5b7-59402487a8d0
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

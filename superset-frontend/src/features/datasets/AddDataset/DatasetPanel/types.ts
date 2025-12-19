@@ -63,8 +63,8 @@ export interface IDatabaseTable {
 }
 
 /**
- * Checks if a given item matches the isIDatabsetTable interface
- * @param item Object to check if it matches the isIDatabsetTable interface
+ * Checks if a given item matches the isIDatabaseTable interface
+ * @param item Object to check if it matches the isIDatabaseTable interface
  * @returns boolean true if matches interface
  */
 export const isIDatabaseTable = (item: any): boolean => {

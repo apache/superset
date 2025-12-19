@@ -263,6 +263,112 @@ metadata:
   expanded_slices: {}
   refresh_frequency: 0
   default_filters: "{}"
+  native_filter_configuration:
+  - id: NATIVE_FILTER-8jS1fx4hl
+    controlValues:
+      enableEmptyFilter: false
+      defaultToFirstItem: false
+      multiSelect: true
+      searchAllOptions: false
+      inverseSelection: false
+    name: Country
+    filterType: filter_select
+    targets:
+    - column:
+        name: country_name
+      datasetUuid: 974b7a1c-22ea-49cb-9214-97b7dbd511e0
+    defaultDataMask:
+      extraFormData: {}
+      filterState: {}
+      ownState: {}
+    cascadeParentIds: []
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded: []
+    type: NATIVE_FILTER
+    description: ''
+    chartsInScope:
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 66
+    tabsInScope:
+    - TAB-BCIJF4NvgQ
+  - id: NATIVE_FILTER-3_1wEdKkP
+    controlValues:
+      enableEmptyFilter: false
+      defaultToFirstItem: false
+      multiSelect: true
+      searchAllOptions: false
+      inverseSelection: false
+    name: Vaccine Approach
+    filterType: filter_select
+    targets:
+    - column:
+        name: product_category
+      datasetUuid: 974b7a1c-22ea-49cb-9214-97b7dbd511e0
+    defaultDataMask:
+      extraFormData: {}
+      filterState: {}
+      ownState: {}
+    cascadeParentIds: []
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded: []
+    type: NATIVE_FILTER
+    description: ''
+    chartsInScope:
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 66
+    tabsInScope:
+    - TAB-BCIJF4NvgQ
+  - id: NATIVE_FILTER-EWNH3M70z
+    controlValues:
+      enableEmptyFilter: false
+      defaultToFirstItem: false
+      multiSelect: true
+      searchAllOptions: false
+      inverseSelection: false
+    name: Clinical Stage
+    filterType: filter_select
+    targets:
+    - column:
+        name: clinical_stage
+      datasetUuid: 974b7a1c-22ea-49cb-9214-97b7dbd511e0
+    defaultDataMask:
+      extraFormData: {}
+      filterState: {}
+      ownState: {}
+    cascadeParentIds: []
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded: []
+    type: NATIVE_FILTER
+    description: ''
+    chartsInScope:
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 66
+    tabsInScope:
+    - TAB-BCIJF4NvgQ
   color_scheme: supersetColors
   label_colors:
     "0": "#D3B3DA"

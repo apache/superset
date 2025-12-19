@@ -18,12 +18,12 @@ from marshmallow import fields, Schema
 
 
 class ExplorePermalinkStateSchema(Schema):
-    formData = fields.Dict(
+    formData = fields.Dict(  # noqa: N815
         required=True,
         allow_none=False,
         metadata={"description": "Chart form data"},
     )
-    urlParams = fields.List(
+    urlParams = fields.List(  # noqa: N815
         fields.Tuple(
             (
                 fields.String(
@@ -44,17 +44,17 @@ class ExplorePermalinkStateSchema(Schema):
 
 
 class ExplorePermalinkSchema(Schema):
-    chartId = fields.Integer(
+    chartId = fields.Integer(  # noqa: N815
         required=False,
         allow_none=True,
         metadata={"description": "The id of the chart"},
     )
-    datasourceType = fields.String(
+    datasourceType = fields.String(  # noqa: N815
         required=True,
         allow_none=False,
         metadata={"description": "The type of the datasource"},
     )
-    datasourceId = fields.Integer(
+    datasourceId = fields.Integer(  # noqa: N815
         required=False,
         allow_none=True,
         metadata={"description": "The id of the datasource"},

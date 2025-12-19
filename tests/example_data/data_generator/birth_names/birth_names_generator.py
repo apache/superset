@@ -69,14 +69,14 @@ class BirthNamesGenerator(ExampleDataGenerator):
         return datetime(year, 1, 1, 0, 0, 0)
 
     def generate_row(self, dt: datetime) -> dict[Any, Any]:
-        gender = choice([BOY, GIRL])
-        num = randint(1, 100000)
+        gender = choice([BOY, GIRL])  # noqa: S311
+        num = randint(1, 100000)  # noqa: S311
         return {
             DS: dt,
             GENDER: gender,
             NAME: self._names_generator.generate(),
             NUM: num,
-            STATE: choice(US_STATES),
+            STATE: choice(US_STATES),  # noqa: S311
             NUM_BOYS: num if gender == BOY else 0,
             NUM_GIRLS: num if gender == GIRL else 0,
         }

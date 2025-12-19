@@ -52,12 +52,11 @@ const expectedResult3 = fakeApiResult3.result.map((value: string) => ({
   title: value,
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useSchemas hook', () => {
-  afterEach(() => {
+  beforeEach(() => {
     fetchMock.reset();
-    act(() => {
-      store.dispatch(api.util.resetApiState());
-    });
+    store.dispatch(api.util.resetApiState());
   });
 
   test('returns api response mapping json result', async () => {

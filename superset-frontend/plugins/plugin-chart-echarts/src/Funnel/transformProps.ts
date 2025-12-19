@@ -26,6 +26,7 @@ import {
   NumberFormats,
   tooltipHtml,
   ValueFormatter,
+  VizType,
 } from '@superset-ui/core';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import type { EChartsCoreOption } from 'echarts/core';
@@ -111,6 +112,7 @@ export default function transformProps(
     legendMargin,
     legendOrientation,
     legendType,
+    legendSort,
     metric = '',
     numberFormat,
     currencyFormat,
@@ -145,7 +147,6 @@ export default function transformProps(
   }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
-
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getValueFormatter(
     metric,
@@ -175,7 +176,7 @@ export default function transformProps(
       value,
       name,
       itemStyle: {
-        color: colorFn(name, sliceId, colorScheme),
+        color: colorFn(name, sliceId),
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,
@@ -227,12 +228,14 @@ export default function transformProps(
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: theme.colors.grayscale.dark2,
+    color: theme.colorText,
+    textBorderColor: theme.colorBgBase,
+    textBorderWidth: 1,
   };
 
   const series: FunnelSeriesOption[] = [
     {
-      type: 'funnel',
+      type: VizType.Funnel,
       ...getChartPadding(showLegend, legendOrientation, legendMargin),
       animation: true,
       minSize: '0%',
@@ -245,7 +248,6 @@ export default function transformProps(
       label: {
         ...defaultLabel,
         position: labelLine ? 'outer' : 'inner',
-        textBorderColor: 'transparent',
       },
       emphasis: {
         label: {
@@ -289,7 +291,10 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: keys,
+      data: keys.sort((a: string, b: string) => {
+        if (!legendSort) return 0;
+        return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+      }),
     },
     series,
   };

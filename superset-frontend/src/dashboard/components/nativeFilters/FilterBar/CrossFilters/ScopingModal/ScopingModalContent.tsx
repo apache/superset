@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, NativeFilterScope, styled, useTheme } from '@superset-ui/core';
+import { NativeFilterScope } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { ChartConfiguration } from 'src/dashboard/types';
 import { ScopingTreePanel } from './ScopingTreePanel';
 import { ChartsScopingListPanel } from './ChartsScopingListPanel';
@@ -37,7 +38,7 @@ const ModalContentContainer = styled.div`
     display: flex;
     height: 100%;
     & > div {
-      padding: ${theme.gridUnit * 4}px;
+      padding: ${theme.sizeUnit * 4}px;
     }
   `}
 `;
@@ -58,7 +59,7 @@ export const ScopingModalContent = ({
       <div
         css={css`
           width: 35%;
-          border-right: 1px solid ${theme.colors.grayscale.light2};
+          border-right: 1px solid ${theme.colorSplit};
         `}
         data-test="scoping-list-panel"
       >

@@ -21,8 +21,9 @@ from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app as app
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.exceptions import CommandException, UpdateFailedError
@@ -49,6 +50,7 @@ from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
     ReportScheduleDAO,
 )
+from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
@@ -71,7 +73,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.tasks.utils import get_executor
 from superset.utils import json
-from superset.utils.core import HeaderDataType, override_user
+from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
@@ -136,42 +138,74 @@ class BaseReportState:
                 if recipient.type == ReportRecipientType.SLACK:
                     recipient.type = ReportRecipientType.SLACKV2
                     slack_recipients = json.loads(recipient.recipient_config_json)
+                    # V1 method allowed to use leading `#` in the channel name
+                    channel_names = (slack_recipients["target"] or "").replace("#", "")
                     # we need to ensure that existing reports can also fetch
                     # ids from private channels
+                    channels = get_channels_with_search(
+                        search_string=channel_names,
+                        types=[
+                            SlackChannelTypes.PRIVATE,
+                            SlackChannelTypes.PUBLIC,
+                        ],
+                        exact_match=True,
+                    )
+                    channels_list = recipients_string_to_list(channel_names)
+                    if len(channels_list) != len(channels):
+                        missing_channels = set(channels_list) - {
+                            channel["name"] for channel in channels
+                        }
+                        msg = (
+                            "Could not find the following channels: "
+                            f"{', '.join(missing_channels)}"
+                        )
+                        raise UpdateFailedError(msg)
+                    channel_ids = ",".join(channel["id"] for channel in channels)
                     recipient.recipient_config_json = json.dumps(
                         {
-                            "target": get_channels_with_search(
-                                slack_recipients["target"],
-                                types=[
-                                    SlackChannelTypes.PRIVATE,
-                                    SlackChannelTypes.PUBLIC,
-                                ],
-                            )
+                            "target": channel_ids,
                         }
                     )
         except Exception as ex:
-            logger.warning(
-                "Failed to update slack recipients to v2: %s", str(ex), exc_info=True
-            )
-            raise UpdateFailedError from ex
+            # Revert to v1 to preserve configuration (requires manual fix)
+            recipient.type = ReportRecipientType.SLACK
+            msg = f"Failed to update slack recipients to v2: {str(ex)}"
+            logger.exception(msg)
+            raise UpdateFailedError(msg) from ex
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
         """
-        log = ReportExecutionLog(
-            scheduled_dttm=self._scheduled_dttm,
-            start_dttm=self._start_dttm,
-            end_dttm=datetime.utcnow(),
-            value=self._report_schedule.last_value,
-            value_row_json=self._report_schedule.last_value_row_json,
-            state=self._report_schedule.last_state,
-            error_message=error_message,
-            report_schedule=self._report_schedule,
-            uuid=self._execution_id,
-        )
-        db.session.add(log)
-        db.session.commit()  # pylint: disable=consider-using-transaction
+        from sqlalchemy.orm.exc import StaleDataError
+
+        try:
+            log = ReportExecutionLog(
+                scheduled_dttm=self._scheduled_dttm,
+                start_dttm=self._start_dttm,
+                end_dttm=datetime.utcnow(),
+                value=self._report_schedule.last_value,
+                value_row_json=self._report_schedule.last_value_row_json,
+                state=self._report_schedule.last_state,
+                error_message=error_message,
+                report_schedule=self._report_schedule,
+                uuid=self._execution_id,
+            )
+            db.session.add(log)
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        except StaleDataError as ex:
+            # Report schedule was modified or deleted by another process
+            db.session.rollback()
+            logger.warning(
+                "Report schedule (execution %s) was modified or deleted "
+                "during execution. This can occur when a report is deleted "
+                "while running.",
+                self._execution_id,
+            )
+            raise ReportScheduleUnexpectedError(
+                "Report schedule was modified or deleted by another process "
+                "during execution"
+            ) from ex
 
     def _get_url(
         self,
@@ -206,11 +240,8 @@ class BaseReportState:
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
-            permalink_key = CreateDashboardPermalinkCommand(
-                dashboard_id=str(self._report_schedule.dashboard.uuid),
-                state=dashboard_state,
-            ).run()
-            return get_url_path("Superset.dashboard_permalink", key=permalink_key)
+            return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
+
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
             dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
@@ -223,54 +254,177 @@ class BaseReportState:
             **kwargs,
         )
 
+    def get_dashboard_urls(
+        self, user_friendly: bool = False, **kwargs: Any
+    ) -> list[str]:
+        """
+        Retrieve the URL for the dashboard tabs, or return the dashboard URL if no tabs are available.
+        """  # noqa: E501
+        force = "true" if self._report_schedule.force_screenshot else "false"
+
+        if (
+            dashboard_state := self._report_schedule.extra.get("dashboard")
+        ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
+            native_filter_params = self._report_schedule.get_native_filters_params()
+            if anchor := dashboard_state.get("anchor"):
+                try:
+                    anchor_list: list[str] = json.loads(anchor)
+                    urls = self._get_tabs_urls(
+                        anchor_list,
+                        native_filter_params=native_filter_params,
+                        user_friendly=user_friendly,
+                    )
+                    return urls
+                except json.JSONDecodeError:
+                    logger.debug("Anchor value is not a list, Fall back to single tab")
+
+            return [
+                self._get_tab_url(
+                    {
+                        "urlParams": [
+                            ["native_filters", native_filter_params]  # type: ignore
+                        ],
+                        **dashboard_state,
+                    },
+                    user_friendly=user_friendly,
+                )
+            ]
+
+        dashboard = self._report_schedule.dashboard
+        dashboard_id_or_slug = (
+            dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
+        )
+
+        return [
+            get_url_path(
+                "Superset.dashboard",
+                user_friendly=user_friendly,
+                dashboard_id_or_slug=dashboard_id_or_slug,
+                force=force,
+                **kwargs,
+            )
+        ]
+
+    def _get_tab_url(
+        self, dashboard_state: DashboardPermalinkState, user_friendly: bool = False
+    ) -> str:
+        """
+        Get one tab url
+        """
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard_id=str(self._report_schedule.dashboard.uuid),
+            state=dashboard_state,
+        ).run()
+
+        return get_url_path(
+            "Superset.dashboard_permalink",
+            key=permalink_key,
+            user_friendly=user_friendly,
+        )
+
+    def _get_tabs_urls(
+        self,
+        tab_anchors: list[str],
+        native_filter_params: Optional[str] = None,
+        user_friendly: bool = False,
+    ) -> list[str]:
+        """
+        Get multple tabs urls
+        """
+        return [
+            self._get_tab_url(
+                {
+                    "anchor": tab_anchor,
+                    "dataMask": None,
+                    "activeTabs": None,
+                    "urlParams": [
+                        ["native_filters", native_filter_params]  # type: ignore
+                    ],
+                },
+                user_friendly=user_friendly,
+            )
+            for tab_anchor in tab_anchors
+        ]
+
     def _get_screenshots(self) -> list[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        url = self._get_url()
+        start_time = datetime.utcnow()
+
         _, username = get_executor(
-            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
 
+        max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
+
         if self._report_schedule.chart:
+            url = self._get_url()
+
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["slice"]
-            window_size = (
-                self._report_schedule.custom_width or window_width,
-                self._report_schedule.custom_height or window_height,
-            )
-            screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
-                url,
-                self._report_schedule.chart.digest,
-                window_size=window_size,
-                thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
-            )
+            width = min(max_width, self._report_schedule.custom_width or window_width)
+            height = self._report_schedule.custom_height or window_height
+            window_size = (width, height)
+
+            screenshots: list[Union[ChartScreenshot, DashboardScreenshot]] = [
+                ChartScreenshot(
+                    url,
+                    self._report_schedule.chart.digest,
+                    window_size=window_size,
+                    thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                )
+            ]
         else:
+            urls = self.get_dashboard_urls()
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
-            window_size = (
-                self._report_schedule.custom_width or window_width,
-                self._report_schedule.custom_height or window_height,
-            )
-            screenshot = DashboardScreenshot(
-                url,
-                self._report_schedule.dashboard.digest,
-                window_size=window_size,
-                thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
-            )
+            width = min(max_width, self._report_schedule.custom_width or window_width)
+            height = self._report_schedule.custom_height or window_height
+            window_size = (width, height)
+
+            screenshots = [
+                DashboardScreenshot(
+                    url,
+                    self._report_schedule.dashboard.digest,
+                    window_size=window_size,
+                    thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                )
+                for url in urls
+            ]
         try:
-            image = screenshot.get_screenshot(user=user)
+            imges = []
+            for screenshot in screenshots:
+                if imge := screenshot.get_screenshot(user=user):
+                    imges.append(imge)
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "Screenshot capture took %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
         except SoftTimeLimitExceeded as ex:
-            logger.warning("A timeout occurred while taking a screenshot.")
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.warning(
+                "Screenshot timeout after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleScreenshotTimeout() from ex
         except Exception as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.error(
+                "Screenshot failed after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleScreenshotFailedError(
                 f"Failed taking a screenshot {str(ex)}"
             ) from ex
-        if not image:
+        if not imges:
             raise ReportScheduleScreenshotFailedError()
-        return [image]
+        return imges
 
     def _get_pdf(self) -> bytes:
         """
@@ -283,9 +437,10 @@ class BaseReportState:
         return pdf
 
     def _get_csv_data(self) -> bytes:
+        start_time = datetime.utcnow()
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(
-            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
@@ -296,11 +451,30 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s as user %s", url, user.username)
             csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "CSV data generation from %s as user %s took %.2fs - execution_id: %s",
+                url,
+                username,
+                elapsed_seconds,
+                self._execution_id,
+            )
         except SoftTimeLimitExceeded as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.warning(
+                "CSV generation timeout after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.error(
+                "CSV generation failed after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleCsvFailedError(
                 f"Failed generating csv {str(ex)}"
             ) from ex
@@ -312,9 +486,11 @@ class BaseReportState:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
+        start_time = datetime.utcnow()
+
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         _, username = get_executor(
-            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
@@ -325,11 +501,30 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s as user %s", url, user.username)
             dataframe = get_chart_dataframe(url, auth_cookies)
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "DataFrame generation from %s as user %s took %.2fs - execution_id: %s",
+                url,
+                username,
+                elapsed_seconds,
+                self._execution_id,
+            )
         except SoftTimeLimitExceeded as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.warning(
+                "DataFrame generation timeout after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleDataFrameTimeout() from ex
         except Exception as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.error(
+                "DataFrame generation failed after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleDataFrameFailedError(
                 f"Failed generating dataframe {str(ex)}"
             ) from ex
@@ -386,10 +581,11 @@ class BaseReportState:
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
             "slack_channels": slack_channels,
+            "execution_id": str(self._execution_id),
         }
         return log_data
 
-    def _get_notification_content(self) -> NotificationContent:
+    def _get_notification_content(self) -> NotificationContent:  # noqa: C901
         """
         Gets a notification content, this is composed by a title and a screenshot
 
@@ -402,6 +598,7 @@ class BaseReportState:
         error_text = None
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
+
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
@@ -426,6 +623,7 @@ class BaseReportState:
                     name=self._report_schedule.name,
                     text=error_text,
                     header_data=header_data,
+                    url=url,
                 )
 
         if (
@@ -473,38 +671,40 @@ class BaseReportState:
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
-                if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
-                    logger.info(
-                        "Would send notification for alert %s, to %s. "
-                        "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
-                        "set it to False to send notifications.",
-                        self._report_schedule.name,
-                        recipient.recipient_config_json,
-                    )
-                else:
-                    notification.send()
-            except SlackV1NotificationError as ex:
-                # The slack notification should be sent with the v2 api
-                logger.info("Attempting to upgrade the report to Slackv2: %s", str(ex))
                 try:
+                    if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
+                        logger.info(
+                            "Would send notification for alert %s, to %s. "
+                            "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
+                            "set it to False to send notifications.",
+                            self._report_schedule.name,
+                            recipient.recipient_config_json,
+                        )
+                    else:
+                        notification.send()
+                except SlackV1NotificationError as ex:
+                    # The slack notification should be sent with the v2 api
+                    logger.info(
+                        "Attempting to upgrade the report to Slackv2: %s", str(ex)
+                    )
                     self.update_report_schedule_slack_v2()
                     recipient.type = ReportRecipientType.SLACKV2
                     notification = create_notification(recipient, notification_content)
                     notification.send()
-                except (UpdateFailedError, NotificationParamException) as err:
-                    # log the error but keep processing the report with SlackV1
-                    logger.warning(
-                        "Failed to update slack recipients to v2: %s", str(err)
-                    )
-            except (NotificationError, SupersetException) as ex:
+            except (
+                UpdateFailedError,
+                NotificationParamException,
+                NotificationError,
+                SupersetException,
+            ) as ex:
                 # collect errors but keep processing them
                 notification_errors.append(
                     SupersetError(
                         message=ex.message,
                         error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
-                        level=ErrorLevel.ERROR
-                        if ex.status >= 500
-                        else ErrorLevel.WARNING,
+                        level=(
+                            ErrorLevel.ERROR if ex.status >= 500 else ErrorLevel.WARNING
+                        ),
                     )
                 )
         if notification_errors:
@@ -533,13 +733,14 @@ class BaseReportState:
         :raises: CommandException
         """
         header_data = self._get_log_data()
+        url = self._get_url(user_friendly=True)
         logger.info(
             "header_data in notifications for alerts and reports %s, taskid, %s",
             header_data,
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=name, text=message, header_data=header_data
+            name=name, text=message, header_data=header_data, url=url
         )
 
         # filter recipients to recipients who are also owners
@@ -616,12 +817,12 @@ class ReportNotTriggeredErrorState(BaseReportState):
     current_states = [ReportState.NOOP, ReportState.ERROR]
     initial = True
 
-    def next(self) -> None:
+    def next(self) -> None:  # noqa: C901
         self.update_report_schedule_and_log(ReportState.WORKING)
         try:
             # If it's an alert check if the alert is triggered
             if self._report_schedule.type == ReportScheduleType.ALERT:
-                if not AlertCommand(self._report_schedule).run():
+                if not AlertCommand(self._report_schedule, self._execution_id).run():
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
             self.send()
@@ -631,9 +832,21 @@ class ReportNotTriggeredErrorState(BaseReportState):
             if isinstance(first_ex, SupersetErrorsException):
                 error_message = ";".join([error.message for error in first_ex.errors])
 
-            self.update_report_schedule_and_log(
-                ReportState.ERROR, error_message=error_message
-            )
+            try:
+                self.update_report_schedule_and_log(
+                    ReportState.ERROR, error_message=error_message
+                )
+            except ReportScheduleUnexpectedError as logging_ex:
+                # Logging failed (likely StaleDataError), but we still want to
+                # raise the original error so the root cause remains visible
+                logger.warning(
+                    "Failed to log error for report schedule (execution %s) "
+                    "due to database issue",
+                    self._execution_id,
+                    exc_info=True,
+                )
+                # Re-raise the original exception, not the logging failure
+                raise first_ex from logging_ex
 
             # TODO (dpgaspar) convert this logic to a new state eg: ERROR_ON_GRACE
             if not self.is_in_error_grace_period():
@@ -649,12 +862,26 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     second_error_message = ";".join(
                         [error.message for error in second_ex.errors]
                     )
+                except ReportScheduleUnexpectedError:
+                    # send_error failed due to logging issue, log and continue
+                    # to raise the original error
+                    logger.warning(
+                        "Failed to send error notification due to database issue",
+                        exc_info=True,
+                    )
                 except Exception as second_ex:  # pylint: disable=broad-except
                     second_error_message = str(second_ex)
                 finally:
-                    self.update_report_schedule_and_log(
-                        ReportState.ERROR, error_message=second_error_message
-                    )
+                    try:
+                        self.update_report_schedule_and_log(
+                            ReportState.ERROR, error_message=second_error_message
+                        )
+                    except ReportScheduleUnexpectedError:
+                        # Logging failed again, log it but don't let it hide first_ex
+                        logger.warning(
+                            "Failed to log final error state due to database issue",
+                            exc_info=True,
+                        )
             raise
 
 
@@ -670,12 +897,29 @@ class ReportWorkingState(BaseReportState):
 
     def next(self) -> None:
         if self.is_on_working_timeout():
+            last_working = ReportScheduleDAO.find_last_entered_working_log(
+                self._report_schedule
+            )
+            elapsed_seconds = (
+                (datetime.utcnow() - last_working.end_dttm).total_seconds()
+                if last_working
+                else None
+            )
+            logger.error(
+                "Working state timeout after %.2fs - execution_id: %s",
+                elapsed_seconds if elapsed_seconds else 0,
+                self._execution_id,
+            )
             exception_timeout = ReportScheduleWorkingTimeoutError()
             self.update_report_schedule_and_log(
                 ReportState.ERROR,
                 error_message=str(exception_timeout),
             )
             raise exception_timeout
+        logger.warning(
+            "Report still in working state, refusing to re-compute - execution_id: %s",
+            self._execution_id,
+        )
         exception_working = ReportSchedulePreviousWorkingError()
         self.update_report_schedule_and_log(
             ReportState.WORKING,
@@ -705,7 +949,7 @@ class ReportSuccessState(BaseReportState):
                 return
             self.update_report_schedule_and_log(ReportState.WORKING)
             try:
-                if not AlertCommand(self._report_schedule).run():
+                if not AlertCommand(self._report_schedule, self._execution_id).run():
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
             except Exception as ex:
@@ -724,9 +968,22 @@ class ReportSuccessState(BaseReportState):
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
         except Exception as ex:  # pylint: disable=broad-except
-            self.update_report_schedule_and_log(
-                ReportState.ERROR, error_message=str(ex)
-            )
+            try:
+                self.update_report_schedule_and_log(
+                    ReportState.ERROR, error_message=str(ex)
+                )
+            except ReportScheduleUnexpectedError as logging_ex:
+                # Logging failed (likely StaleDataError), but we still want to
+                # raise the original error so the root cause remains visible
+                logger.warning(
+                    "Failed to log error for report schedule (execution %s) "
+                    "due to database issue",
+                    self._execution_id,
+                    exc_info=True,
+                )
+                # Re-raise the original exception, not the logging failure
+                raise ex from logging_ex
+            raise
 
 
 class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
@@ -781,20 +1038,26 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             self.validate()
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
+
             _, username = get_executor(
-                executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+                executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._model,
             )
             user = security_manager.find_user(username)
+
+            start_time = datetime.utcnow()
             with override_user(user):
-                logger.info(
-                    "Running report schedule %s as user %s",
-                    self._execution_id,
-                    username,
-                )
                 ReportScheduleStateMachine(
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()
+
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "Report execution as user %s completed in %.2fs - execution_id: %s",
+                username,
+                elapsed_seconds,
+                self._execution_id,
+            )
         except CommandException:
             raise
         except Exception as ex:

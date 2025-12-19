@@ -20,19 +20,12 @@
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
-import { render, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import {
-  ErrorLevel,
-  ErrorSource,
-  ErrorTypeEnum,
-  ThemeProvider,
-  supersetTheme,
-} from '@superset-ui/core';
-import OAuth2RedirectMessage from 'src/components/ErrorMessage/OAuth2RedirectMessage';
+import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
+import { OAuth2RedirectMessage } from '.';
 
 // Mock the Redux store
 const mockStore = createStore(() => ({
@@ -101,22 +94,21 @@ const defaultProps = {
 };
 
 const setup = (overrides = {}) => (
-  <ThemeProvider theme={supersetTheme}>
-    <Provider store={mockStore}>
-      <OAuth2RedirectMessage {...defaultProps} {...overrides} />;
-    </Provider>
-  </ThemeProvider>
+  <Provider store={mockStore}>
+    <OAuth2RedirectMessage {...defaultProps} {...overrides} />;
+  </Provider>
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('OAuth2RedirectMessage Component', () => {
-  it('renders without crashing and displays the correct initial UI elements', () => {
+  test('renders without crashing and displays the correct initial UI elements', () => {
     const { getByText } = render(setup());
 
     expect(getByText(/Authorization needed/i)).toBeInTheDocument();
     expect(getByText(/provide authorization/i)).toBeInTheDocument();
   });
 
-  it('opens a new window with the correct URL when the link is clicked', () => {
+  test('opens a new window with the correct URL when the link is clicked', () => {
     const { getByText } = render(setup());
 
     const linkElement = getByText(/provide authorization/i);
@@ -125,7 +117,7 @@ describe('OAuth2RedirectMessage Component', () => {
     expect(mockOpen).toHaveBeenCalledWith('https://example.com', '_blank');
   });
 
-  it('cleans up the message event listener on unmount', () => {
+  test('cleans up the message event listener on unmount', () => {
     const { unmount } = render(setup());
 
     expect(mockAddEventListener).toHaveBeenCalled();
@@ -133,7 +125,7 @@ describe('OAuth2RedirectMessage Component', () => {
     expect(mockRemoveEventListener).toHaveBeenCalled();
   });
 
-  it('dispatches reRunQuery action when a message with correct tab ID is received for SQL Lab', async () => {
+  test('dispatches reRunQuery action when a message with correct tab ID is received for SQL Lab', async () => {
     render(setup());
 
     simulateMessageEvent({ tabId: 'tabId' }, 'https://redirect.example.com');
@@ -143,7 +135,7 @@ describe('OAuth2RedirectMessage Component', () => {
     });
   });
 
-  it('dispatches triggerQuery action for explore source upon receiving a correct message', async () => {
+  test('dispatches triggerQuery action for explore source upon receiving a correct message', async () => {
     render(setup({ source: 'explore' }));
 
     simulateMessageEvent({ tabId: 'tabId' }, 'https://redirect.example.com');
@@ -153,7 +145,7 @@ describe('OAuth2RedirectMessage Component', () => {
     });
   });
 
-  it('dispatches onRefresh action for dashboard source upon receiving a correct message', async () => {
+  test('dispatches onRefresh action for dashboard source upon receiving a correct message', async () => {
     render(setup({ source: 'dashboard' }));
 
     simulateMessageEvent({ tabId: 'tabId' }, 'https://redirect.example.com');

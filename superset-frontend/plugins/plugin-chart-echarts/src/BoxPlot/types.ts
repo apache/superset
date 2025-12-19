@@ -36,7 +36,9 @@ export type BoxPlotFormDataWhiskerOptions =
   | 'Tukey'
   | 'Min/max (no outliers)'
   | '2/98 percentiles'
-  | '9/91 percentiles';
+  | '5/95 percentiles'
+  | '9/91 percentiles'
+  | '10/90 percentiles';
 
 export type BoxPlotFormXTickLayout =
   | '45°'
@@ -50,8 +52,7 @@ export const DEFAULT_FORM_DATA: BoxPlotQueryFormData = {
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
-export interface EchartsBoxPlotChartProps
-  extends BaseChartProps<BoxPlotQueryFormData> {
+export interface EchartsBoxPlotChartProps extends BaseChartProps<BoxPlotQueryFormData> {
   formData: BoxPlotQueryFormData;
 }
 

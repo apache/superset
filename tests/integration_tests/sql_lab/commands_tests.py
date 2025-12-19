@@ -19,9 +19,10 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
+from flask import current_app
 from flask_babel import gettext as __
 
-from superset import app, db, sql_lab
+from superset import db, sql_lab
 from superset.commands.sql_lab import estimate, export, results
 from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -87,9 +88,9 @@ class TestQueryEstimationCommand(SupersetTestCase):
                 ex_info.value.error.error_type == SupersetErrorType.SQLLAB_TIMEOUT_ERROR
             )
             assert ex_info.value.error.message == __(
-                "The query estimation was killed after %(sqllab_timeout)s seconds. It might "
+                "The query estimation was killed after %(sqllab_timeout)s seconds. It might "  # noqa: E501
                 "be too complex, or the database might be under heavy load.",
-                sqllab_timeout=app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
+                sqllab_timeout=current_app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
             )
 
     def test_run_success(self) -> None:
@@ -112,7 +113,7 @@ class TestQueryEstimationCommand(SupersetTestCase):
 
 
 class TestSqlResultExportCommand(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def create_database_and_query(self):
         with self.create_app().app_context():
             database = get_example_database()
@@ -177,7 +178,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
-        assert result["data"] == "foo\n1\n2\n3\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n2\n3\n"
         assert result["count"] == 3
         assert result["query"].client_id == "test"
 
@@ -195,7 +196,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
-        assert result["data"] == "foo\n1\n2\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n2\n"
         assert result["count"] == 2
         assert result["query"].client_id == "test"
 
@@ -217,7 +218,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        assert result["data"] == "foo\n1\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n"
         assert result["count"] == 1
         assert result["query"].client_id == "test"
 
@@ -240,13 +241,13 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        assert result["data"] == "foo\n0\n1\n2\n3\n4\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n0\n1\n2\n3\n4\n"
         assert result["count"] == 5
         assert result["query"].client_id == "test"
 
 
 class TestSqlExecutionResultsCommand(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def create_database_and_query(self):
         with self.create_app().app_context():
             database = get_example_database()
@@ -335,7 +336,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             "superset.views.utils._deserialize_results_payload",
             side_effect=SerializationError(),
         ):
-            with pytest.raises(SupersetErrorException) as ex_info:
+            with pytest.raises(SupersetErrorException) as ex_info:  # noqa: PT012
                 command = results.SqlExecutionResultsCommand("test_other", 1000)
                 command.run()
             assert (

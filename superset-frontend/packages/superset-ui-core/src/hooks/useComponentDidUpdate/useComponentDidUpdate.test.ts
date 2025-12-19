@@ -24,8 +24,8 @@ test('the effect should not be executed on the first render', () => {
   const hook = renderHook(props => useComponentDidUpdate(props.effect), {
     initialProps: { effect },
   });
-  expect(effect).toBeCalledTimes(0);
+  expect(effect).toHaveBeenCalledTimes(0);
   const changedEffect = jest.fn();
   hook.rerender({ effect: changedEffect });
-  expect(changedEffect).toBeCalledTimes(1);
+  expect(changedEffect).toHaveBeenCalledTimes(1);
 });

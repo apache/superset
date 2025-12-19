@@ -16,39 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { IconTooltip } from 'src/components/IconTooltip';
-import ModalTrigger from 'src/components/ModalTrigger';
-
-SyntaxHighlighter.registerLanguage('sql', sql);
+import { useEffect } from 'react';
+import { IconTooltip, ModalTrigger } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import CodeSyntaxHighlighter, {
+  preloadLanguages,
+} from '@superset-ui/core/components/CodeSyntaxHighlighter';
 
 interface ShowSQLProps {
   sql: string;
   title: string;
   tooltipText: string;
+  triggerNode?: React.ReactNode;
 }
 
 export default function ShowSQL({
   tooltipText,
   title,
   sql: sqlString,
+  triggerNode,
 }: ShowSQLProps) {
+  // Preload SQL language since this component will definitely use it when modal opens
+  useEffect(() => {
+    preloadLanguages(['sql']);
+  }, []);
+
   return (
     <ModalTrigger
       modalTitle={title}
       triggerNode={
-        <IconTooltip
-          className="fa fa-eye pull-left m-l-2"
-          tooltip={tooltipText}
-        />
+        triggerNode || (
+          <IconTooltip className="pull-left" tooltip={tooltipText}>
+            <Icons.EyeOutlined iconSize="s" />
+          </IconTooltip>
+        )
       }
       modalBody={
         <div>
-          <SyntaxHighlighter language="sql" style={github}>
+          <CodeSyntaxHighlighter language="sql">
             {sqlString}
-          </SyntaxHighlighter>
+          </CodeSyntaxHighlighter>
         </div>
       }
     />

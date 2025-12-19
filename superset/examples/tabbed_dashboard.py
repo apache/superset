@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import textwrap
 
 from superset import db
@@ -22,11 +23,13 @@ from superset.utils import json
 
 from .helpers import update_slice_ids
 
+logger = logging.getLogger(__name__)
+
 
 def load_tabbed_dashboard(_: bool = False) -> None:
     """Creating a tabbed dashboard"""
 
-    print("Creating a dashboard with nested tabs")
+    logger.debug("Creating a dashboard with nested tabs")
     slug = "tabbed_dash"
     dash = db.session.query(Dashboard).filter_by(slug=slug).first()
 

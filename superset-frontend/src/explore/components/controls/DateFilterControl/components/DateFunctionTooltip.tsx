@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from '@superset-ui/core/components';
 import { ClassNames } from '@emotion/react';
 
 const TIME_PICKER_HELPER = (
@@ -111,25 +112,25 @@ const StyledTooltip = (props: any) => {
         <Tooltip
           overlayClassName={css`
             .ant-tooltip-content {
-              min-width: ${theme.gridUnit * 125}px;
+              min-width: ${theme.sizeUnit * 125}px;
               max-height: 410px;
               overflow-y: scroll;
 
               .ant-tooltip-inner {
-                max-width: ${theme.gridUnit * 125}px;
+                max-width: ${theme.sizeUnit * 125}px;
                 h3 {
-                  font-size: ${theme.typography.sizes.m}px;
-                  font-weight: ${theme.typography.weights.bold};
+                  font-size: ${theme.fontSize}px;
+                  font-weight: ${theme.fontWeightStrong};
                 }
                 h4 {
-                  font-size: ${theme.typography.sizes.m}px;
-                  font-weight: ${theme.typography.weights.bold};
+                  font-size: ${theme.fontSize}px;
+                  font-weight: ${theme.fontWeightStrong};
                 }
                 pre {
                   border: none;
                   text-align: left;
                   word-break: break-word;
-                  font-size: ${theme.typography.sizes.s}px;
+                  font-size: ${theme.fontSizeSM}px;
                 }
               }
             }

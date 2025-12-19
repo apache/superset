@@ -16,22 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo } from 'react';
 import { t } from '@superset-ui/core';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import { ErrorAlert } from '../ErrorMessage';
+import type { ErrorBoundaryProps, ErrorBoundaryState } from './types';
 
-export interface ErrorBoundaryProps {
-  children: ReactNode;
-  onError?: (error: Error, info: ErrorInfo) => void;
-  showMessage?: boolean;
-}
-
-interface ErrorBoundaryState {
-  error: Error | null;
-  info: ErrorInfo | null;
-}
-
-export default class ErrorBoundary extends Component<
+export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {
@@ -51,24 +41,16 @@ export default class ErrorBoundary extends Component<
 
   render() {
     const { error, info } = this.state;
+    const { showMessage, className } = this.props;
     if (error) {
-      const firstLine = error.toString();
-      const messageString = `${t('Unexpected error')}${
-        firstLine ? `: ${firstLine}` : ''
-      }`;
-      const messageElement = (
-        <span>
-          <strong>{t('Unexpected error')}</strong>
-          {firstLine ? `: ${firstLine}` : ''}
-        </span>
-      );
-
-      if (this.props.showMessage) {
+      const firstLine = error.toString().split('\n')[0];
+      if (showMessage) {
         return (
-          <ErrorMessageWithStackTrace
-            subtitle={messageElement}
-            copyText={messageString}
-            stackTrace={info?.componentStack}
+          <ErrorAlert
+            errorType={t('Unexpected error')}
+            message={firstLine}
+            descriptionDetails={info?.componentStack}
+            className={className}
           />
         );
       }
@@ -77,3 +59,5 @@ export default class ErrorBoundary extends Component<
     return this.props.children;
   }
 }
+
+export type { ErrorBoundaryProps };

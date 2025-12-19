@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { RunQueryButton } from './index';
 
 const createProps = (overrides: Record<string, any> = {}) => ({

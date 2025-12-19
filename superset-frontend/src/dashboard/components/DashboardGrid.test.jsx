@@ -24,22 +24,22 @@ import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { DASHBOARD_GRID_TYPE } from 'src/dashboard/util/componentTypes';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 
-const args = { id: 'id', widthMultiple: 1, heightMultiple: 3 };
-
-jest.mock(
-  'src/dashboard/containers/DashboardComponent',
-  () =>
-    ({ onResizeStart, onResizeStop }) => (
-      <button
-        type="button"
-        data-test="mock-dashboard-component"
-        onClick={() => onResizeStart()}
-        onBlur={() => onResizeStop(args)}
-      >
-        Mock
-      </button>
-    ),
-);
+jest.mock('src/dashboard/containers/DashboardComponent', () => {
+  const MockDashboardComponent = ({ onResizeStart, onResizeStop }) => (
+    <button
+      type="button"
+      data-test="mock-dashboard-component"
+      onClick={() => onResizeStart()}
+      onBlur={() =>
+        onResizeStop(null, null, null, { width: 1, height: 3 }, 'id')
+      }
+    >
+      Mock
+    </button>
+  );
+  MockDashboardComponent.displayName = 'MockDashboardComponent';
+  return MockDashboardComponent;
+});
 
 const props = {
   depth: 1,
@@ -105,4 +105,52 @@ test('should call resizeComponent when a child DashboardComponent calls resizeSt
     width: 1,
     height: 3,
   });
+});
+
+test('should apply flexbox centering and absolute positioning to empty state', () => {
+  const { container } = setup({
+    gridComponent: { ...props.gridComponent, children: [] },
+    editMode: true,
+    canEdit: true,
+    setEditMode: jest.fn(),
+    dashboardId: 1,
+  });
+
+  const dashboardGrid = container.querySelector('.dashboard-grid');
+  const emptyState = dashboardGrid?.previousElementSibling;
+
+  expect(emptyState).toBeInTheDocument();
+
+  const styles = window.getComputedStyle(emptyState);
+  expect(styles.display).toBe('flex');
+  expect(styles.alignItems).toBe('center');
+  expect(styles.justifyContent).toBe('center');
+  expect(styles.position).toBe('absolute');
+});
+
+test('should render empty state in both edit and view modes', () => {
+  const { container: editContainer } = setup({
+    gridComponent: { ...props.gridComponent, children: [] },
+    editMode: true,
+    canEdit: true,
+    setEditMode: jest.fn(),
+    dashboardId: 1,
+  });
+
+  const { container: viewContainer } = setup({
+    gridComponent: { ...props.gridComponent, children: [] },
+    editMode: false,
+    canEdit: true,
+    setEditMode: jest.fn(),
+    dashboardId: 1,
+  });
+
+  const editDashboardGrid = editContainer.querySelector('.dashboard-grid');
+  const editEmptyState = editDashboardGrid?.previousElementSibling;
+
+  const viewDashboardGrid = viewContainer.querySelector('.dashboard-grid');
+  const viewEmptyState = viewDashboardGrid?.previousElementSibling;
+
+  expect(editEmptyState).toBeInTheDocument();
+  expect(viewEmptyState).toBeInTheDocument();
 });

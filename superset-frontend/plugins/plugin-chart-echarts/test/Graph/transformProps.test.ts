@@ -16,48 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData, supersetTheme } from '@superset-ui/core';
+import { ChartProps, SqlaFormData } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import transformProps from '../../src/Graph/transformProps';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
 import { EchartsGraphChartProps } from '../../src/Graph/types';
 
+const formData: SqlaFormData = {
+  colorScheme: 'bnbColors',
+  datasource: '3__table',
+  granularity_sqla: 'ds',
+  metric: 'count',
+  source: 'source_column',
+  target: 'target_column',
+  category: null,
+  viz_type: 'graph',
+};
+const queriesData = [
+  {
+    colnames: ['source_column', 'target_column', 'count'],
+    data: [
+      {
+        source_column: 'source_value_1',
+        target_column: 'target_value_1',
+        count: 6,
+      },
+      {
+        source_column: 'source_value_2',
+        target_column: 'target_value_2',
+        count: 5,
+      },
+    ],
+  },
+];
+const chartPropsConfig = {
+  formData,
+  width: 800,
+  height: 600,
+  queriesData,
+  theme: supersetTheme,
+};
+
 describe('EchartsGraph transformProps', () => {
   it('should transform chart props for viz without category', () => {
-    const formData: SqlaFormData = {
-      colorScheme: 'bnbColors',
-      datasource: '3__table',
-      granularity_sqla: 'ds',
-      metric: 'count',
-      source: 'source_column',
-      target: 'target_column',
-      category: null,
-      viz_type: 'graph',
-    };
-    const queriesData = [
-      {
-        colnames: ['source_column', 'target_column', 'count'],
-        data: [
-          {
-            source_column: 'source_value_1',
-            target_column: 'target_value_1',
-            count: 6,
-          },
-          {
-            source_column: 'source_value_2',
-            target_column: 'target_value_2',
-            count: 5,
-          },
-        ],
-      },
-    ];
-    const chartPropsConfig = {
-      formData,
-      width: 800,
-      height: 600,
-      queriesData,
-      theme: supersetTheme,
-    };
-
     const chartProps = new ChartProps(chartPropsConfig);
     expect(transformProps(chartProps as EchartsGraphChartProps)).toEqual(
       expect.objectContaining({
@@ -74,6 +75,9 @@ describe('EchartsGraph transformProps', () => {
                   col: 'source_column',
                   category: undefined,
                   id: '0',
+                  itemStyle: {
+                    color: '#1f77b4',
+                  },
                   label: { show: true },
                   name: 'source_value_1',
                   select: {
@@ -88,6 +92,9 @@ describe('EchartsGraph transformProps', () => {
                   col: 'target_column',
                   category: undefined,
                   id: '1',
+                  itemStyle: {
+                    color: '#1f77b4',
+                  },
                   label: { show: true },
                   name: 'target_value_1',
                   select: {
@@ -102,6 +109,9 @@ describe('EchartsGraph transformProps', () => {
                   col: 'source_column',
                   category: undefined,
                   id: '2',
+                  itemStyle: {
+                    color: '#1f77b4',
+                  },
                   label: { show: true },
                   name: 'source_value_2',
                   select: {
@@ -116,6 +126,9 @@ describe('EchartsGraph transformProps', () => {
                   col: 'target_column',
                   category: undefined,
                   id: '3',
+                  itemStyle: {
+                    color: '#1f77b4',
+                  },
                   label: { show: true },
                   name: 'target_value_2',
                   select: {
@@ -132,7 +145,7 @@ describe('EchartsGraph transformProps', () => {
               links: [
                 {
                   emphasis: { lineStyle: { width: 12 } },
-                  lineStyle: { width: 6 },
+                  lineStyle: { width: 6, color: '#1f77b4' },
                   select: {
                     lineStyle: { opacity: 1, width: 9.600000000000001 },
                   },
@@ -142,7 +155,7 @@ describe('EchartsGraph transformProps', () => {
                 },
                 {
                   emphasis: { lineStyle: { width: 5 } },
-                  lineStyle: { width: 1.5 },
+                  lineStyle: { width: 1.5, color: '#1f77b4' },
                   select: { lineStyle: { opacity: 1, width: 5 } },
                   source: '2',
                   target: '3',
@@ -156,7 +169,7 @@ describe('EchartsGraph transformProps', () => {
     );
   });
 
-  it('should transform chart props for viz with category and falsey normalization', () => {
+  it('should transform chart props for viz with category and falsy normalization', () => {
     const formData: SqlaFormData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
@@ -217,6 +230,9 @@ describe('EchartsGraph transformProps', () => {
               data: [
                 {
                   id: '0',
+                  itemStyle: {
+                    color: '#1f77b4',
+                  },
                   col: 'source_column',
                   name: 'source_value',
                   value: 11,
@@ -228,6 +244,9 @@ describe('EchartsGraph transformProps', () => {
                 },
                 {
                   id: '1',
+                  itemStyle: {
+                    color: '#ff7f0e',
+                  },
                   col: 'target_column',
                   name: 'target_value',
                   value: 11,
@@ -243,5 +262,93 @@ describe('EchartsGraph transformProps', () => {
         }),
       }),
     );
+  });
+});
+
+describe('legend sorting', () => {
+  const queriesData = [
+    {
+      colnames: [
+        'source_column',
+        'target_column',
+        'source_category_column',
+        'target_category_column',
+        'count',
+      ],
+      data: [
+        {
+          source_column: 'source_value',
+          target_column: 'target_value',
+          source_category_column: 'category_value_1',
+          target_category_column: 'category_value_3',
+          count: 6,
+        },
+        {
+          source_column: 'source_value',
+          target_column: 'target_value',
+          source_category_column: 'category_value_3',
+          target_category_column: 'category_value_2',
+          count: 5,
+        },
+        {
+          source_column: 'source_value',
+          target_column: 'target_value',
+          source_category_column: 'category_value_2',
+          target_category_column: 'category_value_1',
+          count: 4,
+        },
+      ],
+    },
+  ];
+
+  const getChartProps = (overrides = {}) =>
+    new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        ...overrides,
+        sourceCategory: 'source_category_column',
+        targetCategory: 'target_category_column',
+      },
+      queriesData,
+    });
+
+  it('sort legend by data', () => {
+    const chartProps = getChartProps({
+      legendSort: null,
+    });
+    const transformed = transformProps(chartProps as EchartsGraphChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'category_value_1',
+      'category_value_3',
+      'category_value_2',
+    ]);
+  });
+
+  it('sort legend by label ascending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'asc',
+    });
+    const transformed = transformProps(chartProps as EchartsGraphChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'category_value_1',
+      'category_value_2',
+      'category_value_3',
+    ]);
+  });
+
+  it('sort legend by label descending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'desc',
+    });
+    const transformed = transformProps(chartProps as EchartsGraphChartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'category_value_3',
+      'category_value_2',
+      'category_value_1',
+    ]);
   });
 });

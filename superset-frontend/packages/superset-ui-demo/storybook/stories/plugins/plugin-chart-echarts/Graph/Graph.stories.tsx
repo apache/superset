@@ -37,7 +37,7 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Graph = ({ width, height }) => (
+export const Graph = ({ width, height }: { width: number; height: number }) => (
   <SuperChart
     chartType="echarts-graph"
     width={width}

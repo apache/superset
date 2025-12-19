@@ -18,13 +18,8 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import {
-  t,
-  logging,
-  SupersetClient,
-  withTheme,
-  ensureIsArray,
-} from '@superset-ui/core';
+import { t, logging, SupersetClient, ensureIsArray } from '@superset-ui/core';
+import { withTheme } from '@apache-superset/core/ui';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
@@ -37,12 +32,11 @@ import {
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {
   AddControlLabel,
-  AddIconButton,
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
-import Icons from 'src/components/Icons';
-import Modal from 'src/components/Modal';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Modal } from '@superset-ui/core/components';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -88,10 +82,48 @@ function isDictionaryForAdhocFilter(value) {
   return value && !(value instanceof AdhocFilter) && value.expressionType;
 }
 
+function optionsForSelect(props) {
+  const options = [
+    ...props.columns,
+    ...ensureIsArray(props.selectedMetrics).map(
+      metric =>
+        metric &&
+        (typeof metric === 'string'
+          ? { saved_metric_name: metric }
+          : new AdhocMetric(metric)),
+    ),
+  ].filter(option => option);
+
+  return options
+    .reduce((results, option) => {
+      if (option.saved_metric_name) {
+        results.push({
+          ...option,
+          filterOptionName: option.saved_metric_name,
+        });
+      } else if (option.column_name) {
+        results.push({
+          ...option,
+          filterOptionName: `_col_${option.column_name}`,
+        });
+      } else if (option instanceof AdhocMetric) {
+        results.push({
+          ...option,
+          filterOptionName: `_adhocmetric_${option.label}`,
+        });
+      }
+      return results;
+    }, [])
+    .sort((a, b) =>
+      (a.saved_metric_name || a.column_name || a.label).localeCompare(
+        b.saved_metric_name || b.column_name || b.label,
+      ),
+    );
+}
+
 class AdhocFilterControl extends Component {
   constructor(props) {
     super(props);
-    this.optionsForSelect = this.optionsForSelect.bind(this);
     this.onRemoveFilter = this.onRemoveFilter.bind(this);
     this.onNewFilter = this.onNewFilter.bind(this);
     this.onFilterEdit = this.onFilterEdit.bind(this);
@@ -127,7 +159,7 @@ class AdhocFilterControl extends Component {
     );
     this.state = {
       values: filters,
-      options: this.optionsForSelect(this.props),
+      options: optionsForSelect(this.props),
       partitionColumn: null,
     };
   }
@@ -174,13 +206,13 @@ class AdhocFilterControl extends Component {
     }
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    if (this.props.columns !== nextProps.columns) {
-      this.setState({ options: this.optionsForSelect(nextProps) });
+  componentDidUpdate(prevProps) {
+    if (this.props.columns !== prevProps.columns) {
+      this.setState({ options: optionsForSelect(this.props) });
     }
-    if (this.props.value !== nextProps.value) {
+    if (this.props.value !== prevProps.value) {
       this.setState({
-        values: (nextProps.value || []).map(filter =>
+        values: (this.props.value || []).map(filter =>
           isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
         ),
       });
@@ -299,45 +331,6 @@ class AdhocFilterControl extends Component {
     return null;
   }
 
-  optionsForSelect(props) {
-    const options = [
-      ...props.columns,
-      ...ensureIsArray(props.selectedMetrics).map(
-        metric =>
-          metric &&
-          (typeof metric === 'string'
-            ? { saved_metric_name: metric }
-            : new AdhocMetric(metric)),
-      ),
-    ].filter(option => option);
-
-    return options
-      .reduce((results, option) => {
-        if (option.saved_metric_name) {
-          results.push({
-            ...option,
-            filterOptionName: option.saved_metric_name,
-          });
-        } else if (option.column_name) {
-          results.push({
-            ...option,
-            filterOptionName: `_col_${option.column_name}`,
-          });
-        } else if (option instanceof AdhocMetric) {
-          results.push({
-            ...option,
-            filterOptionName: `_adhocmetric_${option.label}`,
-          });
-        }
-        return results;
-      }, [])
-      .sort((a, b) =>
-        (a.saved_metric_name || a.column_name || a.label).localeCompare(
-          b.saved_metric_name || b.column_name || b.label,
-        ),
-      );
-  }
-
   addNewFilterPopoverTrigger(trigger) {
     return (
       <AdhocFilterPopoverTrigger
@@ -355,31 +348,25 @@ class AdhocFilterControl extends Component {
   }
 
   render() {
-    const { theme } = this.props;
     return (
       <div className="metrics-select" data-test="adhoc-filter-control">
         <HeaderContainer>
           <ControlHeader {...this.props} />
-          {this.addNewFilterPopoverTrigger(
-            <AddIconButton data-test="add-filter-button">
-              <Icons.PlusLarge
-                iconSize="s"
-                iconColor={theme.colors.grayscale.light5}
-              />
-            </AddIconButton>,
-          )}
         </HeaderContainer>
         <LabelsContainer>
-          {this.state.values.length > 0
-            ? this.state.values.map((value, index) =>
-                this.valueRenderer(value, index),
-              )
-            : this.addNewFilterPopoverTrigger(
-                <AddControlLabel>
-                  <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
-                  {t('Add filter')}
-                </AddControlLabel>,
-              )}
+          {[
+            ...(this.state.values.length > 0
+              ? this.state.values.map((value, index) =>
+                  this.valueRenderer(value, index),
+                )
+              : []),
+            this.addNewFilterPopoverTrigger(
+              <AddControlLabel role="button" data-test="add-filter-button">
+                <Icons.PlusOutlined iconSize="m" />
+                {t('Add filter')}
+              </AddControlLabel>,
+            ),
+          ]}
         </LabelsContainer>
       </div>
     );

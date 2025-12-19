@@ -94,7 +94,7 @@ def port_translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeRespo
             break
         else:
             resp["display_value"] = ", ".join(
-                map(
+                map(  # noqa: C417
                     lambda x: f"{x['start']} - {x['end']}"
                     if isinstance(x, dict)
                     else str(x),
@@ -104,7 +104,7 @@ def port_translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeRespo
     return resp
 
 
-def port_translate_filter_func(
+def port_translate_filter_func(  # noqa: C901
     col: Column, operator: FilterOperator, values: list[Any]
 ) -> Any:
     """
@@ -114,25 +114,25 @@ def port_translate_filter_func(
     return_expression: Any
     if operator in (FilterOperator.IN, FilterOperator.NOT_IN):
         vals_list = itertools.chain.from_iterable(values)
-        if operator == FilterOperator.IN.value:
+        if operator == FilterOperator.IN:
             cond = col.in_(vals_list)
-        elif operator == FilterOperator.NOT_IN.value:
+        elif operator == FilterOperator.NOT_IN:
             cond = ~(col.in_(vals_list))
         return_expression = cond
     if len(values) == 1:
         value = values[0]
         value.sort()
-        if operator == FilterOperator.EQUALS.value:
+        if operator == FilterOperator.EQUALS:
             return_expression = col.in_(value)
-        if operator == FilterOperator.GREATER_THAN_OR_EQUALS.value:
+        if operator == FilterOperator.GREATER_THAN_OR_EQUALS:
             return_expression = col >= value[0]
-        if operator == FilterOperator.GREATER_THAN.value:
+        if operator == FilterOperator.GREATER_THAN:
             return_expression = col > value[0]
-        if operator == FilterOperator.LESS_THAN.value:
+        if operator == FilterOperator.LESS_THAN:
             return_expression = col < value[-1]
-        if operator == FilterOperator.LESS_THAN_OR_EQUALS.value:
+        if operator == FilterOperator.LESS_THAN_OR_EQUALS:
             return_expression = col <= value[-1]
-        if operator == FilterOperator.NOT_EQUALS.value:
+        if operator == FilterOperator.NOT_EQUALS:
             return_expression = ~col.in_(value)
     return return_expression
 

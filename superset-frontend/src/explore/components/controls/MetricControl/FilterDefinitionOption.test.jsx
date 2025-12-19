@@ -16,12 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import { AGGREGATES } from 'src/explore/constants';
 import AdhocMetric, {
   EXPRESSION_TYPES,
 } from 'src/explore/components/controls/MetricControl/AdhocMetric';
+
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
 
 const sumValueAdhocMetric = new AdhocMetric({
   expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -29,23 +36,24 @@ const sumValueAdhocMetric = new AdhocMetric({
   aggregate: AGGREGATES.SUM,
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterDefinitionOption', () => {
-  it('renders a StyledColumnOption given a column', () => {
+  test('renders a StyledColumnOption given a column', async () => {
     render(<FilterDefinitionOption option={{ column_name: 'a_column' }} />);
-    expect(screen.getByText('a_column')).toBeVisible();
+    await expect(screen.getByText('a_column')).toBeVisible();
   });
 
-  it('renders a StyledColumnOption given an adhoc metric', () => {
+  test('renders a StyledColumnOption given an adhoc metric', async () => {
     render(<FilterDefinitionOption option={sumValueAdhocMetric} />);
-    expect(screen.getByText('SUM(source)')).toBeVisible();
+    await expect(screen.getByText('SUM(source)')).toBeVisible();
   });
 
-  it('renders the metric name given a saved metric', () => {
+  test('renders the metric name given a saved metric', async () => {
     render(
       <FilterDefinitionOption
         option={{ saved_metric_name: 'my_custom_metric' }}
       />,
     );
-    expect(screen.getByText('my_custom_metric')).toBeVisible();
+    await expect(screen.getByText('my_custom_metric')).toBeVisible();
   });
 });

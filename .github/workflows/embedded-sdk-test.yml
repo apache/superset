@@ -13,15 +13,15 @@ concurrency:
 
 jobs:
   embedded-sdk-test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: superset-embedded-sdk
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version-file: './superset-embedded-sdk/.nvmrc'
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
       - run: npm test

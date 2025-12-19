@@ -17,11 +17,11 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
 import data from './data';
 
-new HorizonChartPlugin().configure({ key: 'horizon' }).register();
+new HorizonChartPlugin().configure({ key: VizType.Horizon }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-horizon',
@@ -29,7 +29,7 @@ export default {
 
 export const basic = () => (
   <SuperChart
-    chartType="horizon"
+    chartType={VizType.Horizon}
     width={400}
     height={400}
     queriesData={[{ data }]}

@@ -52,7 +52,7 @@ def _get_other_session() -> Session:
     from superset import db
 
     bind = db.session.get_bind()
-    SessionMaker = sessionmaker(bind=bind)
+    SessionMaker = sessionmaker(bind=bind)  # noqa: N806
     return SessionMaker()
 
 

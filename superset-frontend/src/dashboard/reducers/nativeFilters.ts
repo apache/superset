@@ -18,27 +18,37 @@
  */
 import {
   AnyFilterAction,
-  SET_FILTER_CONFIG_COMPLETE,
+  SET_NATIVE_FILTERS_CONFIG_COMPLETE,
   SET_IN_SCOPE_STATUS_OF_FILTERS,
   SET_FOCUSED_NATIVE_FILTER,
   UNSET_FOCUSED_NATIVE_FILTER,
   SET_HOVERED_NATIVE_FILTER,
   UNSET_HOVERED_NATIVE_FILTER,
+  SET_HOVERED_CHART_CUSTOMIZATION,
+  UNSET_HOVERED_CHART_CUSTOMIZATION,
   UPDATE_CASCADE_PARENT_IDS,
 } from 'src/dashboard/actions/nativeFilters';
-import { FilterConfiguration, NativeFiltersState } from '@superset-ui/core';
+import {
+  Divider,
+  Filter,
+  FilterConfiguration,
+  NativeFiltersState,
+} from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+
+interface ExtendedNativeFiltersState extends NativeFiltersState {
+  hoveredChartCustomizationId?: string;
+}
 
 export function getInitialState({
   filterConfig,
   state: prevState,
 }: {
   filterConfig?: FilterConfiguration;
-  state?: NativeFiltersState;
-}): NativeFiltersState {
-  const state: Partial<NativeFiltersState> = {};
-
-  const filters = {};
+  state?: ExtendedNativeFiltersState;
+}): ExtendedNativeFiltersState {
+  const state: Partial<ExtendedNativeFiltersState> = {};
+  const filters: Record<string, Filter | Divider> = {};
   if (filterConfig) {
     filterConfig.forEach(filter => {
       const { id } = filter;
@@ -49,11 +59,36 @@ export function getInitialState({
     state.filters = prevState?.filters ?? {};
   }
   state.focusedFilterId = undefined;
-  return state as NativeFiltersState;
+  state.hoveredChartCustomizationId = undefined;
+  return state as ExtendedNativeFiltersState;
+}
+
+function handleFilterChangesComplete(
+  state: ExtendedNativeFiltersState,
+  filters: Filter[],
+) {
+  const modifiedFilters = { ...state.filters };
+  filters.forEach(filter => {
+    if (filter.chartsInScope != null && filter.tabsInScope != null) {
+      modifiedFilters[filter.id] = filter;
+    } else {
+      const existingFilter = modifiedFilters[filter.id];
+      modifiedFilters[filter.id] = {
+        ...filter,
+        chartsInScope: filter.chartsInScope ?? existingFilter?.chartsInScope,
+        tabsInScope: filter.tabsInScope ?? existingFilter?.tabsInScope,
+      };
+    }
+  });
+
+  return {
+    ...state,
+    filters: modifiedFilters,
+  } as ExtendedNativeFiltersState;
 }
 
 export default function nativeFilterReducer(
-  state: NativeFiltersState = {
+  state: ExtendedNativeFiltersState = {
     filters: {},
   },
   action: AnyFilterAction,
@@ -64,9 +99,11 @@ export default function nativeFilterReducer(
         filters: action.data.nativeFilters.filters,
       };
 
-    case SET_FILTER_CONFIG_COMPLETE:
     case SET_IN_SCOPE_STATUS_OF_FILTERS:
       return getInitialState({ filterConfig: action.filterConfig, state });
+
+    case SET_NATIVE_FILTERS_CONFIG_COMPLETE:
+      return handleFilterChangesComplete(state, action.filterChanges);
 
     case SET_FOCUSED_NATIVE_FILTER:
       return {
@@ -90,6 +127,18 @@ export default function nativeFilterReducer(
       return {
         ...state,
         hoveredFilterId: undefined,
+      };
+
+    case SET_HOVERED_CHART_CUSTOMIZATION:
+      return {
+        ...state,
+        hoveredChartCustomizationId: action.id,
+      };
+
+    case UNSET_HOVERED_CHART_CUSTOMIZATION:
+      return {
+        ...state,
+        hoveredChartCustomizationId: undefined,
       };
 
     case UPDATE_CASCADE_PARENT_IDS:

@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { styled, safeHtmlSpan } from '@superset-ui/core';
+import { safeHtmlSpan } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { ReactNode } from 'react';
 
 export type TooltipProps = {
@@ -29,26 +30,42 @@ export type TooltipProps = {
       }
     | null
     | undefined;
+  variant?: 'default' | 'custom';
 };
 
-const StyledDiv = styled.div<{ top: number; left: number }>`
-  ${({ theme, top, left }) => `
+const StyledDiv = styled.div<{
+  top: number;
+  left: number;
+  variant: 'default' | 'custom';
+}>`
+  ${({ theme, top, left, variant }) => `
     position: absolute;
     top: ${top}px;
     left: ${left}px;
-    padding: ${theme.gridUnit * 2}px;
-    margin: ${theme.gridUnit * 2}px;
-    background: ${theme.colors.grayscale.dark2};
-    color: ${theme.colors.grayscale.light5};
-    maxWidth: 300px;
-    fontSize: ${theme.typography.sizes.s}px;
     zIndex: 9;
     pointerEvents: none;
+    ${
+      variant === 'default'
+        ? `
+      padding: ${theme.sizeUnit * 2}px;
+      margin: ${theme.sizeUnit * 2}px;
+      background: ${theme.colorBgElevated};
+      color: ${theme.colorText};
+      maxWidth: 300px;
+      fontSize: ${theme.fontSizeSM}px;
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.borderRadius}px;
+      box-shadow: ${theme.boxShadowSecondary};
+    `
+        : `
+      margin: ${theme.sizeUnit * 3}px;
+    `
+    }
   `}
 `;
 
 export default function Tooltip(props: TooltipProps) {
-  const { tooltip } = props;
+  const { tooltip, variant = 'default' } = props;
   if (typeof tooltip === 'undefined' || tooltip === null) {
     return null;
   }
@@ -58,7 +75,7 @@ export default function Tooltip(props: TooltipProps) {
     typeof content === 'string' ? safeHtmlSpan(content) : content;
 
   return (
-    <StyledDiv top={y} left={x}>
+    <StyledDiv top={y} left={x} variant={variant}>
       {safeContent}
     </StyledDiv>
   );

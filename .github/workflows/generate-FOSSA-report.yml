@@ -8,7 +8,7 @@ on:
 
 jobs:
   config:
-    runs-on: "ubuntu-22.04"
+    runs-on: ubuntu-24.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -24,15 +24,15 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Generate Report
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
           submodules: recursive
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: "temurin"
           java-version: "11"

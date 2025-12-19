@@ -57,7 +57,7 @@ def upgrade():
             params = json.loads(slc.params)
             convert_legacy_filters_into_adhoc(params)
             slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()
@@ -77,7 +77,7 @@ def downgrade():
                 del params["adhoc_filters"]
 
             slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

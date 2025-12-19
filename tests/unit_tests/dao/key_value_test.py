@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import pickle
 from datetime import datetime, timedelta
-from typing import Generator, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest
@@ -54,7 +54,7 @@ NEW_VALUE = {"foo": "baz"}
 
 
 @pytest.fixture
-def key_value_entry() -> Generator[KeyValueEntry, None, None]:
+def key_value_entry() -> KeyValueEntry:
     from superset.key_value.models import KeyValueEntry
 
     entry = KeyValueEntry(
@@ -65,7 +65,7 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
     )
     db.session.add(entry)
     db.session.flush()
-    yield entry
+    return entry
 
 
 def test_create_id_entry(
@@ -143,7 +143,7 @@ def test_create_pickle_entry(
         found_entry = (
             db.session.query(KeyValueEntry).filter_by(id=created_entry.id).one()
         )
-        assert type(pickle.loads(found_entry.value)) == type(PICKLE_VALUE)
+        assert isinstance(pickle.loads(found_entry.value), type(PICKLE_VALUE))  # noqa: S301
         assert found_entry.created_by_fk == admin_user.id
 
 
@@ -181,6 +181,7 @@ def test_get_uuid_entry(
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
+    assert key_value_entry.uuid is not None
     found_entry = KeyValueDAO.get_entry(resource=RESOURCE, key=key_value_entry.uuid)
     assert found_entry is not None
     assert JSON_CODEC.decode(found_entry.value) == JSON_VALUE

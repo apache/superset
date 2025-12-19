@@ -33,7 +33,10 @@ import {
 } from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
-type RadarColumnConfig = Record<string, { radarMetricMaxValue?: number }>;
+type RadarColumnConfig = Record<
+  string,
+  { radarMetricMaxValue?: number | null; radarMetricMinValue?: number }
+>;
 
 export type EchartsRadarFormData = QueryFormData &
   LegendFormData & {
@@ -50,6 +53,7 @@ export type EchartsRadarFormData = QueryFormData &
     isCircle: boolean;
     numberFormat: string;
     dateFormat: string;
+    isNormalized: boolean;
   };
 
 export enum EchartsRadarLabelType {
@@ -57,8 +61,7 @@ export enum EchartsRadarLabelType {
   KeyValue = 'key_value',
 }
 
-export interface EchartsRadarChartProps
-  extends BaseChartProps<EchartsRadarFormData> {
+export interface EchartsRadarChartProps extends BaseChartProps<EchartsRadarFormData> {
   formData: EchartsRadarFormData;
 }
 
@@ -80,3 +83,17 @@ export type RadarChartTransformedProps =
   BaseTransformedProps<EchartsRadarFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps;
+
+/**
+ * Represents a mapping from a normalized value (as string) to an original numeric value.
+ */
+interface NormalizedValueMap {
+  [normalized: string]: number;
+}
+
+/**
+ * Represents a collection of series, each containing its own NormalizedValueMap.
+ */
+export interface SeriesNormalizedMap {
+  [seriesName: string]: NormalizedValueMap;
+}

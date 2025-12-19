@@ -14,14 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+
 import pandas as pd
 from sqlalchemy import DateTime, inspect
 
 import superset.utils.database as database_utils
 from superset import db
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
-from .helpers import get_example_url, get_table_connector_registry
+from .helpers import get_table_connector_registry, read_example_data
+
+logger = logging.getLogger(__name__)
 
 
 def load_flights(only_metadata: bool = False, force: bool = False) -> None:
@@ -33,17 +37,19 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            flight_data_url = get_example_url("flight_data.csv.gz")
-            pdf = pd.read_csv(flight_data_url, encoding="latin-1", compression="gzip")
+            pdf = read_example_data(
+                "examples://flight_data.csv.gz", encoding="latin-1", compression="gzip"
+            )
 
             # Loading airports info to join and get lat/long
-            airports_url = get_example_url("airports.csv.gz")
-            airports = pd.read_csv(airports_url, encoding="latin-1", compression="gzip")
+            airports = read_example_data(
+                "examples://airports.csv.gz", encoding="latin-1", compression="gzip"
+            )
             airports = airports.set_index("IATA_CODE")
 
-            pdf[  # pylint: disable=unsupported-assignment-operation,useless-suppression
-                "ds"
-            ] = pdf.YEAR.map(str) + "-0" + pdf.MONTH.map(str) + "-0" + pdf.DAY.map(str)
+            pdf["ds"] = (
+                pdf.YEAR.map(str) + "-0" + pdf.MONTH.map(str) + "-0" + pdf.DAY.map(str)
+            )
             pdf.ds = pd.to_datetime(pdf.ds)
             pdf.drop(columns=["DAY", "MONTH", "YEAR"])
             pdf = pdf.join(airports, on="ORIGIN_AIRPORT", rsuffix="_ORIG")
@@ -67,4 +73,4 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
     tbl.database = database
     tbl.filter_select_enabled = True
     tbl.fetch_metadata()
-    print("Done loading table!")
+    logger.debug("Done loading table!")

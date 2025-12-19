@@ -16,14 +16,13 @@
 # under the License.
 import logging
 import time
-import urllib.parse
 from logging.config import fileConfig
 
 from alembic import context
 from alembic.operations.ops import MigrationScript
 from alembic.runtime.migration import MigrationContext
 from flask import current_app
-from flask_appbuilder import Base
+from flask_appbuilder import Model
 from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides
@@ -43,9 +42,10 @@ if "sqlite" in DATABASE_URI:
         "SQLite Database support for metadata databases will \
         be removed in a future version of Superset."
     )
-decoded_uri = urllib.parse.unquote(DATABASE_URI)
-config.set_main_option("sqlalchemy.url", decoded_uri)
-target_metadata = Base.metadata  # pylint: disable=no-member
+# Escape % chars in the database URI to avoid interpolation errors in ConfigParser
+escaped_uri = DATABASE_URI.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", escaped_uri)
+target_metadata = Model.metadata  # pylint: disable=no-member
 
 
 # other values from the config, defined by the needs of env.py,

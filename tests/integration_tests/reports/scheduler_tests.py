@@ -16,7 +16,7 @@
 # under the License.
 
 from random import randint
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
@@ -25,7 +25,7 @@ from freezegun.api import FakeDatetime
 
 from superset.extensions import db
 from superset.reports.models import ReportScheduleType
-from superset.tasks.scheduler import execute, scheduler
+from superset.tasks.scheduler import execute, log_task_failure, scheduler
 from tests.integration_tests.reports.utils import insert_report_schedule
 from tests.integration_tests.test_app import app
 
@@ -157,7 +157,7 @@ def test_execute_task(update_state_mock, command_mock, init_mock, owners):
 
     report_schedule = insert_report_schedule(
         type=ReportScheduleType.ALERT,
-        name=f"report-{randint(0,1000)}",
+        name=f"report-{randint(0, 1000)}",  # noqa: S311
         crontab="0 4 * * *",
         timezone="America/New_York",
         owners=owners,
@@ -184,7 +184,7 @@ def test_execute_task_with_command_exception(
 
     report_schedule = insert_report_schedule(
         type=ReportScheduleType.ALERT,
-        name=f"report-{randint(0,1000)}",
+        name=f"report-{randint(0, 1000)}",  # noqa: S311
         crontab="0 4 * * *",
         timezone="America/New_York",
         owners=owners,
@@ -195,9 +195,54 @@ def test_execute_task_with_command_exception(
         execute(report_schedule.id)
         update_state_mock.assert_called_with(state="FAILURE")
         logger_mock.exception.assert_called_with(
-            "A downstream exception occurred while generating a report: None. Unexpected error",
+            "A downstream exception occurred while generating a report: None. Unexpected error",  # noqa: E501
             exc_info=True,
         )
 
     db.session.delete(report_schedule)
     db.session.commit()
+
+
+@patch("superset.tasks.scheduler.logger")
+def test_log_task_failure_with_sender(logger_mock):
+    """
+    Test that log_task_failure logs correctly when sender is provided
+    """
+    mock_task = MagicMock()
+    mock_task.name = "test.task.name"
+    mock_exception = Exception("Test error")
+    mock_einfo = MagicMock()
+
+    log_task_failure(
+        sender=mock_task,
+        task_id="test-task-id",
+        exception=mock_exception,
+        einfo=mock_einfo,
+    )
+
+    logger_mock.exception.assert_called_once_with(
+        "Celery task %s failed: %s",
+        "test.task.name",
+        mock_exception,
+        exc_info=mock_einfo,
+    )
+
+
+@patch("superset.tasks.scheduler.logger")
+def test_log_task_failure_without_sender(logger_mock):
+    """
+    Test that log_task_failure logs correctly when sender is None
+    """
+    mock_exception = Exception("Test error")
+    mock_einfo = MagicMock()
+
+    log_task_failure(
+        sender=None,
+        task_id="test-task-id",
+        exception=mock_exception,
+        einfo=mock_einfo,
+    )
+
+    logger_mock.exception.assert_called_once_with(
+        "Celery task %s failed: %s", "Unknown", mock_exception, exc_info=mock_einfo
+    )

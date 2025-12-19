@@ -19,7 +19,7 @@
 
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
-import { getTooltipHTML } from 'src/components/AsyncAceEditor';
+import { getTooltipHTML } from '@superset-ui/core/components/AsyncAceEditor';
 import { COLUMN_AUTOCOMPLETE_SCORE } from 'src/SqlLab/constants';
 
 export function getColumnKeywords(columns: ColumnMeta[]) {
@@ -36,11 +36,8 @@ export function getColumnKeywords(columns: ColumnMeta[]) {
       value: column_name,
       docHTML: getTooltipHTML({
         title: column_name,
-        meta: type ? `column: ${type}` : 'column',
-        body: `${description ?? ''}`,
-        footer: is_certified ? (
-          <>{t('Certified by %s', certified_by)}</>
-        ) : undefined,
+        body: `type: ${type || 'unknown'}<br />${description ? `description: ${description}` : ''}`,
+        footer: is_certified ? t('Certified by %s', certified_by) : undefined,
       }),
       score: COLUMN_AUTOCOMPLETE_SCORE,
       meta: 'column',

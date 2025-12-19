@@ -28,6 +28,7 @@ import {
   createSmartDateFormatter,
   createSmartDateVerboseFormatter,
   createSmartDateDetailedFormatter,
+  createMemoryFormatter,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
@@ -76,6 +77,20 @@ export default function setupFormatters(
     .registerValue(
       'DURATION_SUB',
       createDurationFormatter({ formatSubMilliseconds: true }),
+    )
+    .registerValue(
+      'DURATION_COL',
+      createDurationFormatter({ colonNotation: true }),
+    )
+    .registerValue('MEMORY_DECIMAL', createMemoryFormatter({ binary: false }))
+    .registerValue('MEMORY_BINARY', createMemoryFormatter({ binary: true }))
+    .registerValue(
+      'MEMORY_TRANSFER_RATE_DECIMAL',
+      createMemoryFormatter({ binary: false, transfer: true }),
+    )
+    .registerValue(
+      'MEMORY_TRANSFER_RATE_BINARY',
+      createMemoryFormatter({ binary: true, transfer: true }),
     );
 
   const timeFormatterRegistry = getTimeFormatterRegistry();

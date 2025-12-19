@@ -18,11 +18,11 @@
  */
 describe.skip('AdhocFilters', () => {
   beforeEach(() => {
-    cy.intercept('GET', '/api/v1/datasource/table/*/column/name/values').as(
+    cy.intercept('GET', '**/api/v1/datasource/table/*/column/name/values').as(
       'filterValues',
     );
-    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
-    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '**/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '**/superset/explore_json/**').as('getJson');
     cy.visitChartByName('Boys'); // a table chart
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
   });
@@ -89,7 +89,7 @@ describe.skip('AdhocFilters', () => {
     cy.wait('@filterValues');
 
     // selecting a new filter should auto-open the popup,
-    // so the tabshould be visible by now
+    // so the tab should be visible by now
     cy.get('#filter-edit-popover #adhoc-filter-edit-tabs-tab-SQL').click();
     cy.get('#filter-edit-popover .ace_content').click();
     cy.get('#filter-edit-popover .ace_text-input').type(filterContent);

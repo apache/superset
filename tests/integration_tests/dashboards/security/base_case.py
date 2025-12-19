@@ -43,7 +43,7 @@ class BaseTestDashboardSecurity(DashboardTestCase):
         self.assert200(response)
         response_data = response.json
         assert response_data["count"] == expected_counts
-        response_dashboards_url = set(
+        response_dashboards_url = set(  # noqa: C417
             map(lambda dash: dash["url"], response_data["result"])
         )
         expected_dashboards = expected_dashboards or []

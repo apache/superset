@@ -26,10 +26,7 @@ export const getDashboardFormData = (overrides: JsonObject = {}) => ({
     girl: '#FF69B4',
     boy: '#ADD8E6',
   },
-  shared_label_colors: {
-    boy: '#ADD8E6',
-    girl: '#FF69B4',
-  },
+  shared_label_colors: ['boy', 'girl'],
   color_scheme: 'd3Category20b',
   extra_filters: [
     {

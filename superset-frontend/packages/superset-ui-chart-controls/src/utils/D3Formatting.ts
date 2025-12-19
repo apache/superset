@@ -57,6 +57,17 @@ export const D3_FORMAT_OPTIONS: [string, string][] = [
   ...d3Formatted,
   ['DURATION', t('Duration in ms (66000 => 1m 6s)')],
   ['DURATION_SUB', t('Duration in ms (1.40008 => 1ms 400µs 80ns)')],
+  ['DURATION_COL', t('Duration in ms (10500 => 0:10.5)')],
+  ['MEMORY_DECIMAL', t('Memory in bytes - decimal (1024B => 1.024kB)')],
+  ['MEMORY_BINARY', t('Memory in bytes - binary (1024B => 1KiB)')],
+  [
+    'MEMORY_TRANSFER_RATE_DECIMAL',
+    t('Memory transfer rate in bytes - decimal (1024B => 1.024kB/s)'),
+  ],
+  [
+    'MEMORY_TRANSFER_RATE_BINARY',
+    t('Memory transfer rate in bytes - binary (1024B => 1KiB/s)'),
+  ],
 ];
 
 export const D3_TIME_FORMAT_DOCS = t(
@@ -67,6 +78,7 @@ export const D3_TIME_FORMAT_OPTIONS: [string, string][] = [
   [SMART_DATE_ID, t('Adaptive formatting')],
   ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
+  ['%d.%m.%Y', '%d.%m.%Y | 14.01.2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
   ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S | 2019-01-14 01:32:10'],
   ['%d-%m-%Y %H:%M:%S', '%d-%m-%Y %H:%M:%S | 14-01-2019 01:32:10'],

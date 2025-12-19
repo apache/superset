@@ -57,11 +57,21 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     const json = JSONbig.parse(rawData);
     const result: JsonResponse = {
       response,
-      // `json-bigint` could not handle floats well, see sidorares/json-bigint#62
-      // TODO: clean up after json-bigint>1.0.1 is released
-      json: cloneDeepWith(json, (value: any) =>
-        value?.isInteger?.() === false ? Number(value) : undefined,
-      ),
+      json: cloneDeepWith(json, (value: any) => {
+        if (
+          value?.isInteger?.() === true &&
+          (value?.isGreaterThan?.(Number.MAX_SAFE_INTEGER) ||
+            value?.isLessThan?.(Number.MIN_SAFE_INTEGER))
+        ) {
+          return BigInt(value);
+        }
+        // // `json-bigint` could not handle floats well, see sidorares/json-bigint#62
+        // // TODO: clean up after json-bigint>1.0.1 is released
+        if (value?.isNaN?.() === false) {
+          return value?.toNumber?.();
+        }
+        return undefined;
+      }),
     };
     return result as ReturnType;
   }

@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@superset-ui/core';
-import { List, ListItemProps } from 'src/components';
+import { useTheme } from '@apache-superset/core/ui';
+import { List, type ListItemProps } from '@superset-ui/core/components';
 
 export interface CustomListItemProps extends ListItemProps {
   selectable: boolean;
@@ -26,16 +26,15 @@ export interface CustomListItemProps extends ListItemProps {
 export default function CustomListItem(props: CustomListItemProps) {
   const { selectable, children, ...rest } = props;
   const theme = useTheme();
-  const css = {
+  const css: Record<string, Record<string, Record<string, number> | string>> = {
     '&.ant-list-item': {
-      padding: `${theme.gridUnit + 2}px ${theme.gridUnit * 3}px`,
       ':first-of-type': {
-        borderTopLeftRadius: theme.gridUnit,
-        borderTopRightRadius: theme.gridUnit,
+        borderTopLeftRadius: theme.borderRadius,
+        borderTopRightRadius: theme.borderRadius,
       },
       ':last-of-type': {
-        borderBottomLeftRadius: theme.gridUnit,
-        borderBottomRightRadius: theme.gridUnit,
+        borderBottomLeftRadius: theme.borderRadius,
+        borderBottomRightRadius: theme.borderRadius,
       },
     },
   };
@@ -43,7 +42,7 @@ export default function CustomListItem(props: CustomListItemProps) {
   if (selectable) {
     css['&:hover'] = {
       cursor: 'pointer',
-      backgroundColor: theme.colors.grayscale.light4,
+      backgroundColor: theme.colorFillSecondary,
     };
   }
 

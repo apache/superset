@@ -50,7 +50,7 @@ class TestCssTemplateApi(SupersetTestCase):
         db.session.commit()
         return css_template
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_css_templates(self):
         with self.create_app().app_context():
             css_templates = []

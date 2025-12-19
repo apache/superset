@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-chord",
-  "version": "0.18.25",
+  "version": "0.20.3",
   "description": "Superset Legacy Chart - Chord Diagram",
   "sideEffects": [
     "*.css"
@@ -31,10 +31,11 @@
   "dependencies": {
     "d3": "^3.5.17",
     "prop-types": "^15.8.1",
-    "react": "^16.13.1"
+    "react": "^19.2.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*"
+    "@superset-ui/core": "*",
+    "@apache-superset/core": "*"
   }
 }

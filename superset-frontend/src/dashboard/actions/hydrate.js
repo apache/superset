@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
@@ -57,7 +56,7 @@ import { FilterBarOrientation } from '../types';
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
 export const hydrateDashboard =
-  ({ history, dashboard, charts, dataMask, activeTabs }) =>
+  ({ history, dashboard, charts, dataMask, activeTabs, chartStates }) =>
   (dispatch, getState) => {
     const { user, common, dashboardState } = getState();
     const { metadata, position_data: positionData } = dashboard;
@@ -230,22 +229,22 @@ export const hydrateDashboard =
       filterConfig: metadata?.native_filter_configuration || [],
     });
 
-    if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
-      const { chartConfiguration, globalChartConfiguration } =
-        getCrossFiltersConfiguration(
-          dashboardLayout.present,
-          metadata,
-          chartQueries,
-        );
-      metadata.chart_configuration = chartConfiguration;
-      metadata.global_chart_configuration = globalChartConfiguration;
-    }
+    const { chartConfiguration, globalChartConfiguration } =
+      getCrossFiltersConfiguration(
+        dashboardLayout.present,
+        metadata,
+        chartQueries,
+      );
+    metadata.chart_configuration = chartConfiguration;
+    metadata.global_chart_configuration = globalChartConfiguration;
 
     const { roles } = user;
     const canEdit = canUserEditDashboard(dashboard, user);
     const crossFiltersEnabled = isCrossFiltersEnabled(
       metadata.cross_filters_enabled,
     );
+
+    const chartCustomizationItems = metadata?.chart_customization_config || [];
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
@@ -277,13 +276,10 @@ export const hydrateDashboard =
           superset_can_csv: findPermission('can_csv', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
-            flash_messages: common?.flash_messages,
             conf: common?.conf,
           },
           filterBarOrientation:
-            (isFeatureEnabled(FeatureFlag.HorizontalFilterBar) &&
-              metadata.filter_bar_orientation) ||
-            FilterBarOrientation.Vertical,
+            metadata.filter_bar_orientation || FilterBarOrientation.Vertical,
           crossFiltersEnabled,
         },
         dataMask,
@@ -312,7 +308,10 @@ export const hydrateDashboard =
           isRefreshing: false,
           isFiltersRefreshing: false,
           activeTabs: activeTabs || dashboardState?.activeTabs || [],
-          datasetsStatus: ResourceStatus.Loading,
+          datasetsStatus:
+            dashboardState?.datasetsStatus || ResourceStatus.Loading,
+          chartStates: chartStates || dashboardState?.chartStates || {},
+          chartCustomizationItems,
         },
         dashboardLayout,
       },

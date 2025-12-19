@@ -21,21 +21,31 @@ import {
   DataMaskStateWithId,
   DatasourceType,
   ExtraFormData,
-  GenericDataType,
   JsonObject,
   NativeFilterScope,
   NativeFiltersState,
+  NativeFilterTarget,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
-
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import Owner from 'src/types/Owner';
+import {
+  ChartCustomizationItem,
+  FilterOption,
+} from './components/nativeFilters/ChartCustomization/types';
+import { GroupByCustomizationsState } from './reducers/groupByCustomizations';
 import { ChartState } from '../explore/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
+
+export interface ExtendedNativeFilterScope extends NativeFilterScope {
+  selectedLayers?: string[];
+}
 
 export type ChartReducerInitialState = typeof chart;
 
@@ -52,6 +62,8 @@ export type Chart = ChartState & {
   form_data: {
     viz_type: string;
     datasource: string;
+    color_scheme: string;
+    slice_id: number;
   };
 };
 
@@ -99,6 +111,8 @@ export type DashboardState = {
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
+  nativeFiltersBarOpen?: boolean;
+  css?: string;
   focusedFilterField?: {
     chartId: number;
     column: string;
@@ -114,6 +128,7 @@ export type DashboardState = {
     dashboardId: number;
     data: JsonObject;
   };
+  chartStates?: Record<string, any>;
 };
 export type DashboardInfo = {
   id: number;
@@ -131,11 +146,27 @@ export type DashboardInfo = {
     color_namespace: string;
     color_scheme_domain: string[];
     label_colors: JsonObject;
-    shared_label_colors: JsonObject;
+    shared_label_colors: string[];
+    map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
+    chart_customization_config?: ChartCustomizationItem[];
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
+  created_on_delta_humanized: string;
+  changed_on_delta_humanized: string;
+  changed_by?: Owner;
+  created_by?: Owner;
+  owners: Owner[];
+  chartCustomizationData?: { [itemId: string]: FilterOption[] };
+  chartCustomizationLoading?: { [itemId: string]: boolean };
+  pendingChartCustomizations?: Record<string, ChartCustomizationItem>;
+  theme?: {
+    id: number;
+    name: string;
+  } | null;
+  theme_id?: number | null;
+  css?: string;
 };
 
 export type ChartsState = { [key: string]: Chart };
@@ -162,6 +193,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
+  groupByCustomizations: GroupByCustomizationsState;
   user: UserWithPermissionsAndRoles;
 };
 
@@ -174,28 +206,35 @@ export type Charts = { [key: number]: Chart };
 type ComponentTypesKeys = keyof typeof componentTypes;
 export type ComponentType = (typeof componentTypes)[ComponentTypesKeys];
 
+export type LayoutItemMeta = {
+  chartId: number;
+  defaultText?: string;
+  height: number;
+  placeholder?: string;
+  sliceName?: string;
+  sliceNameOverride?: string;
+  text?: string;
+  uuid: string;
+  width: number;
+};
+
 /** State of dashboardLayout item in redux */
 export type LayoutItem = {
   children: string[];
-  parents: string[];
+  parents?: string[];
   type: ComponentType;
   id: string;
-  meta: {
-    chartId: number;
-    defaultText?: string;
-    height: number;
-    placeholder?: string;
-    sliceName?: string;
-    sliceNameOverride?: string;
-    text?: string;
-    uuid: string;
-    width: number;
-  };
+  meta: LayoutItemMeta;
 };
 
 type ActiveFilter = {
+  filterType?: string;
+  targets: number[] | [Partial<NativeFilterTarget>];
   scope: number[];
   values: ExtraFormData;
+  layerScope?: {
+    [chartId: number]: number[];
+  };
 };
 
 export type ActiveFilters = {
@@ -207,6 +246,7 @@ export interface DashboardPermalinkState {
   activeTabs: string[];
   anchor: string;
   urlParams?: UrlParamEntries;
+  chartStates?: Record<string, any>;
 }
 
 export interface DashboardPermalinkValue {
@@ -268,4 +308,6 @@ export enum MenuKeys {
   ToggleFullscreen = 'toggle_fullscreen',
   ManageEmbedded = 'manage_embedded',
   ManageEmailReports = 'manage_email_reports',
+  ExportPivotXlsx = 'export_pivot_xlsx',
+  EmbedCode = 'embed_code',
 }

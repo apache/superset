@@ -91,7 +91,7 @@ def compute_thumbnails(
             else:
                 func = compute_func
                 action = "Processing"
-            msg = f'{action} {friendly_type} "{model}" ({i+1}/{count})'
+            msg = f'{action} {friendly_type} "{model}" ({i + 1}/{count})'
             click.secho(msg, fg="green")
             func(None, model.id, force=force)
 

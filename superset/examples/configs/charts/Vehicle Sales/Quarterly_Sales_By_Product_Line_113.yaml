@@ -1,0 +1,103 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Quarterly Sales (By Product Line)
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params:
+  datasource: 21__table
+  viz_type: echarts_timeseries_bar
+  slice_id: 113
+  x_axis: order_date
+  time_grain_sqla: P3M
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: sales
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 917
+      is_dttm: false
+      optionName: _col_Sales
+      python_date_format: null
+      type: DOUBLE PRECISION
+      verbose_name: null
+    expressionType: SIMPLE
+    hasCustomLabel: false
+    isNew: false
+    label: SUM(Sales)
+    optionName: metric_tjn8bh6y44_7o4etwsqhal
+    sqlExpression: null
+  groupby:
+  - product_line
+  adhoc_filters:
+  - expressionType: SIMPLE
+    subject: order_date
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+    clause: WHERE
+    sqlExpression: null
+    isExtra: false
+    isNew: false
+    datasourceWarning: false
+    filterOptionName: filter_skx80xwzof_2l0t7nomekl
+  order_desc: true
+  row_limit: 10000
+  truncate_metric: true
+  show_empty_columns: true
+  rolling_type: null
+  time_compare: null
+  comparison_type: null
+  annotation_layers: []
+  forecastPeriods: 10
+  forecastInterval: 0.8
+  orientation: vertical
+  x_axis_title_margin: 15
+  y_axis_title_margin: 15
+  y_axis_title_position: Left
+  sort_series_type: sum
+  color_scheme: supersetColors
+  time_shift_color: true
+  only_total: true
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  x_axis_time_format: smart_date
+  y_axis_format: null
+  y_axis_bounds:
+  - null
+  - null
+  truncateXAxis: true
+  rich_tooltip: true
+  showTooltipTotal: true
+  tooltipTimeFormat: smart_date
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":21,"type":"table"},"force":false,"queries":[{"filters":[{"col":"order_date","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"time_grain_sqla":"P3M","having":"","where":""},"applied_time_extras":{},"columns":[{"timeGrain":"P3M","columnType":"BASE_AXIS","sqlExpression":"order_date","label":"order_date","expressionType":"SQL"},"product_line"],"metrics":[{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"SUM(Sales)","optionName":"metric_tjn8bh6y44_7o4etwsqhal","sqlExpression":null}],"orderby":[[{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"SUM(Sales)","optionName":"metric_tjn8bh6y44_7o4etwsqhal","sqlExpression":null},false]],"annotation_layers":[],"row_limit":10000,"series_columns":["product_line"],"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"time_offsets":[],"post_processing":[{"operation":"pivot","options":{"index":["order_date"],"columns":["product_line"],"aggregates":{"SUM(Sales)":{"operator":"mean"}},"drop_missing_columns":false}},{"operation":"rename","options":{"columns":{"SUM(Sales)":null},"level":0,"inplace":true}},{"operation":"flatten"}]}],"form_data":{"datasource":"21__table","viz_type":"echarts_timeseries_bar","slice_id":113,"x_axis":"order_date","time_grain_sqla":"P3M","metrics":[{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"SUM(Sales)","optionName":"metric_tjn8bh6y44_7o4etwsqhal","sqlExpression":null}],"groupby":["product_line"],"adhoc_filters":[{"expressionType":"SIMPLE","subject":"order_date","operator":"TEMPORAL_RANGE","comparator":"No
+  filter","clause":"WHERE","sqlExpression":null,"isExtra":false,"isNew":false,"datasourceWarning":false,"filterOptionName":"filter_skx80xwzof_2l0t7nomekl"}],"order_desc":true,"row_limit":10000,"truncate_metric":true,"show_empty_columns":true,"rolling_type":null,"time_compare":null,"comparison_type":null,"annotation_layers":[],"forecastPeriods":10,"forecastInterval":0.8,"orientation":"vertical","x_axis_title_margin":15,"y_axis_title_margin":15,"y_axis_title_position":"Left","sort_series_type":"sum","color_scheme":"supersetColors","time_shift_color":true,"only_total":true,"show_legend":true,"legendType":"scroll","legendOrientation":"top","x_axis_time_format":"smart_date","y_axis_format":null,"y_axis_bounds":[null,null],"truncateXAxis":true,"rich_tooltip":true,"showTooltipTotal":true,"tooltipTimeFormat":"smart_date","extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: db9609e4-9b78-4a32-87a7-4d9e19d51cd8
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

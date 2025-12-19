@@ -50,9 +50,12 @@ def import_chart(
 ) -> Slice:
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
     existing = db.session.query(Slice).filter_by(uuid=config["uuid"]).first()
+    user = get_user()
     if existing:
-        if overwrite and can_write and get_user():
-            if not security_manager.can_access_chart(existing):
+        if overwrite and can_write and user:
+            if not security_manager.can_access_chart(existing) or (
+                user not in existing.owners and not security_manager.is_admin()
+            ):
                 raise ImportFailedError(
                     "A chart already exists and user doesn't "
                     "have permissions to overwrite it"
@@ -120,7 +123,7 @@ def migrate_chart(config: dict[str, Any]) -> dict[str, Any]:
     except (json.JSONDecodeError, TypeError):
         query_context = {}
     if "form_data" in query_context:
-        query_context["form_data"] = output["params"]
+        query_context["form_data"] = params
         output["query_context"] = json.dumps(query_context)
 
     return output

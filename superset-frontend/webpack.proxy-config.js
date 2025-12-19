@@ -17,18 +17,19 @@
  * under the License.
  */
 const zlib = require('zlib');
+const { ZSTDDecompress } = require('simple-zstd');
 
 const yargs = require('yargs');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const parsedArgs = yargs.argv;
 
 const parsedEnvArg = () => {
+  let envArgs = {};
   if (parsedArgs.env) {
-    return yargs(parsedArgs.env).argv;
+    envArgs = yargs(parsedArgs.env).argv;
   }
-  return {};
+  return { ...process.env, ...envArgs };
 };
-
 const { supersetPort = 8088, superset: supersetUrl = null } = parsedEnvArg();
 const backend = (supersetUrl || `http://localhost:${supersetPort}`).replace(
   '//+$/',
@@ -127,6 +128,8 @@ function processHTML(proxyResponse, response) {
     uncompress = zlib.createBrotliDecompress();
   } else if (responseEncoding === 'deflate') {
     uncompress = zlib.createInflate();
+  } else if (responseEncoding === 'zstd') {
+    uncompress = ZSTDDecompress();
   }
   if (uncompress) {
     originalResponse.pipe(uncompress);
@@ -162,7 +165,26 @@ module.exports = newManifest => {
         if (isHTML(response)) {
           processHTML(proxyResponse, response);
         } else {
-          proxyResponse.pipe(response);
+          const isCSV = (proxyResponse.headers['content-type'] || '').includes(
+            'text/csv',
+          );
+
+          if (isCSV) {
+            proxyResponse.on('data', chunk => {
+              response.write(chunk);
+              if (response.flush) {
+                response.flush();
+              }
+            });
+            proxyResponse.on('end', () => {
+              response.end();
+            });
+            proxyResponse.on('error', () => {
+              response.end();
+            });
+          } else {
+            proxyResponse.pipe(response);
+          }
         }
         response.flushHeaders();
       } catch (e) {

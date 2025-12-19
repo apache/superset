@@ -159,7 +159,7 @@ export function resizeComponent({ id, width, height }) {
   };
 }
 
-// Drag and drop --------------------------------------------------------------
+// Drag and Drop --------------------------------------------------------------
 export const MOVE_COMPONENT = 'MOVE_COMPONENT';
 const moveComponent = setUnsavedChangesAfterAction(dropResult => ({
   type: MOVE_COMPONENT,
@@ -266,6 +266,8 @@ export function handleComponentDrop(dropResult) {
     return null;
   };
 }
+
+export const clearDashboardHistory = () => UndoActionCreators.clearHistory();
 
 // Undo redo ------------------------------------------------------------------
 export function undoLayoutAction() {

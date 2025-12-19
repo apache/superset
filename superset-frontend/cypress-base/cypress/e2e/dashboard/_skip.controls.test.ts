@@ -62,7 +62,7 @@ describe.skip('Dashboard top-level controls', () => {
     // should allow force refresh
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     getChartAliasesBySpec(WORLD_HEALTH_CHARTS).then(aliases => {
-      cy.get('[aria-label="more-horiz"]').click();
+      cy.get('[aria-label="ellipsis"]').click();
       cy.get('[data-test="refresh-dashboard-menu-item"]').should(
         'not.have.class',
         'ant-dropdown-menu-item-disabled',
@@ -91,7 +91,7 @@ describe.skip('Dashboard top-level controls', () => {
         });
       });
     });
-    cy.get('[aria-label="more-horiz"]').click();
+    cy.get('[aria-label="ellipsis"]').click();
     cy.get('[data-test="refresh-dashboard-menu-item"]').and(
       'not.have.class',
       'ant-dropdown-menu-item-disabled',

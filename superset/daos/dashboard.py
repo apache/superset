@@ -17,8 +17,9 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -28,6 +29,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardForbiddenError,
     DashboardNotFoundError,
+    DashboardUpdateFailedError,
 )
 from superset.daos.base import BaseDAO
 from superset.dashboards.filters import DashboardAccessFilter, is_uuid
@@ -43,9 +45,23 @@ from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
 
+# Custom filterable fields for dashboards
+DASHBOARD_CUSTOM_FIELDS = {
+    "tags": ["eq", "in_", "like"],
+    "owners": ["eq", "in_"],
+    "published": ["eq"],
+}
+
 
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
+
+    @classmethod
+    def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
+        filterable = super().get_filterable_columns_and_operators()
+        # Add custom fields for dashboards
+        filterable.update(DASHBOARD_CUSTOM_FIELDS)
+        return filterable
 
     @classmethod
     def get_by_id_or_slug(cls, id_or_slug: int | str) -> Dashboard:
@@ -259,7 +275,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
         md["color_scheme"] = data.get("color_scheme", "")
         md["label_colors"] = data.get("label_colors", {})
-        md["shared_label_colors"] = data.get("shared_label_colors", {})
+        md["shared_label_colors"] = data.get("shared_label_colors", [])
+        md["map_label_colors"] = data.get("map_label_colors", {})
         md["color_scheme_domain"] = data.get("color_scheme_domain", [])
         md["cross_filters_enabled"] = data.get("cross_filters_enabled", True)
         dashboard.json_metadata = json.dumps(md)
@@ -317,6 +334,112 @@ class DashboardDAO(BaseDAO[Dashboard]):
         cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
         db.session.add(dash)
         return dash
+
+    @classmethod
+    def get_native_filter_configuration(
+        cls, id: str
+    ) -> dict[str, list[dict[str, Any]]]:
+        dashboard = cls.get_by_id_or_slug(id)
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        native_filter_configuration = metadata.get("native_filter_configuration", [])
+
+        tab_filters = defaultdict(list)
+        for filter in native_filter_configuration:
+            if tabs_in_scope := filter.get("tabsInScope", []):
+                for tab_key in tabs_in_scope:
+                    tab_filters[tab_key].append(filter)
+            tab_filters["all"].append(filter)
+
+        return tab_filters
+
+    @classmethod
+    def update_native_filters_config(
+        cls,
+        dashboard: Dashboard | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        if not dashboard:
+            raise DashboardUpdateFailedError("Dashboard not found")
+
+        if attributes:
+            metadata = json.loads(dashboard.json_metadata or "{}")
+            native_filter_configuration = metadata.get(
+                "native_filter_configuration", []
+            )
+            reordered_filter_ids: list[int] = attributes.get("reordered", [])
+            updated_configuration = []
+
+            # Modify / Delete existing filters
+            for conf in native_filter_configuration:
+                deleted_filter = next(
+                    (f for f in attributes.get("deleted", []) if f == conf.get("id")),
+                    None,
+                )
+                if deleted_filter:
+                    continue
+
+                modified_filter = next(
+                    (
+                        f
+                        for f in attributes.get("modified", [])
+                        if f.get("id") == conf.get("id")
+                    ),
+                    None,
+                )
+                if modified_filter:
+                    # Filter was modified, substitute it
+                    updated_configuration.append(modified_filter)
+                else:
+                    # Filter was not modified, keep it as is
+                    updated_configuration.append(conf)
+
+            # Append new filters
+            for new_filter in attributes.get("modified", []):
+                new_filter_id = new_filter.get("id")
+                if new_filter_id not in [f.get("id") for f in updated_configuration]:
+                    updated_configuration.append(new_filter)
+
+                    if (
+                        reordered_filter_ids
+                        and new_filter_id not in reordered_filter_ids
+                    ):
+                        reordered_filter_ids.append(new_filter_id)
+
+            # Reorder filters
+            if reordered_filter_ids:
+                filter_map = {
+                    filter_config["id"]: filter_config
+                    for filter_config in updated_configuration
+                }
+
+                updated_configuration = [
+                    filter_map[filter_id]
+                    for filter_id in reordered_filter_ids
+                    if filter_id in filter_map
+                ]
+
+            metadata["native_filter_configuration"] = updated_configuration
+            dashboard.json_metadata = json.dumps(metadata)
+
+        return updated_configuration
+
+    @classmethod
+    def update_colors_config(
+        cls, dashboard: Dashboard, attributes: dict[str, Any]
+    ) -> None:
+        metadata = json.loads(dashboard.json_metadata or "{}")
+
+        for key in [
+            "color_scheme_domain",
+            "color_scheme",
+            "shared_label_colors",
+            "map_label_colors",
+            "label_colors",
+        ]:
+            if key in attributes:
+                metadata[key] = attributes[key]
+
+        dashboard.json_metadata = json.dumps(metadata)
 
     @staticmethod
     def add_favorite(dashboard: Dashboard) -> None:

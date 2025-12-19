@@ -35,59 +35,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import JSONbig from 'json-bigint';
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { JSONTree } from 'react-json-tree';
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
-import Button from '../Button';
-import CopyToClipboard from '../CopyToClipboard';
-import ModalTrigger from '../ModalTrigger';
-
-export function safeJsonObjectParse(
-  data: unknown,
-): null | unknown[] | Record<string, unknown> {
-  // First perform a cheap proxy to avoid calling JSON.parse on data that is clearly not a
-  // JSON object or array
-  if (
-    typeof data !== 'string' ||
-    ['{', '['].indexOf(data.substring(0, 1)) === -1
-  ) {
-    return null;
-  }
-
-  // We know `data` is a string starting with '{' or '[', so try to parse it as a valid object
-  try {
-    const jsonData = JSONbig({ storeAsString: true }).parse(data);
-    if (jsonData && typeof jsonData === 'object') {
-      return jsonData;
-    }
-    return null;
-  } catch (_) {
-    return null;
-  }
-}
-
-export function convertBigIntStrToNumber(value: string | number) {
-  if (typeof value === 'string' && /^"-?\d+"$/.test(value)) {
-    return value.substring(1, value.length - 1);
-  }
-  return value;
-}
+import { Button, ModalTrigger } from '@superset-ui/core/components';
+import { CopyToClipboard } from '../CopyToClipboard';
+import { convertBigIntStrToNumber } from './utils';
+import type { JsonModalProps } from './types';
 
 function renderBigIntStrToNumber(value: string | number) {
   return <>{convertBigIntStrToNumber(value)}</>;
 }
 
-type CellDataType = string | number | null;
-
-export interface Props {
-  modalTitle: string;
-  jsonObject: Record<string, unknown> | unknown[];
-  jsonValue: CellDataType;
-}
-
-const JsonModal: FC<Props> = ({ modalTitle, jsonObject, jsonValue }) => {
+export const JsonModal: FC<JsonModalProps> = ({
+  modalTitle,
+  jsonObject,
+  jsonValue,
+}) => {
   const jsonTreeTheme = useJsonTreeTheme();
+  const content = useMemo(
+    () =>
+      typeof jsonValue === 'object' ? JSON.stringify(jsonValue) : jsonValue,
+    [jsonValue],
+  );
 
   return (
     <ModalTrigger
@@ -100,13 +70,13 @@ const JsonModal: FC<Props> = ({ modalTitle, jsonObject, jsonValue }) => {
       }
       modalFooter={
         <Button>
-          <CopyToClipboard shouldShowText={false} text={jsonValue} />
+          <CopyToClipboard shouldShowText={false} text={content} />
         </Button>
       }
       modalTitle={modalTitle}
-      triggerNode={<>{jsonValue}</>}
+      triggerNode={<>{content}</>}
     />
   );
 };
 
-export default JsonModal;
+export type { JsonModalProps };

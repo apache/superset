@@ -15,28 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Quarterly Sales
-viz_type: bar
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
 params:
-  adhoc_filters: []
-  annotation_layers: []
-  bottom_margin: auto
-  color_scheme: supersetColors
-  comparison_type: null
-  datasource: 23__table
-  granularity_sqla: order_date
-  groupby: []
-  label_colors:
-    Classic Cars: '#5AC189'
-    Motorcycles: '#666666'
-    Planes: '#FCC700'
-    QuantityOrdered: '#454E7C'
-    SUM(Sales): '#1FA8C9'
-    Ships: '#A868B7'
-    Trains: '#3CCCCB'
-    Trucks and Buses: '#E04355'
-    Vintage Cars: '#FF7F44'
-  left_margin: auto
-  line_interpolation: linear
+  datasource: 21__table
+  viz_type: echarts_timeseries_bar
+  slice_id: 118
+  x_axis: order_date
+  time_grain_sqla: P3M
+  x_axis_sort_asc: true
+  x_axis_sort_series: name
+  x_axis_sort_series_ascending: true
   metrics:
   - aggregate: SUM
     column:
@@ -57,29 +48,53 @@ params:
     label: SUM(Sales)
     optionName: metric_tjn8bh6y44_7o4etwsqhal
     sqlExpression: null
-  order_desc: true
-  queryFields:
-    groupby: groupby
-    metrics: metrics
-  rich_tooltip: true
-  rolling_type: null
+  groupby:
+  - status
+  adhoc_filters:
+  - clause: WHERE
+    subject: order_date
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+    expressionType: SIMPLE
   row_limit: 10000
-  show_brush: auto
-  show_legend: false
-  slice_id: 668
+  truncate_metric: true
+  show_empty_columns: true
+  rolling_type: null
   time_compare: null
-  time_grain_sqla: P3M
-  time_range: No filter
-  url_params: {}
-  viz_type: bar
-  x_axis_format: '%m/%d/%Y'
-  x_axis_label: Quarter starting
-  x_ticks_layout: auto
+  comparison_type: null
+  annotation_layers: []
+  forecastPeriods: 10
+  forecastInterval: 0.8
+  orientation: vertical
+  x_axis_title_margin: 15
+  y_axis_title_margin: 15
+  y_axis_title_position: Left
+  sort_series_type: sum
+  color_scheme: supersetColors
+  time_shift_color: true
+  stack: Stack
+  only_total: true
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  x_axis_time_format: smart_date
+  y_axis_format: null
   y_axis_bounds:
   - null
   - null
-  y_axis_format: null
-  y_axis_label: Total Sales
+  truncateXAxis: true
+  rich_tooltip: true
+  showTooltipTotal: true
+  tooltipTimeFormat: smart_date
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":21,"type":"table"},"force":false,"queries":[{"filters":[{"col":"order_date","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"time_grain_sqla":"P3M","having":"","where":""},"applied_time_extras":{},"columns":[{"timeGrain":"P3M","columnType":"BASE_AXIS","sqlExpression":"order_date","label":"order_date","expressionType":"SQL"},"status"],"metrics":[{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"SUM(Sales)","optionName":"metric_tjn8bh6y44_7o4etwsqhal","sqlExpression":null}],"orderby":[[{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"SUM(Sales)","optionName":"metric_tjn8bh6y44_7o4etwsqhal","sqlExpression":null},false]],"annotation_layers":[],"row_limit":10000,"series_columns":["status"],"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"time_offsets":[],"post_processing":[{"operation":"pivot","options":{"index":["order_date"],"columns":["status"],"aggregates":{"SUM(Sales)":{"operator":"mean"}},"drop_missing_columns":false}},{"operation":"rename","options":{"columns":{"SUM(Sales)":null},"level":0,"inplace":true}},{"operation":"flatten"}]}],"form_data":{"datasource":"21__table","viz_type":"echarts_timeseries_bar","slice_id":118,"x_axis":"order_date","time_grain_sqla":"P3M","x_axis_sort_asc":true,"x_axis_sort_series":"name","x_axis_sort_series_ascending":true,"metrics":[{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"SUM(Sales)","optionName":"metric_tjn8bh6y44_7o4etwsqhal","sqlExpression":null}],"groupby":["status"],"adhoc_filters":[{"clause":"WHERE","subject":"order_date","operator":"TEMPORAL_RANGE","comparator":"No
+  filter","expressionType":"SIMPLE"}],"row_limit":10000,"truncate_metric":true,"show_empty_columns":true,"rolling_type":null,"time_compare":null,"comparison_type":null,"annotation_layers":[],"forecastPeriods":10,"forecastInterval":0.8,"orientation":"vertical","x_axis_title_margin":15,"y_axis_title_margin":15,"y_axis_title_position":"Left","sort_series_type":"sum","color_scheme":"supersetColors","time_shift_color":true,"stack":"Stack","only_total":true,"show_legend":true,"legendType":"scroll","legendOrientation":"top","x_axis_time_format":"smart_date","y_axis_format":null,"y_axis_bounds":[null,null],"truncateXAxis":true,"rich_tooltip":true,"showTooltipTotal":true,"tooltipTimeFormat":"smart_date","extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
 cache_timeout: null
 uuid: 692aca26-a526-85db-c94c-411c91cc1077
 version: 1.0.0

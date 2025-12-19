@@ -18,40 +18,24 @@
  */
 import { render } from 'spec/helpers/testing-library';
 
-import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
+import ResizableContainer, {
+  ResizableContainerProps,
+} from 'src/dashboard/components/resizable/ResizableContainer';
 
-interface ResizableContainerProps {
-  id: string;
-  children?: object;
-  adjustableWidth?: boolean;
-  adjustableHeight?: boolean;
-  gutterWidth?: number;
-  widthStep?: number;
-  heightStep?: number;
-  widthMultiple?: number;
-  heightMultiple?: number;
-  minWidthMultiple?: number;
-  maxWidthMultiple?: number;
-  minHeightMultiple?: number;
-  maxHeightMultiple?: number;
-  staticHeight?: number;
-  staticHeightMultiple?: number;
-  staticWidth?: number;
-  staticWidthMultiple?: number;
-  onResizeStop?: () => {};
-  onResize?: () => {};
-  onResizeStart?: () => {};
-  editMode: boolean;
-}
-
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResizableContainer', () => {
-  const props = { editMode: false, id: 'id' };
+  const props = {
+    editMode: false,
+    id: 'id',
+    heightMultiple: 0,
+    widthMultiple: 0,
+  };
 
   const setup = (overrides?: ResizableContainerProps) => (
     <ResizableContainer {...props} {...overrides} />
   );
 
-  it('should render a Resizable container', () => {
+  test('should render a Resizable container', () => {
     const rendered = render(setup());
     const resizableContainer = rendered.container.querySelector(
       '.resizable-container',

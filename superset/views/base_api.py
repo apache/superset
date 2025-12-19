@@ -31,6 +31,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
+from superset import is_feature_enabled
 from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager, stats_logger_manager
 from superset.models.core import FavStar
@@ -128,6 +129,29 @@ def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
         return response
 
     return functools.update_wrapper(wraps, f)
+
+
+def validate_feature_flags(
+    feature_flags: list[str],
+) -> Callable[[Callable[..., Response]], Callable[..., Response]]:
+    """
+    A decorator to check if all given feature flags are enabled.
+
+    :param feature_flags: List of feature flag names to be checked.
+    """
+
+    def decorate(f: Callable[..., Response]) -> Callable[..., Response]:
+        @functools.wraps(f)
+        def wrapper(
+            self: BaseSupersetModelRestApi, *args: Any, **kwargs: Any
+        ) -> Response:
+            if not all(is_feature_enabled(flag) for flag in feature_flags):
+                return self.response_404()
+            return f(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorate
 
 
 class RelatedFieldFilter:
@@ -633,15 +657,13 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         # Create generic base filters with added request filter
         filters = self._get_distinct_filter(column_name, args.get("filter"))
         # Make the query
-        query_count = self.appbuilder.get_session.query(
+        query_count = db.session.query(
             func.count(distinct(getattr(self.datamodel.obj, column_name)))
         )
         count = self.datamodel.apply_filters(query_count, filters).scalar()
         if count == 0:
             return self.response(200, count=count, result=[])
-        query = self.appbuilder.get_session.query(
-            distinct(getattr(self.datamodel.obj, column_name))
-        )
+        query = db.session.query(distinct(getattr(self.datamodel.obj, column_name)))
         # Apply generic base filters with added request filter
         query = self.datamodel.apply_filters(query, filters)
         # Apply sort

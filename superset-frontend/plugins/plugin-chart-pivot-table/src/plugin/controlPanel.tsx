@@ -17,6 +17,13 @@
  * under the License.
  */
 import {
+  ControlPanelConfig,
+  D3_TIME_FORMAT_OPTIONS,
+  Dataset,
+  getStandardizedControls,
+  sharedControls,
+} from '@superset-ui/chart-controls';
+import {
   ensureIsArray,
   isAdhocColumn,
   isPhysicalColumn,
@@ -25,13 +32,6 @@ import {
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import {
-  ControlPanelConfig,
-  D3_TIME_FORMAT_OPTIONS,
-  sharedControls,
-  Dataset,
-  getStandardizedControls,
-} from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
@@ -413,11 +413,24 @@ const config: ControlPanelConfig = {
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
+                const { colnames, coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
-                    return { value, label: verboseMap[value] ?? value };
+                    return {
+                      value,
+                      label: Array.isArray(verboseMap)
+                        ? value
+                        : verboseMap[value],
+                      dataType: colnames && coltypes[colnames?.indexOf(value)],
+                    };
                   }
-                  return { value: value.label, label: value.label };
+                  return {
+                    value: value.label,
+                    label: value.label,
+                    dataType:
+                      colnames && coltypes[colnames?.indexOf(value.label)],
+                  };
                 });
                 return {
                   removeIrrelevantConditions: chartStatus === 'success',
@@ -436,7 +449,9 @@ const config: ControlPanelConfig = {
               label: t('Render columns in HTML format'),
               renderTrigger: true,
               default: true,
-              description: t('Render data in HTML format if applicable.'),
+              description: t(
+                'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
+              ),
             },
           },
         ],

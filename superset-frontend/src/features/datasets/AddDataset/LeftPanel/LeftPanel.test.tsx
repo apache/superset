@@ -17,8 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import LeftPanel from 'src/features/datasets/AddDataset/LeftPanel';
 import { exampleDataset } from 'src/features/datasets/AddDataset/DatasetPanel/fixtures';
 
@@ -35,7 +39,7 @@ beforeEach(() => {
       allow_file_upload: 'Allow Csv Upload',
       allow_ctas: 'Allow Ctas',
       allow_cvas: 'Allow Cvas',
-      allow_dml: 'Allow Dml',
+      allow_dml: 'Allow DDL and DML',
       allow_multi_schema_metadata_fetch: 'Allow Multi Schema Metadata Fetch',
       allow_run_async: 'Allow Run Async',
       allows_cost_estimate: 'Allows Cost Estimate',
@@ -237,41 +241,31 @@ test('searches for a table name', async () => {
 
   // Click 'public' schema to access tables
   userEvent.click(schemaSelect);
-  userEvent.click(screen.getAllByText('public')[1]);
+  userEvent.click(screen.getByText('public'));
   await waitFor(() => expect(fetchMock.calls(tablesEndpoint).length).toBe(1));
   userEvent.click(tableSelect);
 
   await waitFor(() => {
     expect(
-      screen.queryByRole('option', {
-        name: /Sheet1/i,
-      }),
+      screen.queryByRole('option', { name: /Sheet1/i }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('option', {
-        name: /Sheet2/i,
-      }),
+      screen.queryByRole('option', { name: /Sheet2/i }),
     ).toBeInTheDocument();
   });
 
   userEvent.type(tableSelect, 'Sheet3');
 
   await waitFor(() => {
+    expect(screen.queryByText(/Sheet1/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sheet2/i)).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('option', { name: /Sheet1/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('option', { name: /Sheet2/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('option', {
-        name: /Sheet3/i,
-      }),
+      screen.queryByRole('option', { name: /Sheet3/i }),
     ).toBeInTheDocument();
   });
 });
 
-test('renders a warning icon when a table name has a pre-existing dataset', async () => {
+test('renders a warning icon when a table name has a preexisting dataset', async () => {
   render(
     <LeftPanel
       setDataset={mockFun}
@@ -306,19 +300,17 @@ test('renders a warning icon when a table name has a pre-existing dataset', asyn
 
   // Click 'public' schema to access tables
   userEvent.click(schemaSelect);
-  userEvent.click(screen.getAllByText('public')[1]);
+  userEvent.click(screen.getByText('public'));
   userEvent.click(tableSelect);
 
   await waitFor(() => {
     expect(
-      screen.queryByRole('option', {
-        name: /Sheet2/i,
-      }),
+      screen.queryByRole('option', { name: /Sheet2/i }),
     ).toBeInTheDocument();
   });
 
   userEvent.type(tableSelect, 'Sheet2');
 
   // Sheet2 should now show the warning icon
-  expect(screen.getByRole('img', { name: 'alert-solid' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'warning' })).toBeInTheDocument();
 });

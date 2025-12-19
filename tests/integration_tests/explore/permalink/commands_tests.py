@@ -18,8 +18,9 @@
 from unittest.mock import patch
 
 import pytest
+from flask import current_app
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.connectors.sqla.models import SqlaTable
@@ -31,7 +32,7 @@ from tests.integration_tests.base_tests import SupersetTestCase
 
 
 class TestCreatePermalinkDataCommand(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def create_dataset(self):
         with self.create_app().app_context():
             dataset = SqlaTable(
@@ -49,7 +50,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
             db.session.delete(dataset)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_slice(self):
         with self.create_app().app_context():
             dataset = (
@@ -73,7 +74,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
             db.session.delete(slice)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_query(self):
         with self.create_app().app_context():
             query = Query(
@@ -112,7 +113,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
     @pytest.mark.usefixtures("create_dataset", "create_slice")
     def test_get_permalink_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 
@@ -140,7 +141,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
         self, decode_id_mock, kv_get_value_mock, mock_g
     ):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 

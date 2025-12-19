@@ -19,7 +19,7 @@ import logging
 from datetime import datetime, timedelta
 from functools import partial
 
-from flask import current_app
+from flask import current_app as app
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.distributed_lock.base import BaseDistributedLockCommand
@@ -33,7 +33,7 @@ from superset.key_value.types import KeyValueResource
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
-stats_logger = current_app.config["STATS_LOGGER"]
+stats_logger = app.config["STATS_LOGGER"]
 
 
 class CreateDistributedLock(BaseDistributedLockCommand):

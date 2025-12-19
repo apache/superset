@@ -17,11 +17,12 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import moment from 'moment';
-import { styled, t } from '@superset-ui/core';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
-import ListViewCard from 'src/components/ListViewCard';
+import { ListViewCard } from '@superset-ui/core/components';
 import { Dashboard, SavedQueryObject, TableTab } from 'src/views/CRUD/types';
 import { ActivityData, LoadingCards } from 'src/pages/Home';
 import {
@@ -30,22 +31,10 @@ import {
   getEditedObjects,
 } from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
-import { WelcomeTable } from './types';
-
-/**
- * Return result from /api/v1/log/recent_activity/
- */
-interface RecentActivity {
-  action: string;
-  item_type: 'slice' | 'dashboard';
-  item_url: string;
-  item_title: string;
-  time: number;
-  time_delta_humanized?: string;
-}
+import { WelcomeTable, RecentActivity } from './types';
 
 interface RecentSlice extends RecentActivity {
   item_type: 'slice';
@@ -78,7 +67,7 @@ interface ActivityProps {
 const Styles = styled.div`
   .recentCards {
     max-height: none;
-    grid-gap: ${({ theme }) => `${theme.gridUnit * 4}px`};
+    grid-gap: ${({ theme }) => `${theme.sizeUnit * 4}px`};
   }
 `;
 
@@ -93,13 +82,13 @@ const getEntityTitle = (entity: ActivityObject) => {
 };
 
 const getEntityIcon = (entity: ActivityObject) => {
-  if ('sql' in entity) return <Icons.Sql />;
+  if ('sql' in entity) return <Icons.ConsoleSqlOutlined />;
   const url = 'item_url' in entity ? entity.item_url : entity.url;
   if (url?.includes('dashboard')) {
-    return <Icons.NavDashboard />;
+    return <Icons.DashboardOutlined />;
   }
   if (url?.includes('explore')) {
-    return <Icons.NavCharts />;
+    return <Icons.BarChartOutlined />;
   }
   return null;
 };
@@ -112,13 +101,19 @@ const getEntityUrl = (entity: ActivityObject) => {
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
   if ('time' in entity) {
-    return t('Viewed %s', moment(entity.time).fromNow());
+    return t('Viewed %s', (extendedDayjs(entity.time) as any).fromNow());
   }
 
   let time: number | string | undefined | null;
+  if (entity.changed_on_delta_humanized != null) {
+    return t('Modified %s', entity.changed_on_delta_humanized);
+  }
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
-  return t('Modified %s', time == null ? UNKNOWN_TIME : moment(time).fromNow());
+  return t(
+    'Modified %s',
+    time == null ? UNKNOWN_TIME : (extendedDayjs(time) as any).fromNow(),
+  );
 };
 
 export default function ActivityTable({
@@ -174,11 +169,12 @@ export default function ActivityTable({
       },
     });
   }
-  const renderActivity = () =>
-    (activeChild === TableTab.Edited
-      ? editedCards
-      : activityData[activeChild]
-    ).map((entity: ActivityObject) => {
+  const renderActivity = () => {
+    const activities =
+      (activeChild === TableTab.Edited
+        ? editedCards
+        : activityData[activeChild as keyof ActivityData]) ?? [];
+    return activities.map((entity: ActivityObject) => {
       const url = getEntityUrl(entity);
       const lastActionOn = getEntityLastActionOn(entity);
       return (
@@ -196,14 +192,19 @@ export default function ActivityTable({
         </CardStyles>
       );
     });
+  };
 
   if ((isFetchingEditedCards && !editedCards) || isFetchingActivityData) {
     return <LoadingCards />;
   }
   return (
     <Styles>
-      <SubMenu activeChild={activeChild} tabs={tabs} />
-      {activityData[activeChild]?.length > 0 ||
+      <SubMenu
+        activeChild={activeChild}
+        tabs={tabs}
+        backgroundColor="transparent"
+      />
+      {Number(activityData[activeChild as keyof ActivityData]?.length) > 0 ||
       (activeChild === TableTab.Edited && editedCards?.length) ? (
         <CardContainer className="recentCards">
           {renderActivity()}

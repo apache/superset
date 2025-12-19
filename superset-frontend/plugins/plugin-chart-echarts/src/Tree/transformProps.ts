@@ -56,7 +56,7 @@ export function formatTooltip({
 export default function transformProps(
   chartProps: EchartsTreeChartProps,
 ): TreeTransformedProps {
-  const { width, height, formData, queriesData } = chartProps;
+  const { width, height, formData, queriesData, theme } = chartProps;
   const refs: Refs = {};
   const data: TreeDataRecord[] = queriesData[0].data || [];
 
@@ -74,6 +74,7 @@ export default function transformProps(
     nodeLabelPosition,
     childLabelPosition,
     emphasis,
+    initialTreeDepth,
   }: EchartsTreeFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const metricLabel = getMetricLabel(metric);
 
@@ -181,7 +182,6 @@ export default function transformProps(
       }
     });
   }
-
   const series: TreeSeriesOption[] = [
     {
       type: 'tree',
@@ -189,6 +189,7 @@ export default function transformProps(
       label: {
         ...DEFAULT_TREE_SERIES_OPTION.label,
         position: nodeLabelPosition,
+        color: theme.colorText,
       },
       emphasis: { focus: emphasis },
       animation: DEFAULT_TREE_SERIES_OPTION.animation,
@@ -197,9 +198,13 @@ export default function transformProps(
       symbol,
       roam,
       symbolSize,
-      lineStyle: DEFAULT_TREE_SERIES_OPTION.lineStyle,
+      lineStyle: {
+        color: theme.colorText,
+        width: 1.5,
+      },
       select: DEFAULT_TREE_SERIES_OPTION.select,
       leaves: { label: { position: childLabelPosition } },
+      initialTreeDepth,
     },
   ];
 

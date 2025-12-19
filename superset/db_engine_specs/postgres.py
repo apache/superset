@@ -21,7 +21,7 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
@@ -35,9 +35,9 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql_parse import SQLScript
+from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, QuerySource
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -99,11 +99,18 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
     engine_name = "PostgreSQL"
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
+        TimeGrain.FIVE_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '5 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 5)",  # noqa: E501
+        TimeGrain.THIRTY_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '30 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 30)",  # noqa: E501
         TimeGrain.MINUTE: "DATE_TRUNC('minute', {col})",
+        TimeGrain.FIVE_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '5 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 5)",  # noqa: E501
+        TimeGrain.TEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '10 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 10)",  # noqa: E501
+        TimeGrain.FIFTEEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '15 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 15)",  # noqa: E501
+        TimeGrain.THIRTY_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '30 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 30)",  # noqa: E501
         TimeGrain.HOUR: "DATE_TRUNC('hour', {col})",
         TimeGrain.DAY: "DATE_TRUNC('day', {col})",
         TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
@@ -274,6 +281,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         cls,
         database: Database,
         query: Query,
+        template_params: Optional[dict[str, Any]] = None,
     ) -> str | None:
         """
         Return the default schema for a given query.
@@ -281,20 +289,20 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         This method simply uses the parent method after checking that there are no
         malicious path setting in the query.
         """
-        script = SQLScript(query.sql, engine=cls.engine)
+        script = process_jinja_sql(query.sql, database, template_params).script
         settings = script.get_settings()
         if "search_path" in settings:
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
                     message=__(
-                        "Users are not allowed to set a search path for security reasons."
+                        "Users are not allowed to set a search path for security reasons."  # noqa: E501
                     ),
                     level=ErrorLevel.ERROR,
                 )
             )
 
-        return super().get_default_schema_for_query(database, query)
+        return super().get_default_schema_for_query(database, query, template_params)
 
     @classmethod
     def adjust_engine_params(
@@ -313,7 +321,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return uri, connect_args
 
     @classmethod
-    def get_default_catalog(cls, database: Database) -> str | None:
+    def get_default_catalog(cls, database: Database) -> str:
         """
         Return the default catalog for a given database.
         """
@@ -322,6 +330,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     @classmethod
     def get_prequeries(
         cls,
+        database: Database,
         catalog: str | None = None,
         schema: str | None = None,
     ) -> list[str]:
@@ -344,7 +353,16 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return True
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> dict[str, Any]:
+    def estimate_statement_cost(
+        cls, database: Database, statement: str, cursor: Any
+    ) -> dict[str, Any]:
+        """
+        Run a SQL query that estimates the cost of a given statement.
+        :param database: A Database object
+        :param statement: A single SQL statement
+        :param cursor: Cursor instance
+        :return: JSON response from Trino
+        """
         sql = f"EXPLAIN {statement}"
         cursor.execute(sql)
 
@@ -395,7 +413,9 @@ WHERE datistemplate = false;
         )
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         For Postgres, the path to a SSL certificate is placed in `connect_args`.
 
@@ -455,7 +475,7 @@ WHERE datistemplate = false;
         """
         try:
             cursor.execute(
-                "SELECT pg_terminate_backend(pid) "
+                "SELECT pg_terminate_backend(pid) "  # noqa: S608
                 "FROM pg_stat_activity "
                 f"WHERE pid='{cancel_query_id}'"
             )

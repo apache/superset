@@ -17,16 +17,14 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
-import { debounce } from 'lodash';
-import { Global } from '@emotion/react';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { Row, Col, Grid } from 'src/components';
-import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
-import { Tooltip } from 'src/components/Tooltip';
+import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
+import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
+import { GenericLink } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
-import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
 import {
@@ -35,6 +33,7 @@ import {
   MenuData,
 } from 'src/types/bootstrapTypes';
 import RightMenu from './RightMenu';
+import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
 interface MenuProps {
   data: MenuData;
@@ -42,143 +41,145 @@ interface MenuProps {
 }
 
 const StyledHeader = styled.header`
-  ${({ theme }) => `
-      background-color: ${theme.colors.grayscale.light5};
+  ${({ theme }) => css`
+    background-color: ${theme.colorBgContainer};
+    border-bottom: 1px solid ${theme.colorBorderSecondary};
+    padding: 0 ${theme.sizeUnit * 4}px;
+    z-index: 10;
+
+    &:nth-last-of-type(2) nav {
       margin-bottom: 2px;
-      z-index: 10;
+    }
 
-      &:nth-last-of-type(2) nav {
-        margin-bottom: 2px;
-      }
-      .caret {
-        display: none;
-      }
-      .navbar-brand {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        /* must be exactly the height of the Antd navbar */
-        min-height: 50px;
-        padding: ${theme.gridUnit}px
-          ${theme.gridUnit * 2}px
-          ${theme.gridUnit}px
-          ${theme.gridUnit * 4}px;
-        max-width: ${theme.gridUnit * theme.brandIconMaxWidth}px;
-        img {
-          height: 100%;
-          object-fit: contain;
-        }
-      }
-      .navbar-brand-text {
-        border-left: 1px solid ${theme.colors.grayscale.light2};
-        border-right: 1px solid ${theme.colors.grayscale.light2};
-        height: 100%;
-        color: ${theme.colors.grayscale.dark1};
-        padding-left: ${theme.gridUnit * 4}px;
-        padding-right: ${theme.gridUnit * 4}px;
-        margin-right: ${theme.gridUnit * 6}px;
-        font-size: ${theme.gridUnit * 4}px;
-        float: left;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-
-        span {
-          max-width: ${theme.gridUnit * 58}px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        @media (max-width: 1127px) {
-          display: none;
-        }
-      }
-      .main-nav .ant-menu-submenu-title > svg {
-        top: ${theme.gridUnit * 5.25}px;
-      }
-      @media (max-width: 767px) {
-        .navbar-brand {
-          float: none;
-        }
-      }
-      .ant-menu-horizontal .ant-menu-item {
-        height: 100%;
-        line-height: inherit;
-      }
-      .ant-menu > .ant-menu-item > a {
-        padding: ${theme.gridUnit * 4}px;
-      }
-      @media (max-width: 767px) {
-        .ant-menu-item {
-          padding: 0 ${theme.gridUnit * 6}px 0
-            ${theme.gridUnit * 3}px !important;
-        }
-        .ant-menu > .ant-menu-item > a {
-          padding: 0px;
-        }
-        .main-nav .ant-menu-submenu-title > svg:nth-of-type(1) {
-          display: none;
-        }
-        .ant-menu-item-active > a {
-          &:hover {
-            color: ${theme.colors.primary.base} !important;
-            background-color: transparent !important;
-          }
-        }
-      }
-      .ant-menu-item a {
-        &:hover {
-          color: ${theme.colors.grayscale.dark1};
-          background-color: ${theme.colors.primary.light5};
-          border-bottom: none;
-          margin: 0;
-          &:after {
-            opacity: 1;
-            width: 100%;
-          }
-        }
-      }
+    .caret {
+      display: none;
+    }
   `}
 `;
-const globalStyles = (theme: SupersetTheme) => css`
-  .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
-    border-radius: 0px;
-  }
-  .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
-    border-radius: 0px;
-  }
-  .ant-menu-vertical > .ant-menu-submenu.data-menu > .ant-menu-submenu-title {
-    height: 28px;
-    i {
-      padding-right: ${theme.gridUnit * 2}px;
-      margin-left: ${theme.gridUnit * 1.75}px;
+
+const StyledBrandText = styled.div`
+  ${({ theme }) => css`
+    border-left: 1px solid ${theme.colorBorderSecondary};
+    border-right: 1px solid ${theme.colorBorderSecondary};
+    height: 100%;
+    color: ${theme.colorText};
+    padding-left: ${theme.sizeUnit * 4}px;
+    padding-right: ${theme.sizeUnit * 4}px;
+    font-size: ${theme.fontSizeLG}px;
+    float: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    span {
+      max-width: ${theme.sizeUnit * 58}px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-  }
-  .ant-menu-item-selected {
-    background-color: transparent;
-    &:not(.ant-menu-item-active) {
-      color: inherit;
-      border-bottom-color: transparent;
-      & > a {
-        color: inherit;
+
+    @media (max-width: 1127px) {
+      display: none;
+    }
+  `}
+`;
+
+const StyledMainNav = styled(MainNav)`
+  ${({ theme }) => css`
+    .ant-menu-item .ant-menu-item-icon + span,
+    .ant-menu-submenu-title .ant-menu-item-icon + span,
+    .ant-menu-item .anticon + span,
+    .ant-menu-submenu-title .anticon + span {
+      margin-inline-start: 0;
+    }
+
+    .ant-menu-submenu.ant-menu-submenu-horizontal {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      padding: 0;
+
+      .ant-menu-submenu-title {
+        display: flex;
+        gap: ${theme.sizeUnit * 2}px;
+        flex-direction: row-reverse;
+        align-items: center;
+        height: 100%;
+        padding: 0 ${theme.sizeUnit * 4}px;
+      }
+
+      &:hover,
+      &.ant-menu-submenu-active {
+        .ant-menu-title-content {
+          color: ${theme.colorPrimary};
+        }
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        width: 98%;
+        height: 2px;
+        background-color: ${theme.colorPrimaryBorderHover};
+        bottom: ${theme.sizeUnit / 8}px;
+        left: 1%;
+        right: auto;
+        inset-inline-start: 1%;
+        inset-inline-end: auto;
+        transform: scale(0);
+        transition: 0.2s all ease-out;
+      }
+
+      &:hover::after,
+      &.ant-menu-submenu-open::after {
+        transform: scale(1);
       }
     }
-  }
-  .ant-menu-horizontal > .ant-menu-item:has(> .is-active) {
-    color: ${theme.colors.primary.base};
-    border-bottom-color: ${theme.colors.primary.base};
-    & > a {
-      color: ${theme.colors.primary.base};
+
+    .ant-menu-submenu-selected.ant-menu-submenu-horizontal::after {
+      transform: scale(1);
     }
-  }
-  .ant-menu-vertical > .ant-menu-item:has(> .is-active) {
-    background-color: ${theme.colors.primary.light5};
-    & > a {
-      color: ${theme.colors.primary.base};
-    }
-  }
+  `}
 `;
-const { SubMenu } = DropdownMenu;
+
+const StyledBrandWrapper = styled.div<{ margin?: string }>`
+  ${({ margin }) => css`
+    height: ${margin ? 'auto' : '100%'};
+    margin: ${margin ?? 0};
+  `}
+`;
+
+const StyledBrandLink = styled(Typography.Link)`
+  ${({ theme }) => css`
+    align-items: center;
+    display: flex;
+    height: 100%;
+    justify-content: center;
+
+    &:focus {
+      border-color: transparent;
+    }
+
+    &:focus-visible {
+      border-color: ${theme.colorPrimaryText};
+    }
+  `}
+`;
+
+const StyledRow = styled(Row)`
+  height: 100%;
+`;
+
+const StyledCol = styled(Col)`
+  ${({ theme }) => css`
+    display: flex;
+    gap: ${theme.sizeUnit * 4}px;
+  `}
+`;
+
+const StyledImage = styled(Image)`
+  object-fit: contain;
+`;
 
 const { useBreakpoint } = Grid;
 
@@ -192,28 +193,17 @@ export function Menu({
   },
   isFrontendRoute = () => false,
 }: MenuProps) {
-  const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
   const uiConfig = useUiConfig();
   const theme = useTheme();
-
-  useEffect(() => {
-    function handleResize() {
-      if (window.innerWidth <= 767) {
-        setMenu('inline');
-      } else setMenu('horizontal');
-    }
-    handleResize();
-    const windowResize = debounce(() => handleResize(), 10);
-    window.addEventListener('resize', windowResize);
-    return () => window.removeEventListener('resize', windowResize);
-  }, []);
 
   enum Paths {
     Explore = '/explore',
     Dashboard = '/dashboard',
     Chart = '/chart',
     Datasets = '/tablemodelview',
+    SqlLab = '/sqllab',
+    SavedQueries = '/savedqueryview',
   }
 
   const defaultTabSelection: string[] = [];
@@ -231,6 +221,9 @@ export function Menu({
       case path.startsWith(Paths.Datasets):
         setActiveTabs(['Datasets']);
         break;
+      case path.startsWith(Paths.SqlLab) || path.startsWith(Paths.SavedQueries):
+        setActiveTabs(['SQL']);
+        break;
       default:
         setActiveTabs(defaultTabSelection);
     }
@@ -239,100 +232,119 @@ export function Menu({
   const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone || uiConfig.hideNav) return <></>;
 
-  const renderSubMenu = ({
+  const buildMenuItem = ({
     label,
     childs,
     url,
-    index,
     isFrontendRoute,
-  }: MenuObjectProps) => {
+  }: MenuObjectProps): MenuItem => {
     if (url && isFrontendRoute) {
-      return (
-        <DropdownMenu.Item key={label} role="presentation">
+      return {
+        key: label,
+        label: (
           <NavLink role="button" to={url} activeClassName="is-active">
             {label}
           </NavLink>
-        </DropdownMenu.Item>
-      );
+        ),
+      };
     }
+
     if (url) {
-      return (
-        <DropdownMenu.Item key={label}>
-          <a href={url}>{label}</a>
-        </DropdownMenu.Item>
+      return {
+        key: label,
+        label: <Typography.Link href={url}>{label}</Typography.Link>,
+      };
+    }
+
+    const childItems: MenuItem[] = [];
+    childs?.forEach((child: MenuObjectChildProps | string, index1: number) => {
+      if (typeof child === 'string' && child === '-' && label !== 'Data') {
+        childItems.push({ type: 'divider', key: `divider-${index1}` });
+      } else if (typeof child !== 'string') {
+        childItems.push({
+          key: `${child.label}`,
+          label: child.isFrontendRoute ? (
+            <NavLink to={child.url || ''} exact activeClassName="is-active">
+              {child.label}
+            </NavLink>
+          ) : (
+            <Typography.Link href={child.url}>{child.label}</Typography.Link>
+          ),
+        });
+      }
+    });
+
+    return {
+      key: label,
+      label,
+      icon: <Icons.DownOutlined iconSize="xs" />,
+      popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+      children: childItems,
+    };
+  };
+  const renderBrand = () => {
+    let link;
+    if (theme.brandLogoUrl) {
+      link = (
+        <StyledBrandWrapper margin={theme.brandLogoMargin}>
+          <StyledBrandLink href={theme.brandLogoHref}>
+            <StyledImage
+              preview={false}
+              src={theme.brandLogoUrl}
+              alt={theme.brandLogoAlt || 'Apache Superset'}
+              height={theme.brandLogoHeight}
+            />
+          </StyledBrandLink>
+        </StyledBrandWrapper>
+      );
+    } else if (isFrontendRoute(window.location.pathname)) {
+      // ---------------------------------------------------------------------------------
+      // TODO: deprecate this once Theme is fully rolled out
+      // Kept as is for backwards compatibility with the old theme system / superset_config.py
+      link = (
+        <GenericLink className="navbar-brand" to={brand.path}>
+          <StyledImage preview={false} src={brand.icon} alt={brand.alt} />
+        </GenericLink>
+      );
+    } else {
+      link = (
+        <Typography.Link
+          className="navbar-brand"
+          href={brand.path}
+          tabIndex={-1}
+        >
+          <StyledImage preview={false} src={brand.icon} alt={brand.alt} />
+        </Typography.Link>
       );
     }
-    return (
-      <SubMenu
-        key={index}
-        title={label}
-        icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
-      >
-        {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-          if (typeof child === 'string' && child === '-' && label !== 'Data') {
-            return <DropdownMenu.Divider key={`$${index1}`} />;
-          }
-          if (typeof child !== 'string') {
-            return (
-              <DropdownMenu.Item key={`${child.label}`}>
-                {child.isFrontendRoute ? (
-                  <NavLink
-                    to={child.url || ''}
-                    exact
-                    activeClassName="is-active"
-                  >
-                    {child.label}
-                  </NavLink>
-                ) : (
-                  <a href={child.url}>{child.label}</a>
-                )}
-              </DropdownMenu.Item>
-            );
-          }
-          return null;
-        })}
-      </SubMenu>
-    );
+    // ---------------------------------------------------------------------------------
+    return <>{link}</>;
   };
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
-      <Global styles={globalStyles(theme)} />
-      <Row>
-        <Col md={16} xs={24}>
+      <StyledRow>
+        <StyledCol md={16} xs={24}>
           <Tooltip
             id="brand-tooltip"
             placement="bottomLeft"
             title={brand.tooltip}
-            arrowPointAtCenter
+            arrow={{ pointAtCenter: true }}
           >
-            {isFrontendRoute(window.location.pathname) ? (
-              <GenericLink
-                className="navbar-brand"
-                to={brand.path}
-                tabIndex={-1}
-              >
-                <img src={brand.icon} alt={brand.alt} />
-              </GenericLink>
-            ) : (
-              <a className="navbar-brand" href={brand.path} tabIndex={-1}>
-                <img src={brand.icon} alt={brand.alt} />
-              </a>
-            )}
+            {renderBrand()}
           </Tooltip>
           {brand.text && (
-            <div className="navbar-brand-text">
+            <StyledBrandText>
               <span>{brand.text}</span>
-            </div>
+            </StyledBrandText>
           )}
-          <DropdownMenu
-            mode={showMenu}
+          <StyledMainNav
+            mode="horizontal"
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
-          >
-            {menu.map((item, index) => {
+            disabledOverflow
+            items={menu.map(item => {
               const props = {
-                index,
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
                 childs: item.childs?.map(c => {
@@ -347,10 +359,10 @@ export function Menu({
                 }),
               };
 
-              return renderSubMenu(props);
+              return buildMenuItem(props);
             })}
-          </DropdownMenu>
-        </Col>
+          />
+        </StyledCol>
         <Col md={8} xs={24}>
           <RightMenu
             align={screens.md ? 'flex-end' : 'flex-start'}
@@ -360,7 +372,7 @@ export function Menu({
             environmentTag={environmentTag}
           />
         </Col>
-      </Row>
+      </StyledRow>
     </StyledHeader>
   );
 }

@@ -43,7 +43,7 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.athena import AthenaEngineSpec as spec
+    from superset.db_engine_specs.athena import AthenaEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -59,7 +59,7 @@ def test_extract_errors() -> None:
     result = AthenaEngineSpec.extract_errors(Exception(msg))
     assert result == [
         SupersetError(
-            message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',
+            message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',  # noqa: E501
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -87,3 +87,36 @@ def test_get_text_clause_with_colon() -> None:
     )
     text_clause = AthenaEngineSpec.get_text_clause(query)
     assert text_clause.text == query
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Athena uses equality operators for boolean filters instead of IS.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    # Create a mock SQLAlchemy column
+    bool_col = Column("test_col", Boolean)
+
+    # Test IS_TRUE filter - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
+    result_true = AthenaEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    # The result should be a equality comparison, not an IS comparison
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    # Test IS_FALSE filter
+    result_false = AthenaEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )

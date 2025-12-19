@@ -164,7 +164,7 @@ test('should render the "No results" components', async () => {
 
 test('should render the metadata bar', async () => {
   fetchWithNoData();
-  setup();
+  setup({ dataset: MOCKED_DATASET });
   expect(
     await screen.findByText(MOCKED_DATASET.table_name),
   ).toBeInTheDocument();
@@ -181,19 +181,56 @@ test('should render the metadata bar', async () => {
   ).toBeInTheDocument();
 });
 
-test('should render an error message when fails to load the metadata', async () => {
-  fetchWithNoData();
-  fetchMock.get(DATASET_ENDPOINT, { status: 400 }, { overwriteRoutes: true });
-  setup();
-  expect(
-    await screen.findByText('There was an error loading the dataset metadata'),
-  ).toBeInTheDocument();
-});
-
 test('should render the error', async () => {
   jest
     .spyOn(SupersetClient, 'post')
     .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
+});
+
+test('should use verbose_map for column headers when available', async () => {
+  jest.restoreAllMocks();
+
+  const datasetWithVerboseMap = {
+    ...MOCKED_DATASET,
+    verbose_map: {
+      year: 'Year of Release',
+      na_sales: 'North America Sales',
+    },
+  };
+
+  fetchMock.post(SAMPLES_ENDPOINT, {
+    result: {
+      total_count: 1,
+      data: [
+        {
+          year: 1996,
+          na_sales: 11.27,
+          eu_sales: 8.89,
+        },
+      ],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+
+  await waitForRender({ dataset: datasetWithVerboseMap });
+
+  expect(
+    screen.getByRole('columnheader', { name: 'Year of Release' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('columnheader', { name: 'North America Sales' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('columnheader', { name: 'eu_sales' }),
+  ).toBeInTheDocument();
+
+  expect(
+    screen.queryByRole('columnheader', { name: 'year' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('columnheader', { name: 'na_sales' }),
+  ).not.toBeInTheDocument();
 });

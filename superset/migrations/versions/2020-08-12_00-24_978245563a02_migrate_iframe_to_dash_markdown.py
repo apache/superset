@@ -121,7 +121,7 @@ def upgrade():
         )
         for i, dashboard in enumerate(dashboards):
             print(
-                f"scanning dashboard ({i + 1}/{len(dashboards)}) dashboard: {dashboard.id} >>>>"
+                f"scanning dashboard ({i + 1}/{len(dashboards)}) dashboard: {dashboard.id} >>>>"  # noqa: E501
             )
 
             # remove iframe slices from dashboard
@@ -188,7 +188,7 @@ def upgrade():
         )
 
     except Exception as ex:
-        logging.exception(f"dashboard {dashboard.id} has error: {ex}")
+        logging.exception("dashboard %s has error: %s", dashboard.id, ex)
 
     session.commit()
     session.close()

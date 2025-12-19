@@ -24,8 +24,8 @@ from typing import Any, Optional
 from unittest.mock import call, Mock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
-from superset import app
 from superset.utils import decorators
 from superset.utils.backports import StrEnum
 
@@ -77,7 +77,7 @@ def test_statsd_gauge(
             raise FileNotFoundError("Not found")
         return "OK"
 
-    with patch.object(app.config["STATS_LOGGER"], "gauge") as mock:
+    with patch("superset.extensions.stats_logger_manager.instance.gauge") as mock:
         cm = (
             pytest.raises(expected_exception)
             if isclass(expected_exception) and issubclass(expected_exception, Exception)
@@ -294,3 +294,55 @@ def test_suppress_logging() -> None:
     decorated = decorators.suppress_logging("test-logger", logging.CRITICAL + 1)(func)
     decorated()
     assert len(handler.log_records) == 0
+
+
+def test_transacation_commit(mocker: MockerFixture) -> None:
+    """
+    Test the `transaction` decorator when the function completes successfully.
+    """
+    db = mocker.patch("superset.db")
+
+    @decorators.transaction()
+    def func() -> int:
+        return 42
+
+    result = func()
+    assert result == 42
+    db.session.commit.assert_called_once()
+
+
+def test_transacation_rollback(mocker: MockerFixture) -> None:
+    """
+    Test the `transaction` decorator when the function raises an exception.
+    """
+    db = mocker.patch("superset.db")
+
+    @decorators.transaction()
+    def func() -> None:
+        raise ValueError("error")
+
+    with pytest.raises(ValueError, match="error"):
+        func()
+    db.session.commit.assert_not_called()
+    db.session.rollback.assert_called_once()
+
+
+def test_transacation_nested(mocker: MockerFixture) -> None:
+    """
+    Test the `transaction` decorator when the function is nested.
+    """
+    db = mocker.patch("superset.db")
+
+    @decorators.transaction()
+    def func() -> int:
+        return 42
+
+    @decorators.transaction()
+    def nested() -> int:
+        func()  # should not commit
+        raise ValueError("error")
+
+    with pytest.raises(ValueError, match="error"):
+        nested()
+    db.session.commit.assert_not_called()
+    db.session.rollback.assert_called_once()

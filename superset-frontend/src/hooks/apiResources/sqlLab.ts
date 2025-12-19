@@ -33,9 +33,11 @@ export type InitialState = {
       id: number;
       table: string;
       description: {
-        columns?: {
+        name: string;
+        columns: {
           name: string;
           type: string;
+          longType: string;
         }[];
         dataPreviewQueryId?: string;
       } & Record<string, any>;

@@ -97,7 +97,7 @@ export default function EchartsTreemap({
 
   const handleChange = useCallback(
     (data, treePathInfo) => {
-      if (!emitCrossFilters) {
+      if (!emitCrossFilters || groupby.length === 0) {
         return;
       }
 
@@ -144,7 +144,10 @@ export default function EchartsTreemap({
           });
           onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
             drillToDetail: drillToDetailFilters,
-            crossFilter: getCrossFilterDataMask(data, treePathInfo),
+            crossFilter:
+              groupby.length > 0
+                ? getCrossFilterDataMask(data, treePathInfo)
+                : undefined,
             drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
           });
         }
@@ -160,6 +163,7 @@ export default function EchartsTreemap({
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
+      vizType={formData.vizType}
     />
   );
 }

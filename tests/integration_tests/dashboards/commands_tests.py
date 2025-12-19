@@ -25,6 +25,7 @@ from superset import db, security_manager
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.delete import DeleteEmbeddedDashboardCommand
 from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,
     DashboardForbiddenError,
     DashboardInvalidError,
     DashboardNotFoundError,
@@ -34,10 +35,13 @@ from superset.commands.dashboard.export import (
     ExportDashboardsCommand,
     get_default_position,
 )
+from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers import v0, v1
+from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.dashboard import DashboardDAO
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -77,12 +81,15 @@ class TestExportDashboardsCommand(SupersetTestCase):
         expected_paths = {
             "metadata.yaml",
             f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml",
-            "datasets/examples/wb_health_population.yaml",
             "databases/examples.yaml",
         }
         for chart in example_dashboard.slices:
             chart_slug = secure_filename(chart.slice_name)
             expected_paths.add(f"charts/{chart_slug}_{chart.id}.yaml")
+            dataset_slug = secure_filename(chart.table.table_name)
+            expected_paths.add(
+                f"datasets/examples/{dataset_slug}_{chart.table.id}.yaml"
+            )
         assert expected_paths == set(contents.keys())
 
         metadata = yaml.safe_load(
@@ -232,7 +239,53 @@ class TestExportDashboardsCommand(SupersetTestCase):
             },
             "metadata": {"mock_key": "mock_value"},
             "version": "1.0.0",
+            "theme_uuid": None,
         }
+
+    # @pytest.mark.usefixtures("load_covid_dashboard")
+    @pytest.mark.skip(reason="missing covid fixture")
+    @patch("superset.security.manager.g")
+    @patch("superset.views.base.g")
+    def test_export_dashboard_command_dataset_references(self, mock_g1, mock_g2):
+        mock_g1.user = security_manager.find_user("admin")
+        mock_g2.user = security_manager.find_user("admin")
+
+        example_dashboard = (
+            db.session.query(Dashboard)
+            .filter_by(uuid="f4065089-110a-41fa-8dd7-9ce98a65e250")
+            .one()
+        )
+        command = ExportDashboardsCommand([example_dashboard.id])
+        contents = dict(command.run())
+
+        expected_paths = {
+            "metadata.yaml",
+            f"dashboards/COVID_Vaccine_Dashboard_{example_dashboard.id}.yaml",
+            "datasets/examples/covid_vaccines.yaml",  # referenced dataset needs to be exported  # noqa: E501
+            "databases/examples.yaml",
+        }
+        for chart in example_dashboard.slices:
+            chart_slug = secure_filename(chart.slice_name)
+            expected_paths.add(f"charts/{chart_slug}_{chart.id}.yaml")
+        assert expected_paths == set(contents.keys())
+
+        metadata = yaml.safe_load(
+            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]()
+        )
+
+        # find the dataset references in native filter and check if they are correct
+        assert "native_filter_configuration" in metadata["metadata"]
+
+        for filter_config in metadata["metadata"][
+            "native_filter_configuration"
+        ].values():
+            assert "targets" in filter_config
+            targets = filter_config["targets"]
+
+            for column in targets:
+                # we need to find the correct datasetUuid (not datasetId)
+                assert "datasetUuid" in column
+                assert column["datasetUuid"] == "974b7a1c-22ea-49cb-9214-97b7dbd511e0"
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
@@ -247,7 +300,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         )
         command = ExportDashboardsCommand([example_dashboard.id])
         contents = command.run()
-        with self.assertRaises(DashboardNotFoundError):
+        with self.assertRaises(DashboardNotFoundError):  # noqa: PT027
             next(contents)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -259,14 +312,14 @@ class TestExportDashboardsCommand(SupersetTestCase):
         mock_g2.user = security_manager.find_user("admin")
         command = ExportDashboardsCommand([-1])
         contents = command.run()
-        with self.assertRaises(DashboardNotFoundError):
+        with self.assertRaises(DashboardNotFoundError):  # noqa: PT027
             next(contents)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
     @patch("superset.views.base.g")
-    def test_export_dashboard_command_key_order(self, mock_g1, mock_g2):
-        """Test that they keys in the YAML have the same order as export_fields"""
+    def test_export_dashboard_command_required_fields(self, mock_g1, mock_g2):
+        """Test that all required keys are present in the exported YAML"""
         mock_g1.user = security_manager.find_user("admin")
         mock_g2.user = security_manager.find_user("admin")
 
@@ -279,10 +332,11 @@ class TestExportDashboardsCommand(SupersetTestCase):
         metadata = yaml.safe_load(
             contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]()
         )
-        assert list(metadata.keys()) == [
+        assert set(metadata.keys()) == {
             "dashboard_title",
             "description",
             "css",
+            "theme_uuid",
             "slug",
             "certified_by",
             "certification_details",
@@ -291,7 +345,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "position",
             "metadata",
             "version",
-        ]
+        }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.commands.dashboard.export.suffix")
@@ -571,7 +625,29 @@ class TestImportDashboardsCommand(SupersetTestCase):
         dataset = chart.table
         assert str(dataset.uuid) == dataset_config["uuid"]
 
-        assert chart.query_context is None
+        assert json.loads(chart.query_context) == {
+            "datasource": {"id": dataset.id, "type": "table"},
+            "force": False,
+            "queries": [
+                {
+                    "annotation_layers": [],
+                    "applied_time_extras": {},
+                    "columns": [],
+                    "custom_form_data": {},
+                    "custom_params": {},
+                    "extras": {"having": "", "time_grain_sqla": None, "where": ""},
+                    "filters": [],
+                    "metrics": [],
+                    "order_desc": True,
+                    "row_limit": 5000,
+                    "time_range": " : ",
+                    "timeseries_limit": 0,
+                    "url_params": {},
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+        }
         assert json.loads(chart.params)["datasource"] == dataset.uid
 
         database = dataset.database
@@ -651,7 +727,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         command = v1.ImportDashboardsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dashboard"
+        assert str(excinfo.value).startswith("Error importing dashboard")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to Dashboard."]}
         }
@@ -664,7 +740,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         command = v1.ImportDashboardsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dashboard"
+        assert str(excinfo.value).startswith("Error importing dashboard")
         assert excinfo.value.normalized_messages() == {
             "datasets/imported_dataset.yaml": {
                 "table_name": ["Missing data for required field."],
@@ -688,14 +764,14 @@ class TestCopyDashboardCommand(SupersetTestCase):
 
             assert copied_dashboard.dashboard_title == "Copied Dashboard"
             assert copied_dashboard.slug != example_dashboard.slug
-            assert copied_dashboard.slices == example_dashboard.slices
+            assert set(copied_dashboard.slices) == set(example_dashboard.slices)
 
             db.session.delete(copied_dashboard)
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_copy_dashboard_command_no_access(self):
-        """Test that a non-owner user cannot copy a dashboard if DASHBOARD_RBAC is enabled"""
+        """Test that a non-owner user cannot copy a dashboard if DASHBOARD_RBAC is enabled"""  # noqa: E501
         with self.client.application.test_request_context():
             example_dashboard = (
                 db.session.query(Dashboard).filter_by(slug="world_health").one()
@@ -708,7 +784,7 @@ class TestCopyDashboardCommand(SupersetTestCase):
                     return_value=True,
                 ):
                     command = CopyDashboardCommand(example_dashboard, copy_data)
-                    with self.assertRaises(DashboardForbiddenError):
+                    with self.assertRaises(DashboardForbiddenError):  # noqa: PT027
                         command.run()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -722,7 +798,7 @@ class TestCopyDashboardCommand(SupersetTestCase):
 
         with override_user(security_manager.find_user("admin")):
             command = CopyDashboardCommand(example_dashboard, invalid_copy_data)
-            with self.assertRaises(DashboardInvalidError):
+            with self.assertRaises(DashboardInvalidError):  # noqa: PT027
                 command.run()
 
 
@@ -759,3 +835,67 @@ class TestDeleteEmbeddedDashboardCommand(SupersetTestCase):
                 .one_or_none()
             )
             assert deleted_embedded_dashboard is None
+
+
+class TestFavoriteDashboardCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_fave_unfave_dashboard_command(self):
+        """Test that a user can fave/unfave a dashboard"""
+        with self.client.application.test_request_context():
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").one()
+            )
+
+            # Assert that the dashboard exists
+            assert example_dashboard is not None
+
+            with override_user(security_manager.find_user("admin")):
+                with patch(
+                    "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
+                    return_value=example_dashboard,
+                ):
+                    AddFavoriteDashboardCommand(example_dashboard.id).run()
+
+                    # Assert that the dashboard was faved
+                    ids = DashboardDAO.favorited_ids([example_dashboard])
+                    assert example_dashboard.id in ids
+
+                    DelFavoriteDashboardCommand(example_dashboard.id).run()
+
+                    # Assert that the dashboard was unfaved
+                    ids = DashboardDAO.favorited_ids([example_dashboard])
+                    assert example_dashboard.id not in ids
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_fave_unfave_dashboard_command_not_found(self):
+        """Test that faving / unfaving a non-existing dashboard raises an exception"""
+        with self.client.application.test_request_context():
+            example_dashboard_id = 1234
+
+            with override_user(security_manager.find_user("admin")):
+                with self.assertRaises(DashboardNotFoundError):  # noqa: PT027
+                    AddFavoriteDashboardCommand(example_dashboard_id).run()
+
+                with self.assertRaises(DashboardNotFoundError):  # noqa: PT027
+                    DelFavoriteDashboardCommand(example_dashboard_id).run()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.models.dashboard.Dashboard.get")
+    def test_fave_unfave_dashboard_command_forbidden(self, mock_get):
+        """Test that faving / unfaving raises an exception for a dashboard the user doesn't own"""  # noqa: E501
+        with self.client.application.test_request_context():
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").one()
+            )
+
+            mock_get.return_value = example_dashboard
+
+            # Assert that the dashboard exists
+            assert example_dashboard is not None
+
+            with override_user(security_manager.find_user("gamma")):
+                with self.assertRaises(DashboardAccessDeniedError):  # noqa: PT027
+                    AddFavoriteDashboardCommand(example_dashboard.uuid).run()
+
+                with self.assertRaises(DashboardAccessDeniedError):  # noqa: PT027
+                    DelFavoriteDashboardCommand(example_dashboard.uuid).run()

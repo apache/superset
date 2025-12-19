@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import contextlib
+from typing import Any
 
 from flask import request
 from flask_appbuilder import permission_name
@@ -39,12 +40,21 @@ class SqllabView(BaseSupersetView):
     @has_access
     @permission_name("read")
     @event_logger.log_this
-    def root(self) -> FlaskResponse:
+    def root(self, **kwargs: Any) -> FlaskResponse:
+        """Handles the default SQL Lab page."""
         payload = {}
         if form_data := request.form.get("form_data"):
             with contextlib.suppress(json.JSONDecodeError):
                 payload["requested_query"] = json.loads(form_data)
         return self.render_app_template(payload)
+
+    @expose("/p/<string:permalink>/", methods=["GET"])
+    @has_access
+    @permission_name("read")
+    @event_logger.log_this
+    def permalink_view(self, permalink: str, **kwargs: Any) -> FlaskResponse:
+        """Handles permalinks for SQL Lab."""
+        return self.root(permalink=permalink, **kwargs)
 
     @expose("/history/", methods=("GET",))
     @has_access

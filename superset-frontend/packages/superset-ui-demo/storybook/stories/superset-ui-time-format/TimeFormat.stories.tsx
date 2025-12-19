@@ -20,11 +20,16 @@
 import { PureComponent } from 'react';
 import { formatTime } from '@superset-ui/core';
 
-class TimeFormatValidator extends PureComponent {
-  state: {
-    formatString: string;
-    testValues: (Date | number | null | undefined)[];
-  } = {
+interface TimeFormatValidatorState {
+  formatString: string;
+  testValues: (Date | number | null | undefined)[];
+}
+
+class TimeFormatValidator extends PureComponent<
+  Record<string, never>,
+  TimeFormatValidatorState
+> {
+  state: TimeFormatValidatorState = {
     formatString: '%Y-%m-%d %H:%M:%S',
     testValues: [
       new Date(Date.UTC(1986, 5, 14, 8, 30, 53)),
@@ -37,12 +42,12 @@ class TimeFormatValidator extends PureComponent {
     ],
   };
 
-  constructor(props) {
+  constructor(props: Record<string, never>) {
     super(props);
     this.handleFormatChange = this.handleFormatChange.bind(this);
   }
 
-  handleFormatChange(event) {
+  handleFormatChange(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({
       formatString: event.target.value,
     });

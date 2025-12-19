@@ -16,9 +16,9 @@
 # under the License.
 
 import prison
-from flask import Response
+from flask import current_app, Response
 
-from superset import app, security_manager
+from superset import security_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.dashboards.consts import *  # noqa: F403
 from tests.integration_tests.dashboards.dashboard_test_utils import (
@@ -63,20 +63,20 @@ class DashboardTestCase(SupersetTestCase):
 
     def assert_permission_was_created(self, dashboard):
         view_menu = security_manager.find_view_menu(dashboard.view_name)
-        self.assertIsNotNone(view_menu)
-        self.assertEqual(len(security_manager.find_permissions_view_menu(view_menu)), 1)
+        assert view_menu is not None
+        assert len(security_manager.find_permissions_view_menu(view_menu)) == 1
 
     def assert_permission_kept_and_changed(self, updated_dashboard, excepted_view_id):
         view_menu_after_title_changed = security_manager.find_view_menu(
             updated_dashboard.view_name
         )
-        self.assertIsNotNone(view_menu_after_title_changed)
-        self.assertEqual(view_menu_after_title_changed.id, excepted_view_id)
+        assert view_menu_after_title_changed is not None
+        assert view_menu_after_title_changed.id == excepted_view_id
 
     def assert_permissions_were_deleted(self, deleted_dashboard):
         view_menu = security_manager.find_view_menu(deleted_dashboard.view_name)
-        self.assertIsNone(view_menu)
+        assert view_menu is None
 
     def clean_created_objects(self):
-        with app.test_request_context():
+        with current_app.test_request_context():
             delete_all_inserted_objects()

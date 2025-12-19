@@ -109,6 +109,8 @@ function DndColumnSelect(props: DndColumnSelectProps) {
           isAdhocColumn(column) && column.datasourceWarning
             ? t('This column might be incompatible with current dataset')
             : undefined;
+        const withCaret = isAdhocColumn(column) || !column.error_text;
+
         return (
           <ColumnSelectPopoverTrigger
             key={idx}
@@ -134,7 +136,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
               canDelete={canDelete}
               column={column}
               datasourceWarningMessage={datasourceWarningMessage}
-              withCaret
+              withCaret={withCaret}
             />
           </ColumnSelectPopoverTrigger>
         );

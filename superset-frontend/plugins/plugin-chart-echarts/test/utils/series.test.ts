@@ -20,17 +20,18 @@ import { SortSeriesType } from '@superset-ui/chart-controls';
 import {
   AxisType,
   DataRecord,
-  GenericDataType,
   getNumberFormatter,
   getTimeFormatter,
-  supersetTheme as theme,
 } from '@superset-ui/core';
+import { supersetTheme as theme } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   calculateLowerLogTick,
   dedupSeries,
   extractGroupbyLabel,
   extractSeries,
   extractShowValueIndexes,
+  extractTooltipKeys,
   formatSeriesName,
   getAxisType,
   getChartPadding,
@@ -52,11 +53,12 @@ import { NULL_STRING } from '../../src/constants';
 
 const expectedThemeProps = {
   selector: ['all', 'inverse'],
+  selected: undefined,
   selectorLabel: {
-    fontFamily: theme.typography.families.sansSerif,
-    fontSize: theme.typography.sizes.s,
-    color: theme.colors.grayscale.base,
-    borderColor: theme.colors.grayscale.base,
+    fontFamily: theme.fontFamily,
+    fontSize: theme.fontSizeSM,
+    color: theme.colorText,
+    borderColor: theme.colorBorder,
   },
 };
 
@@ -64,6 +66,39 @@ const sortData: DataRecord[] = [
   { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
   { my_x_axis: 'foo', x: null, y: 10, z: 5 },
   { my_x_axis: null, x: 4, y: 3, z: 7 },
+];
+
+const sortDataWithNumbers: DataRecord[] = [
+  {
+    my_x_axis: 'my_axis',
+    '9. September': 6,
+    6: 1,
+    '11. November': 8,
+    8: 2,
+    '10. October': 1,
+    10: 4,
+    '3. March': 2,
+    '8. August': 6,
+    2: 1,
+    12: 3,
+    9: 1,
+    '1. January': 1,
+    '4. April': 12,
+    '2. February': 9,
+    5: 4,
+    3: 1,
+    11: 2,
+    '12. December': 4,
+    1: 7,
+    '6. June': 1,
+    4: 5,
+    7: 2,
+    c: 0,
+    '7. July': 2,
+    d: 0,
+    '5. May': 4,
+    a: 1,
+  },
 ];
 
 const totalStackedValues = [3, 15, 14];
@@ -287,6 +322,84 @@ test('sortAndFilterSeries by name descending', () => {
     sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Name, false),
   ).toEqual(['z', 'y', 'x']);
 });
+test('sortAndFilterSeries by name with numbers asc', () => {
+  expect(
+    sortAndFilterSeries(
+      sortDataWithNumbers,
+      'my_x_axis',
+      [],
+      SortSeriesType.Name,
+      true,
+    ),
+  ).toEqual([
+    '1',
+    '1. January',
+    '2',
+    '2. February',
+    '3',
+    '3. March',
+    '4',
+    '4. April',
+    '5',
+    '5. May',
+    '6',
+    '6. June',
+    '7',
+    '7. July',
+    '8',
+    '8. August',
+    '9',
+    '9. September',
+    '10',
+    '10. October',
+    '11',
+    '11. November',
+    '12',
+    '12. December',
+    'a',
+    'c',
+    'd',
+  ]);
+});
+test('sortAndFilterSeries by name with numbers desc', () => {
+  expect(
+    sortAndFilterSeries(
+      sortDataWithNumbers,
+      'my_x_axis',
+      [],
+      SortSeriesType.Name,
+      false,
+    ),
+  ).toEqual([
+    'd',
+    'c',
+    'a',
+    '12. December',
+    '12',
+    '11. November',
+    '11',
+    '10. October',
+    '10',
+    '9. September',
+    '9',
+    '8. August',
+    '8',
+    '7. July',
+    '7',
+    '6. June',
+    '6',
+    '5. May',
+    '5',
+    '4. April',
+    '4',
+    '3. March',
+    '3',
+    '2. February',
+    '2',
+    '1. January',
+    '1',
+  ]);
+});
 
 describe('extractSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {
@@ -377,6 +490,43 @@ describe('extractSeries', () => {
       ],
       totalStackedValues,
       1,
+    ]);
+  });
+
+  it('should convert NULL x-values to NULL_STRING for categorical axis', () => {
+    const data = [
+      {
+        browser: 'Firefox',
+        count: 5,
+      },
+      {
+        browser: null,
+        count: 10,
+      },
+      {
+        browser: 'Chrome',
+        count: 8,
+      },
+    ];
+    expect(
+      extractSeries(data, {
+        xAxis: 'browser',
+        xAxisType: AxisType.Category,
+      }),
+    ).toEqual([
+      [
+        {
+          id: 'count',
+          name: 'count',
+          data: [
+            ['Firefox', 5],
+            [NULL_STRING, 10],
+            ['Chrome', 8],
+          ],
+        },
+      ],
+      [],
+      5,
     ]);
   });
 
@@ -741,14 +891,27 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with bottom orientation', () => {
+  it('should default plain legends to scroll for bottom orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
     ).toEqual({
       show: false,
       bottom: 0,
       orient: 'horizontal',
-      type: 'plain',
+      type: 'scroll',
+      ...expectedThemeProps,
+    });
+  });
+
+  it('should default plain legends to scroll for top orientation', () => {
+    expect(
+      getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
+    ).toEqual({
+      show: false,
+      top: 0,
+      right: 0,
+      orient: 'horizontal',
+      type: 'scroll',
       ...expectedThemeProps,
     });
   });
@@ -1071,4 +1234,30 @@ describe('getTimeCompareStackId', () => {
     const result = getTimeCompareStackId('default', ['123', '456'], 123);
     expect(result).toEqual('123');
   });
+});
+
+const forecastValue = [
+  {
+    data: [0, 1],
+    seriesId: 'foo',
+  },
+  {
+    data: [0, 2],
+    seriesId: 'bar',
+  },
+];
+
+test('extractTooltipKeys with rich tooltip', () => {
+  const result = extractTooltipKeys(forecastValue, 1, true, false);
+  expect(result).toEqual(['foo', 'bar']);
+});
+
+test('extractTooltipKeys with rich tooltip and sorting by metrics', () => {
+  const result = extractTooltipKeys(forecastValue, 1, true, true);
+  expect(result).toEqual(['bar', 'foo']);
+});
+
+test('extractTooltipKeys with non-rich tooltip', () => {
+  const result = extractTooltipKeys(forecastValue, 1, false, false);
+  expect(result).toEqual(['foo']);
 });

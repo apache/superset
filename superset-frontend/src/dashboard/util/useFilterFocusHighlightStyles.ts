@@ -16,73 +16,78 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@superset-ui/core';
+import { useMemo } from 'react';
+import { Filter } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
+import { RootState } from 'src/dashboard/types';
+import { selectChartCustomizationItems } from 'src/dashboard/components/nativeFilters/ChartCustomization/selectors';
+import {
+  getRelatedCharts,
+  getRelatedChartsForChartCustomization,
+} from './getRelatedCharts';
 
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import { DashboardState, RootState } from 'src/dashboard/types';
-
-const selectFocusedFilterScope = (
-  dashboardState: DashboardState,
-  dashboardFilters: any,
-) => {
-  if (!dashboardState.focusedFilterField) return null;
-  const { chartId, column } = dashboardState.focusedFilterField;
-  return {
-    chartId,
-    scope: dashboardFilters[chartId].scopes[column],
-  };
+const unfocusedChartStyles = {
+  opacity: 0.3,
+  pointerEvents: 'none' as const,
 };
+
+const EMPTY = {};
 
 const useFilterFocusHighlightStyles = (chartId: number) => {
   const theme = useTheme();
 
+  const focusedChartStyles = useMemo(
+    () => ({
+      borderColor: theme.colorPrimaryBorder,
+      opacity: 1,
+      boxShadow: `0px 0px ${theme.sizeUnit * 3}px ${theme.colorPrimary}`,
+      pointerEvents: 'auto',
+    }),
+    [theme],
+  );
+
   const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
-  const dashboardState = useSelector(
-    (state: RootState) => state.dashboardState,
-  );
-  const dashboardFilters = useSelector(
-    (state: RootState) => state.dashboardFilters,
-  );
-  const focusedFilterScope = selectFocusedFilterScope(
-    dashboardState,
-    dashboardFilters,
-  );
+  const slices =
+    useSelector((state: RootState) => state.sliceEntities.slices) || {};
+  const chartCustomizationItems = useSelector(selectChartCustomizationItems);
 
   const highlightedFilterId =
     nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
-  if (!(focusedFilterScope || highlightedFilterId)) {
-    return {};
+  const highlightedChartCustomizationId = (nativeFilters as any)
+    ?.hoveredChartCustomizationId;
+
+  if (!highlightedFilterId && !highlightedChartCustomizationId) {
+    return EMPTY;
   }
 
-  // we use local styles here instead of a conditionally-applied class,
-  // because adding any conditional class to this container
-  // causes performance issues in Chrome.
-
-  // default to the "de-emphasized" state
-  const unfocusedChartStyles = { opacity: 0.3, pointerEvents: 'none' };
-  const focusedChartStyles = {
-    borderColor: theme.colors.primary.light2,
-    opacity: 1,
-    boxShadow: `0px 0px ${theme.gridUnit * 2}px ${theme.colors.primary.base}`,
-    pointerEvents: 'auto',
-  };
-
   if (highlightedFilterId) {
-    if (
-      nativeFilters.filters[highlightedFilterId]?.chartsInScope?.includes(
-        chartId,
-      )
-    ) {
+    const relatedCharts = getRelatedCharts(
+      highlightedFilterId as string,
+      nativeFilters.filters[highlightedFilterId as string] as Filter,
+      slices,
+    );
+
+    if (relatedCharts.includes(chartId)) {
       return focusedChartStyles;
     }
-  } else if (
-    chartId === focusedFilterScope?.chartId ||
-    getChartIdsInFilterScope({
-      filterScope: focusedFilterScope?.scope,
-    }).includes(chartId)
-  ) {
-    return focusedChartStyles;
+  }
+
+  if (highlightedChartCustomizationId) {
+    const customizationItem = chartCustomizationItems.find(
+      item => item.id === highlightedChartCustomizationId,
+    );
+
+    if (customizationItem) {
+      const relatedCharts = getRelatedChartsForChartCustomization(
+        customizationItem,
+        slices,
+      );
+
+      if (relatedCharts.includes(chartId)) {
+        return focusedChartStyles;
+      }
+    }
   }
 
   // inline styles are used here due to a performance issue when adding/changing a class, which causes a reflow

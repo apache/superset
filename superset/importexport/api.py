@@ -147,6 +147,9 @@ class ImportExportRestApi(BaseSupersetApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    sparse:
+                      description: allow sparse update of resources
+                      type: boolean
           responses:
             200:
               description: Assets import result
@@ -177,6 +180,7 @@ class ImportExportRestApi(BaseSupersetApi):
 
         if not contents:
             raise NoValidFilesFoundError()
+        sparse = request.form.get("sparse") == "true"
 
         passwords = (
             json.loads(request.form["passwords"])
@@ -201,6 +205,7 @@ class ImportExportRestApi(BaseSupersetApi):
 
         command = ImportAssetsCommand(
             contents,
+            sparse=sparse,
             passwords=passwords,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,

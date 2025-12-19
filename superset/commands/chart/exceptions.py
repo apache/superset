@@ -154,3 +154,11 @@ class DashboardsForbiddenError(ForbiddenError):
 class WarmUpCacheChartNotFoundError(CommandException):
     status = 404
     message = _("Chart not found")
+
+
+class ChartFaveError(CommandException):
+    message = _("Error faving chart")
+
+
+class ChartUnfaveError(CommandException):
+    message = _("Error unfaving chart")

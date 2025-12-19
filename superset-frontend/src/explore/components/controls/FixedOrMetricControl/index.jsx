@@ -18,14 +18,12 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { css } from '@emotion/react';
 import { t } from '@superset-ui/core';
-import Label from 'src/components/Label';
-import Collapse from 'src/components/Collapse';
+import { Collapse, Label } from '@superset-ui/core/components';
 import TextControl from 'src/explore/components/controls/TextControl';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import PopoverSection from 'src/components/PopoverSection';
+import PopoverSection from '@superset-ui/core/components/PopoverSection';
 
 const controlTypes = {
   fixed: 'fix',
@@ -103,87 +101,70 @@ export default class FixedOrMetricControl extends Component {
         <ControlHeader {...this.props} />
         <Collapse
           ghost
-          css={theme => css`
-            &.ant-collapse
-              > .ant-collapse-item.ant-collapse-no-arrow
-              > .ant-collapse-header {
-              border: 0px;
-              padding: 0px 0px ${theme.gridUnit * 2}px 0px;
-              display: inline-block;
-            }
-            &.ant-collapse-ghost
-              > .ant-collapse-item
-              > .ant-collapse-content
-              > .ant-collapse-content-box {
-              padding: 0px;
-
-              & .well {
-                margin-bottom: 0px;
-                padding: ${theme.gridUnit * 2}px;
-              }
-            }
-          `}
-        >
-          <Collapse.Panel
-            showArrow={false}
-            header={
-              <Label>
-                {this.state.type === controlTypes.fixed && (
-                  <span>{this.state.fixedValue}</span>
-                )}
-                {this.state.type === controlTypes.metric && (
-                  <span>
-                    <span>{t('metric')}: </span>
-                    <strong>
-                      {this.state.metricValue
-                        ? this.state.metricValue.label
-                        : null}
-                    </strong>
-                  </span>
-                )}
-              </Label>
-            }
-          >
-            <div className="well">
-              <PopoverSection
-                title={t('Fixed')}
-                isSelected={type === controlTypes.fixed}
-                onSelect={() => {
-                  this.setType(controlTypes.fixed);
-                }}
-              >
-                <TextControl
-                  isFloat
-                  onChange={this.setFixedValue}
-                  onFocus={() => {
-                    this.setType(controlTypes.fixed);
-                  }}
-                  value={this.state.fixedValue}
-                />
-              </PopoverSection>
-              <PopoverSection
-                title={t('Based on a metric')}
-                isSelected={type === controlTypes.metric}
-                onSelect={() => {
-                  this.setType(controlTypes.metric);
-                }}
-              >
-                <MetricsControl
-                  name="metric"
-                  columns={columns}
-                  savedMetrics={metrics}
-                  multi={false}
-                  onFocus={() => {
-                    this.setType(controlTypes.metric);
-                  }}
-                  onChange={this.setMetric}
-                  value={this.state.metricValue}
-                  datasource={this.props.datasource}
-                />
-              </PopoverSection>
-            </div>
-          </Collapse.Panel>
-        </Collapse>
+          items={[
+            {
+              key: 'fixed-or-metric',
+              showArrow: false,
+              label: (
+                <Label>
+                  {this.state.type === controlTypes.fixed && (
+                    <span>{this.state.fixedValue}</span>
+                  )}
+                  {this.state.type === controlTypes.metric && (
+                    <span>
+                      <span>{t('metric')}: </span>
+                      <strong>
+                        {this.state.metricValue
+                          ? this.state.metricValue.label
+                          : null}
+                      </strong>
+                    </span>
+                  )}
+                </Label>
+              ),
+              children: (
+                <div className="well">
+                  <PopoverSection
+                    title={t('Fixed')}
+                    isSelected={type === controlTypes.fixed}
+                    onSelect={() => {
+                      this.setType(controlTypes.fixed);
+                    }}
+                  >
+                    <TextControl
+                      isFloat
+                      onChange={this.setFixedValue}
+                      onFocus={() => {
+                        this.setType(controlTypes.fixed);
+                      }}
+                      value={this.state.fixedValue}
+                    />
+                  </PopoverSection>
+                  <PopoverSection
+                    title={t('Based on a metric')}
+                    isSelected={type === controlTypes.metric}
+                    onSelect={() => {
+                      this.setType(controlTypes.metric);
+                    }}
+                  >
+                    <MetricsControl
+                      name="metric"
+                      columns={columns}
+                      savedMetrics={metrics}
+                      multi={false}
+                      onFocus={() => {
+                        this.setType(controlTypes.metric);
+                      }}
+                      onChange={this.setMetric}
+                      value={this.state.metricValue}
+                      datasource={this.props.datasource}
+                    />
+                  </PopoverSection>
+                </div>
+              ),
+            },
+          ]}
+        />
       </div>
     );
   }

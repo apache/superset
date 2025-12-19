@@ -21,11 +21,10 @@ from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import _
 
-from superset import app
 from superset.common.chart_data import ChartDataResultType
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.sqla.models import BaseDatasource
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import QueryObjectValidationError, SupersetParseError
+from superset.explorables.base import Explorable
 from superset.utils.core import (
     extract_column_dtype,
     extract_dataframe_dtypes,
@@ -38,12 +37,8 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
 
-config = app.config
 
-
-def _get_datasource(
-    query_context: QueryContext, query_obj: QueryObject
-) -> BaseDatasource:
+def _get_datasource(query_context: QueryContext, query_obj: QueryObject) -> Explorable:
     return query_obj.datasource or query_context.datasource
 
 
@@ -67,16 +62,9 @@ def _get_timegrains(
     query_context: QueryContext, query_obj: QueryObject, _: bool
 ) -> dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
-    return {
-        "data": [
-            {
-                "name": grain.name,
-                "function": grain.function,
-                "duration": grain.duration,
-            }
-            for grain in datasource.database.grains()
-        ]
-    }
+    # Use the new get_time_grains() method from Explorable protocol
+    grains = datasource.get_time_grains()
+    return {"data": grains}
 
 
 def _get_query(
@@ -89,7 +77,15 @@ def _get_query(
     try:
         result["query"] = datasource.get_query_str(query_obj.to_dict())
     except QueryObjectValidationError as err:
+        # Validation errors (missing required fields, invalid config)
+        # No SQL was generated
         result["error"] = err.message
+    except SupersetParseError as err:
+        # Parsing errors (SQL optimization/parsing failed)
+        # SQL was generated but couldn't be optimized - show both
+        if err.error.extra and (sql := err.error.extra.get("sql")) is not None:
+            result["query"] = sql
+        result["error"] = err.error.message
     return result
 
 
@@ -153,7 +149,8 @@ def _get_samples(
     qry_obj_cols = []
     for o in datasource.columns:
         if isinstance(o, dict):
-            qry_obj_cols.append(o.get("column_name"))
+            if column_name := o.get("column_name"):
+                qry_obj_cols.append(column_name)
         else:
             qry_obj_cols.append(o.column_name)
     query_obj.columns = qry_obj_cols
@@ -170,16 +167,17 @@ def _get_drill_detail(
     datasource = _get_datasource(query_context, query_obj)
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
-    query_obj.orderby = []
     query_obj.metrics = None
     query_obj.post_processing = []
     qry_obj_cols = []
     for o in datasource.columns:
         if isinstance(o, dict):
-            qry_obj_cols.append(o.get("column_name"))
+            if column_name := o.get("column_name"):
+                qry_obj_cols.append(column_name)
         else:
             qry_obj_cols.append(o.column_name)
     query_obj.columns = qry_obj_cols
+    query_obj.orderby = [(query_obj.columns[0], True)]
     return _get_full(query_context, query_obj, force_cached)
 
 

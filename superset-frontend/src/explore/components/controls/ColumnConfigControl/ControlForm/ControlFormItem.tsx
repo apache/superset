@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, FunctionComponentElement, ChangeEvent } from 'react';
-import { JsonValue, useTheme } from '@superset-ui/core';
+import { JsonValue } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { ControlFormItemComponents } from './controls';
 import ControlHeader, { ControlHeaderProps } from '../../../ControlHeader';
 import { ControlFormItemDefaultSpec } from '../types';
@@ -51,7 +52,7 @@ export function ControlFormItem({
   controlType,
   ...props
 }: ControlFormItemProps) {
-  const { gridUnit } = useTheme();
+  const { sizeUnit } = useTheme();
   const [hovered, setHovered] = useState(false);
   const [value, setValue] = useState(
     initialValue === undefined ? defaultValue : initialValue,
@@ -84,7 +85,7 @@ export function ControlFormItem({
   return (
     <div
       css={{
-        margin: 2 * gridUnit,
+        margin: 2 * sizeUnit,
         width,
         maxWidth: '100%',
         flex: 1,

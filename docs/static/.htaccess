@@ -22,7 +22,7 @@ RewriteRule ^(.*)$ https://superset.apache.org/$1 [R,L]
 RewriteCond %{HTTP_HOST} ^superset.incubator.apache.org$ [NC]
 RewriteRule ^(.*)$ https://superset.apache.org/$1 [R=301,L]
 
-Header set Content-Security-Policy "default-src data: blob: 'self' *.apache.org *.githubusercontent.com *.scarf.sh *.googleapis.com *.github.com *.algolia.net *.algolianet.com 'unsafe-inline' 'unsafe-eval'; frame-src *; frame-ancestors 'self' *.google.com https://sidebar.bugherd.com; form-action 'self'; worker-src blob:; img-src 'self' blob: data: https:; font-src 'self'; object-src 'none'"
+Header set Content-Security-Policy "default-src data: blob: 'self' *.apache.org widget.kapa.ai *.githubusercontent.com *.scarf.sh *.googleapis.com *.google.com *.run.app *.gstatic.com *.github.com *.algolia.net *.algolianet.com 'unsafe-inline' 'unsafe-eval'; frame-src *; frame-ancestors 'self' *.google.com https://sidebar.bugherd.com; form-action 'self'; worker-src blob:; img-src 'self' blob: data: https:; font-src 'self'; object-src 'none'"
 
 # REDIRECTS
 
@@ -63,8 +63,6 @@ RewriteRule ^docs/installation/async-queries-celery/$ /docs/configuration/async-
 RewriteRule ^docs/installation/event-logging/$ /docs/configuration/event-logging [R=301,L]
 
 RewriteRule ^docs/databases.*$ /docs/configuration/databases [R=301,L]
-
-RewriteRule ^docs/configuration/setup-ssh-tunneling$ /docs/configuration/networking-settings [R=301,L]
 
 # pre-commit hooks documentation
 RewriteRule ^docs/contributing/hooks-and-linting/$ /docs/contributing/development/#git-hooks-1

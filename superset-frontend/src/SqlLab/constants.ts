@@ -17,19 +17,19 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import type { Type } from 'src/components/Label';
+import type { LabelType } from '@superset-ui/core/components';
 
-export const STATE_TYPE_MAP: Record<string, Type> = {
-  offline: 'danger',
-  failed: 'danger',
+export const STATE_TYPE_MAP: Record<string, LabelType> = {
+  offline: 'error',
+  failed: 'error',
   pending: 'info',
   fetching: 'info',
   running: 'warning',
-  stopped: 'danger',
+  stopped: 'error',
   success: 'success',
 };
 
-export const STATE_TYPE_MAP_LOCALIZED = {
+export const STATE_TYPE_MAP_LOCALIZED: Record<string, string> = {
   offline: t('offline'),
   failed: t('failed'),
   pending: t('pending'),
@@ -66,13 +66,10 @@ export const TIME_OPTIONS = [
 ];
 
 // SqlEditor layout constants
-export const SQL_EDITOR_GUTTER_HEIGHT = 5;
-export const SQL_EDITOR_GUTTER_MARGIN = 3;
-export const SQL_TOOLBAR_HEIGHT = 51;
+export const SQL_EDITOR_GUTTER_HEIGHT = 4;
 export const SQL_EDITOR_LEFTBAR_WIDTH = 400;
-export const SQL_EDITOR_PADDING = 10;
+export const SQL_EDITOR_RIGHTBAR_WIDTH = 400;
 export const INITIAL_NORTH_PERCENT = 30;
-export const INITIAL_SOUTH_PERCENT = 70;
 export const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
 export const VALIDATION_DEBOUNCE_MS = 600;
 export const WINDOW_RESIZE_THROTTLE_MS = 100;

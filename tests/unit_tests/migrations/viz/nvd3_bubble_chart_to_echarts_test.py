@@ -20,6 +20,7 @@ from superset.migrations.shared.migrate_viz import MigrateBubbleChart
 from tests.unit_tests.migrations.viz.utils import migrate_and_assert
 
 SOURCE_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "adhoc_filters": [],
     "bottom_margin": 20,
     "color_scheme": "default",
@@ -29,7 +30,7 @@ SOURCE_FORM_DATA: dict[str, Any] = {
     "max_bubble_size": 50,
     "series": ["region"],
     "show_legend": True,
-    "size": 75,
+    "size": {"label": "sales", "expressionType": "SQL", "sqlExpression": "max(sales)"},
     "viz_type": "bubble",
     "x": "year",
     "x_axis_format": "SMART_DATE",
@@ -46,6 +47,7 @@ SOURCE_FORM_DATA: dict[str, Any] = {
 }
 
 TARGET_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "adhoc_filters": [],
     "color_scheme": "default",
     "entity": "count",
@@ -56,7 +58,7 @@ TARGET_FORM_DATA: dict[str, Any] = {
     "row_limit": 100,
     "series": ["region"],
     "show_legend": True,
-    "size": 75,
+    "size": {"label": "sales", "expressionType": "SQL", "sqlExpression": "max(sales)"},
     "truncateYAxis": True,
     "viz_type": "bubble_v2",
     "x": "year",
