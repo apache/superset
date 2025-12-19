@@ -19,6 +19,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { ExportStatus, StreamingProgress } from './StreamingExportModal';
+import { makeUrl } from 'src/utils/pathUtils';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 
 interface UseStreamingExportOptions {
   onComplete?: (downloadUrl: string, filename: string) => void;
@@ -38,6 +40,29 @@ interface StreamingExportParams {
 }
 
 const NEWLINE_BYTE = 10; // '\n' character code
+
+/**
+ * Ensures URL has the application root prefix for subdirectory deployments.
+ * Applies makeUrl to relative paths that don't already include the app root.
+ * This guards against callers forgetting to prefix URLs when using native fetch.
+ */
+const ensureUrlPrefix = (url: string): string => {
+  const appRoot = applicationRoot();
+  // Only process relative URLs (starting with /)
+  if (!url.startsWith('/')) {
+    return url;
+  }
+  // If no app root configured, return as-is
+  if (!appRoot) {
+    return url;
+  }
+  // If URL already has the app root prefix, return as-is
+  if (url.startsWith(appRoot)) {
+    return url;
+  }
+  // Apply prefix via makeUrl
+  return makeUrl(url);
+};
 
 const createFetchRequest = async (
   _url: string,
@@ -157,7 +182,9 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           expectedRows,
           abortControllerRef.current.signal,
         );
-        const response = await fetch(url, fetchOptions);
+        // Guard: ensure URL has app root prefix for subdirectory deployments
+        const prefixedUrl = ensureUrlPrefix(url);
+        const response = await fetch(prefixedUrl, fetchOptions);
 
         if (!response.ok) {
           throw new Error(
