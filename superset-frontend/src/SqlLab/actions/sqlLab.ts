@@ -19,7 +19,7 @@
 import { nanoid } from 'nanoid';
 import rison from 'rison';
 import type { ThunkAction, ThunkDispatch } from 'redux-thunk';
-import type { QueryResponse, SupersetError } from '@superset-ui/core';
+import type { QueryColumn, SupersetError } from '@superset-ui/core';
 import {
   FeatureFlag,
   SupersetClient,
@@ -52,10 +52,10 @@ export interface Query {
   sql: string;
   sqlEditorId?: string | null;
   sqlEditorImmutableId?: string;
-  tab?: string;
+  tab?: string | null;
   catalog?: string | null;
   schema?: string | null;
-  tempTable?: string;
+  tempTable?: string | null;
   templateParams?: string;
   queryLimit?: number;
   runAsync?: boolean;
@@ -64,19 +64,50 @@ export interface Query {
   isDataPreview?: boolean;
   progress?: number;
   startDttm?: number;
+  endDttm?: number;
   state?: string;
   cached?: boolean;
-  resultsKey?: string;
+  resultsKey?: string | null;
   updateTabState?: boolean;
   tableName?: string;
   link?: string;
   inLocalStorage?: boolean;
+  executedSql?: string;
+  query_id?: number;
 }
 
 export interface Database {
   id: number;
   allow_run_async: boolean;
   disable_data_preview?: boolean;
+}
+
+/**
+ * Query result data from the SQL execute API (matches QueryResultSchema)
+ */
+export interface SqlExecuteQueryResult {
+  endDttm?: number;
+  executedSql?: string;
+  limit?: number;
+  limitingFactor?: string;
+  tempTable?: string | null;
+  progress?: number;
+  state?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Response from /api/v1/sqllab/execute/
+ * This matches QueryExecutionResponseSchema from the backend
+ */
+export interface SqlExecuteResponse {
+  status?: string;
+  data: Record<string, unknown>[];
+  columns: QueryColumn[];
+  selected_columns?: QueryColumn[];
+  expanded_columns?: QueryColumn[];
+  query: SqlExecuteQueryResult;
+  query_id?: number;
 }
 
 interface SqlLabAction {
@@ -317,7 +348,7 @@ export function startQuery(query: Query, runPreviewOnly?: boolean) {
   return { type: START_QUERY, query, runPreviewOnly } as const;
 }
 
-export function querySuccess(query: Query, results: QueryResponse) {
+export function querySuccess(query: Query, results: SqlExecuteResponse) {
   return { type: QUERY_SUCCESS, query, results } as const;
 }
 
@@ -404,7 +435,9 @@ export function fetchQueryResults(
       parseMethod: 'json-bigint',
       ...(timeout && { timeout, signal: controller.signal }),
     })
-      .then(({ json }) => dispatch(querySuccess(query, json as QueryResponse)))
+      .then(({ json }) =>
+        dispatch(querySuccess(query, json as SqlExecuteResponse)),
+      )
       .catch(response => {
         controller.abort();
         getClientErrorObject(response).then(error => {
@@ -453,7 +486,7 @@ export function runQuery(
     })
       .then(({ json }) => {
         if (!query.runAsync) {
-          dispatch(querySuccess(query, json as QueryResponse));
+          dispatch(querySuccess(query, json as SqlExecuteResponse));
         }
       })
       .catch(response =>

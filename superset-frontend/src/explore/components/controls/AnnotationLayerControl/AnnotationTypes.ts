@@ -90,7 +90,12 @@ const NATIVE_COLUMN_NAMES = {
 
 export function applyNativeColumns(annotation: Annotation): Annotation {
   if (annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-    return { ...annotation, ...NATIVE_COLUMN_NAMES };
+    return {
+      ...annotation,
+      ...NATIVE_COLUMN_NAMES,
+      // Spread to convert readonly array to mutable
+      descriptionColumns: [...NATIVE_COLUMN_NAMES.descriptionColumns],
+    };
   }
   return annotation;
 }

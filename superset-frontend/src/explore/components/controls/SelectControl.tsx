@@ -16,12 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { PureComponent, type ReactNode } from 'react';
 import PropTypes from 'prop-types';
 import { isEqualArray, t } from '@superset-ui/core';
 import { css } from '@apache-superset/core/ui';
 import { Select } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
+
+type SelectValue = string | number | (string | number)[] | null | undefined;
+
+export interface SelectControlProps {
+  ariaLabel?: string;
+  autoFocus?: boolean;
+  choices?: [string | number, string][];
+  clearable?: boolean;
+  description?: string | ReactNode;
+  disabled?: boolean;
+  freeForm?: boolean;
+  isLoading?: boolean;
+  mode?: string;
+  multi?: boolean;
+  isMulti?: boolean;
+  name: string;
+  onChange?: (value: SelectValue, options?: unknown[]) => void;
+  onFocus?: () => void;
+  onSelect?: (value: SelectValue) => void;
+  onDeselect?: (value: SelectValue) => void;
+  value?: SelectValue;
+  default?: SelectValue;
+  showHeader?: boolean;
+  optionRenderer?: (option: unknown) => ReactNode;
+  valueKey?: string;
+  options?: { value: string | number; label: string }[];
+  placeholder?: string;
+  filterOption?: (input: string, option: unknown) => boolean;
+  tokenSeparators?: string[];
+  notFoundContent?: ReactNode;
+  label?: string;
+  renderTrigger?: boolean;
+  validationErrors?: string[];
+  rightNode?: ReactNode;
+  leftNode?: ReactNode;
+  onClick?: () => void;
+  hovered?: boolean;
+  tooltipOnClick?: () => void;
+  warning?: string;
+  danger?: string;
+}
 
 const propTypes = {
   ariaLabel: PropTypes.string,
@@ -158,8 +199,8 @@ export const innerGetOptions = props => {
   return options;
 };
 
-export default class SelectControl extends PureComponent {
-  constructor(props) {
+export default class SelectControl extends PureComponent<SelectControlProps> {
+  constructor(props: SelectControlProps) {
     super(props);
     this.state = {
       options: this.getOptions(props),

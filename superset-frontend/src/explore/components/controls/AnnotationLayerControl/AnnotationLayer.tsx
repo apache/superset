@@ -33,8 +33,13 @@ import {
   isValidExpression,
   getColumnLabel,
   VizType,
+  type QueryFormColumn,
 } from '@superset-ui/core';
-import { styled, withTheme, type SupersetTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  withTheme,
+  type SupersetTheme,
+} from '@apache-superset/core/ui';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
@@ -204,7 +209,9 @@ class AnnotationLayer extends PureComponent<
     } = props;
 
     // Only allow override whole time_range
-    const processedOverrides: AnnotationOverrides = overrides ? { ...overrides } : {};
+    const processedOverrides: AnnotationOverrides = overrides
+      ? { ...overrides }
+      : {};
     if ('since' in processedOverrides || 'until' in processedOverrides) {
       processedOverrides.time_range = null;
       delete processedOverrides.since;
@@ -212,12 +219,13 @@ class AnnotationLayer extends PureComponent<
     }
 
     // Check if annotationType is supported by this chart
-    const metadata = getChartMetadataRegistry().get(vizType);
+    const metadata = vizType ? getChartMetadataRegistry().get(vizType) : null;
     const supportedAnnotationTypes = metadata?.supportedAnnotationTypes || [];
+    const resolvedAnnotationType = annotationType || DEFAULT_ANNOTATION_TYPE;
     const validAnnotationType = supportedAnnotationTypes.includes(
-      annotationType,
+      resolvedAnnotationType,
     )
-      ? annotationType
+      ? resolvedAnnotationType
       : supportedAnnotationTypes[0];
 
     this.state = {
@@ -275,7 +283,9 @@ class AnnotationLayer extends PureComponent<
       /* The value prop is the id of the chart/native. This function will set
       value in state to an object with the id as value.value to be used by
       AsyncSelect */
-      this.fetchAppliedAnnotation(value);
+      if (value !== null && typeof value !== 'object') {
+        this.fetchAppliedAnnotation(value);
+      }
     }
   }
 
@@ -295,9 +305,8 @@ class AnnotationLayer extends PureComponent<
     // Get vis types that can be source.
     const sources = getChartMetadataRegistry()
       .entries()
-      .filter(
-        ({ value: chartMetadata }) =>
-          chartMetadata?.canBeAnnotationType(annotationType),
+      .filter(({ value: chartMetadata }) =>
+        chartMetadata?.canBeAnnotationType(annotationType),
       )
       .map(({ key, value: chartMetadata }) => ({
         value: key === VizType.Line ? 'line' : key,
@@ -316,14 +325,14 @@ class AnnotationLayer extends PureComponent<
 
   shouldFetchAppliedAnnotation(): boolean {
     const { value, sourceType } = this.state;
-    return !!value && requiresQuery(sourceType);
+    return !!value && requiresQuery(sourceType ?? undefined);
   }
 
   shouldFetchSliceData(prevState: AnnotationLayerState): boolean {
     const { value, sourceType } = this.state;
     const isChart =
       sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE &&
-      requiresQuery(sourceType);
+      requiresQuery(sourceType ?? undefined);
     const valueIsNew = value && prevState.value !== value;
     return !!valueIsNew && isChart;
   }
@@ -361,7 +370,9 @@ class AnnotationLayer extends PureComponent<
         errors.push(validateNonEmpty(intervalEndColumn));
       }
     }
-    errors.push(!this.isValidFormulaAnnotation(value, annotationType));
+    if (!this.isValidFormulaAnnotation(value, annotationType)) {
+      errors.push(t('Invalid formula expression'));
+    }
     return !errors.filter(x => x).length;
   }
 
@@ -427,12 +438,10 @@ class AnnotationLayer extends PureComponent<
 
     const { result, count } = json;
 
-    const layersArray = result.map(
-      (layer: { id: number; name: string }) => ({
-        value: layer.id,
-        label: layer.name,
-      }),
-    );
+    const layersArray = result.map((layer: { id: number; name: string }) => ({
+      value: layer.id,
+      label: layer.name,
+    }));
 
     return {
       data: layersArray,
@@ -470,12 +479,10 @@ class AnnotationLayer extends PureComponent<
     const registry = getChartMetadataRegistry();
 
     const chartsArray = result
-      .filter(
-        (chart: { id: number; slice_name: string; viz_type: string }) => {
-          const metadata = registry.get(chart.viz_type);
-          return metadata && metadata.canBeAnnotationType(annotationType);
-        },
-      )
+      .filter((chart: { id: number; slice_name: string; viz_type: string }) => {
+        const metadata = registry.get(chart.viz_type);
+        return metadata && metadata.canBeAnnotationType(annotationType);
+      })
       .map((chart: { id: number; slice_name: string; viz_type: string }) => ({
         value: chart.id,
         label: chart.slice_name,
@@ -514,7 +521,9 @@ class AnnotationLayer extends PureComponent<
       const dataObject = {
         data: {
           ...formData,
-          groupby: formData.groupby?.map(column => getColumnLabel(column)),
+          groupby: formData.groupby?.map((column: QueryFormColumn) =>
+            getColumnLabel(column),
+          ),
         },
       };
       this.setState({
@@ -549,7 +558,9 @@ class AnnotationLayer extends PureComponent<
           slice: {
             data: {
               ...formData,
-              groupby: formData.groupby?.map(column => getColumnLabel(column)),
+              groupby: formData.groupby?.map((column: QueryFormColumn) =>
+                getColumnLabel(column),
+              ),
             },
           },
         });
@@ -617,7 +628,9 @@ class AnnotationLayer extends PureComponent<
 
       // Prepare newAnnotation.value for use in runAnnotationQuery()
       const applicableValue =
-        requiresQuery(sourceType) && value && typeof value === 'object'
+        requiresQuery(sourceType ?? undefined) &&
+        value &&
+        typeof value === 'object'
           ? (value as SelectOption).value
           : value;
       newAnnotation.value = applicableValue;
@@ -655,7 +668,7 @@ class AnnotationLayer extends PureComponent<
     const { annotationType, sourceType, value } = this.state;
     let label = '';
     let description = '';
-    if (requiresQuery(sourceType)) {
+    if (requiresQuery(sourceType ?? undefined)) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
         label = t('Annotation layer');
         description = t('Select the Annotation Layer you would like to use.');
@@ -675,7 +688,7 @@ class AnnotationLayer extends PureComponent<
         in milliseconds since epoch. mathjs is used to evaluate the formulas.
         Example: '2x+5'`);
     }
-    if (requiresQuery(sourceType)) {
+    if (requiresQuery(sourceType ?? undefined)) {
       return (
         <AsyncSelect
           /* key to force re-render on sourceType change */
@@ -691,6 +704,8 @@ class AnnotationLayer extends PureComponent<
       );
     }
     if (annotationType === ANNOTATION_TYPES.FORMULA) {
+      // Extract primitive value for TextControl (formula is always a string)
+      const textValue = typeof value === 'object' ? null : value;
       return (
         <TextControl
           name="annotation-layer-value"
@@ -699,7 +714,7 @@ class AnnotationLayer extends PureComponent<
           description={description}
           label={label}
           placeholder=""
-          value={value}
+          value={textValue}
           onChange={this.handleTextValue}
           validationErrors={
             !this.isValidFormulaAnnotation(value, annotationType)
@@ -762,7 +777,9 @@ class AnnotationLayer extends PureComponent<
                 clearable={false}
                 options={timeColumnOptions}
                 value={timeColumn}
-                onChange={v => this.setState({ timeColumn: v })}
+                onChange={(
+                  v: string | number | (string | number)[] | null | undefined,
+                ) => this.setState({ timeColumn: String(v ?? '') })}
               />
             )}
             {annotationType === ANNOTATION_TYPES.INTERVAL && (
@@ -777,7 +794,14 @@ class AnnotationLayer extends PureComponent<
                 validationErrors={!intervalEndColumn ? ['Mandatory'] : []}
                 options={columns}
                 value={intervalEndColumn}
-                onChange={value => this.setState({ intervalEndColumn: value })}
+                onChange={(
+                  value:
+                    | string
+                    | number
+                    | (string | number)[]
+                    | null
+                    | undefined,
+                ) => this.setState({ intervalEndColumn: String(value ?? '') })}
               />
             )}
             <SelectControl
@@ -788,7 +812,9 @@ class AnnotationLayer extends PureComponent<
               description={t('Pick a title for you annotation.')}
               options={[{ value: '', label: t('None') }].concat(columns)}
               value={titleColumn}
-              onChange={value => this.setState({ titleColumn: value })}
+              onChange={(
+                value: string | number | (string | number)[] | null | undefined,
+              ) => this.setState({ titleColumn: String(value ?? '') })}
             />
             {annotationType !== ANNOTATION_TYPES.TIME_SERIES && (
               <SelectControl
@@ -802,7 +828,17 @@ class AnnotationLayer extends PureComponent<
                 multi
                 options={columns}
                 value={descriptionColumns}
-                onChange={value => this.setState({ descriptionColumns: value })}
+                onChange={(
+                  value:
+                    | string
+                    | number
+                    | (string | number)[]
+                    | null
+                    | undefined,
+                ) => {
+                  const cols = Array.isArray(value) ? value.map(String) : [];
+                  this.setState({ descriptionColumns: cols });
+                }}
               />
             )}
             <div style={{ marginTop: '1rem' }}>
@@ -877,9 +913,10 @@ class AnnotationLayer extends PureComponent<
       hideLine,
       annotationType,
     } = this.state;
-    const colorScheme = getCategoricalSchemeRegistry()
-      .get(this.props.colorScheme)
-      .colors.concat();
+    const colorScheme =
+      getCategoricalSchemeRegistry()
+        .get(this.props.colorScheme)
+        ?.colors.concat() ?? [];
     if (
       color &&
       color !== AUTOMATIC_COLOR &&
@@ -906,7 +943,9 @@ class AnnotationLayer extends PureComponent<
           ]}
           value={style}
           clearable={false}
-          onChange={v => this.setState({ style: v })}
+          onChange={(
+            v: string | number | (string | number)[] | null | undefined,
+          ) => this.setState({ style: String(v ?? 'solid') })}
         />
         <SelectControl
           ariaLabel={t('Annotation layer opacity')}
@@ -920,7 +959,7 @@ class AnnotationLayer extends PureComponent<
             { value: 'opacityHigh', label: '0.8' },
           ]}
           value={opacity}
-          onChange={value => this.setState({ opacity: value })}
+          onChange={(value: string | number | (string | number)[] | null | undefined) => this.setState({ opacity: String(value ?? '') })}
         />
         <div
           style={{
@@ -992,10 +1031,10 @@ class AnnotationLayer extends PureComponent<
     const { isNew, name, annotationType, sourceType, show, showLabel } =
       this.state;
     const isValid = this.isValidForm();
-    const metadata = getChartMetadataRegistry().get(this.props.vizType);
+    const metadata = this.props.vizType ? getChartMetadataRegistry().get(this.props.vizType) : null;
     const supportedAnnotationTypes = metadata
       ? metadata.supportedAnnotationTypes.map(
-          type => ANNOTATION_TYPES_METADATA[type],
+          type => ANNOTATION_TYPES_METADATA[type as keyof typeof ANNOTATION_TYPES_METADATA],
         )
       : [];
     const supportedSourceTypes = this.getSupportedSourceTypes(annotationType);
@@ -1072,7 +1111,7 @@ class AnnotationLayer extends PureComponent<
             <Button
               buttonSize="small"
               buttonStyle="secondary"
-              onClick={() => this.props.close()}
+              onClick={() => this.props.close?.()}
             >
               {t('Cancel')}
             </Button>

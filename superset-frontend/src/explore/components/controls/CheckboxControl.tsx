@@ -24,6 +24,9 @@ import ControlHeader from '../ControlHeader';
 interface CheckboxControlProps {
   value?: boolean;
   label?: string;
+  name?: string;
+  description?: string;
+  hovered?: boolean;
   onChange?: (value: boolean) => void;
 }
 
