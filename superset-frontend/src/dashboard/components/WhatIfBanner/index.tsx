@@ -96,7 +96,7 @@ const WhatIfBanner = ({ topOffset }: WhatIfBannerProps) => {
     state => state.dashboardState.whatIfModifications ?? EMPTY_MODIFICATIONS,
   );
 
-  const { columnToChartIds } = useNumericColumns();
+  const { columnToChartIds, numericColumns } = useNumericColumns();
 
   const handleExitWhatIf = useCallback(() => {
     const affectedChartIds = new Set<number>();
@@ -121,6 +121,12 @@ const WhatIfBanner = ({ topOffset }: WhatIfBannerProps) => {
   const modification = whatIfModifications[0];
   const percentageChange = formatPercentageChange(modification.multiplier);
 
+  // Get verbose name from numericColumns if available
+  const columnInfo = numericColumns.find(
+    col => col.columnName === modification.column,
+  );
+  const displayName = columnInfo?.verboseName || modification.column;
+
   return (
     <BannerContainer data-test="what-if-banner" topOffset={topOffset}>
       <BannerContent>
@@ -128,11 +134,7 @@ const WhatIfBanner = ({ topOffset }: WhatIfBannerProps) => {
         <span>{t('What-if mode active')}</span>
         <Separator>|</Separator>
         <span>
-          {t(
-            'Showing simulated data with %s %s',
-            modification.column,
-            percentageChange,
-          )}
+          {t('Showing simulated data with %s %s', displayName, percentageChange)}
         </span>
       </BannerContent>
       <ExitButton
