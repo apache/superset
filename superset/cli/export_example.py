@@ -35,7 +35,6 @@ import yaml
 from flask.cli import with_appcontext
 
 if TYPE_CHECKING:
-
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
