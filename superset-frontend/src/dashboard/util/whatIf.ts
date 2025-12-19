@@ -81,19 +81,27 @@ export function collectSqlExpressionsFromSlice(slice: Slice): string[] {
     }
   };
 
+  // Helper to extract SQL expressions from metrics array
+  const addMetricSqlExpressions = (metrics: unknown[]) => {
+    metrics.forEach((metric: unknown) => {
+      if (
+        metric &&
+        typeof metric === 'object' &&
+        'expressionType' in metric &&
+        (metric as { expressionType: unknown }).expressionType === 'SQL' &&
+        'sqlExpression' in metric &&
+        typeof (metric as { sqlExpression: unknown }).sqlExpression === 'string'
+      ) {
+        expressions.push((metric as { sqlExpression: string }).sqlExpression);
+      }
+    });
+  };
+
   // Extract SQL expressions from metrics
-  ensureIsArray(formData.metrics).forEach((metric: unknown) => {
-    if (
-      metric &&
-      typeof metric === 'object' &&
-      'expressionType' in metric &&
-      (metric as { expressionType: unknown }).expressionType === 'SQL' &&
-      'sqlExpression' in metric &&
-      typeof (metric as { sqlExpression: unknown }).sqlExpression === 'string'
-    ) {
-      expressions.push((metric as { sqlExpression: string }).sqlExpression);
-    }
-  });
+  addMetricSqlExpressions(ensureIsArray(formData.metrics));
+
+  // Handle metrics_b for multi-query charts (e.g., Mixed Timeseries)
+  addMetricSqlExpressions(ensureIsArray(formData.metrics_b));
 
   // Extract SQL expression from singular metric
   if (
@@ -110,23 +118,34 @@ export function collectSqlExpressionsFromSlice(slice: Slice): string[] {
     );
   }
 
+  // Helper to extract SQL expressions from filters array
+  const addFilterSqlExpressions = (filters: unknown[]) => {
+    filters.forEach((filter: unknown) => {
+      if (
+        filter &&
+        typeof filter === 'object' &&
+        'expressionType' in filter &&
+        (filter as { expressionType: unknown }).expressionType === 'SQL' &&
+        'sqlExpression' in filter &&
+        typeof (filter as { sqlExpression: unknown }).sqlExpression === 'string'
+      ) {
+        expressions.push((filter as { sqlExpression: string }).sqlExpression);
+      }
+    });
+  };
+
   // Extract SQL expressions from filters
-  ensureIsArray(formData.adhoc_filters).forEach((filter: unknown) => {
-    if (
-      filter &&
-      typeof filter === 'object' &&
-      'expressionType' in filter &&
-      (filter as { expressionType: unknown }).expressionType === 'SQL' &&
-      'sqlExpression' in filter &&
-      typeof (filter as { sqlExpression: unknown }).sqlExpression === 'string'
-    ) {
-      expressions.push((filter as { sqlExpression: string }).sqlExpression);
-    }
-  });
+  addFilterSqlExpressions(ensureIsArray(formData.adhoc_filters));
+
+  // Handle adhoc_filters_b for multi-query charts (e.g., Mixed Timeseries)
+  addFilterSqlExpressions(ensureIsArray(formData.adhoc_filters_b));
 
   // Extract SQL expressions from adhoc columns in groupby, x_axis, series, columns, entity
   ensureIsArray(formData.groupby).forEach(addAdhocColumnExpression);
   ensureIsArray(formData.columns).forEach(addAdhocColumnExpression);
+
+  // Handle groupby_b for multi-query charts (e.g., Mixed Timeseries)
+  ensureIsArray(formData.groupby_b).forEach(addAdhocColumnExpression);
 
   if (formData.x_axis) {
     addAdhocColumnExpression(formData.x_axis);
@@ -192,8 +211,43 @@ export function extractColumnsFromSlice(slice: Slice): Set<string> {
     }
   };
 
+  // Helper to extract columns from metrics array
+  const addMetricColumns = (metrics: unknown[]) => {
+    metrics.forEach((metric: unknown) => {
+      if (typeof metric === 'string') {
+        // Saved metric name - we can't extract columns from it
+        return;
+      }
+      if (metric && typeof metric === 'object' && 'column' in metric) {
+        const metricColumn = (metric as FormDataMetric).column;
+        if (typeof metricColumn === 'string') {
+          columns.add(metricColumn);
+        } else if (
+          metricColumn &&
+          typeof metricColumn === 'object' &&
+          'column_name' in metricColumn
+        ) {
+          columns.add(metricColumn.column_name);
+        }
+      }
+    });
+  };
+
+  // Helper to extract columns from filters array
+  const addFilterColumns = (filters: unknown[]) => {
+    filters.forEach((filter: unknown) => {
+      const f = filter as FormDataFilter;
+      if (f?.subject && typeof f.subject === 'string') {
+        columns.add(f.subject);
+      }
+    });
+  };
+
   // Extract groupby columns (can be physical or adhoc)
   ensureIsArray(formData.groupby).forEach(addColumn);
+
+  // Handle groupby_b for multi-query charts (e.g., Mixed Timeseries)
+  ensureIsArray(formData.groupby_b).forEach(addColumn);
 
   // Extract x_axis column (can be physical or adhoc)
   if (formData.x_axis) {
@@ -201,20 +255,10 @@ export function extractColumnsFromSlice(slice: Slice): Set<string> {
   }
 
   // Extract metrics - get column names from metric definitions
-  ensureIsArray(formData.metrics).forEach((metric: string | FormDataMetric) => {
-    if (typeof metric === 'string') {
-      // Saved metric name - we can't extract columns from it
-      return;
-    }
-    if (metric && typeof metric === 'object' && 'column' in metric) {
-      const metricColumn = metric.column;
-      if (typeof metricColumn === 'string') {
-        columns.add(metricColumn);
-      } else if (metricColumn && typeof metricColumn === 'object' && 'column_name' in metricColumn) {
-        columns.add(metricColumn.column_name);
-      }
-    }
-  });
+  addMetricColumns(ensureIsArray(formData.metrics));
+
+  // Handle metrics_b for multi-query charts (e.g., Mixed Timeseries)
+  addMetricColumns(ensureIsArray(formData.metrics_b));
 
   // Extract metric (singular) - used by pie charts and other single-metric charts
   if (formData.metric && typeof formData.metric === 'object') {
@@ -240,11 +284,10 @@ export function extractColumnsFromSlice(slice: Slice): Set<string> {
   }
 
   // Extract columns from filters
-  ensureIsArray(formData.adhoc_filters).forEach((filter: FormDataFilter) => {
-    if (filter?.subject && typeof filter.subject === 'string') {
-      columns.add(filter.subject);
-    }
-  });
+  addFilterColumns(ensureIsArray(formData.adhoc_filters));
+
+  // Handle adhoc_filters_b for multi-query charts (e.g., Mixed Timeseries)
+  addFilterColumns(ensureIsArray(formData.adhoc_filters_b));
 
   // Extract columns array (used by some chart types like box_plot)
   ensureIsArray(formData.columns).forEach(addColumn);

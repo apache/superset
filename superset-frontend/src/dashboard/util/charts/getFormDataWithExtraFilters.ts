@@ -137,19 +137,10 @@ function extractColumnNames(columns: unknown[]): string[] {
   return columnNames;
 }
 
-function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
-  const existingColumns = new Set<string>();
-  const chartType = chart.form_data?.viz_type;
-
-  const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
-  existingGroupBy.forEach((col: string) => existingColumns.add(col));
-
-  const xAxisColumn = chart.form_data?.x_axis;
-  if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {
-    existingColumns.add(xAxisColumn);
-  }
-
-  const metrics = chart.form_data?.metrics || [];
+function extractColumnsFromMetrics(
+  metrics: any[],
+  existingColumns: Set<string>,
+): void {
   metrics.forEach((metric: any) => {
     if (typeof metric === 'string') {
       existingColumns.add(metric);
@@ -166,6 +157,30 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
       }
     }
   });
+}
+
+function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
+  const existingColumns = new Set<string>();
+  const chartType = chart.form_data?.viz_type;
+
+  const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
+  existingGroupBy.forEach((col: string) => existingColumns.add(col));
+
+  // Handle groupby_b for multi-query charts (e.g., Mixed Timeseries)
+  const existingGroupByB = ensureIsArray(chart.form_data?.groupby_b);
+  existingGroupByB.forEach((col: string) => existingColumns.add(col));
+
+  const xAxisColumn = chart.form_data?.x_axis;
+  if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {
+    existingColumns.add(xAxisColumn);
+  }
+
+  const metrics = chart.form_data?.metrics || [];
+  extractColumnsFromMetrics(metrics, existingColumns);
+
+  // Handle metrics_b for multi-query charts (e.g., Mixed Timeseries)
+  const metricsB = chart.form_data?.metrics_b || [];
+  extractColumnsFromMetrics(metricsB, existingColumns);
 
   // Handle metric (singular) - used by pie charts and other single-metric charts
   const singleMetric = chart.form_data?.metric;
