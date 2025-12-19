@@ -123,12 +123,21 @@ def test_extension_config_invalid_version():
 
 
 def test_extension_config_valid_versions():
-    """Test ExtensionConfig accepts valid semantic versions."""
-    for version in ["1.0.0", "0.1.0", "10.20.30", "1.0.0-beta"]:
+    """Test ExtensionConfig accepts valid semantic versions (major.minor.patch only)."""
+    for version in ["1.0.0", "0.1.0", "10.20.30"]:
         config = ExtensionConfig.model_validate(
             {"id": "my-extension", "name": "My Extension", "version": version}
         )
         assert config.version == version
+
+
+def test_extension_config_prerelease_version_rejected():
+    """Test ExtensionConfig rejects prerelease versions."""
+    with pytest.raises(ValidationError) as exc_info:
+        ExtensionConfig.model_validate(
+            {"id": "my-extension", "name": "My Extension", "version": "1.0.0-beta"}
+        )
+    assert "version" in str(exc_info.value)
 
 
 # =============================================================================
@@ -203,7 +212,8 @@ def test_manifest_backend_no_files_field():
             "backend": {"entryPoints": ["my_extension.entrypoint"]},
         }
     )
-    assert not hasattr(manifest.backend, "files") or manifest.backend.files is None
+    # ManifestBackend should not have a 'files' field
+    assert not hasattr(manifest.backend, "files")
 
 
 # =============================================================================

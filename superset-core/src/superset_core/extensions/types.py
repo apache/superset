@@ -88,7 +88,7 @@ class BaseExtension(BaseModel):
     version: str = Field(
         default="0.0.0",
         description="Semantic version string",
-        pattern=r"^\d+\.\d+\.\d+",
+        pattern=r"^\d+\.\d+\.\d+$",
     )
     license: str | None = Field(
         default=None,
