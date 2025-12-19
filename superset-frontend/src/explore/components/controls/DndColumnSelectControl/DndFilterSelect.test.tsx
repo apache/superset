@@ -19,7 +19,7 @@
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 
-import { ensureIsArray, QueryFormData } from '@superset-ui/core';
+import { ensureIsArray, QueryFormData, QueryFormMetric } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import {
@@ -166,7 +166,7 @@ test('renders options with adhoc metric', async () => {
     setup({
       formData: {
         ...baseFormData,
-        metrics: [adhocMetric],
+        metrics: [adhocMetric as unknown as QueryFormMetric],
       },
     }),
     {
@@ -205,7 +205,7 @@ test('cannot drop a column that is not part of the simple column selection', () 
       {setup({
         formData: {
           ...baseFormData,
-          metrics: [adhocMetric],
+          metrics: [adhocMetric as unknown as QueryFormMetric],
         },
         columns: [{ column_name: 'order_date' }],
       })}
@@ -335,7 +335,7 @@ describe('when disallow_adhoc_metrics is set', () => {
         {setup({
           formData: {
             ...baseFormData,
-            metrics: [adhocMetric],
+            metrics: [adhocMetric as unknown as QueryFormMetric],
           },
           datasource: {
             ...PLACEHOLDER_DATASOURCE,
@@ -383,7 +383,7 @@ describe('when disallow_adhoc_metrics is set', () => {
         {setup({
           formData: {
             ...baseFormData,
-            metrics: [adhocMetric],
+            metrics: [adhocMetric as unknown as QueryFormMetric],
           },
           datasource: {
             ...PLACEHOLDER_DATASOURCE,

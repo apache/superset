@@ -253,9 +253,11 @@ class DatasourceControl extends PureComponent<DatasourceControlProps, Datasource
   }
 
   onDatasourceSave = (datasource: Datasource) => {
-    this.props.actions.changeDatasource(datasource);
+    // Cast to ExtendedDatasource for the component's internal use
+    this.props.actions.changeDatasource(datasource as ExtendedDatasource);
+    // Cast datasource for getTemporalColumns which expects Dataset | QueryResponse
     const { temporalColumns, defaultTemporalColumn } =
-      getTemporalColumns(datasource);
+      getTemporalColumns(datasource as Parameters<typeof getTemporalColumns>[0]);
     const { columns } = datasource;
     // the current granularity_sqla might not be a temporal column anymore
     const timeCol = this.props.form_data?.granularity_sqla;
@@ -447,7 +449,11 @@ class DatasourceControl extends PureComponent<DatasourceControlProps, Datasource
             modalFooter={
               <ViewQueryModalFooter
                 changeDatasource={this.toggleSaveDatasetModal}
-                datasource={datasource}
+                datasource={{
+                  id: String(datasource.id),
+                  sql: datasource.sql || '',
+                  type: datasource.type,
+                }}
               />
             }
             draggable={false}
@@ -477,7 +483,7 @@ class DatasourceControl extends PureComponent<DatasourceControlProps, Datasource
 
     queryDatasourceMenuItems.push({
       key: SAVE_AS_DATASET,
-      label: t('Save as dataset'),
+      label: <span>{t('Save as dataset')}</span>,
     });
 
     const queryDatasourceMenu = (
@@ -618,4 +624,7 @@ class DatasourceControl extends PureComponent<DatasourceControlProps, Datasource
   }
 }
 
-export default withTheme(DatasourceControl);
+// withTheme injects the theme prop, so we need to cast the component type
+export default withTheme(
+  DatasourceControl as React.ComponentType<Omit<DatasourceControlProps, 'theme'>>,
+);

@@ -50,7 +50,7 @@ interface TestDatasource {
   id?: number;
   name: string;
   datasource_name?: string;
-  database: { name: string };
+  database: { id: number; database_name: string; name?: string; backend?: string };
   columns?: Partial<ColumnObject>[];
   type?: DatasourceType;
   main_dttm_col?: string | null;
@@ -63,6 +63,8 @@ interface TestDatasource {
 const mockDatasource: TestDatasource = {
   id: 25,
   database: {
+    id: 1,
+    database_name: 'examples',
     name: 'examples',
   },
   name: 'channels',
@@ -295,7 +297,6 @@ test('Click on Edit dataset', async () => {
 
 test('Edit dataset should be disabled when user is not admin', async () => {
   const props = createProps();
-  // @ts-expect-error
   props.user.roles = {};
   props.datasource.owners = [];
   SupersetClientGet.mockImplementationOnce(
