@@ -17,6 +17,7 @@
  * under the License.
  */
 import { renderHook, act } from '@testing-library/react-hooks';
+import { waitFor } from '@testing-library/react';
 import { useStreamingExport } from './useStreamingExport';
 import { ExportStatus } from './StreamingExportModal';
 
@@ -35,6 +36,7 @@ global.fetch = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
+  global.fetch = jest.fn();
 });
 
 test('useStreamingExport initializes with default progress state', () => {
@@ -123,4 +125,85 @@ test('useStreamingExport cleans up on unmount', () => {
 
   // Cleanup should not throw errors
   expect(true).toBe(true);
+});
+
+test('retryExport reuses the same URL from the original startExport call', async () => {
+  // This test ensures that retryExport uses the exact same URL that was passed to startExport,
+  // which is important for subdirectory deployments where the URL is already prefixed.
+  const originalUrl = '/superset/api/v1/sqllab/export_streaming/';
+  const mockFetch = jest.fn().mockResolvedValue({
+    ok: true,
+    headers: new Headers({
+      'Content-Disposition': 'attachment; filename="export.csv"',
+    }),
+    body: {
+      getReader: () => ({
+        read: jest.fn().mockResolvedValue({ done: true, value: undefined }),
+      }),
+    },
+  });
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  // First call with startExport
+  act(() => {
+    result.current.startExport({
+      url: originalUrl,
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
+      expectedRows: 100,
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+  expect(mockFetch).toHaveBeenCalledWith(originalUrl, expect.any(Object));
+
+  // Reset mock to track retry call
+  mockFetch.mockClear();
+
+  // Reset the export state so we can retry
+  act(() => {
+    result.current.resetExport();
+  });
+
+  // Call retryExport - should reuse the same URL
+  act(() => {
+    result.current.retryExport();
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+  // Retry should use the exact same URL that was passed to startExport
+  expect(mockFetch).toHaveBeenCalledWith(originalUrl, expect.any(Object));
+});
+
+test('sets ERROR status and calls onError when fetch rejects', async () => {
+  const errorMessage = 'Network error';
+  const mockFetch = jest.fn().mockRejectedValue(new Error(errorMessage));
+  global.fetch = mockFetch;
+
+  const onError = jest.fn();
+  const { result } = renderHook(() => useStreamingExport({ onError }));
+
+  act(() => {
+    result.current.startExport({
+      url: '/api/v1/sqllab/export_streaming/',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
+      expectedRows: 100,
+    });
+  });
+
+  // Wait for fetch to be called and error to be processed
+  await waitFor(() => {
+    expect(result.current.progress.status).toBe(ExportStatus.ERROR);
+  });
+
+  // Verify onError was called exactly once with the error message
+  expect(onError).toHaveBeenCalledTimes(1);
+  expect(onError).toHaveBeenCalledWith(errorMessage);
 });
