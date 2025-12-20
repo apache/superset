@@ -36,7 +36,8 @@ type SqlLabState = SqlLabRootState['sqlLab'];
 
 interface SqlLabAction {
   type: string;
-  [key: string]: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 function alterUnsavedQueryEditorState(
@@ -120,7 +121,7 @@ export default function sqlLabReducer(
       );
       const progenitor = {
         ...queryEditor,
-        ...(state.unsavedQueryEditor.id === queryEditor.id &&
+        ...(state.unsavedQueryEditor.id === queryEditor?.id &&
           state.unsavedQueryEditor),
       };
       const qe = {

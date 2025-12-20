@@ -18,7 +18,7 @@
  */
 import { nanoid } from 'nanoid';
 import rison from 'rison';
-import type { ThunkAction, ThunkDispatch } from 'redux-thunk';
+import type { ThunkAction } from 'redux-thunk';
 import type { QueryColumn, SupersetError } from '@superset-ui/core';
 import {
   FeatureFlag,
@@ -40,7 +40,7 @@ import {
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { logEvent } from 'src/logger/actions';
-import type { QueryEditor, SqlLabRootState, Table } from '../types';
+import type { QueryEditor, Table } from '../types';
 import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
@@ -117,9 +117,6 @@ interface SqlLabAction {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SqlLabThunkAction<R = any> = ThunkAction<R, any, any, any>;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SqlLabThunkDispatch = ThunkDispatch<any, any, any>;
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -566,8 +563,10 @@ export function setDatabases(
 function migrateTable(
   table: Table,
   queryEditorId: string,
-  dispatch: SqlLabThunkDispatch,
-): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dispatch: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
   return SupersetClient.post({
     endpoint: encodeURI('/tableschemaview/'),
     postPayload: { table: { ...table, queryEditorId } },
@@ -595,8 +594,10 @@ function migrateTable(
 function migrateQuery(
   queryId: string,
   queryEditorId: string,
-  dispatch: SqlLabThunkDispatch,
-): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dispatch: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
   return SupersetClient.post({
     endpoint: encodeURI(`/tabstateview/${queryEditorId}/migrate_query`),
     postPayload: { queryId },

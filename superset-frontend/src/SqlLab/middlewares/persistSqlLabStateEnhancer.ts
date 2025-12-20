@@ -178,7 +178,8 @@ const sqlLabPersistStateConfig = {
 
 // redux-localstorage doesn't have TypeScript definitions
 // The library returns a StoreEnhancer that persists specified paths to localStorage
-export const persistSqlLabStateEnhancer = persistState(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const persistSqlLabStateEnhancer = (persistState as any)(
   sqlLabPersistStateConfig.paths,
   sqlLabPersistStateConfig.config,
 ) as StoreEnhancer;

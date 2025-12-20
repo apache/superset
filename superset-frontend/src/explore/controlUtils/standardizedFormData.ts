@@ -25,7 +25,6 @@ import {
   QueryFormMetric,
 } from '@superset-ui/core';
 import {
-  ControlStateMapping,
   getStandardizedControls,
   isStandardizedFormData,
   StandardizedControls,
@@ -189,11 +188,10 @@ export class StandardizedFormData {
 
   transform(
     targetVizType: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     exploreState: Record<string, any>,
-  ): {
-    formData: QueryFormData;
-    controlsState: ControlStateMapping;
-  } {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): any {
     /*
      * Transform form_data between different viz. Return new form_data and controlsState.
      * 1. get memorized form_data by viz type or get previous form_data
