@@ -115,18 +115,11 @@ interface SqlLabAction {
   [key: string]: unknown;
 }
 
-type SqlLabThunkAction<R = void> = ThunkAction<
-  R,
-  SqlLabRootState,
-  unknown,
-  SqlLabAction
->;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SqlLabThunkAction<R = any> = ThunkAction<R, any, any, any>;
 
-type SqlLabThunkDispatch = ThunkDispatch<
-  SqlLabRootState,
-  unknown,
-  SqlLabAction
->;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SqlLabThunkDispatch = ThunkDispatch<any, any, any>;
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -222,8 +215,9 @@ const fieldConverter =
 export const convertQueryToServer = fieldConverter(queryServerMapping);
 export const convertQueryToClient = fieldConverter(queryClientMapping);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getUpToDateQuery(
-  rootState: SqlLabRootState,
+  rootState: any,
   queryEditor: QueryEditor | { id: string },
   key?: string,
 ): QueryEditor {
@@ -238,10 +232,10 @@ export function getUpToDateQuery(
   } as QueryEditor;
 }
 
-export function resetState(
-  data?: Record<string, unknown>,
-): SqlLabThunkAction<void> {
-  return (dispatch, getState) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function resetState(data?: Record<string, unknown>): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (dispatch: any, getState: any) => {
     const { common } = getState();
     const initialState = getInitialState({
       ...getBootstrapData(),
@@ -267,10 +261,10 @@ export function setEditorTabLastUpdate(timestamp: number): SqlLabAction {
   return { type: SET_EDITOR_TAB_LAST_UPDATE, timestamp };
 }
 
-export function scheduleQuery(
-  query: Record<string, unknown>,
-): SqlLabThunkAction<Promise<void>> {
-  return dispatch =>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function scheduleQuery(query: Record<string, unknown>): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (dispatch: any) =>
     SupersetClient.post({
       endpoint: '/api/v1/saved_query/',
       jsonPayload: query,
@@ -290,10 +284,10 @@ export function scheduleQuery(
       );
 }
 
-export function estimateQueryCost(
-  queryEditor: QueryEditor,
-): SqlLabThunkAction<Promise<unknown[]>> {
-  return (dispatch, getState) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function estimateQueryCost(queryEditor: QueryEditor): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (dispatch: any, getState: any) => {
     const { dbId, catalog, schema, sql, selectedText, templateParams } =
       getUpToDateQuery(getState(), queryEditor);
     const requestSql = selectedText || sql;
@@ -415,12 +409,14 @@ export function requestQueryResults(query: Query): SqlLabAction {
   return { type: REQUEST_QUERY_RESULTS, query };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function fetchQueryResults(
   query: Query,
   displayLimit?: number,
   timeoutInMs?: number,
-): SqlLabThunkAction<Promise<void>> {
-  return function (dispatch, getState) {
+): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const { SQLLAB_QUERY_RESULT_TIMEOUT } = getState().common?.conf ?? {};
     dispatch(requestQueryResults(query));
 
@@ -454,11 +450,10 @@ export function fetchQueryResults(
   };
 }
 
-export function runQuery(
-  query: Query,
-  runPreviewOnly?: boolean,
-): SqlLabThunkAction<Promise<void>> {
-  return function (dispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function runQuery(query: Query, runPreviewOnly?: boolean): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     dispatch(startQuery(query, runPreviewOnly));
     const postPayload = {
       client_id: query.id,
@@ -505,6 +500,7 @@ export function runQuery(
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function runQueryFromSqlEditor(
   database: Database | null,
   queryEditor: QueryEditor,
@@ -512,8 +508,9 @@ export function runQueryFromSqlEditor(
   tempTable?: string,
   ctas?: boolean,
   ctasMethod?: string,
-): SqlLabThunkAction<void> {
-  return function (dispatch, getState) {
+): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const query: Query = {
       id: nanoid(11),
@@ -536,15 +533,19 @@ export function runQueryFromSqlEditor(
   };
 }
 
-export function reRunQuery(query: Query): SqlLabThunkAction<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function reRunQuery(query: Query): any {
   // run Query with a new id
-  return function (dispatch) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     dispatch(runQuery({ ...query, id: nanoid(11) }));
   };
 }
 
-export function postStopQuery(query: Query): SqlLabThunkAction<Promise<void>> {
-  return function (dispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function postStopQuery(query: Query): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     return SupersetClient.post({
       endpoint: '/api/v1/query/stop',
       body: JSON.stringify({ client_id: query.id }),
@@ -622,10 +623,10 @@ function migrateQuery(
  * stored in local storage will also be synchronized to the backend
  * through syncQueryEditor.
  */
-export function syncQueryEditor(
-  queryEditor: QueryEditor,
-): SqlLabThunkAction<Promise<void[] | void>> {
-  return function (dispatch, getState) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function syncQueryEditor(queryEditor: QueryEditor): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const { tables, queries } = getState().sqlLab;
     const localStorageTables = tables.filter(
       table => table.inLocalStorage && table.queryEditorId === queryEditor.id,
@@ -687,11 +688,10 @@ export function addQueryEditor(
   };
 }
 
-export function addNewQueryEditor(): SqlLabThunkAction<SqlLabAction> {
-  return function (
-    dispatch: SqlLabThunkDispatch,
-    getState: () => SqlLabRootState,
-  ) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function addNewQueryEditor(): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const {
       sqlLab: { queryEditors, tabHistory, unsavedQueryEditor, databases },
       common,
@@ -737,19 +737,16 @@ export function addNewQueryEditor(): SqlLabThunkAction<SqlLabAction> {
   };
 }
 
-export function cloneQueryToNewTab(
-  query: Query,
-  autorun: boolean,
-): SqlLabThunkAction<SqlLabAction> {
-  return function (
-    dispatch: SqlLabThunkDispatch,
-    getState: () => SqlLabRootState,
-  ) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function cloneQueryToNewTab(query: Query, autorun: boolean): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const state = getState();
     const { queryEditors, unsavedQueryEditor, tabHistory } = state.sqlLab;
     const sourceQueryEditor = {
       ...queryEditors.find(
-        (qe: QueryEditor) => qe.id === tabHistory[tabHistory.length - 1],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (qe: any) => qe.id === tabHistory[tabHistory.length - 1],
       ),
       ...(tabHistory[tabHistory.length - 1] === unsavedQueryEditor.id &&
         unsavedQueryEditor),
@@ -783,16 +780,16 @@ export function setActiveQueryEditor(queryEditor: QueryEditor): SqlLabAction {
   };
 }
 
-export function switchQueryEditor(goBackward = false): SqlLabThunkAction<void> {
-  return function (
-    dispatch: SqlLabThunkDispatch,
-    getState: () => SqlLabRootState,
-  ) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function switchQueryEditor(goBackward = false): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const { sqlLab } = getState();
     const { queryEditors, tabHistory } = sqlLab;
     const qeid = tabHistory[tabHistory.length - 1];
     const currentIndex = queryEditors.findIndex(
-      (qe: QueryEditor) => qe.id === qeid,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (qe: any) => qe.id === qeid,
     );
     const nextIndex = goBackward
       ? currentIndex - 1 + queryEditors.length
@@ -858,11 +855,13 @@ export function setTables(tableSchemas: TableSchema[]): SqlLabAction {
   return { type: SET_TABLES, tables };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function fetchQueryEditor(
   queryEditor: QueryEditor,
   displayLimit: number,
-): SqlLabThunkAction<void> {
-  return function (dispatch: SqlLabThunkDispatch) {
+): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
     SupersetClient.get({
       endpoint: encodeURI(`/tabstateview/${queryEditorId}`),
@@ -922,15 +921,13 @@ export function removeQueryEditor(queryEditor: QueryEditor): SqlLabAction {
   return { type: REMOVE_QUERY_EDITOR, queryEditor };
 }
 
-export function removeAllOtherQueryEditors(
-  queryEditor: QueryEditor,
-): SqlLabThunkAction<void> {
-  return function (
-    dispatch: SqlLabThunkDispatch,
-    getState: () => SqlLabRootState,
-  ) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function removeAllOtherQueryEditors(queryEditor: QueryEditor): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const { sqlLab } = getState();
-    sqlLab.queryEditors?.forEach((otherQueryEditor: QueryEditor) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sqlLab.queryEditors?.forEach((otherQueryEditor: any) => {
       if (otherQueryEditor.id !== queryEditor.id) {
         dispatch(removeQueryEditor(otherQueryEditor));
       }
@@ -938,8 +935,10 @@ export function removeAllOtherQueryEditors(
   };
 }
 
-export function removeQuery(query: Query): SqlLabThunkAction<Promise<void>> {
-  return function (dispatch: SqlLabThunkDispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function removeQuery(query: Query): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     const queryEditorId = query.sqlEditorId ?? query.id;
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.delete({
@@ -1011,16 +1010,16 @@ export function queryEditorSetTitle(
   };
 }
 
-export function saveQuery(
-  query: QueryEditor,
-  clientId: string,
-): SqlLabThunkAction<Promise<unknown>> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function saveQuery(query: QueryEditor, clientId: string): any {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id: _id, ...payload } = convertQueryToServer(
-    query as unknown as Record<string, unknown>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    query as any,
   );
 
-  return (dispatch: SqlLabThunkDispatch) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (dispatch: any) =>
     SupersetClient.post({
       endpoint: '/api/v1/saved_query/',
       jsonPayload: convertQueryToServer(payload as Record<string, unknown>),
@@ -1044,12 +1043,12 @@ export function saveQuery(
       );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const addSavedQueryToTabState =
-  (
-    queryEditor: QueryEditor,
-    savedQuery: { remoteId: string },
-  ): SqlLabThunkAction<Promise<void>> =>
-  (dispatch: SqlLabThunkDispatch) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (queryEditor: QueryEditor, savedQuery: { remoteId: string }): any =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (dispatch: any) => {
     const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.put({
@@ -1067,16 +1066,16 @@ export const addSavedQueryToTabState =
       });
   };
 
-export function updateSavedQuery(
-  query: QueryEditor,
-  clientId: string,
-): SqlLabThunkAction<Promise<unknown>> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function updateSavedQuery(query: QueryEditor, clientId: string): any {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id: _id, ...payload } = convertQueryToServer(
-    query as unknown as Record<string, unknown>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    query as any,
   );
 
-  return (dispatch: SqlLabThunkDispatch) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (dispatch: any) =>
     SupersetClient.put({
       endpoint: `/api/v1/saved_query/${query.remoteId}`,
       jsonPayload: convertQueryToServer(payload as Record<string, unknown>),
@@ -1109,15 +1108,14 @@ export function queryEditorSetCursorPosition(
   return { type: QUERY_EDITOR_SET_CURSOR_POSITION, queryEditor, position };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function queryEditorSetAndSaveSql(
   targetQueryEditor: QueryEditor,
   sql: string,
   queryId?: string,
-): SqlLabThunkAction<Promise<unknown>> {
-  return function (
-    dispatch: SqlLabThunkDispatch,
-    getState: () => SqlLabRootState,
-  ) {
+): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const queryEditor = getUpToDateQuery(getState(), targetQueryEditor);
     // saved query and set tab state use this action
     dispatch(queryEditorSetSql(queryEditor, sql, queryId));
@@ -1142,13 +1140,10 @@ export function queryEditorSetAndSaveSql(
   };
 }
 
-export function formatQuery(
-  queryEditor: QueryEditor,
-): SqlLabThunkAction<Promise<unknown>> {
-  return function (
-    dispatch: SqlLabThunkDispatch,
-    getState: () => SqlLabRootState,
-  ) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function formatQuery(queryEditor: QueryEditor): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const { sql, dbId, templateParams } = getUpToDateQuery(
       getState(),
       queryEditor,
@@ -1215,17 +1210,16 @@ export function mergeTable(
   return { type: MERGE_TABLE, table, query, prepend };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function addTable(
   queryEditor: QueryEditor,
   tableName: string,
   catalogName: string,
   schemaName: string,
   expanded = true,
-): SqlLabThunkAction<void> {
-  return function (
-    dispatch: SqlLabThunkDispatch,
-    getState: () => SqlLabRootState,
-  ) {
+): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const { dbId } = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const table = {
       dbId,
@@ -1255,14 +1249,13 @@ interface NewTable {
   previewQueryId?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function runTablePreviewQuery(
   newTable: NewTable,
   runPreviewOnly?: boolean,
-): SqlLabThunkAction<Promise<unknown>> {
-  return function (
-    dispatch: SqlLabThunkDispatch,
-    getState: () => SqlLabRootState,
-  ) {
+): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any, getState: any) {
     const {
       sqlLab: { databases },
     } = getState();
@@ -1316,12 +1309,14 @@ interface TableMetaData {
   indexes?: unknown[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function syncTable(
   table: Table,
   tableMetadata: TableMetaData,
   finalQueryEditorId?: string,
-): SqlLabThunkAction<Promise<void>> {
-  return function (dispatch: SqlLabThunkDispatch) {
+): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     const finalTable = { ...table, queryEditorId: finalQueryEditorId };
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.post({
@@ -1361,8 +1356,10 @@ export function changeDataPreviewId(
   return { type: CHANGE_DATA_PREVIEW_ID, oldQueryId, newQuery };
 }
 
-export function reFetchQueryResults(query: Query): SqlLabThunkAction<void> {
-  return function (dispatch: SqlLabThunkDispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function reFetchQueryResults(query: Query): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     const newQuery: Query = {
       id: nanoid(),
       dbId: query.dbId,
@@ -1380,8 +1377,10 @@ export function reFetchQueryResults(query: Query): SqlLabThunkAction<void> {
   };
 }
 
-export function expandTable(table: Table): SqlLabThunkAction<Promise<void>> {
-  return function (dispatch: SqlLabThunkDispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function expandTable(table: Table): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     const sync =
       isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
       table.initialized
@@ -1406,8 +1405,10 @@ export function expandTable(table: Table): SqlLabThunkAction<Promise<void>> {
   };
 }
 
-export function collapseTable(table: Table): SqlLabThunkAction<Promise<void>> {
-  return function (dispatch: SqlLabThunkDispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function collapseTable(table: Table): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     const sync =
       isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
       table.initialized
@@ -1432,10 +1433,10 @@ export function collapseTable(table: Table): SqlLabThunkAction<Promise<void>> {
   };
 }
 
-export function removeTables(
-  tables: Table[],
-): SqlLabThunkAction<Promise<void>> {
-  return function (dispatch: SqlLabThunkDispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function removeTables(tables: Table[]): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     const tablesToRemove = tables?.filter(Boolean) ?? [];
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? Promise.all(
@@ -1487,8 +1488,10 @@ export function persistEditorHeight(
   };
 }
 
-export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: SqlLabThunkDispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function popPermalink(key: string): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     return SupersetClient.get({ endpoint: `/api/v1/sqllab/permalink/${key}` })
       .then(({ json }) =>
         dispatch(
@@ -1507,10 +1510,10 @@ export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
   };
 }
 
-export function popStoredQuery(
-  urlId: string,
-): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: SqlLabThunkDispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function popStoredQuery(urlId: string): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     return SupersetClient.get({
       endpoint: `/api/v1/sqllab/permalink/kv:${urlId}`,
     })
@@ -1530,10 +1533,10 @@ export function popStoredQuery(
       .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
-export function popSavedQuery(
-  saveQueryId: string,
-): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: SqlLabThunkDispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function popSavedQuery(saveQueryId: string): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     return SupersetClient.get({
       endpoint: `/api/v1/saved_query/${saveQueryId}`,
     })
@@ -1557,10 +1560,10 @@ export function popSavedQuery(
       .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
-export function popQuery(
-  queryId: string,
-): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: SqlLabThunkDispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function popQuery(queryId: string): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     return SupersetClient.get({
       endpoint: `/api/v1/query/${queryId}`,
     })
@@ -1579,11 +1582,10 @@ export function popQuery(
       .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
-export function popDatasourceQuery(
-  datasourceKey: string,
-  sql?: string,
-): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: SqlLabThunkDispatch) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function popDatasourceQuery(datasourceKey: string, sql?: string): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     const QUERY_TEXT = t('Query');
     const datasetId = datasourceKey.split('__')[0];
 
@@ -1631,10 +1633,10 @@ interface VizOptions {
   templateParams?: string;
 }
 
-export function createDatasource(
-  vizOptions: VizOptions,
-): SqlLabThunkAction<Promise<unknown>> {
-  return (dispatch: SqlLabThunkDispatch) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createDatasource(vizOptions: VizOptions): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (dispatch: any) => {
     dispatch(createDatasourceStarted());
     const { dbId, catalog, schema, datasourceName, sql, templateParams } =
       vizOptions;
@@ -1672,10 +1674,12 @@ export function createDatasource(
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createCtasDatasource(
   vizOptions: Record<string, unknown>,
-): SqlLabThunkAction<Promise<unknown>> {
-  return (dispatch: SqlLabThunkDispatch) => {
+): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (dispatch: any) => {
     dispatch(createDatasourceStarted());
     return SupersetClient.post({
       endpoint: '/api/v1/dataset/get_or_create/',
