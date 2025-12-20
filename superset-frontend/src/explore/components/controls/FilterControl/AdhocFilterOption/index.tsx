@@ -60,7 +60,7 @@ export default function AdhocFilterOption({
       operators={operators}
       adhocFilter={adhocFilter}
       options={options}
-      datasource={datasource}
+      datasource={datasource as Record<string, unknown> || {}}
       onFilterEdit={onFilterEdit}
       partitionColumn={partitionColumn ?? undefined}
     >
