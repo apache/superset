@@ -58,6 +58,7 @@ class CacheManager:
         self._thumbnail_cache = Cache()
         self._filter_state_cache = Cache()
         self._explore_form_data_cache = ExploreFormDataCache()
+        self._schema_cache = Cache()
 
     @staticmethod
     def _init_cache(
@@ -90,6 +91,7 @@ class CacheManager:
         self._init_cache(app, self._cache, "CACHE_CONFIG")
         self._init_cache(app, self._data_cache, "DATA_CACHE_CONFIG")
         self._init_cache(app, self._thumbnail_cache, "THUMBNAIL_CACHE_CONFIG")
+        self._init_cache(app, self._schema_cache, "SCHEMA_CACHE_CONFIG")
         self._init_cache(
             app, self._filter_state_cache, "FILTER_STATE_CACHE_CONFIG", required=True
         )
@@ -119,3 +121,7 @@ class CacheManager:
     @property
     def explore_form_data_cache(self) -> Cache:
         return self._explore_form_data_cache
+        
+    @property
+    def schema_cache(self) -> Cache:
+        return self._schema_cache
