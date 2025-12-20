@@ -33,6 +33,38 @@ import 'ace-builds/src-min-noconflict/mode-handlebars';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 
+interface HotkeyConfig {
+  name: string;
+  key: string;
+  func: () => void;
+}
+
+interface TextAreaControlProps {
+  name?: string;
+  onChange?: (value: string) => void;
+  initialValue?: string;
+  height?: number;
+  minLines?: number;
+  maxLines?: number;
+  offerEditInModal?: boolean;
+  language?: 'json' | 'html' | 'sql' | 'markdown' | 'javascript' | 'handlebars' | null;
+  aboveEditorSection?: React.ReactNode;
+  readOnly?: boolean;
+  resize?: 'block' | 'both' | 'horizontal' | 'inline' | 'none' | 'vertical' | null;
+  textAreaStyles?: React.CSSProperties;
+  tooltipOptions?: Record<string, unknown>;
+  hotkeys?: HotkeyConfig[];
+  debounceDelay?: number | null;
+  theme: {
+    colorBorder: string;
+    colorBgMask: string;
+    sizeUnit: number;
+  };
+  'aria-required'?: boolean;
+  value?: string;
+  [key: string]: unknown;
+}
+
 const propTypes = {
   name: PropTypes.string,
   onChange: PropTypes.func,
@@ -82,18 +114,25 @@ const defaultProps = {
   debounceDelay: null,
 };
 
-class TextAreaControl extends Component {
-  constructor(props) {
+class TextAreaControl extends Component<TextAreaControlProps> {
+  static propTypes = propTypes;
+
+  static defaultProps = defaultProps;
+
+  debouncedOnChange: ReturnType<typeof debounce<(value: string) => void>> | undefined;
+
+  constructor(props: TextAreaControlProps) {
     super(props);
-    if (props.debounceDelay) {
+    if (props.debounceDelay && props.onChange) {
       this.debouncedOnChange = debounce(props.onChange, props.debounceDelay);
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: TextAreaControlProps) {
     if (
       this.props.onChange !== prevProps.onChange &&
-      this.props.debounceDelay
+      this.props.debounceDelay &&
+      this.props.onChange
     ) {
       if (this.debouncedOnChange) {
         this.debouncedOnChange.cancel();
@@ -105,12 +144,12 @@ class TextAreaControl extends Component {
     }
   }
 
-  handleChange(value) {
+  handleChange(value: string | { target: { value: string } }) {
     const finalValue = typeof value === 'object' ? value.target.value : value;
     if (this.debouncedOnChange) {
       this.debouncedOnChange(finalValue);
     } else {
-      this.props.onChange(finalValue);
+      this.props.onChange?.(finalValue);
     }
   }
 
@@ -220,8 +259,5 @@ class TextAreaControl extends Component {
     );
   }
 }
-
-TextAreaControl.propTypes = propTypes;
-TextAreaControl.defaultProps = defaultProps;
 
 export default withTheme(TextAreaControl);

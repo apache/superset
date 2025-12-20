@@ -306,14 +306,16 @@ describe('SelectControl', () => {
 
     test('returns false for empty items', () => {
       expect(areAllValuesNumbers([])).toBe(false);
+      // @ts-expect-error testing invalid input
       expect(areAllValuesNumbers(null)).toBe(false);
+      // @ts-expect-error testing invalid input
       expect(areAllValuesNumbers(undefined)).toBe(false);
     });
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getSortComparator', () => {
-    const mockExplicitComparator = (a, b) => a.label.localeCompare(b.label);
+    const mockExplicitComparator = (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label);
 
     test('returns explicit comparator when provided', () => {
       const choices = [
@@ -322,7 +324,7 @@ describe('SelectControl', () => {
       ];
       const result = getSortComparator(
         choices,
-        null,
+        undefined,
         'value',
         mockExplicitComparator,
       );
@@ -334,7 +336,7 @@ describe('SelectControl', () => {
         [1, 'One'],
         [2, 'Two'],
       ];
-      const result = getSortComparator(choices, null, 'value', null);
+      const result = getSortComparator(choices, undefined, 'value', undefined);
       expect(typeof result).toBe('function');
       expect(result).not.toBe(mockExplicitComparator);
     });
@@ -344,7 +346,7 @@ describe('SelectControl', () => {
         { value: 1, label: 'One' },
         { value: 2, label: 'Two' },
       ];
-      const result = getSortComparator(null, options, 'value', null);
+      const result = getSortComparator(undefined, options, 'value', undefined);
       expect(typeof result).toBe('function');
       expect(result).not.toBe(mockExplicitComparator);
     });
@@ -358,7 +360,7 @@ describe('SelectControl', () => {
         { value: 3, label: 'Three' },
         { value: 4, label: 'Four' },
       ];
-      const result = getSortComparator(choices, options, 'value', null);
+      const result = getSortComparator(choices, options, 'value', undefined);
       expect(typeof result).toBe('function');
     });
 
@@ -367,7 +369,7 @@ describe('SelectControl', () => {
         ['one', 'One'],
         ['two', 'Two'],
       ];
-      const result = getSortComparator(choices, null, 'value', null);
+      const result = getSortComparator(choices, undefined, 'value', undefined);
       expect(result).toBeUndefined();
     });
 
@@ -376,12 +378,12 @@ describe('SelectControl', () => {
         { value: 'one', label: 'One' },
         { value: 'two', label: 'Two' },
       ];
-      const result = getSortComparator(null, options, 'value', null);
+      const result = getSortComparator(undefined, options, 'value', undefined);
       expect(result).toBeUndefined();
     });
 
     test('returns undefined when no choices or options provided', () => {
-      const result = getSortComparator(null, null, 'value', null);
+      const result = getSortComparator(undefined, undefined, 'value', undefined);
       expect(result).toBeUndefined();
     });
   });

@@ -25,6 +25,12 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 
 type SelectValue = string | number | (string | number)[] | null | undefined;
 
+interface SelectOption {
+  value: string | number;
+  label: string;
+  [key: string]: unknown;
+}
+
 export interface SelectControlProps {
   ariaLabel?: string;
   autoFocus?: boolean;
@@ -47,9 +53,9 @@ export interface SelectControlProps {
   showHeader?: boolean;
   optionRenderer?: (option: unknown) => ReactNode;
   valueKey?: string;
-  options?: { value: string | number; label: string }[];
+  options?: { value: string | number; label: string; [key: string]: unknown }[];
   placeholder?: string;
-  filterOption?: (input: string, option: unknown) => boolean;
+  filterOption?: (input: unknown, option: unknown) => boolean;
   tokenSeparators?: string[];
   notFoundContent?: ReactNode;
   label?: string;
@@ -62,6 +68,7 @@ export interface SelectControlProps {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  sortComparator?: (a: SelectOption, b: SelectOption) => number;
 }
 
 const propTypes = {
@@ -129,13 +136,11 @@ const defaultProps = {
   valueKey: 'value',
 };
 
-interface SelectOption {
-  value: string | number;
-  label: string;
-  [key: string]: unknown;
+interface SelectControlState {
+  options: SelectOption[];
 }
 
-const numberComparator = (a: SelectOption, b: SelectOption): number => a.value as number - (b.value as number);
+const numberComparator = (a: SelectOption, b: SelectOption): number => (a.value as number) - (b.value as number);
 
 export const areAllValuesNumbers = (items: unknown[], valueKey = 'value'): boolean => {
   if (!items || items.length === 0) {
@@ -147,7 +152,7 @@ export const areAllValuesNumbers = (items: unknown[], valueKey = 'value'): boole
       return typeof value === 'number';
     }
     if (typeof item === 'object' && item !== null) {
-      return typeof item[valueKey] === 'number';
+      return typeof (item as Record<string, unknown>)[valueKey] === 'number';
     }
     return typeof item === 'number';
   });
@@ -176,13 +181,13 @@ export const getSortComparator = (
 };
 
 export const innerGetOptions = (props: SelectControlProps): SelectOption[] => {
-  const { choices, optionRenderer, valueKey } = props;
-  let options = [];
+  const { choices, optionRenderer, valueKey = 'value' } = props;
+  let options: SelectOption[] = [];
   if (props.options) {
     options = props.options.map(o => ({
       ...o,
-      value: o[valueKey],
-      label: optionRenderer ? optionRenderer(o) : o.label || o[valueKey],
+      value: o[valueKey] as string | number,
+      label: optionRenderer ? (optionRenderer(o) as string) : (o.label || o[valueKey]) as string,
     }));
   } else if (choices) {
     // Accepts different formats of input
@@ -191,23 +196,21 @@ export const innerGetOptions = (props: SelectControlProps): SelectOption[] => {
         const [value, label] = c.length > 1 ? c : [c[0], c[0]];
         return {
           value,
-          label,
+          label: String(label),
         };
       }
-      if (Object.is(c)) {
-        return {
-          ...c,
-          value: c[valueKey],
-          label: c.label || c[valueKey],
-        };
-      }
-      return { value: c, label: c };
+      // This branch handles object-like choices, but choices are typed as tuples
+      return { value: c as unknown as string | number, label: String(c) };
     });
   }
   return options;
 };
 
-export default class SelectControl extends PureComponent<SelectControlProps> {
+export default class SelectControl extends PureComponent<SelectControlProps, SelectControlState> {
+  static propTypes = propTypes;
+
+  static defaultProps = defaultProps;
+
   constructor(props: SelectControlProps) {
     super(props);
     this.state = {
@@ -217,7 +220,7 @@ export default class SelectControl extends PureComponent<SelectControlProps> {
     this.handleFilterOptions = this.handleFilterOptions.bind(this);
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: SelectControlProps) {
     if (
       !isEqualArray(this.props.choices, prevProps.choices) ||
       !isEqualArray(this.props.options, prevProps.options)
@@ -229,30 +232,32 @@ export default class SelectControl extends PureComponent<SelectControlProps> {
 
   // Beware: This is acting like an on-click instead of an on-change
   // (firing every time user chooses vs firing only if a new option is chosen).
-  onChange(val) {
+  onChange(val: SelectValue | SelectOption | SelectOption[]) {
     // will eventually call `exploreReducer`: SET_FIELD_VALUE
-    const { valueKey } = this.props;
-    let onChangeVal = val;
+    const { valueKey = 'value' } = this.props;
+    let onChangeVal: SelectValue = val as SelectValue;
 
     if (Array.isArray(val)) {
       const values = val.map(v =>
-        v?.[valueKey] !== undefined ? v[valueKey] : v,
+        typeof v === 'object' && v !== null && (v as SelectOption)[valueKey] !== undefined
+          ? (v as SelectOption)[valueKey]
+          : v,
       );
-      onChangeVal = values;
+      onChangeVal = values as (string | number)[];
     }
-    if (typeof val === 'object' && val?.[valueKey] !== undefined) {
-      onChangeVal = val[valueKey];
+    if (typeof val === 'object' && val !== null && !Array.isArray(val) && (val as SelectOption)[valueKey] !== undefined) {
+      onChangeVal = (val as SelectOption)[valueKey] as string | number;
     }
-    this.props.onChange(onChangeVal, []);
+    this.props.onChange?.(onChangeVal, []);
   }
 
-  getOptions(props) {
+  getOptions(props: SelectControlProps) {
     return innerGetOptions(props);
   }
 
-  handleFilterOptions(text, option) {
+  handleFilterOptions(text: string, option: SelectOption) {
     const { filterOption } = this.props;
-    return filterOption({ data: option }, text);
+    return filterOption?.({ data: option }, text) ?? true;
   }
 
   render() {
@@ -370,6 +375,3 @@ export default class SelectControl extends PureComponent<SelectControlProps> {
     );
   }
 }
-
-SelectControl.propTypes = propTypes;
-SelectControl.defaultProps = defaultProps;
