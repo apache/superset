@@ -198,16 +198,16 @@ export default class TimeSeriesColumnControl extends Component<TimeSeriesColumnC
     this.resetState();
   }
 
-  onSelectChange(attr: keyof TimeSeriesColumnControlState, opt: string) {
-    this.setState({ [attr]: opt } as Pick<TimeSeriesColumnControlState, typeof attr>);
+  onSelectChange(attr: string, opt: string) {
+    this.setState(prevState => ({ ...prevState, [attr]: opt }));
   }
 
-  onTextInputChange(attr: keyof TimeSeriesColumnControlState, event: React.ChangeEvent<HTMLInputElement>) {
-    this.setState({ [attr]: event.target.value } as Pick<TimeSeriesColumnControlState, typeof attr>);
+  onTextInputChange(attr: string, event: React.ChangeEvent<HTMLInputElement>) {
+    this.setState(prevState => ({ ...prevState, [attr]: event.target.value }));
   }
 
-  onCheckboxChange(attr: keyof TimeSeriesColumnControlState, value: boolean) {
-    this.setState({ [attr]: value } as Pick<TimeSeriesColumnControlState, typeof attr>);
+  onCheckboxChange(attr: string, value: boolean) {
+    this.setState(prevState => ({ ...prevState, [attr]: value }));
   }
 
   onBoundsChange(bounds: (number | null)[]) {
