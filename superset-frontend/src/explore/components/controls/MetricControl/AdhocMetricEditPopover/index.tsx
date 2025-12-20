@@ -77,11 +77,7 @@ interface AdhocMetricEditPopoverProps {
   columns?: ColumnType[];
   savedMetricsOptions?: SavedMetricType[];
   savedMetric?: SavedMetricType;
-  datasource?: {
-    type?: DatasourceType;
-    database?: { id: number };
-    [key: string]: unknown;
-  };
+  datasource?: Record<string, unknown>;
   isNewMetric?: boolean;
   isLabelModified?: boolean;
 }
