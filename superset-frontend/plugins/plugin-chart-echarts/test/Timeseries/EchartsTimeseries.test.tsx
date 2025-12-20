@@ -45,8 +45,15 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       formData: Partial<EchartsTimeseriesFormData>,
       setDataMask: jest.Mock,
       xValueFormatter: (val: number) => string,
-      isTouchDevice = false,
+      options: { isTouchDevice?: boolean; emitCrossFilters?: boolean } = {},
     ) => {
+      const { isTouchDevice = false, emitCrossFilters = true } = options;
+
+      // Only emit cross-filters when enabled (on dashboards)
+      if (!emitCrossFilters) {
+        return;
+      }
+
       // Only handle brush events for time axis charts
       if (xAxis.type !== AxisType.Time) {
         return;
@@ -100,6 +107,23 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       });
     };
 
+    it('should not process brush events when emitCrossFilters is false', () => {
+      const params = {
+        areas: [{ coordRange: [[1000, 2000], [0, 100]] }],
+      };
+
+      handleBrushEnd(
+        params,
+        baseXAxis,
+        baseFormData,
+        mockSetDataMask,
+        mockXValueFormatter,
+        { emitCrossFilters: false },
+      );
+
+      expect(mockSetDataMask).not.toHaveBeenCalled();
+    });
+
     it('should not process brush events when x-axis type is not time', () => {
       const params = {
         areas: [{ coordRange: [[1000, 2000], [0, 100]] }],
@@ -127,7 +151,7 @@ describe('EchartsTimeseries handleBrushEnd', () => {
         baseFormData,
         mockSetDataMask,
         mockXValueFormatter,
-        true, // isTouchDevice
+        { isTouchDevice: true },
       );
 
       expect(mockSetDataMask).not.toHaveBeenCalled();
@@ -326,6 +350,45 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       expect(call.filterState.label).toBe(
         `Formatted: ${startTime} - Formatted: ${endTime}`,
       );
+    });
+
+    it('should process brush events when emitCrossFilters is true (dashboard context)', () => {
+      const startTime = 1609459200000;
+      const endTime = 1609545600000;
+
+      const params = {
+        areas: [
+          {
+            coordRange: [
+              [startTime, endTime],
+              [0, 100],
+            ],
+          },
+        ],
+      };
+
+      handleBrushEnd(
+        params,
+        baseXAxis,
+        baseFormData,
+        mockSetDataMask,
+        mockXValueFormatter,
+        { emitCrossFilters: true },
+      );
+
+      expect(mockSetDataMask).toHaveBeenCalledWith({
+        extraFormData: {
+          filters: [
+            { col: 'ds', op: '>=', val: startTime },
+            { col: 'ds', op: '<=', val: endTime },
+          ],
+        },
+        filterState: {
+          value: [startTime, endTime],
+          selectedValues: [startTime, endTime],
+          label: expect.stringContaining(' - '),
+        },
+      });
     });
   });
 });

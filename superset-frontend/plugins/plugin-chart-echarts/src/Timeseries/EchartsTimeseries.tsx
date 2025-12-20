@@ -97,8 +97,13 @@ export default function EchartsTimeseries({
     };
   }, [formData.showExtraControls]);
 
-  // Activate brush mode for time-axis charts
+  // Activate brush mode for time-axis charts when cross-filters are enabled
   useEffect(() => {
+    // Only enable brush when cross-filters are enabled (on dashboards)
+    if (!emitCrossFilters) {
+      return;
+    }
+
     if (xAxis.type !== AxisType.Time) {
       return;
     }
@@ -128,7 +133,7 @@ export default function EchartsTimeseries({
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [xAxis.type]);
+  }, [emitCrossFilters, xAxis.type]);
 
   const hasDimensions = ensureIsArray(groupby).length > 0;
 
@@ -201,22 +206,11 @@ export default function EchartsTimeseries({
 
   const handleBrushEnd = useCallback(
     (params: any) => {
-      // eslint-disable-next-line no-console
-      console.log('[BRUSH DEBUG] handleBrushEnd called', params);
-      // eslint-disable-next-line no-console
-      console.log('[BRUSH DEBUG] xAxis:', xAxis);
-      // eslint-disable-next-line no-console
-      console.log('[BRUSH DEBUG] emitCrossFilters:', emitCrossFilters);
-
       if (!emitCrossFilters) {
-        // eslint-disable-next-line no-console
-        console.log('[BRUSH DEBUG] Skipping: cross-filters not enabled');
         return;
       }
 
       if (xAxis.type !== AxisType.Time) {
-        // eslint-disable-next-line no-console
-        console.log('[BRUSH DEBUG] Skipping: not time axis');
         return;
       }
 
@@ -226,32 +220,19 @@ export default function EchartsTimeseries({
         ('ontouchstart' in window ||
           (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0));
       if (isTouchDevice) {
-        // eslint-disable-next-line no-console
-        console.log('[BRUSH DEBUG] Skipping: touch device');
         return;
       }
 
-      // Get the brush areas from the event
-      // brushEnd event has areas directly in params.areas
       const brushAreas = params.areas || [];
-      // eslint-disable-next-line no-console
-      console.log('[BRUSH DEBUG] brushAreas:', brushAreas);
 
       if (brushAreas.length === 0) {
-        // eslint-disable-next-line no-console
-        console.log('[BRUSH DEBUG] No areas, brushFilterApplied:', brushFilterApplied.current);
         // If we just applied a filter, the chart re-rendered and cleared the brush
         // Don't reset the filter in this case
         if (brushFilterApplied.current) {
-          // eslint-disable-next-line no-console
-          console.log('[BRUSH DEBUG] Skipping reset - filter was just applied');
           brushFilterApplied.current = false;
           return;
         }
-        // eslint-disable-next-line no-console
-        console.log('[BRUSH DEBUG] Resetting filter');
         // Brush was cleared by user, reset the filter
-        // Defer to let brush event complete before re-render
         setTimeout(() => {
           setDataMask({
             extraFormData: {},
@@ -265,29 +246,18 @@ export default function EchartsTimeseries({
       }
 
       const area = brushAreas[0];
-      // coordRange contains the data values of the brush selection
-      // For rect brush, coordRange is [[minX, maxX], [minY, maxY]]
       const coordRange = area.coordRange;
-      // eslint-disable-next-line no-console
-      console.log('[BRUSH DEBUG] coordRange:', coordRange);
 
       if (!coordRange || !coordRange[0] || coordRange[0].length < 2) {
-        // eslint-disable-next-line no-console
-        console.log('[BRUSH DEBUG] Invalid coordRange');
         return;
       }
 
       const [startValue, endValue] = coordRange[0].map(Number);
-      // eslint-disable-next-line no-console
-      console.log('[BRUSH DEBUG] startValue:', startValue, 'endValue:', endValue);
 
       const col =
         xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
       const startFormatted = xValueFormatter(startValue);
       const endFormatted = xValueFormatter(endValue);
-
-      // eslint-disable-next-line no-console
-      console.log('[BRUSH DEBUG] Setting filter - col:', col, 'range:', startFormatted, '-', endFormatted);
 
       // Mark that we're applying a filter so we don't reset on re-render
       brushFilterApplied.current = true;
@@ -307,8 +277,6 @@ export default function EchartsTimeseries({
             label: `${startFormatted} - ${endFormatted}`,
           },
         });
-        // eslint-disable-next-line no-console
-        console.log('[BRUSH DEBUG] setDataMask called');
       }, 0);
     },
     [emitCrossFilters, formData, setDataMask, xAxis, xValueFormatter],
