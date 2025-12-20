@@ -17,10 +17,30 @@
  * under the License.
  */
 import PropTypes from 'prop-types';
+import { Metric } from '@superset-ui/core';
+import { Datasource } from 'src/explore/types';
+import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 import columnType from './columnType';
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from './AdhocMetric';
 import savedMetricType from './savedMetricType';
+import { savedMetricType as SavedMetricTypeDef } from './types';
+
+interface MetricDefinitionValueProps {
+  option: AdhocMetric | SavedMetricTypeDef | string;
+  index: number;
+  onMetricEdit?: (newMetric: Metric, oldMetric: Metric) => void;
+  onRemoveMetric?: (index: number) => void;
+  onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
+  onDropLabel?: () => void;
+  columns?: { column_name: string; type: string }[];
+  savedMetrics?: SavedMetricTypeDef[];
+  savedMetricsOptions?: SavedMetricTypeDef[];
+  multi?: boolean;
+  datasource?: Datasource & ISaveableDatasource;
+  datasourceWarningMessage?: string;
+  type?: string;
+}
 
 const propTypes = {
   option: PropTypes.oneOfType([PropTypes.object, PropTypes.string]).isRequired,
@@ -51,9 +71,9 @@ export default function MetricDefinitionValue({
   type,
   multi,
   datasourceWarningMessage,
-}) {
-  const getSavedMetricByName = metricName =>
-    savedMetrics.find(metric => metric.metric_name === metricName);
+}: MetricDefinitionValueProps) {
+  const getSavedMetricByName = (metricName: string) =>
+    savedMetrics?.find(metric => metric.metric_name === metricName);
 
   let savedMetric;
   if (typeof option === 'string') {
