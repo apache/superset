@@ -84,6 +84,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     width,
     onChartStateChange,
     chartState,
+    setControlValue,
+    formData,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -302,6 +304,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         width={width}
         onColumnStateChange={handleColumnStateChange}
         chartState={chartState}
+        setControlValue={setControlValue}
+        formData={formData}
       />
     </StyledChartContainer>
   );

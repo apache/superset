@@ -43,6 +43,7 @@ import {
   IHeaderParams,
   CustomCellRendererProps,
 } from '@superset-ui/core/components/ThemedAgGridReact';
+import { HandlerFunction } from '@superset-ui/core';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
 
@@ -179,6 +180,7 @@ export interface AgGridTableChartTransformedProps<
   formData: TableChartFormData;
   onChartStateChange?: (chartState: JsonObject) => void;
   chartState?: AgGridChartState;
+  setControlValue?: HandlerFunction;
 }
 
 export enum ColorSchemeEnum {
@@ -194,6 +196,8 @@ export interface SortState {
 export interface CustomContext {
   initialSortState: SortState[];
   onColumnHeaderClicked: (args: { column: SortState }) => void;
+  setControlValue?: HandlerFunction;
+  formData?: TableChartFormData;
 }
 
 export interface CustomHeaderParams extends IHeaderParams {
