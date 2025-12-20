@@ -76,6 +76,16 @@ interface Datasource {
   time_grain_sqla?: unknown[];
 }
 
+interface ControlState {
+  datasource?: Datasource;
+  controls?: Record<string, { value?: unknown }>;
+}
+
+interface ControlConfig {
+  includeTime?: boolean;
+  [key: string]: unknown;
+}
+
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
@@ -135,17 +145,17 @@ const groupByControl = {
     'One or many columns to group by. High cardinality groupings should include a series limit ' +
       'to limit the number of fetched and rendered series.',
   ),
-  optionRenderer: c => <StyledColumnOption column={c} showType />,
+  optionRenderer: (c: Column) => <StyledColumnOption column={c} showType />,
   valueKey: 'column_name',
-  filterOption: ({ data: opt }, text) =>
+  filterOption: ({ data: opt }: { data: Column }, text: string) =>
     (opt.column_name &&
       opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
     (opt.verbose_name &&
       opt.verbose_name.toLowerCase().indexOf(text.toLowerCase()) >= 0),
-  mapStateToProps: (state, control) => {
-    const newState = {};
+  mapStateToProps: (state: ControlState, control: ControlConfig) => {
+    const newState: { options?: Column[] } = {};
     if (state.datasource) {
-      newState.options = state.datasource.columns.filter(c => c.groupby);
+      newState.options = state.datasource.columns.filter((c: Column) => c.groupby);
       if (control?.includeTime) {
         newState.options.push(timeColumnOption);
       }
@@ -159,7 +169,7 @@ const metrics = {
   multi: true,
   label: t('Metrics'),
   validators: [validateNonEmpty],
-  mapStateToProps: state => {
+  mapStateToProps: (state: ControlState) => {
     const { datasource } = state;
     return {
       columns: datasource ? datasource.columns : [],
@@ -205,7 +215,7 @@ export const controls = {
     label: t('Dataset'),
     default: null,
     description: null,
-    mapStateToProps: ({ datasource }) => ({
+    mapStateToProps: ({ datasource }: ControlState) => ({
       datasource,
       isEditable: !!datasource,
     }),
@@ -302,10 +312,10 @@ export const controls = {
         'expression',
     ),
     clearable: false,
-    optionRenderer: c => <StyledColumnOption column={c} showType />,
+    optionRenderer: (c: Column) => <StyledColumnOption column={c} showType />,
     valueKey: 'column_name',
-    mapStateToProps: state => {
-      const props = {};
+    mapStateToProps: (state: ControlState) => {
+      const props: { choices?: Column[]; default?: string | null } = {};
       if (state.datasource) {
         props.choices = state.datasource.granularity_sqla;
         props.default = null;
@@ -330,7 +340,7 @@ export const controls = {
         'The options here are defined on a per database ' +
         'engine basis in the Superset source code.',
     ),
-    mapStateToProps: state => ({
+    mapStateToProps: (state: ControlState) => ({
       choices: state.datasource ? state.datasource.time_grain_sqla : null,
     }),
   },
@@ -384,7 +394,7 @@ export const controls = {
       'Metric used to define how the top series are sorted if a series or row limit is present. ' +
         'If undefined reverts to the first metric (where appropriate).',
     ),
-    mapStateToProps: state => ({
+    mapStateToProps: (state: ControlState) => ({
       columns: state.datasource ? state.datasource.columns : [],
       savedMetrics: state.datasource ? state.datasource.metrics : [],
       datasource: state.datasource,
@@ -440,7 +450,7 @@ export const controls = {
     default: 'SMART_NUMBER',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
-    mapStateToProps: state => {
+    mapStateToProps: (state: ControlState) => {
       const showWarning =
         state.controls?.comparison_type?.value === 'percentage';
       return {
@@ -460,9 +470,9 @@ export const controls = {
     label: t('Filters'),
     default: null,
     description: '',
-    mapStateToProps: state => ({
+    mapStateToProps: (state: ControlState) => ({
       columns: state.datasource
-        ? state.datasource.columns.filter(c => c.filterable)
+        ? state.datasource.columns.filter((c: Column) => c.filterable)
         : [],
       savedMetrics: state.datasource ? state.datasource.metrics : [],
       datasource: state.datasource,
