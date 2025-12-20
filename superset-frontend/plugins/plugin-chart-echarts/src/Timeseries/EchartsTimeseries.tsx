@@ -201,7 +201,7 @@ export default function EchartsTimeseries({
         return;
       }
 
-      const [startValue, endValue] = coordRange[0];
+      const [startValue, endValue] = coordRange[0].map(Number);
 
       const col =
         xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;

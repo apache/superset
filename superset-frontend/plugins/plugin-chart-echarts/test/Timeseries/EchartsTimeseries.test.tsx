@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AxisType } from '@superset-ui/core';
+import { AxisType, DTTM_ALIAS } from '@superset-ui/core';
 import { EchartsTimeseriesFormData } from '../../src/Timeseries/types';
 
 describe('EchartsTimeseries handleBrushSelected', () => {
@@ -28,7 +28,7 @@ describe('EchartsTimeseries handleBrushSelected', () => {
   };
 
   const baseXAxis = {
-    label: '__timestamp',
+    label: DTTM_ALIAS,
     type: AxisType.Time,
   };
 
@@ -80,7 +80,7 @@ describe('EchartsTimeseries handleBrushSelected', () => {
       const [startValue, endValue] = coordRange[0];
 
       const col =
-        xAxis.label === '__timestamp' ? formData.granularitySqla : xAxis.label;
+        xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
       const startFormatted = xValueFormatter(startValue);
       const endFormatted = xValueFormatter(endValue);
 
@@ -196,7 +196,7 @@ describe('EchartsTimeseries handleBrushSelected', () => {
       });
     });
 
-    it('should use xAxis.label as column when not __timestamp', () => {
+    it('should use xAxis.label as column when not DTTM_ALIAS', () => {
       const startTime = 1609459200000;
       const endTime = 1609545600000;
 
