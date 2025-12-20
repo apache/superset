@@ -324,9 +324,13 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   let columns = props.options;
   const { subject, operator, operatorId } = props.adhocFilter;
 
+  const subjectValue = typeof subject === 'string'
+    ? subject
+    : (subject && 'column_name' in subject ? subject.column_name : undefined);
+
   const subjectSelectProps = {
     ariaLabel: t('Select subject'),
-    value: subject ?? undefined,
+    value: subjectValue,
     onChange: handleSubjectChange,
     notFoundContent: t(
       'No such column found. To filter on a metric, try the Custom SQL tab.',

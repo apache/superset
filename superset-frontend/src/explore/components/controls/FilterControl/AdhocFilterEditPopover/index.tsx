@@ -428,7 +428,7 @@ export default class AdhocFilterEditPopover extends Component<
                     adhocFilter={this.state.adhocFilter}
                     onChange={this.onAdhocFilterChange}
                     options={options as ColumnType[]}
-                    datasource={datasource as Dataset}
+                    datasource={datasource as unknown as Dataset}
                     onHeightChange={this.adjustHeight}
                     partitionColumn={partitionColumn}
                     popoverRef={this.popoverContentRef.current}
