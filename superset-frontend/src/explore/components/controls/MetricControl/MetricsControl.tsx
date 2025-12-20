@@ -57,27 +57,14 @@ const defaultProps = {
   columns: [],
 };
 
-interface SavedMetricDef {
-  metric_name: string;
-  expression: string;
-  [key: string]: unknown;
-}
-
-interface ColumnDef {
-  column_name: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
-type MetricValue = string | AdhocMetric | SavedMetricDef | { expressionType?: string; column?: { column_name: string }; metric_name?: string; [key: string]: unknown };
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getOptionsForSavedMetrics(
-  savedMetrics: SavedMetricDef[] | undefined,
-  currentMetricValues: MetricValue[] | MetricValue | undefined,
-  currentMetric: string | undefined,
-): SavedMetricDef[] {
+  savedMetrics: any,
+  currentMetricValues: any,
+  currentMetric: any,
+) {
   return (
-    savedMetrics?.filter((savedMetric: SavedMetricDef) =>
+    savedMetrics?.filter((savedMetric: { metric_name: string }) =>
       Array.isArray(currentMetricValues)
         ? !currentMetricValues.includes(savedMetric.metric_name) ||
           savedMetric.metric_name === currentMetric
@@ -86,25 +73,28 @@ function getOptionsForSavedMetrics(
   );
 }
 
-function isDictionaryForAdhocMetric(value: unknown): boolean {
-  return !!value && !(value instanceof AdhocMetric) && !!(value as { expressionType?: string }).expressionType;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isDictionaryForAdhocMetric(value: any) {
+  return value && !(value instanceof AdhocMetric) && value.expressionType;
 }
 
 // adhoc metrics are stored as dictionaries in URL params. We convert them back into the
 // AdhocMetric class for typechecking, consistency and instance method access.
-function coerceAdhocMetrics(value: MetricValue | MetricValue[] | undefined): (AdhocMetric | MetricValue)[] {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function coerceAdhocMetrics(value: any) {
   if (!value) {
     return [];
   }
   if (!Array.isArray(value)) {
     if (isDictionaryForAdhocMetric(value)) {
-      return [new AdhocMetric(value as Record<string, unknown>)];
+      return [new AdhocMetric(value)];
     }
     return [value];
   }
-  return value.map(val => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return value.map((val: any) => {
     if (isDictionaryForAdhocMetric(val)) {
-      return new AdhocMetric(val as Record<string, unknown>);
+      return new AdhocMetric(val);
     }
     return val;
   });
@@ -113,7 +103,8 @@ function coerceAdhocMetrics(value: MetricValue | MetricValue[] | undefined): (Ad
 const emptySavedMetric = { metric_name: '', expression: '' };
 
 // TODO: use typeguards to distinguish saved metrics from adhoc metrics
-const getMetricsMatchingCurrentDataset = (value: MetricValue | MetricValue[] | undefined, columns: ColumnDef[] | undefined, savedMetrics: SavedMetricDef[] | undefined) =>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getMetricsMatchingCurrentDataset = (value: any, columns: any, savedMetrics: any) =>
   ensureIsArray(value).filter(metric => {
     if (typeof metric === 'string' || metric.metric_name) {
       return savedMetrics?.some(
