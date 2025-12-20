@@ -57,10 +57,10 @@ const simpleAdhocFilter = new AdhocFilter({
 const advancedTypeTestAdhocFilterTest = new AdhocFilter({
   expressionType: ExpressionTypes.Simple,
   subject: 'advancedDataType',
-  operatorId: null,
-  operator: null,
-  comparator: null,
-  clause: null,
+  operatorId: undefined,
+  operator: undefined,
+  comparator: undefined,
+  clause: undefined,
 });
 
 const simpleMultiAdhocFilter = new AdhocFilter({
@@ -196,10 +196,10 @@ test('shows boolean only operators when subject is boolean', () => {
     adhocFilter: new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'value',
-      operatorId: null,
-      operator: null,
-      comparator: null,
-      clause: null,
+      operatorId: undefined,
+      operator: undefined,
+      comparator: undefined,
+      clause: undefined,
     }),
     datasource: {
       columns: [
@@ -211,7 +211,9 @@ test('shows boolean only operators when subject is boolean', () => {
       ],
     },
   });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   [
     Operators.IsTrue,
     Operators.IsFalse,
@@ -225,10 +227,10 @@ test('shows boolean only operators when subject is number', () => {
     adhocFilter: new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'value',
-      operatorId: null,
-      operator: null,
-      comparator: null,
-      clause: null,
+      operatorId: undefined,
+      operator: undefined,
+      comparator: undefined,
+      clause: undefined,
     }),
     datasource: {
       columns: [
@@ -240,7 +242,9 @@ test('shows boolean only operators when subject is number', () => {
       ],
     },
   });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   [
     Operators.IsTrue,
     Operators.IsFalse,
@@ -251,7 +255,9 @@ test('shows boolean only operators when subject is number', () => {
 
 test('will convert from individual comparator to array if the operator changes to multi', () => {
   const props = setup();
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   onOperatorChange(Operators.In);
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0].comparator).toEqual(['10']);
@@ -262,7 +268,7 @@ test('will convert from array to individual comparators if the operator changes 
   const props = setup({
     adhocFilter: simpleMultiAdhocFilter,
   });
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(props as unknown as Props);
   onOperatorChange(Operators.LessThan);
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0]).toEqual(
@@ -276,7 +282,7 @@ test('will convert from array to individual comparators if the operator changes 
 
 test('passes the new adhocFilter to onChange after onComparatorChange', () => {
   const props = setup();
-  const { onComparatorChange } = useSimpleTabFilterProps(props);
+  const { onComparatorChange } = useSimpleTabFilterProps(props as unknown as Props);
   onComparatorChange('20');
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0]).toEqual(
@@ -286,7 +292,7 @@ test('passes the new adhocFilter to onChange after onComparatorChange', () => {
 
 test('will filter operators for table datasources', () => {
   const props = setup({ datasource: { type: 'table' as const } });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(props as unknown as Props);
   expect(isOperatorRelevant(Operators.Like, 'value')).toBe(true);
 });
 
@@ -300,7 +306,7 @@ test('will show LATEST PARTITION operator', () => {
     adhocFilter: simpleCustomFilter,
     partitionColumn: 'ds',
   });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(props as unknown as Props);
   expect(isOperatorRelevant(Operators.LatestPartition, 'ds')).toBe(true);
   expect(isOperatorRelevant(Operators.LatestPartition, 'value')).toBe(false);
 });
@@ -319,7 +325,7 @@ test('will generate custom sqlExpression for LATEST PARTITION operator', () => {
     adhocFilter: testAdhocFilter,
     partitionColumn: 'ds',
   });
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(props as unknown as Props);
   onOperatorChange(Operators.LatestPartition);
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0]).toEqual(
@@ -345,7 +351,7 @@ test('will not display boolean operators when column type is string', () => {
     },
     adhocFilter: simpleAdhocFilter,
   });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(props as unknown as Props);
   const booleanOnlyOperators = [Operators.IsTrue, Operators.IsFalse];
   booleanOnlyOperators.forEach(operator => {
     expect(isOperatorRelevant(operator, 'value')).toBe(false);
@@ -367,7 +373,7 @@ test('will display boolean operators when column is an expression', () => {
     },
     adhocFilter: simpleAdhocFilter,
   });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(props as unknown as Props);
   const booleanOnlyOperators = [Operators.IsTrue, Operators.IsFalse];
   booleanOnlyOperators.forEach(operator => {
     expect(isOperatorRelevant(operator, 'value')).toBe(true);
@@ -376,7 +382,7 @@ test('will display boolean operators when column is an expression', () => {
 
 test('sets comparator to undefined when operator is IS_TRUE', () => {
   const props = setup();
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(props as unknown as Props);
   onOperatorChange(Operators.IsTrue);
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0].operatorId).toBe(Operators.IsTrue);
@@ -386,7 +392,7 @@ test('sets comparator to undefined when operator is IS_TRUE', () => {
 
 test('sets comparator to undefined when operator is IS_FALSE', () => {
   const props = setup();
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(props as unknown as Props);
   onOperatorChange(Operators.IsFalse);
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0].operatorId).toBe(Operators.IsFalse);
@@ -396,7 +402,7 @@ test('sets comparator to undefined when operator is IS_FALSE', () => {
 
 test('sets comparator to undefined when operator is IS_NULL or IS_NOT_NULL', () => {
   const props = setup();
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(props as unknown as Props);
   [Operators.IsNull, Operators.IsNotNull].forEach(op => {
     onOperatorChange(op);
     expect(props.onChange.called).toBe(true);

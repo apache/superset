@@ -468,11 +468,11 @@ test('should not set the temporal column', async () => {
   const overrideProps = {
     ...props,
     form_data: {
-      granularity_sqla: null,
+      granularity_sqla: undefined,
     },
     datasource: {
       ...props.datasource,
-      main_dttm_col: null,
+      main_dttm_col: undefined,
       columns: [
         {
           column_name: 'test-col',

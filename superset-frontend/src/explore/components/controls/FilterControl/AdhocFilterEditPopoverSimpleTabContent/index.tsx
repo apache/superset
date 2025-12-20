@@ -87,9 +87,11 @@ export interface Props {
   onChange: (filter: AdhocFilter) => void;
   options: ColumnType[];
   datasource: Dataset;
-  partitionColumn: string;
+  partitionColumn?: string;
   operators?: Operators[];
   validHandler: (isValid: boolean) => void;
+  onHeightChange?: (heightDifference: number) => void;
+  popoverRef?: HTMLDivElement | null;
 }
 
 export interface AdvancedDataTypesState {

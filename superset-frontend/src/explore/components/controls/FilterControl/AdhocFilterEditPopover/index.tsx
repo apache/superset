@@ -31,6 +31,8 @@ import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilt
 import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import AdhocFilterEditPopoverSqlTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
+import type { Dataset } from '@superset-ui/chart-controls';
+import type { ColumnType } from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
@@ -425,12 +427,10 @@ export default class AdhocFilterEditPopover extends Component<
                     operators={operators as Operators[] | undefined}
                     adhocFilter={this.state.adhocFilter}
                     onChange={this.onAdhocFilterChange}
-                    options={options as unknown as Record<string, unknown>[]}
-                    datasource={
-                      datasource as unknown as Record<string, unknown>
-                    }
+                    options={options as ColumnType[]}
+                    datasource={datasource as Dataset}
                     onHeightChange={this.adjustHeight}
-                    partitionColumn={partitionColumn ?? undefined}
+                    partitionColumn={partitionColumn}
                     popoverRef={this.popoverContentRef.current}
                     validHandler={this.setSimpleTabIsValid}
                   />
@@ -445,14 +445,9 @@ export default class AdhocFilterEditPopover extends Component<
                   <AdhocFilterEditPopoverSqlTabContent
                     adhocFilter={this.state.adhocFilter}
                     onChange={this.onAdhocFilterChange}
-                    options={
-                      this.props.options as unknown as Record<string, unknown>[]
-                    }
+                    options={this.props.options}
                     height={this.state.height}
-                    activeKey={this.state.activeKey}
-                    datasource={
-                      datasource as unknown as Record<string, unknown>
-                    }
+                    datasource={datasource}
                   />
                 </ErrorBoundary>
               ),
