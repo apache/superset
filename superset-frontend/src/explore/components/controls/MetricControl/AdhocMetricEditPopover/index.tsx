@@ -49,6 +49,49 @@ import {
 } from 'src/explore/components/optionRenderers';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
+import type { RefObject } from 'react';
+
+interface ColumnType {
+  column_name: string;
+  verbose_name?: string;
+  [key: string]: unknown;
+}
+
+interface SavedMetricType {
+  metric_name: string;
+  verbose_name?: string;
+  expression?: string;
+  [key: string]: unknown;
+}
+
+interface AdhocMetricEditPopoverProps {
+  onChange: (adhocMetric: AdhocMetric) => void;
+  onClose: () => void;
+  onResize: () => void;
+  getCurrentTab?: (tab: string) => void;
+  getCurrentLabel?: (labels: {
+    savedMetricLabel?: string;
+    adhocMetricLabel?: string;
+  }) => void;
+  adhocMetric: AdhocMetric;
+  columns?: ColumnType[];
+  savedMetricsOptions?: SavedMetricType[];
+  savedMetric?: SavedMetricType;
+  datasource?: {
+    type?: DatasourceType;
+    database?: { id: number };
+    [key: string]: unknown;
+  };
+  isNewMetric?: boolean;
+  isLabelModified?: boolean;
+}
+
+interface AdhocMetricEditPopoverState {
+  adhocMetric: AdhocMetric;
+  savedMetric?: SavedMetricType;
+  width: number;
+  height: number;
+}
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
@@ -85,11 +128,24 @@ const StyledSelect = styled(Select)`
 
 export const SAVED_TAB_KEY = 'SAVED';
 
-export default class AdhocMetricEditPopover extends PureComponent {
+export default class AdhocMetricEditPopover extends PureComponent<
+  AdhocMetricEditPopoverProps,
+  AdhocMetricEditPopoverState
+> {
   // "Saved" is a default tab unless there are no saved metrics for dataset
   defaultActiveTabKey = this.getDefaultTab();
 
-  constructor(props) {
+  aceEditorRef: RefObject<HTMLDivElement>;
+
+  dragStartX = 0;
+
+  dragStartY = 0;
+
+  dragStartWidth = 0;
+
+  dragStartHeight = 0;
+
+  constructor(props: AdhocMetricEditPopoverProps) {
     super(props);
     this.onSave = this.onSave.bind(this);
     this.onResetStateAndClose = this.onResetStateAndClose.bind(this);
@@ -115,10 +171,13 @@ export default class AdhocMetricEditPopover extends PureComponent {
   }
 
   componentDidMount() {
-    this.props.getCurrentTab(this.defaultActiveTabKey);
+    this.props.getCurrentTab?.(this.defaultActiveTabKey);
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(
+    _prevProps: AdhocMetricEditPopoverProps,
+    prevState: AdhocMetricEditPopoverState,
+  ) {
     if (
       prevState.adhocMetric?.sqlExpression !==
         this.state.adhocMetric?.sqlExpression ||
@@ -127,7 +186,7 @@ export default class AdhocMetricEditPopover extends PureComponent {
         this.state.adhocMetric?.column?.column_name ||
       prevState.savedMetric?.metric_name !== this.state.savedMetric?.metric_name
     ) {
-      this.props.getCurrentLabel({
+      this.props.getCurrentLabel?.({
         savedMetricLabel:
           this.state.savedMetric?.verbose_name ||
           this.state.savedMetric?.metric_name,
@@ -527,5 +586,7 @@ export default class AdhocMetricEditPopover extends PureComponent {
     );
   }
 }
+// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
 AdhocMetricEditPopover.propTypes = propTypes;
+// @ts-expect-error - defaultProps for backward compatibility with PropTypes
 AdhocMetricEditPopover.defaultProps = defaultProps;
