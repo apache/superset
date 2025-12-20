@@ -345,7 +345,7 @@ export const SaveDatasetModal = ({
       createDatasource({
         sql: datasource.sql,
         dbId: (datasource.dbId || datasource?.database?.id) as number,
-        catalog: datasource?.catalog ?? undefined,
+        catalog: datasource?.catalog ?? null,
         schema: datasource?.schema ?? '',
         templateParams,
         datasourceName: datasetName,

@@ -1629,7 +1629,7 @@ export function createDatasourceFailed(err: string): SqlLabAction {
 
 interface VizOptions {
   dbId: number;
-  catalog?: string;
+  catalog?: string | null;
   schema: string;
   datasourceName: string;
   sql: string;
