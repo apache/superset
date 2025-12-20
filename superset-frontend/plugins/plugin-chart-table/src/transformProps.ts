@@ -501,6 +501,7 @@ const transformProps = (
       onAddFilter: onChangeFilter,
       setDataMask = () => {},
       onContextMenu,
+      setControlValue,
     },
     emitCrossFilters,
     theme,
@@ -806,6 +807,8 @@ const transformProps = (
     serverPageLength,
     slice_id,
     columnLabelToNameMap,
+    setControlValue,
+    formData,
   };
 };
 
