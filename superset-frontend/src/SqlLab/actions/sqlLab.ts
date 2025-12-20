@@ -214,8 +214,9 @@ export const convertQueryToClient = fieldConverter(queryClientMapping);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getUpToDateQuery(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rootState: any,
-  queryEditor: QueryEditor | { id: string },
+  queryEditor: Partial<QueryEditor>,
   key?: string,
 ): QueryEditor {
   const {
@@ -224,7 +225,7 @@ export function getUpToDateQuery(
   const id = key ?? queryEditor.id;
   return {
     id,
-    ...queryEditors.find(qe => qe.id === id),
+    ...queryEditors.find((qe: QueryEditor) => qe.id === id),
     ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
   } as QueryEditor;
 }
@@ -244,7 +245,8 @@ export function resetState(data?: Record<string, unknown>): any {
       type: RESET_STATE,
       sqlLabInitialState: initialState.sqlLab,
     });
-    rehydratePersistedState(dispatch, initialState);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rehydratePersistedState(dispatch, initialState as any);
   };
 }
 
@@ -630,10 +632,10 @@ export function syncQueryEditor(queryEditor: QueryEditor): any {
   return function (dispatch: any, getState: any) {
     const { tables, queries } = getState().sqlLab;
     const localStorageTables = tables.filter(
-      table => table.inLocalStorage && table.queryEditorId === queryEditor.id,
+      (table: Table) => table.inLocalStorage && table.queryEditorId === queryEditor.id,
     );
     const localStorageQueries = Object.values(queries).filter(
-      query => query.inLocalStorage && query.sqlEditorId === queryEditor.id,
+      (query: Query) => query.inLocalStorage && query.sqlEditorId === queryEditor.id,
     );
     return SupersetClient.post({
       endpoint: '/tabstateview/',
@@ -652,10 +654,10 @@ export function syncQueryEditor(queryEditor: QueryEditor): any {
           newQueryEditor,
         });
         return Promise.all([
-          ...localStorageTables.map(table =>
+          ...localStorageTables.map((table: Table) =>
             migrateTable(table, newQueryEditor.tabViewId!, dispatch),
           ),
-          ...localStorageQueries.map(query =>
+          ...localStorageQueries.map((query: Query) =>
             migrateQuery(query.id, newQueryEditor.tabViewId!, dispatch),
           ),
         ]);
@@ -727,8 +729,8 @@ export function addNewQueryEditor(): any {
     return dispatch(
       addQueryEditor({
         dbId: dbId || defaultDbId || firstDbId,
-        catalog: catalog ?? null,
-        schema: schema ?? null,
+        catalog: catalog ?? undefined,
+        schema: schema ?? undefined,
         autorun: autorun ?? false,
         sql: `${warning}SELECT ...`,
         queryLimit: queryLimit || common.conf.DEFAULT_SQLLAB_LIMIT,
@@ -754,9 +756,9 @@ export function cloneQueryToNewTab(query: Query, autorun: boolean): any {
     };
     const queryEditor = {
       name: t('Copy of %s', sourceQueryEditor.name),
-      dbId: query.dbId ? query.dbId : null,
-      catalog: query.catalog ? query.catalog : null,
-      schema: query.schema ? query.schema : null,
+      dbId: query.dbId ?? undefined,
+      catalog: query.catalog ?? undefined,
+      schema: query.schema ?? undefined,
       autorun,
       sql: query.sql,
       queryLimit: sourceQueryEditor.queryLimit,
@@ -884,7 +886,7 @@ export function fetchQueryEditor(
           remoteId: json.saved_query?.id,
           hideLeftBar: json.hide_left_bar,
         };
-        dispatch(loadQueryEditor(loadedQueryEditor as QueryEditor));
+        dispatch(loadQueryEditor(loadedQueryEditor as unknown as QueryEditor));
         dispatch(setTables(json.table_schemas || []));
         if (json.latest_query?.resultsKey) {
           dispatch(fetchQueryResults(json.latest_query, displayLimit));
@@ -964,14 +966,14 @@ export function removeQuery(query: Query): any {
 }
 
 export function queryEditorSetDb(
-  queryEditor: QueryEditor,
+  queryEditor: Partial<QueryEditor>,
   dbId: number,
 ): SqlLabAction {
   return { type: QUERY_EDITOR_SETDB, queryEditor, dbId };
 }
 
 export function queryEditorSetCatalog(
-  queryEditor: QueryEditor | null,
+  queryEditor: Partial<QueryEditor> | null,
   catalog: string,
 ): SqlLabAction {
   return {
@@ -982,7 +984,7 @@ export function queryEditorSetCatalog(
 }
 
 export function queryEditorSetSchema(
-  queryEditor: QueryEditor | null,
+  queryEditor: Partial<QueryEditor> | null,
   schema: string,
 ): SqlLabAction {
   return {
@@ -993,14 +995,14 @@ export function queryEditorSetSchema(
 }
 
 export function queryEditorSetAutorun(
-  queryEditor: QueryEditor,
+  queryEditor: Partial<QueryEditor>,
   autorun: boolean,
 ): SqlLabAction {
   return { type: QUERY_EDITOR_SET_AUTORUN, queryEditor, autorun };
 }
 
 export function queryEditorSetTitle(
-  queryEditor: QueryEditor,
+  queryEditor: Partial<QueryEditor>,
   name: string,
   id: string,
 ): SqlLabAction {
@@ -1095,7 +1097,7 @@ export function updateSavedQuery(query: QueryEditor, clientId: string): any {
 }
 
 export function queryEditorSetSql(
-  queryEditor: QueryEditor,
+  queryEditor: Partial<QueryEditor>,
   sql: string,
   queryId?: string,
 ): SqlLabAction {
@@ -1103,7 +1105,7 @@ export function queryEditorSetSql(
 }
 
 export function queryEditorSetCursorPosition(
-  queryEditor: QueryEditor,
+  queryEditor: Partial<QueryEditor>,
   position: { row: number; column: number },
 ): SqlLabAction {
   return { type: QUERY_EDITOR_SET_CURSOR_POSITION, queryEditor, position };
@@ -1111,7 +1113,7 @@ export function queryEditorSetCursorPosition(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function queryEditorSetAndSaveSql(
-  targetQueryEditor: QueryEditor,
+  targetQueryEditor: Partial<QueryEditor>,
   sql: string,
   queryId?: string,
 ): any {
@@ -1175,7 +1177,7 @@ export function formatQuery(queryEditor: QueryEditor): any {
 }
 
 export function queryEditorSetQueryLimit(
-  queryEditor: QueryEditor,
+  queryEditor: Partial<QueryEditor>,
   queryLimit: number,
 ): SqlLabAction {
   return {
@@ -1186,7 +1188,7 @@ export function queryEditorSetQueryLimit(
 }
 
 export function queryEditorSetTemplateParams(
-  queryEditor: QueryEditor,
+  queryEditor: Partial<QueryEditor>,
   templateParams: string,
 ): SqlLabAction {
   return {
@@ -1197,8 +1199,8 @@ export function queryEditorSetTemplateParams(
 }
 
 export function queryEditorSetSelectedText(
-  queryEditor: QueryEditor,
-  sql: string,
+  queryEditor: Partial<QueryEditor>,
+  sql: string | null,
 ): SqlLabAction {
   return { type: QUERY_EDITOR_SET_SELECTED_TEXT, queryEditor, sql };
 }
@@ -1498,9 +1500,9 @@ export function popPermalink(key: string): any {
         dispatch(
           addQueryEditor({
             name: json.name ? json.name : t('Shared query'),
-            dbId: json.dbId ? parseInt(json.dbId, 10) : null,
-            catalog: json.catalog ? json.catalog : null,
-            schema: json.schema ? json.schema : null,
+            dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
+            catalog: json.catalog ? json.catalog : undefined,
+            schema: json.schema ? json.schema : undefined,
             autorun: json.autorun ? json.autorun : false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
@@ -1522,9 +1524,9 @@ export function popStoredQuery(urlId: string): any {
         dispatch(
           addQueryEditor({
             name: json.name ? json.name : t('Shared query'),
-            dbId: json.dbId ? parseInt(json.dbId, 10) : null,
-            catalog: json.catalog ? json.catalog : null,
-            schema: json.schema ? json.schema : null,
+            dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
+            catalog: json.catalog ? json.catalog : undefined,
+            schema: json.schema ? json.schema : undefined,
             autorun: json.autorun ? json.autorun : false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
@@ -1554,7 +1556,7 @@ export function popSavedQuery(saveQueryId: string): any {
           schema: queryEditorProps.schema as string,
           sql: queryEditorProps.sql as string,
           templateParams: queryEditorProps.templateParams as string,
-          remoteId: queryEditorProps.remoteId as string,
+          remoteId: queryEditorProps.remoteId as number | null,
         };
         return dispatch(addQueryEditor(tmpAdaptedProps));
       })
@@ -1656,7 +1658,7 @@ export function createDatasource(vizOptions: VizOptions): any {
       }),
     })
       .then(({ json }) => {
-        dispatch(createDatasourceSuccess(json));
+        dispatch(createDatasourceSuccess(json as { id: number }));
 
         return Promise.resolve(json);
       })

@@ -70,7 +70,8 @@ export default function sqlLabReducer(
   state: SqlLabState = {} as SqlLabState,
   action: SqlLabAction,
 ): SqlLabState {
-  const actionHandlers: Record<string, () => SqlLabState> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actionHandlers: Record<string, () => any> = {
     [actions.ADD_QUERY_EDITOR]() {
       const mergeUnsavedState = alterInArr(
         state,
@@ -95,7 +96,8 @@ export default function sqlLabReducer(
       return alterInArr(
         state,
         'queryEditors',
-        existing,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        existing as any,
         {
           remoteId: result.remoteId,
           name: query.name,
