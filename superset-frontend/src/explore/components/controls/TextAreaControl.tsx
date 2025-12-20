@@ -39,6 +39,12 @@ interface HotkeyConfig {
   func: () => void;
 }
 
+interface ThemeType {
+  colorBorder: string;
+  colorBgMask: string;
+  sizeUnit: number;
+}
+
 interface TextAreaControlProps {
   name?: string;
   onChange?: (value: string) => void;
@@ -55,11 +61,7 @@ interface TextAreaControlProps {
   tooltipOptions?: Record<string, unknown>;
   hotkeys?: HotkeyConfig[];
   debounceDelay?: number | null;
-  theme: {
-    colorBorder: string;
-    colorBgMask: string;
-    sizeUnit: number;
-  };
+  theme?: ThemeType;
   'aria-required'?: boolean;
   value?: string;
   [key: string]: unknown;
@@ -162,8 +164,8 @@ class TextAreaControl extends Component<TextAreaControlProps> {
   renderEditor(inModal = false) {
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
-      const style = {
-        border: `1px solid ${this.props.theme.colorBorder}`,
+      const style: React.CSSProperties = {
+        border: `1px solid ${this.props.theme?.colorBorder ?? '#d9d9d9'}`,
         minHeight: `${minLines}em`,
         width: 'auto',
         ...this.props.textAreaStyles,
@@ -172,10 +174,10 @@ class TextAreaControl extends Component<TextAreaControlProps> {
         style.resize = this.props.resize;
       }
       if (this.props.readOnly) {
-        style.backgroundColor = this.props.theme.colorBgMask;
+        style.backgroundColor = this.props.theme?.colorBgMask;
       }
-      const onEditorLoad = editor => {
-        this.props.hotkeys.forEach(keyConfig => {
+      const onEditorLoad = (editor: { commands: { addCommand: (cmd: { name: string; bindKey: { win: string; mac: string }; exec: () => void }) => void } }) => {
+        this.props.hotkeys?.forEach(keyConfig => {
           editor.commands.addCommand({
             name: keyConfig.name,
             bindKey: { win: keyConfig.key, mac: keyConfig.key },
@@ -246,12 +248,12 @@ class TextAreaControl extends Component<TextAreaControlProps> {
             triggerNode={
               <Button
                 buttonSize="small"
-                style={{ marginTop: this.props.theme.sizeUnit }}
+                style={{ marginTop: this.props.theme?.sizeUnit ?? 4 }}
               >
                 {t('Edit %s in modal', this.props.language)}
               </Button>
             }
-            modalBody={this.renderModalBody(true)}
+            modalBody={this.renderModalBody()}
             responsive
           />
         )}

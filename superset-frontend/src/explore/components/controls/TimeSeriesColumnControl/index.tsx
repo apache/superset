@@ -34,6 +34,42 @@ import BoundsControl from '../BoundsControl';
 import CheckboxControl from '../CheckboxControl';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
+interface TimeSeriesColumnControlProps {
+  label?: string;
+  tooltip?: string;
+  colType?: string;
+  width?: string;
+  height?: string;
+  timeLag?: string | number;
+  timeRatio?: string;
+  comparisonType?: string;
+  showYAxis?: boolean;
+  yAxisBounds?: (number | null)[];
+  bounds?: (number | null)[];
+  d3format?: string;
+  dateFormat?: string;
+  sparkType?: string;
+  onChange?: (state: TimeSeriesColumnControlState) => void;
+}
+
+interface TimeSeriesColumnControlState {
+  label: string;
+  tooltip: string;
+  colType: string;
+  width: string;
+  height: string;
+  timeLag: string | number;
+  timeRatio: string;
+  comparisonType: string;
+  showYAxis: boolean;
+  yAxisBounds: (number | null)[];
+  bounds: (number | null)[];
+  d3format: string;
+  dateFormat: string;
+  sparkType: string;
+  popoverVisible: boolean;
+}
+
 const propTypes = {
   label: PropTypes.string,
   tooltip: PropTypes.string,
@@ -111,8 +147,12 @@ const ButtonBar = styled.div`
   justify-content: center;
 `;
 
-export default class TimeSeriesColumnControl extends Component {
-  constructor(props) {
+export default class TimeSeriesColumnControl extends Component<TimeSeriesColumnControlProps, TimeSeriesColumnControlState> {
+  static propTypes = propTypes;
+
+  static defaultProps = defaultProps;
+
+  constructor(props: TimeSeriesColumnControlProps) {
     super(props);
 
     this.onSave = this.onSave.bind(this);
@@ -124,22 +164,22 @@ export default class TimeSeriesColumnControl extends Component {
     this.state = this.initialState();
   }
 
-  initialState() {
+  initialState(): TimeSeriesColumnControlState {
     return {
-      label: this.props.label,
-      tooltip: this.props.tooltip,
-      colType: this.props.colType,
-      width: this.props.width,
-      height: this.props.height,
-      timeLag: this.props.timeLag || 0,
-      timeRatio: this.props.timeRatio,
-      comparisonType: this.props.comparisonType,
-      showYAxis: this.props.showYAxis,
-      yAxisBounds: this.props.yAxisBounds,
-      bounds: this.props.bounds,
-      d3format: this.props.d3format,
-      dateFormat: this.props.dateFormat,
-      sparkType: this.props.sparkType,
+      label: this.props.label ?? t('Time series columns'),
+      tooltip: this.props.tooltip ?? '',
+      colType: this.props.colType ?? '',
+      width: this.props.width ?? '',
+      height: this.props.height ?? '',
+      timeLag: this.props.timeLag ?? 0,
+      timeRatio: this.props.timeRatio ?? '',
+      comparisonType: this.props.comparisonType ?? '',
+      showYAxis: this.props.showYAxis ?? false,
+      yAxisBounds: this.props.yAxisBounds ?? [null, null],
+      bounds: this.props.bounds ?? [null, null],
+      d3format: this.props.d3format ?? '',
+      dateFormat: this.props.dateFormat ?? '',
+      sparkType: this.props.sparkType ?? 'line',
       popoverVisible: false,
     };
   }
@@ -150,7 +190,7 @@ export default class TimeSeriesColumnControl extends Component {
   }
 
   onSave() {
-    this.props.onChange(this.state);
+    this.props.onChange?.(this.state);
     this.setState({ popoverVisible: false });
   }
 
@@ -158,23 +198,23 @@ export default class TimeSeriesColumnControl extends Component {
     this.resetState();
   }
 
-  onSelectChange(attr, opt) {
-    this.setState({ [attr]: opt });
+  onSelectChange(attr: keyof TimeSeriesColumnControlState, opt: string) {
+    this.setState({ [attr]: opt } as Pick<TimeSeriesColumnControlState, typeof attr>);
   }
 
-  onTextInputChange(attr, event) {
-    this.setState({ [attr]: event.target.value });
+  onTextInputChange(attr: keyof TimeSeriesColumnControlState, event: React.ChangeEvent<HTMLInputElement>) {
+    this.setState({ [attr]: event.target.value } as Pick<TimeSeriesColumnControlState, typeof attr>);
   }
 
-  onCheckboxChange(attr, value) {
-    this.setState({ [attr]: value });
+  onCheckboxChange(attr: keyof TimeSeriesColumnControlState, value: boolean) {
+    this.setState({ [attr]: value } as Pick<TimeSeriesColumnControlState, typeof attr>);
   }
 
-  onBoundsChange(bounds) {
+  onBoundsChange(bounds: (number | null)[]) {
     this.setState({ bounds });
   }
 
-  onPopoverVisibleChange(popoverVisible) {
+  onPopoverVisibleChange(popoverVisible: boolean) {
     if (popoverVisible) {
       this.setState({ popoverVisible });
     } else {
@@ -182,15 +222,15 @@ export default class TimeSeriesColumnControl extends Component {
     }
   }
 
-  onYAxisBoundsChange(yAxisBounds) {
+  onYAxisBoundsChange(yAxisBounds: (number | null)[]) {
     this.setState({ yAxisBounds });
   }
 
   textSummary() {
-    return `${this.props.label}`;
+    return `${this.props.label ?? ''}`;
   }
 
-  formRow(label, tooltip, ttLabel, control) {
+  formRow(label: string, tooltip: string, ttLabel: string, control: React.ReactNode) {
     return (
       <StyledRow>
         <StyledCol xs={24} md={11}>
@@ -412,6 +452,3 @@ export default class TimeSeriesColumnControl extends Component {
     );
   }
 }
-
-TimeSeriesColumnControl.propTypes = propTypes;
-TimeSeriesColumnControl.defaultProps = defaultProps;
