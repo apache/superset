@@ -22,6 +22,14 @@ import columnType from './columnType';
 import adhocMetricType from './adhocMetricType';
 import { StyledColumnOption } from '../../optionRenderers';
 
+interface OptionType {
+  saved_metric_name?: string;
+  column_name?: string;
+  label?: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
 const propTypes = {
   option: PropTypes.oneOfType([
     columnType,
@@ -30,7 +38,7 @@ const propTypes = {
   ]).isRequired,
 };
 
-export default function FilterDefinitionOption({ option }) {
+export default function FilterDefinitionOption({ option }: { option: OptionType }) {
   if (option.saved_metric_name) {
     return (
       <StyledColumnOption

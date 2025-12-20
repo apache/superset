@@ -26,17 +26,21 @@ const sumValueAdhocMetric = new AdhocMetric({
   aggregate: AGGREGATES.SUM,
 });
 
-const setup = propOverrides => {
+const defaultProps = {
+  onMetricEdit: jest.fn(),
+  option: sumValueAdhocMetric,
+  index: 1,
+  columns: [],
+  savedMetrics: [],
+  savedMetricsOptions: [],
+  datasource: {},
+  onMoveLabel: jest.fn(),
+  onDropLabel: jest.fn(),
+};
+
+const setup = (propOverrides: Partial<typeof defaultProps> = {}) => {
   const props = {
-    onMetricEdit: jest.fn(),
-    option: sumValueAdhocMetric,
-    index: 1,
-    columns: [],
-    savedMetrics: [],
-    savedMetricsOptions: [],
-    datasource: {},
-    onMoveLabel: jest.fn(),
-    onDropLabel: jest.fn(),
+    ...defaultProps,
     ...propOverrides,
   };
   return render(<MetricDefinitionValue {...props} />, { useDnd: true });
@@ -44,12 +48,12 @@ const setup = propOverrides => {
 
 test('renders a MetricOption given a saved metric', () => {
   setup({
-    option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' },
+    option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' } as typeof defaultProps['option'],
   });
   expect(screen.getByText('a_saved_metric')).toBeInTheDocument();
 });
 
 test('renders an AdhocMetricOption given an adhoc metric', () => {
-  setup();
+  setup({});
   expect(screen.getByText('SUM(value)')).toBeInTheDocument();
 });

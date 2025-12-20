@@ -57,7 +57,7 @@ const defaultProps = {
   index: 0,
 };
 
-function setup(overrides) {
+function setup(overrides: Partial<typeof defaultProps> = {}) {
   const props = {
     ...defaultProps,
     ...overrides,
@@ -66,12 +66,12 @@ function setup(overrides) {
 }
 
 test('renders an overlay trigger wrapper for the label', () => {
-  setup();
+  setup({});
   expect(screen.getByText('SUM(value)')).toBeInTheDocument();
 });
 
 test('overwrites the adhocMetric in state with onLabelChange', async () => {
-  setup();
+  setup({});
   userEvent.click(screen.getByText('SUM(value)'));
   userEvent.click(screen.getByTestId(/AdhocMetricEditTitle#trigger/i));
   const labelInput = await screen.findByTestId(/AdhocMetricEditTitle#input/i);
@@ -86,7 +86,7 @@ test('overwrites the adhocMetric in state with onLabelChange', async () => {
 });
 
 test('returns to default labels when the custom label is cleared', async () => {
-  setup();
+  setup({});
   userEvent.click(screen.getByText('SUM(value)'));
   userEvent.click(screen.getByTestId(/AdhocMetricEditTitle#trigger/i));
   const labelInput = await screen.findByTestId(/AdhocMetricEditTitle#input/i);
