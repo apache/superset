@@ -76,8 +76,10 @@ interface ExtraConfig {
   [key: string]: unknown;
 }
 
+type Metric = AdhocMetric | SavedMetricType;
+
 interface AdhocMetricEditPopoverProps {
-  onChange: (adhocMetric: AdhocMetric) => void;
+  onChange: (newMetric: Metric, oldMetric?: Metric) => void;
   onClose: () => void;
   onResize: () => void;
   getCurrentTab?: (tab: string) => void;
@@ -216,7 +218,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
       return adhocMetric.expressionType;
     }
     if (
-      (isNewMetric || savedMetric.metric_name) &&
+      (isNewMetric || savedMetric?.metric_name) &&
       Array.isArray(savedMetricsOptions) &&
       savedMetricsOptions.length > 0
     ) {
@@ -387,7 +389,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
     const aggregateSelectProps = {
       ariaLabel: t('Select aggregate options'),
       placeholder: t('%s aggregates(s)', AGGREGATES_OPTIONS.length),
-      value: adhocMetric.aggregate || adhocMetric.inferSqlExpressionAggregate(),
+      value: adhocMetric.aggregate ?? adhocMetric.inferSqlExpressionAggregate() ?? undefined,
       onChange: this.onAggregateChange,
       allowClear: true,
       autoFocus: !!columnValue,

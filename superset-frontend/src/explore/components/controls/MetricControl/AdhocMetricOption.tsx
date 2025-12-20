@@ -18,35 +18,25 @@
  */
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
+import { Metric } from '@superset-ui/core';
 import { OptionControlLabel } from 'src/explore/components/controls/OptionControls';
 import { DndItemType } from 'src/explore/components/DndItemType';
+import { Datasource } from 'src/explore/types';
+import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 import columnType from './columnType';
 import AdhocMetric from './AdhocMetric';
 import savedMetricType from './savedMetricType';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
-
-interface ColumnType {
-  column_name: string;
-  verbose_name?: string;
-  [key: string]: unknown;
-}
-
-interface SavedMetricType {
-  metric_name: string;
-  verbose_name?: string;
-  expression?: string;
-  error_text?: string;
-  [key: string]: unknown;
-}
+import { savedMetricType as SavedMetricTypeDef } from './types';
 
 interface AdhocMetricOptionProps {
   adhocMetric: AdhocMetric;
-  onMetricEdit: (metric: AdhocMetric) => void;
+  onMetricEdit: (newMetric: Metric, oldMetric: Metric) => void;
   onRemoveMetric?: (index: number) => void;
-  columns?: ColumnType[];
-  savedMetricsOptions?: SavedMetricType[];
-  savedMetric: SavedMetricType;
-  datasource?: Record<string, unknown>;
+  columns?: { column_name: string; type: string }[];
+  savedMetricsOptions?: SavedMetricTypeDef[];
+  savedMetric: SavedMetricTypeDef;
+  datasource?: Datasource & ISaveableDatasource;
   onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
   onDropLabel?: () => void;
   index?: number;
@@ -103,10 +93,10 @@ class AdhocMetricOption extends PureComponent<AdhocMetricOptionProps> {
       <AdhocMetricPopoverTrigger
         adhocMetric={adhocMetric}
         onMetricEdit={onMetricEdit}
-        columns={columns}
-        savedMetricsOptions={savedMetricsOptions}
+        columns={columns ?? []}
+        savedMetricsOptions={savedMetricsOptions ?? []}
         savedMetric={savedMetric}
-        datasource={datasource}
+        datasource={datasource!}
       >
         <OptionControlLabel
           savedMetric={savedMetric}
@@ -115,7 +105,7 @@ class AdhocMetricOption extends PureComponent<AdhocMetricOptionProps> {
           onRemove={() => this.onRemoveMetric()}
           onMoveLabel={onMoveLabel}
           onDropLabel={onDropLabel}
-          index={index}
+          index={index ?? 0}
           type={type ?? DndItemType.AdhocMetricOption}
           withCaret={withCaret}
           isFunction
