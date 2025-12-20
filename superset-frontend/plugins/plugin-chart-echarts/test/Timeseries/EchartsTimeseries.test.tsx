@@ -21,6 +21,7 @@ import { EchartsTimeseriesFormData } from '../../src/Timeseries/types';
 
 describe('EchartsTimeseries handleBrushEnd', () => {
   const mockSetDataMask = jest.fn();
+  const mockSetControlValue = jest.fn();
   const mockXValueFormatter = jest.fn((val: number) => new Date(val).toISOString());
 
   const baseFormData: Partial<EchartsTimeseriesFormData> = {
@@ -34,6 +35,7 @@ describe('EchartsTimeseries handleBrushEnd', () => {
 
   beforeEach(() => {
     mockSetDataMask.mockClear();
+    mockSetControlValue.mockClear();
     mockXValueFormatter.mockClear();
   });
 
@@ -45,9 +47,17 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       formData: Partial<EchartsTimeseriesFormData>,
       setDataMask: jest.Mock,
       xValueFormatter: (val: number) => string,
-      options: { isTouchDevice?: boolean } = {},
+      options: {
+        isTouchDevice?: boolean;
+        setControlValue?: jest.Mock;
+        emitCrossFilters?: boolean;
+      } = {},
     ) => {
-      const { isTouchDevice = false } = options;
+      const {
+        isTouchDevice = false,
+        setControlValue,
+        emitCrossFilters = false,
+      } = options;
 
       // Only handle brush events for time axis charts
       if (xAxis.type !== AxisType.Time) {
@@ -64,13 +74,15 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       const brushAreas = params.areas || [];
       if (brushAreas.length === 0) {
         // Brush was cleared, reset the filter
-        setDataMask({
-          extraFormData: {},
-          filterState: {
-            value: null,
-            selectedValues: null,
-          },
-        });
+        if (emitCrossFilters) {
+          setDataMask({
+            extraFormData: {},
+            filterState: {
+              value: null,
+              selectedValues: null,
+            },
+          });
+        }
         return;
       }
 
@@ -82,24 +94,37 @@ describe('EchartsTimeseries handleBrushEnd', () => {
 
       const [startValue, endValue] = coordRange[0].map(Number);
 
-      const col =
-        xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
-      const startFormatted = xValueFormatter(startValue);
-      const endFormatted = xValueFormatter(endValue);
+      // Convert timestamps to ISO date strings for time_range format
+      const startDate = new Date(startValue).toISOString().slice(0, 19);
+      const endDate = new Date(endValue).toISOString().slice(0, 19);
+      const timeRange = `${startDate} : ${endDate}`;
 
-      setDataMask({
-        extraFormData: {
-          filters: [
-            { col, op: '>=', val: startValue },
-            { col, op: '<=', val: endValue },
-          ],
-        },
-        filterState: {
-          value: [startValue, endValue],
-          selectedValues: [startValue, endValue],
-          label: `${startFormatted} - ${endFormatted}`,
-        },
-      });
+      // In Explore view, update the time_range control
+      if (setControlValue) {
+        setControlValue('time_range', timeRange);
+      }
+
+      // On dashboards, emit cross-filter
+      if (emitCrossFilters) {
+        const col =
+          xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+        const startFormatted = xValueFormatter(startValue);
+        const endFormatted = xValueFormatter(endValue);
+
+        setDataMask({
+          extraFormData: {
+            filters: [
+              { col, op: '>=', val: startValue },
+              { col, op: '<=', val: endValue },
+            ],
+          },
+          filterState: {
+            value: [startValue, endValue],
+            selectedValues: [startValue, endValue],
+            label: `${startFormatted} - ${endFormatted}`,
+          },
+        });
+      }
     };
 
     it('should not process brush events when x-axis type is not time', () => {
@@ -135,7 +160,7 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       expect(mockSetDataMask).not.toHaveBeenCalled();
     });
 
-    it('should reset filter when brush is cleared (no areas)', () => {
+    it('should reset filter when brush is cleared on dashboard', () => {
       const params = {
         areas: [],
       };
@@ -146,6 +171,7 @@ describe('EchartsTimeseries handleBrushEnd', () => {
         baseFormData,
         mockSetDataMask,
         mockXValueFormatter,
+        { emitCrossFilters: true },
       );
 
       expect(mockSetDataMask).toHaveBeenCalledWith({
@@ -157,7 +183,38 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       });
     });
 
-    it('should create time range filter when brush selection is made', () => {
+    it('should update time_range control in Explore view', () => {
+      const startTime = 1609459200000; // 2021-01-01T00:00:00.000Z
+      const endTime = 1609545600000; // 2021-01-02T00:00:00.000Z
+
+      const params = {
+        areas: [
+          {
+            coordRange: [
+              [startTime, endTime],
+              [0, 100],
+            ],
+          },
+        ],
+      };
+
+      handleBrushEnd(
+        params,
+        baseXAxis,
+        baseFormData,
+        mockSetDataMask,
+        mockXValueFormatter,
+        { setControlValue: mockSetControlValue },
+      );
+
+      expect(mockSetControlValue).toHaveBeenCalledWith(
+        'time_range',
+        '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
+      );
+      expect(mockSetDataMask).not.toHaveBeenCalled();
+    });
+
+    it('should emit cross-filter on dashboard', () => {
       const startTime = 1609459200000; // 2021-01-01
       const endTime = 1609545600000; // 2021-01-02
 
@@ -178,6 +235,7 @@ describe('EchartsTimeseries handleBrushEnd', () => {
         baseFormData,
         mockSetDataMask,
         mockXValueFormatter,
+        { emitCrossFilters: true },
       );
 
       expect(mockSetDataMask).toHaveBeenCalledWith({
@@ -216,6 +274,7 @@ describe('EchartsTimeseries handleBrushEnd', () => {
         baseFormData,
         mockSetDataMask,
         mockXValueFormatter,
+        { emitCrossFilters: true },
       );
 
       expect(mockSetDataMask).toHaveBeenCalledWith(
@@ -291,6 +350,7 @@ describe('EchartsTimeseries handleBrushEnd', () => {
         baseFormData,
         mockSetDataMask,
         mockXValueFormatter,
+        { emitCrossFilters: true },
       );
 
       const call = mockSetDataMask.mock.calls[0][0];
@@ -322,6 +382,7 @@ describe('EchartsTimeseries handleBrushEnd', () => {
         baseFormData,
         mockSetDataMask,
         customFormatter,
+        { emitCrossFilters: true },
       );
 
       const call = mockSetDataMask.mock.calls[0][0];

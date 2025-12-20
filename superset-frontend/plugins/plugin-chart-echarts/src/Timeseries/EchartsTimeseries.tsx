@@ -225,13 +225,15 @@ export default function EchartsTimeseries({
         }
         // Brush was cleared by user, reset the filter
         setTimeout(() => {
-          setDataMask({
-            extraFormData: {},
-            filterState: {
-              value: null,
-              selectedValues: null,
-            },
-          });
+          if (emitCrossFilters) {
+            setDataMask({
+              extraFormData: {},
+              filterState: {
+                value: null,
+                selectedValues: null,
+              },
+            });
+          }
         }, 0);
         return;
       }
@@ -245,32 +247,43 @@ export default function EchartsTimeseries({
 
       const [startValue, endValue] = coordRange[0].map(Number);
 
-      const col =
-        xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
-      const startFormatted = xValueFormatter(startValue);
-      const endFormatted = xValueFormatter(endValue);
+      // Convert timestamps to ISO date strings for time_range format
+      const startDate = new Date(startValue).toISOString().slice(0, 19);
+      const endDate = new Date(endValue).toISOString().slice(0, 19);
+      const timeRange = `${startDate} : ${endDate}`;
 
       // Mark that we're applying a filter so we don't reset on re-render
       brushFilterApplied.current = true;
 
       // Defer to let brush event complete before triggering re-render
       setTimeout(() => {
-        setDataMask({
-          extraFormData: {
-            filters: [
-              { col, op: '>=', val: startValue },
-              { col, op: '<=', val: endValue },
-            ],
-          },
-          filterState: {
-            value: [startValue, endValue],
-            selectedValues: [startValue, endValue],
-            label: `${startFormatted} - ${endFormatted}`,
-          },
-        });
+        // In Explore view, update the time_range control
+        if (setControlValue) {
+          setControlValue('time_range', timeRange);
+        }
+        // On dashboards, emit cross-filter
+        if (emitCrossFilters) {
+          const col =
+            xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+          const startFormatted = xValueFormatter(startValue);
+          const endFormatted = xValueFormatter(endValue);
+          setDataMask({
+            extraFormData: {
+              filters: [
+                { col, op: '>=', val: startValue },
+                { col, op: '<=', val: endValue },
+              ],
+            },
+            filterState: {
+              value: [startValue, endValue],
+              selectedValues: [startValue, endValue],
+              label: `${startFormatted} - ${endFormatted}`,
+            },
+          });
+        }
       }, 0);
     },
-    [formData, setDataMask, xAxis, xValueFormatter],
+    [emitCrossFilters, formData, setControlValue, setDataMask, xAxis, xValueFormatter],
   );
 
   const eventHandlers: EventHandlers = {
