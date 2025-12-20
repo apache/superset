@@ -201,8 +201,8 @@ class AdhocMetricPopoverTrigger extends PureComponent<
     const { visible, togglePopover, closePopover } = isControlledComponent
       ? {
           visible: this.props.visible,
-          togglePopover: this.props.togglePopover,
-          closePopover: this.props.closePopover,
+          togglePopover: this.props.togglePopover ?? this.togglePopover,
+          closePopover: this.props.closePopover ?? this.closePopover,
         }
       : {
           visible: this.state.popoverVisible,

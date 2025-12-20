@@ -48,7 +48,7 @@ export default function FilterDefinitionOption({ option }: { option: OptionType 
     );
   }
   if (option.column_name) {
-    return <StyledColumnOption column={option} showType />;
+    return <StyledColumnOption column={option as { column_name: string; type?: string }} showType />;
   }
   if (option.label) {
     return (

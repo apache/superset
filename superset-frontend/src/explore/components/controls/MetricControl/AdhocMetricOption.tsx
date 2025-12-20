@@ -35,7 +35,7 @@ interface AdhocMetricOptionProps {
   onRemoveMetric?: (index: number) => void;
   columns?: { column_name: string; type: string }[];
   savedMetricsOptions?: SavedMetricTypeDef[];
-  savedMetric: SavedMetricTypeDef;
+  savedMetric?: SavedMetricTypeDef | Record<string, never>;
   datasource?: Datasource & ISaveableDatasource;
   onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
   onDropLabel?: () => void;
@@ -78,7 +78,7 @@ class AdhocMetricOption extends PureComponent<AdhocMetricOptionProps> {
       onMetricEdit,
       columns,
       savedMetricsOptions,
-      savedMetric,
+      savedMetric = {} as SavedMetricTypeDef,
       datasource,
       onMoveLabel,
       onDropLabel,
@@ -87,7 +87,7 @@ class AdhocMetricOption extends PureComponent<AdhocMetricOptionProps> {
       multi,
       datasourceWarningMessage,
     } = this.props;
-    const withCaret = !savedMetric.error_text;
+    const withCaret = !(savedMetric as SavedMetricTypeDef).error_text;
 
     return (
       <AdhocMetricPopoverTrigger

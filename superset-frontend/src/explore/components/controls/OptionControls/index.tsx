@@ -259,8 +259,8 @@ export const OptionControlLabel = ({
   savedMetric?: savedMetricType;
   adhocMetric?: AdhocMetric;
   onRemove: () => void;
-  onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
-  onDropLabel: () => void;
+  onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
+  onDropLabel?: () => void;
   withCaret?: boolean;
   isFunction?: boolean;
   isDraggable?: boolean;
