@@ -25,6 +25,36 @@ import AdhocMetric from './AdhocMetric';
 import savedMetricType from './savedMetricType';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
 
+interface ColumnType {
+  column_name: string;
+  verbose_name?: string;
+  [key: string]: unknown;
+}
+
+interface SavedMetricType {
+  metric_name: string;
+  verbose_name?: string;
+  expression?: string;
+  error_text?: string;
+  [key: string]: unknown;
+}
+
+interface AdhocMetricOptionProps {
+  adhocMetric: AdhocMetric;
+  onMetricEdit: (metric: AdhocMetric) => void;
+  onRemoveMetric?: (index: number) => void;
+  columns?: ColumnType[];
+  savedMetricsOptions?: SavedMetricType[];
+  savedMetric: SavedMetricType;
+  datasource?: Record<string, unknown>;
+  onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
+  onDropLabel?: () => void;
+  index?: number;
+  type?: string;
+  multi?: boolean;
+  datasourceWarningMessage?: string;
+}
+
 const propTypes = {
   adhocMetric: PropTypes.instanceOf(AdhocMetric),
   onMetricEdit: PropTypes.func.isRequired,
@@ -41,15 +71,15 @@ const propTypes = {
   datasourceWarningMessage: PropTypes.string,
 };
 
-class AdhocMetricOption extends PureComponent {
-  constructor(props) {
+class AdhocMetricOption extends PureComponent<AdhocMetricOptionProps> {
+  constructor(props: AdhocMetricOptionProps) {
     super(props);
     this.onRemoveMetric = this.onRemoveMetric.bind(this);
   }
 
-  onRemoveMetric(e) {
+  onRemoveMetric(e?: React.MouseEvent): void {
     e?.stopPropagation();
-    this.props.onRemoveMetric(this.props.index);
+    this.props.onRemoveMetric?.(this.props.index ?? 0);
   }
 
   render() {
@@ -82,7 +112,7 @@ class AdhocMetricOption extends PureComponent {
           savedMetric={savedMetric}
           adhocMetric={adhocMetric}
           label={adhocMetric.label}
-          onRemove={this.onRemoveMetric}
+          onRemove={() => this.onRemoveMetric()}
           onMoveLabel={onMoveLabel}
           onDropLabel={onDropLabel}
           index={index}
@@ -99,4 +129,5 @@ class AdhocMetricOption extends PureComponent {
 
 export default AdhocMetricOption;
 
+// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
 AdhocMetricOption.propTypes = propTypes;
