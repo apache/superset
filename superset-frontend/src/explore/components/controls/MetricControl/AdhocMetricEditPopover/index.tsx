@@ -64,6 +64,18 @@ interface SavedMetricType {
   [key: string]: unknown;
 }
 
+interface DatasourceInfo {
+  type?: DatasourceType | string;
+  id?: number | string;
+  extra?: string;
+  [key: string]: unknown;
+}
+
+interface ExtraConfig {
+  disallow_adhoc_metrics?: boolean;
+  [key: string]: unknown;
+}
+
 interface AdhocMetricEditPopoverProps {
   onChange: (adhocMetric: AdhocMetric) => void;
   onClose: () => void;
@@ -73,11 +85,12 @@ interface AdhocMetricEditPopoverProps {
     savedMetricLabel?: string;
     adhocMetricLabel?: string;
   }) => void;
+  handleDatasetModal?: (open: boolean) => void;
   adhocMetric: AdhocMetric;
   columns?: ColumnType[];
   savedMetricsOptions?: SavedMetricType[];
   savedMetric?: SavedMetricType;
-  datasource?: Record<string, unknown>;
+  datasource?: DatasourceInfo;
   isNewMetric?: boolean;
   isLabelModified?: boolean;
 }
@@ -238,8 +251,8 @@ export default class AdhocMetricEditPopover extends PureComponent<
     );
   }
 
-  onColumnChange(columnName) {
-    const column = this.props.columns.find(
+  onColumnChange(columnName: string): void {
+    const column = this.props.columns?.find(
       column => column.column_name === columnName,
     );
     this.setState(prevState => ({
@@ -251,7 +264,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
     }));
   }
 
-  onAggregateChange(aggregate) {
+  onAggregateChange(aggregate: string | null): void {
     // we construct this object explicitly to overwrite the value in the case aggregate is null
     this.setState(prevState => ({
       adhocMetric: prevState.adhocMetric.duplicateWith({
@@ -262,8 +275,8 @@ export default class AdhocMetricEditPopover extends PureComponent<
     }));
   }
 
-  onSavedMetricChange(savedMetricName) {
-    const savedMetric = this.props.savedMetricsOptions.find(
+  onSavedMetricChange(savedMetricName: string): void {
+    const savedMetric = this.props.savedMetricsOptions?.find(
       metric => metric.metric_name === savedMetricName,
     );
     this.setState(prevState => ({
@@ -277,7 +290,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
     }));
   }
 
-  onSqlExpressionChange(sqlExpression) {
+  onSqlExpressionChange(sqlExpression: string): void {
     this.setState(prevState => ({
       adhocMetric: prevState.adhocMetric.duplicateWith({
         sqlExpression,
@@ -287,7 +300,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
     }));
   }
 
-  onDragDown(e) {
+  onDragDown(e: React.MouseEvent): void {
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
     this.dragStartWidth = this.state.width;
@@ -295,7 +308,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
     document.addEventListener('mousemove', this.onMouseMove);
   }
 
-  onMouseMove(e) {
+  onMouseMove(e: MouseEvent): void {
     this.props.onResize();
     this.setState({
       width: Math.max(
@@ -309,32 +322,33 @@ export default class AdhocMetricEditPopover extends PureComponent<
     });
   }
 
-  onMouseUp() {
+  onMouseUp(): void {
     document.removeEventListener('mousemove', this.onMouseMove);
   }
 
-  onTabChange(tab) {
+  onTabChange(tab: string): void {
     this.refreshAceEditor();
-    this.props.getCurrentTab(tab);
+    this.props.getCurrentTab?.(tab);
   }
 
-  refreshAceEditor() {
+  refreshAceEditor(): void {
     setTimeout(() => {
       if (this.aceEditorRef.current) {
-        this.aceEditorRef.current.editor?.resize?.();
+        // Cast to access ace editor API
+        (this.aceEditorRef.current as unknown as { editor?: { resize?: () => void } }).editor?.resize?.();
       }
     }, 0);
   }
 
-  renderColumnOption(option) {
+  renderColumnOption(option: ColumnType): React.ReactNode {
     const column = { ...option };
-    if (column.metric_name && !column.verbose_name) {
-      column.verbose_name = column.metric_name;
+    if ((column as unknown as { metric_name?: string }).metric_name && !column.verbose_name) {
+      column.verbose_name = (column as unknown as { metric_name: string }).metric_name;
     }
     return <StyledColumnOption column={column} showType />;
   }
 
-  renderMetricOption(savedMetric) {
+  renderMetricOption(savedMetric: SavedMetricType): React.ReactNode {
     return <StyledMetricOption metric={savedMetric} showType />;
   }
 
@@ -353,7 +367,8 @@ export default class AdhocMetricEditPopover extends PureComponent<
       ...popoverProps
     } = this.props;
     const { adhocMetric, savedMetric } = this.state;
-    const keywords = sqlKeywords.concat(getColumnKeywords(columns));
+    const columnsArray = columns ?? [];
+    const keywords = sqlKeywords.concat(getColumnKeywords(columnsArray as Parameters<typeof getColumnKeywords>[0]));
 
     const columnValue =
       (adhocMetric.column && adhocMetric.column.column_name) ||
@@ -362,7 +377,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
     // autofocus on column if there's no value in column; otherwise autofocus on aggregate
     const columnSelectProps = {
       ariaLabel: t('Select column'),
-      placeholder: t('%s column(s)', columns.length),
+      placeholder: t('%s column(s)', columnsArray.length),
       value: columnValue,
       onChange: this.onColumnChange,
       allowClear: true,
@@ -398,10 +413,10 @@ export default class AdhocMetricEditPopover extends PureComponent<
       ) &&
         savedMetric?.metric_name !== propsSavedMetric?.metric_name);
 
-    let extra = {};
-    if (datasource?.extra) {
+    let extra: ExtraConfig = {};
+    if (datasource?.extra && typeof datasource.extra === 'string') {
       try {
-        extra = JSON.parse(datasource.extra);
+        extra = JSON.parse(datasource.extra) as ExtraConfig;
       } catch {} // eslint-disable-line no-empty
     }
 
@@ -438,7 +453,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
                       {...savedSelectProps}
                     />
                   </FormItem>
-                ) : datasource.type === DatasourceType.Table ? (
+                ) : datasource?.type === DatasourceType.Table ? (
                   <EmptyState
                     image="empty.svg"
                     size="small"
@@ -458,7 +473,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
                           tabIndex={0}
                           role="button"
                           onClick={() => {
-                            this.props.handleDatasetModal(true);
+                            this.props.handleDatasetModal?.(true);
                             this.props.onClose();
                           }}
                         >
@@ -488,9 +503,9 @@ export default class AdhocMetricEditPopover extends PureComponent<
                 <>
                   <FormItem label={t('column')}>
                     <Select
-                      options={columns.map(column => ({
+                      options={columnsArray.map(column => ({
                         value: column.column_name,
-                        key: column.id,
+                        key: (column as { id?: unknown }).id,
                         label: this.renderColumnOption(column),
                       }))}
                       {...columnSelectProps}
