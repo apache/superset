@@ -300,7 +300,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   };
 
   const renderSubjectOptionLabel = (option: ColumnType) => (
-    <FilterDefinitionOption option={option} />
+    <FilterDefinitionOption option={option as unknown as { column_name?: string; saved_metric_name?: string; label?: string; type?: string; [key: string]: unknown }} />
   );
 
   const getOptionsRemaining = () => {

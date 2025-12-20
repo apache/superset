@@ -78,7 +78,7 @@ export default function MetricDefinitionValue({
   let savedMetric;
   if (typeof option === 'string') {
     savedMetric = getSavedMetricByName(option);
-  } else if (option.metric_name) {
+  } else if ((option as SavedMetricTypeDef).metric_name) {
     savedMetric = option;
   }
 

@@ -237,8 +237,8 @@ export default class AdhocMetricEditPopover extends PureComponent<
     this.props.onChange(
       {
         ...metric,
-      },
-      oldMetric,
+      } as Metric,
+      oldMetric as Metric,
     );
     this.props.onClose();
   }
@@ -390,7 +390,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
       ariaLabel: t('Select aggregate options'),
       placeholder: t('%s aggregates(s)', AGGREGATES_OPTIONS.length),
       value: adhocMetric.aggregate ?? adhocMetric.inferSqlExpressionAggregate() ?? undefined,
-      onChange: this.onAggregateChange,
+      onChange: this.onAggregateChange as (value: unknown) => void,
       allowClear: true,
       autoFocus: !!columnValue,
     };

@@ -51,13 +51,13 @@ const defaultProps = {
   savedMetricsOptions: [],
   onMetricEdit: jest.fn(),
   columns,
-  datasource,
+  datasource: undefined,
   onMoveLabel: jest.fn(),
   onDropLabel: jest.fn(),
   index: 0,
 };
 
-function setup(overrides: Partial<typeof defaultProps> = {}) {
+function setup(overrides: Record<string, unknown> = {}) {
   const props = {
     ...defaultProps,
     ...overrides,

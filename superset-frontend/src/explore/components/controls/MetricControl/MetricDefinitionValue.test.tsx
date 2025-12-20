@@ -28,17 +28,17 @@ const sumValueAdhocMetric = new AdhocMetric({
 
 const defaultProps = {
   onMetricEdit: jest.fn(),
-  option: sumValueAdhocMetric,
+  option: sumValueAdhocMetric as AdhocMetric,
   index: 1,
   columns: [],
   savedMetrics: [],
   savedMetricsOptions: [],
-  datasource: {},
+  datasource: undefined,
   onMoveLabel: jest.fn(),
   onDropLabel: jest.fn(),
 };
 
-const setup = (propOverrides: Partial<typeof defaultProps> = {}) => {
+const setup = (propOverrides: Record<string, unknown> = {}) => {
   const props = {
     ...defaultProps,
     ...propOverrides,
@@ -48,7 +48,7 @@ const setup = (propOverrides: Partial<typeof defaultProps> = {}) => {
 
 test('renders a MetricOption given a saved metric', () => {
   setup({
-    option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' } as typeof defaultProps['option'],
+    option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' },
   });
   expect(screen.getByText('a_saved_metric')).toBeInTheDocument();
 });
