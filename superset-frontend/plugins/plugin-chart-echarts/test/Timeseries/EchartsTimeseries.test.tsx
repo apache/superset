@@ -106,7 +106,7 @@ describe('EchartsTimeseries handleBrushSelected', () => {
 
       handleBrushSelected(
         params,
-        { label: 'category', type: AxisType.category },
+        { label: 'category', type: AxisType.Category },
         baseFormData,
         mockSetDataMask,
         mockXValueFormatter,
