@@ -213,7 +213,8 @@ export default function EchartsTimeseries({
       }
 
       // Get the brush areas from the event
-      const brushAreas = params.batch?.[0]?.areas || [];
+      // brushEnd event has areas directly in params.areas
+      const brushAreas = params.areas || [];
       if (brushAreas.length === 0) {
         // Brush was cleared, reset the filter
         setDataMask({
@@ -355,7 +356,7 @@ export default function EchartsTimeseries({
         });
       }
     },
-    brushSelected: handleBrushSelected,
+    brushEnd: handleBrushSelected,
   };
 
   const zrEventHandlers: EventHandlers = {

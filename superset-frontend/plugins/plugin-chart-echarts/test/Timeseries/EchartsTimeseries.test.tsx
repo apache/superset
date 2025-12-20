@@ -19,7 +19,7 @@
 import { AxisType, DTTM_ALIAS } from '@superset-ui/core';
 import { EchartsTimeseriesFormData } from '../../src/Timeseries/types';
 
-describe('EchartsTimeseries handleBrushSelected', () => {
+describe('EchartsTimeseries handleBrushEnd', () => {
   const mockSetDataMask = jest.fn();
   const mockXValueFormatter = jest.fn((val: number) => new Date(val).toISOString());
 
@@ -37,9 +37,9 @@ describe('EchartsTimeseries handleBrushSelected', () => {
     mockXValueFormatter.mockClear();
   });
 
-  describe('handleBrushSelected logic', () => {
+  describe('handleBrushEnd logic', () => {
     // Simulating the handler logic since we can't easily test React hooks directly
-    const handleBrushSelected = (
+    const handleBrushEnd = (
       params: any,
       xAxis: { label: string; type: AxisType },
       formData: Partial<EchartsTimeseriesFormData>,
@@ -58,7 +58,8 @@ describe('EchartsTimeseries handleBrushSelected', () => {
       }
 
       // Get the brush areas from the event
-      const brushAreas = params.batch?.[0]?.areas || [];
+      // brushEnd event has areas directly in params.areas
+      const brushAreas = params.areas || [];
       if (brushAreas.length === 0) {
         // Brush was cleared, reset the filter
         setDataMask({
@@ -77,7 +78,7 @@ describe('EchartsTimeseries handleBrushSelected', () => {
         return;
       }
 
-      const [startValue, endValue] = coordRange[0];
+      const [startValue, endValue] = coordRange[0].map(Number);
 
       const col =
         xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
@@ -101,10 +102,10 @@ describe('EchartsTimeseries handleBrushSelected', () => {
 
     it('should not process brush events when x-axis type is not time', () => {
       const params = {
-        batch: [{ areas: [{ coordRange: [[1000, 2000], [0, 100]] }] }],
+        areas: [{ coordRange: [[1000, 2000], [0, 100]] }],
       };
 
-      handleBrushSelected(
+      handleBrushEnd(
         params,
         { label: 'category', type: AxisType.Category },
         baseFormData,
@@ -117,10 +118,10 @@ describe('EchartsTimeseries handleBrushSelected', () => {
 
     it('should not process brush events on touch devices', () => {
       const params = {
-        batch: [{ areas: [{ coordRange: [[1000, 2000], [0, 100]] }] }],
+        areas: [{ coordRange: [[1000, 2000], [0, 100]] }],
       };
 
-      handleBrushSelected(
+      handleBrushEnd(
         params,
         baseXAxis,
         baseFormData,
@@ -134,10 +135,10 @@ describe('EchartsTimeseries handleBrushSelected', () => {
 
     it('should reset filter when brush is cleared (no areas)', () => {
       const params = {
-        batch: [{ areas: [] }],
+        areas: [],
       };
 
-      handleBrushSelected(
+      handleBrushEnd(
         params,
         baseXAxis,
         baseFormData,
@@ -159,21 +160,17 @@ describe('EchartsTimeseries handleBrushSelected', () => {
       const endTime = 1609545600000; // 2021-01-02
 
       const params = {
-        batch: [
+        areas: [
           {
-            areas: [
-              {
-                coordRange: [
-                  [startTime, endTime],
-                  [0, 100],
-                ],
-              },
+            coordRange: [
+              [startTime, endTime],
+              [0, 100],
             ],
           },
         ],
       };
 
-      handleBrushSelected(
+      handleBrushEnd(
         params,
         baseXAxis,
         baseFormData,
@@ -201,21 +198,17 @@ describe('EchartsTimeseries handleBrushSelected', () => {
       const endTime = 1609545600000;
 
       const params = {
-        batch: [
+        areas: [
           {
-            areas: [
-              {
-                coordRange: [
-                  [startTime, endTime],
-                  [0, 100],
-                ],
-              },
+            coordRange: [
+              [startTime, endTime],
+              [0, 100],
             ],
           },
         ],
       };
 
-      handleBrushSelected(
+      handleBrushEnd(
         params,
         { label: 'custom_time_column', type: AxisType.Time },
         baseFormData,
@@ -237,18 +230,14 @@ describe('EchartsTimeseries handleBrushSelected', () => {
 
     it('should not process when coordRange is invalid', () => {
       const params = {
-        batch: [
+        areas: [
           {
-            areas: [
-              {
-                coordRange: null,
-              },
-            ],
+            coordRange: null,
           },
         ],
       };
 
-      handleBrushSelected(
+      handleBrushEnd(
         params,
         baseXAxis,
         baseFormData,
