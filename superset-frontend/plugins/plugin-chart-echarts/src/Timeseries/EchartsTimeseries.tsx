@@ -205,6 +205,14 @@ export default function EchartsTimeseries({
       console.log('[BRUSH DEBUG] handleBrushEnd called', params);
       // eslint-disable-next-line no-console
       console.log('[BRUSH DEBUG] xAxis:', xAxis);
+      // eslint-disable-next-line no-console
+      console.log('[BRUSH DEBUG] emitCrossFilters:', emitCrossFilters);
+
+      if (!emitCrossFilters) {
+        // eslint-disable-next-line no-console
+        console.log('[BRUSH DEBUG] Skipping: cross-filters not enabled');
+        return;
+      }
 
       if (xAxis.type !== AxisType.Time) {
         // eslint-disable-next-line no-console
@@ -303,7 +311,7 @@ export default function EchartsTimeseries({
         console.log('[BRUSH DEBUG] setDataMask called');
       }, 0);
     },
-    [formData, setDataMask, xAxis, xValueFormatter],
+    [emitCrossFilters, formData, setDataMask, xAxis, xValueFormatter],
   );
 
   const eventHandlers: EventHandlers = {
