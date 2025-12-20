@@ -758,7 +758,7 @@ export function cloneQueryToNewTab(query: Query, autorun: boolean): any {
       name: t('Copy of %s', sourceQueryEditor.name),
       dbId: query.dbId,
       catalog: query.catalog,
-      schema: query.schema,
+      schema: query.schema ?? undefined,
       autorun,
       sql: query.sql,
       queryLimit: sourceQueryEditor.queryLimit,
@@ -1500,9 +1500,9 @@ export function popPermalink(key: string): any {
         dispatch(
           addQueryEditor({
             name: json.name ? json.name : t('Shared query'),
-            dbId: json.dbId ? parseInt(json.dbId, 10) : null,
+            dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
             catalog: json.catalog ?? null,
-            schema: json.schema ?? null,
+            schema: json.schema ?? undefined,
             autorun: json.autorun ? json.autorun : false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
@@ -1524,9 +1524,9 @@ export function popStoredQuery(urlId: string): any {
         dispatch(
           addQueryEditor({
             name: json.name ? json.name : t('Shared query'),
-            dbId: json.dbId ? parseInt(json.dbId, 10) : null,
+            dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
             catalog: json.catalog ?? null,
-            schema: json.schema ?? null,
+            schema: json.schema ?? undefined,
             autorun: json.autorun ? json.autorun : false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
