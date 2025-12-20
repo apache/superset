@@ -179,11 +179,15 @@ export default class AdhocFilterEditPopover extends Component<
     document.addEventListener('mouseup', this.onMouseUp);
 
     // Load layer options if deck_slices exist
-    const deckSlices = this.props.adhocFilter?.deck_slices as number[] | undefined;
+    const deckSlices = this.props.adhocFilter?.deck_slices as
+      | number[]
+      | undefined;
     if (deckSlices && deckSlices.length > 0) {
       this.loadLayerOptions(0, 100).then(result => {
         this.setState({ layerOptions: result.data });
-        const layerFilterScope = this.props.adhocFilter?.layerFilterScope as number[] | undefined;
+        const layerFilterScope = this.props.adhocFilter?.layerFilterScope as
+          | number[]
+          | undefined;
         if (layerFilterScope) {
           const selectedLayers = layerFilterScope.map(item => {
             const layerOption = result.data.find(
@@ -191,7 +195,9 @@ export default class AdhocFilterEditPopover extends Component<
             );
             return layerOption;
           });
-          this.setState({ selectedLayers: selectedLayers.filter(Boolean) as LayerOption[] });
+          this.setState({
+            selectedLayers: selectedLayers.filter(Boolean) as LayerOption[],
+          });
         }
       });
     }
@@ -211,7 +217,9 @@ export default class AdhocFilterEditPopover extends Component<
   }
 
   onSave() {
-    const deckSlices = this.state.adhocFilter.deck_slices as number[] | undefined;
+    const deckSlices = this.state.adhocFilter.deck_slices as
+      | number[]
+      | undefined;
     const hasDeckSlices = deckSlices && deckSlices.length > 0;
 
     if (!hasDeckSlices) {
@@ -296,7 +304,8 @@ export default class AdhocFilterEditPopover extends Component<
         };
       }
 
-      const deckSlices = (this.props.adhocFilter?.deck_slices || []) as number[];
+      const deckSlices = (this.props.adhocFilter?.deck_slices ||
+        []) as number[];
 
       const list = [
         {
@@ -315,7 +324,17 @@ export default class AdhocFilterEditPopover extends Component<
             };
           })
           .filter((item: { sliceIndex: number }) => item.sliceIndex !== -1)
-          .map(({ sliceIndex, ...item }: { sliceIndex: number; id: number; value: number; label: string }) => item),
+          .map(
+            ({
+              sliceIndex,
+              ...item
+            }: {
+              sliceIndex: number;
+              id: number;
+              value: number;
+              label: string;
+            }) => item,
+          ),
       ];
 
       return {
@@ -326,14 +345,16 @@ export default class AdhocFilterEditPopover extends Component<
   }
 
   onLayerChange(selectedValue: LayerOption[] | number[] | null) {
-    let updatedSelectedLayers: LayerOption[] = selectedValue as LayerOption[] || [];
+    let updatedSelectedLayers: LayerOption[] =
+      (selectedValue as LayerOption[]) || [];
 
     if (!selectedValue || selectedValue.length === 0) {
       updatedSelectedLayers = [{ id: null, value: -1, label: 'All' }];
     } else if (
       selectedValue.length > 1 &&
-      selectedValue.some((item: LayerOption | number) =>
-        (typeof item === 'object' && item.value === -1) || item === -1
+      selectedValue.some(
+        (item: LayerOption | number) =>
+          (typeof item === 'object' && item.value === -1) || item === -1,
       )
     ) {
       const lastItem = selectedValue[selectedValue.length - 1];
@@ -343,8 +364,9 @@ export default class AdhocFilterEditPopover extends Component<
       ) {
         updatedSelectedLayers = [{ id: null, value: -1, label: 'All' }];
       } else {
-        updatedSelectedLayers = (selectedValue as LayerOption[])
-          .filter((item: LayerOption) => item.value !== -1);
+        updatedSelectedLayers = (selectedValue as LayerOption[]).filter(
+          (item: LayerOption) => item.value !== -1,
+        );
       }
     }
 
@@ -404,7 +426,9 @@ export default class AdhocFilterEditPopover extends Component<
                     adhocFilter={this.state.adhocFilter}
                     onChange={this.onAdhocFilterChange}
                     options={options as unknown as Record<string, unknown>[]}
-                    datasource={datasource as unknown as Record<string, unknown>}
+                    datasource={
+                      datasource as unknown as Record<string, unknown>
+                    }
                     onHeightChange={this.adjustHeight}
                     partitionColumn={partitionColumn ?? undefined}
                     popoverRef={this.popoverContentRef.current}
@@ -421,10 +445,14 @@ export default class AdhocFilterEditPopover extends Component<
                   <AdhocFilterEditPopoverSqlTabContent
                     adhocFilter={this.state.adhocFilter}
                     onChange={this.onAdhocFilterChange}
-                    options={this.props.options as unknown as Record<string, unknown>[]}
+                    options={
+                      this.props.options as unknown as Record<string, unknown>[]
+                    }
                     height={this.state.height}
                     activeKey={this.state.activeKey}
-                    datasource={datasource as unknown as Record<string, unknown>}
+                    datasource={
+                      datasource as unknown as Record<string, unknown>
+                    }
                   />
                 </ErrorBoundary>
               ),
@@ -435,7 +463,9 @@ export default class AdhocFilterEditPopover extends Component<
           <LayerSelectContainer>
             <Select
               options={this.state.layerOptions}
-              onChange={this.onLayerChange as unknown as (value: unknown) => void}
+              onChange={
+                this.onLayerChange as unknown as (value: unknown) => void
+              }
               value={selectedLayers}
               mode="multiple"
             />
@@ -478,4 +508,5 @@ export default class AdhocFilterEditPopover extends Component<
   }
 }
 
+// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
 AdhocFilterEditPopover.propTypes = propTypes;

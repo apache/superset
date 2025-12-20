@@ -151,7 +151,9 @@ export const useSimpleTabFilterProps = (props: Props) => {
     }
     let { operator, operatorId, comparator } = props.adhocFilter;
     operator =
-      operator && operatorId && isOperatorRelevant(operatorId, subject)
+      operator &&
+      operatorId &&
+      isOperatorRelevant(operatorId as Operators, subject)
         ? OPERATOR_ENUM_TO_OPERATOR_TYPE[
             operatorId as keyof typeof OPERATOR_ENUM_TO_OPERATOR_TYPE
           ].operation
@@ -333,11 +335,12 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     option => 'column_name' in option && option.column_name,
   );
 
+  const subjectString = typeof subject === 'string' ? subject : '';
   const operatorSelectProps = {
     placeholder: t(
       '%s operator(s)',
       (props.operators ?? OPERATORS_OPTIONS).filter(op =>
-        isOperatorRelevantWrapper(op, subject),
+        isOperatorRelevantWrapper(op, subjectString),
       ).length,
     ),
     value: operatorId,
@@ -366,14 +369,21 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     placeholder: createSuggestionsPlaceholder(),
   };
 
-  const labelText =
-    comparator && comparator.length > 0 && createSuggestionsPlaceholder();
+  const comparatorHasValue =
+    comparator &&
+    (Array.isArray(comparator)
+      ? comparator.length > 0
+      : String(comparator).length > 0);
+  const labelText = comparatorHasValue ? createSuggestionsPlaceholder() : '';
 
   const datePicker = useDatePickerInAdhocFilter({
-    columnName: props.adhocFilter.subject,
+    columnName:
+      typeof props.adhocFilter.subject === 'string'
+        ? props.adhocFilter.subject
+        : undefined,
     timeRange:
       props.adhocFilter.operator === Operators.TemporalRange
-        ? props.adhocFilter.comparator
+        ? (props.adhocFilter.comparator as string | undefined)
         : undefined,
     datasource: props.datasource,
     onChange: onDatePickerChange,
@@ -443,8 +453,14 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
+      const comparatorValue =
+        comparator === undefined
+          ? ''
+          : typeof comparator === 'string'
+            ? comparator
+            : String(comparator);
       fetchAdvancedDataTypeValueCallback(
-        comparator === undefined ? '' : comparator,
+        comparatorValue,
         advancedDataTypesState,
         subjectAdvancedDataType,
       );
@@ -503,7 +519,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     <>
       <Select
         options={(props.operators ?? OPERATORS_OPTIONS)
-          .filter(op => isOperatorRelevantWrapper(op, subject))
+          .filter(op => isOperatorRelevantWrapper(op, subjectString))
           .map((option, index) => ({
             value: option,
             label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
@@ -546,7 +562,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             name="filter-value"
             ref={comparatorInputRef}
             onChange={onInputComparatorChange}
-            value={comparator}
+            value={typeof comparator === 'string' ? comparator : undefined}
             placeholder={t('Filter value (case sensitive)')}
             disabled={
               operatorId !== undefined &&

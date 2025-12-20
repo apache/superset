@@ -28,7 +28,42 @@ import PopoverSection from '@superset-ui/core/components/PopoverSection';
 const controlTypes = {
   fixed: 'fix',
   metric: 'metric',
-};
+} as const;
+
+interface ControlValue {
+  type?: 'fix' | 'metric';
+  value?:
+    | string
+    | number
+    | { label?: string; expressionType?: string; sqlExpression?: string };
+}
+
+interface MetricValue {
+  label?: string;
+  expressionType?: string;
+  sqlExpression?: string;
+  [key: string]: unknown;
+}
+
+interface DatasourceType {
+  columns?: { column_name: string }[];
+  metrics?: { metric_name: string; expression: string }[];
+  [key: string]: unknown;
+}
+
+interface FixedOrMetricControlProps {
+  onChange?: (value: ControlValue) => void;
+  value?: ControlValue;
+  isFloat?: boolean;
+  datasource: DatasourceType;
+  default?: ControlValue;
+}
+
+interface FixedOrMetricControlState {
+  type: 'fix' | 'metric';
+  fixedValue: string | number;
+  metricValue: MetricValue | null;
+}
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -46,27 +81,37 @@ const defaultProps = {
   default: { type: controlTypes.fixed, value: 5 },
 };
 
-export default class FixedOrMetricControl extends Component {
-  constructor(props) {
+export default class FixedOrMetricControl extends Component<
+  FixedOrMetricControlProps,
+  FixedOrMetricControlState
+> {
+  constructor(props: FixedOrMetricControlProps) {
     super(props);
     this.onChange = this.onChange.bind(this);
     this.setType = this.setType.bind(this);
     this.setFixedValue = this.setFixedValue.bind(this);
     this.setMetric = this.setMetric.bind(this);
-    const type =
-      (props.value ? props.value.type : props.default.type) ||
-      controlTypes.fixed;
-    const value =
-      (props.value ? props.value.value : props.default.value) || '100';
+    const type = (props.value?.type ??
+      props.default?.type ??
+      controlTypes.fixed) as 'fix' | 'metric';
+    const rawValue = props.value?.value ?? props.default?.value ?? '100';
+    const fixedValue =
+      type === controlTypes.fixed && typeof rawValue !== 'object'
+        ? rawValue
+        : '';
+    const metricValue =
+      type === controlTypes.metric && typeof rawValue === 'object'
+        ? (rawValue as MetricValue)
+        : null;
     this.state = {
       type,
-      fixedValue: type === controlTypes.fixed ? value : '',
-      metricValue: type === controlTypes.metric ? value : null,
+      fixedValue,
+      metricValue,
     };
   }
 
-  onChange() {
-    this.props.onChange({
+  onChange(): void {
+    this.props.onChange?.({
       type: this.state.type,
       value:
         this.state.type === controlTypes.fixed
@@ -75,21 +120,21 @@ export default class FixedOrMetricControl extends Component {
     });
   }
 
-  setType(type) {
+  setType(type: 'fix' | 'metric'): void {
     this.setState({ type }, this.onChange);
   }
 
-  setFixedValue(fixedValue) {
+  setFixedValue(fixedValue: string | number): void {
     this.setState({ fixedValue }, this.onChange);
   }
 
-  setMetric(metricValue) {
+  setMetric(metricValue: MetricValue | null): void {
     this.setState({ metricValue }, this.onChange);
   }
 
   render() {
-    const value = this.props.value || this.props.default;
-    const type = value.type || controlTypes.fixed;
+    const value = this.props.value ?? this.props.default;
+    const type = value?.type ?? controlTypes.fixed;
     const columns = this.props.datasource
       ? this.props.datasource.columns
       : null;
@@ -170,5 +215,7 @@ export default class FixedOrMetricControl extends Component {
   }
 }
 
+// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
 FixedOrMetricControl.propTypes = propTypes;
+// @ts-expect-error - defaultProps for backward compatibility with PropTypes
 FixedOrMetricControl.defaultProps = defaultProps;

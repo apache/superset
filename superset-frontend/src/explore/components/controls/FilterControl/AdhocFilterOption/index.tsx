@@ -31,7 +31,7 @@ export interface AdhocFilterOptionProps {
   onRemoveFilter: (e: React.MouseEvent) => void;
   options: OptionSortType[];
   sections?: string[];
-  operators?: string[];
+  operators?: Operators[];
   datasource?: Record<string, unknown>;
   partitionColumn?: string | null;
   onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
@@ -62,7 +62,7 @@ export default function AdhocFilterOption({
       options={options}
       datasource={datasource}
       onFilterEdit={onFilterEdit}
-      partitionColumn={partitionColumn}
+      partitionColumn={partitionColumn ?? undefined}
     >
       <OptionControlLabel
         label={actualTimeRange ?? adhocFilter.getDefaultLabel()}
