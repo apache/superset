@@ -23,6 +23,7 @@ import type { ChartStatus, Datasource } from 'src/explore/types';
 export enum ResultTypes {
   Results = 'results',
   Samples = 'samples',
+  Query = 'query',
 }
 
 type SetForceQueryAction = (force: boolean) => void;
@@ -60,6 +61,12 @@ export interface SamplesPaneProps {
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
+}
+
+export interface QueryPaneProps {
+  isRequest: boolean;
+  queryFormData: LatestQueryFormData;
+  isVisible: boolean;
 }
 
 export interface TableControlsProps {
