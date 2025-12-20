@@ -204,7 +204,7 @@ class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterC
         onFilterEdit={this.onFilterEdit}
         options={this.state.options}
         sections={this.props.sections}
-        operators={this.props.operators}
+        operators={this.props.operators as Operators[] | undefined}
         datasource={this.props.datasource}
         onRemoveFilter={e => {
           e.stopPropagation();
