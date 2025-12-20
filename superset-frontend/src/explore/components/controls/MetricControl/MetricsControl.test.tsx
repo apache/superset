@@ -51,6 +51,7 @@ const defaultProps = {
     { metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' },
     { metric_name: 'avg__value', expression: 'AVG(energy_usage.value)' },
   ],
+  datasource: undefined,
   datasourceType: 'sqla',
 };
 
