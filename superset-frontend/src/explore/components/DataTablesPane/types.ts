@@ -23,6 +23,7 @@ import type { ChartStatus, Datasource } from 'src/explore/types';
 export enum ResultTypes {
   Results = 'results',
   Samples = 'samples',
+  Query = 'query',
 }
 
 type SetForceQueryAction = (force: boolean) => void;
@@ -67,6 +68,12 @@ export interface DrillControlsProps {
   onDownloadCSV?: () => void;
   onDownloadXLSX?: () => void;
   onReload?: () => void;
+}
+
+export interface QueryPaneProps {
+  isRequest: boolean;
+  queryFormData: LatestQueryFormData;
+  isVisible: boolean;
 }
 
 export interface TableControlsProps extends DrillControlsProps {
