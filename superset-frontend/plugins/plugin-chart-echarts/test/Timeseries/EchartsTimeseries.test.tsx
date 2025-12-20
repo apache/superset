@@ -250,18 +250,14 @@ describe('EchartsTimeseries handleBrushEnd', () => {
 
     it('should not process when coordRange[0] is empty', () => {
       const params = {
-        batch: [
+        areas: [
           {
-            areas: [
-              {
-                coordRange: [[]],
-              },
-            ],
+            coordRange: [[]],
           },
         ],
       };
 
-      handleBrushSelected(
+      handleBrushEnd(
         params,
         baseXAxis,
         baseFormData,
@@ -277,21 +273,17 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       const endTime = 1609545600000;
 
       const params = {
-        batch: [
+        areas: [
           {
-            areas: [
-              {
-                coordRange: [
-                  [startTime, endTime],
-                  [0, 100],
-                ],
-              },
+            coordRange: [
+              [startTime, endTime],
+              [0, 100],
             ],
           },
         ],
       };
 
-      handleBrushSelected(
+      handleBrushEnd(
         params,
         baseXAxis,
         baseFormData,
@@ -312,21 +304,17 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       const customFormatter = (val: number) => `Formatted: ${val}`;
 
       const params = {
-        batch: [
+        areas: [
           {
-            areas: [
-              {
-                coordRange: [
-                  [startTime, endTime],
-                  [0, 100],
-                ],
-              },
+            coordRange: [
+              [startTime, endTime],
+              [0, 100],
             ],
           },
         ],
       };
 
-      handleBrushSelected(
+      handleBrushEnd(
         params,
         baseXAxis,
         baseFormData,
