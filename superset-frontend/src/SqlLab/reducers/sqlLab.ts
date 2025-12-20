@@ -365,11 +365,11 @@ export default function sqlLabReducer(
             query: null,
           };
           const q = { ...state.queries[qe.latestQueryId], results: newResults };
-          const queries = { ...state.queries, [q.id]: q };
+          const queries = { ...state.queries, [q.id]: q } as SqlLabState['queries'];
           newState = { ...state, queries };
         }
       }
-      newState = addToObject(newState, 'queries', action.query);
+      newState = addToObject(newState, 'queries', action.query) as SqlLabState;
 
       return {
         ...newState,

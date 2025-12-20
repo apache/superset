@@ -1215,9 +1215,9 @@ export function mergeTable(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function addTable(
-  queryEditor: QueryEditor,
+  queryEditor: Partial<QueryEditor>,
   tableName: string,
-  catalogName: string,
+  catalogName: string | null,
   schemaName: string,
   expanded = true,
 ): any {
@@ -1268,10 +1268,10 @@ export function runTablePreviewQuery(
     if (database && !database.disable_data_preview) {
       const dataPreviewQuery: Query = {
         id: newTable.previewQueryId ?? nanoid(11),
-        dbId,
-        catalog,
-        schema,
-        sql: newTable.selectStar,
+        dbId: dbId as number | undefined,
+        catalog: catalog ?? undefined,
+        schema: schema ?? '',
+        sql: newTable.selectStar ?? '',
         tableName: newTable.name,
         sqlEditorId: null,
         tab: '',
@@ -1287,9 +1287,9 @@ export function runTablePreviewQuery(
           mergeTable(
             {
               id: newTable.id,
-              dbId: newTable.dbId,
-              catalog: newTable.catalog,
-              schema: newTable.schema,
+              dbId: newTable.dbId as number | undefined,
+              catalog: newTable.catalog ?? undefined,
+              schema: newTable.schema ?? '',
               name: newTable.name,
               queryEditorId: newTable.queryEditorId,
               dataPreviewQueryId: dataPreviewQuery.id,
