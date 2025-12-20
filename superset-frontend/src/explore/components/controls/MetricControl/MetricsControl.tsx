@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
 import { isEqual } from 'lodash';
@@ -119,6 +119,19 @@ const getMetricsMatchingCurrentDataset = (value: any, columns: any, savedMetrics
     );
   });
 
+interface MetricsControlProps {
+  name: string;
+  onChange: (value: unknown) => void;
+  multi?: boolean;
+  value?: unknown;
+  columns?: unknown[];
+  savedMetrics?: unknown[];
+  datasource?: unknown;
+  clearable?: boolean;
+  isLoading?: boolean;
+  [key: string]: unknown;
+}
+
 const MetricsControl = ({
   onChange,
   multi,
@@ -127,13 +140,14 @@ const MetricsControl = ({
   savedMetrics,
   datasource,
   ...props
-}) => {
+}: MetricsControlProps) => {
   const [value, setValue] = useState(coerceAdhocMetrics(propsValue));
   const prevColumns = usePrevious(columns);
   const prevSavedMetrics = usePrevious(savedMetrics);
 
   const handleChange = useCallback(
-    opts => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (opts: any) => {
       // if clear out options
       if (opts === null) {
         onChange(null);
@@ -142,21 +156,22 @@ const MetricsControl = ({
 
       const transformedOpts = ensureIsArray(opts);
       const optionValues = transformedOpts
-        .map(option => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((option: any) => {
           // pre-defined metric
           if (option.metric_name) {
             return option.metric_name;
           }
           return option;
         })
-        .filter(option => option);
+        .filter((option: unknown) => option);
       onChange(multi ? optionValues : optionValues[0]);
     },
     [multi, onChange],
   );
 
   const onNewMetric = useCallback(
-    newMetric => {
+    (newMetric: unknown) => {
       const newValue = [...value, newMetric];
       setValue(newValue);
       handleChange(newValue);
@@ -165,8 +180,10 @@ const MetricsControl = ({
   );
 
   const onMetricEdit = useCallback(
-    (changedMetric, oldMetric) => {
-      const newValue = value.map(val => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (changedMetric: any, oldMetric: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const newValue = value.map((val: any) => {
         if (
           // compare saved metrics
           val === oldMetric.metric_name ||
@@ -186,7 +203,7 @@ const MetricsControl = ({
   );
 
   const onRemoveMetric = useCallback(
-    index => {
+    (index: number) => {
       if (!Array.isArray(value)) {
         return;
       }
@@ -199,7 +216,7 @@ const MetricsControl = ({
   );
 
   const moveLabel = useCallback(
-    (dragIndex, hoverIndex) => {
+    (dragIndex: number, hoverIndex: number) => {
       const newValues = [...value];
       [newValues[hoverIndex], newValues[dragIndex]] = [
         newValues[dragIndex],
@@ -222,7 +239,7 @@ const MetricsControl = ({
 
   const newAdhocMetric = useMemo(() => new AdhocMetric({}), [value]);
   const addNewMetricPopoverTrigger = useCallback(
-    trigger => {
+    (trigger: React.ReactNode) => {
       if (isAddNewMetricDisabled()) {
         return trigger;
       }
@@ -279,7 +296,7 @@ const MetricsControl = ({
   );
 
   const valueRenderer = useCallback(
-    (option, index) => (
+    (option: unknown, index: number) => (
       <MetricDefinitionValue
         key={index}
         index={index}
