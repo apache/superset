@@ -741,6 +741,8 @@ describe('EchartsTimeseries brush configuration for time range selection', () =>
         { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
         { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
       ],
+      colnames: ['__timestamp', 'San Francisco', 'New York'],
+      coltypes: [2, 0, 0], // 2 = Temporal, 0 = Numeric
     },
   ];
 
