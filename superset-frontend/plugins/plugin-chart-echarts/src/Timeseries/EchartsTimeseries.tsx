@@ -95,6 +95,39 @@ export default function EchartsTimeseries({
     };
   }, [formData.showExtraControls]);
 
+  // Activate brush mode for time-axis charts
+  useEffect(() => {
+    if (xAxis.type !== AxisType.Time) {
+      return;
+    }
+
+    // Skip on touch devices to avoid interfering with scrolling
+    if (
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window ||
+        (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0))
+    ) {
+      return;
+    }
+
+    // Small delay to ensure chart is fully rendered
+    const timer = setTimeout(() => {
+      const echartInstance = echartRef.current?.getEchartInstance();
+      if (echartInstance) {
+        echartInstance.dispatchAction({
+          type: 'takeGlobalCursor',
+          key: 'brush',
+          brushOption: {
+            brushType: 'rect',
+            brushMode: 'single',
+          },
+        });
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [xAxis.type]);
+
   const hasDimensions = ensureIsArray(groupby).length > 0;
 
   const getModelInfo = (target: ViewRootGroup, globalModel: GlobalModel) => {
