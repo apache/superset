@@ -974,7 +974,7 @@ export function queryEditorSetDb(
 
 export function queryEditorSetCatalog(
   queryEditor: Partial<QueryEditor> | null,
-  catalog: string,
+  catalog: string | null,
 ): SqlLabAction {
   return {
     type: QUERY_EDITOR_SET_CATALOG,
@@ -985,7 +985,7 @@ export function queryEditorSetCatalog(
 
 export function queryEditorSetSchema(
   queryEditor: Partial<QueryEditor> | null,
-  schema: string,
+  schema: string | null,
 ): SqlLabAction {
   return {
     type: QUERY_EDITOR_SET_SCHEMA,
@@ -1014,7 +1014,7 @@ export function queryEditorSetTitle(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function saveQuery(query: QueryEditor, clientId: string): any {
+export function saveQuery(query: Partial<QueryEditor>, clientId: string): any {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id: _id, ...payload } = convertQueryToServer(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1070,7 +1070,7 @@ export const addSavedQueryToTabState =
   };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function updateSavedQuery(query: QueryEditor, clientId: string): any {
+export function updateSavedQuery(query: Partial<QueryEditor>, clientId: string): any {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id: _id, ...payload } = convertQueryToServer(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1242,13 +1242,13 @@ export function addTable(
 }
 
 interface NewTable {
-  id: string;
-  dbId: number;
-  catalog: string;
-  schema: string;
+  id?: string;
+  dbId: number | string;
+  catalog?: string | null;
+  schema?: string;
   name: string;
-  queryEditorId: string;
-  selectStar: string;
+  queryEditorId?: string;
+  selectStar?: string;
   previewQueryId?: string;
 }
 

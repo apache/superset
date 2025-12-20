@@ -349,9 +349,12 @@ export default function sqlLabReducer(
           action.query.sqlEditorId,
           'tabViewId',
         );
-        sqlEditorId = queryEditorByTabId?.id ?? action.query.sqlEditorId;
+        sqlEditorId =
+          (queryEditorByTabId as QueryEditor | undefined)?.id ??
+          action.query.sqlEditorId;
+        const foundQueryEditor = getFromArr(state.queryEditors, sqlEditorId);
         const qe = {
-          ...getFromArr(state.queryEditors, sqlEditorId),
+          ...(foundQueryEditor || {}),
           ...(sqlEditorId === state.unsavedQueryEditor.id &&
             state.unsavedQueryEditor),
         };
@@ -404,7 +407,7 @@ export default function sqlLabReducer(
       // or the final result was unsuccessful
       if (
         action.query.state === QueryState.Stopped ||
-        action.results.status !== QueryState.Success
+        (action.results as { status?: string })?.status !== QueryState.Success
       ) {
         return state;
       }
@@ -777,7 +780,8 @@ export default function sqlLabReducer(
             }
             return true;
           })
-          .map(([id, query]) => [
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map(([id, query]: [string, any]) => [
             id,
             {
               ...query,
