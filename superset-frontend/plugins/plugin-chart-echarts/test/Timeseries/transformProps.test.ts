@@ -819,7 +819,7 @@ describe('EchartsTimeseries brush configuration for time range selection', () =>
     });
 
     const transformedProps = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
+      chartProps as unknown as EchartsTimeseriesChartProps,
     );
 
     expect(transformedProps.echartOptions.brush).toBeUndefined();
