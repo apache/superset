@@ -729,8 +729,8 @@ export function addNewQueryEditor(): any {
     return dispatch(
       addQueryEditor({
         dbId: dbId || defaultDbId || firstDbId,
-        catalog: catalog ?? undefined,
-        schema: schema ?? undefined,
+        catalog,
+        schema,
         autorun: autorun ?? false,
         sql: `${warning}SELECT ...`,
         queryLimit: queryLimit || common.conf.DEFAULT_SQLLAB_LIMIT,
@@ -756,9 +756,9 @@ export function cloneQueryToNewTab(query: Query, autorun: boolean): any {
     };
     const queryEditor = {
       name: t('Copy of %s', sourceQueryEditor.name),
-      dbId: query.dbId ?? undefined,
-      catalog: query.catalog ?? undefined,
-      schema: query.schema ?? undefined,
+      dbId: query.dbId,
+      catalog: query.catalog,
+      schema: query.schema,
       autorun,
       sql: query.sql,
       queryLimit: sourceQueryEditor.queryLimit,
@@ -1500,9 +1500,9 @@ export function popPermalink(key: string): any {
         dispatch(
           addQueryEditor({
             name: json.name ? json.name : t('Shared query'),
-            dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
-            catalog: json.catalog ? json.catalog : undefined,
-            schema: json.schema ? json.schema : undefined,
+            dbId: json.dbId ? parseInt(json.dbId, 10) : null,
+            catalog: json.catalog ?? null,
+            schema: json.schema ?? null,
             autorun: json.autorun ? json.autorun : false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
@@ -1524,9 +1524,9 @@ export function popStoredQuery(urlId: string): any {
         dispatch(
           addQueryEditor({
             name: json.name ? json.name : t('Shared query'),
-            dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
-            catalog: json.catalog ? json.catalog : undefined,
-            schema: json.schema ? json.schema : undefined,
+            dbId: json.dbId ? parseInt(json.dbId, 10) : null,
+            catalog: json.catalog ?? null,
+            schema: json.schema ?? null,
             autorun: json.autorun ? json.autorun : false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
