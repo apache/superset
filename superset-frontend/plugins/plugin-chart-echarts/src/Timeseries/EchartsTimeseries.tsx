@@ -197,7 +197,7 @@ export default function EchartsTimeseries({
     [emitCrossFilters, setDataMask, getCrossFilterDataMask],
   );
 
-  const handleBrushSelected = useCallback(
+  const handleBrushEnd = useCallback(
     (params: any) => {
       if (xAxis.type !== AxisType.Time) {
         return;
@@ -215,6 +215,22 @@ export default function EchartsTimeseries({
       // Get the brush areas from the event
       // brushEnd event has areas directly in params.areas
       const brushAreas = params.areas || [];
+
+      // Re-activate brush mode for the next selection
+      const echartInstance = echartRef.current?.getEchartInstance();
+      if (echartInstance) {
+        setTimeout(() => {
+          echartInstance.dispatchAction({
+            type: 'takeGlobalCursor',
+            key: 'brush',
+            brushOption: {
+              brushType: 'rect',
+              brushMode: 'single',
+            },
+          });
+        }, 0);
+      }
+
       if (brushAreas.length === 0) {
         // Brush was cleared, reset the filter
         setDataMask({
@@ -356,7 +372,7 @@ export default function EchartsTimeseries({
         });
       }
     },
-    brushEnd: handleBrushSelected,
+    brushEnd: handleBrushEnd,
   };
 
   const zrEventHandlers: EventHandlers = {
