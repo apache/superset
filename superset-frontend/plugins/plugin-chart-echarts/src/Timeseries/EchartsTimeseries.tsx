@@ -216,30 +216,18 @@ export default function EchartsTimeseries({
       // brushEnd event has areas directly in params.areas
       const brushAreas = params.areas || [];
 
-      // Re-activate brush mode for the next selection
-      const echartInstance = echartRef.current?.getEchartInstance();
-      if (echartInstance) {
+      if (brushAreas.length === 0) {
+        // Brush was cleared, reset the filter
+        // Defer to let brush event complete before re-render
         setTimeout(() => {
-          echartInstance.dispatchAction({
-            type: 'takeGlobalCursor',
-            key: 'brush',
-            brushOption: {
-              brushType: 'rect',
-              brushMode: 'single',
+          setDataMask({
+            extraFormData: {},
+            filterState: {
+              value: null,
+              selectedValues: null,
             },
           });
         }, 0);
-      }
-
-      if (brushAreas.length === 0) {
-        // Brush was cleared, reset the filter
-        setDataMask({
-          extraFormData: {},
-          filterState: {
-            value: null,
-            selectedValues: null,
-          },
-        });
         return;
       }
 
@@ -258,19 +246,22 @@ export default function EchartsTimeseries({
       const startFormatted = xValueFormatter(startValue);
       const endFormatted = xValueFormatter(endValue);
 
-      setDataMask({
-        extraFormData: {
-          filters: [
-            { col, op: '>=', val: startValue },
-            { col, op: '<=', val: endValue },
-          ],
-        },
-        filterState: {
-          value: [startValue, endValue],
-          selectedValues: [startValue, endValue],
-          label: `${startFormatted} - ${endFormatted}`,
-        },
-      });
+      // Defer to let brush event complete before triggering re-render
+      setTimeout(() => {
+        setDataMask({
+          extraFormData: {
+            filters: [
+              { col, op: '>=', val: startValue },
+              { col, op: '<=', val: endValue },
+            ],
+          },
+          filterState: {
+            value: [startValue, endValue],
+            selectedValues: [startValue, endValue],
+            label: `${startFormatted} - ${endFormatted}`,
+          },
+        });
+      }, 0);
     },
     [formData, setDataMask, xAxis, xValueFormatter],
   );
