@@ -97,13 +97,8 @@ export default function EchartsTimeseries({
     };
   }, [formData.showExtraControls]);
 
-  // Activate brush mode for time-axis charts when cross-filters are enabled
+  // Activate brush mode for time-axis charts
   useEffect(() => {
-    // Only enable brush when cross-filters are enabled (on dashboards)
-    if (!emitCrossFilters) {
-      return;
-    }
-
     if (xAxis.type !== AxisType.Time) {
       return;
     }
@@ -133,7 +128,7 @@ export default function EchartsTimeseries({
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [emitCrossFilters, xAxis.type]);
+  }, [xAxis.type]);
 
   const hasDimensions = ensureIsArray(groupby).length > 0;
 
@@ -206,10 +201,6 @@ export default function EchartsTimeseries({
 
   const handleBrushEnd = useCallback(
     (params: any) => {
-      if (!emitCrossFilters) {
-        return;
-      }
-
       if (xAxis.type !== AxisType.Time) {
         return;
       }
@@ -279,7 +270,7 @@ export default function EchartsTimeseries({
         });
       }, 0);
     },
-    [emitCrossFilters, formData, setDataMask, xAxis, xValueFormatter],
+    [formData, setDataMask, xAxis, xValueFormatter],
   );
 
   const eventHandlers: EventHandlers = {
