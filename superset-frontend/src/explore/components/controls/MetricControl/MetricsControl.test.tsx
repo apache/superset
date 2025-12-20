@@ -54,7 +54,7 @@ const defaultProps = {
   datasourceType: 'sqla',
 };
 
-function setup(overrides) {
+function setup(overrides: Record<string, unknown> = {}) {
   const onChange = jest.fn();
   const props = {
     onChange,
@@ -92,7 +92,7 @@ test('handles creating a new metric', async () => {
   const { onChange } = setup();
 
   userEvent.click(screen.getByText(/add metric/i));
-  await selectOption('sum__value', /select saved metrics/i);
+  await selectOption('sum__value', 'Select saved metrics');
   userEvent.click(screen.getByRole('button', { name: /save/i }));
   expect(onChange).toHaveBeenCalledWith(['sum__value']);
 });
@@ -106,7 +106,7 @@ test('accepts an edited metric from an AdhocMetricEditPopover', async () => {
   userEvent.click(metricLabel);
 
   await screen.findByText('aggregate');
-  selectOption('AVG', /select aggregate options/i);
+  selectOption('AVG', 'Select aggregate options');
 
   await screen.findByText('AVG(value)');
 
@@ -130,7 +130,7 @@ test('removes metrics if savedMetrics changes', async () => {
 
   const savedTab = screen.getByRole('tab', { name: /saved/i });
   userEvent.click(savedTab);
-  await selectOption('avg__value', /select saved metrics/i);
+  await selectOption('avg__value', 'Select saved metrics');
 
   const simpleTab = screen.getByRole('tab', { name: /simple/i });
   userEvent.click(simpleTab);
@@ -143,6 +143,9 @@ test('removes metrics if savedMetrics changes', async () => {
 test('does not remove custom SQL metric if savedMetrics changes', async () => {
   const { rerender } = render(
     <MetricsControl
+      name="metrics"
+      onChange={jest.fn()}
+      multi
       value={[
         {
           expressionType: EXPRESSION_TYPES.SQL,
@@ -160,6 +163,7 @@ test('does not remove custom SQL metric if savedMetrics changes', async () => {
         { metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' },
         { metric_name: 'avg__value', expression: 'AVG(energy_usage.value)' },
       ]}
+      datasource={undefined}
     />,
     { useDnd: true },
   );
@@ -169,6 +173,9 @@ test('does not remove custom SQL metric if savedMetrics changes', async () => {
   // Simulate removing columns
   rerender(
     <MetricsControl
+      name="metrics"
+      onChange={jest.fn()}
+      multi
       value={[
         {
           expressionType: EXPRESSION_TYPES.SQL,
@@ -179,6 +186,7 @@ test('does not remove custom SQL metric if savedMetrics changes', async () => {
       ]}
       columns={[]}
       savedMetrics={[]}
+      datasource={undefined}
     />,
   );
 

@@ -57,13 +57,27 @@ const defaultProps = {
   columns: [],
 };
 
+interface SavedMetricDef {
+  metric_name: string;
+  expression: string;
+  [key: string]: unknown;
+}
+
+interface ColumnDef {
+  column_name: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
+type MetricValue = string | AdhocMetric | SavedMetricDef | { expressionType?: string; column?: { column_name: string }; metric_name?: string; [key: string]: unknown };
+
 function getOptionsForSavedMetrics(
-  savedMetrics,
-  currentMetricValues,
-  currentMetric,
-) {
+  savedMetrics: SavedMetricDef[] | undefined,
+  currentMetricValues: MetricValue[] | MetricValue | undefined,
+  currentMetric: string | undefined,
+): SavedMetricDef[] {
   return (
-    savedMetrics?.filter(savedMetric =>
+    savedMetrics?.filter((savedMetric: SavedMetricDef) =>
       Array.isArray(currentMetricValues)
         ? !currentMetricValues.includes(savedMetric.metric_name) ||
           savedMetric.metric_name === currentMetric
@@ -72,25 +86,25 @@ function getOptionsForSavedMetrics(
   );
 }
 
-function isDictionaryForAdhocMetric(value) {
-  return value && !(value instanceof AdhocMetric) && value.expressionType;
+function isDictionaryForAdhocMetric(value: unknown): boolean {
+  return !!value && !(value instanceof AdhocMetric) && !!(value as { expressionType?: string }).expressionType;
 }
 
 // adhoc metrics are stored as dictionaries in URL params. We convert them back into the
 // AdhocMetric class for typechecking, consistency and instance method access.
-function coerceAdhocMetrics(value) {
+function coerceAdhocMetrics(value: MetricValue | MetricValue[] | undefined): (AdhocMetric | MetricValue)[] {
   if (!value) {
     return [];
   }
   if (!Array.isArray(value)) {
     if (isDictionaryForAdhocMetric(value)) {
-      return [new AdhocMetric(value)];
+      return [new AdhocMetric(value as Record<string, unknown>)];
     }
     return [value];
   }
   return value.map(val => {
     if (isDictionaryForAdhocMetric(val)) {
-      return new AdhocMetric(val);
+      return new AdhocMetric(val as Record<string, unknown>);
     }
     return val;
   });
@@ -99,7 +113,7 @@ function coerceAdhocMetrics(value) {
 const emptySavedMetric = { metric_name: '', expression: '' };
 
 // TODO: use typeguards to distinguish saved metrics from adhoc metrics
-const getMetricsMatchingCurrentDataset = (value, columns, savedMetrics) =>
+const getMetricsMatchingCurrentDataset = (value: MetricValue | MetricValue[] | undefined, columns: ColumnDef[] | undefined, savedMetrics: SavedMetricDef[] | undefined) =>
   ensureIsArray(value).filter(metric => {
     if (typeof metric === 'string' || metric.metric_name) {
       return savedMetrics?.some(
