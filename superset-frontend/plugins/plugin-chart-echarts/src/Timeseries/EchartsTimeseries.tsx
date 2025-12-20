@@ -199,7 +199,14 @@ export default function EchartsTimeseries({
 
   const handleBrushEnd = useCallback(
     (params: any) => {
+      // eslint-disable-next-line no-console
+      console.log('[BRUSH DEBUG] handleBrushEnd called', params);
+      // eslint-disable-next-line no-console
+      console.log('[BRUSH DEBUG] xAxis:', xAxis);
+
       if (xAxis.type !== AxisType.Time) {
+        // eslint-disable-next-line no-console
+        console.log('[BRUSH DEBUG] Skipping: not time axis');
         return;
       }
 
@@ -209,14 +216,20 @@ export default function EchartsTimeseries({
         ('ontouchstart' in window ||
           (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0));
       if (isTouchDevice) {
+        // eslint-disable-next-line no-console
+        console.log('[BRUSH DEBUG] Skipping: touch device');
         return;
       }
 
       // Get the brush areas from the event
       // brushEnd event has areas directly in params.areas
       const brushAreas = params.areas || [];
+      // eslint-disable-next-line no-console
+      console.log('[BRUSH DEBUG] brushAreas:', brushAreas);
 
       if (brushAreas.length === 0) {
+        // eslint-disable-next-line no-console
+        console.log('[BRUSH DEBUG] No areas, resetting filter');
         // Brush was cleared, reset the filter
         // Defer to let brush event complete before re-render
         setTimeout(() => {
@@ -235,16 +248,26 @@ export default function EchartsTimeseries({
       // coordRange contains the data values of the brush selection
       // For rect brush, coordRange is [[minX, maxX], [minY, maxY]]
       const coordRange = area.coordRange;
+      // eslint-disable-next-line no-console
+      console.log('[BRUSH DEBUG] coordRange:', coordRange);
+
       if (!coordRange || !coordRange[0] || coordRange[0].length < 2) {
+        // eslint-disable-next-line no-console
+        console.log('[BRUSH DEBUG] Invalid coordRange');
         return;
       }
 
       const [startValue, endValue] = coordRange[0].map(Number);
+      // eslint-disable-next-line no-console
+      console.log('[BRUSH DEBUG] startValue:', startValue, 'endValue:', endValue);
 
       const col =
         xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
       const startFormatted = xValueFormatter(startValue);
       const endFormatted = xValueFormatter(endValue);
+
+      // eslint-disable-next-line no-console
+      console.log('[BRUSH DEBUG] Setting filter - col:', col, 'range:', startFormatted, '-', endFormatted);
 
       // Defer to let brush event complete before triggering re-render
       setTimeout(() => {
@@ -261,6 +284,8 @@ export default function EchartsTimeseries({
             label: `${startFormatted} - ${endFormatted}`,
           },
         });
+        // eslint-disable-next-line no-console
+        console.log('[BRUSH DEBUG] setDataMask called');
       }, 0);
     },
     [formData, setDataMask, xAxis, xValueFormatter],
