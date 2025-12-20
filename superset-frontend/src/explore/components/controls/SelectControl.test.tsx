@@ -31,7 +31,13 @@ import SelectControl, {
   getSortComparator,
 } from 'src/explore/components/controls/SelectControl';
 
-const defaultProps = {
+const defaultProps: {
+  choices: [string | number, string][];
+  name: string;
+  label: string;
+  valueKey: string;
+  onChange: jest.Mock;
+} = {
   choices: [
     ['1 year ago', '1 year ago'],
     ['1 week ago', '1 week ago'],

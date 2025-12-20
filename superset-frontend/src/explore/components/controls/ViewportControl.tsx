@@ -104,7 +104,6 @@ export default class ViewportControl extends Component<ViewportControlProps> {
       <div>
         <ControlHeader {...this.props} />
         <Popover
-          container={document.body}
           trigger="click"
           placement="right"
           content={this.renderPopover()}

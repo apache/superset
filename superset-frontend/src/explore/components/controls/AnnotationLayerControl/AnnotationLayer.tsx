@@ -58,6 +58,7 @@ interface SelectOption {
   value: string | number;
   label: string;
   viz_type?: string;
+  [key: string]: unknown;
 }
 
 interface SliceData {

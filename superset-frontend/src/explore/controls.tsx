@@ -56,7 +56,7 @@
  * in tandem with `controlPanels/index.js` that defines how controls are composed into sections for
  * each and every visualization type.
  */
-import type { Column } from '@superset-ui/core';
+import type { Column, SequentialScheme } from '@superset-ui/core';
 import {
   t,
   getCategoricalSchemeRegistry,
@@ -246,7 +246,13 @@ export const controls = {
     type: 'ColorSchemeControl',
     label: t('Linear color scheme'),
     choices: () =>
-      sequentialSchemeRegistry.values().map(value => [value.id, value.label]),
+      sequentialSchemeRegistry
+        .values()
+        .filter(
+          (value): value is SequentialScheme =>
+            value !== undefined && 'id' in value && 'label' in value,
+        )
+        .map(value => [value.id, value.label]),
     default: sequentialSchemeRegistry.getDefaultKey(),
     clearable: false,
     description: '',

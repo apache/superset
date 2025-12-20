@@ -39,9 +39,8 @@ describe('store', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('applyDefaultFormData', () => {
-    window.featureFlags = {
-      SCOPED_FILTER: false,
-    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).featureFlags = {};
 
     test('applies default to formData if the key is missing', () => {
       const inputFormData = {

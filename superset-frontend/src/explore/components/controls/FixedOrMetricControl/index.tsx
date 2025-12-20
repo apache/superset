@@ -195,8 +195,8 @@ export default class FixedOrMetricControl extends Component<
                   >
                     <MetricsControl
                       name="metric"
-                      columns={columns}
-                      savedMetrics={metrics}
+                      columns={columns ?? undefined}
+                      savedMetrics={metrics ?? undefined}
                       multi={false}
                       onFocus={() => {
                         this.setType(controlTypes.metric);

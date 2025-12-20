@@ -195,7 +195,8 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
 
   const handleDbList = useCallback(
     (result: DatabaseObject) => {
-      dispatch(setDatabases(result));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      dispatch(setDatabases(result as any));
     },
     [dispatch],
   );

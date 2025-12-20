@@ -17,7 +17,11 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { getChartControlPanelRegistry, VizType } from '@superset-ui/core';
+import {
+  DatasourceType,
+  getChartControlPanelRegistry,
+  VizType,
+} from '@superset-ui/core';
 import type { QueryFormData } from '@superset-ui/core';
 import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import { controls } from './controls';
@@ -68,7 +72,7 @@ export function getControlsState(
   handleDeprecatedControls(formData);
   const controlsState = getAllControlsState(
     vizType,
-    state.datasource.type,
+    state.datasource.type as DatasourceType,
     state,
     formData,
   );

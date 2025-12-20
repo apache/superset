@@ -105,16 +105,19 @@ const emptySavedMetric = { metric_name: '', expression: '' };
 // TODO: use typeguards to distinguish saved metrics from adhoc metrics
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getMetricsMatchingCurrentDataset = (value: any, columns: any, savedMetrics: any) =>
-  ensureIsArray(value).filter(metric => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ensureIsArray(value).filter((metric: any) => {
     if (typeof metric === 'string' || metric.metric_name) {
       return savedMetrics?.some(
-        savedMetric =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (savedMetric: any) =>
           savedMetric.metric_name === metric ||
           savedMetric.metric_name === metric.metric_name,
       );
     }
     return columns?.some(
-      column =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (column: any) =>
         !metric.column || metric.column.column_name === column.column_name,
     );
   });
@@ -247,10 +250,12 @@ const MetricsControl = ({
         <AdhocMetricPopoverTrigger
           adhocMetric={newAdhocMetric}
           onMetricEdit={onNewMetric}
-          columns={columns}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          columns={columns as any}
           savedMetricsOptions={savedMetricOptions}
           savedMetric={emptySavedMetric}
-          datasource={datasource}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          datasource={datasource as any}
           isNew
         >
           {trigger}
@@ -300,12 +305,16 @@ const MetricsControl = ({
       <MetricDefinitionValue
         key={index}
         index={index}
-        option={option}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        option={option as any}
         onMetricEdit={onMetricEdit}
         onRemoveMetric={onRemoveMetric}
-        columns={columns}
-        datasource={datasource}
-        savedMetrics={savedMetrics}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        columns={columns as any}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        datasource={datasource as any}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        savedMetrics={savedMetrics as any}
         savedMetricsOptions={getOptionsForSavedMetrics(
           savedMetrics,
           value,

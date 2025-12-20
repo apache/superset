@@ -102,7 +102,8 @@ export default function MetricDefinitionValue({
       datasourceWarningMessage,
     };
 
-    return <AdhocMetricOption {...metricOptionProps} />;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return <AdhocMetricOption {...(metricOptionProps as any)} />;
   }
   return null;
 }

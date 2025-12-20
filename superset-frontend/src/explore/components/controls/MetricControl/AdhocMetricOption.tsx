@@ -99,7 +99,8 @@ class AdhocMetricOption extends PureComponent<AdhocMetricOptionProps> {
         datasource={datasource!}
       >
         <OptionControlLabel
-          savedMetric={savedMetric}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          savedMetric={savedMetric as any}
           adhocMetric={adhocMetric}
           label={adhocMetric.label}
           onRemove={() => this.onRemoveMetric()}

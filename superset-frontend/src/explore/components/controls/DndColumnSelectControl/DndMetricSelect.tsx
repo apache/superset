@@ -282,7 +282,8 @@ const DndMetricSelect = (props: any) => {
       <MetricDefinitionValue
         key={index}
         index={index}
-        option={option}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        option={option as any}
         onMetricEdit={onMetricEdit}
         onRemoveMetric={onRemoveMetric}
         columns={props.columns}
