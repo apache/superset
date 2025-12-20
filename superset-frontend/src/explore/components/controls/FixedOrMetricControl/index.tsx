@@ -116,7 +116,7 @@ export default class FixedOrMetricControl extends Component<
       value:
         this.state.type === controlTypes.fixed
           ? this.state.fixedValue
-          : this.state.metricValue,
+          : this.state.metricValue ?? undefined,
     });
   }
 
@@ -181,6 +181,7 @@ export default class FixedOrMetricControl extends Component<
                       onChange={this.setFixedValue}
                       onFocus={() => {
                         this.setType(controlTypes.fixed);
+                        return {};
                       }}
                       value={this.state.fixedValue}
                     />

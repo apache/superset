@@ -18,7 +18,13 @@
  */
 import { FC, ChangeEvent, useEffect, useState, useRef } from 'react';
 
-import { Input, InputRef, Select, Tooltip } from '@superset-ui/core/components';
+import {
+  Input,
+  InputRef,
+  Select,
+  Tooltip,
+  type SelectValue,
+} from '@superset-ui/core/components';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -359,15 +365,16 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     allowNewOptions: true,
     ariaLabel: t('Comparator option'),
     mode:
-      operatorId && MULTI_OPERATORS.has(operatorId)
+      operatorId && MULTI_OPERATORS.has(operatorId as Operators)
         ? ('multiple' as const)
         : ('single' as const),
     loading: loadingComparatorSuggestions,
-    value: comparator,
+    value: comparator as SelectValue,
     onChange: onComparatorChange,
     notFoundContent: t('Type a value here'),
     disabled:
-      operatorId !== undefined && DISABLE_INPUT_OPERATORS.includes(operatorId),
+      operatorId !== undefined &&
+      DISABLE_INPUT_OPERATORS.includes(operatorId as Operators),
     placeholder: createSuggestionsPlaceholder(),
   };
 
@@ -530,7 +537,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           }))}
         {...operatorSelectProps}
       />
-      {(operatorId && MULTI_OPERATORS.has(operatorId)) ||
+      {(operatorId && MULTI_OPERATORS.has(operatorId as Operators)) ||
       suggestions.length > 0 ? (
         <Tooltip
           title={
@@ -568,7 +575,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             placeholder={t('Filter value (case sensitive)')}
             disabled={
               operatorId !== undefined &&
-              DISABLE_INPUT_OPERATORS.includes(operatorId)
+              DISABLE_INPUT_OPERATORS.includes(operatorId as Operators)
             }
           />
         </Tooltip>

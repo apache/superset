@@ -98,8 +98,8 @@ export default class AdhocMetric {
       // try to be clever in the case of transitioning from Sql expression back to simple expression
       const inferredColumn = inferSqlExpressionColumn(adhocMetric);
       this.column =
-        adhocMetric.column ||
-        (inferredColumn && { column_name: inferredColumn });
+        adhocMetric.column ??
+        (inferredColumn ? { column_name: inferredColumn } : null);
       this.aggregate =
         adhocMetric.aggregate || inferSqlExpressionAggregate(adhocMetric);
       this.sqlExpression = null;
@@ -111,7 +111,7 @@ export default class AdhocMetric {
     this.datasourceWarning = !!adhocMetric.datasourceWarning;
     this.hasCustomLabel = !!(adhocMetric.hasCustomLabel && adhocMetric.label);
     this.label = this.hasCustomLabel
-      ? adhocMetric.label
+      ? (adhocMetric.label ?? this.getDefaultLabel())
       : this.getDefaultLabel();
 
     this.optionName =
@@ -148,7 +148,7 @@ export default class AdhocMetric {
       return aggregate + column;
     }
     if (this.expressionType === EXPRESSION_TYPES.SQL) {
-      return this.sqlExpression;
+      return this.sqlExpression ?? '';
     }
     return '';
   }
@@ -182,10 +182,10 @@ export default class AdhocMetric {
   }
 
   inferSqlExpressionAggregate(): string | null {
-    return inferSqlExpressionAggregate(this);
+    return inferSqlExpressionAggregate(this as unknown as AdhocMetricInput);
   }
 
   inferSqlExpressionColumn(): string | null {
-    return inferSqlExpressionColumn(this);
+    return inferSqlExpressionColumn(this as unknown as AdhocMetricInput);
   }
 }

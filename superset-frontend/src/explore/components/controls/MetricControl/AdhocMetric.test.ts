@@ -203,14 +203,14 @@ describe('AdhocMetric', () => {
       aggregate: AGGREGATES.SUM,
     });
     expect(adhocMetric2.aggregate).toBe(AGGREGATES.SUM);
-    expect(adhocMetric2.column.column_name).toBe('my_column');
+    expect(adhocMetric2.column?.column_name).toBe('my_column');
 
     const adhocMetric3 = adhocMetric.duplicateWith({
       expressionType: EXPRESSION_TYPES.SIMPLE,
       column: valueColumn,
     });
     expect(adhocMetric3.aggregate).toBe(AGGREGATES.AVG);
-    expect(adhocMetric3.column.column_name).toBe('value');
+    expect(adhocMetric3.column?.column_name).toBe('value');
   });
 
   test('should transform count_distinct SQL and do not change label if does not set metric label', () => {

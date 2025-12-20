@@ -67,7 +67,9 @@ export default function AdhocFilterOption({
       <OptionControlLabel
         label={actualTimeRange ?? adhocFilter.getDefaultLabel()}
         tooltipTitle={title ?? adhocFilter.getTooltipTitle()}
-        onRemove={onRemoveFilter}
+        onRemove={() =>
+          onRemoveFilter({} as React.MouseEvent<Element, MouseEvent>)
+        }
         onMoveLabel={onMoveLabel}
         onDropLabel={onDropLabel}
         index={index}
