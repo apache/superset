@@ -64,6 +64,8 @@ export default function EchartsTimeseries({
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+  // Track if we just applied a brush filter to prevent immediate reset on re-render
+  const brushFilterApplied = useRef(false);
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {
@@ -229,8 +231,18 @@ export default function EchartsTimeseries({
 
       if (brushAreas.length === 0) {
         // eslint-disable-next-line no-console
-        console.log('[BRUSH DEBUG] No areas, resetting filter');
-        // Brush was cleared, reset the filter
+        console.log('[BRUSH DEBUG] No areas, brushFilterApplied:', brushFilterApplied.current);
+        // If we just applied a filter, the chart re-rendered and cleared the brush
+        // Don't reset the filter in this case
+        if (brushFilterApplied.current) {
+          // eslint-disable-next-line no-console
+          console.log('[BRUSH DEBUG] Skipping reset - filter was just applied');
+          brushFilterApplied.current = false;
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.log('[BRUSH DEBUG] Resetting filter');
+        // Brush was cleared by user, reset the filter
         // Defer to let brush event complete before re-render
         setTimeout(() => {
           setDataMask({
@@ -268,6 +280,9 @@ export default function EchartsTimeseries({
 
       // eslint-disable-next-line no-console
       console.log('[BRUSH DEBUG] Setting filter - col:', col, 'range:', startFormatted, '-', endFormatted);
+
+      // Mark that we're applying a filter so we don't reset on re-render
+      brushFilterApplied.current = true;
 
       // Defer to let brush event complete before triggering re-render
       setTimeout(() => {
