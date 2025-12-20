@@ -211,13 +211,15 @@ export class StandardizedFormData {
         publicFormData[key] = exploreState.form_data[key];
       }
     });
-    const targetControlsState = getControlsState(exploreState, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const targetControlsState = getControlsState(exploreState as any, {
       ...latestFormData,
       ...publicFormData,
       viz_type: targetVizType,
     });
     const targetFormData = {
-      ...getFormDataFromControls(targetControlsState),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...getFormDataFromControls(targetControlsState as any),
       // Preserve dashboard context when switching viz types.
       ...(publicFormData.dashboardId && {
         dashboardId: publicFormData.dashboardId,
@@ -243,14 +245,18 @@ export class StandardizedFormData {
       getStandardizedControls().clear();
       rv = {
         formData: transformed,
-        controlsState: getControlsState(exploreState, transformed),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        controlsState: getControlsState(exploreState as any, transformed),
       };
     }
 
     // refresh validator message
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rv.controlsState = getControlsState(
-      { ...exploreState, controls: rv.controlsState },
-      rv.formData,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { ...exploreState, controls: rv.controlsState } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rv.formData as any,
     );
     return rv;
   }

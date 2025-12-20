@@ -37,21 +37,19 @@ const sumValueAdhocMetric = new AdhocMetric({
   aggregate: AGGREGATES.SUM,
 });
 
-const datasource = {
-  type: 'table',
-  id: 1,
-  uid: '1__table',
-  columnFormats: {},
-  verboseMap: {},
-};
-
 const defaultProps = {
   adhocMetric: sumValueAdhocMetric,
   savedMetric: {},
   savedMetricsOptions: [],
   onMetricEdit: jest.fn(),
   columns,
-  datasource: undefined,
+  datasource: {
+    type: 'table',
+    id: 1,
+    uid: '1__table',
+    columnFormats: {},
+    verboseMap: {},
+  },
   onMoveLabel: jest.fn(),
   onDropLabel: jest.fn(),
   index: 0,

@@ -244,7 +244,8 @@ class TextAreaControl extends Component<TextAreaControlProps> {
         {this.renderEditor()}
         {this.props.offerEditInModal && (
           <ModalTrigger
-            modalTitle={controlHeader}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            modalTitle={controlHeader as any}
             triggerNode={
               <Button
                 buttonSize="small"
@@ -262,4 +263,5 @@ class TextAreaControl extends Component<TextAreaControlProps> {
   }
 }
 
-export default withTheme(TextAreaControl);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default withTheme(TextAreaControl as any);

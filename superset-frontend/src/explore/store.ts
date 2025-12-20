@@ -70,10 +70,11 @@ export function getControlsState(
     formData.viz_type || state.common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
 
   handleDeprecatedControls(formData);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsState = getAllControlsState(
     vizType,
     state.datasource.type as DatasourceType,
-    state,
+    state as any,
     formData,
   );
 
@@ -92,11 +93,12 @@ export function applyDefaultFormData(
   const vizType = inputFormData.viz_type;
   const controlsState = getAllControlsState(
     vizType,
-    datasourceType,
+    datasourceType as DatasourceType,
     null,
     inputFormData,
   );
-  const controlFormData = getFormDataFromControls(controlsState);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const controlFormData = getFormDataFromControls(controlsState as any);
 
   const formData: Record<string, unknown> = {};
   Object.keys(controlsState)
@@ -112,14 +114,17 @@ export function applyDefaultFormData(
   return formData;
 }
 
-const defaultControls = { ...controls };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const defaultControls: Record<string, any> = { ...controls };
 Object.keys(controls).forEach(f => {
-  defaultControls[f].value = controls[f].default;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  defaultControls[f].value = (controls as any)[f].default;
 });
 
 const defaultState = {
   controls: defaultControls,
-  form_data: getFormDataFromControls(defaultControls),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form_data: getFormDataFromControls(defaultControls as any),
 };
 
 export { defaultControls, defaultState };

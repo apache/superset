@@ -370,7 +370,8 @@ export default class SelectControl extends PureComponent<SelectControlProps, Sel
           }
         `}
       >
-        <Select {...selectProps} />
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <Select {...(selectProps as any)} />
       </div>
     );
   }

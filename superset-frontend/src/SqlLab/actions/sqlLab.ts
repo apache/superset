@@ -687,24 +687,29 @@ export function addQueryEditor(
   };
 }
 
-export function addNewQueryEditor() {
-  return function (dispatch, getState) {
+export function addNewQueryEditor(): SqlLabThunkAction<SqlLabAction> {
+  return function (
+    dispatch: SqlLabThunkDispatch,
+    getState: () => SqlLabRootState,
+  ) {
     const {
       sqlLab: { queryEditors, tabHistory, unsavedQueryEditor, databases },
       common,
     } = getState();
     const defaultDbId = common.conf.SQLLAB_DEFAULT_DBID;
     const activeQueryEditor = queryEditors.find(
-      qe => qe.id === tabHistory[tabHistory.length - 1],
+      (qe: QueryEditor) => qe.id === tabHistory[tabHistory.length - 1],
     );
-    const dbIds = Object.values(databases).map(database => database.id);
+    const dbIds = Object.values(databases).map(
+      (database: Database) => database.id,
+    );
     const firstDbId = dbIds.length > 0 ? Math.min(...dbIds) : undefined;
     const { dbId, catalog, schema, queryLimit, autorun } = {
       ...queryEditors[0],
       ...activeQueryEditor,
       ...(unsavedQueryEditor.id === activeQueryEditor?.id &&
         unsavedQueryEditor),
-    };
+    } as Partial<QueryEditor>;
     const warning = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? ''
       : t(
@@ -712,7 +717,7 @@ export function addNewQueryEditor() {
         );
 
     const name = newQueryTabName(
-      queryEditors?.map(qe => ({
+      queryEditors?.map((qe: QueryEditor) => ({
         ...qe,
         ...(qe.id === unsavedQueryEditor.id && unsavedQueryEditor),
       })) || [],
@@ -732,12 +737,20 @@ export function addNewQueryEditor() {
   };
 }
 
-export function cloneQueryToNewTab(query, autorun) {
-  return function (dispatch, getState) {
+export function cloneQueryToNewTab(
+  query: Query,
+  autorun: boolean,
+): SqlLabThunkAction<SqlLabAction> {
+  return function (
+    dispatch: SqlLabThunkDispatch,
+    getState: () => SqlLabRootState,
+  ) {
     const state = getState();
     const { queryEditors, unsavedQueryEditor, tabHistory } = state.sqlLab;
     const sourceQueryEditor = {
-      ...queryEditors.find(qe => qe.id === tabHistory[tabHistory.length - 1]),
+      ...queryEditors.find(
+        (qe: QueryEditor) => qe.id === tabHistory[tabHistory.length - 1],
+      ),
       ...(tabHistory[tabHistory.length - 1] === unsavedQueryEditor.id &&
         unsavedQueryEditor),
     };
@@ -756,26 +769,31 @@ export function cloneQueryToNewTab(query, autorun) {
   };
 }
 
-export function setLastUpdatedActiveTab(queryEditorId) {
+export function setLastUpdatedActiveTab(queryEditorId: string): SqlLabAction {
   return {
     type: SET_LAST_UPDATED_ACTIVE_TAB,
     queryEditorId,
   };
 }
 
-export function setActiveQueryEditor(queryEditor) {
+export function setActiveQueryEditor(queryEditor: QueryEditor): SqlLabAction {
   return {
     type: SET_ACTIVE_QUERY_EDITOR,
     queryEditor,
   };
 }
 
-export function switchQueryEditor(goBackward = false) {
-  return function (dispatch, getState) {
+export function switchQueryEditor(goBackward = false): SqlLabThunkAction<void> {
+  return function (
+    dispatch: SqlLabThunkDispatch,
+    getState: () => SqlLabRootState,
+  ) {
     const { sqlLab } = getState();
     const { queryEditors, tabHistory } = sqlLab;
     const qeid = tabHistory[tabHistory.length - 1];
-    const currentIndex = queryEditors.findIndex(qe => qe.id === qeid);
+    const currentIndex = queryEditors.findIndex(
+      (qe: QueryEditor) => qe.id === qeid,
+    );
     const nextIndex = goBackward
       ? currentIndex - 1 + queryEditors.length
       : currentIndex + 1;
@@ -785,14 +803,32 @@ export function switchQueryEditor(goBackward = false) {
   };
 }
 
-export function loadQueryEditor(queryEditor) {
+export function loadQueryEditor(queryEditor: QueryEditor): SqlLabAction {
   return { type: LOAD_QUERY_EDITOR, queryEditor };
 }
 
-export function setTables(tableSchemas) {
+interface TableSchema {
+  description: {
+    columns: unknown[];
+    selectStar: string;
+    primaryKey: unknown;
+    foreignKeys: unknown[];
+    indexes: unknown[];
+    dataPreviewQueryId: string;
+  } | null;
+  database_id: number;
+  tab_state_id: number;
+  catalog: string;
+  schema: string;
+  table: string;
+  expanded: boolean;
+  id: string;
+}
+
+export function setTables(tableSchemas: TableSchema[]): SqlLabAction {
   const tables = tableSchemas
-    .filter(tableSchema => tableSchema.description !== null)
-    .map(tableSchema => {
+    .filter((tableSchema: TableSchema) => tableSchema.description !== null)
+    .map((tableSchema: TableSchema) => {
       const {
         columns,
         selectStar,
@@ -800,7 +836,7 @@ export function setTables(tableSchemas) {
         foreignKeys,
         indexes,
         dataPreviewQueryId,
-      } = tableSchema.description;
+      } = tableSchema.description!;
       return {
         dbId: tableSchema.database_id,
         queryEditorId: tableSchema.tab_state_id.toString(),
@@ -822,8 +858,11 @@ export function setTables(tableSchemas) {
   return { type: SET_TABLES, tables };
 }
 
-export function fetchQueryEditor(queryEditor, displayLimit) {
-  return function (dispatch) {
+export function fetchQueryEditor(
+  queryEditor: QueryEditor,
+  displayLimit: number,
+): SqlLabThunkAction<void> {
+  return function (dispatch: SqlLabThunkDispatch) {
     const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
     SupersetClient.get({
       endpoint: encodeURI(`/tabstateview/${queryEditorId}`),
@@ -845,7 +884,7 @@ export function fetchQueryEditor(queryEditor, displayLimit) {
           remoteId: json.saved_query?.id,
           hideLeftBar: json.hide_left_bar,
         };
-        dispatch(loadQueryEditor(loadedQueryEditor));
+        dispatch(loadQueryEditor(loadedQueryEditor as QueryEditor));
         dispatch(setTables(json.table_schemas || []));
         if (json.latest_query?.resultsKey) {
           dispatch(fetchQueryResults(json.latest_query, displayLimit));
@@ -862,11 +901,11 @@ export function fetchQueryEditor(queryEditor, displayLimit) {
   };
 }
 
-export function setActiveSouthPaneTab(tabId) {
+export function setActiveSouthPaneTab(tabId: string): SqlLabAction {
   return { type: SET_ACTIVE_SOUTHPANE_TAB, tabId };
 }
 
-export function toggleLeftBar(queryEditor) {
+export function toggleLeftBar(queryEditor: QueryEditor): SqlLabAction {
   const hideLeftBar = !queryEditor.hideLeftBar;
   return {
     type: QUERY_EDITOR_TOGGLE_LEFT_BAR,
@@ -875,18 +914,23 @@ export function toggleLeftBar(queryEditor) {
   };
 }
 
-export function clearDestoryedQueryEditor(queryEditorId) {
+export function clearDestoryedQueryEditor(queryEditorId: string): SqlLabAction {
   return { type: CLEAR_DESTROYED_QUERY_EDITOR, queryEditorId };
 }
 
-export function removeQueryEditor(queryEditor) {
+export function removeQueryEditor(queryEditor: QueryEditor): SqlLabAction {
   return { type: REMOVE_QUERY_EDITOR, queryEditor };
 }
 
-export function removeAllOtherQueryEditors(queryEditor) {
-  return function (dispatch, getState) {
+export function removeAllOtherQueryEditors(
+  queryEditor: QueryEditor,
+): SqlLabThunkAction<void> {
+  return function (
+    dispatch: SqlLabThunkDispatch,
+    getState: () => SqlLabRootState,
+  ) {
     const { sqlLab } = getState();
-    sqlLab.queryEditors?.forEach(otherQueryEditor => {
+    sqlLab.queryEditors?.forEach((otherQueryEditor: QueryEditor) => {
       if (otherQueryEditor.id !== queryEditor.id) {
         dispatch(removeQueryEditor(otherQueryEditor));
       }
@@ -894,8 +938,8 @@ export function removeAllOtherQueryEditors(queryEditor) {
   };
 }
 
-export function removeQuery(query) {
-  return function (dispatch) {
+export function removeQuery(query: Query): SqlLabThunkAction<Promise<void>> {
+  return function (dispatch: SqlLabThunkDispatch) {
     const queryEditorId = query.sqlEditorId ?? query.id;
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.delete({
@@ -919,11 +963,17 @@ export function removeQuery(query) {
   };
 }
 
-export function queryEditorSetDb(queryEditor, dbId) {
+export function queryEditorSetDb(
+  queryEditor: QueryEditor,
+  dbId: number,
+): SqlLabAction {
   return { type: QUERY_EDITOR_SETDB, queryEditor, dbId };
 }
 
-export function queryEditorSetCatalog(queryEditor, catalog) {
+export function queryEditorSetCatalog(
+  queryEditor: QueryEditor | null,
+  catalog: string,
+): SqlLabAction {
   return {
     type: QUERY_EDITOR_SET_CATALOG,
     queryEditor: queryEditor || {},
@@ -931,7 +981,10 @@ export function queryEditorSetCatalog(queryEditor, catalog) {
   };
 }
 
-export function queryEditorSetSchema(queryEditor, schema) {
+export function queryEditorSetSchema(
+  queryEditor: QueryEditor | null,
+  schema: string,
+): SqlLabAction {
   return {
     type: QUERY_EDITOR_SET_SCHEMA,
     queryEditor: queryEditor || {},
@@ -939,11 +992,18 @@ export function queryEditorSetSchema(queryEditor, schema) {
   };
 }
 
-export function queryEditorSetAutorun(queryEditor, autorun) {
+export function queryEditorSetAutorun(
+  queryEditor: QueryEditor,
+  autorun: boolean,
+): SqlLabAction {
   return { type: QUERY_EDITOR_SET_AUTORUN, queryEditor, autorun };
 }
 
-export function queryEditorSetTitle(queryEditor, name, id) {
+export function queryEditorSetTitle(
+  queryEditor: QueryEditor,
+  name: string,
+  id: string,
+): SqlLabAction {
   return {
     type: QUERY_EDITOR_SET_TITLE,
     queryEditor: { ...queryEditor, id },
@@ -951,14 +1011,19 @@ export function queryEditorSetTitle(queryEditor, name, id) {
   };
 }
 
-export function saveQuery(query, clientId) {
+export function saveQuery(
+  query: QueryEditor,
+  clientId: string,
+): SqlLabThunkAction<Promise<unknown>> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id: _id, ...payload } = convertQueryToServer(query);
+  const { id: _id, ...payload } = convertQueryToServer(
+    query as unknown as Record<string, unknown>,
+  );
 
-  return dispatch =>
+  return (dispatch: SqlLabThunkDispatch) =>
     SupersetClient.post({
       endpoint: '/api/v1/saved_query/',
-      jsonPayload: convertQueryToServer(payload),
+      jsonPayload: convertQueryToServer(payload as Record<string, unknown>),
     })
       .then(result => {
         const savedQuery = convertQueryToClient({
@@ -971,7 +1036,7 @@ export function saveQuery(query, clientId) {
           clientId,
           result: savedQuery,
         });
-        dispatch(queryEditorSetTitle(query, query.name, clientId));
+        dispatch(queryEditorSetTitle(query, query.name ?? '', clientId));
         return savedQuery;
       })
       .catch(() =>
@@ -980,7 +1045,11 @@ export function saveQuery(query, clientId) {
 }
 
 export const addSavedQueryToTabState =
-  (queryEditor, savedQuery) => dispatch => {
+  (
+    queryEditor: QueryEditor,
+    savedQuery: { remoteId: string },
+  ): SqlLabThunkAction<Promise<void>> =>
+  (dispatch: SqlLabThunkDispatch) => {
     const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.put({
@@ -998,18 +1067,23 @@ export const addSavedQueryToTabState =
       });
   };
 
-export function updateSavedQuery(query, clientId) {
+export function updateSavedQuery(
+  query: QueryEditor,
+  clientId: string,
+): SqlLabThunkAction<Promise<unknown>> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id: _id, ...payload } = convertQueryToServer(query);
+  const { id: _id, ...payload } = convertQueryToServer(
+    query as unknown as Record<string, unknown>,
+  );
 
-  return dispatch =>
+  return (dispatch: SqlLabThunkDispatch) =>
     SupersetClient.put({
       endpoint: `/api/v1/saved_query/${query.remoteId}`,
-      jsonPayload: convertQueryToServer(payload),
+      jsonPayload: convertQueryToServer(payload as Record<string, unknown>),
     })
       .then(() => {
         dispatch(addSuccessToast(t('Your query was updated')));
-        dispatch(queryEditorSetTitle(query, query.name, clientId));
+        dispatch(queryEditorSetTitle(query, query.name ?? '', clientId));
       })
       .catch(e => {
         const message = t('Your query could not be updated');
@@ -1020,16 +1094,30 @@ export function updateSavedQuery(query, clientId) {
       .then(() => dispatch(updateQueryEditor(query)));
 }
 
-export function queryEditorSetSql(queryEditor, sql, queryId) {
+export function queryEditorSetSql(
+  queryEditor: QueryEditor,
+  sql: string,
+  queryId?: string,
+): SqlLabAction {
   return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql, queryId };
 }
 
-export function queryEditorSetCursorPosition(queryEditor, position) {
+export function queryEditorSetCursorPosition(
+  queryEditor: QueryEditor,
+  position: { row: number; column: number },
+): SqlLabAction {
   return { type: QUERY_EDITOR_SET_CURSOR_POSITION, queryEditor, position };
 }
 
-export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
-  return function (dispatch, getState) {
+export function queryEditorSetAndSaveSql(
+  targetQueryEditor: QueryEditor,
+  sql: string,
+  queryId?: string,
+): SqlLabThunkAction<Promise<unknown>> {
+  return function (
+    dispatch: SqlLabThunkDispatch,
+    getState: () => SqlLabRootState,
+  ) {
     const queryEditor = getUpToDateQuery(getState(), targetQueryEditor);
     // saved query and set tab state use this action
     dispatch(queryEditorSetSql(queryEditor, sql, queryId));
@@ -1054,13 +1142,19 @@ export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
   };
 }
 
-export function formatQuery(queryEditor) {
-  return function (dispatch, getState) {
+export function formatQuery(
+  queryEditor: QueryEditor,
+): SqlLabThunkAction<Promise<unknown>> {
+  return function (
+    dispatch: SqlLabThunkDispatch,
+    getState: () => SqlLabRootState,
+  ) {
     const { sql, dbId, templateParams } = getUpToDateQuery(
       getState(),
       queryEditor,
     );
-    const body = { sql };
+    const body: { sql: string; database_id?: number; template_params?: string } =
+      { sql };
 
     // Include database_id and template_params if available for Jinja processing
     if (dbId) {
@@ -1084,7 +1178,10 @@ export function formatQuery(queryEditor) {
   };
 }
 
-export function queryEditorSetQueryLimit(queryEditor, queryLimit) {
+export function queryEditorSetQueryLimit(
+  queryEditor: QueryEditor,
+  queryLimit: number,
+): SqlLabAction {
   return {
     type: QUERY_EDITOR_SET_QUERY_LIMIT,
     queryEditor,
@@ -1092,7 +1189,10 @@ export function queryEditorSetQueryLimit(queryEditor, queryLimit) {
   };
 }
 
-export function queryEditorSetTemplateParams(queryEditor, templateParams) {
+export function queryEditorSetTemplateParams(
+  queryEditor: QueryEditor,
+  templateParams: string,
+): SqlLabAction {
   return {
     type: QUERY_EDITOR_SET_TEMPLATE_PARAMS,
     queryEditor,
@@ -1100,22 +1200,32 @@ export function queryEditorSetTemplateParams(queryEditor, templateParams) {
   };
 }
 
-export function queryEditorSetSelectedText(queryEditor, sql) {
+export function queryEditorSetSelectedText(
+  queryEditor: QueryEditor,
+  sql: string,
+): SqlLabAction {
   return { type: QUERY_EDITOR_SET_SELECTED_TEXT, queryEditor, sql };
 }
 
-export function mergeTable(table, query, prepend) {
+export function mergeTable(
+  table: Partial<Table>,
+  query?: Query,
+  prepend?: boolean,
+): SqlLabAction {
   return { type: MERGE_TABLE, table, query, prepend };
 }
 
 export function addTable(
-  queryEditor,
-  tableName,
-  catalogName,
-  schemaName,
+  queryEditor: QueryEditor,
+  tableName: string,
+  catalogName: string,
+  schemaName: string,
   expanded = true,
-) {
-  return function (dispatch, getState) {
+): SqlLabThunkAction<void> {
+  return function (
+    dispatch: SqlLabThunkDispatch,
+    getState: () => SqlLabRootState,
+  ) {
     const { dbId } = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const table = {
       dbId,
@@ -1134,8 +1244,25 @@ export function addTable(
   };
 }
 
-export function runTablePreviewQuery(newTable, runPreviewOnly) {
-  return function (dispatch, getState) {
+interface NewTable {
+  id: string;
+  dbId: number;
+  catalog: string;
+  schema: string;
+  name: string;
+  queryEditorId: string;
+  selectStar: string;
+  previewQueryId?: string;
+}
+
+export function runTablePreviewQuery(
+  newTable: NewTable,
+  runPreviewOnly?: boolean,
+): SqlLabThunkAction<Promise<unknown>> {
+  return function (
+    dispatch: SqlLabThunkDispatch,
+    getState: () => SqlLabRootState,
+  ) {
     const {
       sqlLab: { databases },
     } = getState();
@@ -1143,7 +1270,7 @@ export function runTablePreviewQuery(newTable, runPreviewOnly) {
     const { dbId, catalog, schema } = newTable;
 
     if (database && !database.disable_data_preview) {
-      const dataPreviewQuery = {
+      const dataPreviewQuery: Query = {
         id: newTable.previewQueryId ?? nanoid(11),
         dbId,
         catalog,
@@ -1181,8 +1308,20 @@ export function runTablePreviewQuery(newTable, runPreviewOnly) {
   };
 }
 
-export function syncTable(table, tableMetadata, finalQueryEditorId) {
-  return function (dispatch) {
+interface TableMetaData {
+  columns?: unknown[];
+  selectStar?: string;
+  primaryKey?: unknown;
+  foreignKeys?: unknown[];
+  indexes?: unknown[];
+}
+
+export function syncTable(
+  table: Table,
+  tableMetadata: TableMetaData,
+  finalQueryEditorId?: string,
+): SqlLabThunkAction<Promise<void>> {
+  return function (dispatch: SqlLabThunkDispatch) {
     const finalTable = { ...table, queryEditorId: finalQueryEditorId };
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.post({
@@ -1215,13 +1354,16 @@ export function syncTable(table, tableMetadata, finalQueryEditorId) {
   };
 }
 
-export function changeDataPreviewId(oldQueryId, newQuery) {
+export function changeDataPreviewId(
+  oldQueryId: string,
+  newQuery: Query,
+): SqlLabAction {
   return { type: CHANGE_DATA_PREVIEW_ID, oldQueryId, newQuery };
 }
 
-export function reFetchQueryResults(query) {
-  return function (dispatch) {
-    const newQuery = {
+export function reFetchQueryResults(query: Query): SqlLabThunkAction<void> {
+  return function (dispatch: SqlLabThunkDispatch) {
+    const newQuery: Query = {
       id: nanoid(),
       dbId: query.dbId,
       sql: query.sql,
@@ -1238,8 +1380,8 @@ export function reFetchQueryResults(query) {
   };
 }
 
-export function expandTable(table) {
-  return function (dispatch) {
+export function expandTable(table: Table): SqlLabThunkAction<Promise<void>> {
+  return function (dispatch: SqlLabThunkDispatch) {
     const sync =
       isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
       table.initialized
@@ -1264,8 +1406,8 @@ export function expandTable(table) {
   };
 }
 
-export function collapseTable(table) {
-  return function (dispatch) {
+export function collapseTable(table: Table): SqlLabThunkAction<Promise<void>> {
+  return function (dispatch: SqlLabThunkDispatch) {
     const sync =
       isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
       table.initialized
@@ -1290,12 +1432,14 @@ export function collapseTable(table) {
   };
 }
 
-export function removeTables(tables) {
-  return function (dispatch) {
+export function removeTables(
+  tables: Table[],
+): SqlLabThunkAction<Promise<void>> {
+  return function (dispatch: SqlLabThunkDispatch) {
     const tablesToRemove = tables?.filter(Boolean) ?? [];
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? Promise.all(
-          tablesToRemove.map(table =>
+          tablesToRemove.map((table: Table) =>
             table.initialized
               ? SupersetClient.delete({
                   endpoint: encodeURI(`/tableschemaview/${table.id}`),
@@ -1320,15 +1464,21 @@ export function removeTables(tables) {
   };
 }
 
-export function refreshQueries(alteredQueries) {
+export function refreshQueries(
+  alteredQueries: Record<string, Query>,
+): SqlLabAction {
   return { type: REFRESH_QUERIES, alteredQueries };
 }
 
-export function setUserOffline(offline) {
+export function setUserOffline(offline: boolean): SqlLabAction {
   return { type: SET_USER_OFFLINE, offline };
 }
 
-export function persistEditorHeight(queryEditor, northPercent, southPercent) {
+export function persistEditorHeight(
+  queryEditor: QueryEditor,
+  northPercent: number,
+  southPercent: number,
+): SqlLabAction {
   return {
     type: QUERY_EDITOR_PERSIST_HEIGHT,
     queryEditor,
@@ -1337,8 +1487,8 @@ export function persistEditorHeight(queryEditor, northPercent, southPercent) {
   };
 }
 
-export function popPermalink(key) {
-  return function (dispatch) {
+export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
+  return function (dispatch: SqlLabThunkDispatch) {
     return SupersetClient.get({ endpoint: `/api/v1/sqllab/permalink/${key}` })
       .then(({ json }) =>
         dispatch(
@@ -1357,8 +1507,10 @@ export function popPermalink(key) {
   };
 }
 
-export function popStoredQuery(urlId) {
-  return function (dispatch) {
+export function popStoredQuery(
+  urlId: string,
+): SqlLabThunkAction<Promise<unknown>> {
+  return function (dispatch: SqlLabThunkDispatch) {
     return SupersetClient.get({
       endpoint: `/api/v1/sqllab/permalink/kv:${urlId}`,
     })
@@ -1378,8 +1530,10 @@ export function popStoredQuery(urlId) {
       .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
-export function popSavedQuery(saveQueryId) {
-  return function (dispatch) {
+export function popSavedQuery(
+  saveQueryId: string,
+): SqlLabThunkAction<Promise<unknown>> {
+  return function (dispatch: SqlLabThunkDispatch) {
     return SupersetClient.get({
       endpoint: `/api/v1/saved_query/${saveQueryId}`,
     })
@@ -1388,23 +1542,25 @@ export function popSavedQuery(saveQueryId) {
           ...convertQueryToClient(json.result),
           loaded: true,
           autorun: false,
-        };
+        } as Record<string, unknown>;
         const tmpAdaptedProps = {
-          name: queryEditorProps.name,
-          dbId: queryEditorProps.database.id,
-          catalog: queryEditorProps.catalog,
-          schema: queryEditorProps.schema,
-          sql: queryEditorProps.sql,
-          templateParams: queryEditorProps.templateParams,
-          remoteId: queryEditorProps.remoteId,
+          name: queryEditorProps.name as string,
+          dbId: (queryEditorProps.database as { id: number }).id,
+          catalog: queryEditorProps.catalog as string,
+          schema: queryEditorProps.schema as string,
+          sql: queryEditorProps.sql as string,
+          templateParams: queryEditorProps.templateParams as string,
+          remoteId: queryEditorProps.remoteId as string,
         };
         return dispatch(addQueryEditor(tmpAdaptedProps));
       })
       .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
-export function popQuery(queryId) {
-  return function (dispatch) {
+export function popQuery(
+  queryId: string,
+): SqlLabThunkAction<Promise<unknown>> {
+  return function (dispatch: SqlLabThunkDispatch) {
     return SupersetClient.get({
       endpoint: `/api/v1/query/${queryId}`,
     })
@@ -1423,8 +1579,11 @@ export function popQuery(queryId) {
       .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
-export function popDatasourceQuery(datasourceKey, sql) {
-  return function (dispatch) {
+export function popDatasourceQuery(
+  datasourceKey: string,
+  sql?: string,
+): SqlLabThunkAction<Promise<unknown>> {
+  return function (dispatch: SqlLabThunkDispatch) {
     const QUERY_TEXT = t('Query');
     const datasetId = datasourceKey.split('__')[0];
 
@@ -1452,19 +1611,30 @@ export function popDatasourceQuery(datasourceKey, sql) {
       );
   };
 }
-export function createDatasourceStarted() {
+export function createDatasourceStarted(): SqlLabAction {
   return { type: CREATE_DATASOURCE_STARTED };
 }
-export function createDatasourceSuccess(data) {
+export function createDatasourceSuccess(data: { id: number }): SqlLabAction {
   const datasource = `${data.id}__table`;
   return { type: CREATE_DATASOURCE_SUCCESS, datasource };
 }
-export function createDatasourceFailed(err) {
+export function createDatasourceFailed(err: string): SqlLabAction {
   return { type: CREATE_DATASOURCE_FAILED, err };
 }
 
-export function createDatasource(vizOptions) {
-  return dispatch => {
+interface VizOptions {
+  dbId: number;
+  catalog?: string;
+  schema: string;
+  datasourceName: string;
+  sql: string;
+  templateParams?: string;
+}
+
+export function createDatasource(
+  vizOptions: VizOptions,
+): SqlLabThunkAction<Promise<unknown>> {
+  return (dispatch: SqlLabThunkDispatch) => {
     dispatch(createDatasourceStarted());
     const { dbId, catalog, schema, datasourceName, sql, templateParams } =
       vizOptions;
@@ -1502,8 +1672,10 @@ export function createDatasource(vizOptions) {
   };
 }
 
-export function createCtasDatasource(vizOptions) {
-  return dispatch => {
+export function createCtasDatasource(
+  vizOptions: Record<string, unknown>,
+): SqlLabThunkAction<Promise<unknown>> {
+  return (dispatch: SqlLabThunkDispatch) => {
     dispatch(createDatasourceStarted());
     return SupersetClient.post({
       endpoint: '/api/v1/dataset/get_or_create/',
