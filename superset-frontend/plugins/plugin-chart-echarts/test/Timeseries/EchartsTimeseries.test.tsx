@@ -29,7 +29,7 @@ describe('EchartsTimeseries handleBrushSelected', () => {
 
   const baseXAxis = {
     label: '__timestamp',
-    type: AxisType.time,
+    type: AxisType.Time,
   };
 
   beforeEach(() => {
@@ -48,7 +48,7 @@ describe('EchartsTimeseries handleBrushSelected', () => {
       isTouchDevice = false,
     ) => {
       // Only handle brush events for time axis charts
-      if (xAxis.type !== AxisType.time) {
+      if (xAxis.type !== AxisType.Time) {
         return;
       }
 
@@ -217,7 +217,7 @@ describe('EchartsTimeseries handleBrushSelected', () => {
 
       handleBrushSelected(
         params,
-        { label: 'custom_time_column', type: AxisType.time },
+        { label: 'custom_time_column', type: AxisType.Time },
         baseFormData,
         mockSetDataMask,
         mockXValueFormatter,

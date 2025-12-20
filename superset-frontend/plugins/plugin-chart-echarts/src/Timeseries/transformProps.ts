@@ -746,7 +746,7 @@ export default function transformProps(
         ]
       : [],
     brush:
-      xAxisType === AxisType.time
+      xAxisType === AxisType.Time
         ? {
             toolbox: [],
             brushType: 'rect',

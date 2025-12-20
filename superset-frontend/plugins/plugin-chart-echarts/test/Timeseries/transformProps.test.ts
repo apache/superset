@@ -793,7 +793,7 @@ describe('EchartsTimeseries brush configuration for time range selection', () =>
       chartProps as EchartsTimeseriesChartProps,
     );
 
-    expect(transformedProps.xAxis.type).toBe(AxisType.time);
+    expect(transformedProps.xAxis.type).toBe(AxisType.Time);
   });
 
   it('should not enable brush configuration when x-axis type is category', () => {

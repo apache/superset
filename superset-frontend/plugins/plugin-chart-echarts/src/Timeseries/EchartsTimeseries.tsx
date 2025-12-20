@@ -166,7 +166,7 @@ export default function EchartsTimeseries({
 
   const handleBrushSelected = useCallback(
     (params: any) => {
-      if (xAxis.type !== AxisType.time) {
+      if (xAxis.type !== AxisType.Time) {
         return;
       }
 
