@@ -20,8 +20,8 @@ import { styled, css } from '@apache-superset/core/ui';
 
 export const ControlSubSectionHeader = styled.div`
   ${({ theme }) => css`
-    font-weight: ${theme.fontWeightStrong};
-    margin-bottom: ${theme.sizeUnit}px;
+    font-weight: ${theme.typography.weights.medium};
+    margin-bottom: ${theme.gridUnit * 2}px;
     font-size: ${theme.fontSizeSM}px;
   `}
 `;
