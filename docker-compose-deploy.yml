@@ -56,16 +56,17 @@ services:
     restart: unless-stopped
     networks:
       - superset-network
+      - oeeintellisuite
     ports:
       - "${SUPERSET_PORT:-8088}:8088"
     environment:
       - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
-      - DATABASE_DIALECT=${DATABASE_DIALECT:-postgresql}
-      - DATABASE_HOST=${DATABASE_HOST:-db}
-      - DATABASE_PORT=${DATABASE_PORT:-5432}
-      - DATABASE_DB=${DATABASE_DB:-superset}
-      - DATABASE_USER=${DATABASE_USER:-superset}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-superset}
+      - DATABASE_DIALECT=postgresql
+      - DATABASE_HOST=${SUPERSET_DB_HOST:-oee-postgres}
+      - DATABASE_PORT=${SUPERSET_DB_PORT:-5432}
+      - DATABASE_DB=${SUPERSET_DB_NAME:-superset_metadata}
+      - DATABASE_USER=${SUPERSET_DB_USER}
+      - DATABASE_PASSWORD=${SUPERSET_DB_PASSWORD}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
@@ -80,18 +81,19 @@ services:
     user: "root"
     networks:
       - superset-network
+      - oeeintellisuite
     environment:
       - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
-      - DATABASE_DIALECT=${DATABASE_DIALECT:-postgresql}
-      - DATABASE_HOST=${DATABASE_HOST:-db}
-      - DATABASE_PORT=${DATABASE_PORT:-5432}
-      - DATABASE_DB=${DATABASE_DB:-superset}
-      - DATABASE_USER=${DATABASE_USER:-superset}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-superset}
+      - DATABASE_DIALECT=postgresql
+      - DATABASE_HOST=oee-postgres
+      - DATABASE_PORT=5432
+      - DATABASE_DB=superset_metadata
+      - DATABASE_USER=oee-admin
+      - DATABASE_PASSWORD=CNDpjZHL7b4UNCjPEV5a
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
-      db:
+      redis:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -103,6 +105,9 @@ networks:
   superset-network:
     name: ${DOCKER_NETWORK:-superset-network}
     external: false
+  oeeintellisuite:
+    name: oeeintellisuite
+    external: true
 
 volumes:
   superset_home:

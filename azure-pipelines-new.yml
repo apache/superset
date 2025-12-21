@@ -201,11 +201,67 @@ stages:
                       echo "Deployment Metadata:"
                       cat "$(Agent.TempDirectory)/deployment/deployment-metadata.json"
 
+                - template: ../../oee-intellisuite/.azuredevops/templates/steps/get-client-config.yml
+                  parameters:
+                    targetEnvironment: ${{ parameters.targetEnvironment }}
+
                 - task: Docker@2
                   displayName: Login to Azure Container Registry
                   inputs:
                     command: login
                     containerRegistry: '$(containerRegistry)'
+
+                - task: PowerShell@2
+                  displayName: Extract Database Credentials from Client Config
+                  inputs:
+                    pwsh: true
+                    targetType: inline
+                    script: |
+                      $json = Get-Content -Raw "$(cfgPath)" | ConvertFrom-Json
+                      $pg = $json.'app-suite'[0].postgres
+
+                      # Superset metadata database (use admin credentials)
+                      Write-Host "##vso[task.setvariable variable=SUPERSET_DB_HOST]$($pg.host)"
+                      Write-Host "##vso[task.setvariable variable=SUPERSET_DB_PORT]$($pg.port)"
+                      Write-Host "##vso[task.setvariable variable=SUPERSET_DB_NAME]superset_metadata"
+                      Write-Host "##vso[task.setvariable variable=SUPERSET_DB_USER]$($pg.admin.user)"
+                      Write-Host "##vso[task.setvariable variable=SUPERSET_DB_PASSWORD;issecret=true]$($pg.admin.password)"
+
+                      # OEE dashboard data database (use reader credentials for read-only access)
+                      $dbName = if ($pg.database) { $pg.database } else { 'oeeintellisuite' }
+                      Write-Host "##vso[task.setvariable variable=OEE_DB_HOST]$($pg.host)"
+                      Write-Host "##vso[task.setvariable variable=OEE_DB_PORT]$($pg.port)"
+                      Write-Host "##vso[task.setvariable variable=OEE_DB_NAME]$dbName"
+                      Write-Host "##vso[task.setvariable variable=OEE_DB_USER]$($pg.reader.user)"
+                      Write-Host "##vso[task.setvariable variable=OEE_DB_PASSWORD;issecret=true]$($pg.reader.password)"
+
+                      Write-Host "Database credentials extracted from client config"
+                      Write-Host "  Superset metadata: $($pg.admin.user)@$($pg.host):$($pg.port)/superset_metadata"
+                      Write-Host "  OEE data: $($pg.reader.user)@$($pg.host):$($pg.port)/$dbName"
+
+                - task: Bash@3
+                  displayName: Create superset_metadata Database
+                  inputs:
+                    targetType: inline
+                    script: |
+                      set -e
+
+                      echo "Creating superset_metadata database if it doesn't exist..."
+
+                      # Determine container name (could be oee-postgres or postgres)
+                      if docker ps --format '{{.Names}}' | grep -q "^oee-postgres$"; then
+                        CONTAINER="oee-postgres"
+                      elif docker ps --format '{{.Names}}' | grep -q "^postgres$"; then
+                        CONTAINER="postgres"
+                      else
+                        echo "ERROR: PostgreSQL container not found"
+                        exit 1
+                      fi
+
+                      echo "Using PostgreSQL container: $CONTAINER"
+
+                      # Create database
+                      docker exec -i $CONTAINER bash -c "export PGPASSWORD='$(SUPERSET_DB_PASSWORD)' && psql -h 127.0.0.1 -U $(SUPERSET_DB_USER) -d postgres -c 'CREATE DATABASE $(SUPERSET_DB_NAME);'" 2>&1 | grep -v "already exists" || echo "Database $(SUPERSET_DB_NAME) ready"
 
                 - task: Bash@3
                   displayName: Create Deployment Environment File
@@ -225,24 +281,26 @@ stages:
                       # Superset Configuration
                       SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
 
-                      # Database Configuration
-                      POSTGRES_DB=${POSTGRES_DB:-superset}
-                      POSTGRES_USER=${POSTGRES_USER:-superset}
-                      POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-superset}
-                      DATABASE_DIALECT=postgresql
-                      DATABASE_HOST=db
-                      DATABASE_PORT=5432
-                      DATABASE_DB=${POSTGRES_DB:-superset}
-                      DATABASE_USER=${POSTGRES_USER:-superset}
-                      DATABASE_PASSWORD=${POSTGRES_PASSWORD:-superset}
+                      # Superset Metadata Database (from client config)
+                      SUPERSET_DB_HOST=$(SUPERSET_DB_HOST)
+                      SUPERSET_DB_PORT=$(SUPERSET_DB_PORT)
+                      SUPERSET_DB_NAME=$(SUPERSET_DB_NAME)
+                      SUPERSET_DB_USER=$(SUPERSET_DB_USER)
+                      SUPERSET_DB_PASSWORD=$(SUPERSET_DB_PASSWORD)
+
+                      # OEE Dashboard Data Database (from client config)
+                      OEE_DB_HOST=$(OEE_DB_HOST)
+                      OEE_DB_PORT=$(OEE_DB_PORT)
+                      OEE_DB_NAME=$(OEE_DB_NAME)
+                      OEE_DB_USER=$(OEE_DB_USER)
+                      OEE_DB_PASSWORD=$(OEE_DB_PASSWORD)
 
                       # Redis Configuration
                       REDIS_HOST=redis
                       REDIS_PORT=6379
                       EOF
 
-                      echo "Environment file created:"
-                      cat "$(Build.SourcesDirectory)/.env.deploy"
+                      echo "Environment file created (passwords hidden)"
 
                 - task: Bash@3
                   displayName: Pull Docker Images
