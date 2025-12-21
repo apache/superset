@@ -1,13 +1,6 @@
 trigger: none
 pr: none
 
-resources:
-  repositories:
-    - repository: oee-intellisuite
-      type: git
-      name: oee-intellisuite  # Format: ProjectName/RepoName or just RepoName if same project
-      ref: refs/heads/master
-
 parameters:
   - name: targetEnvironment
     type: string
@@ -183,9 +176,6 @@ stages:
                 - checkout: self
                   clean: false
 
-                - checkout: oee-intellisuite
-                  clean: false
-
                 - task: DownloadPipelineArtifact@2
                   displayName: Download Deployment Artifacts
                   inputs:
@@ -211,7 +201,7 @@ stages:
                       echo "Deployment Metadata:"
                       cat "$(Agent.TempDirectory)/deployment/deployment-metadata.json"
 
-                - template: .azuredevops/templates/steps/get-client-config.yml@oee-intellisuite
+                - template: .azuredevops/templates/steps/get-client-config.yml
                   parameters:
                     targetEnvironment: ${{ parameters.targetEnvironment }}
 
