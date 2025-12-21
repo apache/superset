@@ -201,10 +201,16 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       .sort((a, b) => b.score - a.score);
   }, [databaseList, searchText, categoryFilter]);
 
-  // Get unique categories for filter
-  const categories = useMemo(() => {
-    const cats = new Set(databaseList.map((db) => db.category));
-    return Array.from(cats).sort();
+  // Get unique categories and counts for filter
+  const { categories, categoryCounts } = useMemo(() => {
+    const counts: Record<string, number> = {};
+    databaseList.forEach((db) => {
+      counts[db.category] = (counts[db.category] || 0) + 1;
+    });
+    return {
+      categories: Object.keys(counts).sort(),
+      categoryCounts: counts,
+    };
   }, [databaseList]);
 
   // Table columns
@@ -215,10 +221,13 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       key: 'name',
       sorter: (a: TableEntry, b: TableEntry) => a.name.localeCompare(b.name),
       render: (name: string, record: TableEntry) => {
-        // Link to parent for compatible DBs, otherwise to own section
+        // Convert name to URL slug
+        const toSlug = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+        // Link to parent for compatible DBs, otherwise to own page
         const linkTarget = record.isCompatible && record.compatibleWith
-          ? `#${record.compatibleWith.toLowerCase().replace(/\s+/g, '-')}`
-          : `#${name.toLowerCase().replace(/\s+/g, '-')}`;
+          ? `/docs/configuration/databases/${toSlug(record.compatibleWith)}`
+          : `/docs/configuration/databases/${toSlug(name)}`;
 
         return (
           <div>
@@ -390,7 +399,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
                     color={CATEGORY_COLORS[cat] || 'default'}
                     style={{ marginRight: 8 }}
                   >
-                    {statistics.byCategory[cat]?.length || 0}
+                    {categoryCounts[cat] || 0}
                   </Tag>
                   {cat}
                 </span>
