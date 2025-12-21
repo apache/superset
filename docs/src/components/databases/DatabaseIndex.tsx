@@ -25,11 +25,34 @@ import {
   ApiOutlined,
   KeyOutlined,
   SearchOutlined,
+  LinkOutlined,
 } from '@ant-design/icons';
-import type { DatabaseData, DatabaseInfo, SortField } from './types';
+import type { DatabaseData, DatabaseInfo, CompatibleDatabase } from './types';
 
 interface DatabaseIndexProps {
   data: DatabaseData;
+}
+
+// Type for table entries (includes both regular DBs and compatible DBs)
+interface TableEntry {
+  name: string;
+  category: string;
+  score: number;
+  max_score: number;
+  timeGrainCount: number;
+  hasDrivers: boolean;
+  hasAuthMethods: boolean;
+  hasConnectionString: boolean;
+  joins?: boolean;
+  subqueries?: boolean;
+  supports_dynamic_schema?: boolean;
+  supports_catalog?: boolean;
+  ssh_tunneling?: boolean;
+  documentation?: DatabaseInfo['documentation'];
+  // For compatible databases
+  isCompatible?: boolean;
+  compatibleWith?: string;
+  compatibleDescription?: string;
 }
 
 // Category colors for visual distinction
@@ -102,20 +125,64 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
 
   const { statistics, databases } = data;
 
-  // Convert databases object to array and add category
+  // Convert databases object to array, including compatible databases
   const databaseList = useMemo(() => {
-    return Object.entries(databases).map(([name, db]) => ({
-      ...db,
-      name,
-      category: getCategory(name),
-      timeGrainCount: countTimeGrains(db),
-      hasDrivers: (db.documentation?.drivers?.length ?? 0) > 0,
-      hasAuthMethods: (db.documentation?.authentication_methods?.length ?? 0) > 0,
-      hasConnectionString: Boolean(
-        db.documentation?.connection_string ||
-          (db.documentation?.drivers?.length ?? 0) > 0
-      ),
-    }));
+    const entries: TableEntry[] = [];
+
+    Object.entries(databases).forEach(([name, db]) => {
+      // Add the main database
+      entries.push({
+        ...db,
+        name,
+        category: getCategory(name),
+        timeGrainCount: countTimeGrains(db),
+        hasDrivers: (db.documentation?.drivers?.length ?? 0) > 0,
+        hasAuthMethods: (db.documentation?.authentication_methods?.length ?? 0) > 0,
+        hasConnectionString: Boolean(
+          db.documentation?.connection_string ||
+            (db.documentation?.drivers?.length ?? 0) > 0
+        ),
+        isCompatible: false,
+      });
+
+      // Add compatible databases from this database's documentation
+      const compatibleDbs = db.documentation?.compatible_databases ?? [];
+      compatibleDbs.forEach((compat) => {
+        // Check if this compatible DB already exists as a main entry
+        const existsAsMain = Object.keys(databases).some(
+          (dbName) => dbName.toLowerCase() === compat.name.toLowerCase()
+        );
+
+        if (!existsAsMain) {
+          entries.push({
+            name: compat.name,
+            category: getCategory(compat.name),
+            // Compatible DBs inherit scores from parent
+            score: db.score,
+            max_score: db.max_score,
+            timeGrainCount: countTimeGrains(db),
+            hasDrivers: false,
+            hasAuthMethods: false,
+            hasConnectionString: Boolean(compat.connection_string),
+            joins: db.joins,
+            subqueries: db.subqueries,
+            supports_dynamic_schema: db.supports_dynamic_schema,
+            supports_catalog: db.supports_catalog,
+            ssh_tunneling: db.ssh_tunneling,
+            documentation: {
+              description: compat.description,
+              connection_string: compat.connection_string,
+              pypi_packages: compat.pypi_packages,
+            },
+            isCompatible: true,
+            compatibleWith: name,
+            compatibleDescription: `Uses ${name} driver`,
+          });
+        }
+      });
+    });
+
+    return entries;
   }, [databases]);
 
   // Filter and sort databases
@@ -146,19 +213,34 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       title: 'Database',
       dataIndex: 'name',
       key: 'name',
-      sorter: (a: typeof filteredDatabases[0], b: typeof filteredDatabases[0]) =>
-        a.name.localeCompare(b.name),
-      render: (name: string, record: typeof filteredDatabases[0]) => (
-        <div>
-          <a href={`#${name.toLowerCase().replace(/\s+/g, '-')}`}>
-            <strong>{name}</strong>
-          </a>
-          <div style={{ fontSize: '12px', color: '#666' }}>
-            {record.documentation?.description?.slice(0, 80)}
-            {(record.documentation?.description?.length ?? 0) > 80 ? '...' : ''}
+      sorter: (a: TableEntry, b: TableEntry) => a.name.localeCompare(b.name),
+      render: (name: string, record: TableEntry) => {
+        // Link to parent for compatible DBs, otherwise to own section
+        const linkTarget = record.isCompatible && record.compatibleWith
+          ? `#${record.compatibleWith.toLowerCase().replace(/\s+/g, '-')}`
+          : `#${name.toLowerCase().replace(/\s+/g, '-')}`;
+
+        return (
+          <div>
+            <a href={linkTarget}>
+              <strong>{name}</strong>
+            </a>
+            {record.isCompatible && record.compatibleWith && (
+              <Tag
+                icon={<LinkOutlined />}
+                color="geekblue"
+                style={{ marginLeft: 8, fontSize: '11px' }}
+              >
+                {record.compatibleWith} compatible
+              </Tag>
+            )}
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              {record.documentation?.description?.slice(0, 80)}
+              {(record.documentation?.description?.length ?? 0) > 80 ? '...' : ''}
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       title: 'Category',
@@ -166,7 +248,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       key: 'category',
       width: 160,
       filters: categories.map((cat) => ({ text: cat, value: cat })),
-      onFilter: (value: React.Key | boolean, record: typeof filteredDatabases[0]) =>
+      onFilter: (value: React.Key | boolean, record: TableEntry) =>
         record.category === value,
       render: (category: string) => (
         <Tag color={CATEGORY_COLORS[category] || 'default'}>{category}</Tag>
@@ -177,10 +259,9 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       dataIndex: 'score',
       key: 'score',
       width: 80,
-      sorter: (a: typeof filteredDatabases[0], b: typeof filteredDatabases[0]) =>
-        a.score - b.score,
+      sorter: (a: TableEntry, b: TableEntry) => a.score - b.score,
       defaultSortOrder: 'descend' as const,
-      render: (score: number, record: typeof filteredDatabases[0]) => (
+      render: (score: number, record: TableEntry) => (
         <span
           style={{
             color: score > 150 ? '#52c41a' : score > 100 ? '#1890ff' : '#666',
@@ -196,8 +277,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       dataIndex: 'timeGrainCount',
       key: 'timeGrainCount',
       width: 100,
-      sorter: (a: typeof filteredDatabases[0], b: typeof filteredDatabases[0]) =>
-        a.timeGrainCount - b.timeGrainCount,
+      sorter: (a: TableEntry, b: TableEntry) => a.timeGrainCount - b.timeGrainCount,
       render: (count: number) => (
         <span>{count > 0 ? `${count} grains` : '-'}</span>
       ),
@@ -206,7 +286,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       title: 'Features',
       key: 'features',
       width: 200,
-      render: (_: unknown, record: typeof filteredDatabases[0]) => (
+      render: (_: unknown, record: TableEntry) => (
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {record.joins && <Tag color="green">JOINs</Tag>}
           {record.subqueries && <Tag color="green">Subqueries</Tag>}
@@ -220,7 +300,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       title: 'Documentation',
       key: 'docs',
       width: 150,
-      render: (_: unknown, record: typeof filteredDatabases[0]) => (
+      render: (_: unknown, record: TableEntry) => (
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {record.hasConnectionString && (
             <Tag icon={<ApiOutlined />} color="default">
