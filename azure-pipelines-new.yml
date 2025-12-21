@@ -6,7 +6,7 @@ resources:
     - repository: oee-intellisuite
       type: git
       name: oee-intellisuite  # Format: ProjectName/RepoName or just RepoName if same project
-      ref: refs/heads/main  # or your default branch
+      ref: refs/heads/master
 
 parameters:
   - name: targetEnvironment
