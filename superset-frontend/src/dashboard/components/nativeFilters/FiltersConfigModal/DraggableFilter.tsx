@@ -48,17 +48,15 @@ const DragIcon = styled(Icons.Drag, {
 `;
 
 interface FilterTabTitleProps {
-  index: number;
-  filterIds: string[];
-  onRearrange: (dragItemIndex: number, targetIndex: number) => void;
+  filterId: string;
 }
 
 export const DraggableFilter: FC<FilterTabTitleProps> = ({
-  filterIds,
+  filterId,
   children,
 }) => {
 
-  const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({ id: filterIds[0] });
+  const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({ id: filterId });
 
   const style = {
     transform: CSS.Transform.toString(transform),
