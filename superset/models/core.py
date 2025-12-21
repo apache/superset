@@ -1149,20 +1149,36 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def sqlalchemy_uri_decrypted(self) -> str:
+        """Return the decrypted SQLAlchemy URI with properly encoded password."""
         try:
             conn = make_url_safe(self.sqlalchemy_uri)
         except DatabaseInvalidError:
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"
+
+        # Determine plaintext password from config or model
         if has_app_context():
             if custom_password_store := app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]:
-                conn = conn.set(password=custom_password_store(conn))
+                raw_password = custom_password_store(conn)
             else:
-                conn = conn.set(password=self.password)
+                raw_password = self.password
         else:
-            conn = conn.set(password=self.password)
-        return str(conn)
+            raw_password = self.password
+
+        # Encode the password such that special characters
+        # are preserved when rendering to string and reparsing the URL.
+        if raw_password is not None:
+            from urllib.parse import quote
+
+            encoded_password = quote(raw_password, safe="")
+            conn = conn.set(password=encoded_password)
+        else:
+            conn = conn.set(password=None)
+
+        # render_as_string preserves the URL encoding of special
+        # characters in passwords
+        return conn.render_as_string(hide_password=False)
 
     @property
     def sql_url(self) -> str:
