@@ -1,6 +1,14 @@
 trigger: none
 pr: none
 
+resources:
+  repositories:
+    - repository: oee-intellisuite
+      type: github
+      endpoint: ooeintellisuite  # Your GitHub service connection name
+      name: ooeintellisuite/oee-intellisuite
+      ref: refs/heads/main  # or your default branch
+
 parameters:
   - name: targetEnvironment
     type: string
@@ -201,7 +209,7 @@ stages:
                       echo "Deployment Metadata:"
                       cat "$(Agent.TempDirectory)/deployment/deployment-metadata.json"
 
-                - template: ../../oee-intellisuite/.azuredevops/templates/steps/get-client-config.yml
+                - template: .azuredevops/templates/steps/get-client-config.yml@oee-intellisuite
                   parameters:
                     targetEnvironment: ${{ parameters.targetEnvironment }}
 
