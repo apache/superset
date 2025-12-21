@@ -749,7 +749,7 @@ export default function transformProps(
       xAxisType === AxisType.Time
         ? {
             toolbox: [],
-            brushType: 'rect',
+            brushType: 'lineX',
             xAxisIndex: 0,
             throttleType: 'debounce',
             throttleDelay: 300,

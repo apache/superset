@@ -88,11 +88,12 @@ describe('EchartsTimeseries handleBrushEnd', () => {
 
       const area = brushAreas[0];
       const coordRange = area.coordRange;
-      if (!coordRange || !coordRange[0] || coordRange[0].length < 2) {
+      // For lineX brush, coordRange is [xMin, xMax] (flat array)
+      if (!coordRange || coordRange.length < 2) {
         return;
       }
 
-      const [startValue, endValue] = coordRange[0].map(Number);
+      const [startValue, endValue] = coordRange.map(Number);
 
       // Convert timestamps to ISO date strings for time_range format
       const startDate = new Date(startValue).toISOString().slice(0, 19);
@@ -144,8 +145,9 @@ describe('EchartsTimeseries handleBrushEnd', () => {
     });
 
     it('should not process brush events on touch devices', () => {
+      // For lineX brush, coordRange is a flat array [xMin, xMax]
       const params = {
-        areas: [{ coordRange: [[1000, 2000], [0, 100]] }],
+        areas: [{ coordRange: [1000, 2000] }],
       };
 
       handleBrushEnd(
@@ -187,13 +189,11 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       const startTime = 1609459200000; // 2021-01-01T00:00:00.000Z
       const endTime = 1609545600000; // 2021-01-02T00:00:00.000Z
 
+      // For lineX brush, coordRange is a flat array [xMin, xMax]
       const params = {
         areas: [
           {
-            coordRange: [
-              [startTime, endTime],
-              [0, 100],
-            ],
+            coordRange: [startTime, endTime],
           },
         ],
       };
@@ -218,13 +218,11 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       const startTime = 1609459200000; // 2021-01-01
       const endTime = 1609545600000; // 2021-01-02
 
+      // For lineX brush, coordRange is a flat array [xMin, xMax]
       const params = {
         areas: [
           {
-            coordRange: [
-              [startTime, endTime],
-              [0, 100],
-            ],
+            coordRange: [startTime, endTime],
           },
         ],
       };
@@ -257,13 +255,11 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       const startTime = 1609459200000;
       const endTime = 1609545600000;
 
+      // For lineX brush, coordRange is a flat array [xMin, xMax]
       const params = {
         areas: [
           {
-            coordRange: [
-              [startTime, endTime],
-              [0, 100],
-            ],
+            coordRange: [startTime, endTime],
           },
         ],
       };
@@ -309,11 +305,12 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       expect(mockSetDataMask).not.toHaveBeenCalled();
     });
 
-    it('should not process when coordRange[0] is empty', () => {
+    it('should not process when coordRange has less than 2 values', () => {
+      // For lineX brush, coordRange should be [xMin, xMax]
       const params = {
         areas: [
           {
-            coordRange: [[]],
+            coordRange: [123],
           },
         ],
       };
@@ -333,13 +330,11 @@ describe('EchartsTimeseries handleBrushEnd', () => {
       const startTime = 1609459200000;
       const endTime = 1609545600000;
 
+      // For lineX brush, coordRange is a flat array [xMin, xMax]
       const params = {
         areas: [
           {
-            coordRange: [
-              [startTime, endTime],
-              [0, 100],
-            ],
+            coordRange: [startTime, endTime],
           },
         ],
       };
@@ -365,13 +360,11 @@ describe('EchartsTimeseries handleBrushEnd', () => {
 
       const customFormatter = (val: number) => `Formatted: ${val}`;
 
+      // For lineX brush, coordRange is a flat array [xMin, xMax]
       const params = {
         areas: [
           {
-            coordRange: [
-              [startTime, endTime],
-              [0, 100],
-            ],
+            coordRange: [startTime, endTime],
           },
         ],
       };

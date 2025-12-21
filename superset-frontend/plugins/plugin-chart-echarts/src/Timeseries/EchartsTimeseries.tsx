@@ -241,11 +241,12 @@ export default function EchartsTimeseries({
       const area = brushAreas[0];
       const coordRange = area.coordRange;
 
-      if (!coordRange || !coordRange[0] || coordRange[0].length < 2) {
+      // For lineX brush, coordRange is [xMin, xMax] (flat array)
+      if (!coordRange || coordRange.length < 2) {
         return;
       }
 
-      const [startValue, endValue] = coordRange[0].map(Number);
+      const [startValue, endValue] = coordRange.map(Number);
 
       // Convert timestamps to ISO date strings for time_range format
       const startDate = new Date(startValue).toISOString().slice(0, 19);
