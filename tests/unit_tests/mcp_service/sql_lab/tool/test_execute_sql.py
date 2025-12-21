@@ -431,18 +431,16 @@ class TestExecuteSql:
     async def test_execute_sql_sql_injection_prevention(
         self, mock_db, mock_security_manager, mcp_server
     ):
-        """Test that SQL injection attempts are handled safely."""
+        """Test that SQL injection attempts are handled safely.
+
+        SQLScript detects the DROP TABLE as a mutation and blocks it
+        before execution when DML is not allowed on the database.
+        """
         mock_database = _mock_database()
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
         mock_security_manager.can_access_database.return_value = True
-
-        # Mock execute to raise an exception
-        cursor = (  # fmt: skip
-            mock_database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value
-        )
-        cursor.execute.side_effect = Exception("Syntax error")
 
         request = {
             "database_id": 1,
@@ -453,10 +451,12 @@ class TestExecuteSql:
         async with Client(mcp_server) as client:
             result = await client.call_tool("execute_sql", {"request": request})
 
+            # SQLScript correctly detects DROP TABLE as a mutation
+            # and blocks it before execution (improved security)
             assert result.data.success is False
             assert result.data.error is not None
-            assert "Syntax error" in result.data.error  # Contains actual error
-            assert result.data.error_type == "EXECUTION_ERROR"
+            assert "DML" in result.data.error or "mutates" in result.data.error
+            assert result.data.error_type == "DML_NOT_ALLOWED"
 
     @pytest.mark.asyncio
     async def test_execute_sql_empty_query_validation(self, mcp_server):
