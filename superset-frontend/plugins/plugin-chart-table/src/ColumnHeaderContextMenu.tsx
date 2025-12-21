@@ -18,16 +18,13 @@
  */
 import { useCallback, useMemo } from 'react';
 import { t, ensureIsArray, HandlerFunction } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/ui';
 import { Dropdown, Menu } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   GroupOutlined,
-  FilterOutlined,
   CalculatorOutlined,
   EyeInvisibleOutlined,
-  SortAscendingOutlined,
-  SortDescendingOutlined,
 } from '@ant-design/icons';
 import { DataColumnMeta, TableChartFormData } from './types';
 
@@ -47,10 +44,7 @@ type MenuAction =
   | 'count_distinct'
   | 'min'
   | 'max'
-  | 'filter'
-  | 'hide'
-  | 'sort_asc'
-  | 'sort_desc';
+  | 'hide';
 
 export default function ColumnHeaderContextMenu({
   column,
@@ -59,8 +53,6 @@ export default function ColumnHeaderContextMenu({
   children,
   disabled = false,
 }: ColumnHeaderContextMenuProps) {
-  const theme = useTheme();
-
   const isNumericColumn =
     column.dataType === GenericDataType.Numeric || column.isNumeric;
   const isMetric = column.isMetric || column.isPercentMetric;
@@ -110,11 +102,6 @@ export default function ColumnHeaderContextMenu({
           setControlValue('metrics', [...currentMetrics, newMetric]);
           break;
         }
-
-        case 'filter':
-          // Open filter modal - for now just add a placeholder filter
-          // This would ideally open a filter UI
-          break;
 
         case 'hide': {
           // Update column_config to hide this column
