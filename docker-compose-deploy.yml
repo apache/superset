@@ -95,8 +95,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     volumes: *superset-volumes
     healthcheck:
       disable: true
