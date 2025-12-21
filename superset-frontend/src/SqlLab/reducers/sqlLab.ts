@@ -355,8 +355,9 @@ export default function sqlLabReducer(
           (queryEditorByTabId as QueryEditor | undefined)?.id ??
           action.query.sqlEditorId;
         const foundQueryEditor = getFromArr(state.queryEditors, sqlEditorId);
+        // oxlint-ignore-next-line: foundQueryEditor may be undefined, need fallback for spread
         const qe = {
-          ...foundQueryEditor,
+          ...(foundQueryEditor ?? {}),
           ...(sqlEditorId === state.unsavedQueryEditor.id &&
             state.unsavedQueryEditor),
         };
