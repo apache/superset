@@ -28,7 +28,9 @@ interface TitleContainerProps {
   readonly isDragging: boolean;
 }
 
-const Container = styled.div<TitleContainerProps>`
+const Container = styled('div', {
+  shouldForwardProp: propName => propName !== 'isDragging',
+})<TitleContainerProps>`
   ${({ isDragging }) => `
     opacity: ${isDragging ? 0.3 : 1};
     cursor: ${isDragging ? 'grabbing' : 'pointer'};
@@ -59,7 +61,7 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
   const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({ id: filterId });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: transform ? CSS.Transform.toString(transform) : undefined,
     transition,
   };
 
@@ -67,7 +69,7 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
     <Container ref={setNodeRef} style={style} isDragging={isDragging} {...listeners} {...attributes}>
         <DragIcon
             isDragging={isDragging}
-            alt="Move icon"
+            aria-label='Move filter'
             className="dragIcon"
             viewBox="4 4 16 16"
         />

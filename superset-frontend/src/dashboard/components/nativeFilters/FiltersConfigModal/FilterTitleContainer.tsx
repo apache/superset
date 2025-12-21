@@ -166,10 +166,13 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
 
     const handleDragEnd = (event: DragEndEvent) => {
       const { active, over } = event;
-      if (!active || !over) return;
-      const from: number = active?.data?.current?.sortable?.index;
-      const to: number = over?.data?.current?.sortable?.index;
-      if (from === undefined || to === undefined) return;
+      console.log(active, over);
+      const activeId = active.id;
+      const overId = over?.id;
+      if (activeId == null || overId == null) return;
+      const from = filters.indexOf(String(activeId));
+      const to = filters.indexOf(String(overId));
+      if (from === -1 || to === -1) return;
       onRearrange(from, to);
     };
 
