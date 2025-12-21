@@ -17,7 +17,8 @@
  * under the License.
  */
 import { render, waitFor } from '@testing-library/react';
-import { ThemeProvider, supersetTheme, AxisType } from '@superset-ui/core';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/ui';
+import { AxisType } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import EchartsTimeseries from '../../src/Timeseries/EchartsTimeseries';
@@ -156,7 +157,7 @@ test('brush selection in Explore view calls setControlValue with time_range', as
       onContextMenu={jest.fn()}
       onLegendStateChanged={jest.fn()}
       onFocusedSeries={jest.fn()}
-      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xValueFormatter={((val: number) => new Date(val).toISOString()) as any}
       xAxis={baseXAxis}
       refs={refs}
       emitCrossFilters={false}
@@ -234,7 +235,7 @@ test('brush selection on dashboard calls setDataMask with cross-filter', async (
       onContextMenu={jest.fn()}
       onLegendStateChanged={jest.fn()}
       onFocusedSeries={jest.fn()}
-      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xValueFormatter={((val: number) => new Date(val).toISOString()) as any}
       xAxis={baseXAxis}
       refs={refs}
       emitCrossFilters={true}
@@ -328,7 +329,7 @@ test('brush selection does nothing for non-time axis', async () => {
       onContextMenu={jest.fn()}
       onLegendStateChanged={jest.fn()}
       onFocusedSeries={jest.fn()}
-      xValueFormatter={(val: number) => String(val)}
+      xValueFormatter={((val: number) => String(val)) as any}
       xAxis={categoryXAxis}
       refs={refs}
       emitCrossFilters={true}
@@ -393,7 +394,7 @@ test('clearing brush on dashboard resets filter', async () => {
       onContextMenu={jest.fn()}
       onLegendStateChanged={jest.fn()}
       onFocusedSeries={jest.fn()}
-      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xValueFormatter={((val: number) => new Date(val).toISOString()) as any}
       xAxis={baseXAxis}
       refs={refs}
       emitCrossFilters={true}
@@ -472,7 +473,7 @@ test('brush selection uses custom column name when xAxis.label is not DTTM_ALIAS
       onContextMenu={jest.fn()}
       onLegendStateChanged={jest.fn()}
       onFocusedSeries={jest.fn()}
-      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xValueFormatter={((val: number) => new Date(val).toISOString()) as any}
       xAxis={customXAxis}
       refs={refs}
       emitCrossFilters={true}
@@ -550,7 +551,7 @@ test('brush selection with invalid coordRange does not trigger filter', async ()
       onContextMenu={jest.fn()}
       onLegendStateChanged={jest.fn()}
       onFocusedSeries={jest.fn()}
-      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xValueFormatter={((val: number) => new Date(val).toISOString()) as any}
       xAxis={baseXAxis}
       refs={refs}
       emitCrossFilters={true}
@@ -623,7 +624,7 @@ test('brush selection formats time range correctly for different timestamps', as
       onContextMenu={jest.fn()}
       onLegendStateChanged={jest.fn()}
       onFocusedSeries={jest.fn()}
-      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xValueFormatter={((val: number) => new Date(val).toISOString()) as any}
       xAxis={baseXAxis}
       refs={refs}
       emitCrossFilters={false}
