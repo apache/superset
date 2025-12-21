@@ -114,7 +114,7 @@ def test_password_none(mock_has_app_context: MagicMock) -> None:
 
 @patch("superset.models.core.has_app_context")
 def test_roundtrip_invariant(mock_has_app_context: MagicMock) -> None:
-    """Test password survives roundtrip"""
+    """Test password survives roundtrip."""
     mock_has_app_context.return_value = False
     original_password = "my%pass@host:8080"  # noqa: S105
 
