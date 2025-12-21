@@ -16,166 +16,403 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AxisType, DTTM_ALIAS } from '@superset-ui/core';
-import { EchartsTimeseriesFormData } from '../../src/Timeseries/types';
+import { render, waitFor } from '@testing-library/react';
+import { ThemeProvider, supersetTheme, AxisType } from '@superset-ui/core';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
+import EchartsTimeseries from '../../src/Timeseries/EchartsTimeseries';
+import { EchartsHandler } from '../../src/types';
 
-describe('EchartsTimeseries handleBrushEnd', () => {
-  const mockSetDataMask = jest.fn();
+// Mock ECharts to avoid canvas rendering issues in tests
+jest.mock('echarts/core', () => ({
+  use: jest.fn(),
+  init: jest.fn(() => ({
+    setOption: jest.fn(),
+    resize: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+    getZr: jest.fn(() => ({
+      on: jest.fn(),
+      off: jest.fn(),
+    })),
+    dispatchAction: jest.fn(),
+    dispose: jest.fn(),
+  })),
+  registerLocale: jest.fn(),
+}));
+
+jest.mock('echarts/charts', () => ({
+  LineChart: {},
+  BarChart: {},
+  ScatterChart: {},
+  PieChart: {},
+  FunnelChart: {},
+  GaugeChart: {},
+  GraphChart: {},
+  RadarChart: {},
+  BoxplotChart: {},
+  TreeChart: {},
+  TreemapChart: {},
+  HeatmapChart: {},
+  SunburstChart: {},
+  CustomChart: {},
+  SankeyChart: {},
+}));
+
+jest.mock('echarts/renderers', () => ({
+  CanvasRenderer: {},
+}));
+
+jest.mock('echarts/components', () => ({
+  TooltipComponent: {},
+  TitleComponent: {},
+  GridComponent: {},
+  VisualMapComponent: {},
+  LegendComponent: {},
+  DataZoomComponent: {},
+  ToolboxComponent: {},
+  GraphicComponent: {},
+  AriaComponent: {},
+  MarkAreaComponent: {},
+  MarkLineComponent: {},
+  BrushComponent: {},
+}));
+
+jest.mock('echarts/features', () => ({
+  LabelLayout: {},
+}));
+
+const mockStore = configureStore({
+  reducer: {
+    common: () => ({ locale: 'en' }),
+  },
+});
+
+const createWrapper = () => {
+  return ({ children }: { children: React.ReactNode }) => (
+    <Provider store={mockStore}>
+      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
+    </Provider>
+  );
+};
+
+const baseFormData = {
+  datasource: '1__table',
+  viz_type: 'echarts_timeseries',
+  granularitySqla: 'ds',
+};
+
+const baseXAxis = {
+  label: '__timestamp',
+  type: AxisType.Time as AxisType,
+};
+
+const baseEchartOptions = {
+  xAxis: { type: 'time' },
+  yAxis: { type: 'value' },
+  series: [],
+};
+
+test('brush selection in Explore view calls setControlValue with time_range', async () => {
   const mockSetControlValue = jest.fn();
-  const mockXValueFormatter = jest.fn((val: number) => new Date(val).toISOString());
+  const mockSetDataMask = jest.fn();
+  const refs: { echartRef?: React.RefObject<EchartsHandler> } = {};
 
-  const baseFormData: Partial<EchartsTimeseriesFormData> = {
-    granularitySqla: 'ds',
+  // Capture the brushEnd handler when it's registered
+  let capturedBrushEndHandler: ((params: any) => void) | null = null;
+  const mockEchartsInstance = {
+    setOption: jest.fn(),
+    resize: jest.fn(),
+    on: jest.fn((eventName: string, handler: any) => {
+      if (eventName === 'brushEnd') {
+        capturedBrushEndHandler = handler;
+      }
+    }),
+    off: jest.fn(),
+    getZr: jest.fn(() => ({
+      on: jest.fn(),
+      off: jest.fn(),
+    })),
+    dispatchAction: jest.fn(),
+    dispose: jest.fn(),
   };
 
-  const baseXAxis = {
-    label: DTTM_ALIAS,
-    type: AxisType.Time,
-  };
+  // Override the mock to capture handlers
+  const echartsCore = require('echarts/core');
+  echartsCore.init.mockReturnValue(mockEchartsInstance);
 
-  beforeEach(() => {
-    mockSetDataMask.mockClear();
-    mockSetControlValue.mockClear();
-    mockXValueFormatter.mockClear();
+  render(
+    <EchartsTimeseries
+      formData={baseFormData as any}
+      height={400}
+      width={600}
+      echartOptions={baseEchartOptions as any}
+      groupby={[]}
+      labelMap={{}}
+      selectedValues={{}}
+      setDataMask={mockSetDataMask}
+      setControlValue={mockSetControlValue}
+      legendData={[]}
+      onContextMenu={jest.fn()}
+      onLegendStateChanged={jest.fn()}
+      onFocusedSeries={jest.fn()}
+      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xAxis={baseXAxis}
+      refs={refs}
+      emitCrossFilters={false}
+      coltypeMapping={{}}
+    />,
+    { wrapper: createWrapper() },
+  );
+
+  // Wait for component to mount and register handlers
+  await waitFor(() => {
+    expect(capturedBrushEndHandler).not.toBeNull();
   });
 
-  describe('handleBrushEnd logic', () => {
-    // Simulating the handler logic since we can't easily test React hooks directly
-    const handleBrushEnd = (
-      params: any,
-      xAxis: { label: string; type: AxisType },
-      formData: Partial<EchartsTimeseriesFormData>,
-      setDataMask: jest.Mock,
-      xValueFormatter: (val: number) => string,
-      options: {
-        isTouchDevice?: boolean;
-        setControlValue?: jest.Mock;
-        emitCrossFilters?: boolean;
-      } = {},
-    ) => {
-      const {
-        isTouchDevice = false,
-        setControlValue,
-        emitCrossFilters = false,
-      } = options;
+  // Simulate brush selection with time range (lineX brush returns flat array)
+  const startTime = 1609459200000; // 2021-01-01T00:00:00.000Z
+  const endTime = 1609545600000; // 2021-01-02T00:00:00.000Z
 
-      // Only handle brush events for time axis charts
-      if (xAxis.type !== AxisType.Time) {
-        return;
+  capturedBrushEndHandler!({
+    areas: [{ coordRange: [startTime, endTime] }],
+  });
+
+  // Wait for the setTimeout in the handler
+  await waitFor(
+    () => {
+      expect(mockSetControlValue).toHaveBeenCalledWith(
+        'time_range',
+        '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
+      );
+    },
+    { timeout: 100 },
+  );
+
+  // setDataMask should NOT be called when emitCrossFilters is false
+  expect(mockSetDataMask).not.toHaveBeenCalled();
+});
+
+test('brush selection on dashboard calls setDataMask with cross-filter', async () => {
+  const mockSetControlValue = jest.fn();
+  const mockSetDataMask = jest.fn();
+  const refs: { echartRef?: React.RefObject<EchartsHandler> } = {};
+
+  let capturedBrushEndHandler: ((params: any) => void) | null = null;
+  const mockEchartsInstance = {
+    setOption: jest.fn(),
+    resize: jest.fn(),
+    on: jest.fn((eventName: string, handler: any) => {
+      if (eventName === 'brushEnd') {
+        capturedBrushEndHandler = handler;
       }
+    }),
+    off: jest.fn(),
+    getZr: jest.fn(() => ({
+      on: jest.fn(),
+      off: jest.fn(),
+    })),
+    dispatchAction: jest.fn(),
+    dispose: jest.fn(),
+  };
 
-      // Disable brush selection on touch devices
-      if (isTouchDevice) {
-        return;
-      }
+  const echartsCore = require('echarts/core');
+  echartsCore.init.mockReturnValue(mockEchartsInstance);
 
-      // Get the brush areas from the event
-      // brushEnd event has areas directly in params.areas
-      const brushAreas = params.areas || [];
-      if (brushAreas.length === 0) {
-        // Brush was cleared, reset the filter
-        if (emitCrossFilters) {
-          setDataMask({
-            extraFormData: {},
-            filterState: {
-              value: null,
-              selectedValues: null,
-            },
-          });
-        }
-        return;
-      }
+  render(
+    <EchartsTimeseries
+      formData={baseFormData as any}
+      height={400}
+      width={600}
+      echartOptions={baseEchartOptions as any}
+      groupby={[]}
+      labelMap={{}}
+      selectedValues={{}}
+      setDataMask={mockSetDataMask}
+      setControlValue={mockSetControlValue}
+      legendData={[]}
+      onContextMenu={jest.fn()}
+      onLegendStateChanged={jest.fn()}
+      onFocusedSeries={jest.fn()}
+      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xAxis={baseXAxis}
+      refs={refs}
+      emitCrossFilters={true}
+      coltypeMapping={{}}
+    />,
+    { wrapper: createWrapper() },
+  );
 
-      const area = brushAreas[0];
-      const coordRange = area.coordRange;
-      // For lineX brush, coordRange is [xMin, xMax] (flat array)
-      if (!coordRange || coordRange.length < 2) {
-        return;
-      }
+  await waitFor(() => {
+    expect(capturedBrushEndHandler).not.toBeNull();
+  });
 
-      const [startValue, endValue] = coordRange.map(Number);
+  const startTime = 1609459200000;
+  const endTime = 1609545600000;
 
-      // Convert timestamps to ISO date strings for time_range format
-      const startDate = new Date(startValue).toISOString().slice(0, 19);
-      const endDate = new Date(endValue).toISOString().slice(0, 19);
-      const timeRange = `${startDate} : ${endDate}`;
+  capturedBrushEndHandler!({
+    areas: [{ coordRange: [startTime, endTime] }],
+  });
 
-      // In Explore view, update the time_range control
-      if (setControlValue) {
-        setControlValue('time_range', timeRange);
-      }
-
-      // On dashboards, emit cross-filter
-      if (emitCrossFilters) {
-        const col =
-          xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
-        const startFormatted = xValueFormatter(startValue);
-        const endFormatted = xValueFormatter(endValue);
-
-        setDataMask({
+  await waitFor(
+    () => {
+      expect(mockSetDataMask).toHaveBeenCalledWith(
+        expect.objectContaining({
           extraFormData: {
             filters: [
-              { col, op: '>=', val: startValue },
-              { col, op: '<=', val: endValue },
+              { col: 'ds', op: '>=', val: startTime },
+              { col: 'ds', op: '<=', val: endTime },
             ],
           },
-          filterState: {
-            value: [startValue, endValue],
-            selectedValues: [startValue, endValue],
-            label: `${startFormatted} - ${endFormatted}`,
-          },
-        });
+          filterState: expect.objectContaining({
+            value: [startTime, endTime],
+            selectedValues: [startTime, endTime],
+          }),
+        }),
+      );
+    },
+    { timeout: 100 },
+  );
+
+  // setControlValue should also be called in addition to setDataMask
+  expect(mockSetControlValue).toHaveBeenCalledWith(
+    'time_range',
+    '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
+  );
+});
+
+test('brush selection does nothing for non-time axis', async () => {
+  const mockSetControlValue = jest.fn();
+  const mockSetDataMask = jest.fn();
+  const refs: { echartRef?: React.RefObject<EchartsHandler> } = {};
+
+  let capturedBrushEndHandler: ((params: any) => void) | null = null;
+  const mockEchartsInstance = {
+    setOption: jest.fn(),
+    resize: jest.fn(),
+    on: jest.fn((eventName: string, handler: any) => {
+      if (eventName === 'brushEnd') {
+        capturedBrushEndHandler = handler;
       }
-    };
+    }),
+    off: jest.fn(),
+    getZr: jest.fn(() => ({
+      on: jest.fn(),
+      off: jest.fn(),
+    })),
+    dispatchAction: jest.fn(),
+    dispose: jest.fn(),
+  };
 
-    it('should not process brush events when x-axis type is not time', () => {
-      const params = {
-        areas: [{ coordRange: [[1000, 2000], [0, 100]] }],
-      };
+  const echartsCore = require('echarts/core');
+  echartsCore.init.mockReturnValue(mockEchartsInstance);
 
-      handleBrushEnd(
-        params,
-        { label: 'category', type: AxisType.Category },
-        baseFormData,
-        mockSetDataMask,
-        mockXValueFormatter,
-      );
+  // Use a category axis instead of time
+  const categoryXAxis = {
+    label: 'category',
+    type: AxisType.Category as AxisType,
+  };
 
-      expect(mockSetDataMask).not.toHaveBeenCalled();
-    });
+  render(
+    <EchartsTimeseries
+      formData={baseFormData as any}
+      height={400}
+      width={600}
+      echartOptions={baseEchartOptions as any}
+      groupby={[]}
+      labelMap={{}}
+      selectedValues={{}}
+      setDataMask={mockSetDataMask}
+      setControlValue={mockSetControlValue}
+      legendData={[]}
+      onContextMenu={jest.fn()}
+      onLegendStateChanged={jest.fn()}
+      onFocusedSeries={jest.fn()}
+      xValueFormatter={(val: number) => String(val)}
+      xAxis={categoryXAxis}
+      refs={refs}
+      emitCrossFilters={true}
+      coltypeMapping={{}}
+    />,
+    { wrapper: createWrapper() },
+  );
 
-    it('should not process brush events on touch devices', () => {
-      // For lineX brush, coordRange is a flat array [xMin, xMax]
-      const params = {
-        areas: [{ coordRange: [1000, 2000] }],
-      };
+  await waitFor(() => {
+    expect(capturedBrushEndHandler).not.toBeNull();
+  });
 
-      handleBrushEnd(
-        params,
-        baseXAxis,
-        baseFormData,
-        mockSetDataMask,
-        mockXValueFormatter,
-        { isTouchDevice: true },
-      );
+  capturedBrushEndHandler!({
+    areas: [{ coordRange: [100, 200] }],
+  });
 
-      expect(mockSetDataMask).not.toHaveBeenCalled();
-    });
+  // Wait a bit and verify nothing was called
+  await new Promise(resolve => setTimeout(resolve, 50));
 
-    it('should reset filter when brush is cleared on dashboard', () => {
-      const params = {
-        areas: [],
-      };
+  expect(mockSetControlValue).not.toHaveBeenCalled();
+  expect(mockSetDataMask).not.toHaveBeenCalled();
+});
 
-      handleBrushEnd(
-        params,
-        baseXAxis,
-        baseFormData,
-        mockSetDataMask,
-        mockXValueFormatter,
-        { emitCrossFilters: true },
-      );
+test('clearing brush on dashboard resets filter', async () => {
+  const mockSetControlValue = jest.fn();
+  const mockSetDataMask = jest.fn();
+  const refs: { echartRef?: React.RefObject<EchartsHandler> } = {};
 
+  let capturedBrushEndHandler: ((params: any) => void) | null = null;
+  const mockEchartsInstance = {
+    setOption: jest.fn(),
+    resize: jest.fn(),
+    on: jest.fn((eventName: string, handler: any) => {
+      if (eventName === 'brushEnd') {
+        capturedBrushEndHandler = handler;
+      }
+    }),
+    off: jest.fn(),
+    getZr: jest.fn(() => ({
+      on: jest.fn(),
+      off: jest.fn(),
+    })),
+    dispatchAction: jest.fn(),
+    dispose: jest.fn(),
+  };
+
+  const echartsCore = require('echarts/core');
+  echartsCore.init.mockReturnValue(mockEchartsInstance);
+
+  render(
+    <EchartsTimeseries
+      formData={baseFormData as any}
+      height={400}
+      width={600}
+      echartOptions={baseEchartOptions as any}
+      groupby={[]}
+      labelMap={{}}
+      selectedValues={{}}
+      setDataMask={mockSetDataMask}
+      setControlValue={mockSetControlValue}
+      legendData={[]}
+      onContextMenu={jest.fn()}
+      onLegendStateChanged={jest.fn()}
+      onFocusedSeries={jest.fn()}
+      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xAxis={baseXAxis}
+      refs={refs}
+      emitCrossFilters={true}
+      coltypeMapping={{}}
+    />,
+    { wrapper: createWrapper() },
+  );
+
+  await waitFor(() => {
+    expect(capturedBrushEndHandler).not.toBeNull();
+  });
+
+  // Simulate clearing the brush (empty areas array)
+  capturedBrushEndHandler!({
+    areas: [],
+  });
+
+  await waitFor(
+    () => {
       expect(mockSetDataMask).toHaveBeenCalledWith({
         extraFormData: {},
         filterState: {
@@ -183,205 +420,237 @@ describe('EchartsTimeseries handleBrushEnd', () => {
           selectedValues: null,
         },
       });
-    });
+    },
+    { timeout: 100 },
+  );
+});
 
-    it('should update time_range control in Explore view', () => {
-      const startTime = 1609459200000; // 2021-01-01T00:00:00.000Z
-      const endTime = 1609545600000; // 2021-01-02T00:00:00.000Z
+test('brush selection uses custom column name when xAxis.label is not DTTM_ALIAS', async () => {
+  const mockSetControlValue = jest.fn();
+  const mockSetDataMask = jest.fn();
+  const refs: { echartRef?: React.RefObject<EchartsHandler> } = {};
 
-      // For lineX brush, coordRange is a flat array [xMin, xMax]
-      const params = {
-        areas: [
-          {
-            coordRange: [startTime, endTime],
-          },
-        ],
-      };
+  let capturedBrushEndHandler: ((params: any) => void) | null = null;
+  const mockEchartsInstance = {
+    setOption: jest.fn(),
+    resize: jest.fn(),
+    on: jest.fn((eventName: string, handler: any) => {
+      if (eventName === 'brushEnd') {
+        capturedBrushEndHandler = handler;
+      }
+    }),
+    off: jest.fn(),
+    getZr: jest.fn(() => ({
+      on: jest.fn(),
+      off: jest.fn(),
+    })),
+    dispatchAction: jest.fn(),
+    dispose: jest.fn(),
+  };
 
-      handleBrushEnd(
-        params,
-        baseXAxis,
-        baseFormData,
-        mockSetDataMask,
-        mockXValueFormatter,
-        { setControlValue: mockSetControlValue },
-      );
+  const echartsCore = require('echarts/core');
+  echartsCore.init.mockReturnValue(mockEchartsInstance);
 
-      expect(mockSetControlValue).toHaveBeenCalledWith(
-        'time_range',
-        '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
-      );
-      expect(mockSetDataMask).not.toHaveBeenCalled();
-    });
+  // Use a custom time column name
+  const customXAxis = {
+    label: 'created_at',
+    type: AxisType.Time as AxisType,
+  };
 
-    it('should emit cross-filter on dashboard', () => {
-      const startTime = 1609459200000; // 2021-01-01
-      const endTime = 1609545600000; // 2021-01-02
+  render(
+    <EchartsTimeseries
+      formData={baseFormData as any}
+      height={400}
+      width={600}
+      echartOptions={baseEchartOptions as any}
+      groupby={[]}
+      labelMap={{}}
+      selectedValues={{}}
+      setDataMask={mockSetDataMask}
+      setControlValue={mockSetControlValue}
+      legendData={[]}
+      onContextMenu={jest.fn()}
+      onLegendStateChanged={jest.fn()}
+      onFocusedSeries={jest.fn()}
+      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xAxis={customXAxis}
+      refs={refs}
+      emitCrossFilters={true}
+      coltypeMapping={{}}
+    />,
+    { wrapper: createWrapper() },
+  );
 
-      // For lineX brush, coordRange is a flat array [xMin, xMax]
-      const params = {
-        areas: [
-          {
-            coordRange: [startTime, endTime],
-          },
-        ],
-      };
+  await waitFor(() => {
+    expect(capturedBrushEndHandler).not.toBeNull();
+  });
 
-      handleBrushEnd(
-        params,
-        baseXAxis,
-        baseFormData,
-        mockSetDataMask,
-        mockXValueFormatter,
-        { emitCrossFilters: true },
-      );
+  const startTime = 1609459200000;
+  const endTime = 1609545600000;
 
-      expect(mockSetDataMask).toHaveBeenCalledWith({
-        extraFormData: {
-          filters: [
-            { col: 'ds', op: '>=', val: startTime },
-            { col: 'ds', op: '<=', val: endTime },
-          ],
-        },
-        filterState: {
-          value: [startTime, endTime],
-          selectedValues: [startTime, endTime],
-          label: expect.stringContaining(' - '),
-        },
-      });
-    });
+  capturedBrushEndHandler!({
+    areas: [{ coordRange: [startTime, endTime] }],
+  });
 
-    it('should use xAxis.label as column when not DTTM_ALIAS', () => {
-      const startTime = 1609459200000;
-      const endTime = 1609545600000;
-
-      // For lineX brush, coordRange is a flat array [xMin, xMax]
-      const params = {
-        areas: [
-          {
-            coordRange: [startTime, endTime],
-          },
-        ],
-      };
-
-      handleBrushEnd(
-        params,
-        { label: 'custom_time_column', type: AxisType.Time },
-        baseFormData,
-        mockSetDataMask,
-        mockXValueFormatter,
-        { emitCrossFilters: true },
-      );
-
+  await waitFor(
+    () => {
       expect(mockSetDataMask).toHaveBeenCalledWith(
         expect.objectContaining({
           extraFormData: {
             filters: [
-              { col: 'custom_time_column', op: '>=', val: startTime },
-              { col: 'custom_time_column', op: '<=', val: endTime },
+              { col: 'created_at', op: '>=', val: startTime },
+              { col: 'created_at', op: '<=', val: endTime },
             ],
           },
         }),
       );
-    });
+    },
+    { timeout: 100 },
+  );
+});
 
-    it('should not process when coordRange is invalid', () => {
-      const params = {
-        areas: [
-          {
-            coordRange: null,
-          },
-        ],
-      };
+test('brush selection with invalid coordRange does not trigger filter', async () => {
+  const mockSetControlValue = jest.fn();
+  const mockSetDataMask = jest.fn();
+  const refs: { echartRef?: React.RefObject<EchartsHandler> } = {};
 
-      handleBrushEnd(
-        params,
-        baseXAxis,
-        baseFormData,
-        mockSetDataMask,
-        mockXValueFormatter,
-      );
+  let capturedBrushEndHandler: ((params: any) => void) | null = null;
+  const mockEchartsInstance = {
+    setOption: jest.fn(),
+    resize: jest.fn(),
+    on: jest.fn((eventName: string, handler: any) => {
+      if (eventName === 'brushEnd') {
+        capturedBrushEndHandler = handler;
+      }
+    }),
+    off: jest.fn(),
+    getZr: jest.fn(() => ({
+      on: jest.fn(),
+      off: jest.fn(),
+    })),
+    dispatchAction: jest.fn(),
+    dispose: jest.fn(),
+  };
 
-      expect(mockSetDataMask).not.toHaveBeenCalled();
-    });
+  const echartsCore = require('echarts/core');
+  echartsCore.init.mockReturnValue(mockEchartsInstance);
 
-    it('should not process when coordRange has less than 2 values', () => {
-      // For lineX brush, coordRange should be [xMin, xMax]
-      const params = {
-        areas: [
-          {
-            coordRange: [123],
-          },
-        ],
-      };
+  render(
+    <EchartsTimeseries
+      formData={baseFormData as any}
+      height={400}
+      width={600}
+      echartOptions={baseEchartOptions as any}
+      groupby={[]}
+      labelMap={{}}
+      selectedValues={{}}
+      setDataMask={mockSetDataMask}
+      setControlValue={mockSetControlValue}
+      legendData={[]}
+      onContextMenu={jest.fn()}
+      onLegendStateChanged={jest.fn()}
+      onFocusedSeries={jest.fn()}
+      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xAxis={baseXAxis}
+      refs={refs}
+      emitCrossFilters={true}
+      coltypeMapping={{}}
+    />,
+    { wrapper: createWrapper() },
+  );
 
-      handleBrushEnd(
-        params,
-        baseXAxis,
-        baseFormData,
-        mockSetDataMask,
-        mockXValueFormatter,
-      );
-
-      expect(mockSetDataMask).not.toHaveBeenCalled();
-    });
-
-    it('should use range operators (>= and <=) for time filter', () => {
-      const startTime = 1609459200000;
-      const endTime = 1609545600000;
-
-      // For lineX brush, coordRange is a flat array [xMin, xMax]
-      const params = {
-        areas: [
-          {
-            coordRange: [startTime, endTime],
-          },
-        ],
-      };
-
-      handleBrushEnd(
-        params,
-        baseXAxis,
-        baseFormData,
-        mockSetDataMask,
-        mockXValueFormatter,
-        { emitCrossFilters: true },
-      );
-
-      const call = mockSetDataMask.mock.calls[0][0];
-      expect(call.extraFormData.filters).toHaveLength(2);
-      expect(call.extraFormData.filters[0].op).toBe('>=');
-      expect(call.extraFormData.filters[1].op).toBe('<=');
-    });
-
-    it('should format the label using xValueFormatter', () => {
-      const startTime = 1609459200000;
-      const endTime = 1609545600000;
-
-      const customFormatter = (val: number) => `Formatted: ${val}`;
-
-      // For lineX brush, coordRange is a flat array [xMin, xMax]
-      const params = {
-        areas: [
-          {
-            coordRange: [startTime, endTime],
-          },
-        ],
-      };
-
-      handleBrushEnd(
-        params,
-        baseXAxis,
-        baseFormData,
-        mockSetDataMask,
-        customFormatter,
-        { emitCrossFilters: true },
-      );
-
-      const call = mockSetDataMask.mock.calls[0][0];
-      expect(call.filterState.label).toBe(
-        `Formatted: ${startTime} - Formatted: ${endTime}`,
-      );
-    });
+  await waitFor(() => {
+    expect(capturedBrushEndHandler).not.toBeNull();
   });
+
+  // Test with null coordRange
+  capturedBrushEndHandler!({
+    areas: [{ coordRange: null }],
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 50));
+  expect(mockSetControlValue).not.toHaveBeenCalled();
+  expect(mockSetDataMask).not.toHaveBeenCalled();
+
+  // Test with coordRange having only one value
+  capturedBrushEndHandler!({
+    areas: [{ coordRange: [123] }],
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 50));
+  expect(mockSetControlValue).not.toHaveBeenCalled();
+  expect(mockSetDataMask).not.toHaveBeenCalled();
+});
+
+test('brush selection formats time range correctly for different timestamps', async () => {
+  const mockSetControlValue = jest.fn();
+  const mockSetDataMask = jest.fn();
+  const refs: { echartRef?: React.RefObject<EchartsHandler> } = {};
+
+  let capturedBrushEndHandler: ((params: any) => void) | null = null;
+  const mockEchartsInstance = {
+    setOption: jest.fn(),
+    resize: jest.fn(),
+    on: jest.fn((eventName: string, handler: any) => {
+      if (eventName === 'brushEnd') {
+        capturedBrushEndHandler = handler;
+      }
+    }),
+    off: jest.fn(),
+    getZr: jest.fn(() => ({
+      on: jest.fn(),
+      off: jest.fn(),
+    })),
+    dispatchAction: jest.fn(),
+    dispose: jest.fn(),
+  };
+
+  const echartsCore = require('echarts/core');
+  echartsCore.init.mockReturnValue(mockEchartsInstance);
+
+  render(
+    <EchartsTimeseries
+      formData={baseFormData as any}
+      height={400}
+      width={600}
+      echartOptions={baseEchartOptions as any}
+      groupby={[]}
+      labelMap={{}}
+      selectedValues={{}}
+      setDataMask={mockSetDataMask}
+      setControlValue={mockSetControlValue}
+      legendData={[]}
+      onContextMenu={jest.fn()}
+      onLegendStateChanged={jest.fn()}
+      onFocusedSeries={jest.fn()}
+      xValueFormatter={(val: number) => new Date(val).toISOString()}
+      xAxis={baseXAxis}
+      refs={refs}
+      emitCrossFilters={false}
+      coltypeMapping={{}}
+    />,
+    { wrapper: createWrapper() },
+  );
+
+  await waitFor(() => {
+    expect(capturedBrushEndHandler).not.toBeNull();
+  });
+
+  // Test with a different date range including time
+  const startTime = 1640995200000; // 2022-01-01T00:00:00.000Z
+  const endTime = 1641049200000; // 2022-01-01T15:00:00.000Z
+
+  capturedBrushEndHandler!({
+    areas: [{ coordRange: [startTime, endTime] }],
+  });
+
+  await waitFor(
+    () => {
+      expect(mockSetControlValue).toHaveBeenCalledWith(
+        'time_range',
+        '2022-01-01T00:00:00 : 2022-01-01T15:00:00',
+      );
+    },
+    { timeout: 100 },
+  );
 });
