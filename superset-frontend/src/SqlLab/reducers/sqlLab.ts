@@ -356,7 +356,7 @@ export default function sqlLabReducer(
           action.query.sqlEditorId;
         const foundQueryEditor = getFromArr(state.queryEditors, sqlEditorId);
         const qe = {
-          ...(foundQueryEditor || {}),
+          ...foundQueryEditor,
           ...(sqlEditorId === state.unsavedQueryEditor.id &&
             state.unsavedQueryEditor),
         };
