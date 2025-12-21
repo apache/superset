@@ -98,7 +98,13 @@ export function prepareCopyToClipboardTabularData(data, columns) {
         row[j] = data[i][parseFloat(key)];
       }
     }
-    result += `${Object.values(row).join('\t')}\n`;
+    try {
+      result += `${Object.values(row).join('\t')}\n`;
+    } catch {
+      result += `${Object.values(row)
+        .map(value => JSON.stringify(value))
+        .join('\t')}\n`;
+    }
   }
   return result;
 }
