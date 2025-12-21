@@ -17,11 +17,991 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
+
+import yaml
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
+
+
+# Documentation metadata for databases
+# This provides comprehensive connection info for generating documentation
+# All content from docs/docs/configuration/databases.mdx should be captured here
+DATABASE_DOCS: dict[str, dict[str, Any]] = {
+    "PostgreSQL": {
+        "description": "PostgreSQL is an advanced open-source relational database.",
+        "pypi_packages": ["psycopg2"],
+        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 5432,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "For localhost: localhost or 127.0.0.1. For AWS: endpoint URL",
+            "port": "Default 5432",
+            "database": "Database name",
+        },
+        "notes": "The psycopg2 library comes bundled with Superset Docker images.",
+        "connection_examples": [
+            {
+                "description": "Basic connection",
+                "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+            },
+            {
+                "description": "With SSL required",
+                "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require",
+            },
+        ],
+        "docs_url": "https://www.postgresql.org/docs/",
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html",
+        "compatible_databases": [
+            {
+                "name": "Hologres",
+                "description": "Alibaba Cloud real-time interactive analytics service, fully compatible with PostgreSQL 11.",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": "postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}",
+                "parameters": {
+                    "username": "AccessKey ID of your Alibaba Cloud account",
+                    "password": "AccessKey secret of your Alibaba Cloud account",
+                    "host": "Public endpoint of the Hologres instance",
+                    "port": "Port number of the Hologres instance",
+                    "database": "Name of the Hologres database",
+                },
+            },
+            {
+                "name": "TimescaleDB",
+                "description": "Open-source relational database for time-series and analytics, built on PostgreSQL.",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+                "connection_examples": [
+                    {
+                        "description": "Timescale Cloud (SSL required)",
+                        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require",
+                    },
+                ],
+                "notes": "psycopg2 comes bundled with Superset Docker images.",
+                "docs_url": "https://docs.timescale.com/",
+            },
+            {
+                "name": "YugabyteDB",
+                "description": "Distributed SQL database built on top of PostgreSQL.",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+                "notes": "psycopg2 comes bundled with Superset Docker images.",
+                "docs_url": "https://www.yugabyte.com/",
+            },
+        ],
+    },
+    "MySQL": {
+        "description": "MySQL is a popular open-source relational database.",
+        "pypi_packages": ["mysqlclient"],
+        "connection_string": "mysql://{username}:{password}@{host}/{database}",
+        "default_port": 3306,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "localhost, 127.0.0.1, IP address, or hostname",
+            "database": "Database name",
+        },
+        "host_examples": [
+            {"platform": "Localhost", "host": "localhost or 127.0.0.1"},
+            {"platform": "Docker on Linux", "host": "172.18.0.1"},
+            {"platform": "Docker on macOS", "host": "docker.for.mac.host.internal"},
+            {"platform": "On-premise", "host": "IP address or hostname"},
+        ],
+        "drivers": [
+            {
+                "name": "mysqlclient",
+                "pypi_package": "mysqlclient",
+                "connection_string": "mysql://{username}:{password}@{host}/{database}",
+                "is_recommended": True,
+                "notes": "Recommended driver. May fail with caching_sha2_password auth.",
+            },
+            {
+                "name": "mysql-connector-python",
+                "pypi_package": "mysql-connector-python",
+                "connection_string": "mysql+mysqlconnector://{username}:{password}@{host}/{database}",
+                "is_recommended": False,
+                "notes": "Required for newer MySQL databases using caching_sha2_password authentication.",
+            },
+        ],
+    },
+    "SQLite": {
+        "description": "SQLite is a self-contained, serverless SQL database engine.",
+        "pypi_packages": [],
+        "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",
+        "notes": "No additional library needed. SQLite is bundled with Python.",
+    },
+    "AWS Athena": {
+        "description": "Amazon Athena is an interactive query service for analyzing data in S3 using SQL.",
+        "drivers": [
+            {
+                "name": "PyAthena (REST)",
+                "pypi_package": "pyathena[pandas]",
+                "connection_string": "awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}",
+                "is_recommended": True,
+                "notes": "No Java required. URL-encode special characters (e.g., s3:// -> s3%3A//).",
+            },
+            {
+                "name": "PyAthenaJDBC",
+                "pypi_package": "PyAthenaJDBC",
+                "connection_string": "awsathena+jdbc://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}",
+                "is_recommended": False,
+                "notes": "Requires Amazon Athena JDBC driver.",
+            },
+        ],
+        "engine_parameters": [
+            {
+                "name": "IAM Role Assumption",
+                "description": "Assume a specific IAM role for queries",
+                "json": {"connect_args": {"role_arn": "<role arn>"}},
+            },
+        ],
+        "notes": "URL-encode special characters in s3_staging_dir (e.g., s3:// becomes s3%3A//).",
+    },
+    "AWS DynamoDB": {
+        "description": "Amazon DynamoDB is a fully managed NoSQL database service.",
+        "pypi_packages": ["pydynamodb"],
+        "connection_string": "dynamodb://{access_key_id}:{secret_access_key}@dynamodb.{region_name}.amazonaws.com:443?connector=superset",
+        "docs_url": "https://github.com/passren/PyDynamoDB/wiki/5.-Superset",
+    },
+    "AWS Redshift": {
+        "description": "Amazon Redshift is a fully managed data warehouse service.",
+        "pypi_packages": ["sqlalchemy-redshift"],
+        "default_port": 5439,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "AWS Endpoint",
+            "port": "Default 5439",
+            "database": "Database name",
+        },
+        "drivers": [
+            {
+                "name": "psycopg2",
+                "pypi_package": "psycopg2",
+                "connection_string": "redshift+psycopg2://{username}:{password}@{host}:5439/{database}",
+                "is_recommended": True,
+            },
+            {
+                "name": "redshift_connector",
+                "pypi_package": "redshift_connector",
+                "connection_string": "redshift+redshift_connector://{username}:{password}@{host}:5439/{database}",
+                "is_recommended": False,
+                "notes": "Supports IAM-based credentials for clusters and serverless.",
+            },
+        ],
+        "authentication_methods": [
+            {
+                "name": "IAM Credentials (Cluster)",
+                "description": "Use IAM-based temporary database credentials for Redshift clusters",
+                "requirements": "IAM role must have redshift:GetClusterCredentials permission",
+                "connection_string": "redshift+redshift_connector://",
+                "engine_parameters": {
+                    "connect_args": {
+                        "iam": True,
+                        "database": "<database>",
+                        "cluster_identifier": "<cluster_identifier>",
+                        "db_user": "<db_user>",
+                    }
+                },
+            },
+            {
+                "name": "IAM Credentials (Serverless)",
+                "description": "Use IAM-based credentials for Redshift Serverless",
+                "requirements": "IAM role must have redshift-serverless:GetCredentials and redshift-serverless:GetWorkgroup permissions",
+                "connection_string": "redshift+redshift_connector://",
+                "engine_parameters": {
+                    "connect_args": {
+                        "iam": True,
+                        "is_serverless": True,
+                        "serverless_acct_id": "<aws account number>",
+                        "serverless_work_group": "<redshift work group>",
+                        "database": "<database>",
+                        "user": "IAMR:<superset iam role name>",
+                    }
+                },
+            },
+        ],
+    },
+    "Apache Doris": {
+        "description": "Apache Doris is a high-performance real-time analytical database.",
+        "pypi_packages": ["pydoris"],
+        "connection_string": "doris://{username}:{password}@{host}:{port}/{catalog}.{database}",
+        "parameters": {
+            "username": "User name",
+            "password": "Password",
+            "host": "Doris FE Host",
+            "port": "Doris FE port",
+            "catalog": "Catalog name",
+            "database": "Database name",
+        },
+    },
+    "Apache Drill": {
+        "description": "Apache Drill is a schema-free SQL query engine for Hadoop and NoSQL.",
+        "drivers": [
+            {
+                "name": "SQLAlchemy (REST)",
+                "pypi_package": "sqlalchemy-drill",
+                "connection_string": "drill+sadrill://{username}:{password}@{host}:{port}/{storage_plugin}?use_ssl=True",
+                "is_recommended": True,
+            },
+            {
+                "name": "JDBC",
+                "pypi_package": "sqlalchemy-drill",
+                "connection_string": "drill+jdbc://{username}:{password}@{host}:{port}",
+                "is_recommended": False,
+                "notes": "Requires Drill JDBC Driver installation.",
+                "docs_url": "https://drill.apache.org/docs/using-the-jdbc-driver/",
+            },
+            {
+                "name": "ODBC",
+                "pypi_package": "sqlalchemy-drill",
+                "is_recommended": False,
+                "notes": "See Apache Drill documentation for ODBC setup.",
+                "docs_url": "https://drill.apache.org/docs/installing-the-driver-on-linux/",
+            },
+        ],
+        "connection_examples": [
+            {
+                "description": "Local embedded mode",
+                "connection_string": "drill+sadrill://localhost:8047/dfs?use_ssl=False",
+            },
+        ],
+    },
+    "Apache Druid": {
+        "description": "Apache Druid is a high performance real-time analytics database.",
+        "pypi_packages": ["pydruid"],
+        "connection_string": "druid://{username}:{password}@{host}:{port}/druid/v2/sql",
+        "default_port": 9088,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "IP address or URL of the host",
+            "port": "Default 9088",
+        },
+        "ssl_configuration": {
+            "custom_certificate": "Add certificate in Root Certificate field. pydruid will automatically use https.",
+            "disable_ssl_verification": {
+                "engine_params": {
+                    "connect_args": {"scheme": "https", "ssl_verify_cert": False}
+                }
+            },
+        },
+        "advanced_features": {
+            "aggregations": "Define common aggregations in datasource edit view under List Druid Column tab.",
+            "post_aggregations": "Create metrics with postagg as Metric Type and provide valid JSON post-aggregation definition.",
+        },
+        "notes": "A native Druid connector ships with Superset (behind DRUID_IS_ACTIVE flag) but SQLAlchemy connector via pydruid is preferred.",
+    },
+    "Apache Hive": {
+        "description": "Apache Hive is a data warehouse infrastructure built on Hadoop.",
+        "pypi_packages": ["pyhive"],
+        "connection_string": "hive://hive@{hostname}:{port}/{database}",
+    },
+    "Apache Impala": {
+        "description": "Apache Impala is an open-source massively parallel processing SQL query engine.",
+        "pypi_packages": ["impyla"],
+        "connection_string": "impala://{hostname}:{port}/{database}",
+    },
+    "Apache Kylin": {
+        "description": "Apache Kylin is an open-source OLAP engine for big data.",
+        "pypi_packages": ["kylinpy"],
+        "connection_string": "kylin://{username}:{password}@{hostname}:{port}/{project}?{param1}={value1}&{param2}={value2}",
+    },
+    "Apache Pinot": {
+        "description": "Apache Pinot is a real-time distributed OLAP datastore.",
+        "pypi_packages": ["pinotdb"],
+        "connection_string": "pinot+http://{broker_host}:{broker_port}/query?controller=http://{controller_host}:{controller_port}/",
+        "connection_examples": [
+            {
+                "description": "With authentication",
+                "connection_string": "pinot://{username}:{password}@{broker_host}:{broker_port}/query/sql?controller=http://{controller_host}:{controller_port}/verify_ssl=true",
+            },
+        ],
+        "engine_parameters": [
+            {
+                "name": "Multi-stage Query Engine",
+                "description": "Enable for Explore view, joins, window functions",
+                "json": {"connect_args": {"use_multistage_engine": "true"}},
+                "docs_url": "https://docs.pinot.apache.org/reference/multi-stage-engine",
+            },
+        ],
+    },
+    "Apache Solr": {
+        "description": "Apache Solr is an open-source enterprise search platform.",
+        "pypi_packages": ["sqlalchemy-solr"],
+        "connection_string": "solr://{username}:{password}@{host}:{port}/{server_path}/{collection}[/?use_ssl=true|false]",
+    },
+    "Apache Spark SQL": {
+        "description": "Apache Spark SQL is a module for structured data processing.",
+        "pypi_packages": ["pyhive"],
+        "connection_string": "hive://hive@{hostname}:{port}/{database}",
+    },
+    "Arc": {
+        "description": "Arc is a data platform with multiple connection options.",
+        "drivers": [
+            {
+                "name": "Apache Arrow (Recommended)",
+                "pypi_package": "arc-superset-arrow",
+                "connection_string": "arc+arrow://{api_key}@{hostname}:{port}/{database}",
+                "is_recommended": True,
+                "notes": "Recommended for production. Provides 3-5x better performance using Apache Arrow IPC binary format.",
+            },
+            {
+                "name": "JSON",
+                "pypi_package": "arc-superset-dialect",
+                "connection_string": "arc+json://{api_key}@{hostname}:{port}/{database}",
+                "is_recommended": False,
+            },
+        ],
+        "notes": "Arc supports multiple databases (schemas) within a single instance. Each Arc database appears as a schema in SQL Lab.",
+    },
+    "Ascend.io": {
+        "description": "Ascend.io is a data automation platform.",
+        "pypi_packages": ["impyla"],
+        "connection_string": "ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true",
+    },
+    "ClickHouse": {
+        "description": "ClickHouse is an open-source column-oriented OLAP database.",
+        "pypi_packages": ["clickhouse-connect"],
+        "connection_string": "clickhousedb://{username}:{password}@{hostname}:{port}/{database}",
+        "version_requirements": "clickhouse-connect>=0.6.8",
+        "connection_examples": [
+            {
+                "description": "Altinity Cloud",
+                "connection_string": "clickhousedb://demo:demo@github.demo.trial.altinity.cloud/default?secure=true",
+            },
+            {
+                "description": "Local (no auth, no SSL)",
+                "connection_string": "clickhousedb://localhost/default",
+            },
+        ],
+        "install_instructions": 'echo "clickhouse-connect>=0.6.8" >> ./docker/requirements-local.txt',
+    },
+    "Cloudflare D1": {
+        "description": "Cloudflare D1 is a serverless SQLite database.",
+        "pypi_packages": ["superset-engine-d1"],
+        "connection_string": "d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}",
+        "install_instructions": "pip install superset-engine-d1",
+    },
+    "CockroachDB": {
+        "description": "CockroachDB is a distributed SQL database built for cloud applications.",
+        "pypi_packages": ["cockroachdb"],
+        "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
+        "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",
+    },
+    "Couchbase": {
+        "description": "Couchbase is a distributed NoSQL document database with SQL support.",
+        "pypi_packages": ["couchbase-sqlalchemy"],
+        "connection_string": "couchbase://{username}:{password}@{hostname}:{port}?truststorepath={certificate_path}?ssl={true|false}",
+        "notes": "Supports Couchbase Analytics and Couchbase Columnar services.",
+        "docs_url": "https://github.com/couchbase/couchbase-sqlalchemy",
+    },
+    "CrateDB": {
+        "description": "CrateDB is a distributed SQL database for machine data.",
+        "pypi_packages": ["sqlalchemy-cratedb"],
+        "version_requirements": "sqlalchemy-cratedb>=0.40.1,<1",
+        "default_port": 4200,
+        "connection_examples": [
+            {
+                "description": "Self-Managed (localhost)",
+                "connection_string": "crate://crate@127.0.0.1:4200",
+            },
+            {
+                "description": "CrateDB Cloud",
+                "connection_string": "crate://{username}:{password}@{clustername}.cratedb.net:4200/?ssl=true",
+            },
+        ],
+        "install_instructions": 'echo "sqlalchemy-cratedb" >> ./docker/requirements-local.txt',
+        "docs_url": "https://cratedb.com/product/cloud",
+    },
+    "Databend": {
+        "description": "Databend is an open-source cloud data warehouse.",
+        "pypi_packages": ["databend-sqlalchemy"],
+        "version_requirements": "databend-sqlalchemy>=0.2.3",
+        "connection_string": "databend://{username}:{password}@{host}:{port}/{database_name}",
+        "connection_examples": [
+            {
+                "description": "Local connection",
+                "connection_string": "databend://user:password@localhost:8000/default?secure=false",
+            },
+        ],
+    },
+    "Databricks": {
+        "description": "Databricks is a unified analytics platform built on Apache Spark.",
+        "pypi_packages": ["databricks-sql-connector", "sqlalchemy-databricks"],
+        "install_instructions": 'pip install "apache-superset[databricks]"',
+        "connection_string": "databricks+connector://token:{access_token}@{server_hostname}:{port}/{database_name}",
+        "parameters": {
+            "server_hostname": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
+            "port": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
+            "http_path": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
+            "access_token": "From Settings -> User Settings -> Access Tokens",
+        },
+        "engine_parameters": [
+            {
+                "name": "HTTP Path (Required)",
+                "description": "Must be specified in Engine Parameters",
+                "json": {"connect_args": {"http_path": "sql/protocolv1/o/****"}},
+            },
+        ],
+        "drivers": [
+            {
+                "name": "Native Connector (Recommended)",
+                "pypi_package": "databricks-sql-connector",
+                "connection_string": "databricks+connector://token:{access_token}@{server_hostname}:{port}/{database_name}",
+                "is_recommended": True,
+            },
+            {
+                "name": "databricks-dbapi (Legacy)",
+                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "is_recommended": False,
+                "notes": "Older connector. Try if having problems with official connector.",
+            },
+            {
+                "name": "Hive Connector",
+                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "connection_string": "databricks+pyhive://token:{access_token}@{server_hostname}:{port}/{database_name}",
+                "is_recommended": False,
+            },
+            {
+                "name": "ODBC",
+                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "connection_string": "databricks+pyodbc://token:{access_token}@{server_hostname}:{port}/{database_name}",
+                "is_recommended": False,
+                "notes": "Requires ODBC drivers. Use for SQL endpoints.",
+                "odbc_driver_paths": {
+                    "macOS": "/Library/simba/spark/lib/libsparkodbc_sbu.dylib",
+                    "Linux": "/opt/simba/spark/lib/64/libsparkodbc_sb64.so",
+                },
+                "docs_url": "https://databricks.com/spark/odbc-drivers-download",
+            },
+        ],
+    },
+    "Denodo": {
+        "description": "Denodo is a data virtualization platform.",
+        "pypi_packages": ["denodo-sqlalchemy"],
+        "connection_string": "denodo://{username}:{password}@{hostname}:{port}/{database}",
+        "default_port": 9996,
+    },
+    "Dremio": {
+        "description": "Dremio is a data lake engine for self-service analytics.",
+        "pypi_packages": ["sqlalchemy_dremio"],
+        "drivers": [
+            {
+                "name": "Arrow Flight (Recommended)",
+                "connection_string": "dremio+flight://{username}:{password}@{host}:32010/dremio",
+                "default_port": 32010,
+                "is_recommended": True,
+                "notes": "Better performance with Arrow Flight.",
+            },
+            {
+                "name": "ODBC",
+                "connection_string": "dremio+pyodbc://{username}:{password}@{host}:31010/{database_name}/dremio?SSL=1",
+                "default_port": 31010,
+                "is_recommended": False,
+            },
+        ],
+        "tutorials": ["https://www.dremio.com/tutorials/dremio-apache-superset/"],
+    },
+    "DuckDB": {
+        "description": "DuckDB is an in-process analytical database.",
+        "pypi_packages": ["duckdb-engine"],
+        "connection_string": "duckdb:///path/to/file.db",
+        "notes": "Great for local development. In-process database, no server needed.",
+    },
+    "Elasticsearch": {
+        "description": "Elasticsearch is a distributed search and analytics engine.",
+        "pypi_packages": ["elasticsearch-dbapi"],
+        "connection_string": "elasticsearch+http://{username}:{password}@{host}:9200/",
+        "default_port": 9200,
+        "connection_examples": [
+            {
+                "description": "HTTPS",
+                "connection_string": "elasticsearch+https://{username}:{password}@{host}:9200/",
+            },
+            {
+                "description": "Disable SSL verification",
+                "connection_string": "elasticsearch+https://{username}:{password}@{host}:9200/?verify_certs=False",
+            },
+        ],
+        "engine_parameters": [
+            {
+                "name": "Time Zone",
+                "description": "Override default UTC time zone",
+                "json": {"connect_args": {"time_zone": "Asia/Shanghai"}},
+            },
+        ],
+        "notes": "Default row limit is 10000. Can be changed via ROW_LIMIT config.",
+        "advanced_features": {
+            "multi_index_queries": "Use SQL Lab to query multiple indices (e.g., SELECT * FROM \"logstash\")",
+            "multi_index_visualization": "Create an alias index for visualizations with multiple indices",
+        },
+        "warnings": [
+            "Before Elasticsearch 7.8, CAST function doesn't support time_zone setting. Use DATETIME_PARSE instead.",
+        ],
+        "docs_url": "https://github.com/preset-io/elasticsearch-dbapi",
+    },
+    "Exasol": {
+        "description": "Exasol is a high-performance in-memory analytics database.",
+        "pypi_packages": ["sqlalchemy-exasol"],
+        "connection_string": "exa+pyodbc://{username}:{password}@{hostname}:{port}/{schema}?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC",
+        "docs_url": "https://github.com/exasol/sqlalchemy-exasol",
+    },
+    "Firebird": {
+        "description": "Firebird is an open-source relational database.",
+        "pypi_packages": ["sqlalchemy-firebird"],
+        "version_requirements": "sqlalchemy-firebird>=0.7.0,<0.8",
+        "connection_string": "firebird+fdb://{username}:{password}@{host}:{port}//{path_to_db_file}",
+        "connection_examples": [
+            {
+                "description": "Local database",
+                "connection_string": "firebird+fdb://SYSDBA:masterkey@192.168.86.38:3050//Library/Frameworks/Firebird.framework/Versions/A/Resources/examples/empbuild/employee.fdb",
+            },
+        ],
+    },
+    "Firebolt": {
+        "description": "Firebolt is a cloud data warehouse for sub-second analytics.",
+        "pypi_packages": ["firebolt-sqlalchemy"],
+        "connection_examples": [
+            {
+                "description": "User authentication",
+                "connection_string": "firebolt://{username}:{password}@{database}?account_name={name}",
+            },
+            {
+                "description": "User auth with engine",
+                "connection_string": "firebolt://{username}:{password}@{database}/{engine_name}?account_name={name}",
+            },
+            {
+                "description": "Service account",
+                "connection_string": "firebolt://{client_id}:{client_secret}@{database}?account_name={name}",
+            },
+            {
+                "description": "Service account with engine",
+                "connection_string": "firebolt://{client_id}:{client_secret}@{database}/{engine_name}?account_name={name}",
+            },
+        ],
+    },
+    "Google BigQuery": {
+        "description": "Google BigQuery is a serverless, highly scalable data warehouse.",
+        "pypi_packages": ["sqlalchemy-bigquery"],
+        "connection_string": "bigquery://{project_id}",
+        "install_instructions": 'echo "sqlalchemy-bigquery" >> ./docker/requirements-local.txt',
+        "authentication_methods": [
+            {
+                "name": "Service Account JSON",
+                "description": "Upload service account credentials JSON or paste in Secure Extra",
+                "secure_extra": {
+                    "credentials_info": {
+                        "type": "service_account",
+                        "project_id": "...",
+                        "private_key_id": "...",
+                        "private_key": "...",
+                        "client_email": "...",
+                        "client_id": "...",
+                        "auth_uri": "...",
+                        "token_uri": "...",
+                        "auth_provider_x509_cert_url": "...",
+                        "client_x509_cert_url": "...",
+                    }
+                },
+            },
+        ],
+        "notes": "Create a Service Account via GCP console with access to BigQuery datasets. For CSV/Excel uploads, also install pandas_gbq.",
+        "warnings": [
+            "Google BigQuery Python SDK is not compatible with gevent. Use a worker type other than gevent when deploying with gunicorn.",
+        ],
+        "docs_url": "https://github.com/googleapis/python-bigquery-sqlalchemy",
+    },
+    "Google Sheets": {
+        "description": "Query Google Sheets using SQL via the shillelagh library.",
+        "pypi_packages": ["shillelagh[gsheetsapi]"],
+        "connection_string": "gsheets://",
+        "notes": "Google Sheets has a limited SQL API.",
+        "tutorials": ["https://preset.io/blog/2020-06-01-connect-superset-google-sheets/"],
+        "docs_url": "https://github.com/betodealmeida/shillelagh",
+    },
+    "SAP HANA": {
+        "description": "SAP HANA is an in-memory relational database and application platform.",
+        "pypi_packages": ["hdbcli", "sqlalchemy-hana"],
+        "install_instructions": 'pip install apache_superset[hana]',
+        "connection_string": "hana://{username}:{password}@{host}:{port}",
+        "docs_url": "https://github.com/SAP/sqlalchemy-hana",
+    },
+    "IBM Db2": {
+        "description": "IBM Db2 is a family of data management products.",
+        "pypi_packages": ["ibm_db_sa"],
+        "drivers": [
+            {
+                "name": "ibm_db_sa (with LIMIT)",
+                "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+                "is_recommended": True,
+            },
+            {
+                "name": "ibm_db_sa (without LIMIT syntax)",
+                "connection_string": "ibm_db_sa://{username}:{password}@{hostname}:{port}/{database}",
+                "is_recommended": False,
+                "notes": "Use for older DB2 versions without LIMIT [n] syntax. Recommended for SQL Lab.",
+            },
+        ],
+        "docs_url": "https://github.com/ibmdb/python-ibmdbsa",
+    },
+    "IBM Netezza": {
+        "description": "IBM Netezza Performance Server is a data warehouse appliance.",
+        "pypi_packages": ["nzalchemy"],
+        "connection_string": "netezza+nzpy://{username}:{password}@{hostname}:{port}/{database}",
+    },
+    "Kusto": {
+        "description": "Azure Data Explorer (Kusto) is a fast, fully managed data analytics service.",
+        "pypi_packages": ["sqlalchemy-kusto"],
+        "version_requirements": "sqlalchemy-kusto>=2.0.0",
+        "connection_examples": [
+            {
+                "description": "SQL dialect",
+                "connection_string": "kustosql+https://{cluster_url}/{database}?azure_ad_client_id={client_id}&azure_ad_client_secret={secret}&azure_ad_tenant_id={tenant_id}&msi=False",
+            },
+            {
+                "description": "KQL dialect",
+                "connection_string": "kustokql+https://{cluster_url}/{database}?azure_ad_client_id={client_id}&azure_ad_client_secret={secret}&azure_ad_tenant_id={tenant_id}&msi=False",
+            },
+        ],
+        "notes": "Ensure user has privileges to access all required databases/tables/views.",
+    },
+    "MariaDB": {
+        "description": "MariaDB is a community-developed fork of MySQL.",
+        "pypi_packages": ["mysqlclient"],
+        "connection_string": "mysql://{username}:{password}@{host}/{database}",
+        "default_port": 3306,
+        "notes": "Uses the MySQL driver. Fully compatible with MySQL connector.",
+    },
+    "Microsoft SQL Server": {
+        "description": "Microsoft SQL Server is a relational database management system.",
+        "pypi_packages": ["pymssql"],
+        "default_port": 1433,
+        "drivers": [
+            {
+                "name": "pymssql",
+                "pypi_package": "pymssql",
+                "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
+                "is_recommended": True,
+            },
+            {
+                "name": "pyodbc",
+                "pypi_package": "pyodbc",
+                "connection_string": "mssql+pyodbc:///?odbc_connect=Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3BServer%3Dtcp%3A%3C{host}%3E%2C1433%3BDatabase%3D{database}%3BUid%3D{username}%3BPwd%3D{password}%3BEncrypt%3Dyes%3BConnection+Timeout%3D30",
+                "is_recommended": False,
+                "notes": "Connection string must be URL-encoded. Special characters like @ need encoding.",
+            },
+        ],
+        "docs_url": "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords",
+    },
+    "OceanBase": {
+        "description": "OceanBase is a distributed relational database.",
+        "pypi_packages": ["oceanbase_py"],
+        "connection_string": "oceanbase://{username}:{password}@{host}:{port}/{database}",
+    },
+    "Ocient": {
+        "description": "Ocient is a hyperscale data analytics database.",
+        "pypi_packages": ["sqlalchemy-ocient"],
+        "connection_string": "ocient://{username}:{password}@{host}:{port}/{database}",
+        "install_instructions": "pip install sqlalchemy-ocient",
+    },
+    "Oracle": {
+        "description": "Oracle Database is a multi-model database management system.",
+        "pypi_packages": ["oracledb"],
+        "connection_string": "oracle://{username}:{password}@{hostname}:{port}",
+        "notes": "Previously used cx_Oracle, now uses oracledb.",
+        "docs_url": "https://cx-oracle.readthedocs.io/en/latest/user_guide/installation.html",
+    },
+    "Parseable": {
+        "description": "Parseable is a distributed log analytics database with SQL-like query interface.",
+        "pypi_packages": ["sqlalchemy-parseable"],
+        "connection_string": "parseable://{username}:{password}@{hostname}:{port}/{stream_name}",
+        "connection_examples": [
+            {
+                "description": "Example connection",
+                "connection_string": "parseable://admin:admin@demo.parseable.com:443/ingress-nginx",
+            },
+        ],
+        "notes": "Stream name in URI represents the Parseable logstream to query. Supports HTTP (80) and HTTPS (443).",
+        "docs_url": "https://www.parseable.io",
+    },
+    "Presto": {
+        "description": "Presto is a distributed SQL query engine for big data.",
+        "pypi_packages": ["pyhive"],
+        "connection_string": "presto://{username}:{password}@{hostname}:{port}/{database}",
+        "connection_examples": [
+            {
+                "description": "Basic connection",
+                "connection_string": "presto://{hostname}:{port}/{database}",
+            },
+            {
+                "description": "With authentication",
+                "connection_string": "presto://{username}:{password}@{hostname}:{port}/{database}",
+            },
+            {
+                "description": "Example with values",
+                "connection_string": "presto://datascientist:securepassword@presto.example.com:8080/hive",
+            },
+        ],
+        "engine_parameters": [
+            {
+                "name": "Older Presto Version",
+                "description": "Configure for older Presto versions",
+                "json": {"version": "0.123"},
+            },
+            {
+                "name": "SSL Configuration",
+                "description": "Enable HTTPS with SSL",
+                "json": {
+                    "connect_args": {
+                        "protocol": "https",
+                        "requests_kwargs": {"verify": False},
+                    }
+                },
+            },
+        ],
+    },
+    "RisingWave": {
+        "description": "RisingWave is a distributed streaming database.",
+        "pypi_packages": ["sqlalchemy-risingwave"],
+        "connection_string": "risingwave://root@{hostname}:{port}/{database}?sslmode=disable",
+        "docs_url": "https://github.com/risingwavelabs/sqlalchemy-risingwave",
+    },
+    "SingleStore": {
+        "description": "SingleStore is a distributed SQL database for real-time analytics.",
+        "pypi_packages": ["sqlalchemy-singlestoredb"],
+        "connection_string": "singlestoredb://{username}:{password}@{host}:{port}/{database}",
+        "docs_url": "https://github.com/singlestore-labs/sqlalchemy-singlestoredb",
+    },
+    "Snowflake": {
+        "description": "Snowflake is a cloud-native data warehouse.",
+        "pypi_packages": ["snowflake-sqlalchemy"],
+        "connection_string": "snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}",
+        "install_instructions": 'echo "snowflake-sqlalchemy" >> ./docker/requirements-local.txt',
+        "connection_examples": [
+            {
+                "description": "With role and warehouse",
+                "connection_string": "snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}",
+            },
+            {
+                "description": "With defaults (role/warehouse optional)",
+                "connection_string": "snowflake://{user}:{password}@{account}.{region}/{database}",
+            },
+        ],
+        "authentication_methods": [
+            {
+                "name": "Key Pair Authentication",
+                "description": "Use RSA key pair instead of password",
+                "requirements": "Key pair must be generated and public key registered in Snowflake",
+                "secure_extra_body": {
+                    "auth_method": "keypair",
+                    "auth_params": {
+                        "privatekey_body": "-----BEGIN ENCRYPTED PRIVATE KEY-----\\n...\\n-----END ENCRYPTED PRIVATE KEY-----",
+                        "privatekey_pass": "Your Private Key Password",
+                    },
+                },
+                "notes": "Merge multi-line private key to one line with \\n between lines.",
+            },
+            {
+                "name": "Key Pair (File Path)",
+                "description": "Key pair with private key stored on server",
+                "secure_extra_path": {
+                    "auth_method": "keypair",
+                    "auth_params": {
+                        "privatekey_path": "Your Private Key Path",
+                        "privatekey_pass": "Your Private Key Password",
+                    },
+                },
+            },
+        ],
+        "notes": "Schema is not required in connection string (defined per table/query). Ensure user has privileges for all databases/schemas/tables/views/warehouses.",
+        "docs_url": "https://docs.snowflake.com/en/user-guide/key-pair-auth.html",
+    },
+    "StarRocks": {
+        "description": "StarRocks is a next-generation sub-second MPP database.",
+        "pypi_packages": ["starrocks"],
+        "connection_string": "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}",
+        "parameters": {
+            "username": "User name",
+            "password": "Database password",
+            "host": "StarRocks FE Host",
+            "port": "StarRocks FE port",
+            "catalog": "Catalog name",
+            "database": "Database name",
+        },
+        "docs_url": "https://docs.starrocks.io/docs/integrations/BI_integrations/Superset/",
+    },
+    "TDengine": {
+        "description": "TDengine is a high-performance time-series database for IoT.",
+        "pypi_packages": ["taospy", "taos-ws-py"],
+        "connection_string": "taosws://{user}:{password}@{host}:{port}",
+        "default_port": 6041,
+        "connection_examples": [
+            {
+                "description": "Local connection",
+                "connection_string": "taosws://root:taosdata@127.0.0.1:6041",
+            },
+        ],
+        "docs_url": "https://www.tdengine.com",
+    },
+    "Teradata": {
+        "description": "Teradata is an enterprise data warehouse platform.",
+        "pypi_packages": ["teradatasqlalchemy"],
+        "connection_string": "teradatasql://{user}:{password}@{host}",
+        "drivers": [
+            {
+                "name": "teradatasqlalchemy (Recommended)",
+                "pypi_package": "teradatasqlalchemy",
+                "connection_string": "teradatasql://{user}:{password}@{host}",
+                "is_recommended": True,
+                "notes": "No ODBC drivers required.",
+            },
+            {
+                "name": "sqlalchemy-teradata (ODBC)",
+                "pypi_package": "sqlalchemy-teradata",
+                "is_recommended": False,
+                "notes": "Requires ODBC driver installation.",
+                "environment_variables": {
+                    "ODBCINI": "/.../teradata/client/ODBC_64/odbc.ini",
+                    "ODBCINST": "/.../teradata/client/ODBC_64/odbcinst.ini",
+                },
+                "docs_url": "https://downloads.teradata.com/download/connectivity/odbc-driver/linux",
+            },
+        ],
+    },
+    "Trino": {
+        "description": "Trino is a distributed SQL query engine for big data analytics.",
+        "pypi_packages": ["trino"],
+        "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
+        "version_requirements": "Trino version 352 and higher",
+        "connection_examples": [
+            {
+                "description": "Docker local",
+                "connection_string": "trino://trino@host.docker.internal:8080",
+            },
+        ],
+        "authentication_methods": [
+            {
+                "name": "Basic Authentication",
+                "description": "Username/password in connection string or Secure Extra",
+                "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
+                "secure_extra": {
+                    "auth_method": "basic",
+                    "auth_params": {"username": "<username>", "password": "<password>"},
+                },
+                "notes": "Secure Extra takes priority if both are provided.",
+            },
+            {
+                "name": "Kerberos Authentication",
+                "description": "Kerberos-based authentication",
+                "requirements": "Install trino[all] or trino[kerberos]",
+                "secure_extra": {
+                    "auth_method": "kerberos",
+                    "auth_params": {
+                        "service_name": "superset",
+                        "config": "/path/to/krb5.config",
+                    },
+                },
+            },
+            {
+                "name": "Certificate Authentication",
+                "description": "Client certificate authentication",
+                "secure_extra": {
+                    "auth_method": "certificate",
+                    "auth_params": {
+                        "cert": "/path/to/cert.pem",
+                        "key": "/path/to/key.pem",
+                    },
+                },
+            },
+            {
+                "name": "JWT Authentication",
+                "description": "JSON Web Token authentication",
+                "secure_extra": {
+                    "auth_method": "jwt",
+                    "auth_params": {"token": "<your-jwt-token>"},
+                },
+            },
+            {
+                "name": "Custom Authentication",
+                "description": "Custom auth class or factory function",
+                "requirements": "Add to ALLOWED_EXTRA_AUTHENTICATIONS in config",
+                "config_example": {
+                    "ALLOWED_EXTRA_AUTHENTICATIONS": {
+                        "trino": {
+                            "custom_auth": "AuthClass",
+                            "another_auth_method": "auth_method",
+                        }
+                    }
+                },
+                "secure_extra": {"auth_method": "custom_auth", "auth_params": {}},
+            },
+        ],
+        "tutorials": ["https://trino.io/episodes/12.html"],
+    },
+    "Vertica": {
+        "description": "Vertica is a column-oriented analytics database.",
+        "pypi_packages": ["sqlalchemy-vertica-python"],
+        "connection_string": "vertica+vertica_python://{username}:{password}@{host}/{database}",
+        "default_port": 5433,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "localhost, IP address, or hostname (cloud or on-prem)",
+            "database": "Database name",
+            "port": "Default 5433",
+        },
+        "notes": "Supports load balancer backup host configuration.",
+        "docs_url": "http://www.vertica.com/",
+    },
+    "YDB": {
+        "description": "YDB is a distributed SQL database by Yandex.",
+        "pypi_packages": ["ydb-sqlalchemy"],
+        "connection_string": "ydb://{host}:{port}/{database_name}",
+        "engine_parameters": [
+            {
+                "name": "Protocol",
+                "description": "Specify connection protocol (default: grpc)",
+                "secure_extra": {"protocol": "grpcs"},
+            },
+        ],
+        "authentication_methods": [
+            {
+                "name": "Static Credentials",
+                "description": "Username/password authentication",
+                "secure_extra": {
+                    "credentials": {"username": "...", "password": "..."}
+                },
+            },
+            {
+                "name": "Access Token",
+                "description": "Token-based authentication",
+                "secure_extra": {"credentials": {"token": "..."}},
+            },
+            {
+                "name": "Service Account",
+                "description": "Service account JSON credentials",
+                "secure_extra": {
+                    "credentials": {
+                        "service_account_json": {
+                            "id": "...",
+                            "service_account_id": "...",
+                            "created_at": "...",
+                            "key_algorithm": "...",
+                            "public_key": "...",
+                            "private_key": "...",
+                        }
+                    }
+                },
+            },
+        ],
+        "docs_url": "https://ydb.tech/",
+    },
+}
 
 LIMIT_METHODS = {
     "FORCE_LIMIT": (
@@ -662,11 +1642,108 @@ def generate_table() -> list[list[Any]]:
     return rows
 
 
+def generate_yaml_docs(output_dir: str | None = None) -> dict[str, dict[str, Any]]:
+    """
+    Generate YAML documentation files for all database engine specs.
+
+    Args:
+        output_dir: Directory to write YAML files. If None, returns dict only.
+
+    Returns:
+        Dictionary mapping database names to their full documentation data.
+    """
+    all_docs: dict[str, dict[str, Any]] = {}
+
+    for spec in sorted(load_engine_specs(), key=get_name):
+        # Skip non-superset modules (3rd party)
+        if not spec.__module__.startswith("superset"):
+            continue
+
+        name = get_name(spec)
+        doc_data = diagnose(spec)
+
+        # Add documentation metadata if available
+        if name in DATABASE_DOCS:
+            doc_data["documentation"] = DATABASE_DOCS[name]
+        else:
+            # Create minimal documentation entry
+            doc_data["documentation"] = {
+                "pypi_packages": [],
+                "connection_string": getattr(
+                    spec, "sqlalchemy_uri_placeholder", ""
+                ),
+            }
+
+        # Add engine spec metadata
+        doc_data["engine"] = spec.engine
+        doc_data["engine_name"] = name
+        doc_data["engine_aliases"] = list(getattr(spec, "engine_aliases", set()))
+        doc_data["default_driver"] = getattr(spec, "default_driver", None)
+        doc_data["supports_file_upload"] = spec.supports_file_upload
+        doc_data["supports_dynamic_schema"] = spec.supports_dynamic_schema
+        doc_data["supports_catalog"] = spec.supports_catalog
+
+        all_docs[name] = doc_data
+
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Write individual YAML files for each database
+        for name, data in all_docs.items():
+            # Create a safe filename
+            safe_name = name.lower().replace(" ", "-").replace(".", "")
+            filepath = os.path.join(output_dir, f"{safe_name}.yaml")
+            with open(filepath, "w") as f:
+                yaml.dump(
+                    {name: data},
+                    f,
+                    default_flow_style=False,
+                    sort_keys=False,
+                    allow_unicode=True,
+                )
+
+        # Also write a combined index file
+        index_filepath = os.path.join(output_dir, "_index.yaml")
+        with open(index_filepath, "w") as f:
+            yaml.dump(
+                all_docs,
+                f,
+                default_flow_style=False,
+                sort_keys=False,
+                allow_unicode=True,
+            )
+
+        print(f"Generated {len(all_docs)} YAML files in {output_dir}")
+
+    return all_docs
+
+
 if __name__ == "__main__":
+    import argparse
+
     from superset.app import create_app
+
+    parser = argparse.ArgumentParser(description="Generate database documentation")
+    parser.add_argument(
+        "--format",
+        choices=["markdown", "yaml"],
+        default="markdown",
+        help="Output format (default: markdown)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Directory for YAML output files",
+    )
+    args = parser.parse_args()
 
     app = create_app()
     with app.app_context():
-        output = generate_feature_tables()
-
-    print(output)
+        if args.format == "yaml":
+            output_dir = args.output_dir or "docs/static/databases"
+            docs = generate_yaml_docs(output_dir)
+            print(f"\nGenerated documentation for {len(docs)} databases")
+        else:
+            output = generate_feature_tables()
+            print(output)
