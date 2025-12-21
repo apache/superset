@@ -31,6 +31,7 @@ from datetime import datetime
 from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING
+from urllib.parse import quote
 
 import numpy
 import pandas as pd
@@ -1159,7 +1160,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         # Determine plaintext password from config or model
         if has_app_context():
-            if custom_password_store := app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]:
+            custom_password_store = app.config.get("SQLALCHEMY_CUSTOM_PASSWORD_STORE")
+            if custom_password_store and callable(custom_password_store):
                 raw_password = custom_password_store(conn)
             else:
                 raw_password = self.password
@@ -1169,8 +1171,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         # Encode the password such that special characters
         # are preserved when rendering to string and reparsing the URL.
         if raw_password is not None:
-            from urllib.parse import quote
-
             encoded_password = quote(raw_password, safe="")
             conn = conn.set(password=encoded_password)
         else:
