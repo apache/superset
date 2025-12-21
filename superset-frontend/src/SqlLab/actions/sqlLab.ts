@@ -632,10 +632,12 @@ export function syncQueryEditor(queryEditor: QueryEditor): any {
   return function (dispatch: any, getState: any) {
     const { tables, queries } = getState().sqlLab;
     const localStorageTables = tables.filter(
-      (table: Table) => table.inLocalStorage && table.queryEditorId === queryEditor.id,
+      (table: Table) =>
+        table.inLocalStorage && table.queryEditorId === queryEditor.id,
     );
     const localStorageQueries = Object.values(queries).filter(
-      (query: Query) => query.inLocalStorage && query.sqlEditorId === queryEditor.id,
+      (query: Query) =>
+        query.inLocalStorage && query.sqlEditorId === queryEditor.id,
     );
     return SupersetClient.post({
       endpoint: '/tabstateview/',
@@ -1050,27 +1052,30 @@ export function saveQuery(query: Partial<QueryEditor>, clientId: string): any {
 export const addSavedQueryToTabState =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (queryEditor: QueryEditor, savedQuery: { remoteId: string }): any =>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (dispatch: any) => {
-    const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.put({
-          endpoint: `/tabstateview/${queryEditorId}`,
-          postPayload: { saved_query_id: savedQuery.remoteId },
-        })
-      : Promise.resolve();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dispatch: any) => {
+      const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
+      const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
+        ? SupersetClient.put({
+            endpoint: `/tabstateview/${queryEditorId}`,
+            postPayload: { saved_query_id: savedQuery.remoteId },
+          })
+        : Promise.resolve();
 
-    return sync
-      .catch(() => {
-        dispatch(addDangerToast(t('Your query was not properly saved')));
-      })
-      .then(() => {
-        dispatch(addSuccessToast(t('Your query was saved')));
-      });
-  };
+      return sync
+        .catch(() => {
+          dispatch(addDangerToast(t('Your query was not properly saved')));
+        })
+        .then(() => {
+          dispatch(addSuccessToast(t('Your query was saved')));
+        });
+    };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function updateSavedQuery(query: Partial<QueryEditor>, clientId: string): any {
+export function updateSavedQuery(
+  query: Partial<QueryEditor>,
+  clientId: string,
+): any {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id: _id, ...payload } = convertQueryToServer(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1151,8 +1156,11 @@ export function formatQuery(queryEditor: QueryEditor): any {
       getState(),
       queryEditor,
     );
-    const body: { sql: string; database_id?: number; template_params?: string } =
-      { sql };
+    const body: {
+      sql: string;
+      database_id?: number;
+      template_params?: string;
+    } = { sql };
 
     // Include database_id and template_params if available for Jinja processing
     if (dbId) {
@@ -1678,9 +1686,7 @@ export function createDatasource(vizOptions: VizOptions): any {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createCtasDatasource(
-  vizOptions: Record<string, unknown>,
-): any {
+export function createCtasDatasource(vizOptions: Record<string, unknown>): any {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (dispatch: any) => {
     dispatch(createDatasourceStarted());

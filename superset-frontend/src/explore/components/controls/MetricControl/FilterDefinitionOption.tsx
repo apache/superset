@@ -38,7 +38,11 @@ const propTypes = {
   ]).isRequired,
 };
 
-export default function FilterDefinitionOption({ option }: { option: OptionType }) {
+export default function FilterDefinitionOption({
+  option,
+}: {
+  option: OptionType;
+}) {
   if (option.saved_metric_name) {
     return (
       <StyledColumnOption
@@ -48,7 +52,12 @@ export default function FilterDefinitionOption({ option }: { option: OptionType 
     );
   }
   if (option.column_name) {
-    return <StyledColumnOption column={option as { column_name: string; type?: string }} showType />;
+    return (
+      <StyledColumnOption
+        column={option as { column_name: string; type?: string }}
+        showType
+      />
+    );
   }
   if (option.label) {
     return (

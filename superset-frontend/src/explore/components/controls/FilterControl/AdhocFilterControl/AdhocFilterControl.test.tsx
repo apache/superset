@@ -33,7 +33,11 @@ interface TestProps {
     datasource_name: string;
     [key: string]: unknown;
   };
-  columns: Array<{ column_name: string; type?: string; [key: string]: unknown }>;
+  columns: Array<{
+    column_name: string;
+    type?: string;
+    [key: string]: unknown;
+  }>;
   onChange: jest.Mock;
   sections: string[];
   operators: string[];
@@ -60,9 +64,15 @@ const createProps = (): TestProps => ({
 });
 
 const renderComponent = (props: Partial<TestProps> = {}) =>
-  render(<AdhocFilterControl {...(createProps() as Record<string, unknown>)} {...props} />, {
-    useDnd: true,
-  });
+  render(
+    <AdhocFilterControl
+      {...(createProps() as Record<string, unknown>)}
+      {...props}
+    />,
+    {
+      useDnd: true,
+    },
+  );
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterControl', () => {

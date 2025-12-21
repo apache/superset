@@ -337,15 +337,24 @@ export default class AdhocMetricEditPopover extends PureComponent<
     setTimeout(() => {
       if (this.aceEditorRef.current) {
         // Cast to access ace editor API
-        (this.aceEditorRef.current as unknown as { editor?: { resize?: () => void } }).editor?.resize?.();
+        (
+          this.aceEditorRef.current as unknown as {
+            editor?: { resize?: () => void };
+          }
+        ).editor?.resize?.();
       }
     }, 0);
   }
 
   renderColumnOption(option: ColumnType): React.ReactNode {
     const column = { ...option };
-    if ((column as unknown as { metric_name?: string }).metric_name && !column.verbose_name) {
-      column.verbose_name = (column as unknown as { metric_name: string }).metric_name;
+    if (
+      (column as unknown as { metric_name?: string }).metric_name &&
+      !column.verbose_name
+    ) {
+      column.verbose_name = (
+        column as unknown as { metric_name: string }
+      ).metric_name;
     }
     return <StyledColumnOption column={column} showType />;
   }
@@ -370,7 +379,11 @@ export default class AdhocMetricEditPopover extends PureComponent<
     } = this.props;
     const { adhocMetric, savedMetric } = this.state;
     const columnsArray = columns ?? [];
-    const keywords = sqlKeywords.concat(getColumnKeywords(columnsArray as Parameters<typeof getColumnKeywords>[0]));
+    const keywords = sqlKeywords.concat(
+      getColumnKeywords(
+        columnsArray as Parameters<typeof getColumnKeywords>[0],
+      ),
+    );
 
     const columnValue =
       (adhocMetric.column && adhocMetric.column.column_name) ||
@@ -389,7 +402,10 @@ export default class AdhocMetricEditPopover extends PureComponent<
     const aggregateSelectProps = {
       ariaLabel: t('Select aggregate options'),
       placeholder: t('%s aggregates(s)', AGGREGATES_OPTIONS.length),
-      value: adhocMetric.aggregate ?? adhocMetric.inferSqlExpressionAggregate() ?? undefined,
+      value:
+        adhocMetric.aggregate ??
+        adhocMetric.inferSqlExpressionAggregate() ??
+        undefined,
       onChange: this.onAggregateChange as (value: unknown) => void,
       allowClear: true,
       autoFocus: !!columnValue,

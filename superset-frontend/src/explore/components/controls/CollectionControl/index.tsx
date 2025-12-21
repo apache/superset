@@ -132,8 +132,11 @@ class CollectionControl extends Component<CollectionControlProps> {
     if (currentValue.length === 0) {
       return <div className="text-muted">{this.props.placeholder}</div>;
     }
-    const Control = (controlMap as Record<string, React.ComponentType<any>>)[this.props.controlName];
-    const keyAccessor = this.props.keyAccessor ?? ((o: CollectionItem) => o.key ?? '');
+    const Control = (controlMap as Record<string, React.ComponentType<any>>)[
+      this.props.controlName
+    ];
+    const keyAccessor =
+      this.props.keyAccessor ?? ((o: CollectionItem) => o.key ?? '');
     return (
       <SortableList
         useDragHandle

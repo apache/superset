@@ -154,7 +154,9 @@ export default function sqlLabReducer(
       };
       let newState = removeFromArr(state, 'queryEditors', queryEditor);
       // List of remaining queryEditor ids
-      const qeIds = newState.queryEditors.map((qe: QueryEditor) => qe.tabViewId ?? qe.id);
+      const qeIds = newState.queryEditors.map(
+        (qe: QueryEditor) => qe.tabViewId ?? qe.id,
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const queries: any = {};
@@ -365,7 +367,10 @@ export default function sqlLabReducer(
             query: null,
           };
           const q = { ...state.queries[qe.latestQueryId], results: newResults };
-          const queries = { ...state.queries, [q.id]: q } as SqlLabState['queries'];
+          const queries = {
+            ...state.queries,
+            [q.id]: q,
+          } as SqlLabState['queries'];
           newState = { ...state, queries };
         }
       }
@@ -713,54 +718,56 @@ export default function sqlLabReducer(
       let change = false;
       let { queriesLastUpdate } = state;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Object.entries(action.alteredQueries).forEach(([id, changedQuery]: [string, any]) => {
-        if (
-          !state.queries.hasOwnProperty(id) ||
-          (state.queries[id].state !== QueryState.Stopped &&
-            state.queries[id].state !== QueryState.Failed)
-        ) {
-          const changedOn = normalizeTimestamp(changedQuery.changed_on);
-          const timestamp = Date.parse(changedOn);
-          if (timestamp > queriesLastUpdate) {
-            queriesLastUpdate = timestamp;
-          }
-          const prevState = state.queries[id]?.state;
-          const currentState = changedQuery.state;
-          newQueries[id] = {
-            ...state.queries[id],
-            ...changedQuery,
-            ...(changedQuery.startDttm && {
-              startDttm: Number(changedQuery.startDttm),
-            }),
-            ...(changedQuery.endDttm && {
-              endDttm: Number(changedQuery.endDttm),
-            }),
-            // race condition:
-            // because of async behavior, sql lab may still poll a couple of seconds
-            // when it started fetching or finished rendering results
-            state:
-              currentState === QueryState.Success &&
-              [
-                QueryState.Fetching,
-                QueryState.Success,
-                QueryState.Running,
-              ].includes(prevState)
-                ? prevState
-                : currentState,
-          };
+      Object.entries(action.alteredQueries).forEach(
+        ([id, changedQuery]: [string, any]) => {
           if (
-            shallowEqual(
-              omit(newQueries[id], ['extra']),
-              omit(state.queries[id], ['extra']),
-            ) &&
-            isEqual(newQueries[id].extra, state.queries[id].extra)
+            !state.queries.hasOwnProperty(id) ||
+            (state.queries[id].state !== QueryState.Stopped &&
+              state.queries[id].state !== QueryState.Failed)
           ) {
-            newQueries[id] = state.queries[id];
-          } else {
-            change = true;
+            const changedOn = normalizeTimestamp(changedQuery.changed_on);
+            const timestamp = Date.parse(changedOn);
+            if (timestamp > queriesLastUpdate) {
+              queriesLastUpdate = timestamp;
+            }
+            const prevState = state.queries[id]?.state;
+            const currentState = changedQuery.state;
+            newQueries[id] = {
+              ...state.queries[id],
+              ...changedQuery,
+              ...(changedQuery.startDttm && {
+                startDttm: Number(changedQuery.startDttm),
+              }),
+              ...(changedQuery.endDttm && {
+                endDttm: Number(changedQuery.endDttm),
+              }),
+              // race condition:
+              // because of async behavior, sql lab may still poll a couple of seconds
+              // when it started fetching or finished rendering results
+              state:
+                currentState === QueryState.Success &&
+                [
+                  QueryState.Fetching,
+                  QueryState.Success,
+                  QueryState.Running,
+                ].includes(prevState)
+                  ? prevState
+                  : currentState,
+            };
+            if (
+              shallowEqual(
+                omit(newQueries[id], ['extra']),
+                omit(state.queries[id], ['extra']),
+              ) &&
+              isEqual(newQueries[id].extra, state.queries[id].extra)
+            ) {
+              newQueries[id] = state.queries[id];
+            } else {
+              change = true;
+            }
           }
-        }
-      });
+        },
+      );
       if (!change) {
         newQueries = state.queries;
       }

@@ -44,7 +44,11 @@ describe('FilterDefinitionOption', () => {
   });
 
   test('renders a StyledColumnOption given an adhoc metric', async () => {
-    render(<FilterDefinitionOption option={sumValueAdhocMetric as unknown as { label: string }} />);
+    render(
+      <FilterDefinitionOption
+        option={sumValueAdhocMetric as unknown as { label: string }}
+      />,
+    );
     await expect(screen.getByText('SUM(source)')).toBeVisible();
   });
 

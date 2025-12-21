@@ -20,8 +20,18 @@
 
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { DatasourceType, SupersetClient, t, Datasource } from '@superset-ui/core';
-import { css, styled, withTheme, type SupersetTheme } from '@apache-superset/core/ui';
+import {
+  DatasourceType,
+  SupersetClient,
+  t,
+  Datasource,
+} from '@superset-ui/core';
+import {
+  css,
+  styled,
+  withTheme,
+  type SupersetTheme,
+} from '@apache-superset/core/ui';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import {
@@ -55,7 +65,12 @@ import { Link } from 'react-router-dom';
 interface ExtendedDatasource extends Datasource {
   sql?: string;
   select_star?: string;
-  owners?: Array<{ id: number; first_name: string; last_name: string; value?: number }>;
+  owners?: Array<{
+    id: number;
+    first_name: string;
+    last_name: string;
+    value?: number;
+  }>;
   extra?: string;
   health_check_message?: string;
   database?: {
@@ -212,7 +227,10 @@ export const datasourceIconLookup: Record<string, React.ReactNode> = {
 };
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
-export const renderDatasourceTitle = (displayString: string | undefined, tooltip: string) =>
+export const renderDatasourceTitle = (
+  displayString: string | undefined,
+  tooltip: string,
+) =>
   displayString?.length && displayString.length > VISIBLE_TITLE_LENGTH ? (
     // Add a tooltip only for long names that will be visually truncated
     <Tooltip title={tooltip}>
@@ -225,7 +243,9 @@ export const renderDatasourceTitle = (displayString: string | undefined, tooltip
   );
 
 // Different data source types use different attributes for the display title
-export const getDatasourceTitle = (datasource: ExtendedDatasource | null | undefined): string => {
+export const getDatasourceTitle = (
+  datasource: ExtendedDatasource | null | undefined,
+): string => {
   if (datasource?.type === 'query') return datasource?.sql || '';
   return datasource?.name || '';
 };
@@ -238,7 +258,10 @@ const preventRouterLinkWhileMetaClicked = (evt: React.MouseEvent) => {
   }
 };
 
-class DatasourceControl extends PureComponent<DatasourceControlProps, DatasourceControlState> {
+class DatasourceControl extends PureComponent<
+  DatasourceControlProps,
+  DatasourceControlState
+> {
   static propTypes = propTypes;
 
   static defaultProps = defaultProps;
@@ -256,8 +279,9 @@ class DatasourceControl extends PureComponent<DatasourceControlProps, Datasource
     // Cast to ExtendedDatasource for the component's internal use
     this.props.actions.changeDatasource(datasource as ExtendedDatasource);
     // Cast datasource for getTemporalColumns which expects Dataset | QueryResponse
-    const { temporalColumns, defaultTemporalColumn } =
-      getTemporalColumns(datasource as Parameters<typeof getTemporalColumns>[0]);
+    const { temporalColumns, defaultTemporalColumn } = getTemporalColumns(
+      datasource as Parameters<typeof getTemporalColumns>[0],
+    );
     const { columns } = datasource;
     // the current granularity_sqla might not be a temporal column anymore
     const timeCol = this.props.form_data?.granularity_sqla;
@@ -626,5 +650,7 @@ class DatasourceControl extends PureComponent<DatasourceControlProps, Datasource
 
 // withTheme injects the theme prop, so we need to cast the component type
 export default withTheme(
-  DatasourceControl as React.ComponentType<Omit<DatasourceControlProps, 'theme'>>,
+  DatasourceControl as React.ComponentType<
+    Omit<DatasourceControlProps, 'theme'>
+  >,
 );

@@ -217,11 +217,19 @@ class AdhocMetricPopoverTrigger extends PureComponent<
           columns={columns}
           savedMetricsOptions={savedMetricsOptions}
           savedMetric={savedMetric as savedMetricType}
-          datasource={datasource as unknown as { type?: string; id?: number | string; extra?: string }}
+          datasource={
+            datasource as unknown as {
+              type?: string;
+              id?: number | string;
+              extra?: string;
+            }
+          }
           handleDatasetModal={this.handleDatasetModal}
           onResize={this.onPopoverResize}
           onClose={closePopover}
-          onChange={this.onChange as (newMetric: unknown, oldMetric?: unknown) => void}
+          onChange={
+            this.onChange as (newMetric: unknown, oldMetric?: unknown) => void
+          }
           getCurrentTab={this.getCurrentTab}
           getCurrentLabel={this.getCurrentLabel}
           isNewMetric={this.props.isNew}

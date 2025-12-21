@@ -51,11 +51,21 @@ interface TestDatasource {
   id?: number;
   name: string;
   datasource_name?: string;
-  database: { id: number; database_name: string; name?: string; backend?: string };
+  database: {
+    id: number;
+    database_name: string;
+    name?: string;
+    backend?: string;
+  };
   columns?: Partial<ColumnObject>[];
   type?: DatasourceType;
   main_dttm_col?: string | null;
-  owners?: Array<{ first_name: string; last_name: string; id: number; username?: string }>;
+  owners?: Array<{
+    first_name: string;
+    last_name: string;
+    id: number;
+    username?: string;
+  }>;
   sql?: string;
   metrics?: Array<{ id: number; metric_name: string }>;
   [key: string]: unknown;
@@ -78,8 +88,12 @@ const mockDatasource: TestDatasource = {
 
 // Use type assertion for test props since the component is wrapped with withTheme
 // The withTheme HOC makes the props type complex, so we cast through unknown to bypass type check
-type DatasourceControlComponentProps = React.ComponentProps<typeof DatasourceControl>;
-const createProps = (overrides: JsonObject = {}): DatasourceControlComponentProps =>
+type DatasourceControlComponentProps = React.ComponentProps<
+  typeof DatasourceControl
+>;
+const createProps = (
+  overrides: JsonObject = {},
+): DatasourceControlComponentProps =>
   ({
     hovered: false,
     type: 'DatasourceControl',
@@ -112,7 +126,9 @@ const createProps = (overrides: JsonObject = {}): DatasourceControlComponentProp
     ...overrides,
   }) as unknown as DatasourceControlComponentProps;
 
-async function openAndSaveChanges(datasource: TestDatasource | Record<string, unknown>) {
+async function openAndSaveChanges(
+  datasource: TestDatasource | Record<string, unknown>,
+) {
   fetchMock.get(
     'glob:*/api/v1/database/?q=*',
     { result: [] },

@@ -960,7 +960,9 @@ class AnnotationLayer extends PureComponent<
             { value: 'opacityHigh', label: '0.8' },
           ]}
           value={opacity}
-          onChange={(value: string | number | (string | number)[] | null | undefined) => this.setState({ opacity: String(value ?? '') })}
+          onChange={(
+            value: string | number | (string | number)[] | null | undefined,
+          ) => this.setState({ opacity: String(value ?? '') })}
         />
         <div
           style={{
@@ -1032,10 +1034,15 @@ class AnnotationLayer extends PureComponent<
     const { isNew, name, annotationType, sourceType, show, showLabel } =
       this.state;
     const isValid = this.isValidForm();
-    const metadata = this.props.vizType ? getChartMetadataRegistry().get(this.props.vizType) : null;
+    const metadata = this.props.vizType
+      ? getChartMetadataRegistry().get(this.props.vizType)
+      : null;
     const supportedAnnotationTypes = metadata
       ? metadata.supportedAnnotationTypes.map(
-          type => ANNOTATION_TYPES_METADATA[type as keyof typeof ANNOTATION_TYPES_METADATA],
+          type =>
+            ANNOTATION_TYPES_METADATA[
+              type as keyof typeof ANNOTATION_TYPES_METADATA
+            ],
         )
       : [];
     const supportedSourceTypes = this.getSupportedSourceTypes(annotationType);

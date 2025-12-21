@@ -116,7 +116,7 @@ export default class FixedOrMetricControl extends Component<
       value:
         this.state.type === controlTypes.fixed
           ? this.state.fixedValue
-          : this.state.metricValue ?? undefined,
+          : (this.state.metricValue ?? undefined),
     });
   }
 

@@ -69,7 +69,11 @@ export default class AdhocFilter {
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
-      if (adhocFilter.operatorId && DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId as Operators) >= 0) {
+      if (
+        adhocFilter.operatorId &&
+        DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId as Operators) >=
+          0
+      ) {
         this.comparator = undefined;
       }
       this.clause = adhocFilter.clause || Clauses.Where;
@@ -78,8 +82,11 @@ export default class AdhocFilter {
       this.sqlExpression =
         typeof adhocFilter.sqlExpression === 'string'
           ? adhocFilter.sqlExpression
-          // Cast to unknown first to handle type mismatch between AdhocFilterInput and AdhocFilter from @superset-ui/core
-          : translateToSql(adhocFilter as unknown as Parameters<typeof translateToSql>[0], { useSimple: true });
+          : // Cast to unknown first to handle type mismatch between AdhocFilterInput and AdhocFilter from @superset-ui/core
+            translateToSql(
+              adhocFilter as unknown as Parameters<typeof translateToSql>[0],
+              { useSimple: true },
+            );
       this.clause = adhocFilter.clause;
       if (
         adhocFilter.operator &&
@@ -179,6 +186,8 @@ export default class AdhocFilter {
 
   translateToSql(): string {
     // Cast to unknown first to handle type mismatch between class and @superset-ui/core AdhocFilter type
-    return translateToSql(this as unknown as Parameters<typeof translateToSql>[0]);
+    return translateToSql(
+      this as unknown as Parameters<typeof translateToSql>[0],
+    );
   }
 }

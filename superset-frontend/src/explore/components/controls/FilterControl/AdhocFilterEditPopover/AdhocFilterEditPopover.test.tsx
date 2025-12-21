@@ -72,7 +72,9 @@ const defaultProps = {
 };
 
 // Cast props to handle AdhocMetric type in options array
-type AdhocFilterEditPopoverComponentProps = React.ComponentProps<typeof AdhocFilterEditPopover>;
+type AdhocFilterEditPopoverComponentProps = React.ComponentProps<
+  typeof AdhocFilterEditPopover
+>;
 const renderPopover = (props: Partial<typeof defaultProps> = {}) =>
   render(
     <AdhocFilterEditPopover

@@ -300,7 +300,17 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   };
 
   const renderSubjectOptionLabel = (option: ColumnType) => (
-    <FilterDefinitionOption option={option as unknown as { column_name?: string; saved_metric_name?: string; label?: string; type?: string; [key: string]: unknown }} />
+    <FilterDefinitionOption
+      option={
+        option as unknown as {
+          column_name?: string;
+          saved_metric_name?: string;
+          label?: string;
+          type?: string;
+          [key: string]: unknown;
+        }
+      }
+    />
   );
 
   const getOptionsRemaining = () => {
@@ -324,9 +334,12 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   let columns = props.options;
   const { subject, operator, operatorId } = props.adhocFilter;
 
-  const subjectValue = typeof subject === 'string'
-    ? subject
-    : (subject && 'column_name' in subject ? subject.column_name : undefined);
+  const subjectValue =
+    typeof subject === 'string'
+      ? subject
+      : subject && 'column_name' in subject
+        ? subject.column_name
+        : undefined;
 
   const subjectSelectProps = {
     ariaLabel: t('Select subject'),
