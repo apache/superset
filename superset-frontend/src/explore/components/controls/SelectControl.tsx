@@ -140,9 +140,13 @@ interface SelectControlState {
   options: SelectOption[];
 }
 
-const numberComparator = (a: SelectOption, b: SelectOption): number => (a.value as number) - (b.value as number);
+const numberComparator = (a: SelectOption, b: SelectOption): number =>
+  (a.value as number) - (b.value as number);
 
-export const areAllValuesNumbers = (items: unknown[], valueKey = 'value'): boolean => {
+export const areAllValuesNumbers = (
+  items: unknown[],
+  valueKey = 'value',
+): boolean => {
   if (!items || items.length === 0) {
     return false;
   }
@@ -158,7 +162,9 @@ export const areAllValuesNumbers = (items: unknown[], valueKey = 'value'): boole
   });
 };
 
-type SortComparator = ((a: SelectOption, b: SelectOption) => number) | undefined;
+type SortComparator =
+  | ((a: SelectOption, b: SelectOption) => number)
+  | undefined;
 
 export const getSortComparator = (
   choices: unknown[] | undefined,
@@ -187,7 +193,9 @@ export const innerGetOptions = (props: SelectControlProps): SelectOption[] => {
     options = props.options.map(o => ({
       ...o,
       value: o[valueKey] as string | number,
-      label: optionRenderer ? (optionRenderer(o) as string) : (o.label || o[valueKey]) as string,
+      label: optionRenderer
+        ? (optionRenderer(o) as string)
+        : ((o.label || o[valueKey]) as string),
     }));
   } else if (choices) {
     // Accepts different formats of input
@@ -206,7 +214,10 @@ export const innerGetOptions = (props: SelectControlProps): SelectOption[] => {
   return options;
 };
 
-export default class SelectControl extends PureComponent<SelectControlProps, SelectControlState> {
+export default class SelectControl extends PureComponent<
+  SelectControlProps,
+  SelectControlState
+> {
   static propTypes = propTypes;
 
   static defaultProps = defaultProps;
@@ -239,13 +250,20 @@ export default class SelectControl extends PureComponent<SelectControlProps, Sel
 
     if (Array.isArray(val)) {
       const values = val.map(v =>
-        typeof v === 'object' && v !== null && (v as SelectOption)[valueKey] !== undefined
+        typeof v === 'object' &&
+        v !== null &&
+        (v as SelectOption)[valueKey] !== undefined
           ? (v as SelectOption)[valueKey]
           : v,
       );
       onChangeVal = values as (string | number)[];
     }
-    if (typeof val === 'object' && val !== null && !Array.isArray(val) && (val as SelectOption)[valueKey] !== undefined) {
+    if (
+      typeof val === 'object' &&
+      val !== null &&
+      !Array.isArray(val) &&
+      (val as SelectOption)[valueKey] !== undefined
+    ) {
       onChangeVal = (val as SelectOption)[valueKey] as string | number;
     }
     this.props.onChange?.(onChangeVal, []);

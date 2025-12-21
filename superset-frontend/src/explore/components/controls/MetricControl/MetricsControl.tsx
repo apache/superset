@@ -104,7 +104,11 @@ const emptySavedMetric = { metric_name: '', expression: '' };
 
 // TODO: use typeguards to distinguish saved metrics from adhoc metrics
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getMetricsMatchingCurrentDataset = (value: any, columns: any, savedMetrics: any) =>
+const getMetricsMatchingCurrentDataset = (
+  value: any,
+  columns: any,
+  savedMetrics: any,
+) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ensureIsArray(value).filter((metric: any) => {
     if (typeof metric === 'string' || metric.metric_name) {

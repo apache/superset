@@ -53,10 +53,24 @@ interface TextAreaControlProps {
   minLines?: number;
   maxLines?: number;
   offerEditInModal?: boolean;
-  language?: 'json' | 'html' | 'sql' | 'markdown' | 'javascript' | 'handlebars' | null;
+  language?:
+    | 'json'
+    | 'html'
+    | 'sql'
+    | 'markdown'
+    | 'javascript'
+    | 'handlebars'
+    | null;
   aboveEditorSection?: React.ReactNode;
   readOnly?: boolean;
-  resize?: 'block' | 'both' | 'horizontal' | 'inline' | 'none' | 'vertical' | null;
+  resize?:
+    | 'block'
+    | 'both'
+    | 'horizontal'
+    | 'inline'
+    | 'none'
+    | 'vertical'
+    | null;
   textAreaStyles?: React.CSSProperties;
   tooltipOptions?: Record<string, unknown>;
   hotkeys?: HotkeyConfig[];
@@ -121,7 +135,9 @@ class TextAreaControl extends Component<TextAreaControlProps> {
 
   static defaultProps = defaultProps;
 
-  debouncedOnChange: ReturnType<typeof debounce<(value: string) => void>> | undefined;
+  debouncedOnChange:
+    | ReturnType<typeof debounce<(value: string) => void>>
+    | undefined;
 
   constructor(props: TextAreaControlProps) {
     super(props);
@@ -178,7 +194,15 @@ class TextAreaControl extends Component<TextAreaControlProps> {
       if (this.props.readOnly) {
         style.backgroundColor = this.props.theme?.colorBgMask;
       }
-      const onEditorLoad = (editor: { commands: { addCommand: (cmd: { name: string; bindKey: { win: string; mac: string }; exec: () => void }) => void } }) => {
+      const onEditorLoad = (editor: {
+        commands: {
+          addCommand: (cmd: {
+            name: string;
+            bindKey: { win: string; mac: string };
+            exec: () => void;
+          }) => void;
+        };
+      }) => {
         this.props.hotkeys?.forEach(keyConfig => {
           editor.commands.addCommand({
             name: keyConfig.name,

@@ -36,5 +36,11 @@ export default function XAxisSortControl(props: XAxisSortControlProps) {
     }
   }, [props.shouldReset, props.value]);
 
-  return <SelectControl {...props} name={props.name ?? 'x_axis_sort'} value={value} />;
+  return (
+    <SelectControl
+      {...props}
+      name={props.name ?? 'x_axis_sort'}
+      value={value}
+    />
+  );
 }

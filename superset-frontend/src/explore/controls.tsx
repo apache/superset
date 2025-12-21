@@ -155,7 +155,9 @@ const groupByControl = {
   mapStateToProps: (state: ControlState, control: ControlConfig) => {
     const newState: { options?: Column[] } = {};
     if (state.datasource) {
-      newState.options = state.datasource.columns.filter((c: Column) => c.groupby);
+      newState.options = state.datasource.columns.filter(
+        (c: Column) => c.groupby,
+      );
       if (control?.includeTime) {
         newState.options.push(timeColumnOption);
       }

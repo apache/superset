@@ -321,7 +321,10 @@ describe('SelectControl', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getSortComparator', () => {
-    const mockExplicitComparator = (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label);
+    const mockExplicitComparator = (
+      a: { label: string },
+      b: { label: string },
+    ) => a.label.localeCompare(b.label);
 
     test('returns explicit comparator when provided', () => {
       const choices = [
@@ -389,7 +392,12 @@ describe('SelectControl', () => {
     });
 
     test('returns undefined when no choices or options provided', () => {
-      const result = getSortComparator(undefined, undefined, 'value', undefined);
+      const result = getSortComparator(
+        undefined,
+        undefined,
+        'value',
+        undefined,
+      );
       expect(result).toBeUndefined();
     });
   });

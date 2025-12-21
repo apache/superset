@@ -147,7 +147,10 @@ const ButtonBar = styled.div`
   justify-content: center;
 `;
 
-export default class TimeSeriesColumnControl extends Component<TimeSeriesColumnControlProps, TimeSeriesColumnControlState> {
+export default class TimeSeriesColumnControl extends Component<
+  TimeSeriesColumnControlProps,
+  TimeSeriesColumnControlState
+> {
   static propTypes = propTypes;
 
   static defaultProps = defaultProps;
@@ -230,7 +233,12 @@ export default class TimeSeriesColumnControl extends Component<TimeSeriesColumnC
     return `${this.props.label ?? ''}`;
   }
 
-  formRow(label: string, tooltip: string, ttLabel: string, control: React.ReactNode) {
+  formRow(
+    label: string,
+    tooltip: string,
+    ttLabel: string,
+    control: React.ReactNode,
+  ) {
     return (
       <StyledRow>
         <StyledCol xs={24} md={11}>
