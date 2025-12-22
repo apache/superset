@@ -313,7 +313,7 @@ class AdhocFilterControl extends Component<
     this.removeFilter(index);
   }
 
-  onNewFilter(newFilter: FilterOption): void {
+  onNewFilter(newFilter: FilterOption | AdhocFilter): void {
     const mappedOption = this.mapOption(newFilter);
     if (mappedOption) {
       this.setState(
@@ -413,9 +413,7 @@ class AdhocFilterControl extends Component<
         adhocFilter={new AdhocFilter({})}
         datasource={(this.props.datasource as Record<string, unknown>) || {}}
         options={this.state.options}
-        onFilterEdit={
-          this.onNewFilter as unknown as (editedFilter: AdhocFilter) => void
-        }
+        onFilterEdit={this.onNewFilter}
         partitionColumn={this.state.partitionColumn ?? undefined}
       >
         {trigger}
