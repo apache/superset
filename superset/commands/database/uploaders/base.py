@@ -159,6 +159,13 @@ class UploadCommand(BaseCommand):
         if not self._model:
             return
 
+        # Treat empty or frontend-sent "undefined" schema as no schema
+        if not self._schema or self._schema == "undefined":
+            logger.warning(
+                "CSV UPLOAD: schema was empty or undefined, using database default"
+            )
+            self._schema = None
+
         self._reader.read(self._file, self._model, self._table_name, self._schema)
 
         sqla_table = (
