@@ -1797,6 +1797,12 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
+# Enable/disable caching for Slack channels list
+# When enabled, all channels are cached in memory for fast lookups
+# Disable this for very large workspaces (50k+ channels) to reduce memory usage
+# Default: True (caching enabled)
+SLACK_ENABLE_CACHING: bool = True
+
 # The webdriver to use for generating reports. Use one of the following
 # firefox
 #   Requires: geckodriver and firefox installations

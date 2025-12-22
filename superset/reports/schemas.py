@@ -58,6 +58,9 @@ get_slack_channels_schema = {
             "items": {"type": "string", "enum": ["public_channel", "private_channel"]},
         },
         "exact_match": {"type": "boolean"},
+        "cursor": {"type": ["string", "null"]},
+        "limit": {"type": "integer", "default": 100, "minimum": 1, "maximum": 999},
+        "force": {"type": "boolean"},
     },
 }
 
