@@ -266,6 +266,7 @@ function TagList(props: TagListProps) {
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'tag_list_search',
       },
       {
         Header: t('Modified by'),

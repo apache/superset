@@ -300,6 +300,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'role_list_search',
       },
       {
         Header: t('Users'),

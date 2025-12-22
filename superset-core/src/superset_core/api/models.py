@@ -30,12 +30,21 @@ Usage:
     session = get_session()
 """
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from uuid import UUID
 
 from flask_appbuilder import Model
 from sqlalchemy.orm import scoped_session
+
+if TYPE_CHECKING:
+    from superset_core.api.types import (
+        AsyncQueryHandle,
+        QueryOptions,
+        QueryResult,
+    )
 
 
 class CoreModel(Model):
@@ -74,6 +83,91 @@ class Database(CoreModel):
     @property
     def data(self) -> dict[str, Any]:
         raise NotImplementedError
+
+    def execute(
+        self,
+        sql: str,
+        options: QueryOptions | None = None,
+    ) -> QueryResult:
+        """
+        Execute SQL synchronously.
+
+        The SQL must be written in the dialect of the target database (e.g.,
+        PostgreSQL syntax for PostgreSQL databases, Snowflake syntax for
+        Snowflake, etc.). No automatic cross-dialect translation is performed.
+
+        :param sql: SQL query to execute (in the target database's dialect)
+        :param options: Query execution options (see `QueryOptions`).
+            If not provided, defaults are used.
+        :returns: QueryResult with status, data (DataFrame), and metadata
+
+        Example:
+            from superset_core.api.daos import DatabaseDAO
+            from superset_core.api.types import QueryOptions, QueryStatus
+
+            db = DatabaseDAO.find_one_or_none(id=1)
+            result = db.execute(
+                "SELECT * FROM users WHERE active = true",
+                options=QueryOptions(schema="public", limit=100)
+            )
+            if result.status == QueryStatus.SUCCESS:
+                df = result.data
+                print(f"Found {sum(s.row_count for s in result.statements)} rows")
+
+        Example with templates:
+            result = db.execute(
+                "SELECT * FROM {{ table }} WHERE date > '{{ start_date }}'",
+                options=QueryOptions(
+                    schema="analytics",
+                    template_params={"table": "events", "start_date": "2024-01-01"}
+                )
+            )
+
+        Example with dry_run:
+            result = db.execute(
+                "SELECT * FROM users",
+                options=QueryOptions(schema="public", limit=100, dry_run=True)
+            )
+            print(f"Would execute: {result.statements[0].statement}")
+        """
+        raise NotImplementedError("Method will be replaced during initialization")
+
+    def execute_async(
+        self,
+        sql: str,
+        options: QueryOptions | None = None,
+    ) -> AsyncQueryHandle:
+        """
+        Execute SQL asynchronously.
+
+        Returns immediately with a handle for tracking progress and retrieving
+        results from the background worker.
+
+        The SQL must be written in the dialect of the target database (e.g.,
+        PostgreSQL syntax for PostgreSQL databases, Snowflake syntax for
+        Snowflake, etc.). No automatic cross-dialect translation is performed.
+
+        :param sql: SQL query to execute (in the target database's dialect)
+        :param options: Query execution options (see `QueryOptions`).
+            If not provided, defaults are used.
+        :returns: AsyncQueryHandle for tracking the query
+
+        Example:
+            handle = db.execute_async(
+                "SELECT * FROM large_table",
+                options=QueryOptions(schema="analytics")
+            )
+
+            # Check status and get results
+            status = handle.get_status()
+            if status == QueryStatus.SUCCESS:
+                query_result = handle.get_result()
+                df = query_result.statements[0].data
+
+            # Cancel if needed
+            handle.cancel()
+        """
+        raise NotImplementedError("Method will be replaced during initialization")
 
 
 class Dataset(CoreModel):

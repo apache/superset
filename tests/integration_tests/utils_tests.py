@@ -60,7 +60,7 @@ from superset.utils.core import (
 from superset.utils import json
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 from superset.views.utils import build_extra_filters, get_form_data  # noqa: F401
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
@@ -80,7 +80,10 @@ class TestUtils(SupersetTestCase):
                 {
                     "clause": "WHERE",
                     "expressionType": "SQL",
-                    "filterOptionName": "46fb6d7891e23596e42ae38da94a57e0",
+                    # SHA-256 hash with default HASH_ALGORITHM
+                    "filterOptionName": (
+                        "efcc050e11722b0bc338c0abc71a4270ce71df7a10294fcf8e8f03f5cb8978f3"
+                    ),
                     "sqlExpression": "a = 1",
                 }
             ]
@@ -96,7 +99,10 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": "someval",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "135c7ee246666b840a3d7a9c3a30cf38",
+                    # SHA-256 hash with default HASH_ALGORITHM
+                    "filterOptionName": (
+                        "d72b098cd87dc5040410c322373562ca65d1a736e1e53e9cae39254394b42a44"
+                    ),
                     "operator": "in",
                     "subject": "a",
                 }
@@ -112,7 +118,10 @@ class TestUtils(SupersetTestCase):
                 {
                     "clause": "WHERE",
                     "expressionType": "SQL",
-                    "filterOptionName": "46fb6d7891e23596e42ae38da94a57e0",
+                    # SHA-256 hash with default HASH_ALGORITHM
+                    "filterOptionName": (
+                        "efcc050e11722b0bc338c0abc71a4270ce71df7a10294fcf8e8f03f5cb8978f3"
+                    ),
                     "sqlExpression": "a = 1",
                 }
             ]
@@ -127,7 +136,10 @@ class TestUtils(SupersetTestCase):
                 {
                     "clause": "HAVING",
                     "expressionType": "SQL",
-                    "filterOptionName": "683f1c26466ab912f75a00842e0f2f7b",
+                    # SHA-256 hash with default HASH_ALGORITHM
+                    "filterOptionName": (
+                        "63a84e72e4dac2bb08de866699d9c4f8ccc3640f6c3c0b734c75b937fac54bd6"
+                    ),
                     "sqlExpression": "COUNT(1) = 1",
                 }
             ]
@@ -266,7 +278,7 @@ class TestUtils(SupersetTestCase):
 
     def test_ssl_certificate_file_creation(self):
         path = create_ssl_cert_file(ssl_certificate)
-        expected_filename = md5_sha_from_str(ssl_certificate)
+        expected_filename = hash_from_str(ssl_certificate)
         assert expected_filename in path
         assert os.path.exists(path)
 

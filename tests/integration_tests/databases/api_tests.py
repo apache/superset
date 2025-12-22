@@ -3346,7 +3346,9 @@ class TestDatabaseApi(SupersetTestCase):
                     "parameters": {
                         "properties": {
                             "credentials_info": {
-                                "description": "Contents of BigQuery JSON credentials.",
+                                "description": (
+                                    "Contents of BigQuery JSON credentials."
+                                ),
                                 "type": "string",
                                 "x-encrypted-extra": True,
                             },
@@ -3436,7 +3438,8 @@ class TestDatabaseApi(SupersetTestCase):
                                     "scope": (
                                         "https://www.googleapis.com/auth/"
                                         "drive.readonly "
-                                        "https://www.googleapis.com/auth/spreadsheets "
+                                        "https://www.googleapis.com/auth/"
+                                        "spreadsheets "
                                         "https://spreadsheets.google.com/feeds"
                                     ),
                                     "token_request_uri": "https://oauth2.googleapis.com/token",
@@ -3447,7 +3450,9 @@ class TestDatabaseApi(SupersetTestCase):
                                 "x-encrypted-extra": True,
                             },
                             "service_account_info": {
-                                "description": "Contents of GSheets JSON credentials.",
+                                "description": (
+                                    "Contents of GSheets JSON credentials."
+                                ),
                                 "type": "string",
                                 "x-encrypted-extra": True,
                             },

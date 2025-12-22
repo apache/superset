@@ -564,9 +564,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             if backend_files := extension.backend:
                 install_in_memory_importer(backend_files)
 
-            backend = extension.manifest.get("backend")
+            backend = extension.manifest.backend
 
-            if backend and (entrypoints := backend.get("entryPoints")):
+            if backend and (entrypoints := backend.entryPoints):
                 for entrypoint in entrypoints:
                     try:
                         eager_import(entrypoint)

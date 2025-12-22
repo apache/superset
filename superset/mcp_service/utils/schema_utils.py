@@ -422,6 +422,8 @@ def parse_request(
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        import types
+
         if asyncio.iscoroutinefunction(func):
 
             @wraps(func)
@@ -429,7 +431,12 @@ def parse_request(
                 # Parse if string, otherwise pass through
                 # (parse_json_or_model handles both)
                 parsed_request = parse_json_or_model(request, request_class, "request")
-                return await func(parsed_request, *args, **kwargs)
+                # Get ctx from FastMCP's dependency injection
+                # (we stripped it from signature)
+                from fastmcp.server.dependencies import get_context
+
+                ctx = get_context()
+                return await func(parsed_request, ctx, *args, **kwargs)
 
             wrapper = async_wrapper
         else:
@@ -439,17 +446,94 @@ def parse_request(
                 # Parse if string, otherwise pass through
                 # (parse_json_or_model handles both)
                 parsed_request = parse_json_or_model(request, request_class, "request")
-                return func(parsed_request, *args, **kwargs)
+                # Get ctx from FastMCP's dependency injection
+                # (we stripped it from signature)
+                from fastmcp.server.dependencies import get_context
+
+                ctx = get_context()
+                return func(parsed_request, ctx, *args, **kwargs)
 
             wrapper = sync_wrapper
 
-        # Modify the wrapper's annotations to accept str | RequestModel
-        # This allows FastMCP to accept string inputs while keeping the
-        # original function's type hints clean
-        if hasattr(wrapper, "__annotations__"):
-            # Create union type: str | RequestModel
-            wrapper.__annotations__["request"] = str | request_class
+        # Merge original function's __globals__ into wrapper's __globals__
+        # This allows get_type_hints() to resolve type annotations from the
+        # original module (e.g., Context from fastmcp)
+        # FastMCP 2.13.2+ uses get_type_hints() which needs access to these types
+        merged_globals = {**wrapper.__globals__, **func.__globals__}  # type: ignore[attr-defined]
+        new_wrapper = types.FunctionType(
+            wrapper.__code__,  # type: ignore[attr-defined]
+            merged_globals,
+            wrapper.__name__,
+            wrapper.__defaults__,  # type: ignore[attr-defined]
+            wrapper.__closure__,  # type: ignore[attr-defined]
+        )
+        # Copy __dict__ but exclude __wrapped__
+        # NOTE: We intentionally do NOT preserve __wrapped__ here.
+        # Setting __wrapped__ causes inspect.signature() to follow the chain
+        # and find 'ctx' in the original function's signature, even after
+        # FastMCP's create_function_without_params removes it from annotations.
+        # This breaks Pydantic's TypeAdapter which expects signature params
+        # to match type_hints.
+        new_wrapper.__dict__.update(
+            {k: v for k, v in wrapper.__dict__.items() if k != "__wrapped__"}
+        )
+        new_wrapper.__module__ = wrapper.__module__
+        new_wrapper.__qualname__ = wrapper.__qualname__
+        # Copy docstring from original function (not wrapper, which has no docstring)
+        new_wrapper.__doc__ = func.__doc__
 
-        return wrapper
+        # Copy annotations from original function and modify request type
+        # Also remove ctx annotation - FastMCP strips it, and having it in
+        # annotations but not signature breaks Pydantic's TypeAdapter
+        if hasattr(func, "__annotations__"):
+            new_wrapper.__annotations__ = {
+                k: v
+                for k, v in func.__annotations__.items()
+                if k != "ctx"  # Skip ctx - will be removed from signature too
+            }
+            # Modify request annotation to accept str | RequestModel
+            new_wrapper.__annotations__["request"] = str | request_class
+        else:
+            new_wrapper.__annotations__ = {"request": str | request_class}
+
+        # Set __signature__ from original function, but modify for FastMCP:
+        # 1. Modify request annotation to accept str | RequestModel
+        # 2. Do NOT include ctx parameter - FastMCP will strip it anyway, and
+        #    having it in __signature__ but not __annotations__ breaks Pydantic
+        import inspect as sig_inspect
+
+        from fastmcp import Context as FMContext
+
+        orig_sig = sig_inspect.signature(func)
+        new_params = []
+        for name, param in orig_sig.parameters.items():
+            # Skip ctx parameter - FastMCP tools don't expose it to clients
+            # Check for Context type, forward reference string, or parameter named 'ctx'
+            is_context = (
+                param.annotation is FMContext
+                or (
+                    hasattr(param.annotation, "__name__")
+                    and param.annotation.__name__ == "Context"
+                )
+                or (
+                    isinstance(param.annotation, str)
+                    and (
+                        param.annotation == "Context"
+                        or param.annotation.endswith(".Context")
+                    )
+                )
+                or name == "ctx"  # Fallback: skip any param named 'ctx'
+            )
+            if is_context:
+                continue
+            if name == "request":
+                new_params.append(param.replace(annotation=str | request_class))
+            else:
+                new_params.append(param)
+        new_wrapper.__signature__ = orig_sig.replace(  # type: ignore[attr-defined]
+            parameters=new_params
+        )
+
+        return new_wrapper
 
     return decorator

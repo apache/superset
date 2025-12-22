@@ -33,6 +33,7 @@ import { CheckboxChangeEvent } from '@superset-ui/core/components/Checkbox/types
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import { makeUrl } from 'src/utils/pathUtils';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Button,
@@ -1736,7 +1737,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          redirectURL(`/sqllab?db=true`);
+          redirectURL(makeUrl(`/sqllab?db=true`));
         }}
       >
         {t('Query data in SQL Lab')}

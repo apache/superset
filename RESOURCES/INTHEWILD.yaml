@@ -1,0 +1,644 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Apache Superset Users in the Wild
+#
+# To add your organization:
+# 1. Find the appropriate category (or add a new one)
+# 2. Add an entry with your organization details
+# 3. Optionally add a logo file to docs/static/img/logos/
+#
+# Required fields:
+#   - name: Your organization name
+#   - url: Link to your organization's website
+#
+# Optional fields:
+#   - logo: Filename of logo in docs/static/img/logos/ (e.g., "mycompany.svg")
+#   - contributors: List of GitHub usernames who contributed (e.g., ["@username"])
+
+categories:
+  Sharing Economy:
+    - name: Airbnb
+      url: https://github.com/airbnb
+
+    - name: Faasos
+      url: https://faasos.com/
+      contributors: ["@shashanksingh"]
+
+    - name: Free2Move
+      url: https://www.free2move.com/
+      contributors: ["@PaoloTerzi"]
+
+    - name: Hostnfly
+      url: https://www.hostnfly.com/
+      contributors: ["@alexisrosuel"]
+
+    - name: Lime
+      url: https://www.li.me/
+      contributors: ["@cxmcc"]
+
+    - name: Lyft
+      url: https://www.lyft.com/
+
+    - name: Ontruck
+      url: https://www.ontruck.com/
+
+  Financial Services:
+    - name: Aktia Bank plc
+      url: https://www.aktia.com
+
+    - name: American Express
+      url: https://www.americanexpress.com
+      contributors: ["@TheLastSultan"]
+
+    - name: bumper
+      url: https://www.bumper.co/
+      contributors: ["@vasu-ram", "@JamiePercival"]
+
+    - name: Cape Crypto
+      url: https://capecrypto.com
+
+    - name: Capital Service S.A.
+      url: https://capitalservice.pl
+      contributors: ["@pkonarzewski"]
+
+    - name: Clark.de
+      url: https://clark.de/
+
+    - name: Europace
+      url: https://europace.de
+
+    - name: KarrotPay
+      url: https://www.daangnpay.com/
+
+    - name: Remita
+      url: https://remita.net
+      contributors: ["@mujibishola"]
+
+    - name: Taveo
+      url: https://www.taveo.com
+      contributors: ["@codek"]
+
+    - name: Unit
+      url: https://www.unit.co/about-us
+      contributors: ["@amitmiran137"]
+
+    - name: Wise
+      url: https://wise.com
+      contributors: ["@koszti"]
+
+    - name: Xendit
+      url: https://xendit.co/
+      contributors: ["@LieAlbertTriAdrian"]
+
+    - name: Cover Genius
+      url: https://covergenius.com/
+
+  Gaming:
+    - name: Popoko VM Games Studio
+      url: https://popoko.live
+
+  E-Commerce:
+    - name: AiHello
+      url: https://www.aihello.com
+      contributors: ["@ganeshkrishnan1"]
+
+    - name: Bazaar Technologies
+      url: https://www.bazaartech.com
+      contributors: ["@umair-abro"]
+
+    - name: Dragonpass
+      url: https://www.dragonpass.com.cn/
+      contributors: ["@zhxjdwh"]
+
+    - name: Dropit Shopping
+      url: https://www.dropit.shop/
+      contributors: ["@dropit-dev"]
+
+    - name: Fanatics
+      url: https://www.fanatics.com/
+      contributors: ["@coderfender"]
+
+    - name: Fordeal
+      url: https://www.fordeal.com
+      contributors: ["@Renkai"]
+
+    - name: Fynd
+      url: https://www.fynd.com/
+      contributors: ["@darpanjain07"]
+
+    - name: GFG - Global Fashion Group
+      url: https://global-fashion-group.com
+      contributors: ["@ksaagariconic"]
+
+    - name: GoTo/Gojek
+      url: https://www.gojek.io/
+      contributors: ["@gwthm-in"]
+
+    - name: HuiShouBao
+      url: https://www.huishoubao.com/
+      contributors: ["@Yukinoshita-Yukino"]
+
+    - name: Now
+      url: https://www.now.vn/
+      contributors: ["@davidkohcw"]
+
+    - name: Qunar
+      url: https://www.qunar.com/
+      contributors: ["@flametest"]
+
+    - name: Rakuten Viki
+      url: https://www.viki.com
+
+    - name: Shopee
+      url: https://shopee.sg
+      contributors: ["@xiaohanyu"]
+
+    - name: Shopkick
+      url: https://www.shopkick.com
+      contributors: ["@LAlbertalli"]
+
+    - name: ShopUp
+      url: https://www.shopup.org/
+      contributors: ["@gwthm-in"]
+
+    - name: Tails.com
+      url: https://tails.com/gb/
+      contributors: ["@alanmcruickshank"]
+
+    - name: THE ICONIC
+      url: https://theiconic.com.au/
+      contributors: ["@ksaagariconic"]
+
+    - name: Utair
+      url: https://www.utair.ru
+      contributors: ["@utair-digital"]
+
+    - name: VkusVill
+      url: https://vkusvill.ru/
+      contributors: ["@ETselikov"]
+
+    - name: Zalando
+      url: https://www.zalando.com
+      contributors: ["@dmigo"]
+
+    - name: Zalora
+      url: https://www.zalora.com
+      contributors: ["@ksaagariconic"]
+
+    - name: Zepto
+      url: https://www.zeptonow.com/
+      contributors: ["@gwthm-in"]
+
+  Enterprise Technology:
+    - name: A3Data
+      url: https://a3data.com.br
+      contributors: ["@neylsoncrepalde"]
+
+    - name: Analytics Aura
+      url: https://analyticsaura.com/
+      contributors: ["@Analytics-Aura"]
+
+    - name: Apollo GraphQL
+      url: https://www.apollographql.com/
+      contributors: ["@evans"]
+
+    - name: Astronomer
+      url: https://www.astronomer.io
+      contributors: ["@ryw"]
+
+    - name: Avesta Technologies
+      url: https://avestatechnologies.com/
+      contributors: ["@TheRum"]
+
+    - name: Caizin
+      url: https://caizin.com/
+      contributors: ["@tejaskatariya"]
+
+    - name: Canonical
+      url: https://canonical.com
+
+    - name: Careem
+      url: https://www.careem.com/
+      contributors: ["@samraHanif0340"]
+
+    - name: Cloudsmith
+      url: https://cloudsmith.io
+      contributors: ["@alancarson"]
+
+    - name: Cyberhaven
+      url: https://www.cyberhaven.com/
+      contributors: ["@toliver-ch"]
+
+    - name: Deepomatic
+      url: https://deepomatic.com/
+      contributors: ["@Zanoellia"]
+
+    - name: Dial Once
+      url: https://www.dial-once.com/
+
+    - name: Dremio
+      url: https://dremio.com
+      contributors: ["@narendrans"]
+
+    - name: EFinance
+      url: https://www.efinance.com.eg
+      contributors: ["@habeeb556"]
+
+    - name: Elestio
+      url: https://elest.io/
+      contributors: ["@kaiwalyakoparkar"]
+
+    - name: ELMO Cloud HR & Payroll
+      url: https://elmosoftware.com.au/
+
+    - name: Endress+Hauser
+      url: https://www.endress.com/
+      contributors: ["@rumbin"]
+
+    - name: FBK - ICT center
+      url: https://ict.fbk.eu
+
+    - name: Formbricks
+      url: https://formbricks.com
+
+    - name: Gavagai
+      url: https://gavagai.io
+      contributors: ["@gavagai-corp"]
+
+    - name: GfK Data Lab
+      url: https://www.gfk.com/home
+      contributors: ["@mherr"]
+
+    - name: HPE
+      url: https://www.hpe.com/in/en/home.html
+      contributors: ["@anmol-hpe"]
+
+    - name: Hydrolix
+      url: https://www.hydrolix.io/
+
+    - name: Intercom
+      url: https://www.intercom.com/
+      contributors: ["@kate-gallo"]
+
+    - name: jampp
+      url: https://jampp.com/
+
+    - name: Konfío
+      url: https://konfio.mx
+      contributors: ["@uis-rodriguez"]
+
+    - name: Mainstrat
+      url: https://mainstrat.com/
+
+    - name: mishmash io
+      url: https://mishmash.io/
+      contributors: ["@mishmash-io"]
+
+    - name: Myra Labs
+      url: https://www.myralabs.com/
+      contributors: ["@viksit"]
+
+    - name: Nielsen
+      url: https://www.nielsen.com/
+      contributors: ["@amitNielsen"]
+
+    - name: Ona
+      url: https://ona.io
+      contributors: ["@pld"]
+
+    - name: Orange
+      url: https://www.orange.com
+      contributors: ["@icsu"]
+
+    - name: Oslandia
+      url: https://oslandia.com
+
+    - name: Oxylabs
+      url: https://oxylabs.io/
+      contributors: ["@rytis-ulys"]
+
+    - name: Peak AI
+      url: https://www.peak.ai/
+      contributors: ["@azhar22k"]
+
+    - name: PeopleDoc
+      url: https://www.people-doc.com
+      contributors: ["@rodo"]
+
+    - name: PlaidCloud
+      url: https://www.plaidcloud.com
+
+    - name: Preset, Inc.
+      url: https://preset.io
+      logo: preset.svg
+      contributors: ["@mistercrunch", "@betodealmeida", "@dpgaspar", "@rusackas", "@sadpandajoe", "@Vitor-Avila", "@kgabryje", "@geido", "@eschutho", "@Antonio-RiveroMartnez", "@yousoph"]
+
+    - name: PubNub
+      url: https://pubnub.com
+      contributors: ["@jzucker2"]
+
+    - name: ReadyTech
+      url: https://www.readytech.io
+
+    - name: Reward Gateway
+      url: https://www.rewardgateway.com
+
+    - name: RIADVICE
+      url: https://riadvice.tn
+      contributors: ["@riadvice"]
+
+    - name: ScopeAI
+      url: https://www.getscopeai.com
+      contributors: ["@iloveluce"]
+
+    - name: shipmnts
+      url: https://shipmnts.com
+
+    - name: Showmax
+      url: https://showmax.com
+      contributors: ["@bobek"]
+
+    - name: SingleStore
+      url: https://www.singlestore.com/
+
+    - name: TechAudit
+      url: https://www.techaudit.info
+      contributors: ["@ETselikov"]
+
+    - name: Tenable
+      url: https://www.tenable.com
+      contributors: ["@dflionis"]
+
+    - name: Tentacle
+      url: https://www.linkedin.com/company/tentacle-cmi/
+      contributors: ["@jdclarke5"]
+
+    - name: timbr.ai
+      url: https://timbr.ai/
+      contributors: ["@semantiDan"]
+
+    - name: Tobii
+      url: https://www.tobii.com/
+      contributors: ["@dwa"]
+
+    - name: Tooploox
+      url: https://www.tooploox.com/
+      contributors: ["@jakubczaplicki"]
+
+    - name: Unvired
+      url: https://unvired.com
+      contributors: ["@srinisubramanian"]
+
+    - name: Virtuoso QA
+      url: https://www.virtuosoqa.com
+
+    - name: Whale
+      url: https://whale.im
+
+    - name: Windsor.ai
+      url: https://www.windsor.ai/
+      contributors: ["@octaviancorlade"]
+
+    - name: WinWin Network马上赢
+      url: https://brandct.cn/
+      contributors: ["@wenbinye"]
+
+    - name: Zeta
+      url: https://www.zeta.tech/
+      contributors: ["@shaikidris"]
+
+  Media & Entertainment:
+    - name: 6play
+      url: https://www.6play.fr
+      contributors: ["@CoryChaplin"]
+
+    - name: bilibili
+      url: https://www.bilibili.com
+      contributors: ["@Moinheart"]
+
+    - name: BurdaForward
+      url: https://www.burda-forward.de/en/
+
+    - name: Douban
+      url: https://www.douban.com/
+      contributors: ["@luchuan"]
+
+    - name: Kuaishou
+      url: https://www.kuaishou.com/
+      contributors: ["@zhaoyu89730105"]
+
+    - name: Netflix
+      url: https://www.netflix.com/
+
+    - name: Prensa Iberica
+      url: https://www.prensaiberica.es/
+      contributors: ["@zamar-roura"]
+
+    - name: TME QQMUSIC/WESING
+      url: https://www.tencentmusic.com/
+      contributors: ["@shenyuanli", "@marklaw"]
+
+    - name: Xite
+      url: https://xite.com/
+      contributors: ["@shashankkoppar"]
+
+    - name: Zaihang
+      url: https://www.zaih.com/
+
+  Education:
+    - name: Aveti Learning
+      url: https://avetilearning.com/
+      contributors: ["@TheShubhendra"]
+
+    - name: Brilliant.org
+      url: https://brilliant.org/
+
+    - name: Open edX
+      url: https://openedx.org/
+
+    - name: Platzi.com
+      url: https://platzi.com/
+
+    - name: Sunbird
+      url: https://www.sunbird.org/
+      contributors: ["@eksteporg"]
+
+    - name: The GRAPH Network
+      url: https://thegraphnetwork.org/
+      contributors: ["@fccoelho"]
+
+    - name: Udemy
+      url: https://www.udemy.com/
+      contributors: ["@sungjuly"]
+
+    - name: VIPKID
+      url: https://www.vipkid.com.cn/
+      contributors: ["@illpanda"]
+
+    - name: WikiMedia Foundation
+      url: https://wikimediafoundation.org
+      contributors: ["@vg"]
+
+  Energy:
+    - name: Airboxlab
+      url: https://foobot.io
+      contributors: ["@antoine-galataud"]
+
+    - name: DouroECI
+      url: https://www.douroeci.com/
+      contributors: ["@nunohelibeires"]
+
+    - name: Safaricom
+      url: https://www.safaricom.co.ke/
+      contributors: ["@mmutiso"]
+
+    - name: Scoot
+      url: https://scoot.co/
+      contributors: ["@haaspt"]
+
+    - name: Wattbewerb
+      url: https://wattbewerb.de/
+      contributors: ["@wattbewerb"]
+
+  Healthcare:
+    - name: Amino
+      url: https://amino.com
+      contributors: ["@shkr"]
+
+    - name: Bluesquare
+      url: https://www.bluesquarehub.com/
+      contributors: ["@madewulf"]
+
+    - name: Care
+      url: https://www.getcare.io/
+      contributors: ["@alandao2021"]
+
+    - name: Living Goods
+      url: https://www.livinggoods.org
+      contributors: ["@chelule"]
+
+    - name: Maieutical Labs
+      url: https://maieuticallabs.it
+      contributors: ["@xrmx"]
+
+    - name: Medic
+      url: https://medic.org
+      contributors: ["@1yuv"]
+
+    - name: REDCap Cloud
+      url: https://www.redcapcloud.com/
+
+    - name: TrustMedis
+      url: https://trustmedis.com/
+      contributors: ["@famasya"]
+
+    - name: WeSure
+      url: https://www.wesure.cn/
+
+    - name: 2070Health
+      url: https://2070health.com/
+
+  HR / Staffing:
+    - name: Swile
+      url: https://www.swile.co/
+      contributors: ["@PaoloTerzi"]
+
+    - name: Symmetrics
+      url: https://www.symmetrics.fyi
+
+    - name: bluquist
+      url: https://bluquist.com/
+
+  Government:
+    - name: City of Ann Arbor, MI
+      url: https://www.a2gov.org/
+      contributors: ["@sfirke"]
+
+    - name: RIS3 Strategy of CZ, MIT CR
+      url: https://www.ris3.cz/
+      contributors: ["@RIS3CZ"]
+
+    - name: NRLM - Sarathi, India
+      url: https://pib.gov.in/PressReleasePage.aspx?PRID=1999586
+
+  Travel:
+    - name: Agoda
+      url: https://www.agoda.com/
+      contributors: ["@lostseaway", "@maiake", "@obombayo"]
+
+    - name: HomeToGo
+      url: https://hometogo.com/
+      contributors: ["@pedromartinsteenstrup"]
+
+    - name: Skyscanner
+      url: https://www.skyscanner.net/
+      contributors: ["@cleslie", "@stanhoucke"]
+
+  Others:
+    - name: 10Web
+      url: https://10web.io/
+
+    - name: AI inside
+      url: https://inside.ai/en/
+
+    - name: Automattic
+      url: https://automattic.com/
+      contributors: ["@Khrol", "@Usiel"]
+
+    - name: Dropbox
+      url: https://www.dropbox.com/
+      contributors: ["@bkyryliuk"]
+
+    - name: Flowbird
+      url: https://flowbird.com
+      contributors: ["@EmmanuelCbd"]
+
+    - name: GEOTAB
+      url: https://www.geotab.com
+      contributors: ["@JZ6"]
+
+    - name: Grassroot
+      url: https://www.grassrootinstitute.org/
+
+    - name: Increff
+      url: https://www.increff.com/
+      contributors: ["@ishansinghania"]
+
+    - name: komoot
+      url: https://www.komoot.com/
+      contributors: ["@christophlingg"]
+
+    - name: Let's Roam
+      url: https://www.letsroam.com/
+
+    - name: Machrent SA
+      url: https://www.machrent.com/
+
+    - name: Onebeat
+      url: https://1beat.com/
+      contributors: ["@GuyAttia"]
+
+    - name: X
+      url: https://x.com/
+
+    - name: VLMedia
+      url: https://www.vlmedia.com.tr/
+      contributors: ["@ibotheperfect"]
+
+    - name: Yahoo!
+      url: https://yahoo.com/

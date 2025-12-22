@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import urllib
-from contextlib import nullcontext
 from typing import Any
 from urllib.parse import urlparse
 
@@ -33,13 +32,21 @@ def headless_url(path: str, user_friendly: bool = False) -> str:
 
 
 def get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
-    if has_request_context():
-        request_context = nullcontext
-    else:
-        request_context = app.test_request_context
+    in_request_context = has_request_context()
 
-    with request_context():
-        return headless_url(url_for(view, **kwargs), user_friendly=user_friendly)
+    # When already in a request context, Flask's url_for respects SCRIPT_NAME from
+    # the WSGI environment, so the prefix is already included. Only add APPLICATION_ROOT
+    # prefix when creating a new request context.
+    if in_request_context:
+        url = url_for(view, **kwargs)
+    else:
+        with app.test_request_context():
+            url = url_for(view, **kwargs)
+            app_root = app.config.get("APPLICATION_ROOT", "/")
+            if app_root != "/" and not url.startswith(app_root):
+                url = app_root.rstrip("/") + url
+
+    return headless_url(url, user_friendly=user_friendly)
 
 
 def modify_url_query(url: str, **kwargs: Any) -> str:

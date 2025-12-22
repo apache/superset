@@ -31,12 +31,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version-file: './docs/.nvmrc'
       - name: Setup Python

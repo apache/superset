@@ -54,6 +54,7 @@ are compatible with Superset.
 | [Ascend.io](/docs/configuration/databases#ascendio)                       | `pip install impyla`                                                               | `ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true`                                                        |
 | [Azure MS SQL](/docs/configuration/databases#sql-server)                | `pip install pymssql`                                                              | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`                                                       |
 | [ClickHouse](/docs/configuration/databases#clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                    |
+| [Cloudflare D1](/docs/configuration/databases#cloudflare-d1)                  | `pip install superset-engine-d1` or `pip install apache_superset[d1]`                                                  | `d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}`                                                                                    |
 | [CockroachDB](/docs/configuration/databases#cockroachdb)                | `pip install cockroachdb`                                                          | `cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable`                                                                                      |
 | [Couchbase](/docs/configuration/databases#couchbase)                | `pip install couchbase-sqlalchemy`                                                          | `couchbase://{username}:{password}@{hostname}:{port}?truststorepath={ssl certificate path}`                                                                                      |
 | [CrateDB](/docs/configuration/databases#cratedb)                        | `pip install sqlalchemy-cratedb`                                                   | `crate://{username}:{password}@{hostname}:{port}`, often useful: `?ssl=true/false` or `?schema=testdrive`.                                             |
@@ -357,6 +358,20 @@ uses the default user without a password (and doesn't encrypt the connection):
 
 ```
 clickhousedb://localhost/default
+```
+
+#### Cloudflare D1
+
+To use Cloudflare D1 with superset, install the [superset-engine-d1](https://github.com/sqlalchemy-cf-d1/superset-engine-d1) library.
+
+```
+pip install superset-engine-d1
+```
+
+The expected connection string is formatted as follows:
+
+```
+d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}
 ```
 
 #### CockroachDB
