@@ -19,14 +19,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { isEqual } from 'lodash';
+import { createSelector } from '@reduxjs/toolkit';
 import {
   AdhocFilter,
   ContextMenuFilters,
   DataMask,
   Datasource,
   ensureIsArray,
+  ExtraFormData,
   FilterState,
   HandlerFunction,
   isDefined,
@@ -37,6 +40,7 @@ import {
   SupersetClient,
   usePrevious,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Layer } from '@deck.gl/core';
 
 import {
@@ -59,6 +63,13 @@ import { getPoints as getPointsHex } from '../layers/Hex/Hex';
 import { getPoints as getPointsGeojson } from '../layers/Geojson/Geojson';
 import { getPoints as getPointsScreengrid } from '../layers/Screengrid/Screengrid';
 
+type DataMaskState = Record<
+  string,
+  DataMask & {
+    extraFormData?: ExtraFormData & { visible_deckgl_layers?: number[] };
+  }
+>;
+
 export type DeckMultiProps = {
   formData: QueryFormData;
   payload: JsonObject;
@@ -79,8 +90,28 @@ export type DeckMultiProps = {
   emitCrossFilters?: boolean;
 };
 
+const MultiWrapper = styled.div<{ height: number; width: number }>`
+  position: relative;
+  height: ${({ height }) => height}px;
+  width: ${({ width }) => width}px;
+`;
+
+const selectDataMask = createSelector(
+  (state: { dataMask?: DataMaskState }) => state.dataMask,
+  dataMask => dataMask || {},
+);
+
 const DeckMulti = (props: DeckMultiProps) => {
   const containerRef = useRef<DeckGLContainerHandle>();
+
+  const dataMask = useSelector(selectDataMask);
+
+  const layerVisibilityFilter = Object.values(dataMask).find(
+    mask => mask?.extraFormData?.visible_deckgl_layers !== undefined,
+  );
+
+  const visibleDeckLayersFromRedux =
+    layerVisibilityFilter?.extraFormData?.visible_deckgl_layers;
 
   const getAdjustedViewport = useCallback(() => {
     let viewport = { ...props.viewport };
@@ -114,6 +145,7 @@ const DeckMulti = (props: DeckMultiProps) => {
   const [subSlicesLayers, setSubSlicesLayers] = useState<Record<number, Layer>>(
     {},
   );
+  const [layerOrder, setLayerOrder] = useState<number[]>([]);
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
     const { current } = containerRef;
@@ -263,9 +295,8 @@ const DeckMulti = (props: DeckMultiProps) => {
             }));
           })
           .catch(error => {
-            console.error(
-              `Error loading layer for slice ${subsliceCopy.slice_id}:`,
-              error,
+            throw new Error(
+              `Error loading layer for slice ${subsliceCopy.slice_id}: ${error}`,
             );
           });
       }
@@ -277,44 +308,98 @@ const DeckMulti = (props: DeckMultiProps) => {
     (
       formData: QueryFormData,
       payload: JsonObject,
-      viewport?: Viewport,
+      visibleLayers?: number[],
     ): void => {
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
 
+      let visibleDeckLayers = visibleLayers;
+
+      if (!visibleDeckLayers) {
+        visibleDeckLayers = (
+          formData.extra_form_data as ExtraFormData & {
+            visible_deckgl_layers?: number[];
+          }
+        )?.visible_deckgl_layers;
+      }
+
+      const deckSlicesOrder = formData.deck_slices || [];
+
       payload.data.slices.forEach(
         (subslice: { slice_id: number } & JsonObject, payloadIndex: number) => {
+          if (visibleDeckLayers && Array.isArray(visibleDeckLayers)) {
+            if (!visibleDeckLayers.includes(subslice.slice_id)) {
+              return;
+            }
+          }
+
           loadSingleLayer(subslice, formData, payloadIndex);
         },
       );
+
+      const orderedSliceIds = deckSlicesOrder.filter((sliceId: number) => {
+        const subslice = payload.data.slices.find(
+          (s: { slice_id: number }) => s.slice_id === sliceId,
+        );
+        if (!subslice) return false;
+        if (visibleDeckLayers && Array.isArray(visibleDeckLayers)) {
+          return visibleDeckLayers.includes(sliceId);
+        }
+        return true;
+      });
+
+      setLayerOrder(orderedSliceIds);
     },
     [getAdjustedViewport, loadSingleLayer],
   );
 
   const prevDeckSlices = usePrevious(props.formData.deck_slices);
+  const prevVisibleLayersRedux = usePrevious(visibleDeckLayersFromRedux);
+
   useEffect(() => {
     const { formData, payload } = props;
-    const hasChanges = !isEqual(prevDeckSlices, formData.deck_slices);
-    if (hasChanges) {
-      loadLayers(formData, payload);
+
+    const deckSlicesChanged = !isEqual(prevDeckSlices, formData.deck_slices);
+    const visibilityFilterChanged = !isEqual(
+      prevVisibleLayersRedux,
+      visibleDeckLayersFromRedux,
+    );
+
+    if (deckSlicesChanged || visibilityFilterChanged) {
+      loadLayers(formData, payload, undefined);
     }
-  }, [loadLayers, prevDeckSlices, props]);
+  }, [
+    loadLayers,
+    prevDeckSlices,
+    prevVisibleLayersRedux,
+    visibleDeckLayersFromRedux,
+    props,
+  ]);
 
   const { payload, formData, setControlValue, height, width } = props;
-  const layers = Object.values(subSlicesLayers);
+
+  const layers = useMemo(
+    () =>
+      layerOrder
+        .map(sliceId => subSlicesLayers[sliceId])
+        .filter(layer => layer !== undefined),
+    [layerOrder, subSlicesLayers],
+  );
 
   return (
-    <DeckGLContainerStyledWrapper
-      ref={containerRef}
-      mapboxApiAccessToken={payload.data.mapboxApiKey}
-      viewport={viewport}
-      layers={layers}
-      mapStyle={formData.mapbox_style}
-      setControlValue={setControlValue}
-      onViewportChange={setViewport}
-      height={height}
-      width={width}
-    />
+    <MultiWrapper height={height} width={width}>
+      <DeckGLContainerStyledWrapper
+        ref={containerRef}
+        mapboxApiAccessToken={payload.data.mapboxApiKey}
+        viewport={viewport}
+        layers={layers}
+        mapStyle={formData.mapbox_style}
+        setControlValue={setControlValue}
+        onViewportChange={setViewport}
+        height={height}
+        width={width}
+      />
+    </MultiWrapper>
   );
 };
 

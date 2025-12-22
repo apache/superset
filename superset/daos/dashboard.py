@@ -424,6 +424,70 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return updated_configuration
 
     @classmethod
+    def update_chart_customizations_config(
+        cls,
+        dashboard: Dashboard,
+        attributes: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        updated_configuration = []
+
+        if attributes:
+            chart_customization_config = metadata.get("chart_customization_config", [])
+            reordered_customization_ids: list[str] = attributes.get("reordered", [])
+
+            for conf in chart_customization_config:
+                deleted_customization = next(
+                    (c for c in attributes.get("deleted", []) if c == conf.get("id")),
+                    None,
+                )
+                if deleted_customization:
+                    continue
+
+                modified_customization = next(
+                    (
+                        c
+                        for c in attributes.get("modified", [])
+                        if c.get("id") == conf.get("id")
+                    ),
+                    None,
+                )
+                if modified_customization:
+                    updated_configuration.append(modified_customization)
+                else:
+                    updated_configuration.append(conf)
+
+            for new_customization in attributes.get("modified", []):
+                new_customization_id = new_customization.get("id")
+                if new_customization_id not in [
+                    c.get("id") for c in updated_configuration
+                ]:
+                    updated_configuration.append(new_customization)
+
+                    if (
+                        reordered_customization_ids
+                        and new_customization_id not in reordered_customization_ids
+                    ):
+                        reordered_customization_ids.append(new_customization_id)
+
+            if reordered_customization_ids:
+                customization_map = {
+                    customization_config["id"]: customization_config
+                    for customization_config in updated_configuration
+                }
+
+                updated_configuration = [
+                    customization_map[customization_id]
+                    for customization_id in reordered_customization_ids
+                    if customization_id in customization_map
+                ]
+
+            metadata["chart_customization_config"] = updated_configuration
+            dashboard.json_metadata = json.dumps(metadata)
+
+        return updated_configuration
+
+    @classmethod
     def update_colors_config(
         cls, dashboard: Dashboard, attributes: dict[str, Any]
     ) -> None:

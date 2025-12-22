@@ -23,6 +23,7 @@ import {
   makeApi,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
+import { RootState } from 'src/dashboard/types';
 import { cloneDeep } from 'lodash';
 import { setDataMaskForFilterChangesComplete } from 'src/dataMask/actions';
 import { HYDRATE_DASHBOARD } from './hydrate';
@@ -64,7 +65,7 @@ const isFilterChangesEmpty = (filterChanges: SaveFilterChangesType) =>
 
 export const setFilterConfiguration =
   (filterChanges: SaveFilterChangesType) =>
-  async (dispatch: Dispatch, getState: () => any) => {
+  async (dispatch: Dispatch, getState: () => RootState) => {
     if (isFilterChangesEmpty(filterChanges)) {
       return;
     }
@@ -77,20 +78,17 @@ export const setFilterConfiguration =
       filterChanges,
     });
 
-    const updateFilters = makeApi<
-      SaveFilterChangesType,
-      { result: SaveFilterChangesType }
-    >({
+    const updateFilters = makeApi<SaveFilterChangesType, { result: Filter[] }>({
       method: 'PUT',
       endpoint: `/api/v1/dashboard/${id}/filters`,
     });
     try {
       const response = await updateFilters(filterChanges);
-      dispatch(nativeFiltersConfigChanged(response.result));
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
         filterChanges: response.result,
       });
+      dispatch(nativeFiltersConfigChanged(response.result));
       dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
     } catch (err) {
       dispatch({
@@ -108,7 +106,7 @@ export const setInScopeStatusOfFilters =
       tabsInScope: string[];
     }[],
   ) =>
-  async (dispatch: Dispatch, getState: () => any) => {
+  async (dispatch: Dispatch, getState: () => RootState) => {
     const filters = getState().nativeFilters?.filters;
     const filtersWithScopes = filterScopes.map(scope => ({
       ...filters[scope.filterId],
@@ -119,10 +117,9 @@ export const setInScopeStatusOfFilters =
       type: SET_IN_SCOPE_STATUS_OF_FILTERS,
       filterConfig: filtersWithScopes,
     });
-    // need to update native_filter_configuration in the dashboard metadata
     const metadata = cloneDeep(getState().dashboardInfo.metadata);
-    const filterConfig: FilterConfiguration =
-      metadata.native_filter_configuration || [];
+    const filterConfig =
+      (metadata.native_filter_configuration as FilterConfiguration) || [];
     const mergedFilterConfig = filterConfig.map(filter => {
       const filterWithScope = filtersWithScopes.find(
         scope => scope.id === filter.id,
@@ -130,7 +127,11 @@ export const setInScopeStatusOfFilters =
       if (!filterWithScope) {
         return filter;
       }
-      return { ...filterWithScope, ...filter };
+      return {
+        ...filter,
+        chartsInScope: filterWithScope.chartsInScope,
+        tabsInScope: filterWithScope.tabsInScope,
+      };
     });
     metadata.native_filter_configuration = mergedFilterConfig;
     dispatch(

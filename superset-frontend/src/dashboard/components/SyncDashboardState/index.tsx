@@ -72,7 +72,10 @@ const selectDashboardContextForExplore = createSelector(
     const nativeFilters = Object.keys(filters).reduce<
       Record<string, Pick<Filter | Divider, 'chartsInScope'>>
     >((acc, key) => {
-      acc[key] = pick(filters[key], ['chartsInScope']);
+      const filter = filters[key];
+      if ('chartsInScope' in filter) {
+        acc[key] = pick(filter, ['chartsInScope']);
+      }
       return acc;
     }, {});
 
