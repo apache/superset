@@ -16,42 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
 import {
   StyledColumnOption,
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import AggregateOption from './AggregateOption';
-import columnType from './columnType';
-import aggregateOptionType from './aggregateOptionType';
-import savedMetricType from './savedMetricType';
 
-const propTypes = {
-  option: PropTypes.oneOfType([
-    columnType,
-    savedMetricType,
-    aggregateOptionType,
-  ]).isRequired,
-  addWarningToast: PropTypes.func.isRequired,
-};
+interface MetricDefinitionOptionProps {
+  option: {
+    metric_name?: string;
+    column_name?: string;
+    aggregate_name?: string;
+    [key: string]: unknown;
+  };
+  addWarningToast: (message: string) => void;
+}
 
-function MetricDefinitionOption({ option, addWarningToast }) {
+function MetricDefinitionOption({
+  option,
+  addWarningToast,
+}: MetricDefinitionOptionProps) {
   if (option.metric_name) {
-    return <StyledMetricOption metric={option} showType />;
+    return <StyledMetricOption metric={option as any} showType />;
   }
   if (option.column_name) {
-    return <StyledColumnOption column={option} showType />;
+    return <StyledColumnOption column={option as any} showType />;
   }
   if (option.aggregate_name) {
-    return <AggregateOption aggregate={option} showType />;
+    return (
+      <AggregateOption
+        aggregate={{ aggregate_name: option.aggregate_name }}
+        showType
+      />
+    );
   }
   addWarningToast(
     'You must supply either a saved metric, column or aggregate to MetricDefinitionOption',
   );
   return null;
 }
-
-MetricDefinitionOption.propTypes = propTypes;
 
 export default withToasts(MetricDefinitionOption);

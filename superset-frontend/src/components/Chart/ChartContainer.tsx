@@ -16,29 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import findTopLevelComponentIds from './findTopLevelComponentIds';
-import childChartsDidLoad from './childChartsDidLoad';
+import { connect } from 'react-redux';
+import { bindActionCreators, Dispatch, AnyAction } from 'redux';
 
-export default function getLoadStatsPerTopLevelComponent({
-  layout,
-  chartQueries,
-}) {
-  const topLevelComponents = findTopLevelComponentIds(layout);
-  const stats = {};
-  topLevelComponents.forEach(({ id, ...restStats }) => {
-    const { didLoad, minQueryStartTime } = childChartsDidLoad({
-      id,
-      layout,
-      chartQueries,
-    });
+import * as actions from './chartAction';
+import { logEvent } from '../../logger/actions';
+import Chart from './Chart';
+import { updateDataMask } from '../../dataMask/actions';
 
-    stats[id] = {
-      didLoad,
-      id,
-      minQueryStartTime,
-      ...restStats,
-    };
-  });
-
-  return stats;
+function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
+  return {
+    actions: bindActionCreators(
+      {
+        ...actions,
+        updateDataMask,
+        logEvent,
+      } as any,
+      dispatch,
+    ),
+  };
 }
+
+export default connect(null, mapDispatchToProps)(Chart);

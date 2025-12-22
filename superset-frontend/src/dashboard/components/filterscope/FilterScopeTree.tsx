@@ -16,28 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-import CheckboxTree from 'react-checkbox-tree';
-import { filterScopeSelectorTreeNodePropShape } from 'src/dashboard/util/propShapes';
-import renderFilterScopeTreeNodes from './renderFilterScopeTreeNodes';
+import CheckboxTree, { Node } from 'react-checkbox-tree';
+import renderFilterScopeTreeNodes, {
+  FilterScopeTreeNode,
+} from './renderFilterScopeTreeNodes';
 import treeIcons from './treeIcons';
 
-const propTypes = {
-  nodes: PropTypes.arrayOf(filterScopeSelectorTreeNodePropShape).isRequired,
-  checked: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  ).isRequired,
-  expanded: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  ).isRequired,
-  onCheck: PropTypes.func.isRequired,
-  onExpand: PropTypes.func.isRequired,
-  selectedChartId: PropTypes.number,
-};
-
-const defaultProps = {
-  selectedChartId: null,
-};
+interface FilterScopeTreeProps {
+  nodes: FilterScopeTreeNode[];
+  checked: (string | number)[];
+  expanded: (string | number)[];
+  onCheck: (checked: string[]) => void;
+  onExpand: (expanded: string[]) => void;
+  selectedChartId?: number | null;
+}
 
 const NOOP = () => {};
 
@@ -47,16 +39,16 @@ export default function FilterScopeTree({
   expanded = [],
   onCheck,
   onExpand,
-  selectedChartId,
-}) {
+  selectedChartId = null,
+}: FilterScopeTreeProps) {
   return (
     <CheckboxTree
       showExpandAll
       expandOnClick
       showNodeIcon={false}
-      nodes={renderFilterScopeTreeNodes({ nodes, selectedChartId })}
-      checked={checked}
-      expanded={expanded}
+      nodes={renderFilterScopeTreeNodes({ nodes, selectedChartId }) as Node[]}
+      checked={checked.map(String)}
+      expanded={expanded.map(String)}
       onCheck={onCheck}
       onExpand={onExpand}
       onClick={NOOP}
@@ -64,6 +56,3 @@ export default function FilterScopeTree({
     />
   );
 }
-
-FilterScopeTree.propTypes = propTypes;
-FilterScopeTree.defaultProps = defaultProps;

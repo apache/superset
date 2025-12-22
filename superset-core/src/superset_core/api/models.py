@@ -92,7 +92,11 @@ class Database(CoreModel):
         """
         Execute SQL synchronously.
 
-        :param sql: SQL query to execute
+        The SQL must be written in the dialect of the target database (e.g.,
+        PostgreSQL syntax for PostgreSQL databases, Snowflake syntax for
+        Snowflake, etc.). No automatic cross-dialect translation is performed.
+
+        :param sql: SQL query to execute (in the target database's dialect)
         :param options: Query execution options (see `QueryOptions`).
             If not provided, defaults are used.
         :returns: QueryResult with status, data (DataFrame), and metadata
@@ -139,7 +143,11 @@ class Database(CoreModel):
         Returns immediately with a handle for tracking progress and retrieving
         results from the background worker.
 
-        :param sql: SQL query to execute
+        The SQL must be written in the dialect of the target database (e.g.,
+        PostgreSQL syntax for PostgreSQL databases, Snowflake syntax for
+        Snowflake, etc.). No automatic cross-dialect translation is performed.
+
+        :param sql: SQL query to execute (in the target database's dialect)
         :param options: Query execution options (see `QueryOptions`).
             If not provided, defaults are used.
         :returns: AsyncQueryHandle for tracking the query

@@ -16,9 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ToastType } from 'src/components/MessageToasts/types';
+import { connect } from 'react-redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
-export default [
-  { id: 'info_id', toastType: ToastType.Info, text: 'info toast' },
-  { id: 'danger_id', toastType: ToastType.Danger, text: 'danger toast' },
-];
+import { updateDashboardFiltersScope } from '../actions/dashboardFilters';
+import { setUnsavedChanges } from '../actions/dashboardState';
+import FilterScopeSelector from '../components/filterscope/FilterScopeSelector';
+import { RootState } from 'src/dashboard/types';
+
+function mapStateToProps({ dashboardLayout, dashboardFilters }: RootState) {
+  return {
+    dashboardFilters,
+    layout: dashboardLayout.present,
+  };
+}
+
+function mapDispatchToProps(dispatch: Dispatch) {
+  return bindActionCreators(
+    {
+      updateDashboardFiltersScope,
+      setUnsavedChanges,
+    },
+    dispatch,
+  );
+}
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(FilterScopeSelector);
