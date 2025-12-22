@@ -114,7 +114,10 @@ class CollectionControl extends Component<CollectionControlProps> {
   onAdd() {
     const currentValue = this.props.value ?? [];
     const newItem = this.props.itemGenerator?.();
-    this.props.onChange?.(currentValue.concat([newItem]));
+    // Cast needed: original JS allowed undefined items from itemGenerator
+    this.props.onChange?.(
+      currentValue.concat([newItem] as unknown as CollectionItem[]),
+    );
   }
 
   onSortEnd({ oldIndex, newIndex }: { oldIndex: number; newIndex: number }) {
