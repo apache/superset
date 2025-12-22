@@ -271,7 +271,7 @@ stages:
                       $containerPort = 5432
 
                       Write-Host "Client config PostgreSQL: $($pg.host):$($pg.port)"
-                      Write-Host "Overriding for container access: $containerHost:$containerPort"
+                      Write-Host "Overriding for container access: ${containerHost}:${containerPort}"
 
                       # Superset metadata database (use admin credentials)
                       Write-Host "##vso[task.setvariable variable=SUPERSET_DB_HOST]$containerHost"
@@ -289,8 +289,8 @@ stages:
                       Write-Host "##vso[task.setvariable variable=OEE_DB_PASSWORD;issecret=true]$($pg.admin.password)"
 
                       Write-Host "Database credentials configured:"
-                      Write-Host "  Superset metadata: $($pg.admin.user)@${containerHost}:${containerPort}/superset_metadata"
-                      Write-Host "  OEE data: $($pg.admin.user)@${containerHost}:${containerPort}/$dbName"
+                      Write-Host "  Superset metadata: $($pg.admin.user)@${containerHost}`:${containerPort}/superset_metadata"
+                      Write-Host "  OEE data: $($pg.admin.user)@${containerHost}`:${containerPort}/$dbName"
 
                 - task: Bash@3
                   displayName: Create superset_metadata Database
