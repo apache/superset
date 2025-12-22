@@ -264,24 +264,33 @@ stages:
                       $json = Get-Content -Raw "$(cfgPath)" | ConvertFrom-Json
                       $pg = $json.'app-suite'[0].postgres
 
+                      # OVERRIDE: Client config has localhost:5000 (for VM access)
+                      # But from inside Superset container, we need to use the container name
+                      # oee-postgres container is accessible on the shared 'oeeintellisuite' network
+                      $containerHost = "oee-postgres"
+                      $containerPort = 5432
+
+                      Write-Host "Client config PostgreSQL: $($pg.host):$($pg.port)"
+                      Write-Host "Overriding for container access: $containerHost:$containerPort"
+
                       # Superset metadata database (use admin credentials)
-                      Write-Host "##vso[task.setvariable variable=SUPERSET_DB_HOST]$($pg.host)"
-                      Write-Host "##vso[task.setvariable variable=SUPERSET_DB_PORT]$($pg.port)"
+                      Write-Host "##vso[task.setvariable variable=SUPERSET_DB_HOST]$containerHost"
+                      Write-Host "##vso[task.setvariable variable=SUPERSET_DB_PORT]$containerPort"
                       Write-Host "##vso[task.setvariable variable=SUPERSET_DB_NAME]superset_metadata"
                       Write-Host "##vso[task.setvariable variable=SUPERSET_DB_USER]$($pg.admin.user)"
                       Write-Host "##vso[task.setvariable variable=SUPERSET_DB_PASSWORD;issecret=true]$($pg.admin.password)"
 
-                      # OEE dashboard data database (use reader credentials for read-only access)
+                      # OEE dashboard data database (use admin for both - reader password unknown)
                       $dbName = if ($pg.database) { $pg.database } else { 'oeeintellisuite' }
-                      Write-Host "##vso[task.setvariable variable=OEE_DB_HOST]$($pg.host)"
-                      Write-Host "##vso[task.setvariable variable=OEE_DB_PORT]$($pg.port)"
+                      Write-Host "##vso[task.setvariable variable=OEE_DB_HOST]$containerHost"
+                      Write-Host "##vso[task.setvariable variable=OEE_DB_PORT]$containerPort"
                       Write-Host "##vso[task.setvariable variable=OEE_DB_NAME]$dbName"
-                      Write-Host "##vso[task.setvariable variable=OEE_DB_USER]$($pg.reader.user)"
-                      Write-Host "##vso[task.setvariable variable=OEE_DB_PASSWORD;issecret=true]$($pg.reader.password)"
+                      Write-Host "##vso[task.setvariable variable=OEE_DB_USER]$($pg.admin.user)"
+                      Write-Host "##vso[task.setvariable variable=OEE_DB_PASSWORD;issecret=true]$($pg.admin.password)"
 
-                      Write-Host "Database credentials extracted from client config"
-                      Write-Host "  Superset metadata: $($pg.admin.user)@$($pg.host):$($pg.port)/superset_metadata"
-                      Write-Host "  OEE data: $($pg.reader.user)@$($pg.host):$($pg.port)/$dbName"
+                      Write-Host "Database credentials configured:"
+                      Write-Host "  Superset metadata: $($pg.admin.user)@${containerHost}:${containerPort}/superset_metadata"
+                      Write-Host "  OEE data: $($pg.admin.user)@${containerHost}:${containerPort}/$dbName"
 
                 - task: Bash@3
                   displayName: Create superset_metadata Database
