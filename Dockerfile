@@ -193,6 +193,9 @@ COPY scripts/check-env.py scripts/
 # keeping for backward compatibility
 COPY --chmod=755 ./docker/entrypoints/run-server.sh /usr/bin/
 
+# Copy custom Superset configuration
+COPY docker/pythonpath/superset_config.py /app/pythonpath/
+
 # Some debian libs
 RUN /app/docker/apt-install.sh \
       curl \
