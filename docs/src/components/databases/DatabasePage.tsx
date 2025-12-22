@@ -248,14 +248,35 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
   const renderCompatibleDatabases = () => {
     if (!docs?.compatible_databases?.length) return null;
 
+    // Create array of all panel keys to expand by default
+    const allPanelKeys = docs.compatible_databases.map((_, idx) => idx);
+
     return (
       <Card title="Compatible Databases" style={{ marginBottom: 16 }}>
         <Paragraph>
           The following databases are compatible with the {name} driver:
         </Paragraph>
-        <Collapse>
+        <Collapse defaultActiveKey={allPanelKeys}>
           {docs.compatible_databases.map((compat, idx) => (
-            <Panel header={compat.name} key={idx}>
+            <Panel
+              header={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {compat.logo && (
+                    <img
+                      src={`/img/databases/${compat.logo}`}
+                      alt={compat.name}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        objectFit: 'contain',
+                      }}
+                    />
+                  )}
+                  <span>{compat.name}</span>
+                </div>
+              }
+              key={idx}
+            >
               {compat.description && (
                 <Paragraph>{compat.description}</Paragraph>
               )}
@@ -400,7 +421,30 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
       className="database-page"
       id={name.toLowerCase().replace(/\s+/g, '-')}
     >
-      <Title level={2}>{name}</Title>
+      <div style={{ marginBottom: 16 }}>
+        {docs?.logo && (
+          <img
+            src={`/img/databases/${docs.logo}`}
+            alt={name}
+            style={{
+              height: 120,
+              objectFit: 'contain',
+              marginBottom: 12,
+            }}
+          />
+        )}
+        <Title level={1} style={{ margin: 0 }}>{name}</Title>
+        {docs?.homepage_url && (
+          <a
+            href={docs.homepage_url}
+            target="_blank"
+            rel="noreferrer"
+            style={{ fontSize: 14 }}
+          >
+            <LinkOutlined /> {docs.homepage_url}
+          </a>
+        )}
+      </div>
 
       {docs?.description && <Paragraph>{docs.description}</Paragraph>}
 

@@ -40,7 +40,7 @@ const ROOT_DIR = path.resolve(__dirname, '../..');
 const DOCS_DIR = path.resolve(__dirname, '..');
 const DATA_OUTPUT_DIR = path.join(DOCS_DIR, 'src/data');
 const DATA_OUTPUT_FILE = path.join(DATA_OUTPUT_DIR, 'databases.json');
-const MDX_OUTPUT_DIR = path.join(DOCS_DIR, 'docs/configuration/databases');
+const MDX_OUTPUT_DIR = path.join(DOCS_DIR, 'docs/databases');
 const LIB_PY_PATH = path.join(ROOT_DIR, 'superset/db_engine_specs/lib.py');
 
 /**
@@ -127,7 +127,8 @@ print(json.dumps(exec_globals.get('DATABASE_DOCS', {}), default=str))
 }
 
 /**
- * Simple extraction - just import the DATABASE_DOCS dict
+ * Simple extraction - import DATABASE_DOCS and try to get diagnostics
+ * This version attempts to load engine specs individually, skipping failures
  */
 function extractDatabaseDocsSimple() {
   console.log('Using simple extraction method...');
@@ -137,37 +138,106 @@ function extractDatabaseDocsSimple() {
       `cd ${ROOT_DIR} && python3 -c "
 import sys
 import json
+import importlib
+import pkgutil
+import warnings
 sys.path.insert(0, '.')
+warnings.filterwarnings('ignore')
 
 # Import just the DATABASE_DOCS constant
-from superset.db_engine_specs.lib import DATABASE_DOCS
+from superset.db_engine_specs.lib import DATABASE_DOCS, diagnose, get_name
 
-# Build the output structure (without diagnose() features)
+# Try to load engine specs individually, skipping failures
+loaded_specs = {}
+failed_imports = []
+
+import superset.db_engine_specs as specs_package
+for importer, modname, ispkg in pkgutil.iter_modules(specs_package.__path__):
+    if modname in ('base', 'lib', '__init__'):
+        continue
+    try:
+        module = importlib.import_module(f'superset.db_engine_specs.{modname}')
+        for attr_name in dir(module):
+            attr = getattr(module, attr_name)
+            if (isinstance(attr, type) and
+                hasattr(attr, 'engine') and
+                hasattr(attr, '__module__') and
+                attr.__module__.startswith('superset.db_engine_specs')):
+                try:
+                    name = get_name(attr)
+                    if name and name not in loaded_specs:
+                        loaded_specs[name] = attr
+                except:
+                    pass
+    except Exception as e:
+        failed_imports.append(modname)
+
+# Build output with diagnostics where available
 output = {}
 for name, docs in DATABASE_DOCS.items():
-    output[name] = {
-        'engine': name.lower().replace(' ', '_'),
-        'engine_name': name,
-        'documentation': docs,
-        # Placeholder values for diagnostics (not available without Flask)
-        'time_grains': {},
-        'score': 0,
-        'max_score': 0,
-        'joins': True,
-        'subqueries': True,
-        'supports_dynamic_schema': False,
-        'supports_catalog': False,
-    }
+    spec = loaded_specs.get(name)
+    if spec:
+        try:
+            diag = diagnose(spec)
+            output[name] = {
+                'engine': getattr(spec, 'engine', name.lower().replace(' ', '_')),
+                'engine_name': name,
+                'documentation': docs,
+                'time_grains': diag.get('time_grains', {}),
+                'score': diag.get('score', 0),
+                'max_score': diag.get('max_score', 0),
+                'joins': diag.get('joins', True),
+                'subqueries': diag.get('subqueries', True),
+                'supports_dynamic_schema': diag.get('supports_dynamic_schema', False),
+                'supports_catalog': diag.get('supports_catalog', False),
+                'supports_dynamic_catalog': diag.get('supports_dynamic_catalog', False),
+                'ssh_tunneling': diag.get('ssh_tunneling', False),
+                'query_cancelation': diag.get('query_cancelation', False),
+                'supports_file_upload': diag.get('supports_file_upload', False),
+                'user_impersonation': diag.get('user_impersonation', False),
+                'query_cost_estimation': diag.get('query_cost_estimation', False),
+                'sql_validation': diag.get('sql_validation', False),
+            }
+        except Exception as e:
+            # Fallback for this specific database
+            output[name] = {
+                'engine': name.lower().replace(' ', '_'),
+                'engine_name': name,
+                'documentation': docs,
+                'time_grains': {},
+                'score': 0,
+                'max_score': 0,
+                'joins': True,
+                'subqueries': True,
+                'supports_dynamic_schema': False,
+                'supports_catalog': False,
+            }
+    else:
+        # No spec found, use placeholder
+        output[name] = {
+            'engine': name.lower().replace(' ', '_'),
+            'engine_name': name,
+            'documentation': docs,
+            'time_grains': {},
+            'score': 0,
+            'max_score': 0,
+            'joins': True,
+            'subqueries': True,
+            'supports_dynamic_schema': False,
+            'supports_catalog': False,
+        }
 
-print(json.dumps(output, default=str))
+print(json.dumps({'databases': output, 'loaded': len(loaded_specs), 'failed': failed_imports}, default=str))
 "`,
       {
         encoding: 'utf-8',
-        timeout: 30000,
+        timeout: 60000,
         maxBuffer: 10 * 1024 * 1024,
       }
     );
-    return JSON.parse(result);
+    const data = JSON.parse(result);
+    console.log(`Loaded ${data.loaded} engine specs (failed: ${data.failed.join(', ') || 'none'})`);
+    return data.databases;
   } catch (error) {
     console.error('Failed to extract DATABASE_DOCS:', error.message);
     return null;
@@ -291,6 +361,7 @@ function generateDatabaseMDX(name, db, slug) {
 title: ${name}
 sidebar_label: ${name}
 description: "${shortDesc}"
+hide_title: true
 ---
 
 {/*
@@ -417,7 +488,7 @@ To add or update database documentation, edit the \`DATABASE_DOCS\` dictionary i
 }
 
 /**
- * Load existing database data if available and valid
+ * Load existing database data if available
  */
 function loadExistingData() {
   if (!fs.existsSync(DATA_OUTPUT_FILE)) {
@@ -426,22 +497,45 @@ function loadExistingData() {
 
   try {
     const content = fs.readFileSync(DATA_OUTPUT_FILE, 'utf-8');
-    const data = JSON.parse(content);
-
-    // Check if the data has scores (meaning it was generated with full Flask context)
-    const hasScores = Object.values(data.databases || {}).some(
-      (db) => db.score > 0
-    );
-
-    if (hasScores && Object.keys(data.databases || {}).length > 50) {
-      console.log('Using existing databases.json with full diagnostic data');
-      return data;
-    }
+    return JSON.parse(content);
   } catch (error) {
     console.log('Could not load existing data:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Merge new documentation with existing diagnostics
+ * Preserves score, time_grains, and feature flags from existing data
+ */
+function mergeWithExistingDiagnostics(newDatabases, existingData) {
+  if (!existingData?.databases) return newDatabases;
+
+  const diagnosticFields = [
+    'score', 'max_score', 'time_grains', 'joins', 'subqueries',
+    'supports_dynamic_schema', 'supports_catalog', 'supports_dynamic_catalog',
+    'ssh_tunneling', 'query_cancelation', 'supports_file_upload',
+    'user_impersonation', 'query_cost_estimation', 'sql_validation'
+  ];
+
+  for (const [name, db] of Object.entries(newDatabases)) {
+    const existingDb = existingData.databases[name];
+    if (existingDb && existingDb.score > 0) {
+      // Preserve diagnostics from existing data
+      for (const field of diagnosticFields) {
+        if (existingDb[field] !== undefined) {
+          db[field] = existingDb[field];
+        }
+      }
+    }
   }
 
-  return null;
+  const preserved = Object.values(newDatabases).filter(d => d.score > 0).length;
+  if (preserved > 0) {
+    console.log(`Preserved diagnostics for ${preserved} databases from existing data`);
+  }
+
+  return newDatabases;
 }
 
 /**
@@ -458,44 +552,58 @@ async function main() {
     fs.mkdirSync(MDX_OUTPUT_DIR, { recursive: true });
   }
 
-  // First, try to use existing data if it has full diagnostics
-  let existingData = loadExistingData();
-  let databases;
-  let statistics;
+  // Load existing data for potential merge
+  const existingData = loadExistingData();
 
-  if (existingData) {
-    databases = existingData.databases;
-    statistics = existingData.statistics;
-    console.log(`Using cached data with ${Object.keys(databases).length} databases\n`);
-  } else {
-    // Try to run the full script first, fall back to extraction
-    databases = tryRunFullScript();
+  // Try to run the full script first, fall back to extraction
+  let databases = tryRunFullScript();
 
-    if (!databases) {
-      databases = extractDatabaseDocsSimple();
+  if (!databases) {
+    databases = extractDatabaseDocsSimple();
+  }
+
+  if (!databases || Object.keys(databases).length === 0) {
+    console.error('Failed to generate database documentation data.');
+    console.error('Make sure superset is properly installed or lib.py is accessible.');
+    process.exit(1);
+  }
+
+  console.log(`Processed ${Object.keys(databases).length} databases\n`);
+
+  // Check if new data has scores; if not, preserve existing diagnostics
+  const hasNewScores = Object.values(databases).some((db) => db.score > 0);
+  if (!hasNewScores && existingData) {
+    databases = mergeWithExistingDiagnostics(databases, existingData);
+  }
+
+  // Build statistics
+  const statistics = buildStatistics(databases);
+
+  // Create the final output structure
+  const output = {
+    generated: new Date().toISOString(),
+    statistics,
+    databases,
+  };
+
+  // Write the JSON file
+  fs.writeFileSync(DATA_OUTPUT_FILE, JSON.stringify(output, null, 2));
+  console.log(`Generated: ${path.relative(DOCS_DIR, DATA_OUTPUT_FILE)}`);
+
+
+  // Clean up old MDX files that are no longer in the database list
+  console.log(`\nCleaning up old MDX files in ${path.relative(DOCS_DIR, MDX_OUTPUT_DIR)}/`);
+  const existingMdxFiles = fs.readdirSync(MDX_OUTPUT_DIR).filter(f => f.endsWith('.mdx') && f !== 'index.mdx');
+  const validSlugs = new Set(Object.keys(databases).map(name => `${toSlug(name)}.mdx`));
+  let removedCount = 0;
+  for (const file of existingMdxFiles) {
+    if (!validSlugs.has(file)) {
+      fs.unlinkSync(path.join(MDX_OUTPUT_DIR, file));
+      removedCount++;
     }
-
-    if (!databases || Object.keys(databases).length === 0) {
-      console.error('Failed to generate database documentation data.');
-      console.error('Make sure superset is properly installed or lib.py is accessible.');
-      process.exit(1);
-    }
-
-    console.log(`Processed ${Object.keys(databases).length} databases\n`);
-
-    // Build statistics
-    statistics = buildStatistics(databases);
-
-    // Create the final output structure
-    const output = {
-      generated: new Date().toISOString(),
-      statistics,
-      databases,
-    };
-
-    // Write the JSON file
-    fs.writeFileSync(DATA_OUTPUT_FILE, JSON.stringify(output, null, 2));
-    console.log(`Generated: ${path.relative(DOCS_DIR, DATA_OUTPUT_FILE)}`);
+  }
+  if (removedCount > 0) {
+    console.log(`  Removed ${removedCount} outdated MDX files`);
   }
 
   // Generate individual MDX files for each database
@@ -523,7 +631,7 @@ async function main() {
     position: 1,
     link: {
       type: 'doc',
-      id: 'configuration/databases/index',
+      id: 'databases/index',
     },
   };
   fs.writeFileSync(

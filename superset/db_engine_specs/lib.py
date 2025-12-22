@@ -33,6 +33,8 @@ from superset.db_engine_specs.base import BaseEngineSpec
 DATABASE_DOCS: dict[str, dict[str, Any]] = {
     "PostgreSQL": {
         "description": "PostgreSQL is an advanced open-source relational database.",
+        "logo": "postgresql.svg",
+        "homepage_url": "https://www.postgresql.org/",
         "pypi_packages": ["psycopg2"],
         "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
         "default_port": 5432,
@@ -60,6 +62,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
             {
                 "name": "Hologres",
                 "description": "Alibaba Cloud real-time interactive analytics service, fully compatible with PostgreSQL 11.",
+                "logo": "hologres.png",
+                "homepage_url": "https://www.alibabacloud.com/product/hologres",
                 "pypi_packages": ["psycopg2"],
                 "connection_string": "postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}",
                 "parameters": {
@@ -73,6 +77,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
             {
                 "name": "TimescaleDB",
                 "description": "Open-source relational database for time-series and analytics, built on PostgreSQL.",
+                "logo": "timescale.png",
+                "homepage_url": "https://www.timescale.com/",
                 "pypi_packages": ["psycopg2"],
                 "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
                 "connection_examples": [
@@ -87,6 +93,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
             {
                 "name": "YugabyteDB",
                 "description": "Distributed SQL database built on top of PostgreSQL.",
+                "logo": "yugabyte.png",
+                "homepage_url": "https://www.yugabyte.com/",
                 "pypi_packages": ["psycopg2"],
                 "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
                 "notes": "psycopg2 comes bundled with Superset Docker images.",
@@ -96,6 +104,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "MySQL": {
         "description": "MySQL is a popular open-source relational database.",
+        "logo": "mysql.jpg",
+        "homepage_url": "https://www.mysql.com/",
         "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,
@@ -130,12 +140,16 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "SQLite": {
         "description": "SQLite is a self-contained, serverless SQL database engine.",
+        "logo": "sqlite.jpg",
+        "homepage_url": "https://www.sqlite.org/",
         "pypi_packages": [],
         "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",
         "notes": "No additional library needed. SQLite is bundled with Python.",
     },
     "AWS Athena": {
         "description": "Amazon Athena is an interactive query service for analyzing data in S3 using SQL.",
+        "logo": "amazon-athena.jpg",
+        "homepage_url": "https://aws.amazon.com/athena/",
         "drivers": [
             {
                 "name": "PyAthena (REST)",
@@ -163,12 +177,15 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "AWS DynamoDB": {
         "description": "Amazon DynamoDB is a fully managed NoSQL database service.",
+        "homepage_url": "https://aws.amazon.com/dynamodb/",
         "pypi_packages": ["pydynamodb"],
         "connection_string": "dynamodb://{access_key_id}:{secret_access_key}@dynamodb.{region_name}.amazonaws.com:443?connector=superset",
         "docs_url": "https://github.com/passren/PyDynamoDB/wiki/5.-Superset",
     },
     "AWS Redshift": {
         "description": "Amazon Redshift is a fully managed data warehouse service.",
+        "logo": "redshift.png",
+        "homepage_url": "https://aws.amazon.com/redshift/",
         "pypi_packages": ["sqlalchemy-redshift"],
         "default_port": 5439,
         "parameters": {
@@ -228,6 +245,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Apache Doris": {
         "description": "Apache Doris is a high-performance real-time analytical database.",
+        "logo": "doris.png",
+        "homepage_url": "https://doris.apache.org/",
         "pypi_packages": ["pydoris"],
         "connection_string": "doris://{username}:{password}@{host}:{port}/{catalog}.{database}",
         "parameters": {
@@ -241,6 +260,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Apache Drill": {
         "description": "Apache Drill is a schema-free SQL query engine for Hadoop and NoSQL.",
+        "logo": "apache-drill.png",
+        "homepage_url": "https://drill.apache.org/",
         "drivers": [
             {
                 "name": "SQLAlchemy (REST)",
@@ -273,6 +294,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Apache Druid": {
         "description": "Apache Druid is a high performance real-time analytics database.",
+        "logo": "druid.png",
+        "homepage_url": "https://druid.apache.org/",
         "pypi_packages": ["pydruid"],
         "connection_string": "druid://{username}:{password}@{host}:{port}/druid/v2/sql",
         "default_port": 9088,
@@ -298,21 +321,29 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Apache Hive": {
         "description": "Apache Hive is a data warehouse infrastructure built on Hadoop.",
+        "logo": "apache-hive.svg",
+        "homepage_url": "https://hive.apache.org/",
         "pypi_packages": ["pyhive"],
         "connection_string": "hive://hive@{hostname}:{port}/{database}",
     },
     "Apache Impala": {
         "description": "Apache Impala is an open-source massively parallel processing SQL query engine.",
+        "logo": "apache-impala.png",
+        "homepage_url": "https://impala.apache.org/",
         "pypi_packages": ["impyla"],
         "connection_string": "impala://{hostname}:{port}/{database}",
     },
     "Apache Kylin": {
         "description": "Apache Kylin is an open-source OLAP engine for big data.",
+        "logo": "apache-kylin.png",
+        "homepage_url": "https://kylin.apache.org/",
         "pypi_packages": ["kylinpy"],
         "connection_string": "kylin://{username}:{password}@{hostname}:{port}/{project}?{param1}={value1}&{param2}={value2}",
     },
     "Apache Pinot": {
         "description": "Apache Pinot is a real-time distributed OLAP datastore.",
+        "logo": "apache-pinot.svg",
+        "homepage_url": "https://pinot.apache.org/",
         "pypi_packages": ["pinotdb"],
         "connection_string": "pinot+http://{broker_host}:{broker_port}/query?controller=http://{controller_host}:{controller_port}/",
         "connection_examples": [
@@ -332,11 +363,13 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Apache Solr": {
         "description": "Apache Solr is an open-source enterprise search platform.",
+        "homepage_url": "https://solr.apache.org/",
         "pypi_packages": ["sqlalchemy-solr"],
         "connection_string": "solr://{username}:{password}@{host}:{port}/{server_path}/{collection}[/?use_ssl=true|false]",
     },
     "Apache Spark SQL": {
         "description": "Apache Spark SQL is a module for structured data processing.",
+        "homepage_url": "https://spark.apache.org/sql/",
         "pypi_packages": ["pyhive"],
         "connection_string": "hive://hive@{hostname}:{port}/{database}",
     },
@@ -366,6 +399,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "ClickHouse": {
         "description": "ClickHouse is an open-source column-oriented OLAP database.",
+        "logo": "clickhouse.png",
+        "homepage_url": "https://clickhouse.com/",
         "pypi_packages": ["clickhouse-connect"],
         "connection_string": "clickhousedb://{username}:{password}@{hostname}:{port}/{database}",
         "version_requirements": "clickhouse-connect>=0.6.8",
@@ -389,12 +424,15 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "CockroachDB": {
         "description": "CockroachDB is a distributed SQL database built for cloud applications.",
+        "homepage_url": "https://www.cockroachlabs.com/",
         "pypi_packages": ["cockroachdb"],
         "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
         "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",
     },
     "Couchbase": {
         "description": "Couchbase is a distributed NoSQL document database with SQL support.",
+        "logo": "couchbase.svg",
+        "homepage_url": "https://www.couchbase.com/",
         "pypi_packages": ["couchbase-sqlalchemy"],
         "connection_string": "couchbase://{username}:{password}@{hostname}:{port}?truststorepath={certificate_path}?ssl={true|false}",
         "notes": "Supports Couchbase Analytics and Couchbase Columnar services.",
@@ -402,6 +440,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "CrateDB": {
         "description": "CrateDB is a distributed SQL database for machine data.",
+        "homepage_url": "https://cratedb.com/",
         "pypi_packages": ["sqlalchemy-cratedb"],
         "version_requirements": "sqlalchemy-cratedb>=0.40.1,<1",
         "default_port": 4200,
@@ -420,6 +459,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Databend": {
         "description": "Databend is an open-source cloud data warehouse.",
+        "logo": "databend.png",
+        "homepage_url": "https://www.databend.com/",
         "pypi_packages": ["databend-sqlalchemy"],
         "version_requirements": "databend-sqlalchemy>=0.2.3",
         "connection_string": "databend://{username}:{password}@{host}:{port}/{database_name}",
@@ -432,6 +473,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Databricks": {
         "description": "Databricks is a unified analytics platform built on Apache Spark.",
+        "logo": "databricks.png",
+        "homepage_url": "https://www.databricks.com/",
         "pypi_packages": ["databricks-sql-connector", "sqlalchemy-databricks"],
         "install_instructions": 'pip install "apache-superset[databricks]"',
         "connection_string": "databricks+connector://token:{access_token}@{server_hostname}:{port}/{database_name}",
@@ -483,12 +526,16 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Denodo": {
         "description": "Denodo is a data virtualization platform.",
+        "logo": "denodo.png",
+        "homepage_url": "https://www.denodo.com/",
         "pypi_packages": ["denodo-sqlalchemy"],
         "connection_string": "denodo://{username}:{password}@{hostname}:{port}/{database}",
         "default_port": 9996,
     },
     "Dremio": {
         "description": "Dremio is a data lake engine for self-service analytics.",
+        "logo": "dremio.png",
+        "homepage_url": "https://www.dremio.com/",
         "pypi_packages": ["sqlalchemy_dremio"],
         "drivers": [
             {
@@ -509,12 +556,14 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "DuckDB": {
         "description": "DuckDB is an in-process analytical database.",
+        "homepage_url": "https://duckdb.org/",
         "pypi_packages": ["duckdb-engine"],
         "connection_string": "duckdb:///path/to/file.db",
         "notes": "Great for local development. In-process database, no server needed.",
     },
     "Elasticsearch": {
         "description": "Elasticsearch is a distributed search and analytics engine.",
+        "homepage_url": "https://www.elastic.co/elasticsearch/",
         "pypi_packages": ["elasticsearch-dbapi"],
         "connection_string": "elasticsearch+http://{username}:{password}@{host}:9200/",
         "default_port": 9200,
@@ -547,12 +596,16 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Exasol": {
         "description": "Exasol is a high-performance in-memory analytics database.",
+        "logo": "exasol.png",
+        "homepage_url": "https://www.exasol.com/",
         "pypi_packages": ["sqlalchemy-exasol"],
         "connection_string": "exa+pyodbc://{username}:{password}@{hostname}:{port}/{schema}?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC",
         "docs_url": "https://github.com/exasol/sqlalchemy-exasol",
     },
     "Firebird": {
         "description": "Firebird is an open-source relational database.",
+        "logo": "firebird.png",
+        "homepage_url": "https://firebirdsql.org/",
         "pypi_packages": ["sqlalchemy-firebird"],
         "version_requirements": "sqlalchemy-firebird>=0.7.0,<0.8",
         "connection_string": "firebird+fdb://{username}:{password}@{host}:{port}//{path_to_db_file}",
@@ -565,6 +618,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Firebolt": {
         "description": "Firebolt is a cloud data warehouse for sub-second analytics.",
+        "logo": "firebolt.png",
+        "homepage_url": "https://www.firebolt.io/",
         "pypi_packages": ["firebolt-sqlalchemy"],
         "connection_examples": [
             {
@@ -587,6 +642,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Google BigQuery": {
         "description": "Google BigQuery is a serverless, highly scalable data warehouse.",
+        "logo": "google-big-query.svg",
+        "homepage_url": "https://cloud.google.com/bigquery/",
         "pypi_packages": ["sqlalchemy-bigquery"],
         "connection_string": "bigquery://{project_id}",
         "install_instructions": 'echo "sqlalchemy-bigquery" >> ./docker/requirements-local.txt',
@@ -618,6 +675,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Google Sheets": {
         "description": "Query Google Sheets using SQL via the shillelagh library.",
+        "logo": "google-sheets.svg",
+        "homepage_url": "https://www.google.com/sheets/about/",
         "pypi_packages": ["shillelagh[gsheetsapi]"],
         "connection_string": "gsheets://",
         "notes": "Google Sheets has a limited SQL API.",
@@ -626,6 +685,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "SAP HANA": {
         "description": "SAP HANA is an in-memory relational database and application platform.",
+        "logo": "sap-hana.jpg",
+        "homepage_url": "https://www.sap.com/products/technology-platform/hana.html",
         "pypi_packages": ["hdbcli", "sqlalchemy-hana"],
         "install_instructions": 'pip install apache_superset[hana]',
         "connection_string": "hana://{username}:{password}@{host}:{port}",
@@ -651,6 +712,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "IBM Netezza": {
         "description": "IBM Netezza Performance Server is a data warehouse appliance.",
+        "logo": "netezza.png",
+        "homepage_url": "https://www.ibm.com/products/netezza",
         "pypi_packages": ["nzalchemy"],
         "connection_string": "netezza+nzpy://{username}:{password}@{hostname}:{port}/{database}",
     },
@@ -672,6 +735,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "MariaDB": {
         "description": "MariaDB is a community-developed fork of MySQL.",
+        "logo": "mariadb.png",
+        "homepage_url": "https://mariadb.org/",
         "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,
@@ -679,6 +744,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Microsoft SQL Server": {
         "description": "Microsoft SQL Server is a relational database management system.",
+        "logo": "msql.png",
+        "homepage_url": "https://www.microsoft.com/en-us/sql-server",
         "pypi_packages": ["pymssql"],
         "default_port": 1433,
         "drivers": [
@@ -700,6 +767,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "OceanBase": {
         "description": "OceanBase is a distributed relational database.",
+        "logo": "oceanbase.svg",
+        "homepage_url": "https://www.oceanbase.com/",
         "pypi_packages": ["oceanbase_py"],
         "connection_string": "oceanbase://{username}:{password}@{host}:{port}/{database}",
     },
@@ -711,6 +780,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Oracle": {
         "description": "Oracle Database is a multi-model database management system.",
+        "logo": "oraclelogo.png",
+        "homepage_url": "https://www.oracle.com/database/",
         "pypi_packages": ["oracledb"],
         "connection_string": "oracle://{username}:{password}@{hostname}:{port}",
         "notes": "Previously used cx_Oracle, now uses oracledb.",
@@ -731,6 +802,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Presto": {
         "description": "Presto is a distributed SQL query engine for big data.",
+        "logo": "presto-og.png",
+        "homepage_url": "https://prestodb.io/",
         "pypi_packages": ["pyhive"],
         "connection_string": "presto://{username}:{password}@{hostname}:{port}/{database}",
         "connection_examples": [
@@ -779,6 +852,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Snowflake": {
         "description": "Snowflake is a cloud-native data warehouse.",
+        "logo": "snowflake.svg",
+        "homepage_url": "https://www.snowflake.com/",
         "pypi_packages": ["snowflake-sqlalchemy"],
         "connection_string": "snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}",
         "install_instructions": 'echo "snowflake-sqlalchemy" >> ./docker/requirements-local.txt',
@@ -823,6 +898,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "StarRocks": {
         "description": "StarRocks is a next-generation sub-second MPP database.",
+        "logo": "starrocks.png",
+        "homepage_url": "https://www.starrocks.io/",
         "pypi_packages": ["starrocks"],
         "connection_string": "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}",
         "parameters": {
@@ -837,6 +914,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "TDengine": {
         "description": "TDengine is a high-performance time-series database for IoT.",
+        "logo": "tdengine.png",
+        "homepage_url": "https://tdengine.com/",
         "pypi_packages": ["taospy", "taos-ws-py"],
         "connection_string": "taosws://{user}:{password}@{host}:{port}",
         "default_port": 6041,
@@ -850,6 +929,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Teradata": {
         "description": "Teradata is an enterprise data warehouse platform.",
+        "logo": "teradata.png",
+        "homepage_url": "https://www.teradata.com/",
         "pypi_packages": ["teradatasqlalchemy"],
         "connection_string": "teradatasql://{user}:{password}@{host}",
         "drivers": [
@@ -875,6 +956,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Trino": {
         "description": "Trino is a distributed SQL query engine for big data analytics.",
+        "logo": "trino.png",
+        "homepage_url": "https://trino.io/",
         "pypi_packages": ["trino"],
         "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
         "version_requirements": "Trino version 352 and higher",
@@ -945,6 +1028,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Vertica": {
         "description": "Vertica is a column-oriented analytics database.",
+        "logo": "vertica.png",
+        "homepage_url": "https://www.vertica.com/",
         "pypi_packages": ["sqlalchemy-vertica-python"],
         "connection_string": "vertica+vertica_python://{username}:{password}@{host}/{database}",
         "default_port": 5433,
@@ -960,6 +1045,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "YDB": {
         "description": "YDB is a distributed SQL database by Yandex.",
+        "logo": "ydb.svg",
+        "homepage_url": "https://ydb.tech/",
         "pypi_packages": ["ydb-sqlalchemy"],
         "connection_string": "ydb://{host}:{port}/{database_name}",
         "engine_parameters": [

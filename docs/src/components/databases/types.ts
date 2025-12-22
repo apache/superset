@@ -75,6 +75,8 @@ export interface SSLConfiguration {
 export interface CompatibleDatabase {
   name: string;
   description?: string;
+  logo?: string;
+  homepage_url?: string;
   pypi_packages?: string[];
   connection_string?: string;
   parameters?: Record<string, string>;
@@ -85,6 +87,8 @@ export interface CompatibleDatabase {
 
 export interface DatabaseDocumentation {
   description?: string;
+  logo?: string;
+  homepage_url?: string;
   pypi_packages?: string[];
   connection_string?: string;
   default_port?: number;

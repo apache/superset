@@ -1,8 +1,0 @@
-{
-  "label": "Databases",
-  "position": 1,
-  "link": {
-    "type": "doc",
-    "id": "configuration/databases/index"
-  }
-}

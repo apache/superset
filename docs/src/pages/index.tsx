@@ -23,11 +23,24 @@ import { Card, Carousel, Flex } from 'antd';
 import styled from '@emotion/styled';
 import GitHubButton from 'react-github-btn';
 import { mq } from '../utils';
-import { Databases } from '../resources/data';
 import SectionHeader from '../components/SectionHeader';
+import databaseData from '../data/databases.json';
 import BlurredSection from '../components/BlurredSection';
 import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
+import type { DatabaseData } from '../components/databases/types';
 import '../styles/main.less';
+
+// Build database list from databases.json (databases with logos)
+const typedDatabaseData = databaseData as DatabaseData;
+const Databases = Object.entries(typedDatabaseData.databases)
+  .filter(([, db]) => db.documentation?.logo && db.documentation?.homepage_url)
+  .map(([name, db]) => ({
+    title: name,
+    href: db.documentation?.homepage_url,
+    imgName: db.documentation?.logo,
+    docPath: `/docs/databases/${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
+  }))
+  .sort((a, b) => a.title.localeCompare(b.title));
 
 interface Organization {
   name: string;
@@ -761,21 +774,17 @@ export default function Home(): JSX.Element {
           <StyledIntegrations>
             <SectionHeader level="h2" title="Supported Databases" />
             <div className="database-grid">
-              {Databases.map(({ title, href, imgName }) => (
+              {Databases.map(({ title, imgName, docPath }) => (
                 <div className="item" key={title}>
-                  {href ? (
-                    <a href={href} aria-label={`Go to ${title} page`}>
-                      <img src={`/img/databases/${imgName}`} title={title} />
-                    </a>
-                  ) : (
+                  <a href={docPath} aria-label={`${title} documentation`}>
                     <img src={`/img/databases/${imgName}`} title={title} />
-                  )}
+                  </a>
                 </div>
               ))}
             </div>
             <span className="database-sub">
               ...and many other{' '}
-              <a href="/docs/configuration/databases#installing-database-drivers">
+              <a href="/docs/databases#installing-database-drivers">
                 compatible databases
               </a>
             </span>
