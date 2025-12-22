@@ -113,7 +113,7 @@ class CollectionControl extends Component<CollectionControlProps> {
 
   onAdd() {
     const currentValue = this.props.value ?? [];
-    const newItem = this.props.itemGenerator?.() ?? { key: nanoid(11) };
+    const newItem = this.props.itemGenerator?.();
     this.props.onChange?.(currentValue.concat([newItem]));
   }
 
