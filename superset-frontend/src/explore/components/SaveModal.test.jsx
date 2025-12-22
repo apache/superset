@@ -606,3 +606,209 @@ test('chart placement logic finds row with available space', () => {
   // Test case 3: Should not find row (6 + 4 = 10, adding 4 = 14 > 12)
   expect(findRowWithSpace(positionJson3, ['row1'])).toBeNull();
 });
+
+test('addChartToDashboardTab successfully adds chart to existing row with space', async () => {
+  const dashboardId = 123;
+  const chartId = 456;
+  const tabId = 'TABS_ID';
+  const sliceName = 'Test Chart';
+
+  const positionJson = {
+    [tabId]: {
+      type: 'TABS',
+      id: tabId,
+      children: ['row1'],
+    },
+    row1: {
+      type: 'ROW',
+      id: 'row1',
+      children: ['CHART-1'],
+      meta: {},
+    },
+    'CHART-1': {
+      type: 'CHART',
+      id: 'CHART-1',
+      meta: { width: 8, height: 50, chartId: 100 },
+    },
+  };
+
+  const mockDashboard = {
+    id: dashboardId,
+    position_json: JSON.stringify(positionJson),
+  };
+
+  const SupersetClient = require('@superset-ui/core').SupersetClient;
+  const originalGet = SupersetClient.get;
+  const originalPut = SupersetClient.put;
+
+  SupersetClient.get = jest.fn().mockResolvedValueOnce({
+    json: { result: mockDashboard },
+  });
+
+  SupersetClient.put = jest.fn().mockResolvedValueOnce({
+    json: { result: mockDashboard },
+  });
+
+  const component = new PureSaveModal(defaultProps);
+
+  const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
+  mockNanoid.mockReturnValue('test-id');
+
+  try {
+    const response = await component.addChartToDashboardTab(
+      dashboardId,
+      chartId,
+      tabId,
+      sliceName,
+    );
+
+    expect(SupersetClient.get).toHaveBeenCalledWith({
+      endpoint: `/api/v1/dashboard/${dashboardId}`,
+    });
+
+    expect(SupersetClient.put).toHaveBeenCalledWith({
+      endpoint: `/api/v1/dashboard/${dashboardId}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: expect.stringContaining('position_json'),
+    });
+
+    const putCall = SupersetClient.put.mock.calls[0][0];
+    const body = JSON.parse(putCall.body);
+    const updatedPositionJson = JSON.parse(body.position_json);
+
+    expect(updatedPositionJson[`CHART-${chartId}`]).toBeDefined();
+    expect(updatedPositionJson[`CHART-${chartId}`].meta.chartId).toBe(chartId);
+    expect(updatedPositionJson.row1.children).toContain(`CHART-${chartId}`);
+  } finally {
+    SupersetClient.get = originalGet;
+    SupersetClient.put = originalPut;
+    mockNanoid.mockRestore();
+  }
+});
+
+test('addChartToDashboardTab creates new row when no existing row has space', async () => {
+  const dashboardId = 123;
+  const chartId = 456;
+  const tabId = 'TABS_ID';
+  const sliceName = 'Test Chart';
+
+  const positionJson = {
+    [tabId]: {
+      type: 'TABS',
+      id: tabId,
+      children: ['row1'],
+    },
+    row1: {
+      type: 'ROW',
+      id: 'row1',
+      children: ['CHART-1'],
+      parents: ['ROOT_ID', 'GRID_ID', tabId],
+      meta: {},
+    },
+    'CHART-1': {
+      type: 'CHART',
+      id: 'CHART-1',
+      children: [],
+      parents: ['ROOT_ID', 'GRID_ID', tabId, 'row1'],
+      meta: {
+        width: GRID_COLUMN_COUNT,
+        height: 50,
+        chartId: 100,
+        sliceName: 'Existing Chart',
+      },
+    },
+  };
+
+  const mockDashboard = {
+    id: dashboardId,
+    position_json: JSON.stringify(positionJson),
+  };
+
+  const SupersetClient = require('@superset-ui/core').SupersetClient;
+  const originalGet = SupersetClient.get;
+  const originalPut = SupersetClient.put;
+
+  SupersetClient.get = jest.fn().mockResolvedValueOnce({
+    json: { result: mockDashboard },
+  });
+
+  let putRequestBody = null;
+  SupersetClient.put = jest.fn().mockImplementationOnce(request => {
+    putRequestBody = request;
+    return Promise.resolve({
+      json: { result: mockDashboard },
+    });
+  });
+
+  const component = new PureSaveModal(defaultProps);
+
+  const mockRowId = 'test-row-id';
+  const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
+  mockNanoid.mockReturnValueOnce(mockRowId);
+
+  try {
+    await component.addChartToDashboardTab(
+      dashboardId,
+      chartId,
+      tabId,
+      sliceName,
+    );
+
+    expect(SupersetClient.put).toHaveBeenCalled();
+    const body = JSON.parse(putRequestBody.body);
+    const updatedPositionJson = JSON.parse(body.position_json);
+
+    expect(updatedPositionJson[`ROW-${mockRowId}`]).toBeDefined();
+    expect(updatedPositionJson[`ROW-${mockRowId}`].type).toBe('ROW');
+
+    expect(updatedPositionJson[tabId].children).toContain(`ROW-${mockRowId}`);
+
+    expect(updatedPositionJson[`CHART-${chartId}`]).toBeDefined();
+    expect(updatedPositionJson[`ROW-${mockRowId}`].children).toContain(
+      `CHART-${chartId}`,
+    );
+  } finally {
+    SupersetClient.get = originalGet;
+    SupersetClient.put = originalPut;
+    mockNanoid.mockRestore();
+  }
+});
+
+test('addChartToDashboardTab handles empty position_json', async () => {
+  const dashboardId = 123;
+  const chartId = 456;
+  const tabId = 'TABS_ID';
+  const sliceName = 'Test Chart';
+
+  const mockDashboard = {
+    id: dashboardId,
+    position_json: null,
+  };
+
+  const SupersetClient = require('@superset-ui/core').SupersetClient;
+  const originalGet = SupersetClient.get;
+  const originalPut = SupersetClient.put;
+
+  SupersetClient.get = jest.fn().mockResolvedValueOnce({
+    json: { result: mockDashboard },
+  });
+
+  SupersetClient.put = jest.fn().mockResolvedValueOnce({
+    json: { result: mockDashboard },
+  });
+
+  const component = new PureSaveModal(defaultProps);
+
+  const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
+  mockNanoid.mockReturnValue('test-id');
+
+  try {
+    await expect(
+      component.addChartToDashboardTab(dashboardId, chartId, tabId, sliceName),
+    ).rejects.toThrow(`Tab ${tabId} not found in positionJson`);
+  } finally {
+    SupersetClient.get = originalGet;
+    SupersetClient.put = originalPut;
+    mockNanoid.mockRestore();
+  }
+});
