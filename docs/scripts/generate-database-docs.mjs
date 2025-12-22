@@ -487,6 +487,78 @@ To add or update database documentation, edit the \`DATABASE_DOCS\` dictionary i
 `;
 }
 
+const README_PATH = path.join(ROOT_DIR, 'README.md');
+const README_START_MARKER = '<!-- SUPPORTED_DATABASES_START -->';
+const README_END_MARKER = '<!-- SUPPORTED_DATABASES_END -->';
+
+/**
+ * Generate the database logos HTML for README.md
+ * Only includes databases that have logos defined
+ */
+function generateReadmeLogos(databases) {
+  // Get databases with logos, sorted alphabetically
+  const dbsWithLogos = Object.entries(databases)
+    .filter(([, db]) => db.documentation?.logo)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  if (dbsWithLogos.length === 0) {
+    return '';
+  }
+
+  // Generate HTML img tags
+  const logoTags = dbsWithLogos.map(([name, db]) => {
+    const logo = db.documentation.logo;
+    const alt = name.toLowerCase().replace(/\s+/g, '-');
+    // Use docs site URL for logos
+    return `  <img src="https://superset.apache.org/img/databases/${logo}" alt="${alt}" border="0" width="120" height="60" style="object-fit: contain;" />`;
+  });
+
+  return `<p align="center">
+${logoTags.join('\n')}
+</p>`;
+}
+
+/**
+ * Update the README.md with generated database logos
+ */
+function updateReadme(databases) {
+  if (!fs.existsSync(README_PATH)) {
+    console.log('README.md not found, skipping update');
+    return false;
+  }
+
+  const content = fs.readFileSync(README_PATH, 'utf-8');
+
+  // Check if markers exist
+  if (!content.includes(README_START_MARKER) || !content.includes(README_END_MARKER)) {
+    console.log('README.md missing database markers, skipping update');
+    console.log(`  Add ${README_START_MARKER} and ${README_END_MARKER} to enable auto-generation`);
+    return false;
+  }
+
+  // Generate new logos section
+  const logosHtml = generateReadmeLogos(databases);
+
+  // Replace content between markers
+  const pattern = new RegExp(
+    `${README_START_MARKER}[\\s\\S]*?${README_END_MARKER}`,
+    'g'
+  );
+  const newContent = content.replace(
+    pattern,
+    `${README_START_MARKER}\n${logosHtml}\n${README_END_MARKER}`
+  );
+
+  if (newContent !== content) {
+    fs.writeFileSync(README_PATH, newContent);
+    console.log('Updated README.md database logos');
+    return true;
+  }
+
+  console.log('README.md database logos unchanged');
+  return false;
+}
+
 /**
  * Load existing database data if available
  */
@@ -639,6 +711,10 @@ async function main() {
     JSON.stringify(categoryJson, null, 2)
   );
   console.log(`  Generated _category_.json`);
+
+  // Update README.md database logos
+  console.log('');
+  updateReadme(databases);
 
   console.log(`\nStatistics:`);
   console.log(`  Total databases: ${statistics.totalDatabases}`);
