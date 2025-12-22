@@ -97,7 +97,7 @@ const ExcelSpecificFields = [
 
 const ColumnarSpecificFields: string[] = [];
 
-const NonNullFields = ['rows_to_read', 'index_column'];
+const NonNullFields = ['rows_to_read', 'index_column', 'schema'];
 
 const AllSpecificFields = [
   ...CSVSpecificFields,
@@ -314,7 +314,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const clearModal = () => {
     setFileList([]);
     setColumns([]);
-    setCurrentSchema('');
+    setCurrentSchema(undefined);
     setCurrentDatabaseId(0);
     setSheetNames([]);
     setIsLoading(false);
