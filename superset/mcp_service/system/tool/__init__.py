@@ -18,9 +18,11 @@
 """System tools for MCP service."""
 
 from .get_instance_info import get_instance_info
+from .get_schema import get_schema
 from .health_check import health_check
 
 __all__ = [
     "health_check",
     "get_instance_info",
+    "get_schema",
 ]
