@@ -18,6 +18,7 @@
     "typecheck": "yarn run generate:extension-components && tsc",
     "generate:extension-components": "node scripts/generate-extension-components.mjs",
     "generate:database-docs": "node scripts/generate-database-docs.mjs",
+    "update:readme-db-logos": "node scripts/generate-database-docs.mjs --update-readme",
     "eslint": "eslint .",
     "version:add": "node scripts/manage-versions.mjs add",
     "version:remove": "node scripts/manage-versions.mjs remove",

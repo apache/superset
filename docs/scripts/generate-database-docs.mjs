@@ -712,9 +712,11 @@ async function main() {
   );
   console.log(`  Generated _category_.json`);
 
-  // Update README.md database logos
-  console.log('');
-  updateReadme(databases);
+  // Update README.md database logos (only when explicitly requested)
+  if (process.env.UPDATE_README === 'true' || process.argv.includes('--update-readme')) {
+    console.log('');
+    updateReadme(databases);
+  }
 
   console.log(`\nStatistics:`);
   console.log(`  Total databases: ${statistics.totalDatabases}`);
