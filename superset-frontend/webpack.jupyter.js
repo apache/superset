@@ -229,7 +229,7 @@ const babelLoader = {
 const config = {
   entry: {
     // preamble: PREAMBLE,
-    // theme: path.join(APP_DIR, '/src/theme.ts'),
+    theme: path.join(APP_DIR, '/src/theme.ts'),
     // menu: addPreamble('src/views/menu.tsx'),
     // spa: addPreamble('/src/views/index.tsx'),
     // embedded: addPreamble('/src/embedded/index.tsx'),

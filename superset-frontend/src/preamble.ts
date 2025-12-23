@@ -54,6 +54,7 @@ initFeatureFlags(bootstrapData.common.feature_flags);
 
 // Setup SupersetClient
 setupClient({ host: '127.0.0.1:8088', mode: 'cors' });
+// setupClient();
 
 setupColors(
   bootstrapData.common.extra_categorical_color_schemes,
