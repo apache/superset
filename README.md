@@ -127,15 +127,16 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/firebolt.png" alt="firebolt" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/google-big-query.svg" alt="google-bigquery" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/google-sheets.svg" alt="google-sheets" border="0" width="120" height="60" style="object-fit: contain;" />
+  <img src="https://superset.apache.org/img/databases/ibm-db2.svg" alt="ibm-db2" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/netezza.png" alt="ibm-netezza" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/msql.png" alt="microsoft-sql-server" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/mysql.jpg" alt="mysql" border="0" width="120" height="60" style="object-fit: contain;" />
+  <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/oraclelogo.png" alt="oracle" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/postgresql.svg" alt="postgresql" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/presto-og.png" alt="presto" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/sap-hana.jpg" alt="sap-hana" border="0" width="120" height="60" style="object-fit: contain;" />
+  <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="sap-hana" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/snowflake.svg" alt="snowflake" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="120" height="60" style="object-fit: contain;" />

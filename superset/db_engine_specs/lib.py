@@ -104,7 +104,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "MySQL": {
         "description": "MySQL is a popular open-source relational database.",
-        "logo": "mysql.jpg",
+        "logo": "mysql.png",
         "homepage_url": "https://www.mysql.com/",
         "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
@@ -685,7 +685,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "SAP HANA": {
         "description": "SAP HANA is an in-memory relational database and application platform.",
-        "logo": "sap-hana.jpg",
+        "logo": "sap-hana.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/hana.html",
         "pypi_packages": ["hdbcli", "sqlalchemy-hana"],
         "install_instructions": 'pip install apache_superset[hana]',
@@ -694,6 +694,8 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "IBM Db2": {
         "description": "IBM Db2 is a family of data management products.",
+        "logo": "ibm-db2.svg",
+        "homepage_url": "https://www.ibm.com/db2",
         "pypi_packages": ["ibm_db_sa"],
         "drivers": [
             {

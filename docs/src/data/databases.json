@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-23T19:28:47.974Z",
+  "generated": "2025-12-23T23:13:35.875Z",
   "statistics": {
     "totalDatabases": 53,
     "withDocumentation": 53,
@@ -213,7 +213,7 @@
       "engine_name": "MySQL",
       "documentation": {
         "description": "MySQL is a popular open-source relational database.",
-        "logo": "mysql.jpg",
+        "logo": "mysql.png",
         "homepage_url": "https://www.mysql.com/",
         "pypi_packages": [
           "mysqlclient"
@@ -1990,7 +1990,7 @@
       "engine_name": "SAP HANA",
       "documentation": {
         "description": "SAP HANA is an in-memory relational database and application platform.",
-        "logo": "sap-hana.jpg",
+        "logo": "sap-hana.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/hana.html",
         "pypi_packages": [
           "hdbcli",
@@ -2042,6 +2042,8 @@
       "engine_name": "IBM Db2",
       "documentation": {
         "description": "IBM Db2 is a family of data management products.",
+        "logo": "ibm-db2.svg",
+        "homepage_url": "https://www.ibm.com/db2",
         "pypi_packages": [
           "ibm_db_sa"
         ],
