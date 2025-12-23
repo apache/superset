@@ -56,6 +56,7 @@ const boundActions = bindActionCreators({ logEvent }, store.dispatch);
 
 const LocationPathnameLogger = () => {
   const location = useLocation();
+  // dummy change
   useEffect(() => {
     // This will log client side route changes for single page app user navigation
     boundActions.logEvent(LOG_ACTIONS_SPA_NAVIGATION, {
