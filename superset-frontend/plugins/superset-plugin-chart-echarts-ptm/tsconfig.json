@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "declarationDir": "lib",
+    "outDir": "lib",
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "lib",
+    "esm",
+    "test",
+    "node_modules"
+  ],
+  "include": [
+    "src/**/*",
+    "types/**/*",
+    "../../types/**/*",
+    "../../plugin-chart-table/src/**/*"
+  ],
+  "references": [
+    {
+      "path": "../../packages/superset-ui-chart-controls"
+    },
+    {
+      "path": "../../packages/superset-ui-core"
+    }
+  ]
+}
