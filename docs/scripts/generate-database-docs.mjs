@@ -28,7 +28,7 @@
  * 2. Fallback mode (documentation only) - uses just the DATABASE_DOCS from lib.py
  */
 
-import { execSync, spawn } from 'child_process';
+import { execSync, spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -49,8 +49,7 @@ const LIB_PY_PATH = path.join(ROOT_DIR, 'superset/db_engine_specs/lib.py');
 function tryRunFullScript() {
   try {
     console.log('Attempting to run lib.py with Flask context...');
-    const result = execSync(
-      `cd ${ROOT_DIR} && SUPERSET_SECRET_KEY='docs-build-key' python -c "
+    const pythonCode = `
 import sys
 import json
 sys.path.insert(0, '.')
@@ -60,14 +59,22 @@ app = create_app()
 with app.app_context():
     docs = generate_yaml_docs()
     print(json.dumps(docs, default=str))
-"`,
-      {
-        encoding: 'utf-8',
-        timeout: 60000,
-        maxBuffer: 10 * 1024 * 1024,
-      }
-    );
-    return JSON.parse(result);
+`;
+    const result = spawnSync('python', ['-c', pythonCode], {
+      cwd: ROOT_DIR,
+      encoding: 'utf-8',
+      timeout: 60000,
+      maxBuffer: 10 * 1024 * 1024,
+      env: { ...process.env, SUPERSET_SECRET_KEY: 'docs-build-key' },
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(result.stderr || 'Python script failed');
+    }
+    return JSON.parse(result.stdout);
   } catch (error) {
     console.log('Full script execution failed, using fallback mode...');
     console.log('  Reason:', error.message?.split('\n')[0] || 'Unknown error');
