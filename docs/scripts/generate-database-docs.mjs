@@ -90,8 +90,7 @@ function extractDatabaseDocs() {
   console.log('Extracting DATABASE_DOCS directly from lib.py...');
 
   try {
-    const result = execSync(
-      `cd ${ROOT_DIR} && python3 -c "
+    const pythonCode = `
 import sys
 import json
 import ast
@@ -119,14 +118,21 @@ DATABASE_DOCS = ${extractDatabaseDocsCode()}
 ''', exec_globals)
 
 print(json.dumps(exec_globals.get('DATABASE_DOCS', {}), default=str))
-"`,
-      {
-        encoding: 'utf-8',
-        timeout: 30000,
-        maxBuffer: 10 * 1024 * 1024,
-      }
-    );
-    return JSON.parse(result);
+`;
+    const result = spawnSync('python3', ['-c', pythonCode], {
+      cwd: ROOT_DIR,
+      encoding: 'utf-8',
+      timeout: 30000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(result.stderr || 'Python script failed');
+    }
+    return JSON.parse(result.stdout);
   } catch {
     // If AST extraction fails, try direct Python import of just DATABASE_DOCS
     return extractDatabaseDocsSimple();
@@ -141,8 +147,7 @@ function extractDatabaseDocsSimple() {
   console.log('Using simple extraction method...');
 
   try {
-    const result = execSync(
-      `cd ${ROOT_DIR} && python3 -c "
+    const pythonCode = `
 import sys
 import json
 import importlib
@@ -235,14 +240,21 @@ for name, docs in DATABASE_DOCS.items():
         }
 
 print(json.dumps({'databases': output, 'loaded': len(loaded_specs), 'failed': failed_imports}, default=str))
-"`,
-      {
-        encoding: 'utf-8',
-        timeout: 60000,
-        maxBuffer: 10 * 1024 * 1024,
-      }
-    );
-    const data = JSON.parse(result);
+`;
+    const result = spawnSync('python3', ['-c', pythonCode], {
+      cwd: ROOT_DIR,
+      encoding: 'utf-8',
+      timeout: 60000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(result.stderr || 'Python script failed');
+    }
+    const data = JSON.parse(result.stdout);
     console.log(`Loaded ${data.loaded} engine specs (failed: ${data.failed.join(', ') || 'none'})`);
     return data.databases;
   } catch (error) {
