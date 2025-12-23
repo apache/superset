@@ -25,6 +25,7 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
+from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import RoleApi, UserApi
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
@@ -143,11 +144,35 @@ class SupersetRoleApi(RoleApi):
         item.permissions = []
 
 
-class SupersetUserApi(UserApi):
+class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
-    Overriding the UserApi to be able to delete users
+    Filter to exclude users from listings based on EXCLUDE_USERS_FROM_LISTS config.
+
+    This filter is designed for use as a base_filter on user listing APIs.
+    It uses the same exclusion logic as BaseFilterRelatedUsers for consistency.
     """
 
+    name = _("username")
+    arg_name = "username"
+
+    def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
+        exclude_users = (
+            current_app.appbuilder.sm.get_exclude_users_from_lists()
+            if current_app.config["EXCLUDE_USERS_FROM_LISTS"] is None
+            else current_app.config["EXCLUDE_USERS_FROM_LISTS"]
+        )
+        if exclude_users:
+            return query.filter(User.username.not_in(exclude_users))
+
+        return query
+
+
+class SupersetUserApi(UserApi):
+    """
+    Overriding the UserApi to be able to delete users and filter excluded users
+    """
+
+    base_filters = [["username", ExcludeUsersFilter, lambda: []]]
     search_columns = [
         "id",
         "roles",
