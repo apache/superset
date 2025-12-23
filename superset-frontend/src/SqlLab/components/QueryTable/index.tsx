@@ -46,11 +46,10 @@ import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, StyledTooltip } from './styles';
 
-interface QueryTableQuery
-  extends Omit<
-    QueryResponse,
-    'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
-  > {
+interface QueryTableQuery extends Omit<
+  QueryResponse,
+  'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
+> {
   state?: Record<string, any>;
   sql?: Record<string, any>;
   progress?: Record<string, any>;
