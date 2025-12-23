@@ -90,15 +90,7 @@ function CountryMap(element, props) {
     .attr('height', height);
   const g = svg.append('g');
   const mapLayer = g.append('g').classed('map-layer', true);
-  const textLayer = g
-    .append('g')
-    .classed('text-layer', true)
-    .attr('transform', `translate(${width / 2}, 45)`);
-  const bigText = textLayer.append('text').classed('big-text', true);
-  const resultText = textLayer
-    .append('text')
-    .classed('result-text', true)
-    .attr('dy', '1em');
+  const hoverPopup = div.append('div').attr('class', 'hover-popup');
 
   let centered;
 
@@ -128,45 +120,18 @@ function CountryMap(element, props) {
         'transform',
         `translate(${halfWidth},${halfHeight})scale(${k})translate(${-x},${-y})`,
       );
-    textLayer
-      .style('opacity', 0)
-      .attr(
-        'transform',
-        `translate(0,0)translate(${x},${hasCenter ? y - 5 : 45})`,
-      )
-      .transition()
-      .duration(750)
-      .style('opacity', 1);
-    bigText
-      .transition()
-      .duration(750)
-      .style('font-size', hasCenter ? 6 : 16);
-    resultText
-      .transition()
-      .duration(750)
-      .style('font-size', hasCenter ? 16 : 24);
   };
 
   backgroundRect.on('click', clicked);
 
-  const selectAndDisplayNameOfRegion = function selectAndDisplayNameOfRegion(
-    feature,
-  ) {
-    let name = '';
+  const getNameOfRegion = function getNameOfRegion(feature) {
     if (feature && feature.properties) {
       if (feature.properties.ID_2) {
-        name = feature.properties.NAME_2;
-      } else {
-        name = feature.properties.NAME_1;
+        return feature.properties.NAME_2;
       }
+      return feature.properties.NAME_1;
     }
-    bigText.text(name);
-  };
-
-  const updateMetrics = function updateMetrics(region) {
-    if (region.length > 0) {
-      resultText.text(format(region[0].metric));
-    }
+    return '';
   };
 
   const mouseenter = function mouseenter(d) {
@@ -176,17 +141,31 @@ function CountryMap(element, props) {
       c = d3.rgb(c).darker().toString();
     }
     d3.select(this).style('fill', c);
-    selectAndDisplayNameOfRegion(d);
+    // Display information popup
     const result = data.filter(
       region => region.country_id === d.properties.ISO,
     );
-    updateMetrics(result);
+
+    const position = d3.mouse(svg.node());
+    hoverPopup
+      .style('display', 'block')
+      .style('top', `${position[1] + 30}px`)
+      .style('left', `${position[0]}px`)
+      .html(
+        `<div><strong>${getNameOfRegion(d)}</strong><br>${result.length > 0 ? format(result[0].metric) : ''}</div>`,
+      );
+  };
+
+  const mousemove = function mousemove() {
+    const position = d3.mouse(svg.node());
+    hoverPopup
+      .style('top', `${position[1] + 30}px`)
+      .style('left', `${position[0]}px`);
   };
 
   const mouseout = function mouseout() {
     d3.select(this).style('fill', colorFn);
-    bigText.text('');
-    resultText.text('');
+    hoverPopup.style('display', 'none');
   };
 
   function drawMap(mapData) {
@@ -225,6 +204,7 @@ function CountryMap(element, props) {
       .attr('vector-effect', 'non-scaling-stroke')
       .style('fill', colorFn)
       .on('mouseenter', mouseenter)
+      .on('mousemove', mousemove)
       .on('mouseout', mouseout)
       .on('click', clicked);
   }

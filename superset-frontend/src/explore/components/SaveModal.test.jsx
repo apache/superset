@@ -30,6 +30,7 @@ import fetchMock from 'fetch-mock';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
+import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
 
 jest.mock('@superset-ui/core/components/Select', () => ({
   ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
@@ -344,4 +345,87 @@ test('removes form_data_key from URL parameters after save', () => {
   expect(result.get('other_param')).toEqual('value');
   expect(result.get('slice_id')).toEqual('1');
   expect(result.get('save_action')).toEqual('overwrite');
+});
+
+test('dispatches removeChartState when saving and going to dashboard', async () => {
+  // Spy on the removeChartState action creator
+  const removeChartStateSpy = jest.spyOn(
+    dashboardStateActions,
+    'removeChartState',
+  );
+
+  // Mock the dashboard API response
+  const dashboardId = 123;
+  const dashboardUrl = '/superset/dashboard/test-dashboard/';
+  fetchMock.get(
+    `glob:*/api/v1/dashboard/${dashboardId}*`,
+    {
+      result: {
+        id: dashboardId,
+        dashboard_title: 'Test Dashboard',
+        url: dashboardUrl,
+      },
+    },
+    { overwriteRoutes: true },
+  );
+
+  const mockDispatch = jest.fn();
+  const mockHistory = {
+    push: jest.fn(),
+    replace: jest.fn(),
+  };
+  const chartId = 42;
+  const mockUpdateSlice = jest.fn(() => Promise.resolve({ id: chartId }));
+  const mockSetFormData = jest.fn();
+
+  const myProps = {
+    ...defaultProps,
+    slice: { slice_id: 1, slice_name: 'title', owners: [1] },
+    actions: {
+      setFormData: mockSetFormData,
+      updateSlice: mockUpdateSlice,
+      getSliceDashboards: jest.fn(() => Promise.resolve([])),
+      saveSliceFailed: jest.fn(),
+    },
+    user: { userId: 1 },
+    history: mockHistory,
+    dispatch: mockDispatch,
+  };
+
+  const saveModal = new PureSaveModal(myProps);
+  saveModal.state = {
+    action: 'overwrite',
+    newSliceName: 'test chart',
+    datasetName: 'test dataset',
+    dashboard: { label: 'Test Dashboard', value: dashboardId },
+    saveStatus: null,
+  };
+
+  // Mock onHide to prevent errors
+  saveModal.onHide = jest.fn();
+
+  // Trigger save and go to dashboard (gotodash = true)
+  await saveModal.saveOrOverwrite(true);
+
+  // Wait for async operations
+  await waitFor(() => {
+    expect(mockUpdateSlice).toHaveBeenCalled();
+    expect(mockSetFormData).toHaveBeenCalled();
+  });
+
+  // Verify removeChartState was called with the correct chart ID
+  expect(removeChartStateSpy).toHaveBeenCalledWith(chartId);
+
+  // Verify the action was dispatched (check the action object directly)
+  expect(mockDispatch).toHaveBeenCalled();
+  expect(mockDispatch).toHaveBeenCalledWith({
+    type: 'REMOVE_CHART_STATE',
+    chartId,
+  });
+
+  // Verify navigation happened
+  expect(mockHistory.push).toHaveBeenCalled();
+
+  // Clean up
+  removeChartStateSpy.mockRestore();
 });

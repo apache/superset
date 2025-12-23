@@ -138,6 +138,10 @@ const ExplorePanelContainer = styled.div`
       justify-content: space-between;
       .horizontal-text {
         font-size: ${theme.fontSize}px;
+        line-height: 1.5;
+        display: inline-block;
+        height: auto;
+        overflow: visible;
       }
     }
     .no-show {
@@ -600,8 +604,11 @@ function ExploreViewContainer(props) {
     }
   });
 
+  const previousOwnState = usePrevious(props.ownState);
   useEffect(() => {
-    if (props.ownState !== undefined) {
+    const strip = s =>
+      s && typeof s === 'object' ? omit(s, ['clientView']) : s;
+    if (!isEqual(strip(previousOwnState), strip(props.ownState))) {
       onQuery();
       reRenderChart();
     }
@@ -938,10 +945,14 @@ function mapStateToProps(state) {
   const form_data = isDeckGLChart ? getDeckGLFormData() : controlsBasedFormData;
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
+
+  // exclude clientView from extra_form_data; keep other ownState pieces
+  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, ['clientView']);
+
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      ...dataMask[slice_id]?.ownState,
+      ...ownStateForQuery,
     },
   );
   const chart = charts[slice_id];
