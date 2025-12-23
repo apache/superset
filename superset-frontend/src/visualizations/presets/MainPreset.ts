@@ -82,6 +82,14 @@ import { FilterPlugins } from 'src/constants';
 import TimeTableChartPlugin from '../TimeTable';
 import FlaskChartPlugin from 'plugins/plugin-chart-flask';
 
+// PTM (Portal Telemedicina) Chart Plugins
+import {
+  PtmTimeseriesChartPlugin,
+  PtmPieChartPlugin,
+  PtmBigNumberTotalChartPlugin,
+  PtmBigNumberWithTrendlineChartPlugin,
+  PtmTableChartPlugin,
+} from '@superset-ui/superset-plugin-chart-echarts-ptm';
 export default class MainPreset extends Preset {
   constructor() {
     const experimentalPlugins = isFeatureEnabled(
@@ -187,6 +195,25 @@ export default class MainPreset extends Preset {
           ],
         }).configure({ key: VizType.Cartodiagram }),
         ...experimentalPlugins,
+
+        // ==========================================================
+        // PTM (Portal Telemedicina) Chart Plugins
+        // ==========================================================
+        new PtmTimeseriesChartPlugin().configure({
+          key: 'ptm_echarts_timeseries',
+        }),
+        new PtmPieChartPlugin().configure({
+          key: 'ptm_pie',
+        }),
+        new PtmBigNumberTotalChartPlugin().configure({ 
+          key: 'ptm_big_number_total' 
+        }),
+        new PtmBigNumberWithTrendlineChartPlugin().configure({ 
+          key: 'ptm_big_number_trendline' 
+        }),
+        new PtmTableChartPlugin().configure({
+          key: 'ptm_table',
+        }),
       ],
     });
   }
