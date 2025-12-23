@@ -23,22 +23,14 @@ services:
   db:
     image: postgres:17.4
     container_name: superset_db
+    env_file:
+      - path: docker/.env 
+        required: true
     shm_size: 1g
     user: postgres
     restart: unless-stopped
     networks:
       - superset-network
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-superset}
-      POSTGRES_USER: ${POSTGRES_USER:-superset}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-superset}
-    command: >
-      postgres
-      -c wal_level=logical
-      -c max_wal_senders=10
-      -c max_replication_slots=5
-      -c hot_standby=on
-      -c hot_standby_feedback=on
     volumes:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -61,14 +53,6 @@ services:
       - "${SUPERSET_PORT:-8088}:8088"
     environment:
       - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
-      - DATABASE_DIALECT=postgresql
-      - DATABASE_HOST=${SUPERSET_DB_HOST:-oee-postgres}
-      - DATABASE_PORT=${SUPERSET_DB_PORT:-5432}
-      - DATABASE_DB=${SUPERSET_DB_NAME:-superset_metadata}
-      - DATABASE_USER=${SUPERSET_DB_USER}
-      - DATABASE_PASSWORD=${SUPERSET_DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
       superset-init:
         condition: service_completed_successfully
@@ -84,14 +68,6 @@ services:
       - oeeintellisuite
     environment:
       - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
-      - DATABASE_DIALECT=postgresql
-      - DATABASE_HOST=oee-postgres
-      - DATABASE_PORT=5432
-      - DATABASE_DB=superset_metadata
-      - DATABASE_USER=oee-admin
-      - DATABASE_PASSWORD=CNDpjZHL7b4UNCjPEV5a
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
       redis:
         condition: service_healthy
