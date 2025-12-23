@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-23T19:21:25.992Z",
+  "generated": "2025-12-23T19:28:47.974Z",
   "statistics": {
     "totalDatabases": 53,
     "withDocumentation": 53,
@@ -303,7 +303,7 @@
       "engine_name": "SQLite",
       "documentation": {
         "description": "SQLite is a self-contained, serverless SQL database engine.",
-        "logo": "sqlite.jpg",
+        "logo": "sqlite.png",
         "homepage_url": "https://www.sqlite.org/",
         "pypi_packages": [],
         "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",

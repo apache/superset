@@ -140,7 +140,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "SQLite": {
         "description": "SQLite is a self-contained, serverless SQL database engine.",
-        "logo": "sqlite.jpg",
+        "logo": "sqlite.png",
         "homepage_url": "https://www.sqlite.org/",
         "pypi_packages": [],
         "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",

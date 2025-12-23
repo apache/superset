@@ -137,7 +137,7 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/presto-og.png" alt="presto" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/sap-hana.jpg" alt="sap-hana" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/snowflake.svg" alt="snowflake" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/sqlite.jpg" alt="sqlite" border="0" width="120" height="60" style="object-fit: contain;" />
+  <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/tdengine.png" alt="tdengine" border="0" width="120" height="60" style="object-fit: contain;" />
   <img src="https://superset.apache.org/img/databases/teradata.png" alt="teradata" border="0" width="120" height="60" style="object-fit: contain;" />
