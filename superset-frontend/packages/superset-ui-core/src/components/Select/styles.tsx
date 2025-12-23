@@ -142,6 +142,5 @@ export const StyledBulkActionsContainer = styled(Flex)`
   ${({ theme }) => `
     padding: ${theme.sizeUnit}px;
     border-top: 1px solid ${theme.colorSplit};
-    flex-wrap: wrap;
   `}
 `;
