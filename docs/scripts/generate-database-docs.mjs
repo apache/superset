@@ -83,8 +83,8 @@ with app.app_context():
 }
 
 /**
- * Extract DATABASE_DOCS from lib.py without running it
- * This is a fallback when the full script can't run
+ * Extract DATABASE_DOCS from lib.py using pure AST parsing
+ * No superset imports required - works in CI without dependencies
  */
 function extractDatabaseDocs() {
   console.log('Extracting DATABASE_DOCS directly from lib.py...');
@@ -94,30 +94,70 @@ function extractDatabaseDocs() {
 import sys
 import json
 import ast
+import re
 
 # Read the lib.py file
 with open('superset/db_engine_specs/lib.py', 'r') as f:
     content = f.read()
 
-# Find DATABASE_DOCS assignment
-tree = ast.parse(content)
-database_docs = None
+# Find the DATABASE_DOCS dictionary using regex to extract the block
+# This avoids needing to execute any superset code
+# Handle both plain assignment and type-annotated assignment
+match = re.search(r'^DATABASE_DOCS[^=]*=\\s*({.*?^})', content, re.MULTILINE | re.DOTALL)
+if not match:
+    print(json.dumps({}))
+    sys.exit(0)
 
-for node in ast.walk(tree):
-    if isinstance(node, ast.Assign):
-        for target in node.targets:
-            if isinstance(target, ast.Name) and target.id == 'DATABASE_DOCS':
-                # Execute just the DATABASE_DOCS portion
-                exec(compile(ast.Expression(node.value), '<string>', 'eval'))
-                break
+docs_str = match.group(1)
 
-# Re-execute to get the actual value
-exec_globals = {}
-exec('''
-DATABASE_DOCS = ${extractDatabaseDocsCode()}
-''', exec_globals)
+# Parse the extracted dictionary as a Python literal
+tree = ast.parse(docs_str, mode='eval')
 
-print(json.dumps(exec_globals.get('DATABASE_DOCS', {}), default=str))
+# Safely evaluate the AST - only allow literals
+def eval_node(node):
+    if isinstance(node, ast.Expression):
+        return eval_node(node.body)
+    elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        # Handle string concatenation
+        return eval_node(node.left) + eval_node(node.right)
+    elif isinstance(node, ast.Dict):
+        return {eval_node(k): eval_node(v) for k, v in zip(node.keys, node.values)}
+    elif isinstance(node, ast.List):
+        return [eval_node(e) for e in node.elts]
+    elif isinstance(node, ast.Set):
+        return {eval_node(e) for e in node.elts}
+    elif isinstance(node, ast.Tuple):
+        return tuple(eval_node(e) for e in node.elts)
+    elif isinstance(node, ast.Constant):
+        return node.value
+    elif isinstance(node, ast.Str):  # Python 3.7 compat
+        return node.s
+    elif isinstance(node, ast.Num):  # Python 3.7 compat
+        return node.n
+    elif isinstance(node, ast.NameConstant):  # Python 3.7 compat
+        return node.value
+    elif isinstance(node, ast.Name):
+        # Handle True, False, None
+        if node.id == 'True':
+            return True
+        elif node.id == 'False':
+            return False
+        elif node.id == 'None':
+            return None
+        else:
+            return node.id  # Return name as string for unknown refs
+    elif isinstance(node, ast.Call):
+        # Handle set() calls
+        if isinstance(node.func, ast.Name) and node.func.id == 'set':
+            if node.args:
+                return set(eval_node(node.args[0]))
+            return set()
+        return None
+    else:
+        return None
+
+result = eval_node(tree)
+print(json.dumps(result if result else {}, default=str))
 `;
     const result = spawnSync('python3', ['-c', pythonCode], {
       cwd: ROOT_DIR,
@@ -132,135 +172,51 @@ print(json.dumps(exec_globals.get('DATABASE_DOCS', {}), default=str))
     if (result.status !== 0) {
       throw new Error(result.stderr || 'Python script failed');
     }
-    return JSON.parse(result.stdout);
-  } catch {
-    // If AST extraction fails, try direct Python import of just DATABASE_DOCS
+    const databaseDocs = JSON.parse(result.stdout);
+    if (Object.keys(databaseDocs).length === 0) {
+      throw new Error('No DATABASE_DOCS found');
+    }
+
+    // Build the expected format: wrap documentation in full entry structure
+    const databases = {};
+    for (const [name, docs] of Object.entries(databaseDocs)) {
+      databases[name] = {
+        engine: name.toLowerCase().replace(/\s+/g, '_'),
+        engine_name: name,
+        documentation: docs,
+        time_grains: {},
+        score: 0,
+        max_score: 0,
+        joins: true,
+        subqueries: true,
+        supports_dynamic_schema: false,
+        supports_catalog: false,
+        supports_dynamic_catalog: false,
+        ssh_tunneling: false,
+        query_cancelation: false,
+        supports_file_upload: false,
+        user_impersonation: false,
+        query_cost_estimation: false,
+        sql_validation: false,
+      };
+    }
+    console.log(`Extracted ${Object.keys(databases).length} databases from lib.py`);
+    return databases;
+  } catch (err) {
+    console.error('AST extraction failed:', err.message);
+    // Fall back to simple extraction
     return extractDatabaseDocsSimple();
   }
 }
 
 /**
- * Simple extraction - import DATABASE_DOCS and try to get diagnostics
- * This version attempts to load engine specs individually, skipping failures
+ * Simple extraction fallback - just reads DATABASE_DOCS keys and builds placeholder entries
+ * No superset imports required - works in CI without dependencies
  */
 function extractDatabaseDocsSimple() {
-  console.log('Using simple extraction method...');
-
-  try {
-    const pythonCode = `
-import sys
-import json
-import importlib
-import pkgutil
-import warnings
-sys.path.insert(0, '.')
-warnings.filterwarnings('ignore')
-
-# Import just the DATABASE_DOCS constant
-from superset.db_engine_specs.lib import DATABASE_DOCS, diagnose, get_name
-
-# Try to load engine specs individually, skipping failures
-loaded_specs = {}
-failed_imports = []
-
-import superset.db_engine_specs as specs_package
-for importer, modname, ispkg in pkgutil.iter_modules(specs_package.__path__):
-    if modname in ('base', 'lib', '__init__'):
-        continue
-    try:
-        module = importlib.import_module(f'superset.db_engine_specs.{modname}')
-        for attr_name in dir(module):
-            attr = getattr(module, attr_name)
-            if (isinstance(attr, type) and
-                hasattr(attr, 'engine') and
-                hasattr(attr, '__module__') and
-                attr.__module__.startswith('superset.db_engine_specs')):
-                try:
-                    name = get_name(attr)
-                    if name and name not in loaded_specs:
-                        loaded_specs[name] = attr
-                except:
-                    pass
-    except Exception as e:
-        failed_imports.append(modname)
-
-# Build output with diagnostics where available
-output = {}
-for name, docs in DATABASE_DOCS.items():
-    spec = loaded_specs.get(name)
-    if spec:
-        try:
-            diag = diagnose(spec)
-            output[name] = {
-                'engine': getattr(spec, 'engine', name.lower().replace(' ', '_')),
-                'engine_name': name,
-                'documentation': docs,
-                'time_grains': diag.get('time_grains', {}),
-                'score': diag.get('score', 0),
-                'max_score': diag.get('max_score', 0),
-                'joins': diag.get('joins', True),
-                'subqueries': diag.get('subqueries', True),
-                'supports_dynamic_schema': diag.get('supports_dynamic_schema', False),
-                'supports_catalog': diag.get('supports_catalog', False),
-                'supports_dynamic_catalog': diag.get('supports_dynamic_catalog', False),
-                'ssh_tunneling': diag.get('ssh_tunneling', False),
-                'query_cancelation': diag.get('query_cancelation', False),
-                'supports_file_upload': diag.get('supports_file_upload', False),
-                'user_impersonation': diag.get('user_impersonation', False),
-                'query_cost_estimation': diag.get('query_cost_estimation', False),
-                'sql_validation': diag.get('sql_validation', False),
-            }
-        except Exception as e:
-            # Fallback for this specific database
-            output[name] = {
-                'engine': name.lower().replace(' ', '_'),
-                'engine_name': name,
-                'documentation': docs,
-                'time_grains': {},
-                'score': 0,
-                'max_score': 0,
-                'joins': True,
-                'subqueries': True,
-                'supports_dynamic_schema': False,
-                'supports_catalog': False,
-            }
-    else:
-        # No spec found, use placeholder
-        output[name] = {
-            'engine': name.lower().replace(' ', '_'),
-            'engine_name': name,
-            'documentation': docs,
-            'time_grains': {},
-            'score': 0,
-            'max_score': 0,
-            'joins': True,
-            'subqueries': True,
-            'supports_dynamic_schema': False,
-            'supports_catalog': False,
-        }
-
-print(json.dumps({'databases': output, 'loaded': len(loaded_specs), 'failed': failed_imports}, default=str))
-`;
-    const result = spawnSync('python3', ['-c', pythonCode], {
-      cwd: ROOT_DIR,
-      encoding: 'utf-8',
-      timeout: 60000,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-
-    if (result.error) {
-      throw result.error;
-    }
-    if (result.status !== 0) {
-      throw new Error(result.stderr || 'Python script failed');
-    }
-    const data = JSON.parse(result.stdout);
-    console.log(`Loaded ${data.loaded} engine specs (failed: ${data.failed.join(', ') || 'none'})`);
-    return data.databases;
-  } catch (error) {
-    console.error('Failed to extract DATABASE_DOCS:', error.message);
-    return null;
-  }
+  console.log('Using simple extraction method (no diagnostics)...');
+  // This is a final fallback - just return null and let caller use existing data
+  return null;
 }
 
 /**
@@ -649,11 +605,11 @@ async function main() {
   // Load existing data for potential merge
   const existingData = loadExistingData();
 
-  // Try to run the full script first, fall back to extraction
+  // Try to run the full script first, fall back to AST extraction
   let databases = tryRunFullScript();
 
   if (!databases) {
-    databases = extractDatabaseDocsSimple();
+    databases = extractDatabaseDocs();
   }
 
   if (!databases || Object.keys(databases).length === 0) {

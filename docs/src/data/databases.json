@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-23T19:09:25.555Z",
+  "generated": "2025-12-23T19:21:25.992Z",
   "statistics": {
     "totalDatabases": 53,
     "withDocumentation": 53,
@@ -388,7 +388,14 @@
       "joins": true,
       "subqueries": true,
       "supports_dynamic_schema": false,
-      "supports_catalog": false
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
     },
     "AWS DynamoDB": {
       "engine": "aws_dynamodb",
@@ -408,7 +415,14 @@
       "joins": true,
       "subqueries": true,
       "supports_dynamic_schema": false,
-      "supports_catalog": false
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
     },
     "AWS Redshift": {
       "engine": "aws_redshift",
@@ -482,7 +496,14 @@
       "joins": true,
       "subqueries": true,
       "supports_dynamic_schema": false,
-      "supports_catalog": false
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
     },
     "Apache Doris": {
       "engine": "apache_doris",
@@ -1025,7 +1046,14 @@
       "joins": true,
       "subqueries": true,
       "supports_dynamic_schema": false,
-      "supports_catalog": false
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
     },
     "Ascend.io": {
       "engine": "ascend.io",
@@ -1043,7 +1071,14 @@
       "joins": true,
       "subqueries": true,
       "supports_dynamic_schema": false,
-      "supports_catalog": false
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
     },
     "ClickHouse": {
       "engine": "clickhouse",
@@ -1123,7 +1158,14 @@
       "joins": true,
       "subqueries": true,
       "supports_dynamic_schema": false,
-      "supports_catalog": false
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
     },
     "CockroachDB": {
       "engine": "cockroachdb",
@@ -1655,7 +1697,14 @@
       "joins": true,
       "subqueries": true,
       "supports_dynamic_schema": false,
-      "supports_catalog": false
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
     },
     "Exasol": {
       "engine": "exasol",
@@ -1873,7 +1922,14 @@
       "joins": true,
       "subqueries": true,
       "supports_dynamic_schema": false,
-      "supports_catalog": false
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
     },
     "Google Sheets": {
       "engine": "google_sheets",
@@ -2059,7 +2115,14 @@
       "joins": true,
       "subqueries": true,
       "supports_dynamic_schema": false,
-      "supports_catalog": false
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
     },
     "Kusto": {
       "engine": "kusto",
@@ -2088,7 +2151,14 @@
       "joins": true,
       "subqueries": true,
       "supports_dynamic_schema": false,
-      "supports_catalog": false
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
     },
     "MariaDB": {
       "engine": "mariadb",
