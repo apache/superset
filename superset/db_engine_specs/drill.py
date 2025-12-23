@@ -87,7 +87,9 @@ class DrillEngineSpec(BaseEngineSpec):
         schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
         if schema:
-            uri = uri.set(database=parse.quote(schema.replace(".", "/"), safe=""))
+            if uri.get_driver_name() == 'sadrill' and uri.get_backend_name() != 'drill':
+                schema = schema.replace(".", "/")
+            uri = uri.set(database=parse.quote(schema, safe=""))
 
         return uri, connect_args
 
