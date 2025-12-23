@@ -41,10 +41,7 @@ import {
 import type { DatabaseInfo } from './types';
 
 // Simple code block component for connection strings
-const CodeBlock: React.FC<{ children: React.ReactNode; language?: string }> = ({
-  children,
-  language = 'text',
-}) => (
+const CodeBlock: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <pre
     style={{
       background: 'var(--ifm-code-background)',
@@ -102,7 +99,7 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
           {description}
         </Text>
       )}
-      <CodeBlock language="text">{connStr}</CodeBlock>
+      <CodeBlock>{connStr}</CodeBlock>
     </div>
   );
 
@@ -186,7 +183,7 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
               {auth.secure_extra && (
                 <div>
                   <Text strong>Secure Extra Configuration:</Text>
-                  <CodeBlock language="json">
+                  <CodeBlock>
                     {JSON.stringify(auth.secure_extra, null, 2)}
                   </CodeBlock>
                 </div>
@@ -194,7 +191,7 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
               {auth.engine_parameters && (
                 <div>
                   <Text strong>Engine Parameters:</Text>
-                  <CodeBlock language="json">
+                  <CodeBlock>
                     {JSON.stringify(auth.engine_parameters, null, 2)}
                   </CodeBlock>
                 </div>
@@ -227,7 +224,7 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
             <Panel header={param.name} key={idx}>
               {param.description && <Paragraph>{param.description}</Paragraph>}
               {param.json && (
-                <CodeBlock language="json">
+                <CodeBlock>
                   {JSON.stringify(param.json, null, 2)}
                 </CodeBlock>
               )}
@@ -481,7 +478,7 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
             />
           )}
           {docs.install_instructions && (
-            <CodeBlock language="bash">{docs.install_instructions}</CodeBlock>
+            <CodeBlock>{docs.install_instructions}</CodeBlock>
           )}
         </Card>
       )}
