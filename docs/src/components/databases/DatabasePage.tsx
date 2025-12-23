@@ -34,7 +34,6 @@ import {
   CloseCircleOutlined,
   WarningOutlined,
   LinkOutlined,
-  CodeOutlined,
   KeyOutlined,
   SettingOutlined,
   BookOutlined,
