@@ -414,7 +414,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       <Table
         dataSource={filteredDatabases}
         columns={columns}
-        rowKey="name"
+        rowKey={(record) => record.isCompatible ? `${record.compatibleWith}-${record.name}` : record.name}
         pagination={{
           pageSize: 20,
           showSizeChanger: true,
