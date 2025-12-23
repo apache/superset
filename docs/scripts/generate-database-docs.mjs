@@ -355,7 +355,10 @@ function toSlug(name) {
  */
 function generateDatabaseMDX(name, db, slug) {
   const description = db.documentation?.description || `Documentation for ${name} database connection.`;
-  const shortDesc = description.slice(0, 160).replace(/"/g, '\\"');
+  const shortDesc = description
+    .slice(0, 160)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"');
 
   return `---
 title: ${name}
