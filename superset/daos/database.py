@@ -19,6 +19,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from sqlalchemy.orm import joinedload
+
+from superset import is_feature_enabled
+from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelingNotEnabledError
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
@@ -38,6 +42,51 @@ class DatabaseDAO(BaseDAO[Database]):
     base_filter = DatabaseFilter
 
     @classmethod
+    def create(
+        cls,
+        item: Database | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> Database:
+        """
+        Create a new database, with an optional SSH tunnel.
+        """
+        ssh_tunnel_attributes = (
+            attributes.pop("ssh_tunnel", None) if attributes else None
+        )
+
+        database = super().create(item, attributes)
+
+        if ssh_tunnel_attributes:
+            if not is_feature_enabled("SSH_TUNNELING"):
+                raise SSHTunnelingNotEnabledError()
+
+            database.ssh_tunnel = SSHTunnel(**ssh_tunnel_attributes)
+
+        return database
+
+    @classmethod
+    def find_by_id(
+        cls,
+        model_id: str | int,
+        skip_base_filter: bool = False,
+        id_column: str | None = None,
+    ) -> Database | None:
+        """
+        Find a database by id, eagerly loading the SSH tunnel relationship.
+        """
+        query = db.session.query(cls.model_cls).options(joinedload(Database.ssh_tunnel))
+        query = cls._apply_base_filter(query, skip_base_filter)
+
+        column_name = id_column or cls.id_column_name
+        if not hasattr(cls.model_cls, column_name):
+            raise AttributeError(
+                "{0} has no column {1}".format(cls.model_cls, column_name)
+            )
+
+        column = getattr(cls.model_cls, column_name)
+        return query.filter(column == model_id).one_or_none()
+
+    @classmethod
     def update(
         cls,
         item: Database | None = None,
@@ -52,14 +101,43 @@ class DatabaseDAO(BaseDAO[Database]):
 
         The masked values should be unmasked before the database is updated.
         """  # noqa: E501
+        attributes = attributes or {}
 
-        if item and attributes and "encrypted_extra" in attributes:
+        if item and "encrypted_extra" in attributes:
             attributes["encrypted_extra"] = item.db_engine_spec.unmask_encrypted_extra(
                 item.encrypted_extra,
                 attributes["encrypted_extra"],
             )
 
-        return super().update(item, attributes)
+        # update SSH tunnel
+        if "ssh_tunnel" not in attributes:
+            # keep existing tunnel if it exists
+            ssh_tunnel = item.ssh_tunnel if item else None
+        elif attributes["ssh_tunnel"] is None:
+            # remove existing tunnel
+            ssh_tunnel = None
+        else:
+            # update existing tunnel or create a new one
+            ssh_tunnel_attributes = attributes.pop("ssh_tunnel")
+
+            # when updating the tunnel, passwords are sent masked to the frontend; if
+            # they arrive back masked we need to unmask them
+            if item and item.ssh_tunnel:
+                ssh_tunnel_attributes = unmask_password_info(
+                    ssh_tunnel_attributes,
+                    item.ssh_tunnel,
+                )
+
+                # delete existing SSH tunnel first
+                item.ssh_tunnel = None
+                db.session.flush()
+
+            ssh_tunnel = SSHTunnel(**ssh_tunnel_attributes)
+
+        database = super().update(item, attributes)
+        database.ssh_tunnel = ssh_tunnel
+
+        return database
 
     @staticmethod
     def validate_uniqueness(database_name: str) -> bool:
@@ -86,13 +164,18 @@ class DatabaseDAO(BaseDAO[Database]):
 
     @staticmethod
     def build_db_for_connection_test(
-        server_cert: str, extra: str, impersonate_user: bool, encrypted_extra: str
+        server_cert: str,
+        extra: str,
+        impersonate_user: bool,
+        encrypted_extra: str,
+        ssh_tunnel: dict[str, Any] | None = None,
     ) -> Database:
         return Database(
             server_cert=server_cert,
             extra=extra,
             impersonate_user=impersonate_user,
             encrypted_extra=encrypted_extra,
+            ssh_tunnel=SSHTunnel(**ssh_tunnel) if ssh_tunnel else None,
         )
 
     @classmethod
@@ -155,40 +238,6 @@ class DatabaseDAO(BaseDAO[Database]):
             )
             .all()
         )
-
-    @classmethod
-    def get_ssh_tunnel(cls, database_id: int) -> SSHTunnel | None:
-        ssh_tunnel = (
-            db.session.query(SSHTunnel)
-            .filter(SSHTunnel.database_id == database_id)
-            .one_or_none()
-        )
-
-        return ssh_tunnel
-
-
-class SSHTunnelDAO(BaseDAO[SSHTunnel]):
-    @classmethod
-    def update(
-        cls,
-        item: SSHTunnel | None = None,
-        attributes: dict[str, Any] | None = None,
-    ) -> SSHTunnel:
-        """
-        Unmask ``password``, ``private_key`` and ``private_key_password`` before updating.
-
-        When a database is edited the user sees a masked version of
-        the aforementioned fields.
-
-        The masked values should be unmasked before the ssh tunnel is updated.
-        """  # noqa: E501
-        # ID cannot be updated so we remove it if present in the payload
-
-        if item and attributes:
-            attributes.pop("id", None)
-            attributes = unmask_password_info(attributes, item)
-
-        return super().update(item, attributes)
 
 
 class DatabaseUserOAuth2TokensDAO(BaseDAO[DatabaseUserOAuth2Tokens]):

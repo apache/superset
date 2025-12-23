@@ -74,17 +74,15 @@ superset/mcp_service/
 ### How to Add a New Tool
 
 1. **Create the tool file** in the appropriate directory (e.g., `chart/tool/my_new_tool.py`)
-2. **Decorate with `@mcp.tool`** to register it with FastMCP
+2. **Decorate with `@tool`** to register it with the decorator
 3. **Add import to `app.py`** at the bottom of the file where other tools are imported (around line 210-242)
 
 **Example**:
 ```python
 # superset/mcp_service/chart/tool/my_new_tool.py
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset_core.mcp import tool
 
-@mcp.tool
-@mcp_auth_hook
+@tool
 def my_new_tool(param: str) -> dict:
     """Tool description for LLMs."""
     return {"result": "success"}
@@ -100,23 +98,21 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 ```
 
-**Why this matters**: Tools use `@mcp.tool` decorators and register automatically on import. The import MUST be in `app.py` at the bottom of the file (after the `mcp` instance is created). If you don't import the tool in `app.py`, it won't be available to MCP clients. DO NOT add imports to `server.py` - that file is for running the server only.
+**Why this matters**: Tools use `@tool` decorators and register automatically on import. The import MUST be in `app.py` at the bottom of the file (after dependency injection is initialized). If you don't import the tool in `app.py`, it won't be available to MCP clients. DO NOT add imports to `server.py` - that file is for running the server only.
 
 ### How to Add a New Prompt
 
 1. **Create the prompt file** in the appropriate directory (e.g., `chart/prompts/my_new_prompt.py`)
-2. **Decorate with `@mcp.prompt`** to register it with FastMCP
+2. **Decorate with `@prompt`** to register it with the unified decorator
 3. **Add import to module's `__init__.py`** (e.g., `chart/prompts/__init__.py`)
 4. **Ensure module is imported in `app.py`** (around line 244-253)
 
 **Example**:
 ```python
 # superset/mcp_service/chart/prompts/my_new_prompt.py
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset_core.mcp import prompt
 
-@mcp.prompt("my_new_prompt")
-@mcp_auth_hook
+@prompt("my_new_prompt")
 async def my_new_prompt_handler(ctx: Context) -> str:
     """Interactive prompt for doing something."""
     return "Prompt instructions here..."
@@ -138,7 +134,7 @@ from superset.mcp_service.chart import prompts as chart_prompts  # This imports 
 ### How to Add a New Resource
 
 1. **Create the resource file** in the appropriate directory (e.g., `chart/resources/my_new_resource.py`)
-2. **Decorate with `@mcp.resource`** to register it with FastMCP
+2. **Decorate with `@mcp.resource`** to register it with FastMCP (resources still use direct FastMCP)
 3. **Add import to module's `__init__.py`** (e.g., `chart/resources/__init__.py`)
 4. **Ensure module is imported in `app.py`** (around line 244-253)
 
@@ -154,6 +150,8 @@ def get_my_resource() -> str:
     """Resource description for LLMs."""
     return "Resource data here..."
 ```
+
+**Note**: Resources continue to use the direct FastMCP decorators (`@mcp.resource`) rather than the unified `@tool()` decorator.
 
 **Then add to `chart/resources/__init__.py`**:
 ```python
@@ -182,6 +180,8 @@ The `mcp_core.py` module provides reusable patterns:
 
 **Example**:
 ```python
+from superset_core.mcp import tool
+
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.daos.dashboard import DashboardDAO
 from superset.mcp_service.dashboard.schemas import DashboardList
@@ -192,27 +192,30 @@ list_core = ModelListCore(
     logger=logger,
 )
 
-@mcp.tool
-@mcp_auth_hook
+@tool
 def list_dashboards(filters: List[DashboardFilter], page: int = 1) -> DashboardList:
     return list_core.run_tool(filters=filters, page=page, page_size=10)
 ```
 
 ### 2. Always Use Authentication
 
-**Every tool must use `@mcp_auth_hook`** to ensure:
+**Every tool must use `@tool`** with authentication enabled (default) to ensure:
 - User authentication from JWT or configured admin user
 - Permission checking via JWT scopes
 - Audit logging of tool access
 
 ```python
-from superset.mcp_service.auth import mcp_auth_hook
+from superset_core.mcp import tool
 
-@mcp.tool
-@mcp_auth_hook  # REQUIRED
+@tool  # REQUIRED - secure=True by default
 def my_tool() -> dict:
-    # g.user is set by mcp_auth_hook
+    # g.user is set by tool decorator
     return {"user": g.user.username}
+
+@tool(protect=False)  # Only for truly public tools
+def public_tool() -> dict:
+    # No authentication required
+    return {"status": "public"}
 ```
 
 ### 3. Use Pydantic Schemas
@@ -289,11 +292,116 @@ def my_function(
 
 **Key rules:**
 - Use `T | None` instead of `Optional[T]`
-- Do NOT import `Optional` from typing
-- Still import `List`, `Dict`, `Any`, etc. from typing (for now)
+- Do NOT import `Optional`, `List`, `Dict` from typing, prefer `| None`, `list[]` etc
 - All new code must follow this pattern
 
-### 6. Error Handling
+### 6. Flexible Input Parsing (JSON String or Object)
+
+**MCP tools accept both JSON string and native object formats for parameters** using utilities from `superset.mcp_service.utils.schema_utils`. This makes tools flexible for different client types (LLM clients send objects, CLI tools send JSON strings).
+
+**PREFERRED: Use the `@parse_request` decorator** for tool functions to automatically handle request parsing:
+
+```python
+from superset.mcp_service.utils.schema_utils import parse_request
+
+@mcp.tool
+@mcp_auth_hook
+@parse_request(ListChartsRequest)  # Automatically parses string requests!
+async def list_charts(request: ListChartsRequest | str, ctx: Context) -> ChartList:
+    """List charts with filtering and search."""
+    # request is guaranteed to be ListChartsRequest here - no manual parsing needed!
+    await ctx.info(f"Listing charts: page={request.page}")
+    ...
+```
+
+**Benefits:**
+- Eliminates 5 lines of boilerplate code per tool
+- Handles both async and sync functions automatically
+- Works with Claude Code bug (GitHub issue #5504)
+- Cleaner, more maintainable code
+
+**Available utilities for other use cases:**
+
+#### parse_json_or_passthrough
+Parse JSON string or return object as-is:
+
+```python
+from superset.mcp_service.utils.schema_utils import parse_json_or_passthrough
+
+# Accepts both formats
+config = parse_json_or_passthrough(value, param_name="config")
+# value can be: '{"key": "value"}' (JSON string) OR {"key": "value"} (dict)
+```
+
+#### parse_json_or_list
+Parse to list from JSON, list, or comma-separated string:
+
+```python
+from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+# Accepts multiple formats
+items = parse_json_or_list(value, param_name="items")
+# value can be:
+#   '["a", "b"]' (JSON array)
+#   ["a", "b"] (Python list)
+#   "a, b, c" (comma-separated string)
+```
+
+#### parse_json_or_model
+Parse to Pydantic model from JSON or dict:
+
+```python
+from superset.mcp_service.utils.schema_utils import parse_json_or_model
+
+# Accepts JSON string or dict
+config = parse_json_or_model(value, ConfigModel, param_name="config")
+# value can be: '{"name": "test"}' OR {"name": "test"}
+```
+
+#### parse_json_or_model_list
+Parse to list of Pydantic models:
+
+```python
+from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
+
+# Accepts JSON array or list of dicts
+filters = parse_json_or_model_list(value, FilterModel, param_name="filters")
+# value can be: '[{"col": "name"}]' OR [{"col": "name"}]
+```
+
+**Using with Pydantic validators:**
+
+```python
+from pydantic import BaseModel, field_validator
+from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+class MyToolRequest(BaseModel):
+    filters: List[FilterModel] = Field(default_factory=list)
+    select_columns: List[str] = Field(default_factory=list)
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v):
+        """Accept both JSON string and list of objects."""
+        return parse_json_or_model_list(v, FilterModel, "filters")
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_columns(cls, v):
+        """Accept JSON array, list, or comma-separated string."""
+        return parse_json_or_list(v, "select_columns")
+```
+
+**Core classes already use these utilities:**
+- `ModelListCore` uses them for `filters` and `select_columns`
+- No need to add parsing logic in individual tools that use core classes
+
+**When to use:**
+- Tool parameters that accept complex objects (dicts, lists)
+- Parameters that may come from CLI tools (JSON strings) or LLM clients (objects)
+- Any field where you want maximum flexibility
+
+### 7. Error Handling
 
 **Use consistent error schemas**:
 
@@ -306,8 +414,7 @@ class MyError(BaseModel):
         description="Error timestamp"
     )
 
-@mcp.tool
-@mcp_auth_hook
+@tool
 def my_tool(id: int) -> MyResponse:
     try:
         result = process_data(id)
@@ -368,9 +475,9 @@ def test_tool_with_flask_context(app):
 **Problem**: Tools won't register properly, causing runtime errors.
 **Solution**: Tool imports must be in `app.py` at the bottom of the file, not in `server.py`. The `server.py` file is only for running the server.
 
-### 3. ❌ Missing @mcp_auth_hook Decorator
+### 3. ❌ Missing Authentication
 **Problem**: Tool bypasses authentication and authorization.
-**Solution**: Always use `@mcp_auth_hook` on every tool.
+**Solution**: Always use `@tool` with default protect=True, or explicitly set protect=False only for public tools.
 
 ### 4. ❌ Using `Optional` Instead of Union Syntax
 **Problem**: Old-style Optional[T] is not Python 3.10+ style.
@@ -423,30 +530,41 @@ def my_function(param: Optional[str] = None) -> Optional[int]:
 
 **Note**: LLM instruction files like `CLAUDE.md`, `AGENTS.md`, etc. are excluded from this requirement (listed in `.rat-excludes`) to avoid token overhead.
 
-### 9. ❌ Using `@mcp.tool()` with Empty Parentheses
+### 9. ❌ Using `@tool()` with Empty Parentheses
 **Problem**: Inconsistent decorator style.
-**Solution**: Use `@mcp.tool` without parentheses unless passing arguments.
+**Solution**: Use `@tool` without parentheses unless passing arguments.
 ```python
 # GOOD
-@mcp.tool
+from superset_core.mcp import tool
+
+@tool
 def my_tool():
     pass
 
 # BAD
-@mcp.tool()
+from superset_core.mcp import tool
+
+@tool
 def my_tool():
     pass
 ```
 
 ### 10. ❌ Circular Imports
-**Problem**: Importing `mcp` from `app.py` creates circular dependency.
-**Solution**: Import `mcp` at module level in tool files:
+**Problem**: Importing too many things from `app.py` can create circular dependencies.
+**Solution**: Use the unified `@tool` decorator from `superset_core.mcp`:
 ```python
-# GOOD
+# GOOD - New pattern
+from superset_core.mcp import tool
+
+@tool
+def my_tool():
+    pass
+
+# ACCEPTABLE - For prompts/resources (when needed)
 from superset.mcp_service.app import mcp
 
-@mcp.tool
-def my_tool():
+@prompt
+def my_prompt():
     pass
 
 # BAD - causes circular import
@@ -467,7 +585,7 @@ MCP_JWT_PUBLIC_KEY = "your_public_key"
 ## Tool Discovery
 
 MCP clients discover tools via:
-1. **Tool listing**: All tools with `@mcp.tool` are automatically listed
+1. **Tool listing**: All tools with `@tool` are automatically listed
 2. **Schema introspection**: Pydantic schemas generate JSON Schema for LLMs
 3. **Instructions**: `DEFAULT_INSTRUCTIONS` in `app.py` documents available tools
 
@@ -481,10 +599,9 @@ MCP clients discover tools via:
 ## Quick Checklist for New Tools
 
 - [ ] Created tool file in `{module}/tool/{tool_name}.py`
-- [ ] Added `@mcp.tool` decorator
-- [ ] Added `@mcp_auth_hook` decorator
+- [ ] Added `@tool` decorator
 - [ ] Created Pydantic request/response schemas in `{module}/schemas.py`
-- [ ] Used DAO classes instead of direct queries
+- [ ] Used DAO classes instead of direct queries when querying Superset entities
 - [ ] Added tool import to `app.py` (around line 210-242)
 - [ ] Added Apache license header to new files
 - [ ] Created unit tests in `tests/unit_tests/mcp_service/{module}/tool/test_{tool_name}.py`
@@ -494,8 +611,7 @@ MCP clients discover tools via:
 ## Quick Checklist for New Prompts
 
 - [ ] Created prompt file in `{module}/prompts/{prompt_name}.py`
-- [ ] Added `@mcp.prompt("prompt_name")` decorator
-- [ ] Added `@mcp_auth_hook` decorator
+- [ ] Added `@prompt("prompt_name")` decorator
 - [ ] Made function async: `async def prompt_handler(ctx: Context) -> str`
 - [ ] Added import to `{module}/prompts/__init__.py`
 - [ ] Verified module import exists in `app.py` (around line 244-253)

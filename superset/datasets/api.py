@@ -705,6 +705,88 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    @expose("/<pk>/detect_datetime_formats", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        ".detect_datetime_formats",
+        log_to_statsd=False,
+    )
+    def detect_datetime_formats(self, pk: int) -> Response:
+        """Detect and store datetime formats for dataset columns.
+        ---
+        post:
+          summary: Detect datetime formats for dataset columns
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: query
+            schema:
+              type: boolean
+            name: force
+            description: Force re-detection even if formats already exist
+          responses:
+            200:
+              description: Datetime formats detected
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      formats:
+                        type: object
+                        additionalProperties:
+                          type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.datasets.datetime_format_detector import DatetimeFormatDetector
+
+        try:
+            # Get force parameter from query string
+            force = parse_boolean_string(request.args.get("force", "false"))
+
+            # Get dataset
+            dataset = DatasetDAO.find_by_id(pk)
+            if not dataset:
+                return self.response_404()
+
+            # Check ownership
+            try:
+                security_manager.raise_for_ownership(dataset)
+            except Exception:  # pylint: disable=broad-except
+                return self.response_403()
+
+            # Detect formats
+            detector = DatetimeFormatDetector()
+            formats = detector.detect_all_formats(dataset, force=force)
+
+            return self.response(
+                200,
+                message="Datetime formats detected successfully",
+                formats=formats,
+            )
+        except Exception as ex:
+            logger.exception(
+                "Error detecting datetime formats for dataset %s: %s",
+                pk,
+                str(ex),
+            )
+            return self.response_500(message=str(ex))
+
     @expose("/<id_or_uuid>/related_objects", methods=("GET",))
     @protect()
     @safe
