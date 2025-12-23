@@ -65,6 +65,11 @@ const offsetsToName: Record<string, [string, string]> = {
 let cachedTimezoneOptions: TimezoneOption[] | null = null;
 let computePromise: Promise<TimezoneOption[]> | null = null;
 
+// Export function to check if options are cached (for parent components)
+export function areTimezoneOptionsCached(): boolean {
+  return cachedTimezoneOptions !== null;
+}
+
 function getOffsetKey(timezoneName: string): string {
   return (
     JANUARY_REF.tz(timezoneName).utcOffset().toString() +
@@ -183,7 +188,11 @@ export default function TimezoneSelector({
       if (isOpen && !timezoneOptions && !isLoadingOptions) {
         setIsLoadingOptions(true);
         getTimezoneOptionsAsync()
-          .then(setTimezoneOptions)
+          .then(options => {
+            // Cache options at module level for future instances
+            cachedTimezoneOptions = options;
+            setTimezoneOptions(options);
+          })
           .finally(() => setIsLoadingOptions(false));
       }
     },
@@ -193,52 +202,73 @@ export default function TimezoneSelector({
   const sortComparator = useMemo(() => {
     if (!timezoneOptions) return undefined;
     const currentDate = extendedDayjs();
-    return (a: TimezoneOption, b: TimezoneOption) =>
+    const comparator = (a: TimezoneOption, b: TimezoneOption) =>
       currentDate.tz(a.timezoneName).utcOffset() -
       currentDate.tz(b.timezoneName).utcOffset();
+    return comparator;
   }, [timezoneOptions]);
 
   const validTimezone = useMemo(() => {
+    let result: string | undefined;
     if (!timezoneOptions) {
-      return timezone || extendedDayjs.tz.guess();
+      // Don't call tz.guess() synchronously to avoid blocking render
+      // Return timezone if provided, otherwise undefined (will be set after options load)
+      result = timezone || undefined;
+    } else {
+      result = findMatchingTimezone(timezone, timezoneOptions);
     }
-    return findMatchingTimezone(timezone, timezoneOptions);
+    return result;
   }, [timezone, timezoneOptions]);
 
-  // Preload timezone options on mount and set default value
+  // Load timezone options asynchronously when component mounts
+  // Parent component (AlertReportModal) already delays mounting until panel opens
   useEffect(() => {
-    if (!timezoneOptions && !isLoadingOptions) {
-      setIsLoadingOptions(true);
-      getTimezoneOptionsAsync()
-        .then(options => {
-          setTimezoneOptions(options);
-          // Set default value if no timezone is provided and we haven't set it yet
-          if (!timezone && !hasSetDefaultRef.current) {
-            const defaultTz = findMatchingTimezone(null, options);
-            onTimezoneChange(defaultTz);
-            hasSetDefaultRef.current = true;
-          }
-        })
-        .finally(() => setIsLoadingOptions(false));
-    } else if (timezoneOptions && !timezone && !hasSetDefaultRef.current) {
-      // If options are already available (cached), set default immediately
-      const defaultTz = findMatchingTimezone(null, timezoneOptions);
-      onTimezoneChange(defaultTz);
-      hasSetDefaultRef.current = true;
-    }
+    if (timezoneOptions || isLoadingOptions) return;
+
+    setIsLoadingOptions(true);
+
+    getTimezoneOptionsAsync()
+      .then(options => {
+        // Cache options at module level for future instances
+        cachedTimezoneOptions = options;
+        setTimezoneOptions(options);
+
+        // Set default value if no timezone is provided and we haven't set it yet
+        if (!timezone && !hasSetDefaultRef.current) {
+          const defaultTz = findMatchingTimezone(null, options);
+          onTimezoneChange(defaultTz);
+          hasSetDefaultRef.current = true;
+        }
+      })
+      .finally(() => {
+        setIsLoadingOptions(false);
+      });
   }, [timezoneOptions, isLoadingOptions, timezone, onTimezoneChange]);
+
+  // Set default value when cached options are available on mount
+  useEffect(() => {
+    if (!timezoneOptions || timezone || hasSetDefaultRef.current) return;
+
+    const defaultTz = findMatchingTimezone(null, timezoneOptions);
+    onTimezoneChange(defaultTz);
+    hasSetDefaultRef.current = true;
+  }, [timezoneOptions, timezone, onTimezoneChange]);
+
+  const selectValue = timezoneOptions ? validTimezone : undefined;
 
   return (
     <Select
       ariaLabel={t('Timezone selector')}
-      onChange={tz => onTimezoneChange(tz as string)}
+      onChange={tz => {
+        onTimezoneChange(tz as string);
+      }}
       onOpenChange={handleOpenChange}
-      value={timezoneOptions ? validTimezone : undefined}
+      value={selectValue}
       options={timezoneOptions || []}
       sortComparator={sortComparator}
       loading={isLoadingOptions}
       placeholder={isLoadingOptions ? t('Loading timezones...') : placeholder}
-      {...({ placement: 'topLeft', ...rest } as any)}
+      {...{ placement: 'topLeft', ...rest }}
     />
   );
 }
