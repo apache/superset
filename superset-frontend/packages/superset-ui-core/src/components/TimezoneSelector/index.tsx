@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core';
 import { Select } from '@superset-ui/core/components';
 import { isDST, extendedDayjs } from '../../utils/dates';
