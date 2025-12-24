@@ -38,6 +38,7 @@ import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
   UserListAddModal,
   UserListEditModal,
+  UserListPasswordChangeModal,
 } from 'src/features/users/UserListModal';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { deleteUser } from 'src/features/users/utils';
@@ -49,6 +50,7 @@ const PAGE_SIZE = 25;
 enum ModalType {
   ADD = 'add',
   EDIT = 'edit',
+  PASSWORD_CHANGE = 'password_change',
 }
 
 const isActiveOptions = [
@@ -82,6 +84,7 @@ function UsersList({ user }: UsersListProps) {
   const [modalState, setModalState] = useState({
     edit: false,
     add: false,
+    password_change: false,
   });
   const openModal = (type: ModalType) =>
     setModalState(prev => ({ ...prev, [type]: true }));
@@ -336,6 +339,10 @@ function UsersList({ user }: UsersListProps) {
             openModal(ModalType.EDIT);
           };
           const handleDelete = () => setUserCurrentlyDeleting(original);
+          const handlePasswordChange = () => {
+            setCurrentUser(original);
+            openModal(ModalType.PASSWORD_CHANGE);
+          }
           const actions = isAdmin
             ? [
                 {
@@ -352,6 +359,13 @@ function UsersList({ user }: UsersListProps) {
                   icon: 'DeleteOutlined',
                   onClick: handleDelete,
                 },
+                {
+                  label: 'user-list-password-action',
+                  tooltip: t('Change password'),
+                  placement: 'bottom',
+                  icon: 'KeyOutlined',
+                  onClick: handlePasswordChange,
+                }
               ]
             : [];
 
@@ -564,6 +578,22 @@ function UsersList({ user }: UsersListProps) {
           title={t('Delete User?')}
         />
       )}
+
+      {modalState.password_change && currentUser && (
+        <UserListPasswordChangeModal
+          user={currentUser}
+          show={modalState.password_change}
+          onHide={() => closeModal(ModalType.PASSWORD_CHANGE)}
+          onSave={() => {
+            refreshData();
+            closeModal(ModalType.PASSWORD_CHANGE);
+          }}
+          roles={roles}
+          groups={groups}
+        />
+      )}
+
+
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t('Are you sure you want to delete the selected users?')}
