@@ -30,8 +30,9 @@ test('chart type screenshot', async ({ page }) => {
 
   const vizGallery = page.locator('.viz-gallery');
   await expect(vizGallery).toBeVisible();
+  // Wait for viz type icons to load
   await expect(
-    vizGallery.locator('[data-test="viz-gallery-list"]'),
+    vizGallery.locator('[data-test="viztype-selector-container"]'),
   ).toBeVisible();
 
   await vizGallery.screenshot({ path: docsPath + 'gallery.jpg', type: 'jpeg' });
