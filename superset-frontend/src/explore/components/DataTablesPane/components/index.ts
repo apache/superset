@@ -18,5 +18,6 @@
  */
 export { ResultsPaneOnDashboard } from './ResultsPaneOnDashboard';
 export { SamplesPane } from './SamplesPane';
+export { QueryPane } from './QueryPane';
 export { TableControls, TableControlsWrapper } from './DataTableControls';
 export { useResultsPane } from './useResultsPane';

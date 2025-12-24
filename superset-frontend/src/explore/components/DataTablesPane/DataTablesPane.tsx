@@ -26,7 +26,7 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { SamplesPane, useResultsPane } from './components';
+import { SamplesPane, QueryPane, useResultsPane } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
 
 const StyledDiv = styled.div`
@@ -91,6 +91,7 @@ export const DataTablesPane = ({
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
     results: false,
     samples: false,
+    query: false,
   });
   const [panelOpen, setPanelOpen] = useState(
     isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
@@ -108,6 +109,7 @@ export const DataTablesPane = ({
       setIsRequest({
         results: false,
         samples: false,
+        query: false,
       });
     }
 
@@ -120,6 +122,7 @@ export const DataTablesPane = ({
       setIsRequest({
         results: true,
         samples: false,
+        query: false,
       });
     }
 
@@ -127,6 +130,15 @@ export const DataTablesPane = ({
       setIsRequest({
         results: false,
         samples: true,
+        query: false,
+      });
+    }
+
+    if (panelOpen && activeTabKey === ResultTypes.Query) {
+      setIsRequest({
+        results: false,
+        samples: false,
+        query: true,
       });
     }
   }, [panelOpen, activeTabKey, chartStatus]);
@@ -210,6 +222,19 @@ export const DataTablesPane = ({
             setForceQuery={setForceQuery}
             isVisible={ResultTypes.Samples === activeTabKey}
             canDownload={canDownload}
+          />
+        </StyledDiv>
+      ),
+    },
+    {
+      key: ResultTypes.Query,
+      label: t('Query'),
+      children: (
+        <StyledDiv>
+          <QueryPane
+            queryFormData={queryFormData}
+            isRequest={isRequest.query}
+            isVisible={ResultTypes.Query === activeTabKey}
           />
         </StyledDiv>
       ),

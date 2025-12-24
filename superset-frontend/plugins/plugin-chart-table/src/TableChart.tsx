@@ -89,6 +89,7 @@ import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 import DateWithFormatter from './utils/DateWithFormatter';
+import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
 
 type ValueRange = [number, number];
 
@@ -335,6 +336,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     hasServerPageLengthChanged,
     serverPageLength,
     slice_id,
+    setControlValue,
+    formData,
   } = props;
 
   const comparisonColumns = useMemo(
@@ -1122,16 +1125,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 }}
               />
             ) : null}
-            <div
-              data-column-name={col.id}
-              css={{
-                display: 'inline-flex',
-                alignItems: 'flex-end',
-              }}
+            <ColumnHeaderContextMenu
+              column={column}
+              formData={formData}
+              setControlValue={setControlValue}
             >
-              <span data-column-name={col.id}>{displayLabel}</span>
-              <SortIcon column={col} />
-            </div>
+              <div
+                data-column-name={col.id}
+                css={{
+                  display: 'inline-flex',
+                  alignItems: 'flex-end',
+                }}
+              >
+                <span data-column-name={col.id}>{displayLabel}</span>
+                <SortIcon column={col} />
+              </div>
+            </ColumnHeaderContextMenu>
           </th>
         ),
 
@@ -1192,6 +1201,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       toggleFilter,
       handleContextMenu,
       allowRearrangeColumns,
+      setControlValue,
+      formData,
     ],
   );
 

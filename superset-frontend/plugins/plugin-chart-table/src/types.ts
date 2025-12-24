@@ -32,6 +32,7 @@ import {
   ContextMenuFilters,
   CurrencyFormatter,
   Currency,
+  HandlerFunction,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
@@ -176,6 +177,9 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   hasServerPageLengthChanged: boolean;
   serverPageLength: number;
   slice_id: number;
+  // For column header interactions to update explore controls
+  setControlValue?: HandlerFunction;
+  formData?: TableChartFormData;
 }
 
 export enum ColorSchemeEnum {

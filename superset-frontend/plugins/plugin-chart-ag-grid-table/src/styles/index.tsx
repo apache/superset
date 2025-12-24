@@ -139,6 +139,28 @@ export const MenuContainer = styled.div`
       background-color: ${theme.colorBorderSecondary};
       margin: ${theme.sizeUnit}px 0;
     }
+
+    .menu-submenu {
+      position: relative;
+
+      .submenu {
+        display: none;
+        position: absolute;
+        left: 100%;
+        top: 0;
+        min-width: ${theme.sizeUnit * 35}px;
+        background: var(--ag-menu-background-color, ${theme.colorBgBase});
+        border: var(--ag-menu-border, 1px solid ${theme.colorBorderSecondary});
+        box-shadow: var(--ag-menu-shadow, ${theme.boxShadow});
+        border-radius: ${theme.borderRadius}px;
+        padding: ${theme.sizeUnit}px 0;
+        z-index: 100;
+      }
+
+      &:hover .submenu {
+        display: block;
+      }
+    }
   `}
 `;
 
