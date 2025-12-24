@@ -248,7 +248,7 @@ test('should not apply highlight class when highlightRowId is undefined', () => 
   };
 
   const { container } = render(<TableCollection {...propsWithoutHighlight} />);
-  
+
   // Check that no rows have the highlight class
   const highlightedRows = container.querySelectorAll('.table-row-highlighted');
   expect(highlightedRows).toHaveLength(0);
@@ -261,7 +261,7 @@ test('should not apply highlight class when highlightRowId is null', () => {
   };
 
   const { container } = render(<TableCollection {...propsWithNullHighlight} />);
-  
+
   // Check that no rows have the highlight class
   const highlightedRows = container.querySelectorAll('.table-row-highlighted');
   expect(highlightedRows).toHaveLength(0);
@@ -291,7 +291,9 @@ test('should apply highlight class only to matching row when highlightRowId is p
   ];
 
   // Create new table hook with data that has ids
-  const { result } = renderHook(() => useTable({ columns: tableHook.columns, data: dataWithIds }));
+  const { result } = renderHook(() =>
+    useTable({ columns: tableHook.columns, data: dataWithIds }),
+  );
   const newTableHook = result.current;
 
   const propsWithHighlight = {
@@ -302,7 +304,7 @@ test('should apply highlight class only to matching row when highlightRowId is p
   };
 
   const { container } = render(<TableCollection {...propsWithHighlight} />);
-  
+
   // Check that only one row has the highlight class
   const highlightedRows = container.querySelectorAll('.table-row-highlighted');
   expect(highlightedRows).toHaveLength(1);
@@ -316,7 +318,7 @@ test('should not apply highlight when records have no id field and highlightRowI
   };
 
   const { container } = render(<TableCollection {...propsWithNoIds} />);
-  
+
   // Check that no rows have the highlight class (was the bug: all rows were highlighted)
   const highlightedRows = container.querySelectorAll('.table-row-highlighted');
   expect(highlightedRows).toHaveLength(0);
