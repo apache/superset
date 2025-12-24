@@ -191,7 +191,7 @@ export class ChartCreation extends PureComponent<
   componentDidMount() {
     const params = new URLSearchParams(window.location.search).get('dataset');
     if (params) {
-      this.loadDatasources(params, 0, 1).then(r => {
+      this.loadDatasources(params, 0, 1, true).then(r => {
         const datasource = r.data[0];
         this.setState({ datasource });
       });
@@ -230,7 +230,12 @@ export class ChartCreation extends PureComponent<
     }
   }
 
-  loadDatasources(search: string, page: number, pageSize: number) {
+  loadDatasources(
+    search: string,
+    page: number,
+    pageSize: number,
+    exactMatch = false,
+  ) {
     const query = rison.encode({
       columns: [
         'id',
@@ -239,7 +244,9 @@ export class ChartCreation extends PureComponent<
         'database.database_name',
         'schema',
       ],
-      filters: [{ col: 'table_name', opr: 'ct', value: search }],
+      filters: [
+        { col: 'table_name', opr: exactMatch ? 'eq' : 'ct', value: search },
+      ],
       page,
       page_size: pageSize,
       order_column: 'table_name',
