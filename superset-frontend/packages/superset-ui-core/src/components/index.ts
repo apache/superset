@@ -147,6 +147,8 @@ export { Loading, type LoadingProps } from './Loading';
 
 export { Progress, type ProgressProps } from './Progress';
 
+export { Pagination, type PaginationProps } from './Pagination';
+
 export { Skeleton, type SkeletonProps } from './Skeleton';
 
 export { Switch, type SwitchProps } from './Switch';
