@@ -143,7 +143,9 @@ const SouthPane = ({
           ({ dbId, catalog, schema, name }) =>
             [dbId, catalog, schema, name].join(':') === key,
         );
-        dispatch(removeTables([table]));
+        if (table) {
+          dispatch(removeTables([table]));
+        }
       }
     },
     [dispatch, pinnedTables],

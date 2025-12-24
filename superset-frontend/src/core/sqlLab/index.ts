@@ -155,28 +155,32 @@ function createQueryResultContext(
   action: ReturnType<typeof querySuccess>,
 ): QueryResultContext {
   const { baseParams, options } = extractBaseData(action);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, tab] = baseParams;
   const { results } = action;
+  const { query_id: queryId, columns, data, query } = results;
   const {
-    query_id: queryId,
-    columns,
-    data,
-    query: {
-      endDttm,
-      executedSql,
-      tempTable: resultTempTable,
-      limit,
-      limitingFactor,
-    },
-  } = results;
+    endDttm,
+    executedSql,
+    tempTable: resultTempTable,
+    limit,
+    limitingFactor,
+  } = query;
+
+  // Map columns to ensure required fields are present
+  const mappedColumns = columns.map(col => ({
+    ...col,
+    name: col.name || col.column_name,
+    type: col.type ?? 'STRING', // Ensure type is not null
+  }));
 
   return new QueryResultContext(
     ...baseParams,
-    queryId,
+    queryId ?? 0,
     executedSql ?? tab.editor.content,
-    columns,
+    mappedColumns,
     data,
-    endDttm,
+    endDttm ?? 0,
     {
       ...options,
       tempTable: resultTempTable || options.tempTable,
@@ -193,12 +197,23 @@ function createQueryErrorContext(
   const { msg: errorMessage, errors, query } = action;
   const { endDttm, executedSql, query_id: queryId } = query;
 
-  return new QueryErrorResultContext(...baseParams, errorMessage, errors, {
-    ...options,
-    queryId,
-    executedSql: executedSql ?? null,
-    endDttm: endDttm ?? Date.now(),
-  });
+  // Map errors to ensure 'extra' is not null (required by QueryErrorResultContext)
+  const mappedErrors = (errors ?? []).map(err => ({
+    ...err,
+    extra: err.extra ?? {},
+  }));
+
+  return new QueryErrorResultContext(
+    ...baseParams,
+    errorMessage,
+    mappedErrors,
+    {
+      ...options,
+      queryId,
+      executedSql: executedSql ?? undefined,
+      endDttm: endDttm ?? Date.now(),
+    },
+  );
 }
 
 const getCurrentTab: typeof sqlLabType.getCurrentTab = () =>

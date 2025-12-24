@@ -149,10 +149,10 @@ export function useKeywords(
     if (data.meta === 'table') {
       dispatch(
         addTable(
-          { id: queryEditorId, dbId, tabViewId },
+          { id: String(queryEditorId), dbId: dbId as number, tabViewId },
           data.value,
-          catalog,
-          schema,
+          catalog ?? null,
+          schema ?? '',
           false, // Don't auto-expand/switch tabs when adding via autocomplete
         ),
       );

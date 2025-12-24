@@ -171,7 +171,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     dispatch(
       tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: name }]),
     );
-    dispatch(syncTable(table, tableData));
+    dispatch(syncTable(table, tableData, undefined));
   };
 
   const renderWell = () => {
