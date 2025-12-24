@@ -67,8 +67,10 @@ function getValueRange(
   alignPositiveNegative: boolean,
   data: InputData[],
 ) {
-  if (typeof data?.[0]?.[key] === 'number') {
-    const nums = data.map(row => row[key]) as number[];
+  const nums = data
+    .map(row => row[key])
+    .filter(value => typeof value === 'number') as number[];
+  if (nums.length > 0) {
     return (
       alignPositiveNegative ? [0, d3Max(nums.map(Math.abs))] : d3Extent(nums)
     ) as ValueRange;
