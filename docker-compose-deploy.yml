@@ -51,6 +51,9 @@ services:
       - oeeintellisuite
     ports:
       - "${SUPERSET_PORT:-8088}:8088"
+    env_file:                           
+      - path: docker/.env               
+        required: true  
     environment:
       - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
     depends_on:
@@ -66,6 +69,9 @@ services:
     networks:
       - superset-network
       - oeeintellisuite
+    env_file:                           
+      - path: docker/.env               
+        required: true  
     environment:
       - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
     depends_on:
