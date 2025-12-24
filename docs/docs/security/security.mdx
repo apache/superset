@@ -46,12 +46,47 @@ to all databases by default, both **Alpha** and **Gamma** users need to be given
 
 ### Public
 
-To allow logged-out users to access some Superset features, you can use the `PUBLIC_ROLE_LIKE` config setting and assign it to another role whose permissions you want passed to this role.
+The **Public** role is the most restrictive built-in role, designed specifically for anonymous/unauthenticated
+users who need to view dashboards. It provides minimal read-only access for:
 
-For example, by setting `PUBLIC_ROLE_LIKE = "Gamma"` in your `superset_config.py` file, you grant
-public role the same set of permissions as for the **Gamma** role. This is useful if one
-wants to enable anonymous users to view dashboards. Explicit grant on specific datasets is
-still required, meaning that you need to edit the **Public** role and add the public data sources to the role manually.
+- Viewing dashboards and charts
+- Using interactive dashboard filters
+- Accessing dashboard and chart permalinks
+- Reading embedded dashboards
+- Viewing annotations on charts
+
+The Public role explicitly excludes:
+- Any write permissions on dashboards, charts, or datasets
+- SQL Lab access
+- Share functionality
+- User profile or admin features
+- Menu access to most Superset features
+
+To enable anonymous access with the built-in Public role, set `PUBLIC_ROLE_LIKE` in your config:
+
+```python
+# Recommended: Use the built-in Public role for minimal, secure public access
+PUBLIC_ROLE_LIKE = "Public"
+
+# Alternative: Copy permissions from Gamma for broader access
+# PUBLIC_ROLE_LIKE = "Gamma"
+```
+
+**Important notes:**
+
+- **Data access is still required:** The Public role only grants UI/API permissions. You must
+  also grant access to specific datasets by editing the Public role in the Superset UI
+  (Menu → Security → List Roles → Public) and adding the relevant data sources.
+
+- **Using with DASHBOARD_RBAC:** If you have the `DASHBOARD_RBAC` feature flag enabled,
+  anonymous users will only see dashboards where the "Public" role has been explicitly added
+  as an owner in the dashboard's properties. This provides fine-grained control over which
+  dashboards are publicly visible.
+
+- **Role synchronization:** The Public role permissions are synchronized on Superset startup
+  when `PUBLIC_ROLE_LIKE = "Public"`. Any manual permission edits to the Public role may be
+  overwritten during upgrades or restarts. To add custom permissions, consider creating a
+  separate role and granting it to users alongside the Public role.
 
 ### Managing Data Source Access for Gamma Roles
 

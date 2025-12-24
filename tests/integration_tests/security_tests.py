@@ -52,6 +52,7 @@ from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.public_role import (
+    public_role_builtin,  # noqa: F401
     public_role_like_gamma,  # noqa: F401
     public_role_like_test_role,  # noqa: F401
 )
@@ -1437,6 +1438,104 @@ class TestRolePermission(SupersetTestCase):
         assert security_manager._is_gamma_pvm(
             security_manager.find_permission_view_menu("can_read", "Dataset")
         )
+
+    def test_is_public_pvm(self):
+        """Test that _is_public_pvm correctly identifies Public role permissions."""
+        # Should include core dashboard viewing permissions
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_read", "Dashboard")
+        )
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_read", "Chart")
+        )
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_dashboard", "Superset")
+        )
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_explore_json", "Superset")
+        )
+
+        # Should NOT include write permissions on core objects
+        assert not security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_write", "Dashboard")
+        )
+        assert not security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_write", "Chart")
+        )
+
+        # Should NOT include admin/alpha permissions
+        assert not security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu(
+                "all_datasource_access", "all_datasource_access"
+            )
+        )
+
+    @pytest.mark.usefixtures("public_role_builtin")
+    def test_public_role_permissions(self):
+        """Test that Public role has the expected minimal permissions."""
+        public_perm_set = get_perm_tuples("Public")
+
+        # Core dashboard viewing - should be present
+        assert ("can_read", "Dashboard") in public_perm_set
+        assert ("can_read", "Chart") in public_perm_set
+        assert ("can_dashboard", "Superset") in public_perm_set
+        assert ("can_slice", "Superset") in public_perm_set
+        assert ("can_explore_json", "Superset") in public_perm_set
+        assert ("can_dashboard_permalink", "Superset") in public_perm_set
+
+        # Filter state for interactive dashboards
+        assert ("can_read", "DashboardFilterStateRestApi") in public_perm_set
+        assert ("can_write", "DashboardFilterStateRestApi") in public_perm_set
+
+        # Should NOT have write permissions on core objects
+        assert ("can_write", "Dashboard") not in public_perm_set
+        assert ("can_write", "Chart") not in public_perm_set
+        assert ("can_write", "Dataset") not in public_perm_set
+
+        # Should NOT have share permissions
+        assert ("can_share_dashboard", "Superset") not in public_perm_set
+        assert ("can_share_chart", "Superset") not in public_perm_set
+
+        # Should NOT have SQL Lab access
+        assert ("can_sqllab", "Superset") not in public_perm_set
+        assert ("menu_access", "SQL Lab") not in public_perm_set
+
+        # Should NOT have admin permissions
+        assert (
+            "all_datasource_access",
+            "all_datasource_access",
+        ) not in public_perm_set
+        assert ("all_database_access", "all_database_access") not in public_perm_set
+
+        # Should NOT have user management access
+        assert ("can_userinfo", "UserDBModelView") not in public_perm_set
+
+    @pytest.mark.usefixtures("public_role_builtin")
+    def test_public_role_more_restrictive_than_gamma(self):
+        """Test that Public role is more restrictive than Gamma."""
+        public_perm_set = get_perm_tuples("Public")
+        gamma_perm_set = get_perm_tuples("Gamma")
+
+        # Public should be a subset of Gamma (more restrictive)
+        # Note: Public has filter state write which Gamma also has
+        public_only = public_perm_set - gamma_perm_set
+
+        # These permissions are intentionally granted to Public even though
+        # Gamma doesn't have them. Annotation permissions are needed for
+        # charts with annotations to render properly for public users.
+        # Gamma doesn't have these because Annotation is in ALPHA_ONLY_VIEW_MENUS.
+        allowed_public_only_perms = {
+            ("can_read", "Annotation"),
+            ("can_read", "AnnotationLayerRestApi"),
+        }
+
+        unexpected_perms = public_only - allowed_public_only_perms
+        assert len(unexpected_perms) == 0, (
+            f"Public has unexpected permissions Gamma doesn't: {unexpected_perms}"
+        )
+
+        # Public should have significantly fewer permissions than Gamma
+        assert len(public_perm_set) < len(gamma_perm_set)
 
     def test_gamma_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples("Gamma"))
