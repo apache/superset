@@ -1,16 +1,16 @@
 {
-  "generated": "2025-12-23T23:13:35.875Z",
+  "generated": "2025-12-24T00:04:38.269Z",
   "statistics": {
-    "totalDatabases": 53,
-    "withDocumentation": 53,
-    "withConnectionString": 50,
+    "totalDatabases": 56,
+    "withDocumentation": 56,
+    "withConnectionString": 53,
     "withDrivers": 10,
     "withAuthMethods": 5,
-    "supportsJoins": 49,
-    "supportsSubqueries": 50,
+    "supportsJoins": 52,
+    "supportsSubqueries": 53,
     "supportsDynamicSchema": 17,
     "supportsCatalog": 10,
-    "averageScore": 45,
+    "averageScore": 42,
     "maxScore": 201,
     "byCategory": {
       "Traditional RDBMS": [
@@ -48,16 +48,19 @@
         "Exasol",
         "Firebird",
         "Firebolt",
+        "Greenplum",
         "SAP HANA",
         "IBM Db2",
         "IBM Netezza",
         "Kusto",
+        "MonetDB",
         "OceanBase",
         "Ocient",
         "Oracle",
         "Parseable",
         "RisingWave",
         "SingleStore",
+        "SAP Sybase",
         "TDengine",
         "Teradata",
         "YDB"
@@ -1878,6 +1881,42 @@
       "query_cost_estimation": false,
       "sql_validation": false
     },
+    "Greenplum": {
+      "engine": "greenplum",
+      "engine_name": "Greenplum",
+      "documentation": {
+        "description": "VMware Greenplum is a massively parallel processing (MPP) database built on PostgreSQL.",
+        "homepage_url": "https://greenplum.org/",
+        "pypi_packages": [
+          "sqlalchemy-greenplum",
+          "psycopg2"
+        ],
+        "connection_string": "greenplum://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 5432,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "Greenplum coordinator host",
+          "port": "Default 5432",
+          "database": "Database name"
+        },
+        "docs_url": "https://docs.vmware.com/en/VMware-Greenplum/"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
     "Google BigQuery": {
       "engine": "google_bigquery",
       "engine_name": "Google BigQuery",
@@ -2209,6 +2248,42 @@
       "ssh_tunneling": true,
       "query_cancelation": true,
       "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "MonetDB": {
+      "engine": "monetdb",
+      "engine_name": "MonetDB",
+      "documentation": {
+        "description": "MonetDB is an open-source column-oriented relational database for high-performance analytics.",
+        "homepage_url": "https://www.monetdb.org/",
+        "pypi_packages": [
+          "sqlalchemy-monetdb",
+          "pymonetdb"
+        ],
+        "connection_string": "monetdb://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 50000,
+        "parameters": {
+          "username": "Database username (default: monetdb)",
+          "password": "Database password (default: monetdb)",
+          "host": "MonetDB server host",
+          "port": "Default 50000",
+          "database": "Database name"
+        },
+        "docs_url": "https://www.monetdb.org/documentation/"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
       "user_impersonation": false,
       "query_cost_estimation": false,
       "sql_validation": false
@@ -2745,6 +2820,40 @@
       "ssh_tunneling": true,
       "query_cancelation": true,
       "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "SAP Sybase": {
+      "engine": "sap_sybase",
+      "engine_name": "SAP Sybase",
+      "documentation": {
+        "description": "SAP ASE (formerly Sybase) is an enterprise-class relational database using Transact-SQL.",
+        "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
+        "pypi_packages": [
+          "sqlalchemy-sybase",
+          "pyodbc"
+        ],
+        "connection_string": "sybase+pyodbc://{username}:{password}@{dsn}",
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "dsn": "ODBC Data Source Name configured for SAP ASE"
+        },
+        "notes": "Requires SAP ASE ODBC driver installed and configured as a DSN.",
+        "docs_url": "https://help.sap.com/docs/SAP_ASE"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
       "user_impersonation": false,
       "query_cost_estimation": false,
       "sql_validation": false
