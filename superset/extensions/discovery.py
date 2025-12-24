@@ -61,9 +61,8 @@ def discover_and_load_extensions(
                 with ZipFile(supx_file, "r") as zip_file:
                     files = get_bundle_files_from_zip(zip_file)
                     extension = get_loaded_extension(files)
-                    extension_id = extension.manifest["id"]
                     logger.info(
-                        "Loaded extension '%s' from %s", extension_id, supx_file
+                        "Loaded extension '%s' from %s", extension.id, supx_file
                     )
                     yield extension
             except Exception as e:

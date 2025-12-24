@@ -1,7 +1,7 @@
 ---
 title: MCP Integration
 hide_title: true
-sidebar_position: 7
+sidebar_position: 8
 version: 1
 ---
 

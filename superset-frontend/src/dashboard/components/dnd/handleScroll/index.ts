@@ -20,7 +20,7 @@ let scrollTopDashboardInterval: any;
 const SCROLL_STEP = 120;
 const INTERVAL_DELAY = 50;
 
-export default function handleScroll(scroll: string) {
+export default function handleScroll(scroll: string | null) {
   const setupScroll =
     scroll === 'SCROLL_TOP' &&
     !scrollTopDashboardInterval &&

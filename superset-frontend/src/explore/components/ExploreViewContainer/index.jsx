@@ -138,6 +138,10 @@ const ExplorePanelContainer = styled.div`
       justify-content: space-between;
       .horizontal-text {
         font-size: ${theme.fontSize}px;
+        line-height: 1.5;
+        display: inline-block;
+        height: auto;
+        overflow: visible;
       }
     }
     .no-show {

@@ -16,10 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactNode } from 'react';
 import cx from 'classnames';
 import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+
+export interface FilterScopeTreeNode {
+  value: string | number;
+  label: string | ReactNode;
+  type?: string;
+  children?: FilterScopeTreeNode[];
+}
+
+interface TraverseParams {
+  currentNode: FilterScopeTreeNode;
+  selectedChartId?: number | null;
+}
+
+interface RenderFilterScopeTreeNodesParams {
+  nodes: FilterScopeTreeNode[] | null;
+  selectedChartId?: number | null;
+}
 
 const ChartIcon = styled(Icons.BarChartOutlined)`
   ${({ theme }) => `
@@ -30,11 +48,10 @@ const ChartIcon = styled(Icons.BarChartOutlined)`
   `}
 `;
 
-function traverse({ currentNode = {}, selectedChartId }) {
-  if (!currentNode) {
-    return null;
-  }
-
+function traverse({
+  currentNode,
+  selectedChartId,
+}: TraverseParams): FilterScopeTreeNode {
   const { label, value, type, children } = currentNode;
   if (children && children.length) {
     const updatedChildren = children.map(child =>
@@ -44,7 +61,7 @@ function traverse({ currentNode = {}, selectedChartId }) {
       ...currentNode,
       label: (
         <span
-          className={cx(`filter-scope-type ${type.toLowerCase()}`, {
+          className={cx(`filter-scope-type ${type?.toLowerCase()}`, {
             'selected-filter': selectedChartId === value,
           })}
         >
@@ -59,7 +76,7 @@ function traverse({ currentNode = {}, selectedChartId }) {
     ...currentNode,
     label: (
       <span
-        className={cx(`filter-scope-type ${type.toLowerCase()}`, {
+        className={cx(`filter-scope-type ${type?.toLowerCase()}`, {
           'selected-filter': selectedChartId === value,
         })}
       >
@@ -69,7 +86,10 @@ function traverse({ currentNode = {}, selectedChartId }) {
   };
 }
 
-export default function renderFilterScopeTreeNodes({ nodes, selectedChartId }) {
+export default function renderFilterScopeTreeNodes({
+  nodes,
+  selectedChartId,
+}: RenderFilterScopeTreeNodesParams): FilterScopeTreeNode[] {
   if (!nodes) {
     return [];
   }

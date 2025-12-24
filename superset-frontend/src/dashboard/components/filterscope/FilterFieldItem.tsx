@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { FormLabel } from '@superset-ui/core/components';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
-};
+interface FilterFieldItemProps {
+  label: string;
+  isSelected: boolean;
+}
 
-export default function FilterFieldItem({ label, isSelected }) {
+export default function FilterFieldItem({
+  label,
+  isSelected,
+}: FilterFieldItemProps) {
   return (
     <span
       className={cx('filter-field-item filter-container', {
@@ -36,5 +38,3 @@ export default function FilterFieldItem({ label, isSelected }) {
     </span>
   );
 }
-
-FilterFieldItem.propTypes = propTypes;
