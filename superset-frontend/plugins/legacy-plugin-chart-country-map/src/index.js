@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import transformProps from './transformProps';
 import exampleUsa from './images/exampleUsa.jpg';
 import exampleUsaDark from './images/exampleUsa-dark.jpg';
@@ -48,6 +48,11 @@ const metadata = new ChartMetadata({
   thumbnail,
   thumbnailDark,
   useLegacyApi: true,
+  behaviors: [
+    Behavior.InteractiveChart,
+    Behavior.DrillToDetail,
+    Behavior.DrillBy,
+  ],
 });
 
 export default class CountryMapChartPlugin extends ChartPlugin {
