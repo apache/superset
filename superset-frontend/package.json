@@ -86,7 +86,8 @@
     "test-loud": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80%",
     "type": "tsc --noEmit",
     "update-maps": "cd plugins/legacy-plugin-chart-country-map/scripts && jupyter nbconvert --to notebook --execute --inplace --allow-errors --ExecutePreprocessor.timeout=1200 'Country Map GeoJSON Generator.ipynb'",
-    "validate-release": "../RELEASING/validate_this_release.sh"
+    "validate-release": "../RELEASING/validate_this_release.sh",
+    "export-example": "./scripts/export-example.sh"
   },
   "browserslist": [
     "last 3 chrome versions",
