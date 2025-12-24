@@ -139,14 +139,19 @@ def main() -> None:
 
     test_files = []
     file_count = 0
+    skipped_count = 0
     for root, _, files in os.walk(cypress_tests_path):
         for file in files:
             if file.endswith("test.ts") or file.endswith("test.js"):
+                # Skip files prefixed with _skip. (excluded by excludeSpecPattern)
+                if file.startswith("_skip."):
+                    skipped_count += 1
+                    continue
                 file_count += 1
                 test_files.append(
                     os.path.join(root, file).replace(cypress_base_full_path, "")
                 )
-    print(f"Found {file_count} test files.")
+    print(f"Found {file_count} test files ({skipped_count} skipped).")
 
     # Initialize groups for round-robin distribution
     groups: dict[int, list[str]] = {i: [] for i in range(args.parallelism)}

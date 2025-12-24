@@ -14,42 +14,118 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
-from .bart_lines import load_bart_lines
-from .big_data import load_big_data
-from .birth_names import load_birth_names
-from .country_map import load_country_map_data
+"""Auto-discover and load example datasets from Parquet files."""
+
+from pathlib import Path
+from typing import Callable, Dict
+
+# Import loaders that have custom logic (dashboards, CSS, etc.)
+from superset.cli.test_loaders import load_big_data
+
 from .css_templates import load_css_templates
-from .deck import load_deck_dash
-from .energy import load_energy
-from .flights import load_flights
-from .long_lat import load_long_lat_data
-from .misc_dashboard import load_misc_dashboard
-from .multiformat_time_series import load_multiformat_time_series
-from .paris import load_paris_iris_geojson
-from .random_time_series import load_random_time_series_data
-from .sf_population_polygons import load_sf_population_polygons
+
+# Import generic loader for Parquet datasets
+from .generic_loader import create_generic_loader
 from .supported_charts_dashboard import load_supported_charts_dashboard
 from .tabbed_dashboard import load_tabbed_dashboard
 from .utils import load_examples_from_configs
-from .world_bank import load_world_bank_health_n_pop
 
+# Map of directory names to table names (when different from directory name)
+TABLE_NAME_OVERRIDES = {
+    "fcc_2018_survey": "FCC 2018 Survey",
+}
+
+# Dataset descriptions for documentation (auto-discovered datasets without YAML configs)
+DATASET_DESCRIPTIONS: Dict[str, str] = {}
+
+
+def get_examples_directory() -> Path:
+    """Get the path to the examples directory."""
+    from .helpers import get_examples_folder
+
+    return Path(get_examples_folder())
+
+
+def discover_datasets() -> Dict[str, Callable[..., None]]:
+    """Auto-discover all example datasets and create loaders for them.
+
+    Examples are organized as:
+        superset/examples/{example_name}/data.parquet           # Single dataset
+        superset/examples/{example_name}/data/{name}.parquet    # Multiple datasets
+    """
+    loaders: Dict[str, Callable[..., None]] = {}
+    examples_dir = get_examples_directory()
+
+    if not examples_dir.exists():
+        return loaders
+
+    # Discover single data.parquet files (simple examples)
+    for data_file in sorted(examples_dir.glob("*/data.parquet")):
+        dataset_name = data_file.parent.name
+
+        # Skip special directories
+        if dataset_name.startswith("_"):
+            continue
+
+        # Determine table name
+        table_name = TABLE_NAME_OVERRIDES.get(dataset_name, dataset_name)
+
+        # Get description
+        description = DATASET_DESCRIPTIONS.get(
+            dataset_name, f"{dataset_name.replace('_', ' ').title()} dataset"
+        )
+
+        # Create loader function
+        loader_name = f"load_{dataset_name}"
+        loaders[loader_name] = create_generic_loader(
+            dataset_name,
+            table_name=table_name if table_name != dataset_name else None,
+            description=description,
+        )
+
+    # Discover multiple parquet files in data/ folders (complex examples)
+    for data_file in sorted(examples_dir.glob("*/data/*.parquet")):
+        dataset_name = data_file.stem  # filename without extension
+
+        # Skip special directories
+        if data_file.parent.parent.name.startswith("_"):
+            continue
+
+        # Determine table name
+        table_name = TABLE_NAME_OVERRIDES.get(dataset_name, dataset_name)
+
+        # Get description
+        description = DATASET_DESCRIPTIONS.get(
+            dataset_name, f"{dataset_name.replace('_', ' ').title()} dataset"
+        )
+
+        # Create loader function
+        loader_name = f"load_{dataset_name}"
+        if loader_name not in loaders:  # Don't override existing loaders
+            loaders[loader_name] = create_generic_loader(
+                dataset_name,
+                table_name=table_name if table_name != dataset_name else None,
+                description=description,
+                data_file=data_file,  # Pass specific file path
+            )
+
+    return loaders
+
+
+# Auto-discover and create all dataset loaders
+_auto_loaders = discover_datasets()
+
+# Add auto-discovered loaders to module namespace
+globals().update(_auto_loaders)
+
+# Build __all__ list dynamically
 __all__ = [
-    "load_bart_lines",
+    # Custom loaders (always included)
     "load_big_data",
-    "load_birth_names",
-    "load_country_map_data",
     "load_css_templates",
-    "load_deck_dash",
-    "load_energy",
-    "load_flights",
-    "load_long_lat_data",
-    "load_misc_dashboard",
-    "load_multiformat_time_series",
-    "load_paris_iris_geojson",
-    "load_random_time_series_data",
-    "load_sf_population_polygons",
     "load_supported_charts_dashboard",
     "load_tabbed_dashboard",
     "load_examples_from_configs",
-    "load_world_bank_health_n_pop",
+    # Auto-discovered loaders (includes load_energy from energy.parquet)
+    *sorted(_auto_loaders.keys()),
 ]
