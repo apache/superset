@@ -631,10 +631,12 @@ test('bulk select enables checkboxes for all rows', async () => {
   const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
   await userEvent.click(bulkSelectButton);
 
-  // Checkboxes should appear
+  // Wait for bulk select controls container to appear first (fast query)
+  await screen.findByTestId('bulk-select-controls');
+
+  // Then wait for checkboxes to render
   await waitFor(() => {
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes.length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
   // Note: Bulk action buttons (Export, Delete) only appear after selecting items
@@ -660,9 +662,12 @@ test('selecting all datasets shows correct count in toolbar', async () => {
   });
   await userEvent.click(bulkSelectButton);
 
+  // Wait for bulk select controls container to appear first (fast query)
+  await screen.findByTestId('bulk-select-controls');
+
+  // Then wait for checkboxes to render
   await waitFor(() => {
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes.length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
   // Select all checkbox using semantic selector
@@ -769,9 +774,12 @@ test('exit bulk select via close button returns to normal view', async () => {
   });
   await userEvent.click(bulkSelectButton);
 
+  // Wait for bulk select controls container to appear first (fast query)
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
+
+  // Then wait for checkboxes to render
   await waitFor(() => {
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes.length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
   // Note: Not verifying export/delete buttons here as they only appear after selection
@@ -779,7 +787,6 @@ test('exit bulk select via close button returns to normal view', async () => {
 
   // Find close button within the bulk select container
   // antd 5.x Alert component renders close button with aria-label="Close"
-  const bulkSelectControls = screen.getByTestId('bulk-select-controls');
   const closeButton = within(bulkSelectControls).getByRole('button', {
     name: /close/i,
   });
@@ -788,7 +795,9 @@ test('exit bulk select via close button returns to normal view', async () => {
   // Wait for bulk select controls to be removed
   // Using waitFor with queryBy - handles both "still visible" and "already gone" cases
   await waitFor(() => {
-    expect(screen.queryByTestId('bulk-select-controls')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('bulk-select-controls'),
+    ).not.toBeInTheDocument();
   });
 
   // Then verify normal toolbar is restored
@@ -1352,6 +1361,8 @@ test('duplicate action shows error toast on 500 internal server error', async ()
 
 // Component "+1" Tests - State persistence through operations
 
+// This test is inherently slow due to userEvent.type() typing DELETE character-by-character
+// 30s timeout to handle CI variability
 test('sort order persists after deleting a dataset', async () => {
   const datasetToDelete = mockDatasets[0];
   setupDeleteMocks(datasetToDelete.id);
@@ -1432,7 +1443,7 @@ test('sort order persists after deleting a dataset', async () => {
     );
     expect(carets.length).toBeGreaterThan(0);
   });
-});
+}, 30000);
 
 // Note: "deleting last item on page 2 fetches page 1" is a hook-level pagination
 // concern (useListViewResource handles page reset logic). This is covered by
@@ -1461,13 +1472,19 @@ test('bulk selection clears when filter changes', async () => {
   });
   await userEvent.click(bulkSelectButton);
 
+  // Wait for bulk select controls container to appear first (fast query)
+  await screen.findByTestId('bulk-select-controls');
+
+  // Then wait for checkboxes to render
   await waitFor(() => {
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes.length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
-  // Select first 2 items
+  // Verify multiple checkboxes exist (header + row checkboxes)
   const checkboxes = screen.getAllByRole('checkbox');
+  expect(checkboxes.length).toBeGreaterThan(1);
+
+  // Select first 2 items (indices 1 and 2 - index 0 is header)
   await userEvent.click(checkboxes[1]);
   await userEvent.click(checkboxes[2]);
 
@@ -1505,7 +1522,7 @@ test('bulk selection clears when filter changes', async () => {
   await waitFor(() => {
     expect(screen.getByText(/0 selected/i)).toBeInTheDocument();
   });
-});
+}, 30000); // Complex test with multiple async operations
 
 test('type filter API call includes correct filter parameter', async () => {
   renderDatasetList(mockAdminUser);
