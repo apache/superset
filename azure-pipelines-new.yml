@@ -40,7 +40,8 @@ stages:
     jobs:
       - job: BuildDocker
         displayName: Build and Push Docker Image
-        pool: ${{ parameters.dockerPool }}
+        pool:
+          vmImage: 'ubuntu-latest'
         steps:
           - checkout: self
             clean: true
