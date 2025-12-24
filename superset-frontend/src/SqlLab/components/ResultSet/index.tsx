@@ -420,7 +420,7 @@ const ResultSet = ({
                     setShowStreamingModal(true);
 
                     startExport({
-                      url: '/api/v1/sqllab/export_streaming/',
+                      url: makeUrl('/api/v1/sqllab/export_streaming/'),
                       payload: { client_id: query.id },
                       exportType: 'csv',
                       expectedRows: rows,
