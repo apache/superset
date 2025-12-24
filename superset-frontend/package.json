@@ -176,7 +176,7 @@
     "mousetrap": "^1.6.5",
     "mustache": "^4.2.0",
     "nanoid": "^5.1.6",
-    "ol": "^7.5.2",
+    "ol": "^10.7.0",
     "prop-types": "^15.8.1",
     "re-resizable": "^6.11.2",
     "react": "^17.0.2",
