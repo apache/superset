@@ -17,14 +17,9 @@
  * under the License.
  */
 /* eslint-disable import/no-extraneous-dependencies */
-import { styled } from '@apache-superset/core/ui';
-import { RawAntdSelect } from '@superset-ui/core/components';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { RawAntdSelect as Select } from '@superset-ui/core/components';
 import { SearchOption } from '../../types';
-
-const StyledSelect = styled(RawAntdSelect)`
-  width: 120px;
-  margin-right: 8px;
-`;
 
 interface SearchSelectDropdownProps {
   /** The currently selected search column value */
@@ -41,10 +36,14 @@ function SearchSelectDropdown({
   searchOptions,
 }: SearchSelectDropdownProps) {
   return (
-    <StyledSelect
+    <Select
       className="search-select"
+      css={(theme: SupersetTheme) => css`
+        width: ${theme.sizeUnit * 30}px;
+      `}
       value={value || (searchOptions?.[0]?.value ?? '')}
       options={searchOptions}
+      size="small"
       onChange={onChange}
     />
   );
