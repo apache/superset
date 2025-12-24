@@ -28,6 +28,7 @@ import { IntersectionObserver } from './IntersectionObserver';
 import { ResizeObserver } from './ResizeObserver';
 import setupSupersetClient from './setupSupersetClient';
 import CacheStorage from './CacheStorage';
+import { TextEncoder, TextDecoder } from 'util';
 
 const exposedProperties = ['window', 'navigator', 'document'];
 
@@ -52,6 +53,11 @@ g.window.ResizeObserver ??= ResizeObserver;
 g.window.featureFlags ??= {};
 g.URL.createObjectURL ??= () => '';
 g.caches = new CacheStorage();
+
+// Add shims for TextEncoder and TextDecoder after upgrading jspdf to v3.0.2+
+// Source: https://github.com/parallax/jsPDF/issues/3882
+g.TextDecoder = TextDecoder;
+g.TextEncoder = TextEncoder;
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
