@@ -64,6 +64,9 @@ export default function chartReducer(
         chartAlert: null,
         queriesResponse: action.queriesResponse,
         chartUpdateEndTime: now(),
+        // Update form_data to match latestQueryFormData so dashboard charts
+        // render with the correct configuration after refresh
+        form_data: state.latestQueryFormData,
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {
