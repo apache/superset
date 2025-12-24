@@ -1,16 +1,16 @@
 {
-  "generated": "2025-12-24T05:38:02.967Z",
+  "generated": "2025-12-24T06:02:53.472Z",
   "statistics": {
-    "totalDatabases": 56,
-    "withDocumentation": 56,
-    "withConnectionString": 53,
+    "totalDatabases": 59,
+    "withDocumentation": 59,
+    "withConnectionString": 56,
     "withDrivers": 10,
     "withAuthMethods": 5,
-    "supportsJoins": 52,
-    "supportsSubqueries": 53,
+    "supportsJoins": 55,
+    "supportsSubqueries": 56,
     "supportsDynamicSchema": 17,
     "supportsCatalog": 10,
-    "averageScore": 42,
+    "averageScore": 40,
     "maxScore": 201,
     "byCategory": {
       "Traditional RDBMS": [
@@ -22,7 +22,8 @@
       "Cloud - AWS": [
         "AWS Athena",
         "AWS DynamoDB",
-        "AWS Redshift"
+        "AWS Redshift",
+        "Amazon DynamoDB"
       ],
       "Apache Projects": [
         "Apache Doris",
@@ -51,9 +52,11 @@
         "Greenplum",
         "SAP HANA",
         "IBM Db2",
+        "IBM Db2 for i",
         "IBM Netezza",
         "Kusto",
         "MonetDB",
+        "MotherDuck",
         "OceanBase",
         "Ocient",
         "Oracle",
@@ -561,6 +564,39 @@
       "ssh_tunneling": true,
       "query_cancelation": true,
       "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Amazon DynamoDB": {
+      "engine": "amazon_dynamodb",
+      "engine_name": "Amazon DynamoDB",
+      "documentation": {
+        "description": "Amazon DynamoDB is a serverless NoSQL database with SQL via PartiQL.",
+        "homepage_url": "https://aws.amazon.com/dynamodb/",
+        "pypi_packages": [
+          "pydynamodb"
+        ],
+        "connection_string": "dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region}.amazonaws.com:443?connector=superset",
+        "parameters": {
+          "aws_access_key_id": "AWS access key ID",
+          "aws_secret_access_key": "AWS secret access key",
+          "region": "AWS region (e.g., us-east-1)"
+        },
+        "notes": "Uses PartiQL for SQL queries. Requires connector=superset parameter.",
+        "docs_url": "https://github.com/passren/PyDynamoDB"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
       "user_impersonation": false,
       "query_cost_estimation": false,
       "sql_validation": false
@@ -2139,6 +2175,39 @@
       "query_cost_estimation": false,
       "sql_validation": false
     },
+    "IBM Db2 for i": {
+      "engine": "ibm_db2_for_i",
+      "engine_name": "IBM Db2 for i",
+      "documentation": {
+        "description": "IBM Db2 for i (AS/400) is a database integrated with IBM i OS.",
+        "homepage_url": "https://www.ibm.com/products/db2-for-i",
+        "pypi_packages": [
+          "sqlalchemy-ibmi"
+        ],
+        "connection_string": "ibmi://{username}:{password}@{host}/{database}",
+        "parameters": {
+          "username": "IBM i username",
+          "password": "IBM i password",
+          "host": "IBM i system host",
+          "database": "Library/schema name"
+        },
+        "docs_url": "https://github.com/IBM/sqlalchemy-ibmi"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
     "IBM Netezza": {
       "engine": "ibm_netezza",
       "engine_name": "IBM Netezza",
@@ -2274,6 +2343,39 @@
           "database": "Database name"
         },
         "docs_url": "https://www.monetdb.org/documentation/"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "MotherDuck": {
+      "engine": "motherduck",
+      "engine_name": "MotherDuck",
+      "documentation": {
+        "description": "MotherDuck is a serverless cloud analytics platform built on DuckDB.",
+        "homepage_url": "https://motherduck.com/",
+        "pypi_packages": [
+          "duckdb",
+          "duckdb-engine"
+        ],
+        "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+        "parameters": {
+          "database": "MotherDuck database name (optional)",
+          "token": "MotherDuck authentication token"
+        },
+        "notes": "Set MOTHERDUCK_TOKEN env var or pass token in connection string.",
+        "docs_url": "https://motherduck.com/docs/"
       },
       "time_grains": {},
       "score": 0,
@@ -2830,7 +2932,7 @@
       "engine": "sap_sybase",
       "engine_name": "SAP Sybase",
       "documentation": {
-        "description": "SAP ASE (formerly Sybase) is an enterprise-class relational database using Transact-SQL.",
+        "description": "SAP ASE (formerly Sybase) is an enterprise relational database.",
         "logo": "sybase.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
         "pypi_packages": [

@@ -26,7 +26,6 @@ from superset.constants import TimeGrain
 from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
 
-
 # Documentation metadata for databases
 # This provides comprehensive connection info for generating documentation
 # All content from docs/docs/configuration/databases.mdx should be captured here
@@ -257,6 +256,22 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
             "catalog": "Catalog name",
             "database": "Database name",
         },
+    },
+    "Amazon DynamoDB": {
+        "description": "Amazon DynamoDB is a serverless NoSQL database with SQL via PartiQL.",
+        "homepage_url": "https://aws.amazon.com/dynamodb/",
+        "pypi_packages": ["pydynamodb"],
+        "connection_string": (
+            "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
+            "@dynamodb.{region}.amazonaws.com:443?connector=superset"
+        ),
+        "parameters": {
+            "aws_access_key_id": "AWS access key ID",
+            "aws_secret_access_key": "AWS secret access key",
+            "region": "AWS region (e.g., us-east-1)",
+        },
+        "notes": "Uses PartiQL for SQL queries. Requires connector=superset parameter.",
+        "docs_url": "https://github.com/passren/PyDynamoDB",
     },
     "Apache Drill": {
         "description": "Apache Drill is a schema-free SQL query engine for Hadoop and NoSQL.",
@@ -586,7 +601,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
         ],
         "notes": "Default row limit is 10000. Can be changed via ROW_LIMIT config.",
         "advanced_features": {
-            "multi_index_queries": "Use SQL Lab to query multiple indices (e.g., SELECT * FROM \"logstash\")",
+            "multi_index_queries": 'Use SQL Lab to query multiple indices (e.g., SELECT * FROM "logstash")',
             "multi_index_visualization": "Create an alias index for visualizations with multiple indices",
         },
         "warnings": [
@@ -696,7 +711,9 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
         "pypi_packages": ["shillelagh[gsheetsapi]"],
         "connection_string": "gsheets://",
         "notes": "Google Sheets has a limited SQL API.",
-        "tutorials": ["https://preset.io/blog/2020-06-01-connect-superset-google-sheets/"],
+        "tutorials": [
+            "https://preset.io/blog/2020-06-01-connect-superset-google-sheets/"
+        ],
         "docs_url": "https://github.com/betodealmeida/shillelagh",
     },
     "SAP HANA": {
@@ -704,7 +721,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
         "logo": "sap-hana.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/hana.html",
         "pypi_packages": ["hdbcli", "sqlalchemy-hana"],
-        "install_instructions": 'pip install apache_superset[hana]',
+        "install_instructions": "pip install apache_superset[hana]",
         "connection_string": "hana://{username}:{password}@{host}:{port}",
         "docs_url": "https://github.com/SAP/sqlalchemy-hana",
     },
@@ -727,6 +744,19 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
             },
         ],
         "docs_url": "https://github.com/ibmdb/python-ibmdbsa",
+    },
+    "IBM Db2 for i": {
+        "description": "IBM Db2 for i (AS/400) is a database integrated with IBM i OS.",
+        "homepage_url": "https://www.ibm.com/products/db2-for-i",
+        "pypi_packages": ["sqlalchemy-ibmi"],
+        "connection_string": "ibmi://{username}:{password}@{host}/{database}",
+        "parameters": {
+            "username": "IBM i username",
+            "password": "IBM i password",
+            "host": "IBM i system host",
+            "database": "Library/schema name",
+        },
+        "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
     },
     "IBM Netezza": {
         "description": "IBM Netezza Performance Server is a data warehouse appliance.",
@@ -775,6 +805,18 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
             "database": "Database name",
         },
         "docs_url": "https://www.monetdb.org/documentation/",
+    },
+    "MotherDuck": {
+        "description": "MotherDuck is a serverless cloud analytics platform built on DuckDB.",
+        "homepage_url": "https://motherduck.com/",
+        "pypi_packages": ["duckdb", "duckdb-engine"],
+        "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+        "parameters": {
+            "database": "MotherDuck database name (optional)",
+            "token": "MotherDuck authentication token",
+        },
+        "notes": "Set MOTHERDUCK_TOKEN env var or pass token in connection string.",
+        "docs_url": "https://motherduck.com/docs/",
     },
     "Microsoft SQL Server": {
         "description": "Microsoft SQL Server is a relational database management system.",
@@ -931,7 +973,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
         "docs_url": "https://docs.snowflake.com/en/user-guide/key-pair-auth.html",
     },
     "SAP Sybase": {
-        "description": "SAP ASE (formerly Sybase) is an enterprise-class relational database using Transact-SQL.",
+        "description": "SAP ASE (formerly Sybase) is an enterprise relational database.",
         "logo": "sybase.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
         "pypi_packages": ["sqlalchemy-sybase", "pyodbc"],
@@ -1108,9 +1150,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
             {
                 "name": "Static Credentials",
                 "description": "Username/password authentication",
-                "secure_extra": {
-                    "credentials": {"username": "...", "password": "..."}
-                },
+                "secure_extra": {"credentials": {"username": "...", "password": "..."}},
             },
             {
                 "name": "Access Token",
@@ -1804,9 +1844,7 @@ def generate_yaml_docs(output_dir: str | None = None) -> dict[str, dict[str, Any
             # Create minimal documentation entry
             doc_data["documentation"] = {
                 "pypi_packages": [],
-                "connection_string": getattr(
-                    spec, "sqlalchemy_uri_placeholder", ""
-                ),
+                "connection_string": getattr(spec, "sqlalchemy_uri_placeholder", ""),
             }
 
         # Add engine spec metadata
