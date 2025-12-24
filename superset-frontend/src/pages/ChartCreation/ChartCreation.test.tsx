@@ -193,3 +193,95 @@ test('double-click viz type submits with formatted URL if datasource is selected
   const formattedUrl = '/explore/?viz_type=table&datasource=table_1__table';
   expect(history.push).toHaveBeenCalledWith(formattedUrl);
 });
+
+test('uses contains (ct) operator for dropdown search', async () => {
+  fetchMock.reset();
+  const mockFetch = fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+    body: mockDatasourceResponse,
+    status: 200,
+  });
+
+  await renderComponent();
+
+  const datasourceSelect = await screen.findByRole('combobox', {
+    name: 'Dataset',
+  });
+  userEvent.click(datasourceSelect);
+  userEvent.type(datasourceSelect, 'test');
+
+  await waitFor(() => {
+    const calls = mockFetch.calls();
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall[0]).toContain('opr:ct');
+  });
+});
+
+test('uses exact match (eq) operator when loading from URL parameter', async () => {
+  fetchMock.reset();
+  const mockFetch = fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+    body: mockDatasourceResponse,
+    status: 200,
+  });
+
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: { ...originalLocation, search: '?dataset=flights' },
+    writable: true,
+  });
+
+  await renderComponent();
+
+  await waitFor(() => {
+    const calls = mockFetch.calls();
+    const urlParamCall = calls.find(call => call[0].includes('flights'));
+    expect(urlParamCall).toBeDefined();
+    expect(urlParamCall![0]).toContain('opr:eq');
+  });
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
+});
+
+test('handles special characters in dataset name from URL parameter', async () => {
+  fetchMock.reset();
+  const mockFetch = fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+    body: {
+      result: [
+        {
+          id: 'special_1',
+          table_name: 'flightsÆ test',
+          datasource_type: 'table',
+          database: { database_name: 'test_db' },
+          schema: 'public',
+        },
+      ],
+      count: 1,
+    },
+    status: 200,
+  });
+
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: {
+      ...originalLocation,
+      search: '?dataset=flights%C3%86%20test',
+    },
+    writable: true,
+  });
+
+  await renderComponent();
+
+  await waitFor(() => {
+    const calls = mockFetch.calls();
+    expect(calls.length).toBeGreaterThan(0);
+    const urlParamCall = calls.find(call => call[0].includes('opr:eq'));
+    expect(urlParamCall).toBeDefined();
+  });
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
+});
