@@ -20,6 +20,7 @@ import {
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
+  AxisType,
   ChartProps,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
@@ -721,5 +722,135 @@ describe('legend sorting', () => {
       'Milton',
       'Boston',
     ]);
+  });
+});
+
+describe('EchartsTimeseries brush configuration for time range selection', () => {
+  const brushFormData: SqlaFormData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    metric: 'sum__num',
+    groupby: ['foo', 'bar'],
+    viz_type: 'echarts_timeseries_line',
+  };
+
+  const queriesDataWithTimeAxis = [
+    {
+      data: [
+        { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
+        { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
+      ],
+      colnames: ['__timestamp', 'San Francisco', 'New York'],
+      coltypes: [2, 0, 0], // 2 = Temporal, 0 = Numeric
+    },
+  ];
+
+  const brushChartPropsConfig = {
+    formData: brushFormData,
+    width: 800,
+    height: 600,
+    queriesData: queriesDataWithTimeAxis,
+    theme: supersetTheme,
+  };
+
+  it('should enable brush configuration when x-axis type is time', () => {
+    const chartProps = new ChartProps(brushChartPropsConfig);
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    expect(transformedProps.echartOptions.brush).toBeDefined();
+    expect(transformedProps.echartOptions.brush).toEqual(
+      expect.objectContaining({
+        brushType: 'rect',
+        xAxisIndex: 0,
+        toolbox: [],
+        throttleType: 'debounce',
+        throttleDelay: 300,
+      }),
+    );
+  });
+
+  it('should have correct brush style', () => {
+    const chartProps = new ChartProps(brushChartPropsConfig);
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    expect(transformedProps.echartOptions.brush).toEqual(
+      expect.objectContaining({
+        brushStyle: expect.objectContaining({
+          borderWidth: 1,
+          color: 'rgba(120, 140, 180, 0.3)',
+          borderColor: 'rgba(120, 140, 180, 0.8)',
+        }),
+      }),
+    );
+  });
+
+  it('should return xAxis type as time for time-based data', () => {
+    const chartProps = new ChartProps(brushChartPropsConfig);
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    expect(transformedProps.xAxis.type).toBe(AxisType.Time);
+  });
+
+  it('should not enable brush configuration when x-axis type is category', () => {
+    const categoryFormData = {
+      ...brushFormData,
+      x_axis: 'category_column',
+    };
+    const queriesDataWithCategoryAxis = [
+      {
+        data: [
+          { 'San Francisco': 1, 'New York': 2, category_column: 'A' },
+          { 'San Francisco': 3, 'New York': 4, category_column: 'B' },
+        ],
+        colnames: ['category_column', 'San Francisco', 'New York'],
+        coltypes: [1, 0, 0], // 1 = string/category, 0 = number
+      },
+    ];
+
+    const chartProps = new ChartProps({
+      ...brushChartPropsConfig,
+      formData: categoryFormData,
+      queriesData: queriesDataWithCategoryAxis,
+    });
+
+    const transformedProps = transformProps(
+      chartProps as unknown as EchartsTimeseriesChartProps,
+    );
+
+    expect(transformedProps.echartOptions.brush).toBeUndefined();
+  });
+
+  it('should include isHorizontal in transformed props', () => {
+    const chartProps = new ChartProps(brushChartPropsConfig);
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    expect(transformedProps.isHorizontal).toBe(false);
+  });
+
+  it('should set isHorizontal to true for horizontal orientation', () => {
+    const horizontalFormData = {
+      ...brushFormData,
+      orientation: 'horizontal',
+    };
+
+    const chartProps = new ChartProps({
+      ...brushChartPropsConfig,
+      formData: horizontalFormData,
+    });
+
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    expect(transformedProps.isHorizontal).toBe(true);
   });
 });

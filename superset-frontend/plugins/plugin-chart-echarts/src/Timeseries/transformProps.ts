@@ -745,6 +745,21 @@ export default function transformProps(
           },
         ]
       : [],
+    brush:
+      xAxisType === AxisType.Time
+        ? {
+            toolbox: [],
+            brushType: 'lineX',
+            xAxisIndex: 0,
+            throttleType: 'debounce',
+            throttleDelay: 300,
+            brushStyle: {
+              borderWidth: 1,
+              color: 'rgba(120, 140, 180, 0.3)',
+              borderColor: 'rgba(120, 140, 180, 0.8)',
+            },
+          }
+        : undefined,
   };
 
   const onFocusedSeries = (seriesName: string | null) => {
@@ -773,5 +788,6 @@ export default function transformProps(
     refs,
     coltypeMapping: dataTypes,
     onLegendScroll,
+    isHorizontal,
   };
 }
