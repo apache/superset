@@ -16,22 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-import { ColumnTypeLabel } from '@superset-ui/chart-controls';
+import { ToastType, ToastMeta } from 'src/components/MessageToasts/types';
 
-import aggregateOptionType from './aggregateOptionType';
+const mockMessageToasts: Partial<ToastMeta>[] = [
+  { id: 'info_id', toastType: ToastType.Info, text: 'info toast' },
+  { id: 'danger_id', toastType: ToastType.Danger, text: 'danger toast' },
+];
 
-const propTypes = {
-  aggregate: aggregateOptionType,
-  showType: PropTypes.bool,
-};
-
-export default function AggregateOption({ aggregate, showType }) {
-  return (
-    <div>
-      {showType && <ColumnTypeLabel type="aggregate" />}
-      <span className="option-label">{aggregate.aggregate_name}</span>
-    </div>
-  );
-}
-AggregateOption.propTypes = propTypes;
+export default mockMessageToasts;

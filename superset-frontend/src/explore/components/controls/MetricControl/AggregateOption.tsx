@@ -16,25 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { ColumnTypeLabel } from '@superset-ui/chart-controls';
+import { AggregateOption as AggregateOptionType } from './types';
 
-import * as actions from './chartAction';
-import { logEvent } from '../../logger/actions';
-import Chart from './Chart';
-import { updateDataMask } from '../../dataMask/actions';
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(
-      {
-        ...actions,
-        updateDataMask,
-        logEvent,
-      },
-      dispatch,
-    ),
-  };
+interface AggregateOptionProps {
+  aggregate: AggregateOptionType;
+  showType?: boolean;
 }
 
-export default connect(null, mapDispatchToProps)(Chart);
+export default function AggregateOption({
+  aggregate,
+  showType,
+}: AggregateOptionProps) {
+  return (
+    <div>
+      {showType && <ColumnTypeLabel type={'aggregate' as any} />}
+      <span className="option-label">{aggregate.aggregate_name}</span>
+    </div>
+  );
+}

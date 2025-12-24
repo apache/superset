@@ -45,6 +45,7 @@ Extensions can provide:
 
 - **[Quick Start](./quick-start)** - Build your first extension with a complete walkthrough
 - **[Architecture](./architecture)** - Design principles and system overview
+- **[Dependencies](./dependencies)** - Managing dependencies and understanding API stability
 - **[Contribution Types](./contribution-types)** - Available extension points
 - **[Development](./development)** - Project structure, APIs, and development workflow
 - **[Deployment](./deployment)** - Packaging and deploying extensions

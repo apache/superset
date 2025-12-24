@@ -18,31 +18,21 @@
  */
 import { t } from '@superset-ui/core';
 
-import { getDashboardFilterKey } from './getDashboardFilterKey';
-import { ALL_FILTERS_ROOT } from './constants';
-import { DASHBOARD_ROOT_TYPE } from './componentTypes';
+interface MissingChartProps {
+  height: number;
+}
 
-export default function getFilterFieldNodesTree({ dashboardFilters = {} }) {
-  const allFilters = Object.values(dashboardFilters).map(dashboardFilter => {
-    const { chartId, filterName, columns, labels } = dashboardFilter;
-    const children = Object.keys(columns).map(column => ({
-      value: getDashboardFilterKey({ chartId, column }),
-      label: labels[column] || column,
-    }));
-    return {
-      value: chartId,
-      label: filterName,
-      children,
-      showCheckbox: true,
-    };
-  });
-
-  return [
-    {
-      value: ALL_FILTERS_ROOT,
-      type: DASHBOARD_ROOT_TYPE,
-      label: t('All filters'),
-      children: allFilters,
-    },
-  ];
+export default function MissingChart({ height }: MissingChartProps) {
+  return (
+    <div className="missing-chart-container" style={{ height: height + 20 }}>
+      <div className="missing-chart-body">
+        {t(
+          'There is no chart definition associated with this component, could it have been deleted?',
+        )}
+        <br />
+        <br />
+        {t('Delete this container and save to remove this message.')}
+      </div>
+    </div>
+  );
 }
