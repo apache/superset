@@ -214,7 +214,7 @@ const config: Config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/druid.html',
           },
           {
@@ -266,7 +266,7 @@ const config: Config = {
             from: '/docs/contributing/contribution-page',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/docs/databases/yugabyte/',
           },
           {
@@ -397,6 +397,11 @@ const config: Config = {
               type: 'doc',
               docId: 'intro',
               label: 'Getting Started',
+            },
+            {
+              type: 'doc',
+              docId: 'databases/index',
+              label: 'Databases',
             },
             {
               type: 'doc',
