@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-24T00:04:38.269Z",
+  "generated": "2025-12-24T05:38:02.967Z",
   "statistics": {
     "totalDatabases": 56,
     "withDocumentation": 56,
@@ -1886,6 +1886,7 @@
       "engine_name": "Greenplum",
       "documentation": {
         "description": "VMware Greenplum is a massively parallel processing (MPP) database built on PostgreSQL.",
+        "logo": "greenplum.png",
         "homepage_url": "https://greenplum.org/",
         "pypi_packages": [
           "sqlalchemy-greenplum",
@@ -2257,6 +2258,7 @@
       "engine_name": "MonetDB",
       "documentation": {
         "description": "MonetDB is an open-source column-oriented relational database for high-performance analytics.",
+        "logo": "monet-db.png",
         "homepage_url": "https://www.monetdb.org/",
         "pypi_packages": [
           "sqlalchemy-monetdb",
@@ -2829,6 +2831,7 @@
       "engine_name": "SAP Sybase",
       "documentation": {
         "description": "SAP ASE (formerly Sybase) is an enterprise-class relational database using Transact-SQL.",
+        "logo": "sybase.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
         "pypi_packages": [
           "sqlalchemy-sybase",

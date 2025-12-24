@@ -642,6 +642,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "Greenplum": {
         "description": "VMware Greenplum is a massively parallel processing (MPP) database built on PostgreSQL.",
+        "logo": "greenplum.png",
         "homepage_url": "https://greenplum.org/",
         "pypi_packages": ["sqlalchemy-greenplum", "psycopg2"],
         "connection_string": "greenplum://{username}:{password}@{host}:{port}/{database}",
@@ -761,6 +762,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "MonetDB": {
         "description": "MonetDB is an open-source column-oriented relational database for high-performance analytics.",
+        "logo": "monet-db.png",
         "homepage_url": "https://www.monetdb.org/",
         "pypi_packages": ["sqlalchemy-monetdb", "pymonetdb"],
         "connection_string": "monetdb://{username}:{password}@{host}:{port}/{database}",
@@ -930,6 +932,7 @@ DATABASE_DOCS: dict[str, dict[str, Any]] = {
     },
     "SAP Sybase": {
         "description": "SAP ASE (formerly Sybase) is an enterprise-class relational database using Transact-SQL.",
+        "logo": "sybase.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
         "pypi_packages": ["sqlalchemy-sybase", "pyodbc"],
         "connection_string": "sybase+pyodbc://{username}:{password}@{dsn}",
