@@ -525,11 +525,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         {serverPagination && (
           <Pagination
             currentPage={serverPaginationData?.currentPage || 0}
-            pageSize={
-              hasServerPageLengthChanged
-                ? serverPageLength
-                : serverPaginationData?.pageSize || 10
-            }
+            pageSize={serverPaginationData?.pageSize ?? serverPageLength}
             totalRows={rowCount || 0}
             pageSizeOptions={[10, 20, 50, 100, 200]}
             onServerPaginationChange={onServerPaginationChange}
