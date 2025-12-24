@@ -29,11 +29,6 @@ x-superset-volumes:
   - ./docker:/app/docker
   - superset_home:/app/superset_home
 
-x-common-build: &common-build
-  context: .
-  target: dev
-  cache_from:
-    - apache/superset-cache:3.10-slim-trixie
 
 services:
   redis:
@@ -66,14 +61,15 @@ services:
         required: true
       - path: docker/.env-local
         required: false
+    environment:
+      SUPERSET_ENV: production
+      DEV_MODE: "false"
     build:
-      <<: *common-build
+      context: ./docker
+      dockerfile: Dockerfile.hive
+    image: superset-hive:latest
     container_name: superset_app
-    command: >
-      sh -c "
-      pip install pyhive thrift thrift-sasl &&
-      /app/docker/docker-bootstrap.sh app-gunicorn
-      "
+    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
     user: "root"
     restart: unless-stopped
     ports:
@@ -87,18 +83,17 @@ services:
 
   superset-init:
     container_name: superset_init
-    build:
-      <<: *common-build
-    command: >
-      sh -c "
-      pip install pyhive thrift thrift-sasl &&
-      /app/docker/docker-init.sh
-      "
+    image: superset-hive:latest
+
+    command: ["/app/docker/docker-init.sh"]
     env_file:
       - path: docker/.env
         required: true
       - path: docker/.env-local
         required: false
+    environment:
+      SUPERSET_ENV: production
+      DEV_MODE: "false"
     depends_on:
       db:
         condition: service_started
@@ -112,19 +107,17 @@ services:
       disable: true
 
   superset-worker:
-    build:
-      <<: *common-build
+    image: superset-hive:latest
     container_name: superset_worker
-    command: >
-      sh -c "
-      pip install pyhive thrift thrift-sasl &&
-      /app/docker/docker-bootstrap.sh worker
-      "
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
       - path: docker/.env
         required: true
       - path: docker/.env-local
         required: false
+    environment:
+      SUPERSET_ENV: production
+      DEV_MODE: "false"
     restart: unless-stopped
     depends_on:
       superset-init:
@@ -141,8 +134,7 @@ services:
         ]
 
   superset-worker-beat:
-    build:
-      <<: *common-build
+    image: superset-hive:latest
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file:
@@ -150,6 +142,9 @@ services:
         required: true
       - path: docker/.env-local
         required: false
+    environment:
+      SUPERSET_ENV: production
+      DEV_MODE: "false"
     restart: unless-stopped
     depends_on:
       superset-init:
