@@ -98,16 +98,6 @@ export const CardStyles = styled.div`
   }
 `;
 
-const QueryData = styled.div`
-  svg {
-    margin-left: ${({ theme }) => theme.sizeUnit * 10}px;
-  }
-  .query-title {
-    padding: ${({ theme }) => theme.sizeUnit * 2 + 2}px;
-    font-size: ${({ theme }) => theme.fontSizeLG}px;
-  }
-`;
-
 const QueryContainer = styled.div`
   /* Custom styles for the syntax highlighter in cards */
   & > div {
@@ -226,7 +216,6 @@ export const SavedQueries = ({
             iconSize="l"
             css={css`
               margin-right: ${theme.sizeUnit}px;
-              vertical-align: baseline;
             `}
           />
           {t('Share')}
@@ -348,25 +337,21 @@ export const SavedQueries = ({
                   )
                 }
                 actions={
-                  <QueryData>
-                    <ListViewCard.Actions
-                      onClick={e => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                      }}
+                  <ListViewCard.Actions
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                  >
+                    <Dropdown
+                      menu={{ items: menuItems(q) }}
+                      trigger={['click', 'hover']}
                     >
-                      <Dropdown
-                        menu={{
-                          items: menuItems(q),
-                        }}
-                        trigger={['click', 'hover']}
-                      >
-                        <Button buttonSize="xsmall" buttonStyle="link">
-                          <Icons.MoreOutlined iconColor={theme.colorText} />
-                        </Button>
-                      </Dropdown>
-                    </ListViewCard.Actions>
-                  </QueryData>
+                      <Button buttonSize="xsmall" buttonStyle="link">
+                        <Icons.MoreOutlined iconSize="xl" />
+                      </Button>
+                    </Dropdown>
+                  </ListViewCard.Actions>
                 }
               />
             </CardStyles>
