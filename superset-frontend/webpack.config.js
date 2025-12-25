@@ -294,6 +294,9 @@ function createSwcLoader(syntax = 'typescript', tsx = true) {
 }
 
 const config = {
+  experiments: {
+    topLevelAwait: true,
+  },
   entry: {
     preamble: PREAMBLE,
     theme: path.join(APP_DIR, '/src/theme.ts'),
