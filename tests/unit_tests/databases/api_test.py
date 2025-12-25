@@ -255,7 +255,7 @@ def test_database_connection(
                     "service_account_info": {
                         "type": "service_account",
                         "project_id": "black-sanctum-314419",
-                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",  # noqa: E501
                         "private_key": "XXXXXXXXXX",
                         "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                         "client_id": "114567578578109757129",
@@ -2104,6 +2104,7 @@ def test_catalogs(
     """
     database = mocker.MagicMock()
     database.get_all_catalog_names.return_value = {"db1", "db2"}
+    database.get_default_catalog.return_value = "db2"
     DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database
 
@@ -2115,7 +2116,7 @@ def test_catalogs(
 
     response = client.get("/api/v1/database/1/catalogs/")
     assert response.status_code == 200
-    assert response.json == {"result": ["db2"]}
+    assert response.json == {"result": ["db2"], "default": "db2"}
     database.get_all_catalog_names.assert_called_with(
         cache=database.catalog_cache_enabled,
         cache_timeout=database.catalog_cache_timeout,
@@ -2187,6 +2188,7 @@ def test_schemas(
 
     database = mocker.MagicMock()
     database.get_all_schema_names.return_value = {"schema1", "schema2"}
+    database.get_default_schema.return_value = "schema2"
     datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
     datamodel.get.return_value = database
 
@@ -2198,7 +2200,7 @@ def test_schemas(
 
     response = client.get("/api/v1/database/1/schemas/")
     assert response.status_code == 200
-    assert response.json == {"result": ["schema2"]}
+    assert response.json == {"result": ["schema2"], "default": "schema2"}
     database.get_all_schema_names.assert_called_with(
         catalog=None,
         cache=database.schema_cache_enabled,
@@ -2274,3 +2276,184 @@ def test_schemas_with_oauth2(
             }
         ]
     }
+
+
+def test_catalogs_default_not_accessible(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that `default` is null when the default catalog is not accessible to the user.
+    """
+    database = mocker.MagicMock()
+    database.get_all_catalog_names.return_value = {"db1", "db2"}
+    database.get_default_catalog.return_value = "db1"  # default is db1
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    # User only has access to db2, not the default db1
+    security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
+
+    response = client.get("/api/v1/database/1/catalogs/")
+    assert response.status_code == 200
+    assert response.json == {"result": ["db2"], "default": None}
+
+
+def test_catalogs_default_retrieval_fails(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that the endpoint still works when get_default_catalog fails.
+    """
+    database = mocker.MagicMock()
+    database.get_all_catalog_names.return_value = {"db1", "db2"}
+    database.get_default_catalog.side_effect = Exception("Connection failed")
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_catalogs_accessible_by_user.return_value = {"db1", "db2"}
+
+    response = client.get("/api/v1/database/1/catalogs/")
+    assert response.status_code == 200
+    # Result should still be returned, default is null due to error
+    assert set(response.json["result"]) == {"db1", "db2"}
+    assert response.json["default"] is None
+
+
+def test_schemas_default_not_accessible(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that `default` is null when the default schema is not accessible to the user.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"public", "private"}
+    database.get_default_schema.return_value = "public"  # default is public
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    # User only has access to private, not the default public
+    security_manager.get_schemas_accessible_by_user.return_value = {"private"}
+
+    response = client.get("/api/v1/database/1/schemas/")
+    assert response.status_code == 200
+    assert response.json == {"result": ["private"], "default": None}
+
+
+def test_schemas_default_retrieval_fails(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that the endpoint still works when get_default_schema fails.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"public", "private"}
+    database.get_default_schema.side_effect = Exception("Connection failed")
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {"public", "private"}
+
+    response = client.get("/api/v1/database/1/schemas/")
+    assert response.status_code == 200
+    # Result should still be returned, default is null due to error
+    assert set(response.json["result"]) == {"public", "private"}
+    assert response.json["default"] is None
+
+
+def test_schemas_default_with_upload_allowed(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that default schema is returned correctly with upload_allowed filter.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"public", "uploads", "private"}
+    database.get_default_schema.return_value = "public"
+    database.allow_file_upload = True
+    database.get_schema_access_for_file_upload.return_value = ["uploads", "public"]
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {
+        "public",
+        "uploads",
+        "private",
+    }
+
+    response = client.get("/api/v1/database/1/schemas/?q=(upload_allowed:!t)")
+    assert response.status_code == 200
+    # Only upload-allowed schemas should be returned
+    assert set(response.json["result"]) == {"public", "uploads"}
+    # Default should be public since it's in the allowed list
+    assert response.json["default"] == "public"
+
+
+def test_schemas_default_not_in_upload_allowed(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that default schema is null when not in upload_allowed schemas.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"public", "uploads", "private"}
+    database.get_default_schema.return_value = "private"  # default not in allowed list
+    database.allow_file_upload = True
+    database.get_schema_access_for_file_upload.return_value = ["uploads", "public"]
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {
+        "public",
+        "uploads",
+        "private",
+    }
+
+    response = client.get("/api/v1/database/1/schemas/?q=(upload_allowed:!t)")
+    assert response.status_code == 200
+    assert set(response.json["result"]) == {"public", "uploads"}
+    # Default should be null since "private" is not in allowed list
+    assert response.json["default"] is None
