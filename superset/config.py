@@ -1217,6 +1217,8 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.slack",
+        "superset.tasks.database_analyzer",
+        "superset.tasks.dashboard_generator",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1

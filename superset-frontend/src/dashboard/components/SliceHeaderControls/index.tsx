@@ -61,6 +61,7 @@ import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
+import { selectIsTemplateDashboard } from 'src/dashboard/selectors';
 
 const RefreshTooltip = styled.div`
   ${({ theme }) => css`
@@ -168,14 +169,18 @@ const SliceHeaderControls = (
   );
   const theme = useTheme();
 
+  const isTemplate = useSelector(selectIsTemplateDashboard);
+  // Templates are read-only - disable editing capabilities
   const canEditCrossFilters =
+    !isTemplate &&
     useSelector<RootState, boolean>(
       ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
     ) &&
     getChartMetadataRegistry()
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.InteractiveChart);
-  const canExplore = props.supersetCanExplore;
+  // Hide "Edit chart" for templates
+  const canExplore = !isTemplate && props.supersetCanExplore;
   const { canDrillToDetail, canViewQuery, canViewTable } = usePermissions();
 
   const datasetResource = useDatasetDrillInfo(

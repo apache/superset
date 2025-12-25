@@ -109,6 +109,10 @@ dependencies = [
     "wtforms>=2.3.3, <4",
     "wtforms-json",
     "xlsxwriter>=3.0.7, <3.1",
+    # --------------------------
+    # AI/LLM features - dashboard generator, database analyzer
+    "langchain-core>=1.2.0, <2",  # Output parsers, prompts, and utilities
+    "langgraph>=1.0.5, <2",  # Stateful agent orchestration
 ]
 
 [project.optional-dependencies]

@@ -32,6 +32,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardNativeFiltersUpdateFailedError,
     DashboardNotFoundError,
     DashboardSlugExistsValidationError,
+    DashboardTemplateUpdateForbiddenError,
     DashboardUpdateFailedError,
 )
 from superset.commands.utils import populate_roles, update_tags, validate_tags
@@ -83,6 +84,11 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         self._model = DashboardDAO.find_by_id(self._model_id)
         if not self._model:
             raise DashboardNotFoundError()
+
+        # Templates cannot be modified - reuse the security_manager helper
+        if security_manager._is_template_dashboard(self._model):
+            raise DashboardTemplateUpdateForbiddenError()
+
         # Check ownership
         try:
             security_manager.raise_for_ownership(self._model)

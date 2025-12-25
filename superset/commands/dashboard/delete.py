@@ -28,6 +28,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardDeleteFailedReportsExistError,
     DashboardForbiddenError,
     DashboardNotFoundError,
+    DashboardTemplateDeleteForbiddenError,
 )
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.daos.report import ReportScheduleDAO
@@ -67,6 +68,12 @@ class DeleteDashboardCommand(BaseCommand):
         self._models = DashboardDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
             raise DashboardNotFoundError()
+
+        # Templates cannot be deleted - reuse the security_manager helper
+        for model in self._models:
+            if security_manager._is_template_dashboard(model):
+                raise DashboardTemplateDeleteForbiddenError()
+
         # Check there are no associated ReportSchedules
         if reports := ReportScheduleDAO.find_by_dashboard_ids(self._model_ids):
             report_names = [report.name for report in reports]

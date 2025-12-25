@@ -106,6 +106,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [modal, contextHolder] = Modal.useModal();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const isTemplateDataset = currentDatasource.is_template_dataset;
+  const isReadOnly =
+    currentDatasource.is_managed_externally || isTemplateDataset;
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
@@ -345,17 +348,17 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             buttonStyle="primary"
             data-test="datasource-modal-save"
             onClick={onClickSave}
-            disabled={
-              isSaving ||
-              errors.length > 0 ||
-              currentDatasource.is_managed_externally
-            }
+            disabled={isSaving || errors.length > 0 || isReadOnly}
             tooltip={
-              currentDatasource.is_managed_externally
+              isTemplateDataset
                 ? t(
-                    "This dataset is managed externally, and can't be edited in Superset",
+                    'This dataset belongs to a template dashboard and cannot be modified.',
                   )
-                : ''
+                : currentDatasource.is_managed_externally
+                  ? t(
+                      "This dataset is managed externally, and can't be edited in Superset",
+                    )
+                  : ''
             }
           >
             {t('Save')}
@@ -364,6 +367,13 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       }
       responsive
     >
+      {isTemplateDataset && (
+        <Alert type="info" banner closable={false}>
+          {t(
+            'This dataset belongs to a template dashboard and cannot be modified.',
+          )}
+        </Alert>
+      )}
       <DatasourceEditor
         showLoadingForImport
         height={500}

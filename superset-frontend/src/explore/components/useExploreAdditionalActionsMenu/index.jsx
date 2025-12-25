@@ -129,7 +129,7 @@ export const useExploreAdditionalActionsMenu = (
   dashboards,
   showReportModal,
   setCurrentReportDeleting,
-  ...rest
+  isTemplateChart = false,
 ) => {
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
@@ -435,8 +435,8 @@ export const useExploreAdditionalActionsMenu = (
   const menu = useMemo(() => {
     const menuItems = [];
 
-    // Edit chart properties
-    if (slice) {
+    // Edit chart properties - hidden for template charts
+    if (slice && !isTemplateChart) {
       menuItems.push({
         key: MENU_KEYS.EDIT_PROPERTIES,
         label: t('Edit chart properties'),
@@ -820,8 +820,8 @@ export const useExploreAdditionalActionsMenu = (
     // Divider
     menuItems.push({ type: 'divider' });
 
-    // Report menu item
-    if (reportMenuItem) {
+    // Report menu item - hidden for template charts
+    if (reportMenuItem && !isTemplateChart) {
       menuItems.push(reportMenuItem);
     }
 
@@ -857,7 +857,7 @@ export const useExploreAdditionalActionsMenu = (
       });
     }
 
-    return <Menu selectable={false} items={menuItems} {...rest} />;
+    return <Menu selectable={false} items={menuItems} />;
   }, [
     addDangerToast,
     canDownloadCSV,
@@ -882,6 +882,7 @@ export const useExploreAdditionalActionsMenu = (
     theme.sizeUnit,
     ownState,
     hasExportCurrentView,
+    isTemplateChart,
   ]);
 
   // Return streaming modal state and handlers for parent to render

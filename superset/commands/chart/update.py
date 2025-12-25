@@ -29,6 +29,7 @@ from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartInvalidError,
     ChartNotFoundError,
+    ChartTemplateUpdateForbiddenError,
     ChartUpdateFailedError,
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
@@ -111,6 +112,10 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         self._model = ChartDAO.find_by_id(self._model_id)
         if not self._model:
             raise ChartNotFoundError()
+
+        # Charts belonging to template dashboards cannot be modified
+        if self._model.is_template_chart is True:
+            raise ChartTemplateUpdateForbiddenError()
 
         # Check and update ownership; when only updating query context we ignore
         # ownership so the update can be performed by report workers

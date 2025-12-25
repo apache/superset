@@ -37,9 +37,10 @@ from superset.commands.dashboard.importers.v1.utils import (
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.commands.importers.v1.utils import import_tag
+from superset.commands.importers.v1.utils import import_tag, load_yaml, METADATA_FILE_NAME
 from superset.commands.theme.import_themes import import_theme
 from superset.commands.utils import update_chart_config_dataset
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
@@ -77,6 +78,24 @@ class ImportDashboardsCommand(ImportModelsCommand):
         contents: dict[str, Any] | None = None,
     ) -> None:
         contents = {} if contents is None else contents
+
+        # Extract template metadata from metadata.yaml if present
+        template_metadata: dict[str, Any] = {}
+        if METADATA_FILE_NAME in contents:
+            metadata = load_yaml(METADATA_FILE_NAME, contents[METADATA_FILE_NAME])
+            template_fields = [
+                "is_template",
+                "is_featured_template",
+                "template_category",
+                "template_thumbnail_url",
+                "template_description",
+                "template_tags",
+                "template_context",
+            ]
+            template_metadata = {
+                k: v for k, v in metadata.items() if k in template_fields and v
+            }
+
         # discover charts, datasets, and themes associated with dashboards
         chart_uuids: set[str] = set()
         dataset_uuids: set[str] = set()
@@ -180,6 +199,11 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     # Theme not found, set to None for graceful fallback
                     config["theme_id"] = None
                     del config["theme_uuid"]
+                # Merge template metadata into dashboard's metadata
+                if template_metadata:
+                    if "metadata" not in config:
+                        config["metadata"] = {}
+                    config["metadata"]["template_info"] = template_metadata
                 dashboard = import_dashboard(config, overwrite=overwrite)
                 dashboards.append(dashboard)
 
@@ -226,6 +250,37 @@ class ImportDashboardsCommand(ImportModelsCommand):
         # Migrate any filter-box charts to native dashboard filters.
         for dashboard in dashboards:
             migrate_dashboard(dashboard)
+
+        # Set is_template_chart and is_template_dataset flags for template dashboards.
+        # These flags prevent charts/datasets from being modified/deleted via the API.
+        if template_metadata.get("is_template"):
+            template_chart_ids: set[int] = set()
+            template_dataset_ids: set[int] = set()
+
+            # Collect all chart IDs from template dashboards
+            for file_name, config in configs.items():
+                if file_name.startswith("dashboards/"):
+                    for chart_uuid in find_chart_uuids(config["position"]):
+                        if chart_uuid in chart_ids:
+                            template_chart_ids.add(chart_ids[chart_uuid])
+
+            # Set is_template_chart=True for all template charts
+            for chart in charts:
+                if chart.id in template_chart_ids:
+                    chart.is_template_chart = True
+                    # Collect dataset IDs from template charts
+                    if chart.datasource_id:
+                        template_dataset_ids.add(chart.datasource_id)
+
+            # Set is_template_dataset=True for all datasets used by template charts
+            if template_dataset_ids:
+                datasets = (
+                    db.session.query(SqlaTable)
+                    .filter(SqlaTable.id.in_(template_dataset_ids))  # type: ignore[attr-defined]
+                    .all()
+                )
+                for dataset in datasets:
+                    dataset.is_template_dataset = True
 
         # Remove all obsolete filter-box charts.
         for chart in charts:

@@ -26,6 +26,7 @@ import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
+import TemplatePreviewHeader from 'src/dashboard/components/TemplatePreviewHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import { Droppable } from 'src/dashboard/components/dnd/DragDroppable';
@@ -50,6 +51,7 @@ import {
 } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
+  DASHBOARD_HEADER_ID,
   DASHBOARD_ROOT_DEPTH,
   DASHBOARD_ROOT_ID,
   DashboardStandaloneMode,
@@ -70,6 +72,7 @@ import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 import DashboardWrapper from './DashboardWrapper';
+import { selectIsTemplateDashboard } from 'src/dashboard/selectors';
 
 // @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
@@ -386,6 +389,17 @@ const DashboardBuilder = () => {
     ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
 
+  // Template mode detection
+  const isTemplate = useSelector(selectIsTemplateDashboard);
+  const dashboardTitle = useSelector<RootState, string>(
+    state =>
+      state.dashboardLayout.present[DASHBOARD_HEADER_ID]?.meta?.text ||
+      'Dashboard',
+  );
+  const dashboardNumericId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
+
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
       dispatch(setDirectPathToChild(pathToTabIndex));
@@ -510,7 +524,15 @@ const DashboardBuilder = () => {
   const renderDraggableContent = useCallback(
     ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
       <div>
-        {!hideDashboardHeader && <DashboardHeader />}
+        {!hideDashboardHeader &&
+          (isTemplate ? (
+            <TemplatePreviewHeader
+              dashboardTitle={dashboardTitle}
+              dashboardId={dashboardNumericId}
+            />
+          ) : (
+            <DashboardHeader />
+          ))}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <FilterBar
@@ -519,7 +541,8 @@ const DashboardBuilder = () => {
             />
           )}
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
-        {!isReport && topLevelTabs && !uiConfig.hideNav && (
+        {/* Hide tabs editing controls for templates */}
+        {!isReport && topLevelTabs && !uiConfig.hideNav && !isTemplate && (
           <WithPopoverMenu
             shouldFocus={shouldFocusTabs}
             menuItems={[
@@ -544,16 +567,31 @@ const DashboardBuilder = () => {
             />
           </WithPopoverMenu>
         )}
+        {/* Render tabs without editing controls for templates */}
+        {!isReport && topLevelTabs && !uiConfig.hideNav && isTemplate && (
+          <DashboardComponent
+            id={topLevelTabs?.id}
+            parentId={DASHBOARD_ROOT_ID}
+            depth={DASHBOARD_ROOT_DEPTH + 1}
+            index={0}
+            renderTabContent={false}
+            renderHoverMenu={false}
+            onChangeTab={handleChangeTab}
+          />
+        )}
       </div>
     ),
     [
-      nativeFiltersEnabled,
+      showFilterBar,
       filterBarOrientation,
       editMode,
       handleChangeTab,
       handleDeleteTopLevelTabs,
       hideDashboardHeader,
       isReport,
+      isTemplate,
+      dashboardTitle,
+      dashboardNumericId,
       topLevelTabs,
       uiConfig.hideNav,
     ],
@@ -646,8 +684,10 @@ const DashboardBuilder = () => {
         </Droppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
+        {/* Don't show empty state with edit button for templates (they can't be edited) */}
         {!editMode &&
           !topLevelTabs &&
+          !isTemplate &&
           dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (
             <EmptyState
               title={t('There are no charts added to this dashboard')}

@@ -149,6 +149,8 @@ export { Progress, type ProgressProps } from './Progress';
 
 export { Skeleton, type SkeletonProps } from './Skeleton';
 
+export { Spin } from './Spin';
+
 export { Switch, type SwitchProps } from './Switch';
 
 export { TreeSelect, type TreeSelectProps } from './TreeSelect';
@@ -191,3 +193,9 @@ export {
   type CodeEditorTheme,
 } from './CodeEditor';
 export { ActionButton, type ActionProps } from './ActionButton';
+export { AIInfoBanner, type AIInfoBannerProps } from './AIInfoBanner';
+export {
+  AsyncProcessPanel,
+  type AsyncProcessPanelProps,
+  type ProcessStep,
+} from './AsyncProcessPanel';

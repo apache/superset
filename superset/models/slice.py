@@ -93,6 +93,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     certified_by = Column(Text)
     certification_details = Column(Text)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
+    is_template_chart = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
@@ -246,6 +247,7 @@ class Slice(  # pylint: disable=too-many-public-methods
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,
             "is_managed_externally": self.is_managed_externally,
+            "is_template_chart": self.is_template_chart,
         }
 
     @property
