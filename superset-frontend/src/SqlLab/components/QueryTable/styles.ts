@@ -39,3 +39,16 @@ export const StyledTooltip = styled(IconTooltip)`
     }
   }
 `;
+
+export const ModalResultSetWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  max-height: 50vh;
+
+  &:has(.filterable-table-container) {
+    height: 50vh;
+    min-height: 50vh;
+  }
+`;
