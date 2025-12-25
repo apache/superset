@@ -41,7 +41,7 @@ from werkzeug.local import LocalProxy
 
 from superset.async_events.async_query_manager import AsyncQueryManager
 from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
-from superset.extensions.ssh import SSHManagerFactory
+from superset.extensions.engine_manager import EngineManagerExtension
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.security.manager import SupersetSecurityManager
 from superset.utils.cache_manager import CacheManager
@@ -136,6 +136,7 @@ cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = get_sqla_class()()
+engine_manager_extension = EngineManagerExtension()
 _event_logger: dict[str, Any] = {}
 encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
@@ -146,6 +147,5 @@ migrate = Migrate()
 profiling = ProfilingExtension()
 results_backend_manager = ResultsBackendManager()
 security_manager: SupersetSecurityManager = LocalProxy(lambda: appbuilder.sm)
-ssh_manager_factory = SSHManagerFactory()
 stats_logger_manager = BaseStatsLoggerManager()
 talisman = Talisman()
