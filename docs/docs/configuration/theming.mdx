@@ -187,25 +187,25 @@ THEME_DEFAULT = {
     "token": {
         "colorPrimary": "#2893B3",
         # ... other Ant Design tokens
-    },
-    "echartsOptionsOverrides": {
-        "grid": {
-            "left": "10%",
-            "right": "10%",
-            "top": "15%",
-            "bottom": "15%"
-        },
-        "tooltip": {
-            "backgroundColor": "rgba(0, 0, 0, 0.8)",
-            "borderColor": "#ccc",
-            "textStyle": {
-                "color": "#fff"
-            }
-        },
-        "legend": {
-            "textStyle": {
-                "fontSize": 14,
-                "fontWeight": "bold"
+        "echartsOptionsOverrides": {
+            "grid": {
+                "left": "10%",
+                "right": "10%",
+                "top": "15%",
+                "bottom": "15%"
+            },
+            "tooltip": {
+                "backgroundColor": "rgba(0, 0, 0, 0.8)",
+                "borderColor": "#ccc",
+                "textStyle": {
+                    "color": "#fff"
+                }
+            },
+            "legend": {
+                "textStyle": {
+                    "fontSize": 14,
+                    "fontWeight": "bold"
+                }
             }
         }
     }
@@ -221,33 +221,34 @@ THEME_DEFAULT = {
     "token": {
         "colorPrimary": "#2893B3",
         # ... other tokens
-    },
-    "echartsOptionsOverridesByChartType": {
-        "echarts_pie": {
-            "legend": {
-                "orient": "vertical",
-                "right": 10,
-                "top": "center"
-            }
-        },
-        "echarts_timeseries": {
-            "xAxis": {
-                "axisLabel": {
-                    "rotate": 45,
-                    "fontSize": 12
+
+        "echartsOptionsOverridesByChartType": {
+            "echarts_pie": {
+                "legend": {
+                    "orient": "vertical",
+                    "right": 10,
+                    "top": "center"
                 }
             },
-            "dataZoom": [{
-                "type": "slider",
-                "show": True,
-                "start": 0,
-                "end": 100
-            }]
-        },
-        "echarts_bubble": {
-            "grid": {
-                "left": "15%",
-                "bottom": "20%"
+            "echarts_timeseries": {
+                "xAxis": {
+                    "axisLabel": {
+                        "rotate": 45,
+                        "fontSize": 12
+                    }
+                },
+                "dataZoom": [{
+                    "type": "slider",
+                    "show": True,
+                    "start": 0,
+                    "end": 100
+                }]
+            },
+            "echarts_bubble": {
+                "grid": {
+                    "left": "15%",
+                    "bottom": "20%"
+                }
             }
         }
     }
@@ -260,26 +261,26 @@ You can also configure ECharts overrides through the theme CRUD interface:
 
 ```json
 {
-  "token": {
-    "colorPrimary": "#2893B3"
-  },
-  "echartsOptionsOverrides": {
-    "grid": {
-      "left": "10%",
-      "right": "10%"
-    },
-    "tooltip": {
-      "backgroundColor": "rgba(0, 0, 0, 0.8)"
+    "token": {
+        "colorPrimary": "#2893B3"
+        "echartsOptionsOverrides": {
+            "grid": {
+                "left": "10%",
+                "right": "10%"
+            },
+            "tooltip": {
+                "backgroundColor": "rgba(0, 0, 0, 0.8)"
+            }
+        },
+        "echartsOptionsOverridesByChartType": {
+            "echarts_pie": {
+                "legend": {
+                    "orient": "vertical",
+                    "right": 10
+                }
+            }
+        }
     }
-  },
-  "echartsOptionsOverridesByChartType": {
-    "echarts_pie": {
-      "legend": {
-        "orient": "vertical",
-        "right": 10
-      }
-    }
-  }
 }
 ```
 
@@ -328,40 +329,40 @@ THEME_DEFAULT = {
     "token": {
         "colorPrimary": "#1B4D3E",
         "fontFamily": "Corporate Sans, Arial, sans-serif"
-    },
-    "echartsOptionsOverrides": {
-        "grid": {
-            "left": "8%",
-            "right": "8%",
-            "top": "12%",
-            "bottom": "12%"
-        },
-        "textStyle": {
-            "fontFamily": "Corporate Sans, Arial, sans-serif"
-        },
-        "title": {
+        "echartsOptionsOverrides": {
+            "grid": {
+                "left": "8%",
+                "right": "8%",
+                "top": "12%",
+                "bottom": "12%"
+            },
             "textStyle": {
-                "color": "#1B4D3E",
-                "fontSize": 18,
-                "fontWeight": "bold"
-            }
-        }
-    },
-    "echartsOptionsOverridesByChartType": {
-        "echarts_timeseries": {
-            "xAxis": {
-                "axisLabel": {
-                    "color": "#666",
-                    "fontSize": 11
+                "fontFamily": "Corporate Sans, Arial, sans-serif"
+            },
+            "title": {
+                "textStyle": {
+                    "color": "#1B4D3E",
+                    "fontSize": 18,
+                    "fontWeight": "bold"
                 }
             }
         },
-        "echarts_pie": {
-            "legend": {
-                "textStyle": {
-                    "fontSize": 12
-                },
-                "itemGap": 20
+        "echartsOptionsOverridesByChartType": {
+            "echarts_timeseries": {
+                "xAxis": {
+                    "axisLabel": {
+                        "color": "#666",
+                        "fontSize": 11
+                    }
+                }
+            },
+            "echarts_pie": {
+                "legend": {
+                    "textStyle": {
+                        "fontSize": 12
+                    },
+                    "itemGap": 20
+                }
             }
         }
     }
