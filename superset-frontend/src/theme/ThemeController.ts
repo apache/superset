@@ -277,6 +277,93 @@ export class ThemeController {
     this.dashboardThemes.delete(themeId);
   }
 
+  // Cache for raw theme configs (for hierarchical component theming)
+  private themeConfigCache: Map<string, AnyThemeConfig> = new Map();
+
+  /**
+   * Fetches and caches the raw theme configuration from the API.
+   * Unlike createDashboardThemeProvider, this returns the raw config
+   * so it can be merged with any parent theme.
+   * @param themeId - The theme ID to fetch
+   * @returns The raw theme configuration or null if not found
+   */
+  public async fetchThemeConfig(
+    themeId: string,
+  ): Promise<AnyThemeConfig | null> {
+    try {
+      // Check cache first
+      if (this.themeConfigCache.has(themeId)) {
+        return this.themeConfigCache.get(themeId)!;
+      }
+
+      // Fetch from API
+      const getTheme = makeApi<void, { result: { json_data: string } }>({
+        method: 'GET',
+        endpoint: `/api/v1/theme/${themeId}`,
+      });
+
+      const { result } = await getTheme();
+      const themeConfig = JSON.parse(result.json_data);
+
+      if (themeConfig) {
+        const normalizedConfig = this.normalizeTheme(themeConfig);
+
+        // Load custom fonts if specified
+        const fontUrls = (normalizedConfig?.token as Record<string, unknown>)
+          ?.fontUrls as string[] | undefined;
+        this.loadFonts(fontUrls);
+
+        // Cache the raw config
+        this.themeConfigCache.set(themeId, normalizedConfig);
+
+        return normalizedConfig;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to fetch theme config:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Creates a Theme by merging a theme config with an optional parent theme.
+   * This enables hierarchical theming where themes inherit from their parent.
+   *
+   * Use this method for component-level themes that need to inherit from
+   * their parent in the component tree. For dashboard-level themes that
+   * don't have a parent, omit the parentThemeConfig parameter.
+   *
+   * @param themeId - The theme ID to apply
+   * @param parentThemeConfig - Optional parent theme's configuration to use as base.
+   *                            If not provided, uses the global default/dark theme.
+   * @returns A Theme object merged with the parent, or null if not found
+   */
+  public async createTheme(
+    themeId: string,
+    parentThemeConfig?: AnyThemeConfig,
+  ): Promise<Theme | null> {
+    try {
+      const componentConfig = await this.fetchThemeConfig(themeId);
+      if (!componentConfig) return null;
+
+      // Import Theme dynamically
+      const { Theme } = await import('@apache-superset/core/ui');
+
+      // Use parent theme as base if provided, otherwise fall back to default/dark
+      const isDarkMode = isThemeConfigDark(componentConfig);
+      const fallbackBase = isDarkMode ? this.darkTheme : this.defaultTheme;
+      const baseTheme = parentThemeConfig || fallbackBase || undefined;
+
+      // Create theme with proper inheritance
+      const componentTheme = Theme.fromConfig(componentConfig, baseTheme);
+
+      return componentTheme;
+    } catch (error) {
+      console.error('Failed to create component theme:', error);
+      return null;
+    }
+  }
+
   /**
    * Clears all cached dashboard themes.
    */

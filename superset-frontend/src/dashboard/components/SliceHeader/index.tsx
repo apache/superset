@@ -163,6 +163,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       width,
       height,
       exportPivotExcel = () => ({}),
+      onApplyTheme,
+      currentThemeId,
     },
     ref,
   ) => {
@@ -347,6 +349,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
+                  onApplyTheme={onApplyTheme}
+                  currentThemeId={currentThemeId}
                 />
               )}
             </>

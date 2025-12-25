@@ -433,6 +433,10 @@ export interface ThemeContextType {
   canSetTheme: () => boolean;
   canDetectOSPreference: () => boolean;
   createDashboardThemeProvider: (themeId: string) => Promise<Theme | null>;
+  createTheme: (
+    themeId: string,
+    parentThemeConfig?: AnyThemeConfig,
+  ) => Promise<Theme | null>;
   getAppliedThemeId: () => number | null;
 }
 

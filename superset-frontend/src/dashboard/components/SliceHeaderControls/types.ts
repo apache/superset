@@ -59,4 +59,8 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
 
   crossFiltersEnabled?: boolean;
+
+  // Theme-related props
+  currentThemeId?: number | null;
+  onApplyTheme?: (themeId: number | null) => void;
 }

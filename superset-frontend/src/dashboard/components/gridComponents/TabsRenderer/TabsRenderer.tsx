@@ -22,8 +22,10 @@ import {
   ReactElement,
   RefObject,
   useCallback,
+  useMemo,
   useState,
 } from 'react';
+import { t } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import {
   LineEditableTabs,
@@ -43,7 +45,9 @@ import {
 } from '@dnd-kit/sortable';
 import HoverMenu from '../../menu/HoverMenu';
 import DragHandle from '../../dnd/DragHandle';
-import DeleteComponentButton from '../../DeleteComponentButton';
+import ComponentHeaderControls, {
+  ComponentMenuKeys,
+} from '../../menu/ComponentHeaderControls';
 
 const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
   width: 100%;
@@ -89,6 +93,7 @@ export interface TabsRendererProps {
   renderHoverMenu?: boolean;
   tabsDragSourceRef?: RefObject<HTMLDivElement>;
   handleDeleteComponent: () => void;
+  handleOpenThemeSelector: () => void;
   tabsComponent: TabsComponent;
   activeKey: string;
   tabIds: string[];
@@ -151,6 +156,7 @@ const TabsRenderer = memo<TabsRendererProps>(
     renderHoverMenu = true,
     tabsDragSourceRef,
     handleDeleteComponent,
+    handleOpenThemeSelector,
     tabsComponent,
     activeKey,
     tabIds,
@@ -187,6 +193,38 @@ const TabsRenderer = memo<TabsRendererProps>(
       setActiveId(null);
     }, []);
 
+    const handleMenuClick = useCallback(
+      (key: string) => {
+        switch (key) {
+          case ComponentMenuKeys.ApplyTheme:
+            handleOpenThemeSelector();
+            break;
+          case ComponentMenuKeys.Delete:
+            handleDeleteComponent();
+            break;
+          default:
+            break;
+        }
+      },
+      [handleDeleteComponent, handleOpenThemeSelector],
+    );
+
+    const menuItems = useMemo(
+      () => [
+        {
+          key: ComponentMenuKeys.ApplyTheme,
+          label: t('Apply theme'),
+        },
+        { type: 'divider' as const },
+        {
+          key: ComponentMenuKeys.Delete,
+          label: t('Delete'),
+          danger: true,
+        },
+      ],
+      [],
+    );
+
     const isDragging = activeId !== null;
 
     return (
@@ -198,7 +236,12 @@ const TabsRenderer = memo<TabsRendererProps>(
         {editMode && renderHoverMenu && tabsDragSourceRef && (
           <HoverMenu innerRef={tabsDragSourceRef} position="left">
             <DragHandle position="left" />
-            <DeleteComponentButton onDelete={handleDeleteComponent} />
+            <ComponentHeaderControls
+              componentId={tabsComponent.id}
+              menuItems={menuItems}
+              onMenuClick={handleMenuClick}
+              editMode={editMode}
+            />
           </HoverMenu>
         )}
 

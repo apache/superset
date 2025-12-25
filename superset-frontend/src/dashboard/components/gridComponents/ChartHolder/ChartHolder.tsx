@@ -25,6 +25,7 @@ import { css, useTheme } from '@apache-superset/core/ui';
 import { LayoutItem, RootState } from 'src/dashboard/types';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
+import ComponentThemeProvider from 'src/dashboard/components/ComponentThemeProvider';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -231,6 +232,38 @@ const ChartHolder = ({
     setFullSizeChartId(isFullSize ? null : chartId);
   }, [chartId, isFullSize, setFullSizeChartId]);
 
+  const handleApplyTheme = useCallback(
+    (themeId: number | null) => {
+      // Use getComponentById to get the latest component state
+      // This avoids having `component` in dependencies which causes re-renders
+      const currentComponent = getComponentById(component.id);
+      if (!currentComponent) return;
+
+      if (themeId !== null) {
+        updateComponents({
+          [component.id]: {
+            ...currentComponent,
+            meta: {
+              ...currentComponent.meta,
+              theme_id: themeId,
+            },
+          },
+        });
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars, camelcase
+        const { theme_id, ...metaWithoutTheme } =
+          currentComponent.meta as Record<string, unknown>;
+        updateComponents({
+          [component.id]: {
+            ...currentComponent,
+            meta: metaWithoutTheme,
+          },
+        });
+      }
+    },
+    [component.id, getComponentById, updateComponents],
+  );
+
   const handleExtraControl = useCallback((name: string, value: unknown) => {
     setExtraControls(current => ({
       ...current,
@@ -238,6 +271,7 @@ const ChartHolder = ({
     }));
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- individual meta properties are tracked
   const renderChild = useCallback(
     ({ dragSourceRef }) => (
       <ResizableContainer
@@ -283,23 +317,39 @@ const ChartHolder = ({
                   }`}
             </style>
           )}
-          <Chart
-            componentId={component.id}
-            id={component.meta.chartId}
-            dashboardId={dashboardId}
-            width={chartWidth}
-            height={chartHeight}
-            sliceName={
-              component.meta.sliceNameOverride || component.meta.sliceName || ''
+          <ComponentThemeProvider
+            themeId={
+              (component.meta as Record<string, unknown>).theme_id as
+                | number
+                | undefined
             }
-            updateSliceName={handleUpdateSliceName}
-            isComponentVisible={isComponentVisible}
-            handleToggleFullSize={handleToggleFullSize}
-            isFullSize={isFullSize}
-            setControlValue={handleExtraControl}
-            extraControls={extraControls}
-            isInView={isInView}
-          />
+          >
+            <Chart
+              componentId={component.id}
+              id={component.meta.chartId}
+              dashboardId={dashboardId}
+              width={chartWidth}
+              height={chartHeight}
+              sliceName={
+                component.meta.sliceNameOverride ||
+                component.meta.sliceName ||
+                ''
+              }
+              updateSliceName={handleUpdateSliceName}
+              isComponentVisible={isComponentVisible}
+              handleToggleFullSize={handleToggleFullSize}
+              isFullSize={isFullSize}
+              setControlValue={handleExtraControl}
+              extraControls={extraControls}
+              isInView={isInView}
+              onApplyTheme={handleApplyTheme}
+              currentThemeId={
+                (component.meta as Record<string, unknown>).theme_id as
+                  | number
+                  | null
+              }
+            />
+          </ComponentThemeProvider>
           {editMode && (
             <HoverMenu position="top">
               <div data-test="dashboard-delete-component-button">
@@ -340,6 +390,7 @@ const ChartHolder = ({
       extraControls,
       isInView,
       handleDeleteComponent,
+      handleApplyTheme,
     ],
   );
 
