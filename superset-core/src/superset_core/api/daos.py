@@ -37,6 +37,7 @@ from flask_appbuilder.models.filters import BaseFilter
 from sqlalchemy.orm import Query as SQLAQuery
 
 from superset_core.api.models import (
+    AsyncTask,
     Chart,
     CoreModel,
     Dashboard,
@@ -248,6 +249,32 @@ class KeyValueDAO(BaseDAO[KeyValue]):
     id_column_name = "id"
 
 
+class AsyncTaskDAO(BaseDAO[AsyncTask]):
+    """
+    Abstract AsyncTask DAO interface.
+
+    Host implementations will replace this class during initialization
+    with a concrete implementation providing actual functionality.
+    """
+
+    # Class variables that will be set by host implementation
+    model_cls = None
+    base_filter = None
+    id_column_name = "id"
+    uuid_column_name = "uuid"
+
+    @classmethod
+    @abstractmethod
+    def find_by_task_id(cls, task_id: str) -> AsyncTask | None:
+        """
+        Find task by deduplication ID.
+
+        :param task_id: Task identifier for deduplication
+        :returns: AsyncTask instance or None if not found
+        """
+        ...
+
+
 __all__ = [
     "BaseDAO",
     "DatasetDAO",
@@ -259,4 +286,5 @@ __all__ = [
     "SavedQueryDAO",
     "TagDAO",
     "KeyValueDAO",
+    "AsyncTaskDAO",
 ]
