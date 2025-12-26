@@ -127,6 +127,6 @@ def boxplot(  # noqa: C901
     # that's used in the underlying function will fail
     for column in metrics:
         if df.dtypes[column] == np.object_:
-            df[column] = to_numeric(df[column], errors="coerce")
+            df.loc[:, column] = to_numeric(df[column], errors="coerce")
 
     return aggregate(df, groupby=groupby, aggregates=aggregates)
