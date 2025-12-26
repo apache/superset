@@ -89,14 +89,37 @@ class ChartRenderer extends Component {
     const suppressContextMenu = getChartMetadataRegistry().get(
       props.formData.viz_type ?? props.vizType,
     )?.suppressContextMenu;
+
+    // Load legend state from sessionStorage (per-chart)
+    const legendStateKey = `chart_legend_state_${props.chartId}`;
+    const legendIndexKey = `chart_legend_index_${props.chartId}`;
+    let savedLegendState = null;
+    let savedLegendIndex = 0;
+    try {
+      const storedState = sessionStorage.getItem(legendStateKey);
+      if (storedState !== null) {
+        savedLegendState = JSON.parse(storedState);
+      }
+      const storedIndex = sessionStorage.getItem(legendIndexKey);
+      if (storedIndex !== null) {
+        console.log(storedIndex);
+        savedLegendIndex = JSON.parse(storedIndex);
+      }
+    } catch (e) {
+      logging.warn(
+        '[ChartRenderer] Failed to load legend state from sessionStorage:',
+        e,
+      );
+    }
+
     this.state = {
       showContextMenu:
         props.source === ChartSource.Dashboard &&
         !suppressContextMenu &&
         isFeatureEnabled(FeatureFlag.DrillToDetail),
       inContextMenu: false,
-      legendState: undefined,
-      legendIndex: 0,
+      legendState: savedLegendState,
+      legendIndex: savedLegendIndex,
     };
     this.hasQueryResponseChange = false;
 
@@ -261,6 +284,17 @@ class ChartRenderer extends Component {
 
   handleLegendStateChanged(legendState) {
     this.setState({ legendState });
+    try {
+      sessionStorage.setItem(
+        `chart_legend_state_${this.props.chartId}`,
+        JSON.stringify(legendState),
+      );
+    } catch (e) {
+      logging.warn(
+        '[ChartRenderer] Failed to save legend state to sessionStorage:',
+        e,
+      );
+    }
   }
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
@@ -274,6 +308,17 @@ class ChartRenderer extends Component {
 
   handleLegendScroll(legendIndex) {
     this.setState({ legendIndex });
+    try {
+      sessionStorage.setItem(
+        `chart_legend_index_${this.props.chartId}`,
+        JSON.stringify(legendIndex),
+      );
+    } catch (e) {
+      logging.warn(
+        '[ChartRenderer] Failed to save legend index to sessionStorage:',
+        e,
+      );
+    }
   }
 
   render() {
