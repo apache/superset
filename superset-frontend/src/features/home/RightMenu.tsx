@@ -217,7 +217,7 @@ const RightMenu = ({
     },
     {
       label: t('Dashboard'),
-      url: '/dashboard/new',
+      url: '/dashboard/new/',
       icon: (
         <Icons.DashboardOutlined data-test={`menu-item-${t('Dashboard')}`} />
       ),
