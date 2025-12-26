@@ -74,6 +74,18 @@ const BasicInfoSection = ({
           />
         </FormItem>
       </ModalFormField>
+      <ModalFormField
+        label={t('Description')}
+        testId="dashboard-description-field"
+        bottomSpacing={false}
+      >
+        <FormItem name="description" noStyle>
+          <Input.TextArea
+            placeholder={t('A description for your dashboard')}
+            data-test="dashboard-description-input"
+          />
+        </FormItem>
+      </ModalFormField>
     </>
   );
 };
