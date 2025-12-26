@@ -55,7 +55,10 @@ export class DuplicateDatasetModal extends Modal {
     datasetName: string,
     options?: { timeout?: number; force?: boolean },
   ): Promise<void> {
-    await this.nameInput.fill(datasetName, options);
+    const input = this.nameInput.element;
+    // Focus and select all existing text, then fill with new value
+    await input.click({ clickCount: 3 });
+    await input.fill(datasetName, options);
   }
 
   /**

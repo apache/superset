@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import * as unzipper from 'unzipper';
 import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ExplorePage } from '../../../pages/ExplorePage';
 import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
@@ -27,68 +28,32 @@ import {
   apiDeleteDataset,
   apiGetDataset,
   getDatasetByName,
+  duplicateDataset,
   ENDPOINTS,
 } from '../../../helpers/api/dataset';
 
 /**
- * Test data constants
- * These reference example datasets loaded via --load-examples in CI.
- *
- * DEPENDENCY: Tests assume the example dataset exists and is a virtual dataset.
- * If examples aren't loaded or the dataset changes, tests will fail.
- * This is acceptable for experimental tests; stable tests should use dedicated
- * seeded test data to decouple from example data changes.
+ * Helper to clean up datasets created during a test.
+ * Each test tracks its own resources to avoid parallel test interference.
  */
-const TEST_DATASETS = {
-  EXAMPLE_DATASET: 'members_channels_2',
-} as const;
-
-/**
- * Dataset List E2E Tests
- *
- * Uses flat test() structure per project convention (matches login.spec.ts).
- * Shared state and hooks are at file scope.
- */
-
-// File-scope state (reset in beforeEach)
-let datasetListPage: DatasetListPage;
-let explorePage: ExplorePage;
-let testResources: { datasetIds: number[] } = { datasetIds: [] };
-
-test.beforeEach(async ({ page }) => {
-  datasetListPage = new DatasetListPage(page);
-  explorePage = new ExplorePage(page);
-  testResources = { datasetIds: [] }; // Reset for each test
-
-  // Navigate to dataset list page
-  await datasetListPage.goto();
-  await datasetListPage.waitForTableLoad();
-});
-
-test.afterEach(async ({ page }) => {
-  // Cleanup any resources created during the test
-  const promises = [];
-  for (const datasetId of testResources.datasetIds) {
-    promises.push(
-      apiDeleteDataset(page, datasetId, {
-        failOnStatusCode: false,
-      }).catch(error => {
-        // Log cleanup failures to avoid silent resource leaks
-        console.warn(
-          `[Cleanup] Failed to delete dataset ${datasetId}:`,
-          String(error),
-        );
-      }),
-    );
-  }
+async function cleanupDatasets(page: Page, datasetIds: number[]) {
+  const promises = datasetIds.map(id =>
+    apiDeleteDataset(page, id, { failOnStatusCode: false }).catch(() => {}),
+  );
   await Promise.all(promises);
-});
+}
 
 test('should navigate to Explore when dataset name is clicked', async ({
   page,
 }) => {
+  const datasetListPage = new DatasetListPage(page);
+  const explorePage = new ExplorePage(page);
+
+  await datasetListPage.goto();
+  await datasetListPage.waitForTableLoad();
+
   // Use existing example dataset (hermetic - loaded in CI via --load-examples)
-  const datasetName = TEST_DATASETS.EXAMPLE_DATASET;
+  const datasetName = 'members_channels_2';
   const dataset = await getDatasetByName(page, datasetName);
   expect(dataset).not.toBeNull();
 
@@ -111,144 +76,203 @@ test('should navigate to Explore when dataset name is clicked', async ({
 });
 
 test('should delete a dataset with confirmation', async ({ page }) => {
-  // Get example dataset to duplicate
-  const originalName = TEST_DATASETS.EXAMPLE_DATASET;
-  const originalDataset = await getDatasetByName(page, originalName);
-  expect(originalDataset).not.toBeNull();
+  const datasetListPage = new DatasetListPage(page);
+  const testDatasetIds: number[] = [];
 
-  // Create throwaway copy for deletion (hermetic - uses UI duplication)
-  const datasetName = `test_delete_${Date.now()}`;
+  try {
+    // Get example dataset to duplicate
+    const originalDataset = await getDatasetByName(page, 'members_channels_2');
+    expect(originalDataset).not.toBeNull();
 
-  // Verify original dataset is visible in list
-  await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
+    // Create throwaway copy for deletion (hermetic - uses duplicate API)
+    const datasetName = `test_delete_${Date.now()}`;
+    const duplicateDatasetResult = await duplicateDataset(
+      page,
+      originalDataset!.id,
+      datasetName,
+    );
+    testDatasetIds.push(duplicateDatasetResult.id);
 
-  // Set up response intercept to capture duplicate dataset ID
-  const duplicateResponsePromise = page.waitForResponse(
-    response =>
-      response.url().includes(`${ENDPOINTS.DATASET}duplicate`) &&
-      response.status() === 201,
-  );
+    // Navigate to dataset list page
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
 
-  // Click duplicate action button
-  await datasetListPage.clickDuplicateAction(originalName);
+    // Verify dataset is visible in list
+    await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
 
-  // Duplicate modal should appear and be ready for interaction
-  const duplicateModal = new DuplicateDatasetModal(page);
-  await duplicateModal.waitForReady();
+    // Click delete action button
+    await datasetListPage.clickDeleteAction(datasetName);
 
-  // Fill in new dataset name
-  await duplicateModal.fillDatasetName(datasetName);
+    // Delete confirmation modal should appear
+    const deleteModal = new DeleteConfirmationModal(page);
+    await deleteModal.waitForVisible();
 
-  // Click the Duplicate button
-  await duplicateModal.clickDuplicate();
+    // Type "DELETE" to confirm
+    await deleteModal.fillConfirmationInput('DELETE');
 
-  // Get the duplicate dataset ID from response and track immediately
-  const duplicateResponse = await duplicateResponsePromise;
-  const duplicateData = await duplicateResponse.json();
-  const duplicateId = duplicateData.id;
+    // Click the Delete button
+    await deleteModal.clickDelete();
 
-  // Track duplicate for cleanup immediately (before any operations that could fail)
-  testResources = { datasetIds: [duplicateId] };
+    // Modal should close
+    await deleteModal.waitForHidden();
 
-  // Modal should close
-  await duplicateModal.waitForHidden();
+    // Verify success toast appears with correct message
+    const toast = new Toast(page);
+    const successToast = toast.getSuccess();
+    await expect(successToast).toBeVisible();
+    await expect(toast.getMessage()).toContainText('Deleted');
 
-  // Refresh page to see new dataset
+    // Verify dataset is removed from list
+    await expect(datasetListPage.getDatasetRow(datasetName)).not.toBeVisible();
+
+    // Dataset was deleted successfully, clear from cleanup list
+    testDatasetIds.length = 0;
+  } finally {
+    await cleanupDatasets(page, testDatasetIds);
+  }
+});
+
+test('should duplicate a dataset with new name', async ({ page }) => {
+  const datasetListPage = new DatasetListPage(page);
+  const testDatasetIds: number[] = [];
+
+  try {
+    // Use virtual example dataset (members_channels_2)
+    const originalName = 'members_channels_2';
+    const duplicateName = `duplicate_${originalName}_${Date.now()}`;
+
+    // Get the dataset by name (ID varies by environment)
+    const original = await getDatasetByName(page, originalName);
+    expect(original).not.toBeNull();
+    expect(original!.id).toBeGreaterThan(0);
+
+    // Navigate to dataset list page
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
+
+    // Verify original dataset is visible in list
+    await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
+
+    // Set up response intercept to capture duplicate dataset ID
+    // Accept both 200 and 201 (endpoint may return either depending on environment)
+    const duplicateResponsePromise = page.waitForResponse(
+      response =>
+        response.url().includes(`${ENDPOINTS.DATASET}duplicate`) &&
+        [200, 201].includes(response.status()),
+    );
+
+    // Click duplicate action button
+    await datasetListPage.clickDuplicateAction(originalName);
+
+    // Duplicate modal should appear and be ready for interaction
+    const duplicateModal = new DuplicateDatasetModal(page);
+    await duplicateModal.waitForReady();
+
+    // Fill in new dataset name
+    await duplicateModal.fillDatasetName(duplicateName);
+
+    // Click the Duplicate button
+    await duplicateModal.clickDuplicate();
+
+    // Get the duplicate dataset ID from response (handle both response shapes)
+    const duplicateResponse = await duplicateResponsePromise;
+    const duplicateData = await duplicateResponse.json();
+    const duplicateId = duplicateData.result?.id ?? duplicateData.id;
+    expect(duplicateId, 'Duplicate API should return dataset id').toBeTruthy();
+
+    // Track duplicate for cleanup (original is example data, don't delete it)
+    testDatasetIds.push(duplicateId);
+
+    // Modal should close
+    await duplicateModal.waitForHidden();
+
+    // Note: Duplicate action does not show a success toast (only errors)
+    // Verification is done via API and UI list check below
+
+    // Refresh to see the duplicated dataset
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
+
+    // Verify both datasets exist in list
+    await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
+    await expect(datasetListPage.getDatasetRow(duplicateName)).toBeVisible();
+
+    // API Verification: Fetch both datasets via detail API for consistent comparison
+    // (list API may return undefined for fields that detail API returns as null)
+    const [originalDetailRes, duplicateDetailRes] = await Promise.all([
+      apiGetDataset(page, original!.id),
+      apiGetDataset(page, duplicateId),
+    ]);
+    const originalDetail = (await originalDetailRes.json()).result;
+    const duplicateDetail = (await duplicateDetailRes.json()).result;
+
+    // Verify key properties were copied correctly
+    expect(duplicateDetail.sql).toBe(originalDetail.sql);
+    expect(duplicateDetail.database.id).toBe(originalDetail.database.id);
+    expect(duplicateDetail.schema).toBe(originalDetail.schema);
+    // Name should be different (the duplicate name)
+    expect(duplicateDetail.table_name).toBe(duplicateName);
+  } finally {
+    await cleanupDatasets(page, testDatasetIds);
+  }
+});
+
+test('should export a dataset as a zip file', async ({ page }) => {
+  const datasetListPage = new DatasetListPage(page);
+
   await datasetListPage.goto();
   await datasetListPage.waitForTableLoad();
+
+  // Use existing example dataset
+  const datasetName = 'members_channels_2';
+  const dataset = await getDatasetByName(page, datasetName);
+  expect(dataset).not.toBeNull();
 
   // Verify dataset is visible in list
   await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
 
-  // Click delete action button
-  await datasetListPage.clickDeleteAction(datasetName);
-
-  // Delete confirmation modal should appear
-  const deleteModal = new DeleteConfirmationModal(page);
-  await deleteModal.waitForVisible();
-
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button
-  await deleteModal.clickDelete();
-
-  // Modal should close
-  await deleteModal.waitForHidden();
-
-  // Verify success toast appears with correct message
-  const toast = new Toast(page);
-  const successToast = toast.getSuccess();
-  await expect(successToast).toBeVisible();
-  await expect(toast.getMessage()).toContainText('Deleted');
-
-  // Verify dataset is removed from list
-  await expect(datasetListPage.getDatasetRow(datasetName)).not.toBeVisible();
-});
-
-test('should duplicate a dataset with new name', async ({ page }) => {
-  // Use virtual example dataset
-  const originalName = TEST_DATASETS.EXAMPLE_DATASET;
-  const duplicateName = `duplicate_${originalName}_${Date.now()}`;
-
-  // Get the dataset by name (ID varies by environment)
-  const original = await getDatasetByName(page, originalName);
-  expect(original).not.toBeNull();
-  expect(original!.id).toBeGreaterThan(0);
-
-  // Verify original dataset is visible in list
-  await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
-
-  // Set up response intercept to capture duplicate dataset ID
-  const duplicateResponsePromise = page.waitForResponse(
+  // Set up API response intercept for export endpoint
+  // Note: We intercept the API response instead of relying on download events because
+  // Superset uses blob downloads (createObjectURL) which don't trigger Playwright's
+  // download event consistently, especially in app-prefix configurations.
+  const exportResponsePromise = page.waitForResponse(
     response =>
-      response.url().includes(`${ENDPOINTS.DATASET}duplicate`) &&
-      response.status() === 201,
+      response.url().includes('/api/v1/dataset/export/') &&
+      response.status() === 200,
   );
 
-  // Click duplicate action button
-  await datasetListPage.clickDuplicateAction(originalName);
+  // Click export action button
+  await datasetListPage.clickExportAction(datasetName);
 
-  // Duplicate modal should appear and be ready for interaction
-  const duplicateModal = new DuplicateDatasetModal(page);
-  await duplicateModal.waitForReady();
+  // Wait for export API response
+  const exportResponse = await exportResponsePromise;
 
-  // Fill in new dataset name
-  await duplicateModal.fillDatasetName(duplicateName);
+  // Verify response headers indicate zip file
+  const contentType = exportResponse.headers()['content-type'];
+  expect(contentType).toContain('application/zip');
 
-  // Click the Duplicate button
-  await duplicateModal.clickDuplicate();
+  const contentDisposition = exportResponse.headers()['content-disposition'];
+  expect(contentDisposition).toMatch(/filename=.*dataset_export.*\.zip/);
 
-  // Get the duplicate dataset ID from response
-  const duplicateResponse = await duplicateResponsePromise;
-  const duplicateData = await duplicateResponse.json();
-  const duplicateId = duplicateData.id;
+  // Verify the response body is a valid zip with expected structure
+  const responseBody = await exportResponse.body();
+  expect(responseBody.length).toBeGreaterThan(0);
 
-  // Track duplicate for cleanup (original is example data, don't delete it)
-  testResources = { datasetIds: [duplicateId] };
+  // Parse zip contents from response buffer
+  const entries: string[] = [];
+  const directory = await unzipper.Open.buffer(responseBody);
+  directory.files.forEach(file => entries.push(file.path));
 
-  // Modal should close
-  await duplicateModal.waitForHidden();
+  // Export should contain at least one dataset YAML file and metadata
+  expect(entries.length).toBeGreaterThan(0);
 
-  // Note: Duplicate action does not show a success toast (only errors)
-  // Verification is done via API and UI list check below
+  // Check for dataset directory and YAML file
+  const hasDatasetYaml = entries.some(
+    entry => entry.includes('datasets/') && entry.endsWith('.yaml'),
+  );
+  expect(hasDatasetYaml).toBe(true);
 
-  // Refresh to see the duplicated dataset
-  await datasetListPage.goto();
-  await datasetListPage.waitForTableLoad();
-
-  // Verify both datasets exist in list
-  await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
-  await expect(datasetListPage.getDatasetRow(duplicateName)).toBeVisible();
-
-  // API Verification: Compare original and duplicate datasets
-  const duplicateResponseData = await apiGetDataset(page, duplicateId);
-  const duplicateDataFull = await duplicateResponseData.json();
-
-  // Verify key properties were copied correctly (original data already fetched)
-  expect(duplicateDataFull.result.sql).toBe(original!.sql);
-  expect(duplicateDataFull.result.database.id).toBe(original!.database.id);
-  expect(duplicateDataFull.result.schema).toBe(original!.schema);
-  // Name should be different (the duplicate name)
-  expect(duplicateDataFull.result.table_name).toBe(duplicateName);
+  // Check for metadata.yaml (export manifest)
+  const hasMetadata = entries.some(entry => entry.endsWith('metadata.yaml'));
+  expect(hasMetadata).toBe(true);
 });
