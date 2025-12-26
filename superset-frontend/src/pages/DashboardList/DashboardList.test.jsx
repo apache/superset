@@ -239,3 +239,255 @@ describe('DashboardList - anonymous view', () => {
     });
   });
 });
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('DashboardList - permissions', () => {
+  const mockDashboardsWithDifferentOwners = [
+    {
+      id: 1,
+      url: 'url',
+      dashboard_title: 'Dashboard I Own',
+      changed_by_name: 'user',
+      changed_by: { first_name: 'user', last_name: 'one' },
+      changed_by_fk: 1,
+      published: true,
+      status: 'published',
+      changed_on_utc: new Date().toISOString(),
+      changed_on_delta_humanized: '5 minutes ago',
+      owners: [{ id: 1, first_name: 'admin', last_name: 'admin_user' }],
+      roles: [{ id: 1, name: 'adminUser' }],
+      thumbnail_url: '/thumbnail',
+      tags: [],
+    },
+    {
+      id: 2,
+      url: 'url',
+      dashboard_title: 'Dashboard I Do Not Own',
+      changed_by_name: 'other_user',
+      changed_by: { first_name: 'other', last_name: 'user' },
+      changed_by_fk: 2,
+      published: true,
+      status: 'published',
+      changed_on_utc: new Date().toISOString(),
+      changed_on_delta_humanized: '10 minutes ago',
+      owners: [{ id: 2, first_name: 'other', last_name: 'user' }],
+      roles: [{ id: 2, name: 'regularUser' }],
+      thumbnail_url: '/thumbnail',
+      tags: [],
+    },
+  ];
+
+  const renderDashboardListWithOwners = (userProp = { userId: 1 }) => {
+    // Reset and setup fetch mocks
+    fetchMock.get(dashboardsInfoEndpoint, {
+      permissions: ['can_read', 'can_write', 'can_export'],
+    }, { overwriteRoutes: true });
+
+    fetchMock.get(dashboardFavoriteStatusEndpoint, {
+      result: [],
+    }, { overwriteRoutes: true });
+
+    fetchMock.get(
+      dashboardsEndpoint,
+      {
+        result: mockDashboardsWithDifferentOwners,
+        dashboard_count: 2,
+      },
+      { overwriteRoutes: true },
+    );
+
+    return render(
+      <MemoryRouter>
+        <QueryParamProvider>
+          <DashboardList user={userProp} />
+        </QueryParamProvider>
+      </MemoryRouter>,
+      {
+        useRedux: true,
+        initialState: {
+          user: {
+            roles: {},  // Non-admin user
+          },
+        },
+      },
+    );
+  };
+
+  beforeEach(() => {
+    isFeatureEnabled.mockImplementation(
+      feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
+    );
+    fetchMock.resetHistory();
+  });
+
+  afterEach(() => {
+    isFeatureEnabled.mockRestore();
+    fetchMock.restore();
+  });
+
+  test('shows enabled edit button for dashboard owner', async () => {
+    renderDashboardListWithOwners();
+
+    // Wait for data to load
+    await screen.findByText('Dashboard I Own');
+
+    // Switch to table view to see action buttons
+    const tableViewButton = screen.getByRole('img', { name: 'unordered-list' });
+    fireEvent.click(tableViewButton);
+
+    // Find all edit icons
+    const editButtons = await screen.findAllByRole('img', { name: /edit/i });
+    const editButtonForOwnedDashboard = editButtons[0];
+
+    // Check that the button is not disabled
+    const editButtonSpan = editButtonForOwnedDashboard.closest('.action-button');
+    expect(editButtonSpan).not.toHaveClass('disabled');
+
+    // Check tooltip shows "Edit" for owned dashboard
+    fireEvent.mouseOver(editButtonForOwnedDashboard);
+    expect(
+      await screen.findByRole('tooltip', { name: 'Edit' }),
+    ).toBeInTheDocument();
+  });
+
+  test('shows disabled edit button with informative tooltip for non-owner', async () => {
+    renderDashboardListWithOwners();
+
+    // Wait for data to load
+    await screen.findByText('Dashboard I Own');
+
+    // Switch to table view to see action buttons
+    const tableViewButton = screen.getByRole('img', { name: 'unordered-list' });
+    fireEvent.click(tableViewButton);
+
+    // Wait for table to render and find the non-owned dashboard row
+    await screen.findByText('Dashboard I Do Not Own');
+
+    // Find all edit buttons
+    const editButtons = await screen.findAllByRole('img', { name: /edit/i });
+    // Second dashboard (index 1) is the one we don't own
+    const editButtonForNonOwnedDashboard = editButtons[1];
+
+    // Check that the button has the disabled class
+    const editButtonSpan = editButtonForNonOwnedDashboard.closest('.action-button');
+    expect(editButtonSpan).toHaveClass('disabled');
+
+    // Check tooltip shows permission message for non-owned dashboard
+    fireEvent.mouseOver(editButtonForNonOwnedDashboard);
+    expect(
+      await screen.findByRole('tooltip', {
+        name: /You must be a dashboard owner in order to edit/i,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test('shows enabled delete button for dashboard owner', async () => {
+    renderDashboardListWithOwners();
+
+    // Wait for data to load
+    await screen.findByText('Dashboard I Own');
+
+    // Switch to table view to see action buttons
+    const tableViewButton = screen.getByRole('img', { name: 'unordered-list' });
+    fireEvent.click(tableViewButton);
+
+    // Find all delete buttons
+    const deleteButtons = await screen.findAllByRole('img', { name: /delete/i });
+    const deleteButtonForOwnedDashboard = deleteButtons[0];
+
+    // Check that the button is not disabled
+    const deleteButtonSpan = deleteButtonForOwnedDashboard.closest('.action-button');
+    expect(deleteButtonSpan).not.toHaveClass('disabled');
+
+    // Check tooltip shows "Delete" for owned dashboard
+    fireEvent.mouseOver(deleteButtonForOwnedDashboard);
+    expect(
+      await screen.findByRole('tooltip', { name: 'Delete' }),
+    ).toBeInTheDocument();
+  });
+
+  test('shows disabled delete button with informative tooltip for non-owner', async () => {
+    renderDashboardListWithOwners();
+
+    // Wait for data to load
+    await screen.findByText('Dashboard I Own');
+
+    // Switch to table view to see action buttons
+    const tableViewButton = screen.getByRole('img', { name: 'unordered-list' });
+    fireEvent.click(tableViewButton);
+
+    // Wait for table to render and find the non-owned dashboard row
+    await screen.findByText('Dashboard I Do Not Own');
+
+    // Find all delete buttons
+    const deleteButtons = await screen.findAllByRole('img', { name: /delete/i });
+    // Second dashboard (index 1) is the one we don't own
+    const deleteButtonForNonOwnedDashboard = deleteButtons[1];
+
+    // Check that the button has the disabled class
+    const deleteButtonSpan = deleteButtonForNonOwnedDashboard.closest('.action-button');
+    expect(deleteButtonSpan).toHaveClass('disabled');
+
+    // Check tooltip shows permission message for non-owned dashboard
+    fireEvent.mouseOver(deleteButtonForNonOwnedDashboard);
+    expect(
+      await screen.findByRole('tooltip', {
+        name: /You must be a dashboard owner in order to delete/i,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test('edit button does not trigger action when user is not owner', async () => {
+    renderDashboardListWithOwners();
+
+    // Wait for data to load
+    await screen.findByText('Dashboard I Own');
+
+    // Switch to table view to see action buttons
+    const tableViewButton = screen.getByRole('img', { name: 'unordered-list' });
+    fireEvent.click(tableViewButton);
+
+    // Wait for table to render
+    await screen.findByText('Dashboard I Do Not Own');
+
+    // Find all edit buttons
+    const editButtons = await screen.findAllByRole('img', { name: /edit/i });
+    const editButtonForNonOwnedDashboard = editButtons[1];
+
+    // Click the disabled edit button (clicking the parent span)
+    const editButtonSpan = editButtonForNonOwnedDashboard.closest('.action-button');
+    fireEvent.click(editButtonSpan);
+
+    // Wait a bit to ensure no async actions are triggered
+    await waitFor(() => {
+      // Modal should not appear
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  test('delete button does not trigger confirmation when user is not owner', async () => {
+    renderDashboardListWithOwners();
+
+    // Wait for data to load
+    await screen.findByText('Dashboard I Own');
+
+    // Switch to table view to see action buttons
+    const tableViewButton = screen.getByRole('img', { name: 'unordered-list' });
+    fireEvent.click(tableViewButton);
+
+    // Find all delete buttons
+    const deleteButtons = await screen.findAllByRole('img', { name: /delete/i });
+    const deleteButtonForNonOwnedDashboard = deleteButtons[1];
+
+    // Click the disabled delete button
+    fireEvent.click(deleteButtonForNonOwnedDashboard);
+
+    // Wait a bit to ensure no async actions are triggered
+    await waitFor(() => {
+      // Confirmation dialog should not appear
+      expect(
+        screen.queryByText(/Are you sure you want to delete/i),
+      ).not.toBeInTheDocument();
+    });
+  });
+});
