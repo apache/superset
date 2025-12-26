@@ -67,15 +67,20 @@ export function formatColumnValue(
 ) {
   const { dataType, formatter, config = {} } = column;
   const isNumber = dataType === GenericDataType.Numeric;
-  const smallNumberFormatter =
-    config.d3SmallNumberFormat === undefined
-      ? formatter
-      : config.currencyFormat
-        ? new CurrencyFormatter({
-            d3Format: config.d3SmallNumberFormat,
-            currency: config.currencyFormat,
-          })
-        : getNumberFormatter(config.d3SmallNumberFormat);
+  // Use smallNumberFormat only if it's a non-empty string
+  // Empty strings or falsy values should fall back to the main formatter
+  const hasValidSmallNumberFormat =
+    config.d3SmallNumberFormat &&
+    typeof config.d3SmallNumberFormat === 'string' &&
+    config.d3SmallNumberFormat.trim() !== '';
+  const smallNumberFormatter = hasValidSmallNumberFormat
+    ? config.currencyFormat
+      ? new CurrencyFormatter({
+          d3Format: config.d3SmallNumberFormat,
+          currency: config.currencyFormat,
+        })
+      : getNumberFormatter(config.d3SmallNumberFormat)
+    : formatter;
   return formatValue(
     isNumber && typeof value === 'number' && Math.abs(value) < 1
       ? smallNumberFormatter
