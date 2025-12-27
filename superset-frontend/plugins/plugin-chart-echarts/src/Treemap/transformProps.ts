@@ -18,6 +18,7 @@
  */
 import {
   CategoricalColorNamespace,
+  getSequentialSchemeRegistry,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
@@ -144,6 +145,7 @@ export default function transformProps(
   };
   const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const sequentialRegistry = getSequentialSchemeRegistry();
   const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
@@ -219,8 +221,7 @@ export default function transformProps(
           item = {
             ...item,
             itemStyle: {
-              colorAlpha: OpacityEnum.SemiTransparent,
-              color: theme.colorText,
+              opacity: OpacityEnum.SemiTransparent,
               borderColor: theme.colorBgBase,
               borderWidth: 2,
             },
@@ -319,14 +320,21 @@ export default function transformProps(
   if (useSequential) {
     const startColor = colorFn('min', sliceId);
     const endColor = colorFn('max', sliceId);
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore Allow assigning visualMap to EChartsCoreOption
-    echartOptions.visualMap = {
+    // try to pick a proper sequential palette from registry using the current colorScheme as a hint
+    const seqScheme = sequentialRegistry.get(
+      (formData as any)?.linearColorScheme || (colorScheme as string),
+    );
+    const inRangeColors: string[] =
+      seqScheme?.colors && seqScheme.colors.length
+        ? seqScheme.colors
+        : [startColor, endColor];
+    // assign visualMap in a type-safe way
+    (echartOptions as any).visualMap = {
       show: false,
       min: minMetricValue,
       max: maxMetricValue,
       inRange: {
-        color: [startColor, endColor],
+        color: inRangeColors,
       },
     };
   }
