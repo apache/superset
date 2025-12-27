@@ -321,13 +321,18 @@ export default function transformProps(
     const startColor = colorFn('min', sliceId);
     const endColor = colorFn('max', sliceId);
     // try to pick a proper sequential palette from registry using the current colorScheme as a hint
-    const seqScheme = sequentialRegistry.get(
+    const seqScheme = sequentialRegistry?.get?.(
       (formData as any)?.linearColorScheme || (colorScheme as string),
     );
-    const inRangeColors: string[] =
+    const inRangeColors: string[] = (
       seqScheme?.colors && seqScheme.colors.length
         ? seqScheme.colors
-        : [startColor, endColor];
+        : [startColor, endColor]
+    ).filter((c): c is string => !!c);
+    if (inRangeColors.length === 0) {
+      // Fall back to a safe theme color if no valid sequential colors are available
+      inRangeColors.push(theme?.colorPrimary ?? '#000000');
+    }
     // assign visualMap in a type-safe way
     (echartOptions as any).visualMap = {
       show: false,
