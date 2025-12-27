@@ -40,7 +40,7 @@ from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["data"])
+@tool(tags=["data"], class_permission_name="Chart")
 async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
