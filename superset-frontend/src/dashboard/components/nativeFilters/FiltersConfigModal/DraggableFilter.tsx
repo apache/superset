@@ -17,14 +17,10 @@
  * under the License.
  */
 import { styled } from '@apache-superset/core/ui';
-import { useRef, FC } from 'react';
-import {
-  DragSourceMonitor,
-  DropTargetMonitor,
-  useDrag,
-  useDrop,
-  XYCoord,
-} from 'react-dnd';
+import { FC } from 'react';
+import { CSS } from '@dnd-kit/utilities';
+import { useSortable } from '@dnd-kit/sortable';
+
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { IconType } from '@superset-ui/core/components/Icons/types';
 
@@ -32,10 +28,10 @@ interface TitleContainerProps {
   readonly isDragging: boolean;
 }
 
-const FILTER_TYPE = 'FILTER';
-
-const Container = styled.div<TitleContainerProps>`
-  ${({ isDragging, theme }) => `
+const Container = styled('div', {
+  shouldForwardProp: propName => propName !== 'isDragging',
+})<TitleContainerProps>`
+  ${({ isDragging }) => `
     opacity: ${isDragging ? 0.3 : 1};
     cursor: ${isDragging ? 'grabbing' : 'pointer'};
     width: 100%;
@@ -54,92 +50,32 @@ const DragIcon = styled(Icons.Drag, {
 `;
 
 interface FilterTabTitleProps {
-  index: number;
-  filterIds: string[];
-  onRearrange: (dragItemIndex: number, targetIndex: number) => void;
-}
-
-interface DragItem {
-  index: number;
-  filterIds: string[];
-  type: string;
+  filterId: string;
 }
 
 export const DraggableFilter: FC<FilterTabTitleProps> = ({
-  index,
-  onRearrange,
-  filterIds,
+  filterId,
   children,
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [{ isDragging }, drag] = useDrag({
-    item: { filterIds, type: FILTER_TYPE, index },
-    collect: (monitor: DragSourceMonitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-  const [, drop] = useDrop({
-    accept: FILTER_TYPE,
-    hover: (item: DragItem, monitor: DropTargetMonitor) => {
-      if (!ref.current) {
-        return;
-      }
 
-      const dragIndex = item.index;
-      const hoverIndex = index;
+  const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({ id: filterId });
 
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-      // Determine rectangle on screen
-      const hoverBoundingRect = ref.current?.getBoundingClientRect();
+  const style = {
+    transform: transform ? CSS.Transform.toString(transform) : undefined,
+    transition,
+  };
 
-      // Get vertical middle
-      const hoverMiddleY =
-        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-
-      // Determine mouse position
-      const clientOffset = monitor.getClientOffset();
-
-      // Get pixels to the top
-      const hoverClientY = (clientOffset as XYCoord).y - hoverBoundingRect.top;
-
-      // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
-
-      // Dragging downwards
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return;
-      }
-
-      // Dragging upwards
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return;
-      }
-
-      onRearrange(dragIndex, hoverIndex);
-      // Note: we're mutating the monitor item here.
-      // Generally it's better to avoid mutations,
-      // but it's good here for the sake of performance
-      // to avoid expensive index searches.
-      // eslint-disable-next-line no-param-reassign
-      item.index = hoverIndex;
-    },
-  });
-  drag(drop(ref));
   return (
-    <Container ref={ref} isDragging={isDragging}>
-      <DragIcon
-        isDragging={isDragging}
-        alt="Move icon"
-        className="dragIcon"
-        viewBox="4 4 16 16"
-      />
-      <div css={{ flex: 1 }}>{children}</div>
+    <Container ref={setNodeRef} style={style} isDragging={isDragging} {...listeners} {...attributes}>
+        <DragIcon
+            isDragging={isDragging}
+            aria-label='Move filter'
+            className="dragIcon"
+            viewBox="4 4 16 16"
+        />
+        <div css={{ flex: 1 }}>{children}</div>
     </Container>
-  );
+  )
 };
 
 export default DraggableFilter;
