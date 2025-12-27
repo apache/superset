@@ -1,0 +1,64 @@
+name: "Chart Metadata Backward Compatibility Check"
+
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  backward-compatibility-check:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+            persist-credentials: false
+            submodules: recursive
+
+      - name: "Set up Git"
+        run: |
+          git fetch origin master
+
+      - name: "Check for changes in critical files"
+        id: check_changes
+        run: |
+            CHANGED_FILES=$(git diff --name-only origin/master...HEAD)
+            echo "Changed files: $CHANGED_FILES"
+
+            if echo "$CHANGED_FILES" | grep -qE '^superset-frontend/plugins/.*/(transformProps|controlPanel)'; then
+                echo "BACKWARD_COMPATIBILITY_CHECK_FAILED=true" >> $GITHUB_ENV
+            else
+                echo "BACKWARD_COMPATIBILITY_CHECK_FAILED=false" >> $GITHUB_ENV
+            fi
+
+      - name: "Check for 'validation:backward-compatible' label"
+        if: env.BACKWARD_COMPATIBILITY_CHECK_FAILED == 'true'
+        uses: actions/github-script@v7
+        with:
+            script: |
+                const payload = context.payload.pull_request;
+                const validationLabelPresent = !!payload.labels.find(label => label.name.includes('validation:backward-compatible'));
+                if (!validationLabelPresent) {
+                    core.setFailed(
+                        [
+                            "🚨 Identified potential changes to the chart metadata in `transformProps` or `controlPanel`.",
+                            "⚠️ Such changes may affect backward compatibility and cause charts dependent on previous metadata to break.",
+                            "✅ To proceed, please review your changes to confirm backward-compatibility and add the label:",
+                            "`validation:backward-compatible`",
+                        ].join("\n")
+                    );
+                }
+
+      - name: "Continue with other checks"
+        if: env.BACKWARD_COMPATIBILITY_CHECK_FAILED == 'false'
+        run: |
+            echo "✅ No chart metadata backward compatibility issues detected. Proceeding with further checks."
