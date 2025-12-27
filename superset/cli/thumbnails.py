@@ -93,7 +93,7 @@ def compute_thumbnails(
                 action = "Processing"
             msg = f'{action} {friendly_type} "{model}" ({i + 1}/{count})'
             click.secho(msg, fg="green")
-            func(None, model.id, force=force)
+            func(None, str(model.id), force=force)
 
     if not charts_only:
         compute_generic_thumbnail(
