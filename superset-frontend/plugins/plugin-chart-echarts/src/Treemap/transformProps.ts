@@ -163,10 +163,24 @@ export default function transformProps(
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
   const treeData = treeBuilder(data, groupbyLabels, metricLabel);
+  // this will actually prepare sequential color mapping when metric values are numeric
+  const metricValues = (data || [])
+    .map(row => {
+      const v = row[metricLabel as string];
+      return typeof v === 'number' ? v : Number(v);
+    })
+    .filter(v => Number.isFinite(v));
+  const minMetricValue = metricValues.length ? Math.min(...metricValues) : 0;
+  const maxMetricValue = metricValues.length ? Math.max(...metricValues) : 0;
+  const useSequential =
+    metric && metricValues.length > 0 && minMetricValue !== maxMetricValue;
   const labelProps = {
     color: theme.colorText,
-    borderColor: theme.colorBgBase,
-    borderWidth: 1,
+    // remove label border/background by default to avoid boxed values
+    borderColor: 'transparent',
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    textBorderColor: 'transparent',
   };
   const traverse = (treeNodes: TreeNode[], path: string[]) =>
     treeNodes.map(treeNode => {
@@ -184,7 +198,7 @@ export default function transformProps(
         colorSaturation: COLOR_SATURATION,
         itemStyle: {
           borderColor: BORDER_COLOR,
-          color: colorFn(name, sliceId),
+          ...(useSequential ? {} : { color: colorFn(name, sliceId) }),
           borderWidth: BORDER_WIDTH,
           gapWidth: GAP_WIDTH,
         },
@@ -225,7 +239,7 @@ export default function transformProps(
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,
-        color: colorFn(`${metricLabel}`, sliceId),
+        ...(useSequential ? {} : { color: colorFn(`${metricLabel}`, sliceId) }),
         borderWidth: BORDER_WIDTH,
         gapWidth: GAP_WIDTH,
       },
@@ -300,6 +314,22 @@ export default function transformProps(
     },
     series,
   };
+
+  // this will add visualMap for sequential coloring when appropriate
+  if (useSequential) {
+    const startColor = colorFn('min', sliceId);
+    const endColor = colorFn('max', sliceId);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore Allow assigning visualMap to EChartsCoreOption
+    echartOptions.visualMap = {
+      show: false,
+      min: minMetricValue,
+      max: maxMetricValue,
+      inRange: {
+        color: [startColor, endColor],
+      },
+    };
+  }
   return {
     formData,
     width,

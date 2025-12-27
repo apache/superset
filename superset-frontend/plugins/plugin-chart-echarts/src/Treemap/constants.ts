@@ -21,8 +21,10 @@ import { TreePathInfo } from '../types';
 
 export const COLOR_SATURATION = [0.7, 0.4];
 export const LABEL_FONTSIZE = 11;
-export const BORDER_WIDTH = 2;
-export const GAP_WIDTH = 2;
+// Reduce default border/gap to remove the thin visual gap around labels
+// These values can be exposed later as controls if needed
+export const BORDER_WIDTH = 0;
+export const GAP_WIDTH = 0;
 
 export const extractTreePathInfo = (
   treePathInfo: TreePathInfo[] | undefined,
