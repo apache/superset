@@ -2146,6 +2146,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     not in {
                         utils.FilterOperator.ILIKE,
                         utils.FilterOperator.LIKE,
+                        utils.FilterOperator.NOT_ILIKE,
+                        utils.FilterOperator.NOT_LIKE,
                     }
                 ):
                     # For backwards compatibility and edge cases
@@ -3144,11 +3146,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             target_clause_list.append(sqla_col.like(eq))
                         else:
                             target_clause_list.append(sqla_col.ilike(eq))
-                    elif op in {utils.FilterOperator.NOT_LIKE}:
+                    elif op in {
+                        utils.FilterOperator.NOT_LIKE,
+                        utils.FilterOperator.NOT_ILIKE,
+                    }:
                         if target_generic_type != GenericDataType.STRING:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
-                        target_clause_list.append(sqla_col.not_like(eq))
+                        if op == utils.FilterOperator.NOT_LIKE:
+                            target_clause_list.append(sqla_col.not_like(eq))
+                        else:
+                            target_clause_list.append(sqla_col.not_ilike(eq))
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE
                         and isinstance(eq, str)
