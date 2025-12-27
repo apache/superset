@@ -166,7 +166,6 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
 
     const handleDragEnd = (event: DragEndEvent) => {
       const { active, over } = event;
-      console.log(active, over);
       const activeId = active.id;
       const overId = over?.id;
       if (activeId == null || overId == null) return;
