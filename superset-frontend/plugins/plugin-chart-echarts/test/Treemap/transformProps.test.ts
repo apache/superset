@@ -85,7 +85,13 @@ describe('Treemap transformProps', () => {
   });
 
   it('auto mode: should NOT add visualMap for constant metric', () => {
-    const formDataConst = { ...formData } as any;
+    const formDataConst = {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'sum__num',
+      groupby: ['foo', 'bar'],
+    } as any;
     const chartPropsConst = new ChartProps({
       formData: formDataConst,
       width: 800,
@@ -101,7 +107,6 @@ describe('Treemap transformProps', () => {
       theme: supersetTheme,
     });
     const result = transformProps(chartPropsConst as EchartsTreemapChartProps);
-    // @ts-ignore
-    expect(result.echartOptions.visualMap).toBeUndefined();
+    expect((result.echartOptions as any).visualMap).toBeUndefined();
   });
 });
