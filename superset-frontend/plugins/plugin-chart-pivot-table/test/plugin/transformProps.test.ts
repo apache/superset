@@ -93,6 +93,8 @@ test('should transform chart props for viz', () => {
     columnFormats: {},
     currencyFormats: {},
     currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+    defaultRowExpansionDepth: 0,
+    defaultColExpansionDepth: 0,
   });
 });
 
@@ -281,6 +283,33 @@ test('should preserve static currency format when not using AUTO mode', () => {
     symbol: 'EUR',
     symbolPosition: 'suffix',
   });
+});
+
+test('should pass default row/column expansion depth through to the renderer', () => {
+  const expansionChartProps = new ChartProps<QueryFormData>({
+    formData: {
+      ...formData,
+      defaultRowExpansionDepth: 2,
+      defaultColExpansionDepth: 1,
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
+        colnames: ['name', 'sum__num', '__timestamp'],
+        coltypes: [1, 0, 2],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(expansionChartProps);
+  expect(result.defaultRowExpansionDepth).toBe(2);
+  expect(result.defaultColExpansionDepth).toBe(1);
 });
 
 test('should map conditional formatting rules to metricColorFormatters with correct colors', () => {
