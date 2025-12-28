@@ -107,6 +107,8 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     timeGrainSqla,
     currencyFormat,
     allowRenderHtml,
+    defaultRowExpansionDepth = 0,
+    defaultColExpansionDepth = 0,
   } = formData;
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
@@ -181,5 +183,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     onContextMenu,
     timeGrainSqla,
     allowRenderHtml,
+    defaultRowExpansionDepth,
+    defaultColExpansionDepth,
   };
 }

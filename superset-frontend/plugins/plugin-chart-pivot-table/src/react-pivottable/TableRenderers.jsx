@@ -23,6 +23,26 @@ import PropTypes from 'prop-types';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
+/**
+ * Computes the initial collapsed state map for a given set of keys and depth.
+ * Keys at the specified depth will be marked as collapsed, hiding their children.
+ * @param {Array<Array>} keys - Array of key arrays (e.g., rowKeys or colKeys)
+ * @param {number} depth - The depth at which to collapse (1-based). Keys at this depth will be collapsed.
+ * @returns {Object} A map of flatKey => true for all keys that should be collapsed
+ */
+export function computeCollapsedMap(keys, depth) {
+  if (!depth || depth <= 0) {
+    return {};
+  }
+  const collapsed = {};
+  keys
+    .filter(k => k.length === depth)
+    .forEach(k => {
+      collapsed[flatKey(k)] = true;
+    });
+  return collapsed;
+}
+
 const parseLabel = value => {
   if (typeof value === 'string') {
     if (value === 'metric') return t('metric');
@@ -82,6 +102,59 @@ export class TableRenderer extends Component {
 
     this.clickHeaderHandler = this.clickHeaderHandler.bind(this);
     this.clickHandler = this.clickHandler.bind(this);
+  }
+
+  componentDidMount() {
+    // Apply initial collapse based on defaultRowExpansionDepth and defaultColExpansionDepth
+    const { defaultRowExpansionDepth, defaultColExpansionDepth } = this.props;
+
+    // Validate depths as positive integers; treat invalid or zero values as "disabled"
+    const rowDepth = Number(defaultRowExpansionDepth);
+    const colDepth = Number(defaultColExpansionDepth);
+    const hasValidRowDepth = Number.isInteger(rowDepth) && rowDepth > 0;
+    const hasValidColDepth = Number.isInteger(colDepth) && colDepth > 0;
+
+    if (!hasValidRowDepth && !hasValidColDepth) {
+      return;
+    }
+
+    const {
+      rowKeys,
+      colKeys,
+      rowAttrs,
+      colAttrs,
+      rowSubtotalDisplay,
+      colSubtotalDisplay,
+    } = this.getBasePivotSettings();
+
+    // Apply row collapse if subtotals are enabled and we have enough depth
+    const collapsedRows =
+      hasValidRowDepth &&
+      rowSubtotalDisplay.enabled &&
+      rowAttrs.length > 1 &&
+      rowDepth < rowAttrs.length
+        ? computeCollapsedMap(rowKeys, rowDepth)
+        : {};
+
+    // Apply column collapse if subtotals are enabled and we have enough depth
+    const collapsedCols =
+      hasValidColDepth &&
+      colSubtotalDisplay.enabled &&
+      colAttrs.length > 1 &&
+      colDepth < colAttrs.length
+        ? computeCollapsedMap(colKeys, colDepth)
+        : {};
+
+    // Only update state when collapsed maps actually contain entries
+    const hasCollapsedRows = Object.keys(collapsedRows).length > 0;
+    const hasCollapsedCols = Object.keys(collapsedCols).length > 0;
+
+    if (hasCollapsedRows || hasCollapsedCols) {
+      const stateUpdate = {};
+      if (hasCollapsedRows) stateUpdate.collapsedRows = collapsedRows;
+      if (hasCollapsedCols) stateUpdate.collapsedCols = collapsedCols;
+      this.setState(stateUpdate);
+    }
   }
 
   getBasePivotSettings() {
@@ -945,5 +1018,12 @@ TableRenderer.propTypes = {
   ...PivotData.propTypes,
   tableOptions: PropTypes.object,
   onContextMenu: PropTypes.func,
+  defaultRowExpansionDepth: PropTypes.number,
+  defaultColExpansionDepth: PropTypes.number,
 };
-TableRenderer.defaultProps = { ...PivotData.defaultProps, tableOptions: {} };
+TableRenderer.defaultProps = {
+  ...PivotData.defaultProps,
+  tableOptions: {},
+  defaultRowExpansionDepth: 0,
+  defaultColExpansionDepth: 0,
+};

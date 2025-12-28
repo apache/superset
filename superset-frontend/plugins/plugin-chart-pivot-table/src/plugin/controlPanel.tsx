@@ -226,6 +226,35 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'defaultRowExpansionDepth',
+            config: {
+              type: 'SelectControl',
+              label: t('Default row expansion depth'),
+              default: 0,
+              renderTrigger: true,
+              description: t(
+                'Number of row group levels to show expanded initially. ' +
+                  'Set to 0 to fully expand all rows.',
+              ),
+              mapStateToProps: explore => {
+                const rowCount = ensureIsArray(
+                  explore?.controls?.groupbyRows?.value,
+                ).length;
+                // Generate choices: 0 = fully expanded, 1..rowCount-1 = collapse deeper levels
+                const choices: [number, string][] = [[0, t('Fully expanded')]];
+                for (let i = 1; i < rowCount; i += 1) {
+                  choices.push([i, String(i)]);
+                }
+                return { choices };
+              },
+              visibility: ({ controls }) =>
+                !!controls?.rowSubTotals?.value &&
+                ensureIsArray(controls?.groupbyRows?.value).length > 1,
+            },
+          },
+        ],
+        [
+          {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
@@ -245,6 +274,35 @@ const config: ControlPanelConfig = {
               default: false,
               renderTrigger: true,
               description: t('Display column level subtotal'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'defaultColExpansionDepth',
+            config: {
+              type: 'SelectControl',
+              label: t('Default column expansion depth'),
+              default: 0,
+              renderTrigger: true,
+              description: t(
+                'Number of column group levels to show expanded initially. ' +
+                  'Set to 0 to fully expand all columns.',
+              ),
+              mapStateToProps: explore => {
+                const colCount = ensureIsArray(
+                  explore?.controls?.groupbyColumns?.value,
+                ).length;
+                // Generate choices: 0 = fully expanded, 1..colCount-1 = collapse deeper levels
+                const choices: [number, string][] = [[0, t('Fully expanded')]];
+                for (let i = 1; i < colCount; i += 1) {
+                  choices.push([i, String(i)]);
+                }
+                return { choices };
+              },
+              visibility: ({ controls }) =>
+                !!controls?.colSubTotals?.value &&
+                ensureIsArray(controls?.groupbyColumns?.value).length > 1,
             },
           },
         ],
