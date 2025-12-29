@@ -790,6 +790,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     [onChange],
   );
 
+  const handleChangeWithValidation = useCallback(
+    (
+      actionType: ActionType,
+      payload: CustomTextType | DBReducerPayloadType,
+    ) => {
+      onChange(actionType, payload);
+      handleClearValidationErrors();
+    },
+    [onChange, handleClearValidationErrors],
+  );
+
   const onClose = () => {
     setDB({ type: ActionType.Reset });
     setHasConnectedDb(false);
@@ -1756,31 +1767,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onAddTableCatalog={() => {
           setDB({ type: ActionType.AddTableCatalogSheet });
         }}
-        onQueryChange={({ target }: { target: HTMLInputElement }) => {
-          onChange(ActionType.QueryChange, {
+        onQueryChange={({ target }: { target: HTMLInputElement }) =>
+          handleChangeWithValidation(ActionType.QueryChange, {
             name: target.name,
             value: target.value,
-          });
-          handleClearValidationErrors();
-        }}
-        onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
-          onChange(ActionType.ExtraInputChange, {
+          })
+        }
+        onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
+          handleChangeWithValidation(ActionType.ExtraInputChange, {
             name: target.name,
             value: target.value,
-          });
-          handleClearValidationErrors();
-        }}
+          })
+        }
         onEncryptedExtraInputChange={({
           target,
         }: {
           target: HTMLInputElement;
-        }) => {
-          onChange(ActionType.EncryptedExtraInputChange, {
+        }) =>
+          handleChangeWithValidation(ActionType.EncryptedExtraInputChange, {
             name: target.name,
             value: target.value,
-          });
-          handleClearValidationErrors();
-        }}
+          })
+        }
         onRemoveTableCatalog={(idx: number) => {
           setDB({
             type: ActionType.RemoveTableCatalogSheet,
@@ -1788,13 +1796,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         }}
         onParametersChange={handleParametersChange}
-        onChange={({ target }: { target: HTMLInputElement }) => {
-          onChange(ActionType.TextChange, {
+        onChange={({ target }: { target: HTMLInputElement }) =>
+          handleChangeWithValidation(ActionType.TextChange, {
             name: target.name,
             value: target.value,
-          });
-          handleClearValidationErrors();
-        }}
+          })
+        }
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
@@ -1816,41 +1823,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
           ) => {
             const { target } = e;
-            onChange(ActionType.InputChange, {
+            handleChangeWithValidation(ActionType.InputChange, {
               type: target.type,
               name: target.name,
               checked: 'checked' in target ? target.checked : false,
               value: target.value,
             });
-            handleClearValidationErrors();
           }}
-          onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
-            onChange(ActionType.TextChange, {
+          onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+            handleChangeWithValidation(ActionType.TextChange, {
               name: target.name,
               value: target.value,
-            });
-            handleClearValidationErrors();
-          }}
-          onEditorChange={(payload: { name: string; json: any }) => {
-            onChange(ActionType.EditorChange, payload);
-            handleClearValidationErrors();
-          }}
+            })
+          }
+          onEditorChange={(payload: { name: string; json: any }) =>
+            handleChangeWithValidation(ActionType.EditorChange, payload)
+          }
           onExtraInputChange={(
             e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
           ) => {
             const { target } = e;
-            onChange(ActionType.ExtraInputChange, {
+            handleChangeWithValidation(ActionType.ExtraInputChange, {
               type: target.type,
               name: target.name,
               checked: 'checked' in target ? target.checked : false,
               value: target.value,
             });
-            handleClearValidationErrors();
           }}
-          onExtraEditorChange={(payload: { name: string; json: any }) => {
-            onChange(ActionType.ExtraEditorChange, payload);
-            handleClearValidationErrors();
-          }}
+          onExtraEditorChange={(payload: { name: string; json: any }) =>
+            handleChangeWithValidation(ActionType.ExtraEditorChange, payload)
+          }
         />
       );
     }
@@ -2068,41 +2070,39 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 db={db as DatabaseObject}
                 onInputChange={(e: CheckboxChangeEvent) => {
                   const { target } = e;
-                  onChange(ActionType.InputChange, {
+                  handleChangeWithValidation(ActionType.InputChange, {
                     type: target.type,
                     name: target.name,
                     checked: target.checked,
                     value: target.value,
                   });
-                  handleClearValidationErrors();
                 }}
-                onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
-                  onChange(ActionType.TextChange, {
+                onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+                  handleChangeWithValidation(ActionType.TextChange, {
                     name: target.name,
                     value: target.value,
-                  });
-                  handleClearValidationErrors();
-                }}
-                onEditorChange={(payload: { name: string; json: any }) => {
-                  onChange(ActionType.EditorChange, payload);
-                  handleClearValidationErrors();
-                }}
+                  })
+                }
+                onEditorChange={(payload: { name: string; json: any }) =>
+                  handleChangeWithValidation(ActionType.EditorChange, payload)
+                }
                 onExtraInputChange={(
                   e: React.ChangeEvent<HTMLInputElement> | CheckboxChangeEvent,
                 ) => {
                   const { target } = e;
-                  onChange(ActionType.ExtraInputChange, {
+                  handleChangeWithValidation(ActionType.ExtraInputChange, {
                     type: target.type,
                     name: target.name,
                     checked: target.checked,
                     value: target.value,
                   });
-                  handleClearValidationErrors();
                 }}
-                onExtraEditorChange={(payload: { name: string; json: any }) => {
-                  onChange(ActionType.ExtraEditorChange, payload);
-                  handleClearValidationErrors();
-                }}
+                onExtraEditorChange={(payload: { name: string; json: any }) =>
+                  handleChangeWithValidation(
+                    ActionType.ExtraEditorChange,
+                    payload,
+                  )
+                }
               />
             ),
           },
