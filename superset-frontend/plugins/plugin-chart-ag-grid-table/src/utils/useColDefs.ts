@@ -68,12 +68,21 @@ function getValueRange(
   data: InputData[],
 ) {
   const nums = data
-    .map(row => row[key])
-    .filter(value => typeof value === 'number') as number[];
+    .map(row => {
+      const raw = row[key];
+      return raw instanceof Number ? raw.valueOf() : raw;
+    })
+    .filter(
+      (value): value is number =>
+        typeof value === 'number' && Number.isFinite(value),
+    ) as number[];
   if (nums.length > 0) {
-    return (
-      alignPositiveNegative ? [0, d3Max(nums.map(Math.abs))] : d3Extent(nums)
-    ) as ValueRange;
+    const maxAbs = d3Max(nums.map(Math.abs));
+    if (alignPositiveNegative) {
+      return [0, maxAbs ?? 0] as ValueRange;
+    }
+    const extent = d3Extent(nums) as ValueRange | undefined;
+    return extent ?? [0, 0];
   }
   return null;
 }
