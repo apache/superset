@@ -776,7 +776,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setValidationErrors(null);
     setHasValidated(false);
     clearError();
-  }, [setValidationErrors, setHasValidated]);
+  }, [setValidationErrors, setHasValidated, clearError]);
 
   const handleParametersChange = useCallback(
     ({ target }: { target: HTMLInputElement }) => {
@@ -1756,28 +1756,31 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onAddTableCatalog={() => {
           setDB({ type: ActionType.AddTableCatalogSheet });
         }}
-        onQueryChange={({ target }: { target: HTMLInputElement }) =>
+        onQueryChange={({ target }: { target: HTMLInputElement }) => {
           onChange(ActionType.QueryChange, {
             name: target.name,
             value: target.value,
-          })
-        }
-        onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
+          });
+          handleClearValidationErrors();
+        }}
+        onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
           onChange(ActionType.ExtraInputChange, {
             name: target.name,
             value: target.value,
-          })
-        }
+          });
+          handleClearValidationErrors();
+        }}
         onEncryptedExtraInputChange={({
           target,
         }: {
           target: HTMLInputElement;
-        }) =>
+        }) => {
           onChange(ActionType.EncryptedExtraInputChange, {
             name: target.name,
             value: target.value,
-          })
-        }
+          });
+          handleClearValidationErrors();
+        }}
         onRemoveTableCatalog={(idx: number) => {
           setDB({
             type: ActionType.RemoveTableCatalogSheet,
@@ -1785,12 +1788,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         }}
         onParametersChange={handleParametersChange}
-        onChange={({ target }: { target: HTMLInputElement }) =>
+        onChange={({ target }: { target: HTMLInputElement }) => {
           onChange(ActionType.TextChange, {
             name: target.name,
             value: target.value,
-          })
-        }
+          });
+          handleClearValidationErrors();
+        }}
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
@@ -1818,16 +1822,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               checked: 'checked' in target ? target.checked : false,
               value: target.value,
             });
+            handleClearValidationErrors();
           }}
-          onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+          onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
             onChange(ActionType.TextChange, {
               name: target.name,
               value: target.value,
-            })
-          }
-          onEditorChange={(payload: { name: string; json: any }) =>
-            onChange(ActionType.EditorChange, payload)
-          }
+            });
+            handleClearValidationErrors();
+          }}
+          onEditorChange={(payload: { name: string; json: any }) => {
+            onChange(ActionType.EditorChange, payload);
+            handleClearValidationErrors();
+          }}
           onExtraInputChange={(
             e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
           ) => {
@@ -1838,10 +1845,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               checked: 'checked' in target ? target.checked : false,
               value: target.value,
             });
+            handleClearValidationErrors();
           }}
-          onExtraEditorChange={(payload: { name: string; json: any }) =>
-            onChange(ActionType.ExtraEditorChange, payload)
-          }
+          onExtraEditorChange={(payload: { name: string; json: any }) => {
+            onChange(ActionType.ExtraEditorChange, payload);
+            handleClearValidationErrors();
+          }}
         />
       );
     }
@@ -2065,15 +2074,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     checked: target.checked,
                     value: target.value,
                   });
+                  handleClearValidationErrors();
                 }}
                 onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
                   onChange(ActionType.TextChange, {
                     name: target.name,
                     value: target.value,
                   });
+                  handleClearValidationErrors();
                 }}
                 onEditorChange={(payload: { name: string; json: any }) => {
                   onChange(ActionType.EditorChange, payload);
+                  handleClearValidationErrors();
                 }}
                 onExtraInputChange={(
                   e: React.ChangeEvent<HTMLInputElement> | CheckboxChangeEvent,
@@ -2085,9 +2097,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     checked: target.checked,
                     value: target.value,
                   });
+                  handleClearValidationErrors();
                 }}
                 onExtraEditorChange={(payload: { name: string; json: any }) => {
                   onChange(ActionType.ExtraEditorChange, payload);
+                  handleClearValidationErrors();
                 }}
               />
             ),
