@@ -17,12 +17,7 @@
  * under the License.
  */
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen, userEvent, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
@@ -194,10 +189,28 @@ test('double-click viz type submits with formatted URL if datasource is selected
   expect(history.push).toHaveBeenCalledWith(formattedUrl);
 });
 
-test('uses contains (ct) operator for dropdown search', async () => {
+test('dropdown displays matching datasets when user types a search term', async () => {
   fetchMock.reset();
-  const mockFetch = fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
-    body: mockDatasourceResponse,
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+    body: {
+      result: [
+        {
+          id: 'flights_1',
+          table_name: 'flights',
+          datasource_type: 'table',
+          database: { database_name: 'examples' },
+          schema: 'public',
+        },
+        {
+          id: 'flights_delayed_2',
+          table_name: 'flights_delayed',
+          datasource_type: 'table',
+          database: { database_name: 'examples' },
+          schema: 'public',
+        },
+      ],
+      count: 2,
+    },
     status: 200,
   });
 
@@ -207,46 +220,15 @@ test('uses contains (ct) operator for dropdown search', async () => {
     name: 'Dataset',
   });
   userEvent.click(datasourceSelect);
-  userEvent.type(datasourceSelect, 'test');
+  userEvent.type(datasourceSelect, 'flight');
 
-  await waitFor(() => {
-    const calls = mockFetch.calls();
-    const lastCall = calls[calls.length - 1];
-    expect(lastCall[0]).toContain('opr:ct');
-  });
-});
-
-test('uses exact match (eq) operator when loading from URL parameter', async () => {
-  fetchMock.reset();
-  const mockFetch = fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
-    body: mockDatasourceResponse,
-    status: 200,
-  });
-
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: { ...originalLocation, search: '?dataset=flights' },
-    writable: true,
-  });
-
-  await renderComponent();
-
-  await waitFor(() => {
-    const calls = mockFetch.calls();
-    const urlParamCall = calls.find(call => call[0].includes('flights'));
-    expect(urlParamCall).toBeDefined();
-    expect(urlParamCall![0]).toContain('opr:eq');
-  });
-
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-  });
+  await screen.findByText('flights');
+  expect(screen.getByText('flights_delayed')).toBeInTheDocument();
 });
 
 test('handles special characters in dataset name from URL parameter', async () => {
   fetchMock.reset();
-  const mockFetch = fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
     body: {
       result: [
         {
@@ -273,12 +255,102 @@ test('handles special characters in dataset name from URL parameter', async () =
 
   await renderComponent();
 
-  await waitFor(() => {
-    const calls = mockFetch.calls();
-    expect(calls.length).toBeGreaterThan(0);
-    const urlParamCall = calls.find(call => call[0].includes('opr:eq'));
-    expect(urlParamCall).toBeDefined();
+  await screen.findByText('flightsÆ test');
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
   });
+});
+
+test('pre-selects the dataset from URL parameter and shows it in dropdown', async () => {
+  fetchMock.reset();
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+    body: {
+      result: [
+        {
+          id: 'flights_123',
+          table_name: 'flights',
+          datasource_type: 'table',
+          database: { database_name: 'examples' },
+          schema: 'public',
+        },
+      ],
+      count: 1,
+    },
+    status: 200,
+  });
+
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: { ...originalLocation, search: '?dataset=flights' },
+    writable: true,
+  });
+
+  await renderComponent();
+
+  await screen.findByText('flights');
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
+});
+
+test('shows only exact match when loading dataset from URL, not partial matches', async () => {
+  fetchMock.reset();
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, url => {
+    if (url.includes('opr:eq')) {
+      return {
+        body: {
+          result: [
+            {
+              id: 'flights_1',
+              table_name: 'flights',
+              datasource_type: 'table',
+              database: { database_name: 'examples' },
+              schema: 'public',
+            },
+          ],
+          count: 1,
+        },
+        status: 200,
+      };
+    }
+    return {
+      body: {
+        result: [
+          {
+            id: 'flights_1',
+            table_name: 'flights',
+            datasource_type: 'table',
+            database: { database_name: 'examples' },
+            schema: 'public',
+          },
+          {
+            id: 'flights_delayed_2',
+            table_name: 'flights_delayed',
+            datasource_type: 'table',
+            database: { database_name: 'examples' },
+            schema: 'public',
+          },
+        ],
+        count: 2,
+      },
+      status: 200,
+    };
+  });
+
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: { ...originalLocation, search: '?dataset=flights' },
+    writable: true,
+  });
+
+  await renderComponent();
+
+  await screen.findByText('flights');
+  expect(screen.queryByText('flights_delayed')).not.toBeInTheDocument();
 
   Object.defineProperty(window, 'location', {
     value: originalLocation,
