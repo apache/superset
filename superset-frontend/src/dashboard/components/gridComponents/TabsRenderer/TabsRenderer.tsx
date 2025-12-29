@@ -22,6 +22,7 @@ import {
   ReactElement,
   RefObject,
   useCallback,
+  useRef,
   useState,
 } from 'react';
 import { styled } from '@apache-superset/core/ui';
@@ -59,6 +60,16 @@ const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
 
   &.dragdroppable-row .dashboard-component-tabs-content {
     height: calc(100% - 47px);
+  }
+
+  /* Ensure tab labels maintain full opacity during drag */
+  .ant-tabs-tab {
+    .dragdroppable-tab,
+    .editable-title,
+    textarea {
+      opacity: 1;
+      color: inherit;
+    }
   }
 
   /* Hide ink-bar during drag */
@@ -126,7 +137,7 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabNodeProps>> = ({
     ...props.style,
     position: 'relative',
     transform: transform ? `translate3d(${transform.x}px, 0, 0)` : undefined,
-    transition,
+    transition: isDragging ? 'none' : transition,
     cursor: disabled ? 'default' : 'move',
     zIndex: isDragging ? 1000 : 'auto',
     opacity: 1,
@@ -163,6 +174,10 @@ const TabsRenderer = memo<TabsRendererProps>(
   }) => {
     const [activeId, setActiveId] = useState<string | null>(null);
 
+    // Use ref to always have access to the current tabIds in callbacks
+    const tabIdsRef = useRef(tabIds);
+    tabIdsRef.current = tabIds;
+
     const sensor = useSensor(PointerSensor, {
       activationConstraint: { distance: 10 },
     });
@@ -173,9 +188,10 @@ const TabsRenderer = memo<TabsRendererProps>(
 
     const onDragEnd = useCallback(
       ({ active, over }: DragEndEvent) => {
+        const currentTabIds = tabIdsRef.current;
         if (active.id !== over?.id && onTabsReorder) {
-          const activeIndex = tabIds.findIndex(id => id === active.id);
-          const overIndex = tabIds.findIndex(id => id === over?.id);
+          const activeIndex = currentTabIds.findIndex(id => id === active.id);
+          const overIndex = currentTabIds.findIndex(id => id === over?.id);
           onTabsReorder(activeIndex, overIndex);
         }
         setActiveId(null);
@@ -220,6 +236,7 @@ const TabsRenderer = memo<TabsRendererProps>(
           {...(editMode && {
             renderTabBar: (tabBarProps, DefaultTabBar) => (
               <DndContext
+                key={tabIds.join('-')}
                 sensors={[sensor]}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
