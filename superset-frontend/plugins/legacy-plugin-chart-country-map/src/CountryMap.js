@@ -87,7 +87,7 @@ function CountryMap(element, props) {
   });
 
   const colorFn = feature => {
-    if (!feature?.properties) return 'none';
+    if (!feature?.properties) return '#d9d9d9';
     const iso = feature.properties.ISO;
     return colorMap[iso] || '#d9d9d9';
   };
@@ -102,7 +102,8 @@ function CountryMap(element, props) {
     .append('svg:svg')
     .attr('width', width)
     .attr('height', height)
-    .attr('preserveAspectRatio', 'xMidYMid meet');
+    .attr('preserveAspectRatio', 'xMidYMid meet')
+    .style('cursor', 'grab');
   const backgroundRect = svg
     .append('rect')
     .attr('class', 'background')
@@ -218,6 +219,9 @@ function CountryMap(element, props) {
   const zoom = d3.behavior
     .zoom()
     .scaleExtent([1, 4])
+    .on('zoomstart', () => {
+      svg.style('cursor', 'grabbing');
+    })
     .on('zoom', () => {
       const { translate, scale } = d3.event;
       let [tx, ty] = translate;
@@ -244,6 +248,9 @@ function CountryMap(element, props) {
         // Store zoom state using element as WeakMap key
         zoomStates.set(element, { scale, translate: [tx, ty] });
       }
+    })
+    .on('zoomend', () => {
+      svg.style('cursor', 'grab');
     });
 
   d3.select(svg.node()).call(zoom);
@@ -340,16 +347,19 @@ function CountryMap(element, props) {
       .enter()
       .append('path')
       .attr('class', 'region')
-      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('vector-effect', 'non-scaling-stroke');
+
+    // Apply attributes and event handlers to all elements (enter + update)
+    mapLayer
+      .selectAll('path.region')
       .attr('d', path)
       .style('fill', colorFn)
       .on('mouseenter', mouseenter)
       .on('mousemove', mousemove)
       .on('mouseout', mouseout)
       .on('contextmenu', handleContextMenu)
-      .on('click', handleClick );
+      .on('click', handleClick);
 
-    mapLayer.selectAll('path.region').attr('d', path).style('fill', colorFn);
     sel.exit().remove();
 
     highlightSelectedRegion();
