@@ -1098,7 +1098,8 @@ export function reFetchQueryResults(query) {
 
 export function expandTable(table) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
+      table.initialized
       ? SupersetClient.post({
           endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
           postPayload: { expanded: true },
@@ -1122,7 +1123,8 @@ export function expandTable(table) {
 
 export function collapseTable(table) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
+      table.initialized
       ? SupersetClient.post({
           endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
           postPayload: { expanded: false },
