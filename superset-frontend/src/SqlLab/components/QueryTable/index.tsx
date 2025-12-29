@@ -396,17 +396,24 @@ const QueryTable = ({
         modalBody={
           selectedQuery ? (
             <ModalResultSetWrapper>
-              <ResultSet
-                showSql
-                queryId={selectedQuery.id}
-                displayLimit={displayLimit}
-                defaultQueryLimit={1000}
-                useFixedHeight
-                {...(reduxQueries[selectedQuery.id]?.state ===
-                  QueryState.Success && reduxQueries[selectedQuery.id]?.results
-                  ? { height: Math.floor(window.innerHeight * 0.5) }
-                  : {})}
-              />
+              {(() => {
+                const height =
+                  reduxQueries[selectedQuery.id]?.state ===
+                    QueryState.Success &&
+                  reduxQueries[selectedQuery.id]?.results
+                    ? Math.floor(window.innerHeight * 0.5)
+                    : undefined;
+                return (
+                  <ResultSet
+                    showSql
+                    queryId={selectedQuery.id}
+                    displayLimit={displayLimit}
+                    defaultQueryLimit={1000}
+                    useFixedHeight
+                    height={height}
+                  />
+                );
+              })()}
             </ModalResultSetWrapper>
           ) : null
         }
