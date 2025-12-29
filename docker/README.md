@@ -77,6 +77,34 @@ To run the container, simply run: `docker compose up`
 After waiting several minutes for Superset initialization to finish, you can open a browser and view [`http://localhost:8088`](http://localhost:8088)
 to start your journey.
 
+### Running Multiple Instances
+
+If you need to run multiple Superset instances simultaneously (e.g., different branches or clones), use the make targets which automatically find available ports:
+
+```bash
+make up
+```
+
+This automatically:
+- Generates a unique project name from your directory
+- Finds available ports (incrementing from defaults if in use)
+- Displays the assigned URLs before starting
+
+Available commands (run from repo root):
+
+| Command | Description |
+|---------|-------------|
+| `make up` | Start services (foreground) |
+| `make up-detached` | Start services (background) |
+| `make down` | Stop all services |
+| `make ps` | Show running containers |
+| `make logs` | Follow container logs |
+| `make nuke` | Stop, remove volumes & local images |
+
+From a subdirectory, use: `make -C $(git rev-parse --show-toplevel) up`
+
+**Important**: Always use these commands instead of plain `docker compose down`, which won't know the correct project name.
+
 ## Developing
 
 While running, the container server will reload on modification of the Superset Python and JavaScript source code.

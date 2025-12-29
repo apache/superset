@@ -18,7 +18,7 @@
 # Python version installed; we need 3.10-3.11
 PYTHON=`command -v python3.11 || command -v python3.10`
 
-.PHONY: install superset venv pre-commit
+.PHONY: install superset venv pre-commit up down logs ps nuke
 
 install: superset pre-commit
 
@@ -112,3 +112,22 @@ report-celery-beat:
 
 admin-user:
 	superset fab create-admin
+
+# Docker Compose with auto-assigned ports (for running multiple instances)
+up:
+	./scripts/docker-compose-up.sh
+
+up-detached:
+	./scripts/docker-compose-up.sh -d
+
+down:
+	./scripts/docker-compose-up.sh down
+
+logs:
+	./scripts/docker-compose-up.sh logs -f
+
+ps:
+	./scripts/docker-compose-up.sh ps
+
+nuke:
+	./scripts/docker-compose-up.sh nuke

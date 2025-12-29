@@ -94,6 +94,11 @@ async def generate_explore_link(
         # Map config to form_data using shared utilities
         form_data = map_config_to_form_data(request.config)
 
+        # Add datasource to form_data for consistency with generate_chart
+        # Only set if not already present to avoid overwriting
+        if "datasource" not in form_data:
+            form_data["datasource"] = f"{request.dataset_id}__table"
+
         await ctx.debug(
             "Form data generated with keys: %s, has_viz_type=%s, has_datasource=%s"
             % (

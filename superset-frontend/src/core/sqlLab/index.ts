@@ -60,8 +60,14 @@ const activeEditorId = () => {
 };
 
 const findQueryEditor = (editorId: string) => {
-  const { queryEditors } = getSqlLabState();
-  return queryEditors.find(editor => editor.id === editorId);
+  const { queryEditors, unsavedQueryEditor } = getSqlLabState();
+  const editor = queryEditors.find(qe => qe.id === editorId);
+  if (!editor) return undefined;
+  // Merge unsaved changes
+  if (unsavedQueryEditor?.id === editorId) {
+    return { ...editor, ...unsavedQueryEditor };
+  }
+  return editor;
 };
 
 const createTab = (

@@ -139,6 +139,39 @@ docker volume rm superset_db_home
 docker-compose up
 ```
 
+### Running multiple instances
+
+If you need to run multiple Superset clones simultaneously (e.g., testing different branches),
+use `make up` instead of `docker compose up`:
+
+```bash
+make up
+```
+
+This automatically:
+- Generates a unique project name from your directory name
+- Finds available ports (incrementing from 8088, 9000, etc. if already in use)
+- Displays the assigned URLs before starting
+
+Each clone gets isolated containers and volumes, so you can run them side-by-side without conflicts.
+
+Available commands (run from repo root):
+
+| Command | Description |
+|---------|-------------|
+| `make up` | Start services (foreground) |
+| `make up-detached` | Start services (background) |
+| `make down` | Stop all services |
+| `make ps` | Show running containers |
+| `make logs` | Follow container logs |
+| `make nuke` | Stop, remove volumes & local images |
+
+From a subdirectory, use: `make -C $(git rev-parse --show-toplevel) up`
+
+:::warning
+Always use these commands instead of plain `docker compose down`, which won't know the correct project name for your instance.
+:::
+
 ## GitHub Codespaces (Cloud Development)
 
 GitHub Codespaces provides a complete, pre-configured development environment in the cloud. This is ideal for:

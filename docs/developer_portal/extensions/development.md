@@ -1,6 +1,6 @@
 ---
 title: Development
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 <!--
@@ -237,3 +237,73 @@ superset-extensions dev
 ✅ Manifest updated
 👀 Watching for changes in: /dataset_references/frontend, /dataset_references/backend
 ```
+
+## Contributing Extension-Compatible Components
+
+Components in `@apache-superset/core` are automatically documented in the Developer Portal. Simply add a component to the package and it will appear in the extension documentation.
+
+### Requirements
+
+1. **Location**: The component must be in `superset-frontend/packages/superset-core/src/ui/components/`
+2. **Exported**: The component must be exported from the package's `index.ts`
+3. **Story**: The component must have a Storybook story
+
+### Creating a Story for Your Component
+
+Create a story file with an `Interactive` export that defines args and argTypes:
+
+```typescript
+// MyComponent.stories.tsx
+import { MyComponent } from '.';
+
+export default {
+  title: 'Extension Components/MyComponent',
+  component: MyComponent,
+  parameters: {
+    docs: {
+      description: {
+        component: 'A brief description of what this component does.',
+      },
+    },
+  },
+};
+
+// Define an interactive story with args
+export const InteractiveMyComponent = (args) => <MyComponent {...args} />;
+
+InteractiveMyComponent.args = {
+  variant: 'primary',
+  disabled: false,
+};
+
+InteractiveMyComponent.argTypes = {
+  variant: {
+    control: { type: 'select' },
+    options: ['primary', 'secondary', 'danger'],
+  },
+  disabled: {
+    control: { type: 'boolean' },
+  },
+};
+```
+
+### How Documentation is Generated
+
+When the docs site is built (`yarn start` or `yarn build` in the `docs/` directory):
+
+1. The `generate-extension-components` script scans all stories in `superset-core`
+2. For each story, it generates an MDX page with:
+   - Component description
+   - **Live interactive example** with controls extracted from `argTypes`
+   - **Editable code playground** for experimentation
+   - Props table from story `args`
+   - Usage code snippet
+   - Links to source files
+3. Pages appear automatically in **Developer Portal → Extensions → Components**
+
+### Best Practices
+
+- **Use descriptive titles**: The title path determines the component's location in docs (e.g., `Extension Components/Alert`)
+- **Define argTypes**: These become interactive controls in the documentation
+- **Provide default args**: These populate the initial state of the live example
+- **Write clear descriptions**: Help extension developers understand when to use each component

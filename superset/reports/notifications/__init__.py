@@ -19,6 +19,7 @@ from superset.reports.notifications.base import BaseNotification, NotificationCo
 from superset.reports.notifications.email import EmailNotification  # noqa: F401
 from superset.reports.notifications.slack import SlackNotification  # noqa: F401
 from superset.reports.notifications.slackv2 import SlackV2Notification  # noqa: F401
+from superset.reports.notifications.webhook import WebhookNotification  # noqa: F401
 
 
 def create_notification(
