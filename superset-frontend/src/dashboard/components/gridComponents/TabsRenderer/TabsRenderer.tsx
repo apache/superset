@@ -189,14 +189,17 @@ const TabsRenderer = memo<TabsRendererProps>(
     const onDragEnd = useCallback(
       ({ active, over }: DragEndEvent) => {
         const currentTabIds = tabIdsRef.current;
+        // Only reorder when we have a valid drop target and both IDs are found
         if (active.id !== over?.id && onTabsReorder) {
           const activeIndex = currentTabIds.findIndex(id => id === active.id);
           const overIndex = currentTabIds.findIndex(id => id === over?.id);
-          onTabsReorder(activeIndex, overIndex);
+          if (activeIndex !== -1 && overIndex !== -1) {
+            onTabsReorder(activeIndex, overIndex);
+          }
         }
         setActiveId(null);
       },
-      [onTabsReorder, tabIds],
+      [onTabsReorder],
     );
 
     const onDragCancel = useCallback(() => {
