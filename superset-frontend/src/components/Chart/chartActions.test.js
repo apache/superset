@@ -357,6 +357,28 @@ describe('chart actions', () => {
       });
     });
 
+    test('should dispatch CHART_UPDATE_STOPPED action upon abort', () => {
+      fetchMock.post(
+        MOCK_URL,
+        { throws: { name: 'AbortError' } },
+        { overwriteRoutes: true },
+      );
+
+      const timeoutInSec = 100;
+      const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
+
+      return actionThunk(dispatch, mockGetState).then(() => {
+        const types = dispatch.args
+          .map(call => call[0] && call[0].type)
+          .filter(Boolean);
+
+        expect(types).toContain(actions.CHART_UPDATE_STOPPED);
+        expect(types).not.toContain(actions.CHART_UPDATE_FAILED);
+
+        setupDefaultFetchMock();
+      });
+    });
+
     test('should handle the bigint without regression', async () => {
       getExploreUrlStub.restore();
       const mockBigIntUrl = '/mock/chart/data/bigint';
