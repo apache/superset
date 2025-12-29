@@ -1595,13 +1595,15 @@ describe('DatabaseModal', () => {
       });
 
       // Verify the form content is rendered
-      expect(screen.getByText(/Enter the required PostgreSQL credentials/i)).toBeInTheDocument();
-      
+      expect(
+        screen.getByText(/Enter the required PostgreSQL credentials/i),
+      ).toBeInTheDocument();
+
       // This test ensures that the DatabaseModal component renders without errors
       // and reaches the form step where our error clearing modifications are active.
       // The actual error clearing behavior is implemented in the onChange handlers
       // we modified in DatabaseModal/index.tsx
-      
+
       // The presence of the form and successful rendering to step 2 indicates
       // that our modifications are integrated correctly without breaking the component
     });
