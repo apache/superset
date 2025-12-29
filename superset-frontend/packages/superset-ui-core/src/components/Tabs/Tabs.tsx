@@ -166,6 +166,6 @@ export const LineEditableTabs: FC<TabsProps> & {
   TabPane: typeof StyledTabPane;
 } = Object.assign(StyledLineEditableTabs, {
   TabPane: StyledTabPane,
-}) as FC<TabsProps> & { TabPane: typeof StyledTabPane };
+});
 
 export default Tabs;
