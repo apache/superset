@@ -118,11 +118,6 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   });
 
   const colorFn = (feature: GeoFeature) => {
-    if (!feature?.properties) return '#d9d9d9';
-    const iso = feature.properties.ISO;
-    return colorMap[iso] || '#d9d9d9';
-  };
-
   const path = d3.geo.path();
   const div = d3.select(container);
   div.classed('superset-legacy-chart-country-map', true);
