@@ -272,6 +272,7 @@ export const FormattingPopoverContent = ({
   conditionalFormattingFlag = {
     toAllRowCheck: false,
     toColorTextCheck: false,
+    toCellBarCheck: false,
   },
 }: {
   config?: ConditionalFormattingConfig;
@@ -292,13 +293,14 @@ export const FormattingPopoverContent = ({
   const [toTextColor, setToTextColor] = useState(() =>
     Boolean(config?.toTextColor),
   );
+  const [toCellBar, setToCellBar] = useState(() => Boolean(config?.toCellBar));
   const [useGradient, setUseGradient] = useState(() =>
     config?.useGradient !== undefined ? config.useGradient : true,
   );
 
   const useConditionalFormattingFlag = (
-    flagKey: 'toAllRowCheck' | 'toColorTextCheck',
-    configKey: 'toAllRow' | 'toTextColor',
+    flagKey: 'toAllRowCheck' | 'toColorTextCheck' | 'toCellBarCheck',
+    configKey: 'toAllRow' | 'toTextColor' | 'toCellBar',
   ) =>
     useMemo(
       () =>
@@ -315,6 +317,10 @@ export const FormattingPopoverContent = ({
   const showToColorText = useConditionalFormattingFlag(
     'toColorTextCheck',
     'toTextColor',
+  );
+  const showToCellBar = useConditionalFormattingFlag(
+    'toCellBarCheck',
+    'toCellBar',
   );
 
   const handleChange = (event: any) => {
@@ -333,6 +339,11 @@ export const FormattingPopoverContent = ({
   const columnType = useMemo(
     () => columns.find(item => item.value === column)?.dataType,
     [columns, column],
+  );
+
+  const columnTypeNumeric = useMemo(
+    () => columnType === GenericDataType.Numeric,
+    [columnType],
   );
 
   const handleColumnChange = (value: string) => {
@@ -447,8 +458,15 @@ export const FormattingPopoverContent = ({
                 initialValue={toAllRow}
               >
                 <Checkbox
-                  onChange={event => setToAllRow(event.target.checked)}
+                  onChange={event => {
+                    const checked = event.target.checked;
+                    setToAllRow(checked);
+                    if (checked) {
+                      setToCellBar(false);
+                    }
+                  }}
                   checked={toAllRow}
+                  disabled={toCellBar}
                 />
               </FormItem>
             </Col>
@@ -466,13 +484,47 @@ export const FormattingPopoverContent = ({
                 initialValue={toTextColor}
               >
                 <Checkbox
-                  onChange={event => setToTextColor(event.target.checked)}
+                  onChange={event => {
+                    const checked = event.target.checked;
+                    setToTextColor(checked);
+                    if (checked) {
+                      setToCellBar(false);
+                    }
+                  }}
                   checked={toTextColor}
+                  disabled={toCellBar}
                 />
               </FormItem>
             </Col>
             <Col>
               <FormItem required>{t('To text color')}</FormItem>
+            </Col>
+          </Row>
+        )}
+        {showOperatorFields && columnTypeNumeric && showToCellBar && (
+          <Row gutter={20}>
+            <Col span={1}>
+              <FormItem
+                name="toCellBar"
+                valuePropName="checked"
+                initialValue={toCellBar}
+              >
+                <Checkbox
+                  onChange={event => {
+                    const checked = event.target.checked;
+                    setToCellBar(checked);
+                    if (checked) {
+                      setToTextColor(false);
+                      setToAllRow(false);
+                    }
+                  }}
+                  checked={toCellBar}
+                  disabled={toTextColor || toAllRow}
+                />
+              </FormItem>
+            </Col>
+            <Col>
+              <FormItem required>{t('To cell bar')}</FormItem>
             </Col>
           </Row>
         )}
