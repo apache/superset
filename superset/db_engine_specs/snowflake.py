@@ -27,7 +27,7 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from flask import current_app as app
+from flask import current_app as app, has_request_context
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import types
@@ -60,7 +60,9 @@ except ImportError:
     # matching unrelated exception types (using `Exception` would be too broad).
     class _SnowflakeDatabaseError(Exception):
         """Sentinel type to stand in for snowflake.connector.errors.DatabaseError."""
+
         pass
+
     DatabaseError = _SnowflakeDatabaseError
 
 
@@ -171,6 +173,23 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     oauth2_exception = CustomSnowflakeAuthError
 
     @classmethod
+    def is_oauth2_enabled(cls) -> bool:
+        """
+        Return whether OAuth2 authentication is enabled.
+        """
+
+        # When alerts or reports connect to the database in the background,
+        # OAuth2 authentication fails; therefore, OAuth2 authentication is disabled
+        # for background execution.
+        if not has_request_context():
+            return False
+
+        return (
+            cls.supports_oauth2
+            and cls.engine_name in app.config["DATABASE_OAUTH2_CLIENTS"]
+        )
+
+    @classmethod
     def impersonate_user(
         cls,
         database: Database,
@@ -193,7 +212,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             url = url.update_query_dict({"authenticator": "oauth"})
             connect_args["authenticator"] = "oauth"
 
-        if user_token:
+        if user_token and cls.is_oauth2_enabled():
             if username is not None:
                 user = security_manager.find_user(username=username)
                 if user and user.email:
