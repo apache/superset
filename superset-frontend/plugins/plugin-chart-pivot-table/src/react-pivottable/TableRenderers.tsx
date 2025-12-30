@@ -138,26 +138,56 @@ interface PivotSettings {
 
 /**
  * Computes the initial collapsed-state map for a set of keys and a depth.
- * Keys whose length equals `depth` are marked collapsed, hiding their children.
+ *
+ * Semantics:
+ *   - depth = 0 (or invalid): disabled / fully expanded (returns an empty map)
+ *   - depth = 1: collapse at level 1 (show only top-level rows/columns)
+ *   - depth = N: collapse at level N (show N levels expanded)
+ *
+ * Every intermediate level from `depth` up to `maxDepth - 1` is collapsed, so
+ * expanding a group reveals only the next level while deeper levels stay
+ * collapsed until clicked. The leaf level (`maxDepth`) is never collapsed.
  *
  * @param keys - Array of key arrays (e.g. rowKeys or colKeys)
- * @param depth - The (1-based) depth at which to collapse. Keys at this depth
- *   are collapsed; a falsy or non-positive depth collapses nothing.
+ * @param depth - The (1-based) depth at which to collapse. Must be a positive
+ *   integer (>= 1) to apply any collapse.
+ * @param maxDepth - Optional total number of grouping levels (e.g.
+ *   rows.length or cols.length). Inferred from the longest key when omitted.
  * @returns A map of flatKey => true for every key that should be collapsed.
  */
 export function computeCollapsedMap(
   keys: string[][],
   depth?: number,
+  maxDepth?: number,
 ): Record<string, boolean> {
-  if (!depth || depth <= 0) {
+  // depth must be a positive integer (>= 1); 0/invalid means fully expanded.
+  if (!Number.isInteger(depth) || (depth as number) <= 0) {
     return {};
   }
+  const collapseDepth = depth as number;
+
+  const effectiveMaxDepth = Number.isInteger(maxDepth)
+    ? (maxDepth as number)
+    : Math.max(0, ...keys.map(k => (Array.isArray(k) ? k.length : 0)));
+  if (effectiveMaxDepth <= collapseDepth) {
+    return {};
+  }
+
   const collapsed: Record<string, boolean> = {};
-  keys
-    .filter(k => k.length === depth)
-    .forEach(k => {
-      collapsed[flatKey(k)] = true;
-    });
+  const seen = new Set<string>();
+  keys.forEach(k => {
+    if (!Array.isArray(k) || k.length < collapseDepth) {
+      return;
+    }
+    const limit = Math.min(k.length, effectiveMaxDepth - 1);
+    for (let i = collapseDepth; i <= limit; i += 1) {
+      const keyStr = flatKey(k.slice(0, i));
+      if (!seen.has(keyStr)) {
+        seen.add(keyStr);
+        collapsed[keyStr] = true;
+      }
+    }
+  });
   return collapsed;
 }
 
@@ -808,14 +838,14 @@ export function TableRenderer(props: TableRendererProps) {
       rowSubtotalDisplay.enabled &&
       rowAttrs.length > 1 &&
       rowDepth < rowAttrs.length
-        ? computeCollapsedMap(rowKeys, rowDepth)
+        ? computeCollapsedMap(rowKeys, rowDepth, rowAttrs.length)
         : {};
     const initialCollapsedCols =
       hasValidColDepth &&
       colSubtotalDisplay.enabled &&
       colAttrs.length > 1 &&
       colDepth < colAttrs.length
-        ? computeCollapsedMap(colKeys, colDepth)
+        ? computeCollapsedMap(colKeys, colDepth, colAttrs.length)
         : {};
 
     if (Object.keys(initialCollapsedRows).length > 0) {
