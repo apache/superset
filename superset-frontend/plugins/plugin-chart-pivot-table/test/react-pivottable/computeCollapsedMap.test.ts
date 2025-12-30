@@ -37,18 +37,11 @@ test('computeCollapsedMap returns empty object when depth is negative', () => {
 
 test('computeCollapsedMap returns empty object when depth is undefined', () => {
   const keys = [['A'], ['A', 'B'], ['A', 'B', 'C']];
-  // @ts-expect-error testing undefined input
   expect(computeCollapsedMap(keys, undefined)).toEqual({});
 });
 
 test('computeCollapsedMap collapses keys at depth 1', () => {
-  const keys = [
-    ['A'],
-    ['A', 'X'],
-    ['A', 'Y'],
-    ['B'],
-    ['B', 'Z'],
-  ];
+  const keys = [['A'], ['A', 'X'], ['A', 'Y'], ['B'], ['B', 'Z']];
   const result = computeCollapsedMap(keys, 1);
   expect(result).toEqual({
     [flatKey(['A'])]: true,
@@ -85,23 +78,23 @@ test('computeCollapsedMap handles empty keys array', () => {
 });
 
 /**
- * Semantic documentation: depth = 1 means "show top-level only" (children collapsed).
- * This test locks down the intended behavior for the UI control.
+ * Stepwise expansion behavior:
+ * When total depth is > 2, depth = 1 should pre-collapse deeper levels so expanding a top-level
+ * group reveals only the next level (which remains collapsed until clicked).
  */
-test('computeCollapsedMap with depth=1 collapses top-level keys (show top-level only semantic)', () => {
+test('computeCollapsedMap with depth=1 and maxDepth=3 collapses level 1 and 2 keys (stepwise)', () => {
   const keys = [
-    ['Region A'],
-    ['Region A', 'City 1'],
-    ['Region A', 'City 2'],
-    ['Region B'],
-    ['Region B', 'City 3'],
+    ['Region A', 'City 1', 'Store 1'],
+    ['Region A', 'City 1', 'Store 2'],
+    ['Region A', 'City 2', 'Store 3'],
+    ['Region B', 'City 3', 'Store 4'],
   ];
-  const result = computeCollapsedMap(keys, 1);
-  // depth = 1 means: collapse at level 1, so top-level rows are collapsed
-  // (their children are hidden, showing only the subtotal rows)
+  const result = computeCollapsedMap(keys, 1, 3);
   expect(result).toEqual({
     [flatKey(['Region A'])]: true,
+    [flatKey(['Region A', 'City 1'])]: true,
+    [flatKey(['Region A', 'City 2'])]: true,
     [flatKey(['Region B'])]: true,
+    [flatKey(['Region B', 'City 3'])]: true,
   });
 });
-
