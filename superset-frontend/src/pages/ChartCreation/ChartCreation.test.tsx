@@ -302,6 +302,64 @@ test('pre-selects the dataset from URL parameter and shows it in dropdown', asyn
   });
 });
 
+test('shows loading spinner when dataset parameter is present in URL', async () => {
+  fetchMock.reset();
+  let resolveRequest: (value: unknown) => void;
+  const requestPromise = new Promise(resolve => {
+    resolveRequest = resolve;
+  });
+
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, () =>
+    requestPromise.then(() => ({
+      body: {
+        result: [
+          {
+            id: 'flights_1',
+            table_name: 'flights',
+            datasource_type: 'table',
+            database: { database_name: 'examples' },
+            schema: 'public',
+          },
+        ],
+        count: 1,
+      },
+      status: 200,
+    })),
+  );
+
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: { ...originalLocation, search: '?dataset=flights' },
+    writable: true,
+  });
+
+  render(
+    <ChartCreation
+      user={mockUser}
+      addSuccessToast={() => null}
+      theme={supersetTheme}
+      {...routeProps}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+    },
+  );
+
+  expect(screen.getByRole('status')).toBeInTheDocument();
+
+  resolveRequest!(null);
+
+  await waitFor(() => {
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
+});
+
 test('shows only exact match when loading dataset from URL, not partial matches', async () => {
   fetchMock.reset();
   fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, url => {
