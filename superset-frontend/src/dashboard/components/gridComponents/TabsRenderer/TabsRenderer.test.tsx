@@ -199,5 +199,4 @@ describe('TabsRenderer', () => {
     expect(screen.getByText('Tab 1 Content')).toBeInTheDocument();
     expect(screen.queryByText('Tab 2 Content')).not.toBeInTheDocument(); // Not active
   });
-
 });
