@@ -35,20 +35,45 @@ import { Styles } from './Styles';
  * @param {Array<Array>} keys - Array of key arrays (e.g., rowKeys or colKeys)
  * @param {number} depth - The depth at which to collapse (positive integer).
  *                         Must be >= 1 to apply any collapse.
+ * @param {number} maxDepth - Total number of grouping levels (e.g., rows.length or cols.length).
  * @returns {Object} A map of flatKey => true for all keys that should be collapsed
  */
-export function computeCollapsedMap(keys, depth) {
+export function computeCollapsedMap(keys, depth, maxDepth) {
   // depth must be a positive integer (>= 1) to apply collapse.
   // depth = 0 means "fully expanded" / disabled - return empty map.
-  if (!depth || depth <= 0) {
+  if (!Number.isInteger(depth) || depth <= 0) {
     return {};
   }
+
+  // We never need to collapse the leaf level (maxDepth), only intermediate nodes.
+  // Collapsing all levels from `depth` up to `maxDepth - 1` ensures that expanding a
+  // group reveals only the next level, and deeper levels remain collapsed until clicked.
+  const effectiveMaxDepth = Number.isInteger(maxDepth)
+    ? maxDepth
+    : Math.max(
+        0,
+        ...keys.map(k => (Array.isArray(k) ? k.length : 0)),
+      );
+  if (effectiveMaxDepth <= depth) {
+    return {};
+  }
+
   const collapsed = {};
-  keys
-    .filter(k => k.length === depth)
-    .forEach(k => {
-      collapsed[flatKey(k)] = true;
-    });
+  const seen = new Set();
+  keys.forEach(k => {
+    if (!Array.isArray(k) || k.length < depth) {
+      return;
+    }
+
+    const limit = Math.min(k.length, effectiveMaxDepth - 1);
+    for (let i = depth; i <= limit; i += 1) {
+      const keyStr = flatKey(k.slice(0, i));
+      if (!seen.has(keyStr)) {
+        seen.add(keyStr);
+        collapsed[keyStr] = true;
+      }
+    }
+  });
   return collapsed;
 }
 
@@ -148,7 +173,7 @@ export class TableRenderer extends Component {
       rowSubtotalDisplay.enabled &&
       rowAttrs.length > 1 &&
       rowDepth < rowAttrs.length
-        ? computeCollapsedMap(rowKeys, rowDepth)
+        ? computeCollapsedMap(rowKeys, rowDepth, rowAttrs.length)
         : {};
 
     // Apply column collapse if subtotals are enabled and we have enough depth
@@ -157,7 +182,7 @@ export class TableRenderer extends Component {
       colSubtotalDisplay.enabled &&
       colAttrs.length > 1 &&
       colDepth < colAttrs.length
-        ? computeCollapsedMap(colKeys, colDepth)
+        ? computeCollapsedMap(colKeys, colDepth, colAttrs.length)
         : {};
 
     // Only update state when collapsed maps actually contain entries
