@@ -26,11 +26,20 @@ import { Styles } from './Styles';
 /**
  * Computes the initial collapsed state map for a given set of keys and depth.
  * Keys at the specified depth will be marked as collapsed, hiding their children.
+ *
+ * Semantics:
+ *   - depth = 0 (or invalid): disabled / fully expanded (returns empty map)
+ *   - depth = 1: collapse at level 1 (show only top-level rows/columns)
+ *   - depth = N: collapse at level N (show N levels expanded)
+ *
  * @param {Array<Array>} keys - Array of key arrays (e.g., rowKeys or colKeys)
- * @param {number} depth - The depth at which to collapse (1-based). Keys at this depth will be collapsed.
+ * @param {number} depth - The depth at which to collapse (positive integer).
+ *                         Must be >= 1 to apply any collapse.
  * @returns {Object} A map of flatKey => true for all keys that should be collapsed
  */
 export function computeCollapsedMap(keys, depth) {
+  // depth must be a positive integer (>= 1) to apply collapse.
+  // depth = 0 means "fully expanded" / disabled - return empty map.
   if (!depth || depth <= 0) {
     return {};
   }
@@ -105,10 +114,16 @@ export class TableRenderer extends Component {
   }
 
   componentDidMount() {
-    // Apply initial collapse based on defaultRowExpansionDepth and defaultColExpansionDepth
+    // Apply initial collapse based on defaultRowExpansionDepth and defaultColExpansionDepth.
+    //
+    // Semantics:
+    //   - 0 = fully expanded (no collapse applied)
+    //   - 1 = show 1 level expanded (top-level visible, children collapsed)
+    //   - N = show N levels expanded
+    //
+    // Only positive integers (>= 1) trigger collapse logic.
     const { defaultRowExpansionDepth, defaultColExpansionDepth } = this.props;
 
-    // Validate depths as positive integers; treat invalid or zero values as "disabled"
     const rowDepth = Number(defaultRowExpansionDepth);
     const colDepth = Number(defaultColExpansionDepth);
     const hasValidRowDepth = Number.isInteger(rowDepth) && rowDepth > 0;
@@ -1024,6 +1039,7 @@ TableRenderer.propTypes = {
 TableRenderer.defaultProps = {
   ...PivotData.defaultProps,
   tableOptions: {},
+  // 0 = fully expanded (no initial collapse). Use >= 1 to collapse deeper levels.
   defaultRowExpansionDepth: 0,
   defaultColExpansionDepth: 0,
 };

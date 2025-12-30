@@ -233,17 +233,18 @@ const config: ControlPanelConfig = {
               default: 0,
               renderTrigger: true,
               description: t(
-                'Number of row group levels to show expanded initially. ' +
-                  'Set to 0 to fully expand all rows.',
+                'How many row group levels to show expanded on initial load. ' +
+                  'Select "Fully expanded" (0) to show all levels. ' +
+                  'Select "1" to show only top-level rows (children collapsed).',
               ),
               mapStateToProps: explore => {
                 const rowCount = ensureIsArray(
                   explore?.controls?.groupbyRows?.value,
                 ).length;
-                // Generate choices: 0 = fully expanded, 1..rowCount-1 = collapse deeper levels
+                // 0 = fully expanded (no collapse), 1..N = collapse deeper levels
                 const choices: [number, string][] = [[0, t('Fully expanded')]];
                 for (let i = 1; i < rowCount; i += 1) {
-                  choices.push([i, String(i)]);
+                  choices.push([i, t('Expand %s level(s)', i)]);
                 }
                 return { choices };
               },
@@ -286,17 +287,18 @@ const config: ControlPanelConfig = {
               default: 0,
               renderTrigger: true,
               description: t(
-                'Number of column group levels to show expanded initially. ' +
-                  'Set to 0 to fully expand all columns.',
+                'How many column group levels to show expanded on initial load. ' +
+                  'Select "Fully expanded" (0) to show all levels. ' +
+                  'Select "1" to show only top-level columns (children collapsed).',
               ),
               mapStateToProps: explore => {
                 const colCount = ensureIsArray(
                   explore?.controls?.groupbyColumns?.value,
                 ).length;
-                // Generate choices: 0 = fully expanded, 1..colCount-1 = collapse deeper levels
+                // 0 = fully expanded (no collapse), 1..N = collapse deeper levels
                 const choices: [number, string][] = [[0, t('Fully expanded')]];
                 for (let i = 1; i < colCount; i += 1) {
-                  choices.push([i, String(i)]);
+                  choices.push([i, t('Expand %s level(s)', i)]);
                 }
                 return { choices };
               },

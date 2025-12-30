@@ -20,8 +20,13 @@
 import { computeCollapsedMap } from '../../src/react-pivottable/TableRenderers';
 import { flatKey } from '../../src/react-pivottable/utilities';
 
-test('computeCollapsedMap returns empty object when depth is 0', () => {
+/**
+ * Semantic tests: depth = 0 means "fully expanded" (no collapse).
+ * This is the intentional behavior - users select 0 to show all levels.
+ */
+test('computeCollapsedMap returns empty object when depth is 0 (fully expanded semantic)', () => {
   const keys = [['A'], ['A', 'B'], ['A', 'B', 'C']];
+  // depth = 0 means "fully expanded" - no keys should be collapsed
   expect(computeCollapsedMap(keys, 0)).toEqual({});
 });
 
@@ -77,5 +82,26 @@ test('computeCollapsedMap returns empty object when no keys match the depth', ()
 
 test('computeCollapsedMap handles empty keys array', () => {
   expect(computeCollapsedMap([], 1)).toEqual({});
+});
+
+/**
+ * Semantic documentation: depth = 1 means "show top-level only" (children collapsed).
+ * This test locks down the intended behavior for the UI control.
+ */
+test('computeCollapsedMap with depth=1 collapses top-level keys (show top-level only semantic)', () => {
+  const keys = [
+    ['Region A'],
+    ['Region A', 'City 1'],
+    ['Region A', 'City 2'],
+    ['Region B'],
+    ['Region B', 'City 3'],
+  ];
+  const result = computeCollapsedMap(keys, 1);
+  // depth = 1 means: collapse at level 1, so top-level rows are collapsed
+  // (their children are hidden, showing only the subtotal rows)
+  expect(result).toEqual({
+    [flatKey(['Region A'])]: true,
+    [flatKey(['Region B'])]: true,
+  });
 });
 
