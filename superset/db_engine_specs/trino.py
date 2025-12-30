@@ -29,6 +29,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
 
 from superset import db
+from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
 from superset.db_engine_specs.exceptions import (
@@ -177,6 +178,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         `execute_with_cursor` instead, to handle this asynchronously.
         """
 
+        execute_result = getattr(cursor, "_execute_result", None)
+        execute_event = getattr(cursor, "_execute_event", None)
+
         # Adds the executed query id to the extra payload so the query can be cancelled
         cancel_query_id = cursor.query_id
         logger.debug("Query %d: queryId %s found in cursor", query.id, cancel_query_id)
@@ -187,16 +191,47 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         db.session.commit()  # pylint: disable=consider-using-transaction
 
-        # if query cancelation was requested prior to the handle_cursor call, but
-        # the query was still executed, trigger the actual query cancelation now
-        if query.extra.get(QUERY_EARLY_CANCEL_KEY):
-            cls.cancel_query(
-                cursor=cursor,
-                query=query,
-                cancel_query_id=cancel_query_id,
-            )
-
         super().handle_cursor(cursor=cursor, query=query)
+
+        state = "QUEUED"
+        progress = 0.0
+        poll_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(cls.engine, 1)
+        while state != "FINISHED":
+            # Check for errors raised in execute_thread
+            if execute_result is not None and execute_result.get("error"):
+                break
+
+            # Check if execute_event is set (thread completed or error occurred)
+            if execute_event is not None and execute_event.is_set():
+                # If there's an error, break; otherwise, it's a normal completion,
+                # so break after the final state update
+                if execute_result and execute_result.get("error"):
+                    break
+
+            # if query cancelation was requested prior to the handle_cursor call, but
+            # the query was still executed, trigger the actual query cancelation now
+            if query.extra.get(QUERY_EARLY_CANCEL_KEY) or query.status in [
+                QueryStatus.STOPPED,
+                QueryStatus.TIMED_OUT,
+            ]:
+                cls.cancel_query(
+                    cursor=cursor,
+                    query=query,
+                    cancel_query_id=cancel_query_id,
+                )
+                break
+
+            info = cursor.stats
+            state = info["state"]
+            completed_splits = info["completedSplits"]
+            total_splits = info["totalSplits"]
+            progress = completed_splits / (total_splits or 1)
+
+            if progress != query.progress:
+                query.progress = progress
+                db.session.commit()  # pylint: disable=consider-using-transaction
+
+            time.sleep(poll_interval)
 
     @classmethod
     def execute_with_cursor(
@@ -262,6 +297,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         while not cursor.query_id and not execute_event.is_set():
             time.sleep(0.1)
 
+        # Pass additional attributes to check whether an error occurred in the
+        # execute thread running in parallel while updating progress through the cursor.
+        cursor._execute_result = execute_result
+        cursor._execute_event = execute_event
         logger.debug("Query %d: Handling cursor", query_id)
         cls.handle_cursor(cursor, query)
 
