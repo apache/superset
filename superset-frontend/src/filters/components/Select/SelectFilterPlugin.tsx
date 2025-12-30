@@ -176,9 +176,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           groupby: [columnValue],
         };
 
-        if (filterState?.value?.length > 0) {
+        const filterStateValue = dataMask?.filterState?.value;
+
+        if (filterStateValue && filterStateValue.length > 0) {
           fd.extra_form_data = {
-            filters: [{ col: columnLabel, op: 'IN', val: filterState.value }],
+            filters: [{ col: columnLabel, op: 'IN', val: filterStateValue }],
           };
         }
 
@@ -193,9 +195,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           if (requestTimestamp < latestRequestTimestamp.current) return;
 
           const datas: ChartDataResponseResult['data'] = json.result[0].data;
-          const columnValues = datas.map(
-            data => Object.values(data)[0],
-          ) as string[];
+          const columnValues = filterStateValue
+            ? (datas.map(data => Object.values(data)[0]) as string[])
+            : [];
 
           dispatchDataMask({
             ...dataMask,
