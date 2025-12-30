@@ -62,8 +62,25 @@ const {
 
 // Precedence: CLI args > env vars > defaults
 const devserverPort = cliPort || process.env.WEBPACK_DEVSERVER_PORT || 9000;
+// Default to 127.0.0.1 for security (localhost only)
+// For multitenancy subdomain support, override via WEBPACK_DEVSERVER_HOST=0.0.0.0
+// Can be overridden via CLI or WEBPACK_DEVSERVER_HOST env var
 const devserverHost =
   cliHost || process.env.WEBPACK_DEVSERVER_HOST || '127.0.0.1';
+
+// Allowed hosts for webpack dev server
+// Default: localhost and .localhost for security
+// For multitenancy: Set WEBPACK_DEVSERVER_ALLOWED_HOSTS='all' or specific domains
+// Examples:
+//   - 'all' (allow any host - use with caution)
+//   - '.analytics.local' (allow all subdomains of analytics.local)
+//   - ['localhost', '.localhost', '.analytics.local'] (specific list)
+const devserverAllowedHosts =
+  process.env.WEBPACK_DEVSERVER_ALLOWED_HOSTS
+    ? process.env.WEBPACK_DEVSERVER_ALLOWED_HOSTS === 'all'
+      ? 'all'
+      : process.env.WEBPACK_DEVSERVER_ALLOWED_HOSTS.split(',').map((h) => h.trim())
+    : ['localhost', '.localhost', '127.0.0.1', '::1', '.local'];
 
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
@@ -632,7 +649,10 @@ if (isDevMode) {
     hot: true,
     host: devserverHost,
     port: devserverPort,
-    allowedHosts: ['localhost', '.localhost', '127.0.0.1', '::1', '.local'],
+    // Allowed hosts configurable via WEBPACK_DEVSERVER_ALLOWED_HOSTS env var
+    // Default: ['localhost', '.localhost', '127.0.0.1', '::1', '.local']
+    // For multitenancy: Set to 'all' or specific domains like '.analytics.local'
+    allowedHosts: devserverAllowedHosts,
     proxy: [() => proxyConfig],
     client: {
       overlay: {

@@ -41,6 +41,14 @@ services:
     environment:
       # Set Docker host to use the mounted socket
       DOCKER_HOST: unix:///var/run/docker.sock
+      # Enable multi-tenancy feature flag
+      SUPERSET_FEATURE_MULTI_TENANCY_ENABLED: "true"
+      # Set development environment for Superset—enables debug mode, better error messages, and auto-reload
+      SUPERSET_ENV: development
+      # Set AUTH_TYPE to OAuth for multi-tenancy
+      # Flask-AppBuilder uses this to enable OAuth authentication
+      # Value must match Flask-AppBuilder's AUTH_OAUTH constant
+      SUPERSET_AUTH_TYPE: "AUTH_OAUTH"
 
   superset-worker:
     volumes:
@@ -59,4 +67,16 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       DOCKER_HOST: unix:///var/run/docker.sock
+
+  superset-node:
+    ports:
+      # Override to allow access from all interfaces for subdomain-based tenant discovery
+      # Original: "127.0.0.1:9000:9000" (localhost only)
+      # Override: "9000:9000" (all interfaces)
+      - "9000:9000"
+    environment:
+      # Webpack dev server configuration for multitenancy
+      # These can also be set in docker/.env-local for local-only overrides
+      # WEBPACK_DEVSERVER_HOST: "0.0.0.0"  # Uncomment to allow all interfaces
+      # WEBPACK_DEVSERVER_ALLOWED_HOSTS: "all"  # Uncomment to allow any host
 

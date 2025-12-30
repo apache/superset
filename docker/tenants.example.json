@@ -1,0 +1,25 @@
+{
+  "tenants": [
+    {
+      "slug": "acme",
+      "name": "Acme Corp",
+      "oauth_issuer": "https://acme.okta.com/oauth2/default",
+      "client_id": "acme-client-id",
+      "client_secret": "acme-secret",
+      "db_sqlalchemy_uri": "postgresql://user:pass@localhost:5432/acmedb",
+      "default_schema": "acme_schema",
+      "is_admin_tenant": false
+    },
+    {
+      "slug": "admin",
+      "name": "Admin Tenant",
+      "oauth_issuer": "https://admin.okta.com/oauth2/default",
+      "client_id": "admin-client-id",
+      "client_secret": "admin-secret",
+      "db_sqlalchemy_uri": "postgresql://user:pass@localhost:5432/superset",
+      "default_schema": "public",
+      "is_admin_tenant": true
+    }
+  ]
+}
+

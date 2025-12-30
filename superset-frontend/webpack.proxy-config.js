@@ -155,10 +155,21 @@ module.exports = newManifest => {
   return {
     context: '/',
     target: backend,
-    hostRewrite: true,
+    // Preserve original Host header for multitenancy subdomain discovery
+    // hostRewrite: false allows original Host header to pass through
+    hostRewrite: false,
     changeOrigin: true,
     cookieDomainRewrite: '', // remove cookie domain
     selfHandleResponse: true, // so that the onProxyRes takes care of sending the response
+    onProxyReq(proxyReq, req) {
+      // Preserve original Host header for tenant discovery
+      // The original Host header (e.g., acme.analytics.local:9001) is needed for subdomain-based tenant discovery
+      if (req.headers.host) {
+        proxyReq.setHeader('Host', req.headers.host);
+        // Also set X-Forwarded-Host for reference (standard proxy header)
+        proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
+      }
+    },
     onProxyRes(proxyResponse, request, response) {
       try {
         copyHeaders(proxyResponse, response);
