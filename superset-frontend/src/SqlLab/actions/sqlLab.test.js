@@ -919,6 +919,10 @@ describe('async actions', () => {
     fetchMock.delete(updateTableSchemaEndpoint, {});
     fetchMock.post(updateTableSchemaEndpoint, JSON.stringify({ id: 1 }));
 
+    const updateTableSchemaExpandedEndpoint =
+      'glob:**/tableschemaview/*/expanded';
+    fetchMock.post(updateTableSchemaExpandedEndpoint, {});
+
     const getTableMetadataEndpoint =
       'glob:**/api/v1/database/*/table_metadata/*';
     fetchMock.get(getTableMetadataEndpoint, {});
@@ -1380,10 +1384,10 @@ describe('async actions', () => {
     });
 
     describe('expandTable', () => {
-      it('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend when initialized', () => {
         expect.assertions(2);
 
-        const table = { id: 1 };
+        const table = { id: 1, initialized: true };
         const store = mockStore({});
         const expectedActions = [
           {
@@ -1393,16 +1397,107 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.expandTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(1);
+        });
+      });
+
+      test('does not call backend when table is not initialized', () => {
+        expect.assertions(2);
+
+        const table = { id: 'yVJPtuSackF', initialized: false };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.EXPAND_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.expandTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          // Check all POST calls to find the expanded endpoint
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+        });
+      });
+
+      test('does not call backend when initialized is undefined', () => {
+        expect.assertions(2);
+
+        const table = { id: 'yVJPtuSackF' };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.EXPAND_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.expandTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          // Check all POST calls to find the expanded endpoint
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+        });
+      });
+
+      test('does not call backend when feature flag is off', () => {
+        expect.assertions(2);
+
+        isFeatureEnabled.mockImplementation(
+          feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
+        );
+
+        const table = { id: 1, initialized: true };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.EXPAND_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.expandTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          // Check all POST calls to find the expanded endpoint
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+          isFeatureEnabled.mockRestore();
         });
       });
     });
 
     describe('collapseTable', () => {
-      it('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend when initialized', () => {
         expect.assertions(2);
 
-        const table = { id: 1 };
+        const table = { id: 1, initialized: true };
         const store = mockStore({});
         const expectedActions = [
           {
@@ -1412,7 +1507,95 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.collapseTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(1);
+        });
+      });
+
+      test('does not call backend when table is not initialized', () => {
+        expect.assertions(2);
+
+        const table = { id: 'yVJPtuSackF', initialized: false };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.COLLAPSE_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.collapseTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+        });
+      });
+
+      test('does not call backend when initialized is undefined', () => {
+        expect.assertions(2);
+
+        const table = { id: 'yVJPtuSackF' };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.COLLAPSE_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.collapseTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+        });
+      });
+
+      test('does not call backend when feature flag is off', () => {
+        expect.assertions(2);
+
+        isFeatureEnabled.mockImplementation(
+          feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
+        );
+
+        const table = { id: 1, initialized: true };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.COLLAPSE_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.collapseTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+          isFeatureEnabled.mockRestore();
         });
       });
     });
