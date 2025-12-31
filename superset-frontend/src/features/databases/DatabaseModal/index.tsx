@@ -1730,7 +1730,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           name: target.name,
           value: target.value,
         });
-        handleClearValidationErrors();
       }}
       setSSHTunnelLoginMethod={(method: AuthType) =>
         setDB({
@@ -1738,6 +1737,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           payload: { login_method: method },
         })
       }
+      isValidating={isValidating}
+      validationErrors={validationErrors}
+      getValidation={() => getValidation(db)}
     />
   );
 
