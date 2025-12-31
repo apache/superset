@@ -518,6 +518,10 @@ categories:
       url: https://wattbewerb.de/
       contributors: ["@wattbewerb"]
 
+    - name: Rogow
+      url: https://rogow.com.br/
+      contributors: ["@nilmonto"]
+
   Healthcare:
     - name: Amino
       url: https://amino.com
