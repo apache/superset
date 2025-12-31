@@ -139,5 +139,27 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
     def validate(self) -> None:
-        if (database_id := self._properties.get("id")) is not None:
+        database_id = self._properties.get("id")
+        database_name = self._properties.get("database_name")
+
+        if database_id is not None:
             self._model = DatabaseDAO.find_by_id(database_id)
+
+        # Check for duplicate database name
+        if database_name:
+            is_unique = (
+                DatabaseDAO.validate_update_uniqueness(database_id, database_name)
+                if database_id is not None
+                else DatabaseDAO.validate_uniqueness(database_name)
+            )
+            if not is_unique:
+                raise InvalidParametersError(
+                    [
+                        SupersetError(
+                            message=__("A database with the same name already exists."),
+                            error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
+                            level=ErrorLevel.ERROR,
+                            extra={"invalid": ["database_name"]},
+                        )
+                    ]
+                )
