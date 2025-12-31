@@ -224,8 +224,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             info = getattr(cursor, "stats", {}) or {}
             state = info.get("state", "UNKNOWN")
             completed_splits = float(info.get("completedSplits", 0))
-            total_splits = float(info.get("totalSplits"))
-            progress = completed_splits / (total_splits or 1)
+            total_splits = float(info.get("totalSplits", 1))
+            progress = (completed_splits / (total_splits or 1)) * 100
 
             if progress != query.progress:
                 query.progress = progress
