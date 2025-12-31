@@ -221,10 +221,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 )
                 break
 
-            info = cursor.stats
-            state = info["state"]
-            completed_splits = info["completedSplits"]
-            total_splits = info["totalSplits"]
+            info = cursor.get("stats", {})
+            state = info.get("state", {})
+            completed_splits = float(info.get("completedSplits", 0))
+            total_splits = float(info.get("totalSplits"))
             progress = completed_splits / (total_splits or 1)
 
             if progress != query.progress:
