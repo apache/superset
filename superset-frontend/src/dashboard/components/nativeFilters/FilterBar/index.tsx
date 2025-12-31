@@ -421,8 +421,8 @@ const FilterBar: FC<FiltersBarProps> = ({
       });
     });
 
-    Object.values(updates).forEach(mask => {
-      dispatch(updateDataMask(mask.id, mask));
+    Object.entries(updates).forEach(([id, mask]) => {
+      dispatch(updateDataMask(id, mask));
     });
 
     let hasChartCustomizationsToClear = false;
