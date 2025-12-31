@@ -107,12 +107,14 @@ export interface ResultSetProps {
   csv?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
+  height?: number;
   queryId: string;
   search?: boolean;
   showSql?: boolean;
   showSqlInline?: boolean;
   visualize?: boolean;
   defaultQueryLimit: number;
+  useFixedHeight?: boolean;
 }
 
 const ResultContainer = styled.div`
@@ -181,12 +183,14 @@ const ResultSet = ({
   csv = true,
   database = {},
   displayLimit,
+  height,
   queryId,
   search = true,
   showSql = false,
   showSqlInline = false,
   visualize = true,
   defaultQueryLimit,
+  useFixedHeight = false,
 }: ResultSetProps) => {
   const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
   const streamingThreshold = useSelector(
@@ -715,6 +719,16 @@ const ResultSet = ({
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
         true,
       );
+
+      const tableProps = {
+        data,
+        queryId: query.id,
+        orderedColumnKeys: results.columns.map(col => col.column_name),
+        filterText: searchText,
+        expandedColumns,
+        allowHTML,
+      };
+
       return (
         <>
           <ResultContainer>
@@ -758,28 +772,22 @@ const ResultSet = ({
                 {sql}
               </>
             )}
-            <div
-              css={css`
-                flex: 1 1 auto;
-                padding-left: ${theme.sizeUnit * 4}px;
-              `}
-            >
-              <AutoSizer disableWidth>
-                {({ height }) => (
-                  <ResultTable
-                    data={data}
-                    queryId={query.id}
-                    orderedColumnKeys={results.columns.map(
-                      col => col.column_name,
-                    )}
-                    height={height}
-                    filterText={searchText}
-                    expandedColumns={expandedColumns}
-                    allowHTML={allowHTML}
-                  />
-                )}
-              </AutoSizer>
-            </div>
+            {useFixedHeight && height !== undefined ? (
+              <ResultTable {...tableProps} height={height} />
+            ) : (
+              <div
+                css={css`
+                  flex: 1 1 auto;
+                  padding-left: ${theme.sizeUnit * 4}px;
+                `}
+              >
+                <AutoSizer disableWidth>
+                  {({ height: autoHeight }) => (
+                    <ResultTable {...tableProps} height={autoHeight} />
+                  )}
+                </AutoSizer>
+              </div>
+            )}
           </ResultContainer>
           <StreamingExportModal
             visible={showStreamingModal}
