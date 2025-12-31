@@ -24,7 +24,12 @@ import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
-import { AsyncSelect, Button, Steps } from '@superset-ui/core/components';
+import {
+  AsyncSelect,
+  Button,
+  Loading,
+  Steps,
+} from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
@@ -50,6 +55,7 @@ export type ChartCreationState = {
   datasetName?: string | string[] | null;
   vizType: string | null;
   canCreateDataset: boolean;
+  loading: boolean;
 };
 
 const ESTIMATED_NAV_HEIGHT = 56;
@@ -172,6 +178,9 @@ export class ChartCreation extends PureComponent<
 > {
   constructor(props: ChartCreationProps) {
     super(props);
+    const hasDatasetParam = new URLSearchParams(window.location.search).has(
+      'dataset',
+    );
     this.state = {
       vizType: null,
       canCreateDataset: findPermission(
@@ -179,6 +188,7 @@ export class ChartCreation extends PureComponent<
         'Dataset',
         props.user.roles,
       ),
+      loading: hasDatasetParam,
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
@@ -191,10 +201,14 @@ export class ChartCreation extends PureComponent<
   componentDidMount() {
     const params = new URLSearchParams(window.location.search).get('dataset');
     if (params) {
-      this.loadDatasources(params, 0, 1).then(r => {
-        const datasource = r.data[0];
-        this.setState({ datasource });
-      });
+      this.loadDatasources(params, 0, 1, true)
+        .then(r => {
+          const datasource = r.data[0];
+          this.setState({ datasource, loading: false });
+        })
+        .catch(() => {
+          this.setState({ loading: false });
+        });
       this.props.addSuccessToast(t('The dataset has been saved'));
     }
   }
@@ -230,7 +244,12 @@ export class ChartCreation extends PureComponent<
     }
   }
 
-  loadDatasources(search: string, page: number, pageSize: number) {
+  loadDatasources(
+    search: string,
+    page: number,
+    pageSize: number,
+    exactMatch = false,
+  ) {
     const query = rison.encode({
       columns: [
         'id',
@@ -239,7 +258,9 @@ export class ChartCreation extends PureComponent<
         'database.database_name',
         'schema',
       ],
-      filters: [{ col: 'table_name', opr: 'ct', value: search }],
+      filters: [
+        { col: 'table_name', opr: exactMatch ? 'eq' : 'ct', value: search },
+      ],
       page,
       page_size: pageSize,
       order_column: 'table_name',
@@ -300,6 +321,10 @@ export class ChartCreation extends PureComponent<
         .
       </span>
     );
+
+    if (this.state.loading) {
+      return <Loading />;
+    }
 
     return (
       <StyledContainer>
