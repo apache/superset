@@ -396,7 +396,7 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const handleClearAll = useCallback(() => {
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
-    setUpdateKey(1);
+    setUpdateKey(prev => prev + 1);
     const newClearAllTriggers = { ...clearAllTriggers };
     // Clear all native filters, not just those in scope
     const updates: Record<string, DataMaskWithId> = {};
