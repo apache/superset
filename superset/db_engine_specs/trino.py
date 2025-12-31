@@ -221,8 +221,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 )
                 break
 
-            info = cursor.get("stats", {})
-            state = info.get("state", {})
+            info = getattr(cursor, "stats", {}) or {}
+            state = info.get("state", "UNKNOWN")
             completed_splits = float(info.get("completedSplits", 0))
             total_splits = float(info.get("totalSplits"))
             progress = completed_splits / (total_splits or 1)
