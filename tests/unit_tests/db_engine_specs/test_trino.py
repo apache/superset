@@ -968,7 +968,7 @@ def test_handle_cursor_progress_updates(
         query.status = "running"
         TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
 
-    assert query.progress == 1.0
+    assert query.progress == 100.0
     assert mock_db.session.commit.called
 
 
