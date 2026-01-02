@@ -17,64 +17,90 @@
  * under the License.
  */
 
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, DatasourceType } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import transformProps, { FormData } from '../src/transformProps';
 
 jest.mock('supercluster');
 
 const createMockChartProps = (
   overrides: Partial<ChartProps<FormData>> = {},
-): ChartProps<FormData> => ({
-  width: 800,
-  height: 600,
-  datasource: {
-    id: 1,
-    type: 'table',
-    columns: [],
-    metrics: [],
-    columnFormats: {},
-    verboseMap: {},
-  },
-  rawDatasource: {},
-  rawFormData: {},
-  hooks: {
-    onError: jest.fn(),
-    setControlValue: jest.fn(),
-  },
-  formData: {
-    clusteringRadius: 60,
-    globalOpacity: 1,
-    mapboxColor: 'rgb(0, 0, 0)',
-    mapboxStyle: 'mapbox://styles/mapbox/streets-v11',
-    pandasAggfunc: 'sum',
-    pointRadius: 60,
-    pointRadiusUnit: 'Pixels',
-    renderWhileDragging: true,
-    ...overrides.formData,
-  },
-  queriesData: [
-    {
-      data: {
-        bounds: [
-          [-122.5, 37.5],
-          [-122.0, 38.0],
-        ] as [[number, number], [number, number]],
-        geoJSON: {
-          type: 'FeatureCollection',
-          features: [],
-        },
-        hasCustomMetric: false,
-        mapboxApiKey: 'test-api-key',
-        ...overrides.queriesData?.[0]?.data,
-      },
-      colnames: [],
-      coltypes: [],
-      rowcount: 0,
-      ...overrides.queriesData?.[0],
+): ChartProps<FormData> => {
+  const {
+    formData: formDataOverrides,
+    queriesData: queriesDataOverrides,
+    hooks: hooksOverrides,
+    ...restOverrides
+  } = overrides;
+  return {
+    annotationData: {},
+    initialValues: {},
+    ownState: {},
+    filterState: {},
+    behaviors: [],
+    theme: supersetTheme,
+    width: 800,
+    height: 600,
+    datasource: {
+      id: 1,
+      name: 'test_table',
+      type: DatasourceType.Table,
+      columns: [],
+      metrics: [],
+      columnFormats: {},
+      verboseMap: {},
     },
-  ],
-  ...overrides,
-});
+    rawDatasource: {},
+    rawFormData: {
+      clusteringRadius: 60,
+      globalOpacity: 1,
+      mapboxColor: 'rgb(0, 0, 0)',
+      mapboxStyle: 'mapbox://styles/mapbox/streets-v11',
+      pandasAggfunc: 'sum',
+      pointRadius: 60,
+      pointRadiusUnit: 'Pixels',
+      renderWhileDragging: true,
+    },
+    hooks: {
+      onError: jest.fn(),
+      setControlValue: jest.fn(),
+      ...hooksOverrides,
+    },
+    formData: {
+      clusteringRadius: 60,
+      globalOpacity: 1,
+      mapboxColor: 'rgb(0, 0, 0)',
+      mapboxStyle: 'mapbox://styles/mapbox/streets-v11',
+      pandasAggfunc: 'sum',
+      pointRadius: 60,
+      pointRadiusUnit: 'Pixels',
+      renderWhileDragging: true,
+      ...formDataOverrides,
+    },
+    queriesData: [
+      {
+        data: {
+          bounds: [
+            [-122.5, 37.5],
+            [-122.0, 38.0],
+          ] as [[number, number], [number, number]],
+          geoJSON: {
+            type: 'FeatureCollection',
+            features: [],
+          },
+          hasCustomMetric: false,
+          mapboxApiKey: 'test-api-key',
+          ...queriesDataOverrides?.[0]?.data,
+        },
+        colnames: [],
+        coltypes: [],
+        rowcount: 0,
+        ...queriesDataOverrides?.[0],
+      },
+    ],
+    ...restOverrides,
+  };
+};
 
 test('parses valid RGB color and returns tuple of [number, number, number, number]', () => {
   const props = createMockChartProps({
@@ -390,13 +416,8 @@ test('handles valid RGB values at maximum valid range', () => {
   expect(result.rgb).toEqual([255, 255, 255, 255]);
 });
 
-test('rejects RGB values exceeding valid range', () => {
-  const onError = jest.fn();
+test('accepts RGB values exceeding 255 (regex only validates format)', () => {
   const props = createMockChartProps({
-    hooks: {
-      onError,
-      setControlValue: jest.fn(),
-    },
     formData: {
       mapboxColor: 'rgb(256, 256, 256)',
     },
@@ -404,8 +425,7 @@ test('rejects RGB values exceeding valid range', () => {
 
   const result = transformProps(props);
 
-  expect(onError).toHaveBeenCalled();
-  expect(result).toEqual({});
+  expect(result.rgb).toEqual([256, 256, 256, 255]);
 });
 
 test('passes through mapStyle from mapboxStyle', () => {

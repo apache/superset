@@ -213,7 +213,7 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
       shadow = false,
     } = options;
     const maxWidth = radius * TEXT_WIDTH_RATIO;
-    const luminance = luminanceFromRGB(rgb[1], rgb[2], rgb[3]);
+    const luminance = luminanceFromRGB(rgb[0], rgb[1], rgb[2]);
 
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = luminance <= LUMINANCE_THRESHOLD_DARK ? 'white' : 'black';
@@ -335,11 +335,11 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
             const rgbColor = rgb ?? DEFAULT_RGB_COLOR;
             gradient.addColorStop(
               1,
-              `rgba(${rgbColor[1]}, ${rgbColor[2]}, ${rgbColor[3]}, 0.8)`,
+              `rgba(${rgbColor[0]}, ${rgbColor[1]}, ${rgbColor[2]}, 0.8)`,
             );
             gradient.addColorStop(
               0,
-              `rgba(${rgbColor[1]}, ${rgbColor[2]}, ${rgbColor[3]}, 0)`,
+              `rgba(${rgbColor[0]}, ${rgbColor[1]}, ${rgbColor[2]}, 0)`,
             );
             ctx.arc(
               pixelRounded[0],
@@ -406,7 +406,7 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
               Math.PI * 2,
             );
             const rgbColor = rgb ?? DEFAULT_RGB_COLOR;
-            ctx.fillStyle = `rgb(${rgbColor[1]}, ${rgbColor[2]}, ${rgbColor[3]})`;
+            ctx.fillStyle = `rgb(${rgbColor[0]}, ${rgbColor[1]}, ${rgbColor[2]})`;
             ctx.fill();
 
             if (pointLabel !== undefined) {

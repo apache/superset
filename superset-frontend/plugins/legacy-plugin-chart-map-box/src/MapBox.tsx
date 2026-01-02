@@ -19,14 +19,15 @@
 import { Component } from 'react';
 import Map, { ViewStateChangeEvent } from 'react-map-gl/mapbox';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
-import type Supercluster from 'supercluster';
 import ScatterPlotGlowOverlay, {
-  AggregationType,
-  Location,
-  ClusterProperties,
-  PointProperties,
+  type AggregationType,
+  type Location,
 } from './ScatterPlotGlowOverlay';
 import './MapBox.css';
+
+export interface Clusterer {
+  getClusters(bbox: [number, number, number, number], zoom: number): Location[];
+}
 
 const NOOP = () => {};
 export const DEFAULT_MAX_ZOOM = 16;
@@ -45,7 +46,7 @@ interface Viewport {
 interface MapBoxProps {
   aggregatorName?: AggregationType;
   bounds: [[number, number], [number, number]];
-  clusterer: Supercluster<PointProperties, ClusterProperties>;
+  clusterer: Clusterer;
   globalOpacity?: number;
   hasCustomMetric?: boolean;
   height?: number;
@@ -121,7 +122,7 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
   }
 
   computeClusters(
-    clusterer: Supercluster<PointProperties, ClusterProperties>,
+    clusterer: Clusterer,
     bounds: [[number, number], [number, number]],
     width: number | undefined,
     height: number | undefined,
@@ -139,7 +140,7 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
       bounds[1][0] + offsetHorizontal,
       bounds[1][1] + offsetVertical,
     ];
-    return clusterer.getClusters(bbox, Math.round(zoom)) as Location[];
+    return clusterer.getClusters(bbox, Math.round(zoom));
   }
 
   handleViewportChange(evt: ViewStateChangeEvent) {

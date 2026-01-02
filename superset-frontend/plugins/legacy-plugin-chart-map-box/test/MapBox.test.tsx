@@ -18,7 +18,14 @@
  */
 
 import { render, waitFor } from 'spec/helpers/testing-library';
-import MapBox, { DEFAULT_MAX_ZOOM, DEFAULT_POINT_RADIUS } from '../src/MapBox';
+import MapBox, {
+  Clusterer,
+  DEFAULT_MAX_ZOOM,
+  DEFAULT_POINT_RADIUS,
+} from '../src/MapBox';
+import { type Location } from '../src/ScatterPlotGlowOverlay';
+
+type BBox = [number, number, number, number];
 
 const mockMap = {
   on: jest.fn(),
@@ -37,7 +44,7 @@ jest.mock('react-map-gl/mapbox', () => ({
   __esModule: true,
   default: ({ children, onMove }: any) => (
     <div
-      data-testid="mapbox-mock"
+      data-test="mapbox-mock"
       onClick={() =>
         onMove?.({ viewState: { latitude: 0, longitude: 0, zoom: 5 } })
       }
@@ -50,9 +57,9 @@ jest.mock('react-map-gl/mapbox', () => ({
 
 jest.mock('supercluster');
 
-const mockClusterer = {
-  getClusters: jest.fn(() => []),
-  load: jest.fn(),
+const mockGetClusters = jest.fn<Location[], [BBox, number]>(() => []);
+const mockClusterer: Clusterer = {
+  getClusters: mockGetClusters,
 };
 
 const defaultProps = {
@@ -78,7 +85,7 @@ test('renders without crashing', () => {
 test('initializes viewport from bounds', () => {
   const { container } = render(<MapBox {...defaultProps} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -90,15 +97,15 @@ test('renders with default width and height when not provided', () => {
   };
   const { container } = render(<MapBox {...props} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
 test('calls clusterer.getClusters with correct bbox and zoom', () => {
   render(<MapBox {...defaultProps} />);
 
-  expect(mockClusterer.getClusters).toHaveBeenCalled();
-  const [bbox, zoom] = mockClusterer.getClusters.mock.calls[0];
+  expect(mockGetClusters).toHaveBeenCalled();
+  const [bbox, zoom] = mockGetClusters.mock.calls[0];
 
   expect(Array.isArray(bbox)).toBe(true);
   expect(bbox.length).toBe(4);
@@ -120,7 +127,7 @@ test('handles viewport change events', async () => {
 });
 
 test('updates state when viewport changes', async () => {
-  const { getByTestId, rerender } = render(<MapBox {...defaultProps} />);
+  const { getByTestId } = render(<MapBox {...defaultProps} />);
 
   const mapElement = getByTestId('mapbox-mock');
   mapElement.click();
@@ -133,7 +140,7 @@ test('updates state when viewport changes', async () => {
 test('uses DEFAULT_POINT_RADIUS when pointRadius not provided', () => {
   const { container } = render(<MapBox {...defaultProps} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
   expect(DEFAULT_POINT_RADIUS).toBe(60);
 });
@@ -141,7 +148,7 @@ test('uses DEFAULT_POINT_RADIUS when pointRadius not provided', () => {
 test('uses provided pointRadius value', () => {
   const { container } = render(<MapBox {...defaultProps} pointRadius={100} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -149,14 +156,14 @@ test('passes rgb prop to ScatterPlotGlowOverlay', () => {
   const rgb: [number, number, number, number] = [255, 128, 64, 255];
   const { container } = render(<MapBox {...defaultProps} rgb={rgb} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
 test('passes hasCustomMetric to ScatterPlotGlowOverlay', () => {
   const { container } = render(<MapBox {...defaultProps} hasCustomMetric />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -165,7 +172,7 @@ test('passes aggregatorName when hasCustomMetric is true', () => {
     <MapBox {...defaultProps} hasCustomMetric aggregatorName="sum" />,
   );
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -174,7 +181,7 @@ test('does not pass aggregatorName when hasCustomMetric is false', () => {
     <MapBox {...defaultProps} hasCustomMetric={false} aggregatorName="sum" />,
   );
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -183,7 +190,7 @@ test('uses custom mapStyle when provided', () => {
     <MapBox {...defaultProps} mapStyle="mapbox://styles/mapbox/dark-v10" />,
   );
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -192,7 +199,7 @@ test('passes renderWhileDragging prop', () => {
     <MapBox {...defaultProps} renderWhileDragging={false} />,
   );
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -201,7 +208,7 @@ test('passes globalOpacity prop', () => {
     <MapBox {...defaultProps} globalOpacity={0.5} />,
   );
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -210,15 +217,15 @@ test('passes pointRadiusUnit prop', () => {
     <MapBox {...defaultProps} pointRadiusUnit="Kilometers" />,
   );
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
 test('computes clusters with offset for visible area', () => {
   render(<MapBox {...defaultProps} width={1000} height={800} />);
 
-  expect(mockClusterer.getClusters).toHaveBeenCalled();
-  const [bbox] = mockClusterer.getClusters.mock.calls[0];
+  expect(mockGetClusters).toHaveBeenCalled();
+  const [bbox] = mockGetClusters.mock.calls[0];
 
   expect(bbox[0]).toBeLessThan(defaultProps.bounds[0][0]);
   expect(bbox[1]).toBeLessThan(defaultProps.bounds[0][1]);
@@ -229,22 +236,22 @@ test('computes clusters with offset for visible area', () => {
 test('rounds zoom level when calling getClusters', () => {
   render(<MapBox {...defaultProps} />);
 
-  expect(mockClusterer.getClusters).toHaveBeenCalled();
-  const [, zoom] = mockClusterer.getClusters.mock.calls[0];
+  expect(mockGetClusters).toHaveBeenCalled();
+  const [, zoom] = mockGetClusters.mock.calls[0];
 
   expect(Number.isInteger(zoom)).toBe(true);
 });
 
 test('handles empty clusters array', () => {
-  mockClusterer.getClusters.mockReturnValue([]);
+  mockGetClusters.mockReturnValue([]);
   const { container } = render(<MapBox {...defaultProps} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
 test('handles clusters with locations', () => {
-  const mockClusters = [
+  const mockClusters: Location[] = [
     {
       geometry: {
         coordinates: [-122.4, 37.8],
@@ -256,16 +263,16 @@ test('handles clusters with locations', () => {
       },
     },
   ];
-  mockClusterer.getClusters.mockReturnValue(mockClusters);
+  mockGetClusters.mockReturnValue(mockClusters);
 
   const { container } = render(<MapBox {...defaultProps} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
 test('handles individual points (non-clustered)', () => {
-  const mockPoints = [
+  const mockPoints: Location[] = [
     {
       geometry: {
         coordinates: [-122.4, 37.8],
@@ -276,11 +283,11 @@ test('handles individual points (non-clustered)', () => {
       },
     },
   ];
-  mockClusterer.getClusters.mockReturnValue(mockPoints);
+  mockGetClusters.mockReturnValue(mockPoints);
 
   const { container } = render(<MapBox {...defaultProps} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -299,19 +306,19 @@ test('uses mapboxAccessToken prop for authentication', () => {
     <MapBox {...defaultProps} mapboxApiKey="custom-api-key" />,
   );
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
 test('handles viewport with isDragging undefined', () => {
   const { container } = render(<MapBox {...defaultProps} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
 test('provides lngLatAccessor to ScatterPlotGlowOverlay', () => {
-  mockClusterer.getClusters.mockReturnValue([
+  const mockLocation: Location[] = [
     {
       geometry: {
         coordinates: [-122.4, 37.8],
@@ -319,27 +326,28 @@ test('provides lngLatAccessor to ScatterPlotGlowOverlay', () => {
       },
       properties: {},
     },
-  ]);
+  ];
+  mockGetClusters.mockReturnValue(mockLocation);
 
   const { container } = render(<MapBox {...defaultProps} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
 test('bounds remain constant during pan/zoom', () => {
   const { getByTestId } = render(<MapBox {...defaultProps} />);
 
-  const initialCallCount = mockClusterer.getClusters.mock.calls.length;
+  const initialCallCount = mockGetClusters.mock.calls.length;
 
   const mapElement = getByTestId('mapbox-mock');
   mapElement.click();
 
-  const callsAfterClick = mockClusterer.getClusters.mock.calls.length;
+  const callsAfterClick = mockGetClusters.mock.calls.length;
   expect(callsAfterClick).toBeGreaterThan(initialCallCount);
 
-  const firstBbox = mockClusterer.getClusters.mock.calls[0][0];
-  const lastBbox = mockClusterer.getClusters.mock.calls[callsAfterClick - 1][0];
+  const firstBbox = mockGetClusters.mock.calls[0][0];
+  const lastBbox = mockGetClusters.mock.calls[callsAfterClick - 1][0];
 
   expect(firstBbox[0]).toBeCloseTo(lastBbox[0], 5);
   expect(firstBbox[1]).toBeCloseTo(lastBbox[1], 5);
@@ -350,14 +358,13 @@ test('bounds remain constant during pan/zoom', () => {
 test('recalculates clusters on zoom change', async () => {
   const { getByTestId } = render(<MapBox {...defaultProps} />);
 
-  const initialCallCount = mockClusterer.getClusters.mock.calls.length;
-  const initialZoom = mockClusterer.getClusters.mock.calls[0][1];
+  const initialCallCount = mockGetClusters.mock.calls.length;
 
   const mapElement = getByTestId('mapbox-mock');
   mapElement.click();
 
   await waitFor(() => {
-    const newCallCount = mockClusterer.getClusters.mock.calls.length;
+    const newCallCount = mockGetClusters.mock.calls.length;
     expect(newCallCount).toBeGreaterThan(initialCallCount);
   });
 });
@@ -370,7 +377,7 @@ test('supports all aggregation types', () => {
       <MapBox {...defaultProps} aggregatorName={agg as any} hasCustomMetric />,
     );
     expect(
-      container.querySelector('[data-testid="mapbox-mock"]'),
+      container.querySelector('[data-test="mapbox-mock"]'),
     ).toBeInTheDocument();
   });
 });
@@ -387,7 +394,7 @@ test('handles very small bounds', () => {
 
   const { container } = render(<MapBox {...props} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -403,7 +410,7 @@ test('handles very large bounds', () => {
 
   const { container } = render(<MapBox {...props} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -419,7 +426,7 @@ test('handles bounds crossing international date line', () => {
 
   const { container } = render(<MapBox {...props} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
 
@@ -428,7 +435,7 @@ test('applies 0.5% offset to visible area for better UX', () => {
   const height = 800;
   render(<MapBox {...defaultProps} width={width} height={height} />);
 
-  const [bbox] = mockClusterer.getClusters.mock.calls[0];
+  const [bbox] = mockGetClusters.mock.calls[0];
   const expectedHorizontalOffset = (width * 0.5) / 100;
   const expectedVerticalOffset = (height * 0.5) / 100;
 
@@ -446,6 +453,6 @@ test('uses DEFAULT_MAX_ZOOM constant', () => {
 test('preserveDrawingBuffer is set on Map component', () => {
   const { container } = render(<MapBox {...defaultProps} />);
   expect(
-    container.querySelector('[data-testid="mapbox-mock"]'),
+    container.querySelector('[data-test="mapbox-mock"]'),
   ).toBeInTheDocument();
 });
