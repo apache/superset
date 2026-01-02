@@ -765,13 +765,6 @@ export function useDatabaseValidation() {
 
   const getValidation = useCallback(
     async (database: Partial<DatabaseObject> | null, onCreate = false) => {
-      if (database?.parameters?.ssh) {
-        setValidationErrors(null);
-        setIsValidating(false);
-        setHasValidated(true);
-        return Promise.resolve([]);
-      }
-
       setIsValidating(true);
 
       try {
@@ -806,6 +799,19 @@ export function useDatabaseValidation() {
                     ...(extra.catalog.name ? { name: message } : {}),
                     ...(extra.catalog.url ? { url: message } : {}),
                   };
+                  return acc;
+                }
+
+                // Handle SSH tunnel errors
+                if (extra?.ssh_tunnel) {
+                  if (!acc.ssh_tunnel) {
+                    acc.ssh_tunnel = {};
+                  }
+                  if (extra?.missing) {
+                    extra.missing.forEach((field: string) => {
+                      acc.ssh_tunnel[field] = 'This is a required field';
+                    });
+                  }
                   return acc;
                 }
 

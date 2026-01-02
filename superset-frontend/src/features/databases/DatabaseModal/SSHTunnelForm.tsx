@@ -53,7 +53,7 @@ interface SSHTunnelFormProps {
   setSSHTunnelLoginMethod: (method: AuthType) => void;
   isValidating?: boolean;
   validationErrors?: JsonObject | null;
-  getValidation?: () => void;
+  getValidation: () => void;
 }
 
 const SSHTunnelForm = ({
