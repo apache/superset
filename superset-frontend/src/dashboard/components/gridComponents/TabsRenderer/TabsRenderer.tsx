@@ -37,6 +37,36 @@ import {
   useSensor,
   closestCenter,
 } from '@dnd-kit/core';
+
+const isInteractiveElement = (element: HTMLElement | null): boolean => {
+  if (!element) return false;
+  const tagName = element.tagName.toUpperCase();
+  if (
+    tagName === 'INPUT' ||
+    tagName === 'TEXTAREA' ||
+    element.isContentEditable
+  ) {
+    return true;
+  }
+  return isInteractiveElement(element.parentElement);
+};
+
+PointerSensor.activators = [
+  {
+    eventName: 'onPointerDown' as const,
+    handler: ({ nativeEvent: event }, { onActivation }) => {
+      if (
+        event.button !== 0 ||
+        isInteractiveElement(event.target as HTMLElement)
+      ) {
+        return false;
+      }
+      onActivation?.({ event });
+      return true;
+    },
+  },
+];
+
 import {
   horizontalListSortingStrategy,
   SortableContext,
@@ -235,7 +265,6 @@ const TabsRenderer = memo<TabsRendererProps>(
           type={editMode ? 'editable-card' : 'card'}
           items={tabItems}
           tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
-          fullHeight
           {...(editMode && {
             renderTabBar: (tabBarProps, DefaultTabBar) => (
               <DndContext
