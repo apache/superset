@@ -265,11 +265,12 @@ class AsyncTaskDAO(BaseDAO[AsyncTask]):
 
     @classmethod
     @abstractmethod
-    def find_by_task_id(cls, task_id: str) -> AsyncTask | None:
+    def find_by_task_id(cls, task_type: str, task_id: str) -> AsyncTask | None:
         """
-        Find task by deduplication ID.
+        Find task by deduplication type and id.
 
-        :param task_id: Task identifier for deduplication
+        :param task_type: Task type
+        :param task_id: Task identifier
         :returns: AsyncTask instance or None if not found
         """
         ...
