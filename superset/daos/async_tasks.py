@@ -42,19 +42,21 @@ class AsyncTaskDAO(BaseDAO[AsyncTask]):
     base_filter = AsyncTaskFilter
 
     @classmethod
-    def find_by_task_id(cls, task_id: str) -> AsyncTask | None:
+    def find_by_task_id(cls, task_type: str, task_id: str) -> AsyncTask | None:
         """
-        Find active task by deduplication ID.
+        Find active task by type and deduplication ID.
 
         Only returns tasks that are pending or in progress.
         Completed/cancelled tasks are kept for logging but not returned here.
 
+        :param task_type: Task type to filter by
         :param task_id: Task identifier for deduplication
         :returns: AsyncTask instance or None if not found or not active
         """
         return (
             db.session.query(AsyncTask)
             .filter(
+                AsyncTask.task_type == task_type,
                 AsyncTask.task_id == task_id,
                 AsyncTask.status.in_(
                     [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]
@@ -82,8 +84,8 @@ class AsyncTaskDAO(BaseDAO[AsyncTask]):
         if task_id is None:
             task_id = str(uuid.uuid4())
 
-        # Check if task with same task_id already exists and is active
-        if existing := cls.find_by_task_id(task_id):
+        # Check if task with same task_type and task_id already exists and is active
+        if existing := cls.find_by_task_id(task_type, task_id):
             raise DAOCreateFailedError(
                 f"Task with ID '{task_id}' already exists "
                 f"and is active (status: {existing.status})"
