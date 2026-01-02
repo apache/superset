@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getMetricLabel } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 import { getMapboxApiKey, DataRecord } from './spatialUtils';
+import { getMetricLabelFromValue } from './utils/metricUtils';
 
 const NOOP = () => {};
 
@@ -139,22 +140,5 @@ export function getMetricLabelFromFormData(
     | { value?: string | number | object; type?: string }
     | undefined,
 ): string | undefined {
-  if (!metric) return undefined;
-  if (typeof metric === 'string') return getMetricLabel(metric);
-  // Only return metric label if it's a metric type, not a fixed value
-  if (typeof metric === 'object' && metric.type === 'metric' && metric.value) {
-    if (typeof metric.value === 'string') {
-      return getMetricLabel(metric.value);
-    }
-    if (typeof metric.value === 'object' && metric.value) {
-      // Handle object metrics (adhoc or saved metrics)
-      const metricObj = metric.value as any;
-      const metricKey =
-        metricObj.label || metricObj.sqlExpression || metricObj.value;
-      if (typeof metricKey === 'string') {
-        return getMetricLabel(metricKey);
-      }
-    }
-  }
-  return undefined;
+  return getMetricLabelFromValue(metric);
 }

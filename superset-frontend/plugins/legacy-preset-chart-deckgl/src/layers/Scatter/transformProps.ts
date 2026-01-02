@@ -26,6 +26,7 @@ import {
   addPropertiesToFeature,
 } from '../transformUtils';
 import { DeckScatterFormData } from './buildQuery';
+import { isFixedValue, getFixedValue } from '../utils/metricUtils';
 
 interface ScatterPoint {
   position: [number, number];
@@ -108,8 +109,9 @@ export default function transformProps(chartProps: ChartProps) {
     formData as DeckScatterFormData;
 
   // Check if this is a fixed value or metric
-  const isFixedValue = point_radius_fixed?.type === 'fix';
-  const fixedRadiusValue = isFixedValue ? point_radius_fixed?.value : null;
+  const fixedRadiusValue = isFixedValue(point_radius_fixed) 
+    ? getFixedValue(point_radius_fixed)
+    : null;
 
   const radiusMetricLabel = getMetricLabelFromFormData(point_radius_fixed);
   const records = getRecordsFromQuery(chartProps.queriesData);

@@ -106,13 +106,13 @@ test('getMetricLabelFromFormData should use value field as fallback', () => {
   expect(getMetricLabel).toHaveBeenCalledWith('AVG(price)');
 });
 
-test('getMetricLabelFromFormData should return undefined for metric type with numeric value', () => {
+test('getMetricLabelFromFormData should handle metric type with numeric value', () => {
   const result = getMetricLabelFromFormData({
     type: 'metric',
     value: 123,
   });
-  expect(result).toBeUndefined();
-  expect(getMetricLabel).not.toHaveBeenCalled();
+  expect(result).toBe('123');
+  expect(getMetricLabel).toHaveBeenCalledWith('123');
 });
 
 test('getMetricLabelFromFormData should return undefined for object without type', () => {

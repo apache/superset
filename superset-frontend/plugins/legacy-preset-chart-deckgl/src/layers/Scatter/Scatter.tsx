@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ScatterplotLayer } from '@deck.gl/layers';
-import { JsonObject, QueryFormData, t } from '@superset-ui/core';
+import { JsonObject, QueryFormData, t, getMetricLabel } from '@superset-ui/core';
 import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';
@@ -25,6 +25,7 @@ import { createTooltipContent } from '../../utilities/tooltipUtils';
 import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../utils/geo';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
+import { isMetricValue, extractMetricKey } from '../utils/metricUtils';
 
 function getMetricLabel(metric: any) {
   if (typeof metric === 'string') {
@@ -46,19 +47,8 @@ function setTooltipContent(
   const defaultTooltipGenerator = (o: JsonObject) => {
     // Only show metric info if point_radius_fixed is metric-based
     let metricKey = null;
-    if (
-      formData.point_radius_fixed &&
-      typeof formData.point_radius_fixed === 'object' &&
-      formData.point_radius_fixed.type === 'metric'
-    ) {
-      const metricValue = formData.point_radius_fixed.value;
-      if (typeof metricValue === 'string') {
-        metricKey = metricValue;
-      } else if (typeof metricValue === 'object' && metricValue) {
-        // Handle object metrics (adhoc or saved metrics)
-        metricKey =
-          metricValue.label || metricValue.sqlExpression || metricValue.value;
-      }
+    if (isMetricValue(formData.point_radius_fixed)) {
+      metricKey = extractMetricKey(formData.point_radius_fixed?.value);
     }
 
     // Normalize metricKey for verboseMap lookup

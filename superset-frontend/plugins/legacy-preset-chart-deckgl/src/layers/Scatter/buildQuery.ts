@@ -34,6 +34,7 @@ import {
   processMetricsArray,
   addTooltipColumnsToQuery,
 } from '../buildQueryUtils';
+import { isMetricValue, extractMetricKey } from '../utils/metricUtils';
 
 export interface DeckScatterFormData
   extends Omit<SpatialFormData, 'color_picker'>, SqlaFormData {
@@ -80,11 +81,8 @@ export default function buildQuery(formData: DeckScatterFormData) {
       columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
       // Only add metric if point_radius_fixed is a metric type
-      const isMetric = point_radius_fixed?.type === 'metric';
-      const metricValue =
-        isMetric && point_radius_fixed?.value
-          ? String(point_radius_fixed.value)
-          : null;
+      const isMetric = isMetricValue(point_radius_fixed);
+      const metricValue = isMetric ? extractMetricKey(point_radius_fixed?.value) : null;
 
       // Preserve existing metrics and only add radius metric if it's metric-based
       const existingMetrics = baseQueryObject.metrics || [];
