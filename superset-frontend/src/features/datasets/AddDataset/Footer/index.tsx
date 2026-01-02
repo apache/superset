@@ -63,11 +63,10 @@ function Footer({
 }: FooterProps) {
   const history = useHistory();
   const theme = useTheme();
-  const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
-    'dataset',
-    t('dataset'),
-    addDangerToast,
-  );
+  const { createResource, state } = useSingleViewResource<
+    Partial<DatasetObject>
+  >('dataset', t('dataset'), addDangerToast);
+  const { loading } = state;
 
   const createLogAction = (dataset: Partial<DatasetObject>) => {
     let totalCount = 0;
@@ -149,6 +148,7 @@ function Footer({
       <DropdownButton
         type="primary"
         disabled={disabledCheck}
+        loading={loading}
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
         onClick={() => onSave(true)}
         popupRender={() => dropdownMenu}
