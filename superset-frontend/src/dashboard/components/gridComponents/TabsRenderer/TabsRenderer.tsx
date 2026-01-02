@@ -37,6 +37,14 @@ import {
   useSensor,
   closestCenter,
 } from '@dnd-kit/core';
+import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+} from '@dnd-kit/sortable';
+import HoverMenu from '../../menu/HoverMenu';
+import DragHandle from '../../dnd/DragHandle';
+import DeleteComponentButton from '../../DeleteComponentButton';
 
 const isInteractiveElement = (element: HTMLElement | null): boolean => {
   if (!element) return false;
@@ -66,15 +74,6 @@ PointerSensor.activators = [
     },
   },
 ];
-
-import {
-  horizontalListSortingStrategy,
-  SortableContext,
-  useSortable,
-} from '@dnd-kit/sortable';
-import HoverMenu from '../../menu/HoverMenu';
-import DragHandle from '../../dnd/DragHandle';
-import DeleteComponentButton from '../../DeleteComponentButton';
 
 const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
   width: 100%;
