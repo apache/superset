@@ -21,6 +21,7 @@ from superset_core.api.types import TaskContext as CoreTaskContext
 from superset.daos.async_tasks import AsyncTaskDAO
 from superset.extensions import db
 from superset.models.async_tasks import AsyncTask
+from superset.utils.decorators import transaction
 
 
 class TaskContext(CoreTaskContext):
@@ -59,6 +60,7 @@ class TaskContext(CoreTaskContext):
             raise ValueError(f"Task {self._task_uuid} not found")
         return task
 
+    @transaction()
     def update_task(self, task: AsyncTask) -> None:
         """
         Update the task entity in the metastore.
@@ -69,4 +71,3 @@ class TaskContext(CoreTaskContext):
         :param task: AsyncTask entity to update
         """
         db.session.merge(task)
-        db.session.commit()
