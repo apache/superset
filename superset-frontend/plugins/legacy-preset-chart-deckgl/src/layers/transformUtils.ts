@@ -134,9 +134,13 @@ export function addPropertiesToFeature<T extends Record<string, unknown>>(
 }
 
 export function getMetricLabelFromFormData(
-  metric: string | { value?: string } | undefined,
+  metric: string | { value?: string | number; type?: string } | undefined,
 ): string | undefined {
   if (!metric) return undefined;
   if (typeof metric === 'string') return getMetricLabel(metric);
-  return metric.value ? getMetricLabel(metric.value) : undefined;
+  // Only return metric label if it's a metric type, not a fixed value
+  if (typeof metric === 'object' && metric.type === 'metric' && metric.value && typeof metric.value === 'string') {
+    return getMetricLabel(metric.value);
+  }
+  return undefined;
 }

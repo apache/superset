@@ -44,9 +44,20 @@ function setTooltipContent(
   verboseMap?: Record<string, string>,
 ) {
   const defaultTooltipGenerator = (o: JsonObject) => {
-    const label =
-      verboseMap?.[formData.point_radius_fixed.value] ||
-      getMetricLabel(formData.point_radius_fixed?.value);
+    // Check if point_radius_fixed is an object with type/value or just a value
+    let metricKey = null;
+    if (formData.point_radius_fixed) {
+      if (typeof formData.point_radius_fixed === 'object' && formData.point_radius_fixed.type === 'metric') {
+        metricKey = formData.point_radius_fixed.value;
+      } else if (typeof formData.point_radius_fixed === 'string') {
+        metricKey = formData.point_radius_fixed;
+      }
+    }
+    
+    const label = metricKey
+      ? (verboseMap?.[metricKey] || getMetricLabel(metricKey))
+      : null;
+    
     return (
       <div className="deckgl-tooltip">
         <TooltipRow
@@ -59,7 +70,7 @@ function setTooltipContent(
             value={`${o.object?.cat_color}`}
           />
         )}
-        {o.object?.metric && (
+        {o.object?.metric && label && (
           <TooltipRow label={`${label}: `} value={`${o.object?.metric}`} />
         )}
       </div>

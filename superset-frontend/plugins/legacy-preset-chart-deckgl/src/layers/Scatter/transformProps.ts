@@ -43,6 +43,7 @@ function processScatterData(
   radiusMetricLabel?: string,
   categoryColumn?: string,
   jsColumns?: string[],
+  fixedRadiusValue?: number | string | null,
 ): ScatterPoint[] {
   if (!spatial || !records.length) {
     return [];
@@ -72,7 +73,15 @@ function processScatterData(
       extraProps: feature.extraProps || {},
     };
 
-    if (radiusMetricLabel && feature[radiusMetricLabel] != null) {
+    // Handle radius: either from metric or fixed value
+    if (fixedRadiusValue != null) {
+      // Use fixed radius value for all points
+      const parsedFixedRadius = parseMetricValue(fixedRadiusValue);
+      if (parsedFixedRadius !== undefined) {
+        scatterPoint.radius = parsedFixedRadius;
+      }
+    } else if (radiusMetricLabel && feature[radiusMetricLabel] != null) {
+      // Use metric value for radius
       const radiusValue = parseMetricValue(feature[radiusMetricLabel]);
       if (radiusValue !== undefined) {
         scatterPoint.radius = radiusValue;
@@ -98,14 +107,20 @@ export default function transformProps(chartProps: ChartProps) {
   const { spatial, point_radius_fixed, dimension, js_columns } =
     formData as DeckScatterFormData;
 
+  // Check if this is a fixed value or metric
+  const isFixedValue = point_radius_fixed?.type === 'fix';
+  const fixedRadiusValue = isFixedValue ? point_radius_fixed?.value : null;
+
   const radiusMetricLabel = getMetricLabelFromFormData(point_radius_fixed);
   const records = getRecordsFromQuery(chartProps.queriesData);
+  
   const features = processScatterData(
     records,
     spatial,
     radiusMetricLabel,
     dimension,
     js_columns,
+    isFixedValue ? fixedRadiusValue : null,
   );
 
   return createBaseTransformResult(

@@ -38,7 +38,8 @@ import {
 export interface DeckScatterFormData
   extends Omit<SpatialFormData, 'color_picker'>, SqlaFormData {
   point_radius_fixed?: {
-    value?: string;
+    type?: 'fix' | 'metric';
+    value?: string | number;
   };
   multiplier?: number;
   point_unit?: string;
@@ -78,14 +79,18 @@ export default function buildQuery(formData: DeckScatterFormData) {
       columns = withJsColumns as QueryFormColumn[];
       columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
-      const metrics = processMetricsArray([point_radius_fixed?.value]);
+      // Only add metric if point_radius_fixed is a metric type
+      const isMetric = point_radius_fixed?.type === 'metric';
+      const metricValue = isMetric && point_radius_fixed?.value ? String(point_radius_fixed.value) : null;
+      
+      const metrics = processMetricsArray(metricValue ? [metricValue] : []);
       const filters = addSpatialNullFilters(
         spatial,
         ensureIsArray(baseQueryObject.filters || []),
       );
 
-      const orderby = point_radius_fixed?.value
-        ? ([[point_radius_fixed.value, false]] as QueryFormOrderBy[])
+      const orderby = isMetric && metricValue
+        ? ([[metricValue, false]] as QueryFormOrderBy[])
         : (baseQueryObject.orderby as QueryFormOrderBy[]) || [];
 
       return [
