@@ -19,32 +19,21 @@
 import { Component } from 'react';
 import Map, { ViewStateChangeEvent } from 'react-map-gl/mapbox';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
+import type Supercluster from 'supercluster';
 import ScatterPlotGlowOverlay, {
   AggregationType,
+  Location,
+  ClusterProperties,
+  PointProperties,
 } from './ScatterPlotGlowOverlay';
 import './MapBox.css';
 
 const NOOP = () => {};
 export const DEFAULT_MAX_ZOOM = 16;
 export const DEFAULT_POINT_RADIUS = 60;
-
-interface Clusterer {
-  getClusters(bbox: number[], zoom: number): Location[];
-}
-
-interface Geometry {
-  coordinates: [number, number];
-  type: string;
-}
-
-interface Location {
-  geometry: Geometry;
-  properties: {
-    cluster?: boolean;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-}
+const DEFAULT_DIMENSION = 400;
+const VIEWPORT_BUFFER_MULTIPLIER = 0.5;
+const VIEWPORT_BUFFER_DIVISOR = 100;
 
 interface Viewport {
   longitude: number;
@@ -56,7 +45,7 @@ interface Viewport {
 interface MapBoxProps {
   aggregatorName?: AggregationType;
   bounds: [[number, number], [number, number]];
-  clusterer: Clusterer;
+  clusterer: Supercluster<PointProperties, ClusterProperties>;
   globalOpacity?: number;
   hasCustomMetric?: boolean;
   height?: number;
@@ -72,6 +61,7 @@ interface MapBoxProps {
 
 interface MapBoxState {
   viewport: Viewport;
+  clusters: Location[];
 }
 
 const defaultProps: Partial<MapBoxProps> = {
@@ -86,37 +76,87 @@ const defaultProps: Partial<MapBoxProps> = {
 class MapBox extends Component<MapBoxProps, MapBoxState> {
   static defaultProps = defaultProps;
 
+  private lastZoom: number;
+
   constructor(props: MapBoxProps) {
     super(props);
 
-    const { width, height, bounds } = this.props;
-    // Get a viewport that fits the given bounds, which all marks to be clustered.
-    // Derive lat, lon and zoom from this viewport. This is only done on initial
-    // render as the bounds don't update as we pan/zoom in the current design.
+    const { width, height, bounds, clusterer } = this.props;
     const mercator = new WebMercatorViewport({
-      width: width || 400,
-      height: height || 400,
+      width: width || DEFAULT_DIMENSION,
+      height: height || DEFAULT_DIMENSION,
     }).fitBounds(bounds);
     const { latitude, longitude, zoom } = mercator;
 
+    const viewport = { longitude, latitude, zoom };
+    this.lastZoom = Math.round(zoom);
+
     this.state = {
-      viewport: {
-        longitude,
-        latitude,
-        zoom,
-      },
+      viewport,
+      clusters: this.computeClusters(clusterer, bounds, width, height, zoom),
     };
     this.handleViewportChange = this.handleViewportChange.bind(this);
   }
 
+  componentDidUpdate(prevProps: MapBoxProps, prevState: MapBoxState) {
+    const { viewport } = this.state;
+    const { clusterer, bounds, width, height } = this.props;
+    const roundedZoom = Math.round(viewport.zoom);
+
+    const shouldRecompute =
+      prevProps.clusterer !== clusterer || this.lastZoom !== roundedZoom;
+
+    if (shouldRecompute) {
+      this.lastZoom = roundedZoom;
+      this.setState({
+        clusters: this.computeClusters(
+          clusterer,
+          bounds,
+          width,
+          height,
+          viewport.zoom,
+        ),
+      });
+    }
+  }
+
+  computeClusters(
+    clusterer: Supercluster<PointProperties, ClusterProperties>,
+    bounds: [[number, number], [number, number]],
+    width: number | undefined,
+    height: number | undefined,
+    zoom: number,
+  ): Location[] {
+    const offsetHorizontal =
+      ((width || DEFAULT_DIMENSION) * VIEWPORT_BUFFER_MULTIPLIER) /
+      VIEWPORT_BUFFER_DIVISOR;
+    const offsetVertical =
+      ((height || DEFAULT_DIMENSION) * VIEWPORT_BUFFER_MULTIPLIER) /
+      VIEWPORT_BUFFER_DIVISOR;
+    const bbox: [number, number, number, number] = [
+      bounds[0][0] - offsetHorizontal,
+      bounds[0][1] - offsetVertical,
+      bounds[1][0] + offsetHorizontal,
+      bounds[1][1] + offsetVertical,
+    ];
+    return clusterer.getClusters(bbox, Math.round(zoom)) as Location[];
+  }
+
   handleViewportChange(evt: ViewStateChangeEvent) {
     const { latitude, longitude, zoom } = evt.viewState;
+
+    if (
+      latitude === undefined ||
+      longitude === undefined ||
+      zoom === undefined
+    ) {
+      console.warn('MapBox: Invalid viewport change event', evt);
+      return;
+    }
+
     const viewport: Viewport = { latitude, longitude, zoom };
     this.setState({ viewport });
-    const { onViewportChange } = this.props;
-    if (onViewportChange) {
-      onViewportChange(viewport);
-    }
+    this.props.onViewportChange?.(viewport);
   }
 
   render() {
@@ -124,7 +164,6 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
       width,
       height,
       aggregatorName,
-      clusterer,
       mapStyle,
       mapboxApiKey,
       pointRadius,
@@ -132,25 +171,10 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
       renderWhileDragging,
       rgb,
       hasCustomMetric,
-      bounds,
     } = this.props;
-    const { viewport } = this.state;
+    const { viewport, clusters } = this.state;
     const isDragging =
       viewport.isDragging === undefined ? false : viewport.isDragging;
-
-    // Compute the clusters based on the original bounds and current zoom level. Note when zoom/pan
-    // to an area outside of the original bounds, no additional queries are made to the backend to
-    // retrieve additional data.
-    // add this variable to widen the visible area
-    const offsetHorizontal = ((width || 400) * 0.5) / 100;
-    const offsetVertical = ((height || 400) * 0.5) / 100;
-    const bbox = [
-      bounds[0][0] - offsetHorizontal,
-      bounds[0][1] - offsetVertical,
-      bounds[1][0] + offsetHorizontal,
-      bounds[1][1] + offsetVertical,
-    ];
-    const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
 
     return (
       <div style={{ width, height }}>
@@ -174,7 +198,6 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
             aggregation={hasCustomMetric ? aggregatorName : undefined}
             lngLatAccessor={location => {
               const { coordinates } = location.geometry;
-
               return [coordinates[0], coordinates[1]];
             }}
           />

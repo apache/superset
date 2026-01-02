@@ -84,7 +84,7 @@ interface TransformedProps {
   pointRadius?: number;
   pointRadiusUnit?: string;
   renderWhileDragging?: boolean;
-  rgb?: RegExpExecArray | null;
+  rgb?: [number, number, number, number];
 }
 
 export default function transformProps(
@@ -106,12 +106,21 @@ export default function transformProps(
   } = formData;
 
   // Validate mapbox color
-  const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(mapboxColor);
-  if (rgb === null) {
+  const rgbMatch = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(
+    mapboxColor,
+  );
+  if (rgbMatch === null) {
     onError("Color field must be of form 'rgb(%d, %d, %d)'");
 
     return {};
   }
+
+  const rgb: [number, number, number, number] = [
+    parseInt(rgbMatch[1], 10),
+    parseInt(rgbMatch[2], 10),
+    parseInt(rgbMatch[3], 10),
+    255,
+  ];
 
   const opts: ClusterOptions = {
     maxZoom: DEFAULT_MAX_ZOOM,
