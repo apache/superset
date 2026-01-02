@@ -31,232 +31,232 @@ const baseFormData: DeckScatterFormData = {
 };
 
 test('Scatter buildQuery should not include metric when point_radius_fixed is fixed type', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      point_radius_fixed: {
-        type: 'fix',
-        value: '1000',
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'fix',
+      value: '1000',
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.metrics).toEqual([]);
-    expect(query.orderby).toEqual([]);
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([]);
+});
 
 test('Scatter buildQuery should include metric when point_radius_fixed is metric type', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      point_radius_fixed: {
-        type: 'metric',
-        value: 'AVG(radius_value)',
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'metric',
+      value: 'AVG(radius_value)',
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.metrics).toContain('AVG(radius_value)');
-    expect(query.orderby).toEqual([['AVG(radius_value)', false]]);
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.metrics).toContain('AVG(radius_value)');
+  expect(query.orderby).toEqual([['AVG(radius_value)', false]]);
+});
 
 test('Scatter buildQuery should handle numeric value in fixed type', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      point_radius_fixed: {
-        type: 'fix',
-        value: 500,
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'fix',
+      value: 500,
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    // Fixed numeric value should not be included as a metric
-    expect(query.metrics).toEqual([]);
-    expect(query.orderby).toEqual([]);
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Fixed numeric value should not be included as a metric
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([]);
+});
 
 test('Scatter buildQuery should handle missing point_radius_fixed', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      // no point_radius_fixed
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    // no point_radius_fixed
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.metrics).toEqual([]);
-    expect(query.orderby).toEqual([]);
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([]);
+});
 
 test('Scatter buildQuery should include spatial columns in query', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      point_radius_fixed: {
-        type: 'fix',
-        value: '1000',
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'fix',
+      value: '1000',
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.columns).toContain('LATITUDE');
-    expect(query.columns).toContain('LONGITUDE');
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.columns).toContain('LATITUDE');
+  expect(query.columns).toContain('LONGITUDE');
+});
 
 test('Scatter buildQuery should include dimension column when specified', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      dimension: 'category',
-      point_radius_fixed: {
-        type: 'fix',
-        value: '1000',
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    dimension: 'category',
+    point_radius_fixed: {
+      type: 'fix',
+      value: '1000',
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.columns).toContain('category');
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.columns).toContain('category');
+});
 
 test('Scatter buildQuery should add spatial null filters', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      point_radius_fixed: {
-        type: 'fix',
-        value: '1000',
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'fix',
+      value: '1000',
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    const latFilter = query.filters?.find(
-      f => f.col === 'LATITUDE' && f.op === 'IS NOT NULL',
-    );
-    const lonFilter = query.filters?.find(
-      f => f.col === 'LONGITUDE' && f.op === 'IS NOT NULL',
-    );
-    
-    expect(latFilter).toBeDefined();
-    expect(lonFilter).toBeDefined();
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  const latFilter = query.filters?.find(
+    f => f.col === 'LATITUDE' && f.op === 'IS NOT NULL',
+  );
+  const lonFilter = query.filters?.find(
+    f => f.col === 'LONGITUDE' && f.op === 'IS NOT NULL',
+  );
+
+  expect(latFilter).toBeDefined();
+  expect(lonFilter).toBeDefined();
+});
 
 test('Scatter buildQuery should throw error when spatial is missing', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      spatial: undefined,
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    spatial: undefined,
+  };
 
-    expect(() => buildQuery(formData)).toThrow(
-      'Spatial configuration is required for Scatter charts',
-    );
-  });
+  expect(() => buildQuery(formData)).toThrow(
+    'Spatial configuration is required for Scatter charts',
+  );
+});
 
 test('Scatter buildQuery should handle geohash spatial type', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      spatial: {
-        type: 'geohash',
-        geohashCol: 'geohash_column',
-      },
-      point_radius_fixed: {
-        type: 'metric',
-        value: 'COUNT(*)',
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    spatial: {
+      type: 'geohash',
+      geohashCol: 'geohash_column',
+    },
+    point_radius_fixed: {
+      type: 'metric',
+      value: 'COUNT(*)',
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.columns).toContain('geohash_column');
-    expect(query.metrics).toContain('COUNT(*)');
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.columns).toContain('geohash_column');
+  expect(query.metrics).toContain('COUNT(*)');
+});
 
 test('Scatter buildQuery should handle tooltip_contents', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      tooltip_contents: ['name', 'description'],
-      point_radius_fixed: {
-        type: 'fix',
-        value: '1000',
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    tooltip_contents: ['name', 'description'],
+    point_radius_fixed: {
+      type: 'fix',
+      value: '1000',
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.columns).toContain('name');
-    expect(query.columns).toContain('description');
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.columns).toContain('name');
+  expect(query.columns).toContain('description');
+});
 
 test('Scatter buildQuery should handle js_columns', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      js_columns: ['custom_col1', 'custom_col2'],
-      point_radius_fixed: {
-        type: 'fix',
-        value: '1000',
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    js_columns: ['custom_col1', 'custom_col2'],
+    point_radius_fixed: {
+      type: 'fix',
+      value: '1000',
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.columns).toContain('custom_col1');
-    expect(query.columns).toContain('custom_col2');
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.columns).toContain('custom_col1');
+  expect(query.columns).toContain('custom_col2');
+});
 
 test('Scatter buildQuery should convert numeric metric value to string', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      point_radius_fixed: {
-        type: 'metric',
-        value: 123, // numeric metric (edge case)
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'metric',
+      value: 123, // numeric metric (edge case)
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.metrics).toContain('123');
-    expect(query.orderby).toEqual([['123', false]]);
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.metrics).toContain('123');
+  expect(query.orderby).toEqual([['123', false]]);
+});
 
 test('Scatter buildQuery should set is_timeseries to false', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      point_radius_fixed: {
-        type: 'fix',
-        value: '1000',
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'fix',
+      value: '1000',
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.is_timeseries).toBe(false);
-  });
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.is_timeseries).toBe(false);
+});
 
 test('Scatter buildQuery should preserve row_limit', () => {
-    const formData: DeckScatterFormData = {
-      ...baseFormData,
-      row_limit: 5000,
-      point_radius_fixed: {
-        type: 'fix',
-        value: '1000',
-      },
-    };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    row_limit: 5000,
+    point_radius_fixed: {
+      type: 'fix',
+      value: '1000',
+    },
+  };
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    
-    expect(query.row_limit).toBe(5000);
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.row_limit).toBe(5000);
 });
 
 test('Scatter buildQuery should preserve existing metrics when adding radius metric', () => {
@@ -271,7 +271,7 @@ test('Scatter buildQuery should preserve existing metrics when adding radius met
 
   const queryContext = buildQuery(formData);
   const [query] = queryContext.queries;
-  
+
   expect(query.metrics).toContain('COUNT(*)');
   expect(query.metrics).toContain('AVG(radius_value)');
   expect(query.metrics).toHaveLength(2);
@@ -289,6 +289,6 @@ test('Scatter buildQuery should not modify existing metrics for fixed radius', (
 
   const queryContext = buildQuery(formData);
   const [query] = queryContext.queries;
-  
+
   expect(query.metrics).toEqual(['COUNT(*)', 'SUM(value)']);
 });

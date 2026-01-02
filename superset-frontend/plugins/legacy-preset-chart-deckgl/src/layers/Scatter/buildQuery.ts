@@ -81,20 +81,26 @@ export default function buildQuery(formData: DeckScatterFormData) {
 
       // Only add metric if point_radius_fixed is a metric type
       const isMetric = point_radius_fixed?.type === 'metric';
-      const metricValue = isMetric && point_radius_fixed?.value ? String(point_radius_fixed.value) : null;
-      
+      const metricValue =
+        isMetric && point_radius_fixed?.value
+          ? String(point_radius_fixed.value)
+          : null;
+
       // Preserve existing metrics and only add radius metric if it's metric-based
       const existingMetrics = baseQueryObject.metrics || [];
-      const radiusMetrics = processMetricsArray(metricValue ? [metricValue] : []);
+      const radiusMetrics = processMetricsArray(
+        metricValue ? [metricValue] : [],
+      );
       const metrics = [...existingMetrics, ...radiusMetrics];
       const filters = addSpatialNullFilters(
         spatial,
         ensureIsArray(baseQueryObject.filters || []),
       );
 
-      const orderby = isMetric && metricValue
-        ? ([[metricValue, false]] as QueryFormOrderBy[])
-        : (baseQueryObject.orderby as QueryFormOrderBy[]) || [];
+      const orderby =
+        isMetric && metricValue
+          ? ([[metricValue, false]] as QueryFormOrderBy[])
+          : (baseQueryObject.orderby as QueryFormOrderBy[]) || [];
 
       return [
         {

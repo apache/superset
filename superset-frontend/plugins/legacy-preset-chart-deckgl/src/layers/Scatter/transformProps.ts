@@ -113,7 +113,7 @@ export default function transformProps(chartProps: ChartProps) {
 
   const radiusMetricLabel = getMetricLabelFromFormData(point_radius_fixed);
   const records = getRecordsFromQuery(chartProps.queriesData);
-  
+
   const features = processScatterData(
     records,
     spatial,

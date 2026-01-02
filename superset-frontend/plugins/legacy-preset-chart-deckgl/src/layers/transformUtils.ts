@@ -134,7 +134,10 @@ export function addPropertiesToFeature<T extends Record<string, unknown>>(
 }
 
 export function getMetricLabelFromFormData(
-  metric: string | { value?: string | number | object; type?: string } | undefined,
+  metric:
+    | string
+    | { value?: string | number | object; type?: string }
+    | undefined,
 ): string | undefined {
   if (!metric) return undefined;
   if (typeof metric === 'string') return getMetricLabel(metric);
@@ -146,7 +149,8 @@ export function getMetricLabelFromFormData(
     if (typeof metric.value === 'object' && metric.value) {
       // Handle object metrics (adhoc or saved metrics)
       const metricObj = metric.value as any;
-      const metricKey = metricObj.label || metricObj.sqlExpression || metricObj.value;
+      const metricKey =
+        metricObj.label || metricObj.sqlExpression || metricObj.value;
       if (typeof metricKey === 'string') {
         return getMetricLabel(metricKey);
       }

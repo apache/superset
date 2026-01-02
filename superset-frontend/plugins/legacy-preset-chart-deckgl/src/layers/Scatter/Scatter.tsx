@@ -46,22 +46,27 @@ function setTooltipContent(
   const defaultTooltipGenerator = (o: JsonObject) => {
     // Only show metric info if point_radius_fixed is metric-based
     let metricKey = null;
-    if (formData.point_radius_fixed && typeof formData.point_radius_fixed === 'object' && formData.point_radius_fixed.type === 'metric') {
+    if (
+      formData.point_radius_fixed &&
+      typeof formData.point_radius_fixed === 'object' &&
+      formData.point_radius_fixed.type === 'metric'
+    ) {
       const metricValue = formData.point_radius_fixed.value;
       if (typeof metricValue === 'string') {
         metricKey = metricValue;
       } else if (typeof metricValue === 'object' && metricValue) {
         // Handle object metrics (adhoc or saved metrics)
-        metricKey = metricValue.label || metricValue.sqlExpression || metricValue.value;
+        metricKey =
+          metricValue.label || metricValue.sqlExpression || metricValue.value;
       }
     }
-    
+
     // Normalize metricKey for verboseMap lookup
     const lookupKey = typeof metricKey === 'string' ? metricKey : null;
     const label = lookupKey
-      ? (verboseMap?.[lookupKey] || getMetricLabel(lookupKey))
+      ? verboseMap?.[lookupKey] || getMetricLabel(lookupKey)
       : null;
-    
+
     return (
       <div className="deckgl-tooltip">
         <TooltipRow

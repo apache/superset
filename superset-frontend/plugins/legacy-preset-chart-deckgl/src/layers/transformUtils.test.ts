@@ -30,155 +30,155 @@ beforeEach(() => {
 });
 
 test('getMetricLabelFromFormData should return undefined for undefined input', () => {
-      const result = getMetricLabelFromFormData(undefined);
-      expect(result).toBeUndefined();
-    });
+  const result = getMetricLabelFromFormData(undefined);
+  expect(result).toBeUndefined();
+});
 
 test('getMetricLabelFromFormData should return undefined for null input', () => {
-      const result = getMetricLabelFromFormData(null as any);
-      expect(result).toBeUndefined();
-    });
+  const result = getMetricLabelFromFormData(null as any);
+  expect(result).toBeUndefined();
+});
 
 test('getMetricLabelFromFormData should handle string metric directly', () => {
-      const result = getMetricLabelFromFormData('AVG(value)');
-      expect(result).toBe('AVG(value)');
-      expect(getMetricLabel).toHaveBeenCalledWith('AVG(value)');
-    });
+  const result = getMetricLabelFromFormData('AVG(value)');
+  expect(result).toBe('AVG(value)');
+  expect(getMetricLabel).toHaveBeenCalledWith('AVG(value)');
+});
 
 test('getMetricLabelFromFormData should return undefined for fixed type', () => {
-      const result = getMetricLabelFromFormData({
-        type: 'fix',
-        value: '1000',
-      });
-      expect(result).toBeUndefined();
-      expect(getMetricLabel).not.toHaveBeenCalled();
-    });
+  const result = getMetricLabelFromFormData({
+    type: 'fix',
+    value: '1000',
+  });
+  expect(result).toBeUndefined();
+  expect(getMetricLabel).not.toHaveBeenCalled();
+});
 
 test('getMetricLabelFromFormData should return undefined for fixed type with numeric value', () => {
-      const result = getMetricLabelFromFormData({
-        type: 'fix',
-        value: 1000,
-      });
-      expect(result).toBeUndefined();
-      expect(getMetricLabel).not.toHaveBeenCalled();
-    });
+  const result = getMetricLabelFromFormData({
+    type: 'fix',
+    value: 1000,
+  });
+  expect(result).toBeUndefined();
+  expect(getMetricLabel).not.toHaveBeenCalled();
+});
 
 test('getMetricLabelFromFormData should return metric label for metric type with string value', () => {
-      const result = getMetricLabelFromFormData({
-        type: 'metric',
-        value: 'SUM(amount)',
-      });
-      expect(result).toBe('SUM(amount)');
-      expect(getMetricLabel).toHaveBeenCalledWith('SUM(amount)');
-    });
+  const result = getMetricLabelFromFormData({
+    type: 'metric',
+    value: 'SUM(amount)',
+  });
+  expect(result).toBe('SUM(amount)');
+  expect(getMetricLabel).toHaveBeenCalledWith('SUM(amount)');
+});
 
 test('getMetricLabelFromFormData should handle object metric values', () => {
-      const result = getMetricLabelFromFormData({
-        type: 'metric',
-        value: {
-          label: 'Total Sales',
-          sqlExpression: 'SUM(sales)',
-        },
-      });
-      expect(result).toBe('Total Sales');
-      expect(getMetricLabel).toHaveBeenCalledWith('Total Sales');
-    });
+  const result = getMetricLabelFromFormData({
+    type: 'metric',
+    value: {
+      label: 'Total Sales',
+      sqlExpression: 'SUM(sales)',
+    },
+  });
+  expect(result).toBe('Total Sales');
+  expect(getMetricLabel).toHaveBeenCalledWith('Total Sales');
+});
 
 test('getMetricLabelFromFormData should use sqlExpression if label is missing', () => {
-      const result = getMetricLabelFromFormData({
-        type: 'metric',
-        value: {
-          sqlExpression: 'COUNT(*)',
-        },
-      });
-      expect(result).toBe('COUNT(*)');
-      expect(getMetricLabel).toHaveBeenCalledWith('COUNT(*)');
-    });
+  const result = getMetricLabelFromFormData({
+    type: 'metric',
+    value: {
+      sqlExpression: 'COUNT(*)',
+    },
+  });
+  expect(result).toBe('COUNT(*)');
+  expect(getMetricLabel).toHaveBeenCalledWith('COUNT(*)');
+});
 
 test('getMetricLabelFromFormData should use value field as fallback', () => {
-      const result = getMetricLabelFromFormData({
-        type: 'metric',
-        value: {
-          value: 'AVG(price)',
-        },
-      });
-      expect(result).toBe('AVG(price)');
-      expect(getMetricLabel).toHaveBeenCalledWith('AVG(price)');
-    });
+  const result = getMetricLabelFromFormData({
+    type: 'metric',
+    value: {
+      value: 'AVG(price)',
+    },
+  });
+  expect(result).toBe('AVG(price)');
+  expect(getMetricLabel).toHaveBeenCalledWith('AVG(price)');
+});
 
 test('getMetricLabelFromFormData should return undefined for metric type with numeric value', () => {
-      const result = getMetricLabelFromFormData({
-        type: 'metric',
-        value: 123,
-      });
-      expect(result).toBeUndefined();
-      expect(getMetricLabel).not.toHaveBeenCalled();
-    });
+  const result = getMetricLabelFromFormData({
+    type: 'metric',
+    value: 123,
+  });
+  expect(result).toBeUndefined();
+  expect(getMetricLabel).not.toHaveBeenCalled();
+});
 
 test('getMetricLabelFromFormData should return undefined for object without type', () => {
-      const result = getMetricLabelFromFormData({
-        value: 'AVG(value)',
-      });
-      expect(result).toBeUndefined();
-    });
+  const result = getMetricLabelFromFormData({
+    value: 'AVG(value)',
+  });
+  expect(result).toBeUndefined();
+});
 
 test('getMetricLabelFromFormData should return undefined for empty object', () => {
-      const result = getMetricLabelFromFormData({});
-      expect(result).toBeUndefined();
-    });
+  const result = getMetricLabelFromFormData({});
+  expect(result).toBeUndefined();
+});
 
 test('getMetricLabelFromFormData should return undefined for metric type without value', () => {
-      const result = getMetricLabelFromFormData({
-        type: 'metric',
-      });
-      expect(result).toBeUndefined();
+  const result = getMetricLabelFromFormData({
+    type: 'metric',
+  });
+  expect(result).toBeUndefined();
 });
 
 test('parseMetricValue should parse numeric strings', () => {
-      expect(parseMetricValue('123')).toBe(123);
-      expect(parseMetricValue('123.45')).toBe(123.45);
-      expect(parseMetricValue('0')).toBe(0);
-      expect(parseMetricValue('-123')).toBe(-123);
-    });
+  expect(parseMetricValue('123')).toBe(123);
+  expect(parseMetricValue('123.45')).toBe(123.45);
+  expect(parseMetricValue('0')).toBe(0);
+  expect(parseMetricValue('-123')).toBe(-123);
+});
 
 test('parseMetricValue should handle numbers directly', () => {
-      expect(parseMetricValue(123)).toBe(123);
-      expect(parseMetricValue(123.45)).toBe(123.45);
-      expect(parseMetricValue(0)).toBe(0);
-      expect(parseMetricValue(-123)).toBe(-123);
-    });
+  expect(parseMetricValue(123)).toBe(123);
+  expect(parseMetricValue(123.45)).toBe(123.45);
+  expect(parseMetricValue(0)).toBe(0);
+  expect(parseMetricValue(-123)).toBe(-123);
+});
 
 test('parseMetricValue should return undefined for null', () => {
-      expect(parseMetricValue(null)).toBeUndefined();
-    });
+  expect(parseMetricValue(null)).toBeUndefined();
+});
 
 test('parseMetricValue should return undefined for undefined', () => {
-      expect(parseMetricValue(undefined)).toBeUndefined();
-    });
+  expect(parseMetricValue(undefined)).toBeUndefined();
+});
 
 test('parseMetricValue should return undefined for non-numeric strings', () => {
-      expect(parseMetricValue('abc')).toBeUndefined();
-      expect(parseMetricValue('12a34')).toBe(12); // parseFloat returns 12
-      expect(parseMetricValue('')).toBeUndefined();
-    });
+  expect(parseMetricValue('abc')).toBeUndefined();
+  expect(parseMetricValue('12a34')).toBe(12); // parseFloat returns 12
+  expect(parseMetricValue('')).toBeUndefined();
+});
 
 test('parseMetricValue should handle edge cases', () => {
-      expect(parseMetricValue('Infinity')).toBe(Infinity);
-      expect(parseMetricValue('-Infinity')).toBe(-Infinity);
-      expect(parseMetricValue('NaN')).toBeUndefined();
-    });
+  expect(parseMetricValue('Infinity')).toBe(Infinity);
+  expect(parseMetricValue('-Infinity')).toBe(-Infinity);
+  expect(parseMetricValue('NaN')).toBeUndefined();
+});
 
 test('parseMetricValue should handle boolean values', () => {
-      expect(parseMetricValue(true as any)).toBeUndefined();
-      expect(parseMetricValue(false as any)).toBeUndefined();
-    });
+  expect(parseMetricValue(true as any)).toBeUndefined();
+  expect(parseMetricValue(false as any)).toBeUndefined();
+});
 
 test('parseMetricValue should handle objects', () => {
-      expect(parseMetricValue({} as any)).toBeUndefined();
-      expect(parseMetricValue({ value: 123 } as any)).toBeUndefined();
-    });
+  expect(parseMetricValue({} as any)).toBeUndefined();
+  expect(parseMetricValue({ value: 123 } as any)).toBeUndefined();
+});
 
 test('parseMetricValue should handle arrays', () => {
-      expect(parseMetricValue([] as any)).toBeUndefined();
-      expect(parseMetricValue([123] as any)).toBe(123); // String([123]) = '123'
+  expect(parseMetricValue([] as any)).toBeUndefined();
+  expect(parseMetricValue([123] as any)).toBe(123); // String([123]) = '123'
 });
