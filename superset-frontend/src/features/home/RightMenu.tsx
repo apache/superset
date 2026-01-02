@@ -342,7 +342,12 @@ const RightMenu = ({
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
   const handleLogout = () => {
-    localStorage.removeItem('redux');
+    try {
+      window.localStorage.removeItem('redux');
+      window.sessionStorage.removeItem('login_attempted');
+    } catch (error) {
+      console.warn('Failed to clear storage on logout:', error);
+    }
   };
 
   // Use the theme menu hook
