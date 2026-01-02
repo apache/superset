@@ -72,6 +72,40 @@ test('getMetricLabelFromFormData should return metric label for metric type with
       expect(getMetricLabel).toHaveBeenCalledWith('SUM(amount)');
     });
 
+test('getMetricLabelFromFormData should handle object metric values', () => {
+      const result = getMetricLabelFromFormData({
+        type: 'metric',
+        value: {
+          label: 'Total Sales',
+          sqlExpression: 'SUM(sales)',
+        },
+      });
+      expect(result).toBe('Total Sales');
+      expect(getMetricLabel).toHaveBeenCalledWith('Total Sales');
+    });
+
+test('getMetricLabelFromFormData should use sqlExpression if label is missing', () => {
+      const result = getMetricLabelFromFormData({
+        type: 'metric',
+        value: {
+          sqlExpression: 'COUNT(*)',
+        },
+      });
+      expect(result).toBe('COUNT(*)');
+      expect(getMetricLabel).toHaveBeenCalledWith('COUNT(*)');
+    });
+
+test('getMetricLabelFromFormData should use value field as fallback', () => {
+      const result = getMetricLabelFromFormData({
+        type: 'metric',
+        value: {
+          value: 'AVG(price)',
+        },
+      });
+      expect(result).toBe('AVG(price)');
+      expect(getMetricLabel).toHaveBeenCalledWith('AVG(price)');
+    });
+
 test('getMetricLabelFromFormData should return undefined for metric type with numeric value', () => {
       const result = getMetricLabelFromFormData({
         type: 'metric',

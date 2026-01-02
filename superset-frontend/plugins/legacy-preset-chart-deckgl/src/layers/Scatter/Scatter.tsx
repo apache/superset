@@ -44,18 +44,22 @@ function setTooltipContent(
   verboseMap?: Record<string, string>,
 ) {
   const defaultTooltipGenerator = (o: JsonObject) => {
-    // Check if point_radius_fixed is an object with type/value or just a value
+    // Only show metric info if point_radius_fixed is metric-based
     let metricKey = null;
-    if (formData.point_radius_fixed) {
-      if (typeof formData.point_radius_fixed === 'object' && formData.point_radius_fixed.type === 'metric') {
-        metricKey = formData.point_radius_fixed.value;
-      } else if (typeof formData.point_radius_fixed === 'string') {
-        metricKey = formData.point_radius_fixed;
+    if (formData.point_radius_fixed && typeof formData.point_radius_fixed === 'object' && formData.point_radius_fixed.type === 'metric') {
+      const metricValue = formData.point_radius_fixed.value;
+      if (typeof metricValue === 'string') {
+        metricKey = metricValue;
+      } else if (typeof metricValue === 'object' && metricValue) {
+        // Handle object metrics (adhoc or saved metrics)
+        metricKey = metricValue.label || metricValue.sqlExpression || metricValue.value;
       }
     }
     
-    const label = metricKey
-      ? (verboseMap?.[metricKey] || getMetricLabel(metricKey))
+    // Normalize metricKey for verboseMap lookup
+    const lookupKey = typeof metricKey === 'string' ? metricKey : null;
+    const label = lookupKey
+      ? (verboseMap?.[lookupKey] || getMetricLabel(lookupKey))
       : null;
     
     return (

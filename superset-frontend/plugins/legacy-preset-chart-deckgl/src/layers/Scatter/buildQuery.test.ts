@@ -258,3 +258,37 @@ test('Scatter buildQuery should preserve row_limit', () => {
     
     expect(query.row_limit).toBe(5000);
 });
+
+test('Scatter buildQuery should preserve existing metrics when adding radius metric', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    metrics: ['COUNT(*)'],
+    point_radius_fixed: {
+      type: 'metric',
+      value: 'AVG(radius_value)',
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+  
+  expect(query.metrics).toContain('COUNT(*)');
+  expect(query.metrics).toContain('AVG(radius_value)');
+  expect(query.metrics).toHaveLength(2);
+});
+
+test('Scatter buildQuery should not modify existing metrics for fixed radius', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    metrics: ['COUNT(*)', 'SUM(value)'],
+    point_radius_fixed: {
+      type: 'fix',
+      value: '1000',
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+  
+  expect(query.metrics).toEqual(['COUNT(*)', 'SUM(value)']);
+});

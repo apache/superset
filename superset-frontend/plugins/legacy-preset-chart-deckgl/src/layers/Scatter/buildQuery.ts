@@ -83,7 +83,10 @@ export default function buildQuery(formData: DeckScatterFormData) {
       const isMetric = point_radius_fixed?.type === 'metric';
       const metricValue = isMetric && point_radius_fixed?.value ? String(point_radius_fixed.value) : null;
       
-      const metrics = processMetricsArray(metricValue ? [metricValue] : []);
+      // Preserve existing metrics and only add radius metric if it's metric-based
+      const existingMetrics = baseQueryObject.metrics || [];
+      const radiusMetrics = processMetricsArray(metricValue ? [metricValue] : []);
+      const metrics = [...existingMetrics, ...radiusMetrics];
       const filters = addSpatialNullFilters(
         spatial,
         ensureIsArray(baseQueryObject.filters || []),
