@@ -122,7 +122,7 @@ export default function transformProps(chartProps: ChartProps) {
     radiusMetricLabel,
     dimension,
     js_columns,
-    isFixedValue ? fixedRadiusValue : null,
+    fixedRadiusValue,
   );
 
   return createBaseTransformResult(

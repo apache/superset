@@ -18,7 +18,7 @@
  */
 import { ChartProps } from '@superset-ui/core';
 import { getMapboxApiKey, DataRecord } from './spatialUtils';
-import { getMetricLabelFromValue } from './utils/metricUtils';
+import { getMetricLabelFromValue, FixedOrMetricValue } from './utils/metricUtils';
 
 const NOOP = () => {};
 
@@ -135,10 +135,7 @@ export function addPropertiesToFeature<T extends Record<string, unknown>>(
 }
 
 export function getMetricLabelFromFormData(
-  metric:
-    | string
-    | { value?: string | number | object; type?: string }
-    | undefined,
+  metric: string | FixedOrMetricValue | undefined,
 ): string | undefined {
   return getMetricLabelFromValue(metric);
 }
