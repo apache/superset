@@ -16,35 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
-
-const { defaultToAllLayersVisible } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
-  controlPanelSections: [
-    {
-      label: t('Configuration'),
-      expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: 'defaultToAllLayersVisible',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show all layers by default'),
-              default: defaultToAllLayersVisible,
-              renderTrigger: true,
-              description: t(
-                'When enabled, all layers will be visible by default',
-              ),
-            },
-          },
-        ],
-      ],
-    },
-  ],
+  controlPanelSections: [],
 };
 
 export default config;
