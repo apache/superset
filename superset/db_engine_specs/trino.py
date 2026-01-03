@@ -201,12 +201,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             if execute_result is not None and execute_result.get("error"):
                 break
 
-            # Check if execute_event is set (thread completed or error occurred)
+            # Check if execute_event is set (thread completed)
             if execute_event is not None and execute_event.is_set():
-                # If there's an error, break; otherwise, it's a normal completion,
-                # so break after the final state update
-                if execute_result and execute_result.get("error"):
-                    break
+                break
 
             # if query cancelation was requested prior to the handle_cursor call, but
             # the query was still executed, trigger the actual query cancelation now

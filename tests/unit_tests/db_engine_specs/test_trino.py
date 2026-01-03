@@ -1081,14 +1081,14 @@ def test_handle_cursor_breaks_on_execute_error(
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @patch("superset.db_engine_specs.trino.db")
 @patch("superset.db_engine_specs.trino.app")
-def test_handle_cursor_breaks_on_execute_event_set_with_error(
+def test_handle_cursor_breaks_on_execute_event_set(
     mock_app: Mock,
     mock_db: Mock,
     mock_cancel_query: Mock,
     mock_presto_handle_cursor: Mock,
     mocker: MockerFixture,
 ) -> None:
-    """Test that handle_cursor breaks the loop when execute_event is set with error."""
+    """Test that handle_cursor breaks the loop when execute_event is set."""
     import threading
 
     from superset.db_engine_specs.trino import TrinoEngineSpec
@@ -1105,16 +1105,16 @@ def test_handle_cursor_breaks_on_execute_event_set_with_error(
     execute_event = threading.Event()
     execute_event.set()  # Simulate thread completion
 
-    cursor_mock._execute_result = {"error": Exception("Test error")}
+    cursor_mock._execute_result = {}
     cursor_mock._execute_event = execute_event
 
     query = Query()
     query.status = "running"
 
-    # Should break immediately since execute_event is set and there's an error
+    # Should break immediately since execute_event is set
     TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
 
-    # cancel_query should not be called since we broke due to error
+    # cancel_query should not be called since we broke due to event being set
     mock_cancel_query.assert_not_called()
 
 
