@@ -394,14 +394,13 @@ const RightMenu = ({
               items.push({
                 key: menu.label,
                 label: isFrontendRoute(menu.url) ? (
-                  <Link to={menu.url || ''}>
-                    {menu.icon} {menu.label}
-                  </Link>
+                  <Link to={menu.url || ''}>{menu.label}</Link>
                 ) : (
                   <Typography.Link href={ensureAppRoot(menu.url || '')}>
-                    {menu.icon} {menu.label}
+                    {menu.label}
                   </Typography.Link>
                 ),
+                icon: menu.icon,
               });
             }
           }
@@ -411,14 +410,13 @@ const RightMenu = ({
           items.push({
             key: menu.label,
             label: isFrontendRoute(menu.url) ? (
-              <Link to={menu.url || ''}>
-                {menu.icon} {menu.label}
-              </Link>
+              <Link to={menu.url || ''}>{menu.label}</Link>
             ) : (
               <Typography.Link href={ensureAppRoot(menu.url || '')}>
-                {menu.icon} {menu.label}
+                {menu.label}
               </Typography.Link>
             ),
+            icon: menu.icon,
           });
         }
       });
