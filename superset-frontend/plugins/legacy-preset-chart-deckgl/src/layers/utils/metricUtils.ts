@@ -23,7 +23,8 @@ export type MetricFormValue =
   | string 
   | number 
   | { label?: string; sqlExpression?: string; value?: string }
-  | undefined;
+  | undefined
+  | null;
 
 export interface FixedOrMetricValue {
   type?: 'fix' | 'metric';
@@ -34,7 +35,7 @@ export interface FixedOrMetricValue {
  * Checks if a value is configured as a metric (vs fixed value)
  */
 export function isMetricValue(
-  fixedOrMetric: string | FixedOrMetricValue | undefined,
+  fixedOrMetric: string | FixedOrMetricValue | undefined | null,
 ): boolean {
   if (!fixedOrMetric) return false;
   if (typeof fixedOrMetric === 'string') return true;
@@ -45,7 +46,7 @@ export function isMetricValue(
  * Checks if a value is configured as a fixed value (vs metric)
  */
 export function isFixedValue(
-  fixedOrMetric: string | FixedOrMetricValue | undefined,
+  fixedOrMetric: string | FixedOrMetricValue | undefined | null,
 ): boolean {
   if (!fixedOrMetric) return false;
   if (typeof fixedOrMetric === 'string') return false;
@@ -73,7 +74,7 @@ export function extractMetricKey(
  * Returns undefined for fixed values, metric label for metric values
  */
 export function getMetricLabelFromValue(
-  fixedOrMetric: string | FixedOrMetricValue | undefined,
+  fixedOrMetric: string | FixedOrMetricValue | undefined | null,
 ): string | undefined {
   if (!fixedOrMetric) return undefined;
   
@@ -98,7 +99,7 @@ export function getMetricLabelFromValue(
  * Returns the value for fixed types, undefined for metrics
  */
 export function getFixedValue(
-  fixedOrMetric: string | FixedOrMetricValue | undefined,
+  fixedOrMetric: string | FixedOrMetricValue | undefined | null,
 ): string | number | undefined {
   if (!fixedOrMetric || typeof fixedOrMetric === 'string') {
     return undefined;

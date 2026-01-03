@@ -135,7 +135,7 @@ export function addPropertiesToFeature<T extends Record<string, unknown>>(
 }
 
 export function getMetricLabelFromFormData(
-  metric: string | FixedOrMetricValue | undefined,
+  metric: string | FixedOrMetricValue | undefined | null,
 ): string | undefined {
   return getMetricLabelFromValue(metric);
 }
