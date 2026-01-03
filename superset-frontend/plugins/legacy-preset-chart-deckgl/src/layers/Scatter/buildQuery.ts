@@ -89,7 +89,9 @@ export default function buildQuery(formData: DeckScatterFormData) {
       const radiusMetrics = processMetricsArray(
         metricValue ? [metricValue] : [],
       );
-      const metrics = [...existingMetrics, ...radiusMetrics];
+      // Deduplicate metrics to avoid adding the same metric twice
+      const metricsSet = new Set([...existingMetrics, ...radiusMetrics]);
+      const metrics = Array.from(metricsSet);
       const filters = addSpatialNullFilters(
         spatial,
         ensureIsArray(baseQueryObject.filters || []),

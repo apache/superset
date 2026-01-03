@@ -292,3 +292,21 @@ test('Scatter buildQuery should not modify existing metrics for fixed radius', (
 
   expect(query.metrics).toEqual(['COUNT(*)', 'SUM(value)']);
 });
+
+test('Scatter buildQuery should deduplicate metrics when radius metric already exists', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    metrics: ['COUNT(*)', 'AVG(price)'],
+    point_radius_fixed: {
+      type: 'metric',
+      value: 'AVG(price)',
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Should not have duplicate AVG(price)
+  expect(query.metrics).toEqual(['COUNT(*)', 'AVG(price)']);
+  expect(query.metrics).toHaveLength(2);
+});
