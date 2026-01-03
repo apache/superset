@@ -63,6 +63,7 @@ interface MapBoxProps {
 interface MapBoxState {
   viewport: Viewport;
   clusters: Location[];
+  isMapLoaded: boolean;
 }
 
 const defaultProps: Partial<MapBoxProps> = {
@@ -95,8 +96,10 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     this.state = {
       viewport,
       clusters: this.computeClusters(clusterer, bounds, width, height, zoom),
+      isMapLoaded: false,
     };
     this.handleViewportChange = this.handleViewportChange.bind(this);
+    this.handleMapLoad = this.handleMapLoad.bind(this);
   }
 
   componentDidUpdate(prevProps: MapBoxProps, prevState: MapBoxState) {
@@ -160,6 +163,10 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     this.props.onViewportChange?.(viewport);
   }
 
+  handleMapLoad() {
+    this.setState({ isMapLoaded: true });
+  }
+
   render() {
     const {
       width,
@@ -173,35 +180,44 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
       rgb,
       hasCustomMetric,
     } = this.props;
-    const { viewport, clusters } = this.state;
+    const { viewport, clusters, isMapLoaded } = this.state;
     const isDragging =
       viewport.isDragging === undefined ? false : viewport.isDragging;
 
     return (
-      <div style={{ width, height }}>
+      <div
+        style={{
+          width,
+          height,
+          pointerEvents: isMapLoaded ? 'auto' : 'none',
+        }}
+      >
         <Map
           {...viewport}
           mapStyle={mapStyle}
           mapboxAccessToken={mapboxApiKey}
           onMove={this.handleViewportChange}
+          onIdle={this.handleMapLoad}
           preserveDrawingBuffer
           style={{ width: '100%', height: '100%' }}
         >
-          <ScatterPlotGlowOverlay
-            {...viewport}
-            isDragging={isDragging}
-            locations={clusters}
-            dotRadius={pointRadius}
-            pointRadiusUnit={pointRadiusUnit}
-            rgb={rgb}
-            compositeOperation="screen"
-            renderWhileDragging={renderWhileDragging}
-            aggregation={hasCustomMetric ? aggregatorName : undefined}
-            lngLatAccessor={location => {
-              const { coordinates } = location.geometry;
-              return [coordinates[0], coordinates[1]];
-            }}
-          />
+          {isMapLoaded && (
+            <ScatterPlotGlowOverlay
+              {...viewport}
+              isDragging={isDragging}
+              locations={clusters}
+              dotRadius={pointRadius}
+              pointRadiusUnit={pointRadiusUnit}
+              rgb={rgb}
+              compositeOperation="screen"
+              renderWhileDragging={renderWhileDragging}
+              aggregation={hasCustomMetric ? aggregatorName : undefined}
+              lngLatAccessor={location => {
+                const { coordinates } = location.geometry;
+                return [coordinates[0], coordinates[1]];
+              }}
+            />
+          )}
         </Map>
       </div>
     );

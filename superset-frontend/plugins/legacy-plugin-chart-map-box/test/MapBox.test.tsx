@@ -40,9 +40,12 @@ const mockMap = {
   getContainer: jest.fn(() => document.createElement('div')),
 };
 
-jest.mock('react-map-gl/mapbox', () => ({
-  __esModule: true,
-  default: ({ children, onMove }: any) => (
+const MockMap = ({ children, onMove, onIdle }: any) => {
+  const { useEffect } = require('react');
+  useEffect(() => {
+    onIdle?.();
+  }, [onIdle]);
+  return (
     <div
       data-test="mapbox-mock"
       onClick={() =>
@@ -51,7 +54,12 @@ jest.mock('react-map-gl/mapbox', () => ({
     >
       {children}
     </div>
-  ),
+  );
+};
+
+jest.mock('react-map-gl/mapbox', () => ({
+  __esModule: true,
+  default: (props: any) => <MockMap {...props} />,
   useMap: () => ({ current: mockMap }),
 }));
 
