@@ -82,7 +82,9 @@ export default function buildQuery(formData: DeckScatterFormData) {
 
       // Only add metric if point_radius_fixed is a metric type
       const isMetric = isMetricValue(point_radius_fixed);
-      const metricValue = isMetric ? extractMetricKey(point_radius_fixed?.value) : null;
+      const metricValue = isMetric
+        ? extractMetricKey(point_radius_fixed?.value)
+        : null;
 
       // Preserve existing metrics and only add radius metric if it's metric-based
       const existingMetrics = baseQueryObject.metrics || [];

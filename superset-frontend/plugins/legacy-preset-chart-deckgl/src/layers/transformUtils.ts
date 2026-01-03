@@ -18,7 +18,10 @@
  */
 import { ChartProps } from '@superset-ui/core';
 import { getMapboxApiKey, DataRecord } from './spatialUtils';
-import { getMetricLabelFromValue, FixedOrMetricValue } from './utils/metricUtils';
+import {
+  getMetricLabelFromValue,
+  FixedOrMetricValue,
+} from './utils/metricUtils';
 
 const NOOP = () => {};
 
