@@ -19,9 +19,9 @@
 
 import { getMetricLabel } from '@superset-ui/core';
 
-export type MetricFormValue = 
-  | string 
-  | number 
+export type MetricFormValue =
+  | string
+  | number
   | { label?: string; sqlExpression?: string; value?: string }
   | undefined
   | null;
@@ -57,15 +57,17 @@ export function isFixedValue(
  * Extracts the metric key from a metric value object
  * Handles label, sqlExpression, and value properties
  */
-export function extractMetricKey(
-  value: MetricFormValue,
-): string | undefined {
+export function extractMetricKey(value: MetricFormValue): string | undefined {
   if (value == null) return undefined;
   if (typeof value === 'string') return value;
   if (typeof value === 'number') return String(value);
-  
+
   // Handle object metrics (adhoc or saved metrics)
-  const metricObj = value as { label?: string; sqlExpression?: string; value?: string };
+  const metricObj = value as {
+    label?: string;
+    sqlExpression?: string;
+    value?: string;
+  };
   return metricObj.label || metricObj.sqlExpression || metricObj.value;
 }
 
@@ -77,12 +79,12 @@ export function getMetricLabelFromValue(
   fixedOrMetric: string | FixedOrMetricValue | undefined | null,
 ): string | undefined {
   if (!fixedOrMetric) return undefined;
-  
+
   // Legacy string format - treat as metric
   if (typeof fixedOrMetric === 'string') {
     return getMetricLabel(fixedOrMetric);
   }
-  
+
   // Only return metric label if it's a metric type, not a fixed value
   if (isMetricValue(fixedOrMetric) && fixedOrMetric.value) {
     const metricKey = extractMetricKey(fixedOrMetric.value);
@@ -90,7 +92,7 @@ export function getMetricLabelFromValue(
       return getMetricLabel(metricKey);
     }
   }
-  
+
   return undefined;
 }
 
@@ -104,12 +106,16 @@ export function getFixedValue(
   if (!fixedOrMetric || typeof fixedOrMetric === 'string') {
     return undefined;
   }
-  
+
   if (isFixedValue(fixedOrMetric) && fixedOrMetric.value) {
-    if (typeof fixedOrMetric.value === 'string' || typeof fixedOrMetric.value === 'number') {
+    if (
+      typeof fixedOrMetric.value === 'string' ||
+      typeof fixedOrMetric.value === 'number'
+    ) {
       return fixedOrMetric.value;
     }
   }
-  
+
   return undefined;
 }
+

@@ -109,7 +109,7 @@ export default function transformProps(chartProps: ChartProps) {
     formData as DeckScatterFormData;
 
   // Check if this is a fixed value or metric
-  const fixedRadiusValue = isFixedValue(point_radius_fixed) 
+  const fixedRadiusValue = isFixedValue(point_radius_fixed)
     ? getFixedValue(point_radius_fixed)
     : null;
 

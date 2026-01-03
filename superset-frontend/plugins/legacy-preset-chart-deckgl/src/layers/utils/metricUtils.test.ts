@@ -65,7 +65,9 @@ test('extractMetricKey should extract from object properties', () => {
   expect(extractMetricKey({ label: 'Total Sales' })).toBe('Total Sales');
   expect(extractMetricKey({ sqlExpression: 'SUM(sales)' })).toBe('SUM(sales)');
   expect(extractMetricKey({ value: 'AVG(price)' })).toBe('AVG(price)');
-  expect(extractMetricKey({ label: 'Label', sqlExpression: 'SQL', value: 'Value' })).toBe('Label'); // priority order
+  expect(
+    extractMetricKey({ label: 'Label', sqlExpression: 'SQL', value: 'Value' }),
+  ).toBe('Label'); // priority order
 });
 
 test('extractMetricKey should handle null/undefined', () => {
@@ -77,7 +79,7 @@ test('extractMetricKey should handle null/undefined', () => {
 test('getMetricLabelFromValue should return label for metric values', () => {
   getMetricLabelFromValue({ type: 'metric', value: 'COUNT(*)' });
   expect(getMetricLabel).toHaveBeenCalledWith('COUNT(*)');
-  
+
   getMetricLabelFromValue({ type: 'metric', value: { label: 'Total Sales' } });
   expect(getMetricLabel).toHaveBeenCalledWith('Total Sales');
 });
@@ -107,7 +109,9 @@ test('getFixedValue should return undefined for string values', () => {
 });
 
 test('getFixedValue should handle object values', () => {
-  expect(getFixedValue({ type: 'fix', value: { label: 'object' } })).toBeUndefined();
+  expect(
+    getFixedValue({ type: 'fix', value: { label: 'object' } }),
+  ).toBeUndefined();
 });
 
 test('getFixedValue should handle missing values', () => {
