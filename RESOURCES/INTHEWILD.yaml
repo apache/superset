@@ -583,6 +583,12 @@ categories:
     - name: NRLM - Sarathi, India
       url: https://pib.gov.in/PressReleasePage.aspx?PRID=1999586
 
+  Mobile Software:
+    - name: VLMedia
+      url: https://www.vlmedia.com.tr
+      logo: vlmedia.svg
+      contributors: ["@iercan"]
+
   Travel:
     - name: Agoda
       url: https://www.agoda.com/
@@ -642,10 +648,6 @@ categories:
 
     - name: X
       url: https://x.com/
-
-    - name: VLMedia
-      url: https://www.vlmedia.com.tr/
-      contributors: ["@ibotheperfect"]
 
     - name: Yahoo!
       url: https://yahoo.com/
