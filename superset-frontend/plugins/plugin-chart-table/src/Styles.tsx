@@ -21,6 +21,7 @@ import { css, styled } from '@apache-superset/core/ui';
 export default styled.div`
   ${({ theme }) => css`
     /* Base table styles */
+    padding: ${theme.sizeUnit * 5}px;
     table {
       width: 100%;
       min-width: auto;
