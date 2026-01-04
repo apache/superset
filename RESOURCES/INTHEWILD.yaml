@@ -111,6 +111,10 @@ categories:
     - name: Cover Genius
       url: https://covergenius.com/
 
+    - name: NICE Actimize
+      url: https://www.niceactimize.com/
+      contributors: ["@stevensuting"]
+
   Gaming:
     - name: Popoko VM Games Studio
       url: https://popoko.live
@@ -425,6 +429,11 @@ categories:
       url: https://www.zeta.tech/
       contributors: ["@shaikidris"]
 
+    - name: Value Ad
+      url: https://bestpair.info/
+      contributors: ["@stevensuting"]
+      
+
   Media & Entertainment:
     - name: 6play
       url: https://www.6play.fr
@@ -497,6 +506,16 @@ categories:
       url: https://wikimediafoundation.org
       contributors: ["@vg"]
 
+  Social Organization:
+    - name: Quest Alliance
+      url: https://www.questalliance.net/
+      contributors: ["@stevensuting"]
+      
+    - name: One Acre Fune
+      url: https://oneacrefund.org/
+      contributors: ["@stevensuting"]
+
+      
   Energy:
     - name: Airboxlab
       url: https://foobot.io
