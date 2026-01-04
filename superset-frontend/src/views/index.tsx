@@ -28,7 +28,9 @@ if (appMountPoint) {
     try {
       await initPreamble();
     } finally {
-      const { default: App } = await import('./App');
+      const { default: App } = await import(
+        /* webpackMode: "eager" */ './App'
+      );
       ReactDOM.render(<App />, appMountPoint);
     }
   })();
