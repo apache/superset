@@ -112,3 +112,10 @@ export default function initPreamble(): Promise<void> {
 
   return initPromise;
 }
+
+// This module is prepended to multiple webpack entrypoints (see `webpack.config.js`).
+// Kick off initialization eagerly, while still allowing entrypoints to `await` it
+// before rendering when needed (e.g. the login page).
+void initPreamble().catch(err => {
+  console.warn('Preamble initialization failed.', err);
+});
