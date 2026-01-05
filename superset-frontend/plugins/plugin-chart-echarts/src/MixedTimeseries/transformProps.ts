@@ -283,17 +283,17 @@ export default function transformProps(
     ? getNumberFormatter(',.0%')
     : currencyFormat?.symbol
       ? new CurrencyFormatter({
-          d3Format: yAxisFormat,
-          currency: currencyFormat,
-        })
+        d3Format: yAxisFormat,
+        currency: currencyFormat,
+      })
       : getNumberFormatter(yAxisFormat);
   const formatterSecondary = contributionMode
     ? getNumberFormatter(',.0%')
     : currencyFormatSecondary?.symbol
       ? new CurrencyFormatter({
-          d3Format: yAxisFormatSecondary,
-          currency: currencyFormatSecondary,
-        })
+        d3Format: yAxisFormatSecondary,
+        currency: currencyFormatSecondary,
+      })
       : getNumberFormatter(yAxisFormatSecondary);
   const customFormatters = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
@@ -434,6 +434,11 @@ export default function transformProps(
         showValue,
         onlyTotal,
         stack: Boolean(stack),
+        // For grouped+stacked: when we have multiple groupby dimensions,
+        // use the first dimension value as stackGroup to group related bars
+        stackGroup: groupby.length > 1
+          ? String(labelMap?.[seriesName]?.[0] || entryName.split(', ')[0])
+          : undefined,
         stackIdSuffix: '\na',
         yAxisIndex,
         filterState,
@@ -443,9 +448,9 @@ export default function transformProps(
         formatter:
           seriesType === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: yAxisMax,
-                formatter: seriesFormatter,
-              })
+              max: yAxisMax,
+              formatter: seriesFormatter,
+            })
             : seriesFormatter,
         totalStackedValues: sortedTotalValuesA,
         showValueIndexes: showValueIndexesA,
@@ -506,6 +511,11 @@ export default function transformProps(
         showValue: showValueB,
         onlyTotal: onlyTotalB,
         stack: Boolean(stackB),
+        // For grouped+stacked: when we have multiple groupby dimensions,
+        // use the first dimension value as stackGroup to group related bars
+        stackGroup: groupbyB.length > 1
+          ? String(labelMapB?.[seriesName]?.[0] || entryName.split(', ')[0])
+          : undefined,
         stackIdSuffix: '\nb',
         yAxisIndex: yAxisIndexB,
         filterState,
@@ -515,9 +525,9 @@ export default function transformProps(
         formatter:
           seriesTypeB === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: maxSecondary,
-                formatter: seriesFormatter,
-              })
+              max: maxSecondary,
+              formatter: seriesFormatter,
+            })
             : seriesFormatter,
         totalStackedValues: sortedTotalValuesB,
         showValueIndexes: showValueIndexesB,
@@ -565,7 +575,7 @@ export default function transformProps(
     convertInteger(xAxisTitleMargin),
   );
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const { setDataMask = () => { }, onContextMenu } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
   const echartOptions: EChartsCoreOption = {
@@ -588,14 +598,14 @@ export default function transformProps(
       minInterval:
         xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-            ]
+          timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
           : 0,
       maxInterval:
         xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-            ]
+          timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
           : undefined,
       ...getMinAndMaxFromBounds(
         xAxisType,
@@ -761,13 +771,13 @@ export default function transformProps(
     },
     dataZoom: zoomable
       ? [
-          {
-            type: 'slider',
-            start: TIMESERIES_CONSTANTS.dataZoomStart,
-            end: TIMESERIES_CONSTANTS.dataZoomEnd,
-            bottom: TIMESERIES_CONSTANTS.zoomBottom,
-          },
-        ]
+        {
+          type: 'slider',
+          start: TIMESERIES_CONSTANTS.dataZoomStart,
+          end: TIMESERIES_CONSTANTS.dataZoomEnd,
+          bottom: TIMESERIES_CONSTANTS.zoomBottom,
+        },
+      ]
       : [],
   };
 
