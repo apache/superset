@@ -194,9 +194,14 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
     if (!canvas || !container) return;
 
     const { width, height } = container.getBoundingClientRect();
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
+    const w = Math.round(width);
+    const h = Math.round(height);
+    // Keep canvas internal pixel size in whole pixels and keep the CSS size in sync.
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
     }
   }
 
@@ -222,7 +227,7 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
     ctx.textBaseline = 'middle';
     if (shadow) {
       ctx.shadowBlur = 15;
-      ctx.shadowColor = luminance <= LUMINANCE_THRESHOLD_DARK ? 'black' : '';
+      ctx.shadowColor = luminance <= LUMINANCE_THRESHOLD_DARK ? 'black' : 'transparent';
     }
 
     const textWidth = ctx.measureText(String(label)).width;
@@ -236,7 +241,7 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
     ctx.fillText(String(label), pixel[0], pixel[1]);
     ctx.globalCompositeOperation = compositeOperation || 'source-over';
     ctx.shadowBlur = 0;
-    ctx.shadowColor = '';
+    ctx.shadowColor = 'transparent';
   }
 
   redraw() {
@@ -288,7 +293,8 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
       }
     });
 
-    const maxLabel = Math.max(...clusterLabelMap.filter(v => !Number.isNaN(v)));
+    const validLabels = clusterLabelMap.filter(v => Number.isFinite(v) && v > 0);
+    const maxLabel = validLabels.length > 0 ? Math.max(...validLabels) : 1;
 
     ctx.clearRect(0, 0, width, height);
     ctx.globalCompositeOperation = compositeOperation || 'source-over';
@@ -318,7 +324,9 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
           if (location.properties.cluster) {
             let clusterLabel: number | string = clusterLabelMap[i];
             const scaledRadius = roundDecimal(
-              (clusterLabel / maxLabel) ** 0.5 * radius,
+              maxLabel > 0 && Number.isFinite(clusterLabel)
+                ? ((clusterLabel as number) / maxLabel) ** 0.5 * radius
+                : radius * 0.5,
               1,
             );
             const fontHeight = roundDecimal(scaledRadius * 0.5, 1);

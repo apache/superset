@@ -37,7 +37,7 @@ import {
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
-import { PickingInfo, Color } from '@deck.gl/core';
+import type { PickingInfo, Color } from '@deck.gl/core';
 import { ScaleLinear } from 'd3-scale';
 import { ColorBreakpointType } from '../types';
 import sandboxedEval from '../utils/sandbox';

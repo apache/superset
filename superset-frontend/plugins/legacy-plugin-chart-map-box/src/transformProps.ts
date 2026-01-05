@@ -112,7 +112,30 @@ export default function transformProps(
   if (rgbMatch === null) {
     onError("Color field must be of form 'rgb(%d, %d, %d)'");
 
-    return {};
+    const emptyClusterer = new Supercluster({
+      maxZoom: DEFAULT_MAX_ZOOM,
+      radius: clusteringRadius,
+    });
+    emptyClusterer.load([]);
+
+    return {
+      width,
+      height,
+      bounds: bounds || [
+        [0, 0],
+        [0, 0],
+      ],
+      clusterer: emptyClusterer,
+      globalOpacity: globalOpacity ?? 1,
+      hasCustomMetric: false,
+      mapboxApiKey,
+      mapStyle: mapboxStyle,
+      onViewportChange: NOOP,
+      pointRadius: DEFAULT_POINT_RADIUS,
+      pointRadiusUnit: pointRadiusUnit || 'Pixels',
+      renderWhileDragging: renderWhileDragging ?? true,
+      rgb: [128, 128, 128, 255],
+    };
   }
 
   const rgb: [number, number, number, number] = [

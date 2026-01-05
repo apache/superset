@@ -108,7 +108,11 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     const roundedZoom = Math.round(viewport.zoom);
 
     const shouldRecompute =
-      prevProps.clusterer !== clusterer || this.lastZoom !== roundedZoom;
+      prevProps.clusterer !== clusterer ||
+      this.lastZoom !== roundedZoom ||
+      prevProps.bounds !== bounds ||
+      prevProps.width !== width ||
+      prevProps.height !== height;
 
     if (shouldRecompute) {
       this.lastZoom = roundedZoom;
@@ -131,17 +135,46 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     height: number | undefined,
     zoom: number,
   ): Location[] {
-    const offsetHorizontal =
-      ((width || DEFAULT_DIMENSION) * VIEWPORT_BUFFER_MULTIPLIER) /
-      VIEWPORT_BUFFER_DIVISOR;
-    const offsetVertical =
-      ((height || DEFAULT_DIMENSION) * VIEWPORT_BUFFER_MULTIPLIER) /
-      VIEWPORT_BUFFER_DIVISOR;
+    const viewportWidth = width || DEFAULT_DIMENSION;
+    const viewportHeight = height || DEFAULT_DIMENSION;
+
+    const bufferPixelsH =
+      (viewportWidth * VIEWPORT_BUFFER_MULTIPLIER) / VIEWPORT_BUFFER_DIVISOR;
+    const bufferPixelsV =
+      (viewportHeight * VIEWPORT_BUFFER_MULTIPLIER) / VIEWPORT_BUFFER_DIVISOR;
+
+    const viewport = new WebMercatorViewport({
+      width: viewportWidth,
+      height: viewportHeight,
+    }).fitBounds(bounds);
+
+    const [minLng, minLat] = bounds[0];
+    const [maxLng, maxLat] = bounds[1];
+
+    const topLeft = viewport.project([minLng, maxLat]);
+    const bottomRight = viewport.project([maxLng, minLat]);
+
+    const bufferedTopLeft = [
+      topLeft[0] - bufferPixelsH,
+      topLeft[1] - bufferPixelsV,
+    ];
+    const bufferedBottomRight = [
+      bottomRight[0] + bufferPixelsH,
+      bottomRight[1] + bufferPixelsV,
+    ];
+
+    const [minLngBuffered, maxLatBuffered] = viewport.unproject(
+      bufferedTopLeft as [number, number],
+    );
+    const [maxLngBuffered, minLatBuffered] = viewport.unproject(
+      bufferedBottomRight as [number, number],
+    );
+
     const bbox: [number, number, number, number] = [
-      bounds[0][0] - offsetHorizontal,
-      bounds[0][1] - offsetVertical,
-      bounds[1][0] + offsetHorizontal,
-      bounds[1][1] + offsetVertical,
+      minLngBuffered,
+      minLatBuffered,
+      maxLngBuffered,
+      maxLatBuffered,
     ];
     return clusterer.getClusters(bbox, Math.round(zoom));
   }

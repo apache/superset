@@ -73,8 +73,8 @@ test('uses correct miles to kilometers conversion factor', () => {
 
 test('returns rounded result with 2 decimal places', () => {
   const result = kmToPixels(10, 45, 10);
-  const decimals = (result.toString().split('.')[1] || '').length;
-  expect(decimals).toBeLessThanOrEqual(2);
+  expect(Number.isFinite(result)).toBe(true);
+  expect(Math.round(result * 100) / 100).toBeCloseTo(result, 10);
 });
 
 test('handles zero kilometers', () => {
