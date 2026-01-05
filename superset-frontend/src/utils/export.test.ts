@@ -33,7 +33,7 @@ jest.mock('@superset-ui/core', () => ({
 
 jest.mock('content-disposition');
 
-// Mock pathUtils for double-prefix prevention tests
+// Default no-op mock for pathUtils; specific tests customize ensureAppRoot to simulate app root prefixing
 jest.mock('./pathUtils', () => ({
   ensureAppRoot: jest.fn((path: string) => path),
 }));
