@@ -25,6 +25,7 @@ import { createTooltipContent } from '../../utilities/tooltipUtils';
 import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../utils/geo';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
+import { isMetricValue, extractMetricKey } from '../utils/metricUtils';
 
 function getMetricLabel(metric: any) {
   if (typeof metric === 'string') {
@@ -44,9 +45,18 @@ function setTooltipContent(
   verboseMap?: Record<string, string>,
 ) {
   const defaultTooltipGenerator = (o: JsonObject) => {
-    const label =
-      verboseMap?.[formData.point_radius_fixed.value] ||
-      getMetricLabel(formData.point_radius_fixed?.value);
+    // Only show metric info if point_radius_fixed is metric-based
+    let metricKey = null;
+    if (isMetricValue(formData.point_radius_fixed)) {
+      metricKey = extractMetricKey(formData.point_radius_fixed?.value);
+    }
+
+    // Normalize metricKey for verboseMap lookup
+    const lookupKey = typeof metricKey === 'string' ? metricKey : null;
+    const label = lookupKey
+      ? verboseMap?.[lookupKey] || getMetricLabel(lookupKey)
+      : null;
+
     return (
       <div className="deckgl-tooltip">
         <TooltipRow
@@ -59,7 +69,7 @@ function setTooltipContent(
             value={`${o.object?.cat_color}`}
           />
         )}
-        {o.object?.metric && (
+        {o.object?.metric && label && (
           <TooltipRow label={`${label}: `} value={`${o.object?.metric}`} />
         )}
       </div>
