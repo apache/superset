@@ -350,6 +350,34 @@ test('URL prefix guard normalizes relative URL without leading slash and applies
   );
 });
 
+test('URL prefix guard normalizes non-slash URL to leading slash when no app root configured', async () => {
+  applicationRoot.mockReturnValue('');
+  makeUrl.mockImplementation((path: string) => path);
+
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: 'api/v1/sqllab/export_streaming/',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  // Should normalize to leading slash even without app root
+  expect(mockFetch).toHaveBeenCalledWith(
+    '/api/v1/sqllab/export_streaming/',
+    expect.any(Object),
+  );
+});
+
 test('URL prefix guard leaves absolute URLs (https) unchanged', async () => {
   const appRoot = '/superset';
   applicationRoot.mockReturnValue(appRoot);
