@@ -743,7 +743,7 @@ describe('ResultSet', () => {
       expectedUrl: '/my-app/superset/api/v1/sqllab/export_streaming/',
     },
   ])(
-    'streaming export URL should be correctly prefixed: $name',
+    'streaming export URL respects app root configuration: $name',
     async ({ appRoot, expectedUrl }) => {
       // This test validates that streaming export startExport receives the correct URL
       // based on the applicationRoot configuration.

@@ -32,6 +32,16 @@ interface StreamingExportPayload {
 }
 
 interface StreamingExportParams {
+  /**
+   * The API endpoint URL for the export request.
+   *
+   * URLs should be prefixed with the application root at the call site using
+   * `makeUrl()` from 'src/utils/pathUtils'. This ensures proper handling for
+   * subdirectory deployments (e.g., /superset/api/v1/...).
+   *
+   * A defensive guard (`ensureUrlPrefix`) will apply the prefix if missing,
+   * but callers should not rely on this fallback behavior.
+   */
   url: string;
   payload: StreamingExportPayload;
   filename?: string;
