@@ -64,7 +64,7 @@ class UpdateAsyncTaskCommand(BaseCommand):
         exceptions: list[ValidationError] = []
 
         # Validate/populate model exists - this applies base filter
-        self._model = AsyncTaskDAO.find_by_id(self._task_uuid)
+        self._model = AsyncTaskDAO.find_one_or_none(uuid=self._task_uuid)
         if not self._model:
             raise AsyncTaskNotFoundError()
 
