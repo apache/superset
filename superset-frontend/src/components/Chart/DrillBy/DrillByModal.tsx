@@ -368,7 +368,7 @@ export default function DrillByModal({
     delete updatedFormData.dashboards;
 
     if (
-      updatedFormData.viz_type == 'echarts_timeseries_bar' &&
+      updatedFormData.viz_type === 'echarts_timeseries_bar' &&
       drillByConfigs?.length
     ) {
       const column = drillByConfigs[drillByConfigs.length - 1]?.column;

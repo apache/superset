@@ -220,13 +220,11 @@ export default function EchartsTimeseries({
 
           const timeValue = data[0];
           const timeValueMs = typeof timeValue === 'number'
-              ? data[0]
+              ? timeValue
               : new Date(timeValue).getTime();
           const grainMs =
             TIMEGRAIN_TO_TIMESTAMP[formData.timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP] ??
             TIMEGRAIN_TO_TIMESTAMP[TimeGranularity.DAY];
-          const startTime = new Date(timeValueMs).toISOString();
-          const endTime = new Date(timeValueMs + grainMs).toISOString();
 
           drillToDetailFilters.push({
             col: xAxisColumn,
@@ -236,6 +234,8 @@ export default function EchartsTimeseries({
             formattedVal: xValueFormatter(timeValue),
           });
           if (!Number.isNaN(timeValueMs)) {
+            const startTime = new Date(timeValueMs).toISOString();
+            const endTime = new Date(timeValueMs + grainMs).toISOString();
             xAxisDrillByFilter = {
               col: xAxisColumn,
               op: 'TEMPORAL_RANGE',
@@ -243,13 +243,15 @@ export default function EchartsTimeseries({
               formattedVal: xValueFormatter(timeValue),
             };
           }
-        } else {
+        } else if (data && data[0] !== undefined && data[0] !== null) {
           xAxisDrillByFilter = {
             col: xAxis.label,
             op: '==',
             val: data[0],
             formattedVal: String(data[0]),
           }
+        } else {
+          xAxisDrillByFilter = undefined;
         }
         [
           ...(xAxis.type === AxisType.Category && data ? [xAxis.label] : []),
