@@ -253,12 +253,19 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const onShiftOptions = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      const newValues = [...values];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
-      setValues(newValues);
+      if (
+        dragIndex === hoverIndex ||
+        dragIndex < 0 ||
+        hoverIndex < 0 ||
+        dragIndex >= values.length ||
+        hoverIndex >= values.length
+      ) {
+        return;
+      }
+      const newValue = [...values];
+      const [moved] = newValue.splice(dragIndex, 1);
+      newValue.splice(hoverIndex, 0, moved);
+      setValues(newValue);
     },
     [values],
   );
