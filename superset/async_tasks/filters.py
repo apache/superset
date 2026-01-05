@@ -21,9 +21,10 @@ from typing import Any
 from sqlalchemy.orm.query import Query
 
 from superset.utils.core import get_user_id
+from superset.views.base import BaseFilter
 
 
-class AsyncTaskFilter:
+class AsyncTaskFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     Filter for AsyncTask that shows all tasks for admins,
     but only user-owned tasks for regular users.
