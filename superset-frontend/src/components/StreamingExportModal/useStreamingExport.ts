@@ -62,7 +62,13 @@ const ensureUrlPrefix = (url: string): string => {
   }
   // If URL already has the app root prefix, return as-is
   // Use strict check to avoid false positives with sibling paths (e.g., /app2 when appRoot is /app)
-  if (url === appRoot || url.startsWith(`${appRoot}/`)) {
+  // Also handle query strings and hashes (e.g., /superset?foo=1 or /superset#hash)
+  if (
+    url === appRoot ||
+    url.startsWith(`${appRoot}/`) ||
+    url.startsWith(`${appRoot}?`) ||
+    url.startsWith(`${appRoot}#`)
+  ) {
     return url;
   }
   // Apply prefix via makeUrl

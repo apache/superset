@@ -434,6 +434,64 @@ test('URL prefix guard correctly handles sibling paths (prefixes /app2 when appR
   );
 });
 
+test('URL prefix guard does not double-prefix URL with query string at app root', async () => {
+  const appRoot = '/superset';
+  applicationRoot.mockReturnValue(appRoot);
+  makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
+
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/superset?foo=1&bar=2',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  // Should NOT double-prefix to /superset/superset?foo=1&bar=2
+  expect(mockFetch).toHaveBeenCalledWith(
+    '/superset?foo=1&bar=2',
+    expect.any(Object),
+  );
+});
+
+test('URL prefix guard does not double-prefix URL with hash at app root', async () => {
+  const appRoot = '/superset';
+  applicationRoot.mockReturnValue(appRoot);
+  makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
+
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/superset#section',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  // Should NOT double-prefix to /superset/superset#section
+  expect(mockFetch).toHaveBeenCalledWith(
+    '/superset#section',
+    expect.any(Object),
+  );
+});
+
 // Streaming export behavior tests
 
 test('sets ERROR status and calls onError when stream contains __STREAM_ERROR__ marker', async () => {
