@@ -473,7 +473,9 @@ categories:
 
     - name: Cirrus Assessment
       url: https://cirrusassessment.com/
+      logo: cirrus.svg
       contributors: ["@jeroenhabets", "@ddmm-white", "@paulrocost"]
+
 
     - name: Open edX
       url: https://openedx.org/
