@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import math
 import threading
 import time
 from typing import Any, TYPE_CHECKING
@@ -193,10 +194,16 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         super().handle_cursor(cursor=cursor, query=query)
 
+        terminal_states = {"FINISHED", "FAILED", "CANCELED"}
         state = "QUEUED"
         progress = 0.0
         poll_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(cls.engine, 1)
-        while state != "FINISHED":
+        max_wait_time = app.config.get("SQLLAB_ASYNC_TIME_LIMIT_SEC", 21600)
+        start_time = time.time()
+        while state not in terminal_states:
+            if time.time() - start_time > max_wait_time:
+                logger.warning("Query %d: Progress polling timed out", query.id)
+                break
             # Check for errors raised in execute_thread
             if execute_result is not None and execute_result.get("error"):
                 break
@@ -221,8 +228,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             info = getattr(cursor, "stats", {}) or {}
             state = info.get("state", "UNKNOWN")
             completed_splits = float(info.get("completedSplits", 0))
-            total_splits = float(info.get("totalSplits", 1))
-            progress = (completed_splits / (total_splits or 1)) * 100
+            total_splits = float(info.get("totalSplits", 1) or 1)
+            progress = math.floor((completed_splits / (total_splits or 1)) * 100)
 
             if progress != query.progress:
                 query.progress = progress
