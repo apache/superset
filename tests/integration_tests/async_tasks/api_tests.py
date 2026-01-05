@@ -329,7 +329,7 @@ class TestAsyncTaskApi(SupersetTestCase):
 
         uri = f"api/v1/async_task/{task.id}/cancel"
         rv = self.client.post(uri)
-        assert rv.status_code == 403
+        assert rv.status_code == 404
 
         # Cleanup
         self._cleanup_tasks(tasks)
