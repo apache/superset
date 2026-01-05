@@ -60,6 +60,7 @@ export default function transformProps(chartProps: ChartProps) {
   } = chartProps;
   const {
     columns,
+    crossFilterColumn,
     geomColumn,
     geomFormat,
     layerConfigs,
@@ -86,6 +87,7 @@ export default function transformProps(chartProps: ChartProps) {
     data,
     emitCrossFilters,
     filterState,
+    crossFilterColumn,
     geomColumn,
     geomFormat,
     columns,

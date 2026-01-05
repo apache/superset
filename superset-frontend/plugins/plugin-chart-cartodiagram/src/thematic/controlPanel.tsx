@@ -116,6 +116,26 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'cross_filter_column',
+            config: {
+              type: 'SelectControl',
+              label: t('Cross-filter column'),
+              renderTrigger: false,
+              description: t(
+                'The attribute being used when performing cross-filtering.',
+              ),
+              mapStateToProps: state => ({
+                choices: state.datasource?.columns.map(c => [
+                  c.column_name,
+                  c.column_name,
+                ]),
+              }),
+              validators: [validateNonEmpty],
+            },
+          },
+        ],
+        [
+          {
             name: 'columns',
             config: columnsControl,
           },

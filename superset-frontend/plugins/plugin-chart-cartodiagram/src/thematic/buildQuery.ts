@@ -36,5 +36,11 @@ export default function buildQuery(formData: QueryFormData) {
   const formDataCopy = {
     ...formData,
   };
+
+  // Ensure the cross filter column is included in the query
+  const columnsSet = new Set(formDataCopy.columns || []);
+  columnsSet.add(formData.cross_filter_column);
+  formDataCopy.columns = Array.from(columnsSet);
+
   return buildQueryContext(formDataCopy);
 }

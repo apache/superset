@@ -44,6 +44,7 @@ export interface ThematicMapPluginStylesProps {
 interface ThematicMapPluginCustomizeProps {
   emitCrossFilters: boolean;
   filterState: FilterState;
+  crossFilterColumn: string;
   geomColumn: string;
   geomFormat: GeometryFormat;
   columns: string[];
