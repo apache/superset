@@ -62,9 +62,14 @@ const ensureUrlPrefix = (url: string): string => {
   if (url.startsWith('//')) {
     return url;
   }
-  // Only process relative URLs (starting with /)
-  if (!url.startsWith('/')) {
+  // Absolute URLs (http:// or https://) should pass through unchanged
+  if (url.match(/^https?:\/\//)) {
     return url;
+  }
+  // Relative URLs without leading slash (e.g., "api/v1/...") need normalization
+  // Add leading slash and apply prefix
+  if (!url.startsWith('/')) {
+    return makeUrl(`/${url}`);
   }
   // If no app root configured, return as-is
   if (!appRoot) {
@@ -109,7 +114,7 @@ const createFetchRequest = async (
     formParams.filename = filename;
   }
 
-  if (expectedRows) {
+  if (expectedRows !== undefined) {
     formParams.expected_rows = expectedRows.toString();
   }
 

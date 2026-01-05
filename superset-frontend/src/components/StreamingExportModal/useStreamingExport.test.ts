@@ -321,7 +321,7 @@ test('URL prefix guard leaves URL unchanged when no app root is configured', asy
   );
 });
 
-test('URL prefix guard leaves relative URL without leading slash unchanged', async () => {
+test('URL prefix guard normalizes relative URL without leading slash and applies prefix', async () => {
   const appRoot = '/superset';
   applicationRoot.mockReturnValue(appRoot);
   makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
@@ -343,8 +343,9 @@ test('URL prefix guard leaves relative URL without leading slash unchanged', asy
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
+  // Should add leading slash and apply prefix
   expect(mockFetch).toHaveBeenCalledWith(
-    'api/v1/sqllab/export_streaming/',
+    '/superset/api/v1/sqllab/export_streaming/',
     expect.any(Object),
   );
 });
