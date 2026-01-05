@@ -108,14 +108,15 @@ class AsyncTaskDAO(BaseDAO[AsyncTask]):
 
     @classmethod
     @transaction()
-    def cancel_task(cls, task_uuid: str) -> bool:
+    def cancel_task(cls, task_uuid: str, skip_base_filter: bool = False) -> bool:
         """
         Cancel a task by UUID.
 
         :param task_uuid: UUID of task to cancel
+        :param skip_base_filter: If True, skip base filter (for admin cancellations)
         :returns: True if task was cancelled, False if not found or already finished
         """
-        task = cls.find_one_or_none(uuid=task_uuid)
+        task = cls.find_one_or_none(skip_base_filter=skip_base_filter, uuid=task_uuid)
         if not task:
             return False
 

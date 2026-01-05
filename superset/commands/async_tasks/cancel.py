@@ -17,16 +17,14 @@
 import logging
 from functools import partial
 
-from superset import security_manager
+from superset_core.api.types import TaskStatus
+
 from superset.commands.async_tasks.exceptions import (
     AsyncTaskCancelFailedError,
-    AsyncTaskForbiddenError,
     AsyncTaskNotFoundError,
 )
 from superset.commands.base import BaseCommand
 from superset.daos.async_tasks import AsyncTaskDAO
-from superset.exceptions import SupersetSecurityException
-from superset.extensions import db
 from superset.models.async_tasks import AsyncTask
 from superset.utils.decorators import on_error, transaction
 
@@ -46,24 +44,21 @@ class CancelAsyncTaskCommand(BaseCommand):
         self.validate()
         assert self._model
 
-        # Cancel the task via DAO
-        success = AsyncTaskDAO.cancel_task(self._task_uuid)
-        if not success:
+        # Check if task can be cancelled
+        if self._model.status not in [
+            TaskStatus.PENDING.value,
+            TaskStatus.IN_PROGRESS.value,
+        ]:
             raise AsyncTaskCancelFailedError()
 
-        # Refresh and return the updated model
-        db.session.refresh(self._model)
+        self._model.set_status(TaskStatus.CANCELLED.value)
+
+        logger.info("Cancelled task: %s", self._task_uuid)
         return self._model
 
     def validate(self) -> None:
         """Validate command parameters."""
-        # Validate/populate model exists - this applies base filter
-        self._model = AsyncTaskDAO.find_by_id(self._task_uuid)
+        self._model = AsyncTaskDAO.find_one_or_none(uuid=self._task_uuid)
+
         if not self._model:
             raise AsyncTaskNotFoundError()
-
-        # Verify ownership via base filter (user can only cancel their own tasks)
-        try:
-            security_manager.raise_for_ownership(self._model)
-        except SupersetSecurityException as ex:
-            raise AsyncTaskForbiddenError() from ex
