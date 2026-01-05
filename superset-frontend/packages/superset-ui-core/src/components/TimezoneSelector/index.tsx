@@ -62,14 +62,6 @@ const offsetsToName: Record<string, [string, string]> = {
   '060': ['GMT Standard Time - London', 'British Summer Time'],
 };
 
-let cachedTimezoneOptions: TimezoneOption[] | null = null;
-let computePromise: Promise<TimezoneOption[]> | null = null;
-
-// Export function to check if options are cached (for parent components)
-export function areTimezoneOptionsCached(): boolean {
-  return cachedTimezoneOptions !== null;
-}
-
 function getOffsetKey(timezoneName: string): string {
   return (
     JANUARY_REF.tz(timezoneName).utcOffset().toString() +
@@ -88,63 +80,88 @@ function getTimezoneDisplayName(
   return namePair ? (isDSTActive ? namePair[1] : namePair[0]) : timezoneName;
 }
 
-function computeTimezoneOptions(): TimezoneOption[] {
-  const currentDate = extendedDayjs(new Date());
-  const allZones = Intl.supportedValuesOf('timeZone');
-  const seenLabels = new Set<string>();
-  const options: TimezoneOption[] = [];
+class TimezoneOptionsCache {
+  private cachedOptions: TimezoneOption[] | null = null;
 
-  for (const zone of allZones) {
-    const offsetKey = getOffsetKey(zone);
-    const displayName = getTimezoneDisplayName(zone, currentDate);
-    const offset = currentDate.tz(zone).format('Z');
-    const label = `GMT ${offset} (${displayName})`;
+  private computePromise: Promise<TimezoneOption[]> | null = null;
 
-    if (!seenLabels.has(label)) {
-      seenLabels.add(label);
-      options.push({
-        label,
-        value: zone,
-        offsets: offsetKey,
-        timezoneName: zone,
-      });
-    }
+  public isCached(): boolean {
+    return this.cachedOptions !== null;
   }
 
-  cachedTimezoneOptions = options;
-  return options;
+  public getOptions(): TimezoneOption[] | null {
+    return this.cachedOptions;
+  }
+
+  private computeOptions(): TimezoneOption[] {
+    const currentDate = extendedDayjs(new Date());
+    const allZones = Intl.supportedValuesOf('timeZone');
+    const seenLabels = new Set<string>();
+    const options: TimezoneOption[] = [];
+
+    for (const zone of allZones) {
+      const offsetKey = getOffsetKey(zone);
+      const displayName = getTimezoneDisplayName(zone, currentDate);
+      const offset = currentDate.tz(zone).format('Z');
+      const label = `GMT ${offset} (${displayName})`;
+
+      if (!seenLabels.has(label)) {
+        seenLabels.add(label);
+        options.push({
+          label,
+          value: zone,
+          offsets: offsetKey,
+          timezoneName: zone,
+        });
+      }
+    }
+
+    this.cachedOptions = options;
+    return options;
+  }
+
+  public getOptionsAsync(): Promise<TimezoneOption[]> {
+    if (this.cachedOptions) {
+      return Promise.resolve(this.cachedOptions);
+    }
+
+    if (this.computePromise) {
+      return this.computePromise;
+    }
+
+    // Use queueMicrotask for better performance than setTimeout(0)
+    // Falls back to setTimeout for older browsers
+    this.computePromise = new Promise<TimezoneOption[]>((resolve, reject) => {
+      const run = () => {
+        try {
+          const result = this.computeOptions();
+          resolve(result);
+        } catch (err) {
+          reject(err);
+        } finally {
+          this.computePromise = null;
+        }
+      };
+      if (typeof queueMicrotask === 'function') {
+        queueMicrotask(run);
+      } else {
+        setTimeout(run, 0);
+      }
+    });
+
+    return this.computePromise;
+  }
+}
+
+const timezoneCache = new TimezoneOptionsCache();
+
+// Export function to check if options are cached (for parent components)
+export function areTimezoneOptionsCached(): boolean {
+  return timezoneCache.isCached();
 }
 
 function getTimezoneOptionsAsync(): Promise<TimezoneOption[]> {
-  if (cachedTimezoneOptions) {
-    return Promise.resolve(cachedTimezoneOptions);
-  }
-
-  if (computePromise) {
-    return computePromise;
-  }
-
-  // Use queueMicrotask for better performance than setTimeout(0)
-  // Falls back to setTimeout for older browsers
-  computePromise = new Promise<TimezoneOption[]>((resolve, reject) => {
-    const run = () => {
-      try {
-        const result = computeTimezoneOptions();
-        resolve(result);
-      } catch (err) {
-        reject(err);
-      } finally {
-        computePromise = null;
-      }
-    };
-    if (typeof queueMicrotask === 'function') {
-      queueMicrotask(run);
-    } else {
-      setTimeout(run, 0);
-    }
-  });
-
-  return computePromise;
+  return timezoneCache.getOptionsAsync();
 }
 
 function findMatchingTimezone(
@@ -179,7 +196,7 @@ export default function TimezoneSelector({
 }: TimezoneSelectorProps) {
   const [timezoneOptions, setTimezoneOptions] = useState<
     TimezoneOption[] | null
-  >(cachedTimezoneOptions);
+  >(timezoneCache.getOptions());
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const hasSetDefaultRef = useRef(false);
 
@@ -189,8 +206,6 @@ export default function TimezoneSelector({
         setIsLoadingOptions(true);
         getTimezoneOptionsAsync()
           .then(options => {
-            // Cache options at module level for future instances
-            cachedTimezoneOptions = options;
             setTimezoneOptions(options);
           })
           .finally(() => setIsLoadingOptions(false));
@@ -229,8 +244,6 @@ export default function TimezoneSelector({
 
     getTimezoneOptionsAsync()
       .then(options => {
-        // Cache options at module level for future instances
-        cachedTimezoneOptions = options;
         setTimezoneOptions(options);
 
         // Set default value if no timezone is provided and we haven't set it yet
