@@ -366,12 +366,35 @@ export default function DrillByModal({
     updatedFormData.slice_id = 0;
     delete updatedFormData.slice_name;
     delete updatedFormData.dashboards;
+
+    if (
+      updatedFormData.viz_type == 'echarts_timeseries_bar' &&
+      drillByConfigs?.length
+    ) {
+      const column = drillByConfigs[drillByConfigs.length - 1]?.column;
+      if (column?.column_name) {
+        updatedFormData.x_axis = column.column_name;
+        updatedFormData.groupby = [
+          {
+            sqlExpression: column.column_name,
+            expressionType: 'SQL',
+            optionName: column.column_name + ' (label)',
+            hasCustomLabel: true,
+            label: column.column_name + ' (label)',
+            isColumnReference: true,
+          },
+        ];
+        updatedFormData.xAxisForceCategorical = true;
+      }
+    }
+
     return updatedFormData;
   }, [
     currentFormData,
     currentColumn,
     groupbyFieldName,
     getFiltersFromConfigsByFieldName,
+    drillByConfigs,
     getNewGroupby,
     formData,
   ]);
