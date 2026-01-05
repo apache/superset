@@ -35,6 +35,7 @@ export const DEFAULT_POINT_RADIUS = 60;
 const DEFAULT_DIMENSION = 400;
 const VIEWPORT_BUFFER_MULTIPLIER = 0.5;
 const VIEWPORT_BUFFER_DIVISOR = 100;
+const TICK = 250;
 
 interface Viewport {
   longitude: number;
@@ -64,6 +65,7 @@ interface MapBoxState {
   viewport: Viewport;
   clusters: Location[];
   isMapLoaded: boolean;
+  lastUpdate: number | null;
 }
 
 const defaultProps: Partial<MapBoxProps> = {
@@ -79,6 +81,8 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
   static defaultProps = defaultProps;
 
   private lastZoom: number;
+
+  private tickTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(props: MapBoxProps) {
     super(props);
@@ -97,9 +101,29 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
       viewport,
       clusters: this.computeClusters(clusterer, bounds, width, height, zoom),
       isMapLoaded: false,
+      lastUpdate: null,
     };
     this.handleViewportChange = this.handleViewportChange.bind(this);
     this.handleMapLoad = this.handleMapLoad.bind(this);
+    this.tick = this.tick.bind(this);
+  }
+
+  componentDidMount() {
+    this.tickTimer = setInterval(this.tick, TICK);
+  }
+
+  componentWillUnmount() {
+    if (this.tickTimer) {
+      clearInterval(this.tickTimer);
+    }
+  }
+
+  tick() {
+    const { lastUpdate, viewport } = this.state;
+    if (lastUpdate && Date.now() - lastUpdate > TICK) {
+      this.props.onViewportChange?.(viewport);
+      this.setState({ lastUpdate: null });
+    }
   }
 
   componentDidUpdate(prevProps: MapBoxProps, prevState: MapBoxState) {
@@ -192,8 +216,7 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     }
 
     const viewport: Viewport = { latitude, longitude, zoom };
-    this.setState({ viewport });
-    this.props.onViewportChange?.(viewport);
+    this.setState({ viewport, lastUpdate: Date.now() });
   }
 
   handleMapLoad() {
