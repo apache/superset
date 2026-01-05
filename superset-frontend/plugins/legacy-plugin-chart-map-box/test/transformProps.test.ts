@@ -21,7 +21,14 @@ import { ChartProps, DatasourceType } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import transformProps, { FormData } from '../src/transformProps';
 
-jest.mock('supercluster');
+jest.mock('supercluster', () => ({
+  __esModule: true,
+  default: class Supercluster {
+    load() {
+      return this;
+    }
+  },
+}));
 
 const createMockChartProps = (
   overrides: Partial<ChartProps<FormData>> = {},
@@ -144,7 +151,7 @@ test('handles RGB color without spaces', () => {
   expect(result.rgb).toEqual([255, 128, 64, 255]);
 });
 
-test('calls onError and returns empty object for invalid RGB format', () => {
+test('calls onError and returns default values for invalid RGB format', () => {
   const onError = jest.fn();
   const props = createMockChartProps({
     hooks: {
@@ -161,7 +168,9 @@ test('calls onError and returns empty object for invalid RGB format', () => {
   expect(onError).toHaveBeenCalledWith(
     "Color field must be of form 'rgb(%d, %d, %d)'",
   );
-  expect(result).toEqual({});
+  expect(result.rgb).toEqual([128, 128, 128, 255]);
+  expect(result.clusterer).toBeDefined();
+  expect(result.hasCustomMetric).toBe(false);
 });
 
 test('calls onError for hex color format', () => {
@@ -181,7 +190,9 @@ test('calls onError for hex color format', () => {
   expect(onError).toHaveBeenCalledWith(
     "Color field must be of form 'rgb(%d, %d, %d)'",
   );
-  expect(result).toEqual({});
+  expect(result.rgb).toEqual([128, 128, 128, 255]);
+  expect(result.clusterer).toBeDefined();
+  expect(result.hasCustomMetric).toBe(false);
 });
 
 test('calls onError for rgba format', () => {
@@ -201,7 +212,9 @@ test('calls onError for rgba format', () => {
   expect(onError).toHaveBeenCalledWith(
     "Color field must be of form 'rgb(%d, %d, %d)'",
   );
-  expect(result).toEqual({});
+  expect(result.rgb).toEqual([128, 128, 128, 255]);
+  expect(result.clusterer).toBeDefined();
+  expect(result.hasCustomMetric).toBe(false);
 });
 
 test('returns clusterer with custom metric options when hasCustomMetric is true', () => {

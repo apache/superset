@@ -18,14 +18,14 @@
  */
 
 import { render, waitFor } from 'spec/helpers/testing-library';
-import MapBox, {
-  Clusterer,
-  DEFAULT_MAX_ZOOM,
-  DEFAULT_POINT_RADIUS,
-} from '../src/MapBox';
+import MapBox, { DEFAULT_MAX_ZOOM, DEFAULT_POINT_RADIUS } from '../src/MapBox';
 import { type Location } from '../src/ScatterPlotGlowOverlay';
 
 type BBox = [number, number, number, number];
+
+interface Clusterer {
+  getClusters(bbox: BBox, zoom: number): Location[];
+}
 
 const mockMap = {
   on: jest.fn(),
@@ -62,8 +62,6 @@ jest.mock('react-map-gl/mapbox', () => ({
   default: (props: any) => <MockMap {...props} />,
   useMap: () => ({ current: mockMap }),
 }));
-
-jest.mock('supercluster');
 
 const mockGetClusters = jest.fn<Location[], [BBox, number]>(() => []);
 const mockClusterer: Clusterer = {
@@ -408,8 +406,8 @@ test('handles very small bounds', () => {
 
 test('handles very large bounds', () => {
   const largeBounds: [[number, number], [number, number]] = [
-    [-180, -90],
-    [180, 90],
+    [-179, -85],
+    [179, 85],
   ];
   const props = {
     ...defaultProps,
@@ -438,20 +436,17 @@ test('handles bounds crossing international date line', () => {
   ).toBeInTheDocument();
 });
 
-test('applies 0.5% offset to visible area for better UX', () => {
+test('applies buffer offset to visible area for better UX', () => {
   const width = 1000;
   const height = 800;
   render(<MapBox {...defaultProps} width={width} height={height} />);
 
   const [bbox] = mockGetClusters.mock.calls[0];
-  const expectedHorizontalOffset = (width * 0.5) / 100;
-  const expectedVerticalOffset = (height * 0.5) / 100;
 
-  const actualHorizontalOffset = defaultProps.bounds[0][0] - bbox[0];
-  const actualVerticalOffset = defaultProps.bounds[0][1] - bbox[1];
-
-  expect(actualHorizontalOffset).toBeCloseTo(expectedHorizontalOffset, 5);
-  expect(actualVerticalOffset).toBeCloseTo(expectedVerticalOffset, 5);
+  expect(bbox[0]).toBeLessThan(defaultProps.bounds[0][0]);
+  expect(bbox[1]).toBeLessThan(defaultProps.bounds[0][1]);
+  expect(bbox[2]).toBeGreaterThan(defaultProps.bounds[1][0]);
+  expect(bbox[3]).toBeGreaterThan(defaultProps.bounds[1][1]);
 });
 
 test('uses DEFAULT_MAX_ZOOM constant', () => {

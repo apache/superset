@@ -204,7 +204,9 @@ export default function transformProps(
       setControlValue('viewport_zoom', zoom);
     },
     pointRadius:
-      pointRadius === 'Auto' ? DEFAULT_POINT_RADIUS : Number(pointRadius),
+      pointRadius === 'Auto' || !Number.isFinite(Number(pointRadius))
+        ? DEFAULT_POINT_RADIUS
+        : Number(pointRadius),
     pointRadiusUnit,
     renderWhileDragging,
     rgb,
