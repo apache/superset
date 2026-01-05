@@ -75,6 +75,7 @@ const basicQueryResult: ChartDataResponseResult = {
   cache_key: null,
   cached_dttm: null,
   cache_timeout: null,
+   queried_dttm: null,
   data: [],
   colnames: [],
   coltypes: [],

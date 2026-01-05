@@ -50,6 +50,7 @@ import {
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
+import LastQueriedLabel from '../../../../components/LastQueriedLabel';
 import {
   addDangerToast,
   addSuccessToast,
@@ -600,6 +601,8 @@ const Chart = props => {
   const cachedDttm =
     // eslint-disable-next-line camelcase
     queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
+  // eslint-disable-next-line camelcase
+  const queriedDttm = queriesResponse?.[0]?.queried_dttm ?? null;
 
   return (
     <SliceContainer
@@ -716,6 +719,10 @@ const Chart = props => {
           onChartStateChange={handleChartStateChange}
         />
       </ChartWrapper>
+
+      {!isLoading && queriedDttm && (
+        <LastQueriedLabel queriedDttm={queriedDttm} />
+      )}
 
       <StreamingExportModal
         visible={isStreamingModalVisible}
