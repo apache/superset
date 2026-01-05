@@ -98,7 +98,7 @@ const TitleRight = styled.span`
     font-weight: 400;
     bottom: ${theme.sizeUnit * 3}px;
     right: ${theme.sizeUnit * 2}px;
-    max-width: 120px;
+    max-width: ${theme.sizeUnit * 15}px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
