@@ -227,7 +227,8 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
     ctx.textBaseline = 'middle';
     if (shadow) {
       ctx.shadowBlur = 15;
-      ctx.shadowColor = luminance <= LUMINANCE_THRESHOLD_DARK ? 'black' : 'transparent';
+      ctx.shadowColor =
+        luminance <= LUMINANCE_THRESHOLD_DARK ? 'black' : 'transparent';
     }
 
     const textWidth = ctx.measureText(String(label)).width;
@@ -293,7 +294,9 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
       }
     });
 
-    const validLabels = clusterLabelMap.filter(v => Number.isFinite(v) && v > 0);
+    const validLabels = clusterLabelMap.filter(
+      v => Number.isFinite(v) && v > 0,
+    );
     const maxLabel = validLabels.length > 0 ? Math.max(...validLabels) : 1;
 
     ctx.clearRect(0, 0, width, height);
