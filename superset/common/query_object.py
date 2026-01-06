@@ -46,7 +46,7 @@ from superset.utils.core import (
     is_adhoc_metric,
     QueryObjectFilterClause,
 )
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
@@ -436,7 +436,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         if self.time_range:
             cache_dict["time_range"] = self.time_range
         if self.post_processing:
-            cache_dict["post_processing"] = self.post_processing
+            # Exclude contribution_totals from post_processing as it's computed at
+            # runtime and varies per request, which would cause cache key mismatches
+            post_processing_for_cache = []
+            for pp in self.post_processing:
+                pp_copy = dict(pp)
+                if pp_copy.get("operation") == "contribution" and "options" in pp_copy:
+                    options = dict(pp_copy["options"])
+                    # Remove contribution_totals as it's dynamically calculated
+                    options.pop("contribution_totals", None)
+                    pp_copy["options"] = options
+                post_processing_for_cache.append(pp_copy)
+            cache_dict["post_processing"] = post_processing_for_cache
         if self.time_offsets:
             cache_dict["time_offsets"] = self.time_offsets
 
@@ -488,7 +499,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             # datasource or database do not exist
             pass
 
-        cache_key = md5_sha_from_dict(
+        cache_key = hash_from_dict(
             cache_dict, default=json_int_dttm_ser, ignore_nan=True
         )
         # Log QueryObject cache key generation for debugging

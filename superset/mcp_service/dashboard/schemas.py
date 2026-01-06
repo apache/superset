@@ -73,6 +73,7 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
+    model_serializer,
     model_validator,
     PositiveInt,
 )
@@ -286,8 +287,8 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
 
 class DashboardInfo(BaseModel):
-    id: int = Field(..., description="Dashboard ID")
-    dashboard_title: str = Field(..., description="Dashboard title")
+    id: int | None = Field(None, description="Dashboard ID")
+    dashboard_title: str | None = Field(None, description="Dashboard title")
     slug: str | None = Field(None, description="Dashboard slug")
     description: str | None = Field(None, description="Dashboard description")
     css: str | None = Field(None, description="Custom CSS for the dashboard")
@@ -327,6 +328,26 @@ class DashboardInfo(BaseModel):
         default_factory=list, description="Dashboard charts"
     )
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+
+    @model_serializer(mode="wrap", when_used="json")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Filter fields based on serialization context.
+
+        If context contains 'select_columns', only include those fields.
+        Otherwise, include all fields (default behavior).
+        """
+        # Get full serialization
+        data = serializer(self)
+
+        # Check if we have a context with select_columns
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                # Filter to only requested fields
+                return {k: v for k, v in data.items() if k in select_columns}
+
+        # No filtering - return all fields
+        return data
 
 
 class DashboardList(BaseModel):

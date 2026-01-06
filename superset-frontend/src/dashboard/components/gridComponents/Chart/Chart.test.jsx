@@ -21,6 +21,7 @@ import { FeatureFlag, VizType } from '@superset-ui/core';
 import * as redux from 'redux';
 
 import * as exploreUtils from 'src/explore/exploreUtils';
+import * as chartStateConverter from '../../../util/chartStateConverter';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
@@ -114,6 +115,10 @@ beforeAll(() => {
     setFocusedFilterField,
     unsetFocusedFilterField,
   }));
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
 });
 
 test('should render a SliceHeader', () => {
@@ -295,5 +300,124 @@ test('should re-render when cacheBusterProp changes', () => {
   expect(getByTestId('chart-container')).toBeInTheDocument();
 
   rerender(<Chart {...props} isComponentVisible cacheBusterProp="v2" />);
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should handle chart state conversion when converter exists', () => {
+  const mockChartState = { sortColumn: 'column1', sortOrder: 'asc' };
+  const mockConvertedState = { sort: [{ columnId: 'column1', order: 'asc' }] };
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      dashboardState: {
+        ...defaultState.dashboardState,
+        chartStates: {
+          [queryId]: { state: mockChartState },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+  expect(chartStateConverter.hasChartStateConverter).toHaveBeenCalledWith(
+    VizType.Table,
+  );
+});
+
+test('should fallback to formData state when runtime state not available', () => {
+  const mockFormDataState = { sortColumn: 'column2', sortOrder: 'desc' };
+  const mockConvertedState = { sort: [{ columnId: 'column2', order: 'desc' }] };
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: {
+            ...defaultState.charts[queryId].form_data,
+            table_state: mockFormDataState,
+          },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should handle chart state when no converter exists', () => {
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(false);
+  jest.spyOn(chartStateConverter, 'convertChartStateToOwnState');
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      dashboardState: {
+        ...defaultState.dashboardState,
+        chartStates: {
+          [queryId]: { state: { someState: 'value' } },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+  expect(
+    chartStateConverter.convertChartStateToOwnState,
+  ).not.toHaveBeenCalled();
+});
+
+test('should merge base ownState with converted chart state', () => {
+  const baseOwnState = { existingProp: 'value' };
+  const mockChartState = { sortColumn: 'column1', sortOrder: 'asc' };
+  const mockConvertedState = { sort: [{ columnId: 'column1', order: 'asc' }] };
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      dataMask: {
+        [queryId]: {
+          ownState: baseOwnState,
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        chartStates: {
+          [queryId]: { state: mockChartState },
+        },
+      },
+    },
+  );
+
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });

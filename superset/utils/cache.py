@@ -31,14 +31,14 @@ from superset import db
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
 
 logger = logging.getLogger(__name__)
 
 
 def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str:
-    hash_str = md5_sha_from_dict(values_dict, default=json_int_dttm_ser)
+    hash_str = hash_from_dict(values_dict, default=json_int_dttm_ser)
     cache_key = f"{key_prefix}{hash_str}"
 
     if logger.isEnabledFor(logging.DEBUG):
@@ -104,8 +104,6 @@ def set_and_log_cache(
 # resource? Flask-Caching will cache forever, but for the HTTP header we need
 # to specify a "far future" date.
 ONE_YEAR = 365 * 24 * 60 * 60  # 1 year in seconds
-
-logger = logging.getLogger(__name__)
 
 
 def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[..., Any]:

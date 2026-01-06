@@ -294,6 +294,14 @@ Check this by attempting to `curl` the URL of a report that you see in the error
 
 In a deployment with authentication measures enabled like HTTPS and Single Sign-On, it may make sense to have the worker navigate directly to the Superset application running in the same location, avoiding the need to sign in.  For instance, you could use `WEBDRIVER_BASEURL="http://superset_app:8088"` for a docker compose deployment, and set `"force_https": False,` in your `TALISMAN_CONFIG`.
 
+### Duplicate report deliveries
+
+In some deployment configurations a scheduled report can be delivered more than once around its planned time. This typically happens when more than one process is responsible for running the alerts & reports schedule (for example, multiple schedulers or Celery beat instances). To avoid duplicate emails or notifications:
+
+- Ensure that only a **single scheduler/beat process** is configured to trigger alerts and reports for a given environment.
+- If you run **multiple Celery workers**, verify that there is still only one component responsible for scheduling the report tasks (workers should execute tasks, not schedule them independently).
+- Review your deployment/orchestration setup (for example systemd, Docker, or Kubernetes) to make sure the alerts & reports scheduler is **not started from multiple places by accident**.
+
 ## Scheduling Queries as Reports
 
 You can optionally allow your users to schedule queries directly in SQL Lab. This is done by adding

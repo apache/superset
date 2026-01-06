@@ -23,7 +23,7 @@ from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 
-from superset import db, is_feature_enabled
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseExistsValidationError,
@@ -32,15 +32,8 @@ from superset.commands.database.exceptions import (
     DatabaseUpdateFailedError,
     MissingOAuth2TokenError,
 )
-from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
-from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
-from superset.commands.database.ssh_tunnel.exceptions import (
-    SSHTunnelingNotEnabledError,
-)
-from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.daos.database import DatabaseDAO
-from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.utils import json
@@ -95,7 +88,7 @@ class UpdateDatabaseCommand(BaseCommand):
         # build new DB
         database = DatabaseDAO.update(self._model, self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
-        ssh_tunnel = self._handle_ssh_tunnel(database)
+
         new_catalog = database.get_default_catalog()
 
         # update assets when the database catalog changes, if the database was not
@@ -118,7 +111,6 @@ class UpdateDatabaseCommand(BaseCommand):
                 current_username,
                 old_db_connection_name=original_database_name,
                 db_connection=database,
-                ssh_tunnel=ssh_tunnel,
             ).run()
         except (OAuth2RedirectError, MissingOAuth2TokenError):
             pass
@@ -157,32 +149,6 @@ class UpdateDatabaseCommand(BaseCommand):
             if current_config.get(key) != new_config.get(key):
                 self._model.purge_oauth2_tokens()
                 break
-
-    def _handle_ssh_tunnel(self, database: Database) -> SSHTunnel | None:
-        """
-        Delete, create, or update an SSH tunnel.
-        """
-        if "ssh_tunnel" not in self._properties:
-            return None
-
-        if not is_feature_enabled("SSH_TUNNELING"):
-            raise SSHTunnelingNotEnabledError()
-
-        current_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
-        ssh_tunnel_properties = self._properties["ssh_tunnel"]
-
-        if ssh_tunnel_properties is None:
-            if current_ssh_tunnel:
-                DeleteSSHTunnelCommand(current_ssh_tunnel.id).run()
-            return None
-
-        if current_ssh_tunnel is None:
-            return CreateSSHTunnelCommand(database, ssh_tunnel_properties).run()
-
-        return UpdateSSHTunnelCommand(
-            current_ssh_tunnel.id,
-            ssh_tunnel_properties,
-        ).run()
 
     def _update_catalog_attribute(
         self,

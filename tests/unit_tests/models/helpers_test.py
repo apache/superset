@@ -1522,6 +1522,68 @@ def test_adhoc_column_to_sqla_with_temporal_column_types(database: Database) -> 
         assert "time_col" in result_str
 
 
+def test_get_temporal_column_for_filter() -> None:
+    """Test _get_temporal_column_for_filter method with multiple strategies."""
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.utils.core import FilterOperator
+
+    # Create a mock SqlaTable with columns
+    table = SqlaTable()
+    # Test Strategy 1: Use column from existing TEMPORAL_RANGE filter
+    query_object = QueryObject(
+        datasource=table,
+        filters=[
+            {
+                "col": "date_column",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-12-31",
+            }
+        ],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result == "date_column"
+
+    # Test Strategy 1 with dict column (sqlExpression)
+    query_object = QueryObject(
+        datasource=table,
+        filters=[
+            {
+                "col": {"label": "custom_date", "sqlExpression": "DATE(created_at)"},
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-12-31",
+            }
+        ],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result == "custom_date"
+
+    # Test Strategy 2: Use explicitly set granularity
+    query_object = QueryObject(
+        datasource=table,
+        granularity="created_at",
+        filters=[],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result == "created_at"
+
+    # Test Strategy 3: Use x_axis_label if it exists
+    query_object = QueryObject(
+        datasource=table,
+        filters=[],
+    )
+    result = table._get_temporal_column_for_filter(query_object, "timestamp_col")
+    assert result == "timestamp_col"
+
+    # Test no temporal column found
+    query_object = QueryObject(
+        datasource=table,
+        filters=[],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result is None
+
+
 def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> None:
     """
     Test that column names with spaces are properly quoted in the generated SQL.

@@ -37,15 +37,15 @@ export const LocationProvider: FC = ({ children }: { children: ReactNode }) => {
     return <Provider value={location.state}>{children}</Provider>;
   }
   const queryParams = new URLSearchParams(location.search);
-  if (queryParams.size > 0) {
-    const dbid = queryParams.get('dbid');
-    const sql = queryParams.get('sql');
-    const name = queryParams.get('name');
-    const schema = queryParams.get('schema');
+  const permalink = location.pathname.match(/\/p\/\w+/)?.[0].slice(3);
+  if (queryParams.size > 0 || permalink) {
     const autorun = queryParams.get('autorun') === 'true';
-
     const queryParamsState = {
-      requestedQuery: { dbid, sql, name, schema, autorun },
+      requestedQuery: {
+        ...Object.fromEntries(queryParams),
+        autorun,
+        permalink,
+      },
       isDataset: true,
     } as LocationState;
     return <Provider value={queryParamsState}>{children}</Provider>;

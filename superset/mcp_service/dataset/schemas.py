@@ -24,7 +24,14 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    model_serializer,
+    model_validator,
+    PositiveInt,
+)
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
@@ -155,6 +162,31 @@ class DatasetInfo(BaseModel):
         ser_json_timedelta="iso8601",
         populate_by_name=True,  # Allow both 'schema' (alias) and 'schema_name' (field)
     )
+
+    @model_serializer(mode="wrap", when_used="json")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Filter fields based on serialization context.
+
+        If context contains 'select_columns', only include those fields.
+        Otherwise, include all fields (default behavior).
+        """
+        # Get full serialization
+        data = serializer(self)
+
+        # Check if we have a context with select_columns
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                # Handle alias: 'schema' -> 'schema_name'
+                requested_fields = set(select_columns)
+                if "schema" in requested_fields:
+                    requested_fields.add("schema_name")
+
+                # Filter to only requested fields
+                return {k: v for k, v in data.items() if k in requested_fields}
+
+        # No filtering - return all fields
+        return data
 
 
 class DatasetList(BaseModel):

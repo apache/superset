@@ -33,6 +33,9 @@ import * as exploreUtils from 'src/explore/exploreUtils';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import ExploreHeader from '.';
+import { getChartMetadataRegistry } from '@superset-ui/core';
+import fs from 'fs';
+import path from 'path';
 
 const chartEndpoint = 'glob:*api/v1/chart/*';
 
@@ -45,6 +48,13 @@ window.featureFlags = {
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
   useUnsavedChangesPrompt: jest.fn(),
 }));
+
+const mockExportCurrentViewBehavior = () => {
+  const registry = getChartMetadataRegistry();
+  return jest.spyOn(registry, 'get').mockReturnValue({
+    behaviors: ['EXPORT_CURRENT_VIEW'],
+  } as any);
+};
 
 const createProps = (additionalProps = {}) => ({
   chart: {
@@ -65,6 +75,7 @@ const createProps = (additionalProps = {}) => ({
       link_length: '25',
       x_axis_label: 'age',
       y_axis_label: 'count',
+      server_pagination: false as any,
     },
     chartStatus: 'rendered',
   },
@@ -407,7 +418,7 @@ describe('Additional actions tests', () => {
     expect(
       await screen.findByText('Edit chart properties'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Download')).toBeInTheDocument();
+    expect(screen.getByText('Data Export Options')).toBeInTheDocument();
     expect(screen.getByText('Share')).toBeInTheDocument();
     expect(screen.getByText('View query')).toBeInTheDocument();
     expect(screen.getByText('Run in SQL Lab')).toBeInTheDocument();
@@ -418,7 +429,7 @@ describe('Additional actions tests', () => {
     expect(screen.queryByText('Manage email report')).not.toBeInTheDocument();
   });
 
-  test('Should open download submenu', async () => {
+  test('Should open all data download submenu', async () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
@@ -426,15 +437,45 @@ describe('Additional actions tests', () => {
 
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
 
-    expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
-    expect(screen.queryByText('Export to .JSON')).not.toBeInTheDocument();
-    expect(screen.queryByText('Download as image')).not.toBeInTheDocument();
+    userEvent.hover(await screen.findByText('Data Export Options'));
+    userEvent.hover(await screen.findByText('Export All Data'));
 
-    expect(screen.getByText('Download')).toBeInTheDocument();
-    userEvent.hover(screen.getByText('Download'));
     expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
     expect(await screen.findByText('Export to .JSON')).toBeInTheDocument();
-    expect(await screen.findByText('Download as image')).toBeInTheDocument();
+    expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Export screenshot (jpeg)'),
+    ).toBeInTheDocument();
+  });
+
+  test('Should open current view data download submenu', async () => {
+    const props = createProps();
+    props.chart.latestQueryFormData.viz_type = VizType.Table;
+
+    // Force-enable EXPORT_CURRENT_VIEW for this viz in this test
+    const registry = getChartMetadataRegistry();
+    const getSpy = jest.spyOn(registry, 'get').mockReturnValue({
+      behaviors: ['EXPORT_CURRENT_VIEW'],
+    } as any);
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    userEvent.hover(await screen.findByText('Data Export Options'));
+
+    // Now the submenu should exist
+    userEvent.hover(await screen.findByText('Export Current View'));
+
+    expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
+    expect(await screen.findByText('Export to .JSON')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Export to (Excel|\.XLSX)/i),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText('Export screenshot (jpeg)'),
+    ).toBeInTheDocument();
+
+    getSpy.mockRestore();
   });
 
   test('Should open share submenu', async () => {
@@ -508,7 +549,7 @@ describe('Additional actions tests', () => {
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('Download', () => {
+  describe('Export All Data', () => {
     let spyDownloadAsImage = sinon.spy();
     let spyExportChart = sinon.spy();
 
@@ -532,28 +573,23 @@ describe('Additional actions tests', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
     });
 
-    test('Should call downloadAsImage when click on "Download as image"', async () => {
+    test('Should call downloadAsImage when click on "Export screenshot (jpeg)"', async () => {
       const props = createProps();
-      const spy = jest.spyOn(downloadAsImage, 'default');
       render(<ExploreHeader {...props} />, {
         useRedux: true,
       });
 
-      await waitFor(() => {
-        expect(
-          screen.getByLabelText('Menu actions trigger'),
-        ).toBeInTheDocument();
-      });
-
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
 
-      const downloadAsImageElement =
-        await screen.findByText('Download as image');
+      const downloadAsImageElement = await screen.findByText(
+        'Export screenshot (jpeg)',
+      );
       userEvent.click(downloadAsImageElement);
 
       await waitFor(() => {
-        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spyDownloadAsImage.callCount).toBe(1);
       });
     });
 
@@ -563,7 +599,8 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText('Export to .CSV');
       userEvent.click(exportCSVElement);
       expect(spyExportChart.callCount).toBe(0);
@@ -578,7 +615,8 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText('Export to .CSV');
       userEvent.click(exportCSVElement);
       expect(spyExportChart.callCount).toBe(1);
@@ -591,7 +629,8 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportJsonElement = await screen.findByText('Export to .JSON');
       userEvent.click(exportJsonElement);
       expect(spyExportChart.callCount).toBe(0);
@@ -606,7 +645,8 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportJsonElement = await screen.findByText('Export to .JSON');
       userEvent.click(exportJsonElement);
       expect(spyExportChart.callCount).toBe(1);
@@ -620,7 +660,8 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText(
         'Export to pivoted .CSV',
       );
@@ -637,7 +678,8 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText(
         'Export to pivoted .CSV',
       );
@@ -651,7 +693,8 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportExcelElement = await screen.findByText('Export to Excel');
       userEvent.click(exportExcelElement);
       expect(spyExportChart.callCount).toBe(0);
@@ -665,10 +708,272 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportExcelElement = await screen.findByText('Export to Excel');
       userEvent.click(exportExcelElement);
       expect(spyExportChart.callCount).toBe(1);
+    });
+  });
+
+  describe('Current View', () => {
+    let spyDownloadAsImage = sinon.spy();
+    let spyExportChart = sinon.spy();
+
+    let originalURL: typeof URL;
+    let anchorClickSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+      originalURL = global.URL;
+
+      // Replace global.URL with a version that has the blob helpers
+      const mockedURL = {
+        ...originalURL,
+        createObjectURL: jest.fn(() => 'blob:mock-url'),
+        revokeObjectURL: jest.fn(),
+      } as unknown as typeof URL;
+
+      Object.defineProperty(global, 'URL', {
+        writable: true,
+        value: mockedURL,
+      });
+
+      // Avoid jsdom navigation side-effects on <a>.click()
+      anchorClickSpy = jest
+        .spyOn(HTMLAnchorElement.prototype, 'click')
+        .mockImplementation(() => {});
+    });
+
+    afterAll(() => {
+      // restore URL
+      Object.defineProperty(global, 'URL', {
+        writable: true,
+        value: originalURL,
+      });
+      anchorClickSpy.mockRestore();
+    });
+
+    beforeEach(() => {
+      spyDownloadAsImage = sinon.spy(downloadAsImage, 'default');
+      spyExportChart = sinon.spy(exploreUtils, 'exportChart');
+
+      (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+        showModal: false,
+        setShowModal: jest.fn(),
+        handleConfirmNavigation: jest.fn(),
+        handleSaveAndCloseModal: jest.fn(),
+        triggerManualSave: jest.fn(),
+      });
+    });
+
+    afterEach(async () => {
+      spyDownloadAsImage.restore();
+      spyExportChart.restore();
+      await new Promise(r => setTimeout(r, 0));
+    });
+
+    test('Screenshot (Current View) calls downloadAsImage', async () => {
+      const props = createProps();
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+
+      const getSpy = mockExportCurrentViewBehavior();
+
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      // clear previous calls on the sinon spy you created in beforeEach
+      spyDownloadAsImage.resetHistory();
+
+      const item = await screen.findByText('Export screenshot (jpeg)');
+      userEvent.click(item);
+
+      await waitFor(() => {
+        expect(spyDownloadAsImage.called).toBe(true);
+      });
+
+      getSpy.mockRestore();
+    });
+
+    test('CSV (Current View) uses client-side export when pagination disabled & clientView present', async () => {
+      const props = createProps({
+        ownState: {
+          clientView: {
+            columns: [
+              { key: 'a', label: 'A' },
+              { key: 'b', label: 'B' },
+            ],
+            rows: [
+              { a: 1, b: 'x' },
+              { a: 2, b: 'y' },
+            ],
+          },
+        },
+      });
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = false;
+
+      const getSpy = mockExportCurrentViewBehavior();
+
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      spyExportChart.resetHistory();
+
+      userEvent.click(await screen.findByText('Export to .CSV'));
+
+      expect(spyExportChart.called).toBe(false); // or: expect(spyExportChart.callCount).toBe(0)
+
+      getSpy.mockRestore();
+    });
+
+    test('JSON (Current View) uses client-side export when pagination disabled & clientView present', async () => {
+      const props = createProps({
+        ownState: {
+          clientView: {
+            columns: [{ key: 'a', label: 'A' }],
+            rows: [{ a: 123 }],
+          },
+        },
+      });
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = false;
+
+      const getSpy = mockExportCurrentViewBehavior();
+
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      spyExportChart.resetHistory();
+      userEvent.click(await screen.findByText('Export to .JSON'));
+
+      expect(spyExportChart.called).toBe(false);
+
+      getSpy.mockRestore();
+    });
+
+    test('CSV (Current View) falls back to server export when server_pagination is true', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = true;
+
+      const getSpy = mockExportCurrentViewBehavior();
+
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      spyExportChart.resetHistory();
+      userEvent.click(await screen.findByText('Export to .CSV'));
+
+      expect(spyExportChart.callCount).toBe(1);
+      const args = spyExportChart.getCall(0).args[0];
+      expect(args.resultType).toBe('results');
+      expect(args.resultFormat).toBe('csv');
+
+      getSpy.mockRestore();
+    });
+
+    test('Excel (Current View) uses client-side export when pagination disabled & clientView present', async () => {
+      const props = createProps({
+        ownState: {
+          clientView: {
+            columns: [{ key: 'c', label: 'C' }],
+            rows: [{ c: 'foo' }],
+          },
+        },
+      });
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = false;
+
+      const getSpy = mockExportCurrentViewBehavior();
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(await screen.findByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      spyExportChart.resetHistory();
+      userEvent.click(await screen.findByText(/Export to (Excel|\.XLSX)/i));
+
+      expect(spyExportChart.called).toBe(false);
+      getSpy.mockRestore();
+    });
+
+    test('Excel (Current View) falls back to server export when server_pagination is true', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = true;
+
+      const getSpy = mockExportCurrentViewBehavior();
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(await screen.findByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      spyExportChart.resetHistory();
+      userEvent.click(await screen.findByText(/Export to (Excel|\.XLSX)/i));
+
+      expect(spyExportChart.callCount).toBe(1);
+      const args = spyExportChart.getCall(0).args[0];
+      expect(args.resultType).toBe('results');
+      expect(args.resultFormat).toBe('xlsx');
+      getSpy.mockRestore();
+
+      // delete test excel files
+      const cwd = process.cwd();
+      for (const file of fs.readdirSync(cwd)) {
+        if (file.endsWith('.xlsx')) {
+          fs.unlinkSync(path.join(cwd, file));
+        }
+      }
+    });
+
+    test('JSON (Current View) falls back to server export when server_pagination is true', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = true;
+
+      const getSpy = mockExportCurrentViewBehavior();
+
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      // server path expected → use the sinon spy and inspect call args
+      spyExportChart.resetHistory();
+
+      const jsonItem = await screen.findByText('Export to .JSON');
+      userEvent.click(jsonItem);
+
+      await waitFor(() => {
+        expect(spyExportChart.callCount).toBe(1);
+      });
+
+      const args = spyExportChart.getCall(0).args[0];
+      expect(args.resultType).toBe('results');
+      expect(args.resultFormat).toBe('json');
+
+      getSpy.mockRestore();
     });
   });
 });

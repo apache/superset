@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Type augmentation for dayjs plugins
+import 'dayjs/plugin/utc';
 import { Metric } from '@superset-ui/chart-controls';
 import {
   ChartProps,
@@ -26,7 +28,6 @@ import {
   ensureIsArray,
 } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import 'dayjs/plugin/utc';
 import {
   getComparisonFontSize,
   getHeaderFontSize,

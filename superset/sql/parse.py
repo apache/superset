@@ -45,7 +45,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import Dremio, Firebolt, Pinot
+from superset.sql.dialects import DB2, Dremio, Firebolt, Pinot
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -67,7 +67,7 @@ SQLGLOT_DIALECTS = {
     # "crate": ???
     # "databend": ???
     "databricks": Dialects.DATABRICKS,
-    # "db2": ???
+    "db2": DB2,
     # "denodo": ???
     "dremio": Dremio,
     "drill": Dialects.DRILL,
@@ -556,11 +556,28 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     def _parse(cls, script: str, engine: str) -> list[exp.Expression]:
         """
         Parse helper.
+
+        When the base dialect (engine="base" or unknown engines) fails to parse SQL
+        containing backtick-quoted identifiers, we fall back to MySQL dialect which
+        supports backticks natively. This handles cases like "Other" database type
+        where users may have MySQL-compatible syntax with backtick-quoted table names.
         """
         dialect = SQLGLOT_DIALECTS.get(engine)
         try:
             statements = sqlglot.parse(script, dialect=dialect)
         except sqlglot.errors.ParseError as ex:
+            # If parsing fails with base dialect (or no dialect for unknown engines)
+            # and the script contains backticks, retry with MySQL dialect which
+            # supports backtick-quoted identifiers
+            if (dialect is None or dialect == Dialects.DIALECT) and "`" in script:
+                try:
+                    statements = sqlglot.parse(script, dialect=Dialects.MYSQL)
+                except sqlglot.errors.ParseError:
+                    # If MySQL dialect also fails, raise the original error
+                    pass
+                else:
+                    return statements
+
             kwargs = (
                 {
                     "highlight": ex.errors[0]["highlight"],

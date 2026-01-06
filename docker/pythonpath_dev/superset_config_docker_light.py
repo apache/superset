@@ -19,6 +19,7 @@
 
 # Import all settings from the main config first
 from flask_caching.backends.filesystemcache import FileSystemCache
+
 from superset_config import *  # noqa: F403
 
 # Override caching to use simple in-memory cache instead of Redis

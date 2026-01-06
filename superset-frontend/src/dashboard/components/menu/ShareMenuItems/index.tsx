@@ -33,8 +33,9 @@ import { MenuKeys, RootState } from 'src/dashboard/types';
 import { shallowEqual, useSelector } from 'react-redux';
 import { hasStatefulCharts } from 'src/dashboard/util/chartStateConverter';
 
-export interface ShareMenuItemProps
-  extends ComponentProps<typeof Menu.SubMenu> {
+export interface ShareMenuItemProps extends ComponentProps<
+  typeof Menu.SubMenu
+> {
   url?: string;
   copyMenuItemTitle: string;
   emailMenuItemTitle: string;

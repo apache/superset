@@ -25,9 +25,8 @@ import logging
 from typing import Any, Dict, List
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GenerateDashboardRequest,
@@ -118,8 +117,7 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     return layout
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool(tags=["mutate"])
 @parse_request(GenerateDashboardRequest)
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context

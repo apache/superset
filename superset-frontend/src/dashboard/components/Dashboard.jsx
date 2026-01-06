@@ -188,6 +188,7 @@ class Dashboard extends PureComponent {
   componentWillUnmount() {
     window.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.props.actions.clearDataMaskState();
+    this.props.actions.clearAllChartStates();
   }
 
   onVisibilityChange() {

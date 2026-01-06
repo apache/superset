@@ -166,24 +166,6 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
                 ),
               } as MenuItemType,
               {
-                key: '3',
-                onClick: () => actions.toggleLeftBar(qe),
-                'data-test': 'toggle-menu-option',
-                label: (
-                  <>
-                    <IconContainer>
-                      <Icons.VerticalAlignBottomOutlined
-                        iconSize="l"
-                        css={css`
-                          rotate: ${qe.hideLeftBar ? '-90deg;' : '90deg;'};
-                        `}
-                      />
-                    </IconContainer>
-                    {qe.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
-                  </>
-                ),
-              } as MenuItemType,
-              {
                 key: '4',
                 onClick: () => actions.removeAllOtherQueryEditors(qe),
                 'data-test': 'close-all-other-menu-option',

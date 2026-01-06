@@ -24,6 +24,7 @@ import {
   QueryObjectFilterClause,
   QueryObject,
   QueryFormColumn,
+  QueryFormMetric,
 } from '@superset-ui/core';
 import { addTooltipColumnsToQuery } from '../buildQueryUtils';
 
@@ -31,9 +32,18 @@ export interface DeckPolygonFormData extends SqlaFormData {
   line_column?: string;
   line_type?: string;
   metric?: string;
-  point_radius_fixed?: {
-    value?: string;
-  };
+  point_radius_fixed?:
+    | {
+        value?: string;
+      }
+    | {
+        type: 'fix';
+        value: string;
+      }
+    | {
+        type: 'metric';
+        value: QueryFormMetric;
+      };
   reverse_long_lat?: boolean;
   filter_nulls?: boolean;
   js_columns?: string[];
@@ -74,8 +84,16 @@ export default function buildQuery(formData: DeckPolygonFormData) {
     if (metric) {
       metrics.push(metric);
     }
-    if (point_radius_fixed?.value) {
-      metrics.push(point_radius_fixed.value);
+
+    if (point_radius_fixed) {
+      if ('type' in point_radius_fixed) {
+        if (
+          point_radius_fixed.type === 'metric' &&
+          point_radius_fixed.value != null
+        ) {
+          metrics.push(point_radius_fixed.value);
+        }
+      }
     }
 
     const filters = ensureIsArray(baseQueryObject.filters || []);

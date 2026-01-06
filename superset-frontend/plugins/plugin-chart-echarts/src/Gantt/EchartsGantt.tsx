@@ -83,6 +83,7 @@ export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
         echartOptions={echartOptions}
         selectedValues={selectedValues}
         eventHandlers={eventHandlers}
+        vizType={formData.vizType}
       />
     </>
   );

@@ -28,6 +28,7 @@ import {
   QueryFormOrderBy,
   QueryMode,
   QueryObject,
+  QueryObjectExtras,
   removeDuplicates,
   PostProcessingRule,
   BuildQuery,
@@ -322,7 +323,9 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       };
 
       orderedColumns = reorderByColumnOrder(columns) as typeof columns;
-      orderedMetrics = reorderByColumnOrder(metrics || []) as typeof metrics;
+      orderedMetrics = metrics
+        ? (reorderByColumnOrder(metrics) as typeof metrics)
+        : metrics;
     }
 
     let queryObject = {
@@ -473,7 +476,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
                 ? `${queryObject.extras.having} AND ${havingClause}`
                 : havingClause,
             }),
-          };
+          } as QueryObjectExtras;
         }
       }
     }

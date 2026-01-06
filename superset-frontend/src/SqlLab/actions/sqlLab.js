@@ -914,11 +914,27 @@ export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
 
 export function formatQuery(queryEditor) {
   return function (dispatch, getState) {
-    const { sql } = getUpToDateQuery(getState(), queryEditor);
+    const { sql, dbId, templateParams } = getUpToDateQuery(
+      getState(),
+      queryEditor,
+    );
+    const body = { sql };
+
+    // Include database_id and template_params if available for Jinja processing
+    if (dbId) {
+      body.database_id = dbId;
+    }
+    if (templateParams) {
+      // Send templateParams as a JSON string to match the backend schema
+      body.template_params =
+        typeof templateParams === 'string'
+          ? templateParams
+          : JSON.stringify(templateParams);
+    }
+
     return SupersetClient.post({
       endpoint: `/api/v1/sqllab/format_sql/`,
-      // TODO (betodealmeida): pass engine as a parameter for better formatting
-      body: JSON.stringify({ sql }),
+      body: JSON.stringify(body),
       headers: { 'Content-Type': 'application/json' },
     }).then(({ json }) => {
       dispatch(queryEditorSetSql(queryEditor, json.result));
@@ -1082,12 +1098,14 @@ export function reFetchQueryResults(query) {
 
 export function expandTable(table) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.post({
-          endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
-          postPayload: { expanded: true },
-        })
-      : Promise.resolve();
+    const sync =
+      isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
+      table.initialized
+        ? SupersetClient.post({
+            endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
+            postPayload: { expanded: true },
+          })
+        : Promise.resolve();
 
     return sync
       .then(() => dispatch({ type: EXPAND_TABLE, table }))
@@ -1106,12 +1124,14 @@ export function expandTable(table) {
 
 export function collapseTable(table) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.post({
-          endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
-          postPayload: { expanded: false },
-        })
-      : Promise.resolve();
+    const sync =
+      isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
+      table.initialized
+        ? SupersetClient.post({
+            endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
+            postPayload: { expanded: false },
+          })
+        : Promise.resolve();
 
     return sync
       .then(() => dispatch({ type: COLLAPSE_TABLE, table }))

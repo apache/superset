@@ -23,12 +23,17 @@ import sys
 import time
 import zipfile
 from pathlib import Path
-from typing import Any, Callable, cast
+from typing import Any, Callable
 
 import click
 import semver
 from jinja2 import Environment, FileSystemLoader
-from superset_core.extensions.types import Manifest, Metadata
+from superset_core.extensions.types import (
+    ExtensionConfig,
+    Manifest,
+    ManifestBackend,
+    ManifestFrontend,
+)
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -125,40 +130,40 @@ def clean_dist_frontend(cwd: Path) -> None:
 
 
 def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
-    extension: Metadata = cast(Metadata, read_json(cwd / "extension.json"))
-    if not extension:
+    extension_data = read_json(cwd / "extension.json")
+    if not extension_data:
         click.secho("❌ extension.json not found.", err=True, fg="red")
         sys.exit(1)
 
-    manifest: Manifest = {
-        "id": extension["id"],
-        "name": extension["name"],
-        "version": extension["version"],
-        "permissions": extension["permissions"],
-        "dependencies": extension.get("dependencies", []),
-    }
-    if (
-        (frontend := extension.get("frontend"))
-        and (contributions := frontend.get("contributions"))
-        and (module_federation := frontend.get("moduleFederation"))
-        and remote_entry
-    ):
-        manifest["frontend"] = {
-            "contributions": contributions,
-            "moduleFederation": module_federation,
-            "remoteEntry": remote_entry,
-        }
+    extension = ExtensionConfig.model_validate(extension_data)
 
-    if entry_points := extension.get("backend", {}).get("entryPoints"):
-        manifest["backend"] = {"entryPoints": entry_points}
+    frontend: ManifestFrontend | None = None
+    if extension.frontend and remote_entry:
+        frontend = ManifestFrontend(
+            contributions=extension.frontend.contributions,
+            moduleFederation=extension.frontend.moduleFederation,
+            remoteEntry=remote_entry,
+        )
 
-    return manifest
+    backend: ManifestBackend | None = None
+    if extension.backend and extension.backend.entryPoints:
+        backend = ManifestBackend(entryPoints=extension.backend.entryPoints)
+
+    return Manifest(
+        id=extension.id,
+        name=extension.name,
+        version=extension.version,
+        permissions=extension.permissions,
+        dependencies=extension.dependencies,
+        frontend=frontend,
+        backend=backend,
+    )
 
 
 def write_manifest(cwd: Path, manifest: Manifest) -> None:
     dist_dir = cwd / "dist"
     (dist_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True)
+        manifest.model_dump_json(indent=2, exclude_none=True, by_alias=True)
     )
     click.secho("✅ Manifest updated", fg="green")
 
@@ -404,19 +409,57 @@ def dev(ctx: click.Context) -> None:
 
 
 @app.command()
-def init() -> None:
-    id_ = click.prompt("Extension ID (unique identifier, alphanumeric only)", type=str)
+@click.option(
+    "--id",
+    "id_opt",
+    default=None,
+    help="Extension ID (alphanumeric and underscores only)",
+)
+@click.option("--name", "name_opt", default=None, help="Extension display name")
+@click.option(
+    "--version", "version_opt", default=None, help="Initial version (default: 0.1.0)"
+)
+@click.option(
+    "--license", "license_opt", default=None, help="License (default: Apache-2.0)"
+)
+@click.option(
+    "--frontend/--no-frontend", "frontend_opt", default=None, help="Include frontend"
+)
+@click.option(
+    "--backend/--no-backend", "backend_opt", default=None, help="Include backend"
+)
+def init(
+    id_opt: str | None,
+    name_opt: str | None,
+    version_opt: str | None,
+    license_opt: str | None,
+    frontend_opt: bool | None,
+    backend_opt: bool | None,
+) -> None:
+    id_ = id_opt or click.prompt(
+        "Extension ID (unique identifier, alphanumeric only)", type=str
+    )
     if not re.match(r"^[a-zA-Z0-9_]+$", id_):
         click.secho(
             "❌ ID must be alphanumeric (letters, digits, underscore).", fg="red"
         )
         sys.exit(1)
 
-    name = click.prompt("Extension name (human-readable display name)", type=str)
-    version = click.prompt("Initial version", default="0.1.0")
-    license = click.prompt("License", default="Apache-2.0")
-    include_frontend = click.confirm("Include frontend?", default=True)
-    include_backend = click.confirm("Include backend?", default=True)
+    name = name_opt or click.prompt(
+        "Extension name (human-readable display name)", type=str
+    )
+    version = version_opt or click.prompt("Initial version", default="0.1.0")
+    license_ = license_opt or click.prompt("License", default="Apache-2.0")
+    include_frontend = (
+        frontend_opt
+        if frontend_opt is not None
+        else click.confirm("Include frontend?", default=True)
+    )
+    include_backend = (
+        backend_opt
+        if backend_opt is not None
+        else click.confirm("Include backend?", default=True)
+    )
 
     target_dir = Path.cwd() / id_
     if target_dir.exists():
@@ -431,7 +474,7 @@ def init() -> None:
         "name": name,
         "include_frontend": include_frontend,
         "include_backend": include_backend,
-        "license": license,
+        "license": license_,
         "version": version,
     }
 
@@ -440,6 +483,11 @@ def init() -> None:
     extension_json = env.get_template("extension.json.j2").render(ctx)
     (target_dir / "extension.json").write_text(extension_json)
     click.secho("✅ Created extension.json", fg="green")
+
+    # Create .gitignore
+    gitignore = env.get_template(".gitignore.j2").render(ctx)
+    (target_dir / ".gitignore").write_text(gitignore)
+    click.secho("✅ Created .gitignore", fg="green")
 
     # Initialize frontend files
     if include_frontend:

@@ -467,7 +467,9 @@ class ImportExportMixin(UUIDMixin):
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
         dict_rep = {
-            c.name: getattr(self, c.name)
+            # Convert c.name to str to handle SQLAlchemy's quoted_name type
+            # which is not YAML-serializable
+            str(c.name): getattr(self, c.name)
             for c in cls.__table__.columns  # type: ignore
             if (
                 c.name in export_fields
@@ -837,7 +839,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def cache_timeout(self) -> int:
+    def cache_timeout(self) -> int | None:
         raise NotImplementedError()
 
     @property
@@ -1275,9 +1277,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             )
 
+        # Build format map from detected datetime formats stored in dataset columns
+        format_map: dict[str, str] = {}
+        if hasattr(self, "columns"):
+            for col in self.columns:
+                if hasattr(col, "datetime_format") and col.datetime_format:
+                    format_map[col.column_name] = col.datetime_format
+
         normalize_dttm_col(
             df=df,
             dttm_cols=tuple(dttm_cols),
+            format_map=format_map if format_map else None,
         )
 
         # Convert metrics to numerical values if enforced
@@ -1465,7 +1475,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 # Determine the temporal column with multiple fallback strategies
                 temporal_col = self._get_temporal_column_for_filter(
-                    query_object_clone, x_axis_label
+                    query_object, x_axis_label
                 )
 
                 # Always add a temporal filter for date range offsets
@@ -1690,30 +1700,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Helper method to reliably determine the temporal column for filtering.
 
         This method tries multiple strategies to find the correct temporal column:
-        1. Use explicitly set granularity
-        2. Use x_axis_label if it's a temporal column
-        3. Find any datetime column in the datasource
+        1. Use the column from existing TEMPORAL_RANGE filter
+        2. Use explicitly set granularity
+        3. Use x_axis_label if it exists
 
         :param query_object: The query object
         :param x_axis_label: The x-axis label from the query
         :return: The name of the temporal column, or None if not found
         """
-        # Strategy 1: Use explicitly set granularity
+        # Strategy 1: Use the column from existing TEMPORAL_RANGE filter
+        if query_object.filter:
+            for flt in query_object.filter:
+                if flt.get("op") == FilterOperator.TEMPORAL_RANGE:
+                    col = flt.get("col")
+                    if isinstance(col, str):
+                        return col
+                    elif isinstance(col, dict) and col.get("sqlExpression"):
+                        return str(col.get("label") or col.get("sqlExpression"))
+
+        # Strategy 2: Use explicitly set granularity
         if query_object.granularity:
             return query_object.granularity
 
-        # Strategy 2: Use x_axis_label if it exists
+        # Strategy 3: Use x_axis_label if it exists
         if x_axis_label:
             return x_axis_label
-
-        # Strategy 3: Find any datetime column in the datasource
-        if hasattr(self, "columns"):
-            for col in self.columns:
-                if hasattr(col, "is_dttm") and col.is_dttm:
-                    if hasattr(col, "column_name"):
-                        return col.column_name
-                    elif hasattr(col, "name"):
-                        return col.name
 
         return None
 

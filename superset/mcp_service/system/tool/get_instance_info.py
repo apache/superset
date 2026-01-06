@@ -16,16 +16,15 @@
 # under the License.
 
 """
-Get Superset instance high-level information FastMCP tool using configurable
+Get instance high-level information FastMCP tool using configurable
 InstanceInfoCore for flexible, extensible metrics calculation.
 """
 
 import logging
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_core import InstanceInfoCore
 from superset.mcp_service.system.schemas import (
     GetSupersetInstanceInfoRequest,
@@ -70,13 +69,12 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool(tags=["core"])
 @parse_request(GetSupersetInstanceInfoRequest)
 def get_instance_info(
     request: GetSupersetInstanceInfoRequest, ctx: Context
 ) -> InstanceInfo:
-    """Get Superset instance statistics.
+    """Get instance statistics.
 
     Returns counts, activity metrics, and database types.
     """

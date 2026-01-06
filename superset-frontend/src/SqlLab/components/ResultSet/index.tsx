@@ -85,8 +85,8 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { findPermission } from 'src/utils/findPermission';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
+import { makeUrl } from 'src/utils/pathUtils';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -104,12 +104,14 @@ export interface ResultSetProps {
   csv?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
+  height?: number;
   queryId: string;
   search?: boolean;
   showSql?: boolean;
   showSqlInline?: boolean;
   visualize?: boolean;
   defaultQueryLimit: number;
+  useFixedHeight?: boolean;
 }
 
 const ResultContainer = styled.div`
@@ -148,7 +150,6 @@ const ReturnedRows = styled.div`
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
-  padding-left: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 const ResultSetButtons = styled.div`
@@ -178,12 +179,14 @@ const ResultSet = ({
   csv = true,
   database = {},
   displayLimit,
+  height,
   queryId,
   search = true,
   showSql = false,
   showSqlInline = false,
   visualize = true,
   defaultQueryLimit,
+  useFixedHeight = false,
 }: ResultSetProps) => {
   const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
   const streamingThreshold = useSelector(
@@ -315,7 +318,7 @@ const ResultSet = ({
   };
 
   const getExportCsvUrl = (clientId: string) =>
-    ensureAppRoot(`/api/v1/sqllab/export/${clientId}/`);
+    makeUrl(`/api/v1/sqllab/export/${clientId}/`);
 
   const handleCloseStreamingModal = () => {
     cancelExport();
@@ -712,6 +715,16 @@ const ResultSet = ({
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
         true,
       );
+
+      const tableProps = {
+        data,
+        queryId: query.id,
+        orderedColumnKeys: results.columns.map(col => col.column_name),
+        filterText: searchText,
+        expandedColumns,
+        allowHTML,
+      };
+
       return (
         <>
           <ResultContainer>
@@ -722,7 +735,6 @@ const ResultSet = ({
                   css={css`
                     display: flex;
                     justify-content: space-between;
-                    padding-left: ${theme.sizeUnit * 4}px;
                     align-items: center;
                     gap: ${GAP}px;
                   `}
@@ -755,28 +767,21 @@ const ResultSet = ({
                 {sql}
               </>
             )}
-            <div
-              css={css`
-                flex: 1 1 auto;
-                padding-left: ${theme.sizeUnit * 4}px;
-              `}
-            >
-              <AutoSizer disableWidth>
-                {({ height }) => (
-                  <ResultTable
-                    data={data}
-                    queryId={query.id}
-                    orderedColumnKeys={results.columns.map(
-                      col => col.column_name,
-                    )}
-                    height={height}
-                    filterText={searchText}
-                    expandedColumns={expandedColumns}
-                    allowHTML={allowHTML}
-                  />
-                )}
-              </AutoSizer>
-            </div>
+            {useFixedHeight && height !== undefined ? (
+              <ResultTable {...tableProps} height={height} />
+            ) : (
+              <div
+                css={css`
+                  flex: 1 1 auto;
+                `}
+              >
+                <AutoSizer disableWidth>
+                  {({ height: autoHeight }) => (
+                    <ResultTable {...tableProps} height={autoHeight} />
+                  )}
+                </AutoSizer>
+              </div>
+            )}
           </ResultContainer>
           <StreamingExportModal
             visible={showStreamingModal}
