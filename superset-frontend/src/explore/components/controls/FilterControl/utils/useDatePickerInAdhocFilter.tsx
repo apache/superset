@@ -24,7 +24,7 @@ import DateFilterControl from 'src/explore/components/controls/DateFilterControl
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 interface DatePickerInFilterProps {
-  columnName: string;
+  columnName?: string;
   timeRange?: string;
   datasource: Dataset;
   onChange: (columnName: string, timeRange: string) => void;
@@ -36,7 +36,7 @@ export const useDatePickerInAdhocFilter = ({
   datasource,
   onChange,
 }: DatePickerInFilterProps): ReactElement | undefined => {
-  const onTimeRangeChange = (val: string) => onChange(columnName, val);
+  const onTimeRangeChange = (val: string) => onChange(columnName ?? '', val);
 
   const extensionsRegistry = getExtensionsRegistry();
 
@@ -45,7 +45,7 @@ export const useDatePickerInAdhocFilter = ({
   );
   const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
 
-  return isTemporalColumn(columnName, datasource) ? (
+  return columnName && isTemporalColumn(columnName, datasource) ? (
     <>
       <ControlHeader label={t('Time Range')} />
       <DateFilterComponent
