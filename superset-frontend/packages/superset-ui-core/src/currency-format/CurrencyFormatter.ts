@@ -20,6 +20,8 @@
 import { ExtensibleFunction } from '../models';
 import { getNumberFormatter, NumberFormats } from '../number-format';
 import { Currency } from '../query';
+import { RowData, RowDataValue } from './types';
+import { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
 
 /* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
 
@@ -32,7 +34,7 @@ interface CurrencyFormatterConfig {
 interface CurrencyFormatter {
   (
     value: number | null | undefined,
-    rowData?: Record<string, any>,
+    rowData?: RowData,
     currencyColumn?: string,
   ): string;
 }
@@ -45,36 +47,30 @@ export const getCurrencySymbol = (currency: Partial<Currency>) =>
     .formatToParts(1)
     .find(x => x.type === 'currency')?.value;
 
-/** Normalize currency to ISO 4217 format (e.g., "USD"). Returns null if invalid. */
-export function normalizeCurrency(
-  value: string | null | undefined,
-): string | null {
-  if (!value) return null;
+export function normalizeCurrency(value: RowDataValue): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return null;
 
-  const str = value.toString().trim();
-  if (!str) return null;
+  const normalized = value.trim().toUpperCase();
 
-  const upper = str.toUpperCase();
-
-  if (/^[A-Z]{3}$/.test(upper)) return upper;
-
-  return null;
+  return ISO_4217_REGEX.test(normalized) ? normalized : null;
 }
 
-/** Check if array contains multiple distinct currencies (after normalization). */
-export function hasMixedCurrencies(
-  currencies: (string | null | undefined)[],
-): boolean {
-  // Filter out null/undefined and normalize
-  const normalized = currencies
-    .map(c => normalizeCurrency(c))
-    .filter((c): c is string => c !== null);
+export function hasMixedCurrencies(currencies: RowDataValue[]): boolean {
+  let first: string | null = null;
 
-  if (normalized.length === 0) return false;
+  for (const c of currencies) {
+    const normalized = normalizeCurrency(c);
+    if (normalized === null) continue;
 
-  // Check if all normalized currencies are the same
-  const first = normalized[0];
-  return !normalized.every(c => c === first);
+    if (first === null) {
+      first = normalized;
+    } else if (normalized !== first) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 class CurrencyFormatter extends ExtensibleFunction {
@@ -85,9 +81,8 @@ class CurrencyFormatter extends ExtensibleFunction {
   currency: Currency;
 
   constructor(config: CurrencyFormatterConfig) {
-    super(
-      (value: number, rowData?: Record<string, any>, currencyColumn?: string) =>
-        this.format(value, rowData, currencyColumn),
+    super((value: number, rowData?: RowData, currencyColumn?: string) =>
+      this.format(value, rowData, currencyColumn),
     );
     this.d3Format = config.d3Format || NumberFormats.SMART_NUMBER;
     this.currency = config.currency;
@@ -102,16 +97,12 @@ class CurrencyFormatter extends ExtensibleFunction {
     return this.d3Format.replace(/\$|%/g, '');
   }
 
-  format(
-    value: number,
-    rowData?: Record<string, any>,
-    currencyColumn?: string,
-  ): string {
+  format(value: number, rowData?: RowData, currencyColumn?: string): string {
     const formattedValue = getNumberFormatter(this.getNormalizedD3Format())(
       value,
     );
 
-    const isAutoMode = this.currency?.symbol === 'AUTO';
+    const isAutoMode = this.currency?.symbol === AUTO_CURRENCY_SYMBOL;
 
     if (!this.hasValidCurrency() && !isAutoMode) {
       return formattedValue as string;

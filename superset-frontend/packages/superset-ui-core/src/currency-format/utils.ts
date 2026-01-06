@@ -26,19 +26,18 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { normalizeCurrency, hasMixedCurrencies } from './CurrencyFormatter';
+import { RowData, RowDataValue } from './types';
+import { AUTO_CURRENCY_SYMBOL } from './CurrencyFormats';
 
-/**
- * Detect single currency in data. Returns ISO 4217 code if uniform, null if mixed.
- */
 export const analyzeCurrencyInData = (
-  data: Record<string, any>[],
+  data: RowData[],
   currencyColumn: string | undefined,
 ): string | null => {
   if (!currencyColumn || !data || data.length === 0) {
     return null;
   }
 
-  const currencies = data
+  const currencies: RowDataValue[] = data
     .map(row => row[currencyColumn])
     .filter(val => val !== null && val !== undefined);
 
@@ -53,14 +52,13 @@ export const analyzeCurrencyInData = (
   return normalizeCurrency(currencies[0]);
 };
 
-/** Resolve AUTO currency to detected value, null (mixed), or passthrough original. */
 export const resolveAutoCurrency = (
   currencyFormat: Currency | undefined,
   backendDetected: string | null | undefined,
-  data?: Record<string, any>[],
+  data?: RowData[],
   currencyCodeColumn?: string,
 ): Currency | undefined | null => {
-  if (currencyFormat?.symbol !== 'AUTO') return currencyFormat;
+  if (currencyFormat?.symbol !== AUTO_CURRENCY_SYMBOL) return currencyFormat;
 
   const detectedCurrency =
     backendDetected ??
@@ -77,40 +75,54 @@ export const resolveAutoCurrency = (
   return null; // Mixed currencies
 };
 
+const getEffectiveCurrencyFormat = (
+  resolvedCurrencyFormat: Currency | undefined | null,
+  savedFormat: Currency | undefined,
+): Currency | undefined => {
+  if (resolvedCurrencyFormat === null) {
+    return undefined;
+  }
+  if (resolvedCurrencyFormat?.symbol) {
+    return resolvedCurrencyFormat;
+  }
+  return savedFormat;
+};
+
 export const buildCustomFormatters = (
   metrics: QueryFormMetric | QueryFormMetric[] | undefined,
   savedCurrencyFormats: Record<string, Currency>,
   savedColumnFormats: Record<string, string>,
   d3Format: string | undefined,
   currencyFormat: Currency | undefined | null,
-  data?: Record<string, any>[],
+  data?: RowData[],
   currencyCodeColumn?: string,
 ) => {
   const metricsArray = ensureIsArray(metrics);
 
-  let resolvedCurrency = currencyFormat;
-  if (currencyFormat?.symbol === 'AUTO' && data && currencyCodeColumn) {
+  let resolvedCurrencyFormat = currencyFormat;
+  if (
+    currencyFormat?.symbol === AUTO_CURRENCY_SYMBOL &&
+    data &&
+    currencyCodeColumn
+  ) {
     const detectedCurrency = analyzeCurrencyInData(data, currencyCodeColumn);
     if (detectedCurrency) {
-      resolvedCurrency = {
+      resolvedCurrencyFormat = {
         symbol: detectedCurrency,
         symbolPosition: currencyFormat.symbolPosition,
       };
     } else {
-      resolvedCurrency = null;
+      resolvedCurrencyFormat = null;
     }
   }
 
   return metricsArray.reduce((acc, metric) => {
     if (isSavedMetric(metric)) {
       const actualD3Format = d3Format ?? savedColumnFormats[metric];
-      // null means explicitly no currency (from AUTO mixed detection)
-      const actualCurrencyFormat =
-        resolvedCurrency === null
-          ? undefined
-          : resolvedCurrency?.symbol
-            ? resolvedCurrency
-            : savedCurrencyFormats[metric];
+      const actualCurrencyFormat = getEffectiveCurrencyFormat(
+        resolvedCurrencyFormat,
+        savedCurrencyFormats[metric],
+      );
       return actualCurrencyFormat?.symbol
         ? {
             ...acc,
@@ -147,15 +159,15 @@ export const getValueFormatter = (
   d3Format: string | undefined,
   currencyFormat: Currency | undefined,
   key?: string,
-  data?: Record<string, any>[],
+  data?: RowData[],
   currencyCodeColumn?: string,
   detectedCurrency?: string | null,
 ) => {
-  let resolvedCurrency: Currency | undefined | null = currencyFormat;
-  if (currencyFormat?.symbol === 'AUTO') {
+  let resolvedCurrencyFormat: Currency | undefined | null = currencyFormat;
+  if (currencyFormat?.symbol === AUTO_CURRENCY_SYMBOL) {
     // Use backend-detected currency, or fallback to frontend analysis
     if (detectedCurrency !== undefined) {
-      resolvedCurrency = detectedCurrency
+      resolvedCurrencyFormat = detectedCurrency
         ? {
             symbol: detectedCurrency,
             symbolPosition: currencyFormat.symbolPosition,
@@ -163,14 +175,14 @@ export const getValueFormatter = (
         : null;
     } else if (data && currencyCodeColumn) {
       const frontendDetected = analyzeCurrencyInData(data, currencyCodeColumn);
-      resolvedCurrency = frontendDetected
+      resolvedCurrencyFormat = frontendDetected
         ? {
             symbol: frontendDetected,
             symbolPosition: currencyFormat.symbolPosition,
           }
         : null;
     } else {
-      resolvedCurrency = null;
+      resolvedCurrencyFormat = null;
     }
   }
 
@@ -180,7 +192,7 @@ export const getValueFormatter = (
       savedCurrencyFormats,
       savedColumnFormats,
       d3Format,
-      resolvedCurrency,
+      resolvedCurrencyFormat,
     ),
     metrics,
     key,
@@ -189,11 +201,14 @@ export const getValueFormatter = (
   if (customFormatter) {
     return customFormatter;
   }
-  if (resolvedCurrency === null) {
+  if (resolvedCurrencyFormat === null) {
     return getNumberFormatter(d3Format);
   }
-  if (resolvedCurrency?.symbol) {
-    return new CurrencyFormatter({ currency: resolvedCurrency, d3Format });
+  if (resolvedCurrencyFormat?.symbol) {
+    return new CurrencyFormatter({
+      currency: resolvedCurrencyFormat,
+      d3Format,
+    });
   }
   return getNumberFormatter(d3Format);
 };
