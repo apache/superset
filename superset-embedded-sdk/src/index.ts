@@ -68,6 +68,9 @@ export type EmbedDashboardParams = {
   iframeSandboxExtras?: string[];
   /** force a specific refererPolicy to be used in the iframe request **/
   referrerPolicy?: ReferrerPolicy;
+  /** Callback to resolve permalink URLs. If provided, this will be called when generating permalinks
+   * to allow the host app to customize the URL. If not provided, Superset's default URL is used. */
+  resolvePermalinkUrl?: ResolvePermalinkUrlFn;
 };
 
 export type Size = {
@@ -82,6 +85,15 @@ export type ObserveDataMaskCallbackFn = (
   },
 ) => void;
 export type ThemeMode = 'default' | 'dark' | 'system';
+
+/**
+ * Callback to resolve permalink URLs.
+ * Receives the permalink key and returns the full URL to use for the permalink.
+ */
+export type ResolvePermalinkUrlFn = (params: {
+  /** The permalink key (e.g., "xyz789") */
+  key: string;
+}) => string | Promise<string>;
 
 export type EmbeddedDashboard = {
   getScrollSize: () => Promise<Size>;
@@ -111,6 +123,7 @@ export async function embedDashboard({
   iframeTitle = 'Embedded Dashboard',
   iframeSandboxExtras = [],
   referrerPolicy,
+  resolvePermalinkUrl,
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
@@ -237,6 +250,18 @@ export async function embedDashboard({
   }
 
   setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(guestToken));
+
+  // Register the resolvePermalinkUrl method for the iframe to call
+  // Returns null if no callback provided, allowing iframe to use default URL
+  ourPort.defineMethod(
+    'resolvePermalinkUrl',
+    async ({ key }: { key: string }) => {
+      if (!resolvePermalinkUrl) {
+        return null;
+      }
+      return resolvePermalinkUrl({ key });
+    },
+  );
 
   function unmount() {
     log('unmounting');

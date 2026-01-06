@@ -69,7 +69,7 @@ export default function URLShortLinkButton({
         chartStates &&
         Object.keys(chartStates).length > 0;
 
-      const url = await getDashboardPermalink({
+      const { url } = await getDashboardPermalink({
         dashboardId,
         dataMask,
         activeTabs,

@@ -94,7 +94,7 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
       chartStates &&
       Object.keys(chartStates).length > 0;
 
-    return getDashboardPermalink({
+    const { url } = await getDashboardPermalink({
       dashboardId,
       dataMask,
       activeTabs,
@@ -102,6 +102,7 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
       chartStates: includeChartState ? chartStates : undefined,
       includeChartState,
     });
+    return url;
   }
 
   async function onCopyLink() {

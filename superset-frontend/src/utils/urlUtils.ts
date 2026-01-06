@@ -139,11 +139,22 @@ export function getDashboardUrlParams(
   return getUrlParamEntries(urlParams);
 }
 
-function getPermalink(endpoint: string, jsonPayload: JsonObject) {
+export type PermalinkResult = {
+  key: string;
+  url: string;
+};
+
+function getPermalink(
+  endpoint: string,
+  jsonPayload: JsonObject,
+): Promise<PermalinkResult> {
   return SupersetClient.post({
     endpoint,
     jsonPayload,
-  }).then(result => result.json.url as string);
+  }).then(result => ({
+    key: result.json.key as string,
+    url: result.json.url as string,
+  }));
 }
 
 export function getChartPermalink(
@@ -186,7 +197,7 @@ export function getDashboardPermalink({
    * Whether to include chart state in the permalink (default: false)
    */
   includeChartState?: boolean;
-}) {
+}): Promise<PermalinkResult> {
   const payload: JsonObject = {
     urlParams: getDashboardUrlParams(),
     dataMask,

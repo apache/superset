@@ -17,6 +17,7 @@
  * under the License.
  */
 import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
+import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
@@ -67,7 +68,7 @@ const getDashboardPermalink = async ({
     chartStates &&
     Object.keys(chartStates).length > 0;
 
-  return getDashboardPermalinkUtil({
+  const { key, url } = await getDashboardPermalinkUtil({
     dashboardId,
     dataMask,
     activeTabs,
@@ -75,6 +76,20 @@ const getDashboardPermalink = async ({
     chartStates: includeChartState ? chartStates : undefined,
     includeChartState,
   });
+
+  // Ask the SDK to resolve the permalink URL
+  // Returns null if no callback was provided by the host
+  const resolvedUrl = await Switchboard.get<string | null>(
+    'resolvePermalinkUrl',
+    { key },
+  );
+
+  // If callback returned a URL, use it; otherwise use Superset's default URL
+  if (resolvedUrl) {
+    return resolvedUrl;
+  }
+
+  return url;
 };
 
 const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
