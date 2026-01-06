@@ -107,7 +107,6 @@ def test_cancel_task_not_found(app_context, login_as) -> None:
 def test_cancel_task_forbidden(app_context, get_user, login_as) -> None:
     """Test cancel fails when user doesn't own task (via base filter)"""
     admin = get_user("admin")
-    gamma = get_user("gamma")
 
     # Create a task owned by admin
     task = AsyncTask(
