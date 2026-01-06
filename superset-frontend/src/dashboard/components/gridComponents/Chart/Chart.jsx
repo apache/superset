@@ -50,6 +50,7 @@ import {
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
+import LastQueriedLabel from '../../../../components/LastQueriedLabel';
 import {
   addDangerToast,
   addSuccessToast,
@@ -88,6 +89,7 @@ const propTypes = {
 
 const RESIZE_TIMEOUT = 500;
 const DEFAULT_HEADER_HEIGHT = 22;
+const QUERIED_LABEL_HEIGHT = 24;
 
 const ChartWrapper = styled.div`
   overflow: hidden;
@@ -310,10 +312,13 @@ const Chart = props => {
     return DEFAULT_HEADER_HEIGHT;
   }, [headerRef]);
 
+  const queriedDttm = queriesResponse?.[0]?.queried_dttm ?? null;
+
   const getChartHeight = useCallback(() => {
     const headerHeight = getHeaderHeight();
-    return Math.max(height - headerHeight - descriptionHeight, 20);
-  }, [getHeaderHeight, height, descriptionHeight]);
+    const queriedLabelHeight = queriedDttm ? QUERIED_LABEL_HEIGHT : 0;
+    return Math.max(height - headerHeight - descriptionHeight - queriedLabelHeight, 20);
+  }, [getHeaderHeight, height, descriptionHeight, queriedDttm]);
 
   const handleFilterMenuOpen = useCallback(
     (chartId, column) => {
@@ -716,6 +721,10 @@ const Chart = props => {
           onChartStateChange={handleChartStateChange}
         />
       </ChartWrapper>
+
+      {!isLoading && queriedDttm && (
+        <LastQueriedLabel queriedDttm={queriedDttm} />
+      )}
 
       <StreamingExportModal
         visible={isStreamingModalVisible}
