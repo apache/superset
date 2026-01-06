@@ -31,6 +31,20 @@ import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import transformProps from '../../src/Timeseries/transformProps';
 
+type YAxisFormatter = (value: number, index: number) => string;
+
+function getYAxisFormatter(
+  transformed: ReturnType<typeof transformProps>,
+): YAxisFormatter {
+  const yAxis = transformed.echartOptions.yAxis as {
+    axisLabel?: { formatter?: YAxisFormatter };
+  };
+  expect(yAxis).toBeDefined();
+  expect(yAxis.axisLabel).toBeDefined();
+  expect(yAxis.axisLabel?.formatter).toBeDefined();
+  return yAxis.axisLabel!.formatter!;
+}
+
 const formData: SqlaFormData = {
   colorScheme: 'bnbColors',
   datasource: '3__table',
@@ -725,11 +739,12 @@ describe('legend sorting', () => {
 });
 
 describe('EchartsTimeseries AUTO Mode Currency', () => {
-  it('should detect single currency and resolve AUTO mode', () => {
+  it('should detect single currency and format with $ for USD', () => {
     const chartProps = new ChartProps<SqlaFormData>({
       ...chartPropsConfig,
       formData: {
         ...formData,
+        metrics: ['sum__num'],
         currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
       },
       datasource: {
@@ -759,12 +774,9 @@ describe('EchartsTimeseries AUTO Mode Currency', () => {
     const transformed = transformProps(
       chartProps as EchartsTimeseriesChartProps,
     );
-    // Y-axis formatter should contain $ for USD
-    const yAxisFormatter = (transformed.echartOptions.yAxis as any)?.axisLabel
-      ?.formatter;
-    if (yAxisFormatter) {
-      expect(yAxisFormatter(1000)).toContain('$');
-    }
+
+    const formatter = getYAxisFormatter(transformed);
+    expect(formatter(1000, 0)).toContain('$');
   });
 
   it('should use neutral formatting for mixed currencies in AUTO mode', () => {
@@ -772,6 +784,7 @@ describe('EchartsTimeseries AUTO Mode Currency', () => {
       ...chartPropsConfig,
       formData: {
         ...formData,
+        metrics: ['sum__num'],
         currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
       },
       datasource: {
@@ -801,21 +814,20 @@ describe('EchartsTimeseries AUTO Mode Currency', () => {
     const transformed = transformProps(
       chartProps as EchartsTimeseriesChartProps,
     );
+
     // With mixed currencies, Y-axis should use neutral formatting
-    const yAxisFormatter = (transformed.echartOptions.yAxis as any)?.axisLabel
-      ?.formatter;
-    if (yAxisFormatter) {
-      const formatted = yAxisFormatter(1000);
-      expect(formatted).not.toContain('$');
-      expect(formatted).not.toContain('€');
-    }
+    const formatter = getYAxisFormatter(transformed);
+    const formatted = formatter(1000, 0);
+    expect(formatted).not.toContain('$');
+    expect(formatted).not.toContain('€');
   });
 
-  it('should preserve static currency format regardless of data', () => {
+  it('should preserve static currency format with £ for GBP', () => {
     const chartProps = new ChartProps<SqlaFormData>({
       ...chartPropsConfig,
       formData: {
         ...formData,
+        metrics: ['sum__num'],
         currencyFormat: { symbol: 'GBP', symbolPosition: 'prefix' },
       },
       datasource: {
@@ -845,11 +857,9 @@ describe('EchartsTimeseries AUTO Mode Currency', () => {
     const transformed = transformProps(
       chartProps as EchartsTimeseriesChartProps,
     );
+
     // Static mode should always show £
-    const yAxisFormatter = (transformed.echartOptions.yAxis as any)?.axisLabel
-      ?.formatter;
-    if (yAxisFormatter) {
-      expect(yAxisFormatter(1000)).toContain('£');
-    }
+    const formatter = getYAxisFormatter(transformed);
+    expect(formatter(1000, 0)).toContain('£');
   });
 });
