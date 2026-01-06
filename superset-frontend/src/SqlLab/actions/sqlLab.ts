@@ -613,9 +613,7 @@ export function postStopQuery(query: Query): any {
   };
 }
 
-export function setDatabases(
-  databases: Record<string, Database>,
-): SqlLabAction {
+export function setDatabases(databases: Database[]): SqlLabAction {
   return { type: SET_DATABASES, databases };
 }
 
