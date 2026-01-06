@@ -24,7 +24,6 @@ import example1Dark from './images/MapBox-dark.jpg';
 import example2 from './images/MapBox2.jpg';
 import example2Dark from './images/MapBox2-dark.jpg';
 import controlPanel from './controlPanel';
-import transformProps from './transformProps';
 
 const metadata = new ChartMetadata({
   category: t('Map'),
@@ -52,7 +51,7 @@ export default class MapBoxChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./MapBox'),
-      transformProps,
+      loadTransformProps: () => import('./transformProps'),
       metadata,
       controlPanel,
     });
