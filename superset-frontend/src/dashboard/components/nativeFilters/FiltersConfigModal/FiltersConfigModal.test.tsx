@@ -80,7 +80,6 @@ const noTemporalColumnsState = () => {
   };
 };
 
-
 const bigIntChartDataState = () => {
   const state = defaultState();
   return {
@@ -344,13 +343,17 @@ test('validates the column', async () => {
 test('validates the default value', async () => {
   defaultRender();
   // Wait for the default value checkbox to appear
-  const defaultValueCheckbox = await screen.findByRole('checkbox', { name: DEFAULT_VALUE_REGEX });
+  const defaultValueCheckbox = await screen.findByRole('checkbox', {
+    name: DEFAULT_VALUE_REGEX,
+  });
+  // Verify default value error is NOT present before enabling checkbox
+  expect(screen.queryByText(/choose.*valid value/i)).not.toBeInTheDocument();
   // Enable default value checkbox without setting a value
   await userEvent.click(defaultValueCheckbox);
   // Try to save - should show validation error
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   // Verify validation error appears (actual message is "Please choose a valid value")
-  expect(await screen.findByText(/choose.*valid value/i)).toBeInTheDocument()
+  expect(await screen.findByText(/choose.*valid value/i)).toBeInTheDocument();
 });
 
 test('validates the pre-filter value', async () => {
