@@ -212,7 +212,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
     getPolygon: getPointsFromPolygon,
     getFillColor: colorScaler,
     getLineColor: sc ? [sc.r, sc.g, sc.b, 255 * sc.a] : undefined,
-    lineWidthMinPixels: fd.stroked ? fd.line_width : 0,
+    getLineWidth: fd.stroked ? fd.line_width : 0,
     extruded: fd.extruded,
     lineWidthUnits: fd.line_width_unit,
     getElevation: (d: JsonObject) => getElevation(d, colorScaler),
