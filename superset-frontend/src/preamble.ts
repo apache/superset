@@ -17,7 +17,7 @@
  * under the License.
  */
 import { configure, LanguagePack } from '@apache-superset/core/ui';
-import { makeApi, initFeatureFlags, SupersetClient } from '@superset-ui/core';
+import { makeApi, initFeatureFlags } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
@@ -59,13 +59,15 @@ export default function initPreamble(): Promise<void> {
     setupClient({ appRoot: applicationRoot() });
 
     // Load language pack before rendering
+    // Use native fetch to avoid race condition with SupersetClient initialization
     const lang = bootstrapData.common.locale || 'en';
     if (lang !== 'en') {
       try {
-        // Second call to configure to set the language pack
-        const { json } = await SupersetClient.get({
-          endpoint: `/superset/language_pack/${lang}/`,
-        });
+        const resp = await fetch(`/superset/language_pack/${lang}/`);
+        if (!resp.ok) {
+          throw new Error(`Failed to fetch language pack: ${resp.status}`);
+        }
+        const json = await resp.json();
         configure({ languagePack: json as LanguagePack });
         dayjs.locale(lang);
       } catch (err) {
@@ -102,7 +104,11 @@ export default function initPreamble(): Promise<void> {
         }
       });
     }
-  })();
+  })().catch(err => {
+    // Allow retry by clearing the cached promise on failure
+    initPromise = null;
+    throw err;
+  });
 
   return initPromise;
 }
