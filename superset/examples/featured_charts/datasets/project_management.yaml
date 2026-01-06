@@ -14,280 +14,159 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: project_management
-main_dttm_col: start_time
-description: null
-default_endpoint: null
-offset: 0
+always_filter_main_dttm: false
 cache_timeout: null
 catalog: examples
-schema: public
-sql: |-
-  SELECT
-    1718870400000 AS start_time,
-    1718874000000 AS end_time,
-    'Project Alpha' AS project,
-    'Design Phase' AS phase,
-    'Initial design and architecture planning for Alpha.' AS description,
-    'Completed' AS status,
-    'High' AS priority
-  UNION ALL
-  SELECT
-      1718872800000,
-      1718877200000,
-      'Project Alpha',
-      'Development Phase',
-      'Core feature development for Alpha project.',
-      'In Progress',
-      'High'
-  UNION ALL
-  SELECT
-      1718876400000,
-      1718880000000,
-      'Project Alpha',
-      'Testing Phase',
-      'Internal testing and bug fixing for Alpha features.',
-      'Planned',
-      'Medium'
-  UNION ALL
-  SELECT
-      1718878800000,
-      1718882400000,
-      'Project Alpha',
-      'Deployment Phase',
-      'Preparation and execution of Alpha deployment.',
-      'On Hold',
-      'High'
-  UNION ALL
-  SELECT
-      1718880000000,
-      1718883600000,
-      'Project Beta',
-      'Design Phase',
-      'Gathering requirements and conceptual design for Beta.',
-      'Completed',
-      'Medium'
-  UNION ALL
-  SELECT
-      1718882400000,
-      1718886000000,
-      'Project Beta',
-      'Development Phase',
-      'Module-wise development for Beta project.',
-      'In Progress',
-      'Medium'
-  UNION ALL
-  SELECT
-      1718884800000,
-      1718888400000,
-      'Project Beta',
-      'Testing Phase',
-      'User acceptance testing for Beta release.',
-      'Planned',
-      'High'
-  UNION ALL
-  SELECT
-      1718887200000,
-      1718890800000,
-      'Project Beta',
-      'Deployment Phase',
-      'Final checks and release of Beta version.',
-      'Planned',
-      'Medium'
-  UNION ALL
-  SELECT
-      1718889600000,
-      1718893200000,
-      'Project Gamma',
-      'Design Phase',
-      'System design and database schema for Gamma.',
-      'Completed',
-      'Low'
-  UNION ALL
-  SELECT
-      1718892000000,
-      1718895600000,
-      'Project Gamma',
-      'Development Phase',
-      'Backend API and frontend integration for Gamma.',
-      'In Progress',
-      'High'
-  UNION ALL
-  SELECT
-      1718894400000,
-      1718898000000,
-      'Project Gamma',
-      'Testing Phase',
-      'Automated test suite execution for Gamma.',
-      'Planned',
-      'Medium'
-  UNION ALL
-  SELECT
-      1718896800000,
-      1718900400000,
-      'Project Gamma',
-      'Deployment Phase',
-      'Handover and post-deployment support for Gamma.',
-      'Planned',
-      'Low'
-  UNION ALL
-  SELECT
-      1718900000000,
-      1718904000000,
-      'Project Alpha',
-      'Risk Assessment',
-      'Analyzing potential risks and mitigation strategies.',
-      'Completed',
-      'High'
-  UNION ALL
-  SELECT
-      1718902000000,
-      1718906000000,
-      'Project Beta',
-      'Client Review',
-      'Review meeting with key stakeholders for Beta.',
-      'In Progress',
-      'High'
-  UNION ALL
-  SELECT
-      1718904000000,
-      1718908000000,
-      'Project Gamma',
-      'Documentation',
-      'Creating technical and user documentation.',
-      'Planned',
-      'Low'
-  UNION ALL
-  SELECT
-      1718906000000,
-      1718910000000,
-      'Project Alpha',
-      'Feature Implementation',
-      'Implementing new requested features for Alpha.',
-      'In Progress',
-      'High'
-  UNION ALL
-  SELECT
-      1718908000000,
-      1718912000000,
-      'Project Beta',
-      'User Acceptance Testing',
-      'Final UAT before production release.',
-      'Planned',
-      'High'
-  UNION ALL
-  SELECT
-      1718910000000,
-      1718914000000,
-      'Project Gamma',
-      'Bug Fixing',
-      'Addressing critical bugs reported post-release.',
-      'In Progress',
-      'Medium';
-params: null
-template_params: null
-filter_select_enabled: true
-fetch_values_predicate: null
-extra: null
-normalize_columns: false
-always_filter_main_dttm: false
-folders: null
-uuid: d638a239-f255-44fc-b0c1-c3f3b7f00ee0
-metrics:
-- metric_name: count
-  verbose_name: COUNT(*)
-  metric_type: count
-  expression: COUNT(*)
-  description: null
-  d3format: null
-  currency: null
-  extra:
-    warning_markdown: ''
-  warning_text: null
 columns:
-- column_name: start_time
-  verbose_name: null
+- advanced_data_type: null
+  column_name: start_time
+  description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: true
-  is_active: true
-  type: LONGINTEGER
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: {}
-- column_name: end_time
+  type: LONGINTEGER
   verbose_name: null
+- advanced_data_type: null
+  column_name: end_time
+  description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: true
-  is_active: true
+  python_date_format: null
   type: LONGINTEGER
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  extra: {}
-- column_name: phase
   verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: STRING
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: phase
   description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
   python_date_format: null
-  extra: {}
-- column_name: status
+  type: STRING
   verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: STRING
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: status
   description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
   python_date_format: null
-  extra: {}
-- column_name: description
+  type: STRING
   verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: STRING
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: description
   description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
   python_date_format: null
-  extra: {}
-- column_name: project
+  type: STRING
   verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: STRING
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: project
   description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
   python_date_format: null
-  extra: {}
-- column_name: priority
+  type: STRING
   verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: STRING
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: priority
   description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
   python_date_format: null
-  extra: {}
-version: 1.0.0
+  type: STRING
+  verbose_name: null
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
+default_endpoint: null
+description: null
+extra: null
+fetch_values_predicate: null
+filter_select_enabled: true
+folders: null
+main_dttm_col: start_time
+metrics:
+- currency: null
+  d3format: null
+  description: null
+  expression: COUNT(*)
+  extra: '{"warning_markdown": ""}'
+  metric_name: count
+  metric_type: count
+  verbose_name: COUNT(*)
+  warning_text: null
+normalize_columns: false
+offset: 0
+params: null
+schema: public
+sql: "SELECT\n  1718870400000 AS start_time,\n  1718874000000 AS end_time,\n  'Project\
+  \ Alpha' AS project,\n  'Design Phase' AS phase,\n  'Initial design and architecture\
+  \ planning for Alpha.' AS description,\n  'Completed' AS status,\n  'High' AS priority\n\
+  UNION ALL\nSELECT\n    1718872800000,\n    1718877200000,\n    'Project Alpha',\n\
+  \    'Development Phase',\n    'Core feature development for Alpha project.',\n\
+  \    'In Progress',\n    'High'\nUNION ALL\nSELECT\n    1718876400000,\n    1718880000000,\n\
+  \    'Project Alpha',\n    'Testing Phase',\n    'Internal testing and bug fixing\
+  \ for Alpha features.',\n    'Planned',\n    'Medium'\nUNION ALL\nSELECT\n    1718878800000,\n\
+  \    1718882400000,\n    'Project Alpha',\n    'Deployment Phase',\n    'Preparation\
+  \ and execution of Alpha deployment.',\n    'On Hold',\n    'High'\nUNION ALL\n\
+  SELECT\n    1718880000000,\n    1718883600000,\n    'Project Beta',\n    'Design\
+  \ Phase',\n    'Gathering requirements and conceptual design for Beta.',\n    'Completed',\n\
+  \    'Medium'\nUNION ALL\nSELECT\n    1718882400000,\n    1718886000000,\n    'Project\
+  \ Beta',\n    'Development Phase',\n    'Module-wise development for Beta project.',\n\
+  \    'In Progress',\n    'Medium'\nUNION ALL\nSELECT\n    1718884800000,\n    1718888400000,\n\
+  \    'Project Beta',\n    'Testing Phase',\n    'User acceptance testing for Beta\
+  \ release.',\n    'Planned',\n    'High'\nUNION ALL\nSELECT\n    1718887200000,\n\
+  \    1718890800000,\n    'Project Beta',\n    'Deployment Phase',\n    'Final checks\
+  \ and release of Beta version.',\n    'Planned',\n    'Medium'\nUNION ALL\nSELECT\n\
+  \    1718889600000,\n    1718893200000,\n    'Project Gamma',\n    'Design Phase',\n\
+  \    'System design and database schema for Gamma.',\n    'Completed',\n    'Low'\n\
+  UNION ALL\nSELECT\n    1718892000000,\n    1718895600000,\n    'Project Gamma',\n\
+  \    'Development Phase',\n    'Backend API and frontend integration for Gamma.',\n\
+  \    'In Progress',\n    'High'\nUNION ALL\nSELECT\n    1718894400000,\n    1718898000000,\n\
+  \    'Project Gamma',\n    'Testing Phase',\n    'Automated test suite execution\
+  \ for Gamma.',\n    'Planned',\n    'Medium'\nUNION ALL\nSELECT\n    1718896800000,\n\
+  \    1718900400000,\n    'Project Gamma',\n    'Deployment Phase',\n    'Handover\
+  \ and post-deployment support for Gamma.',\n    'Planned',\n    'Low'\nUNION ALL\n\
+  SELECT\n    1718900000000,\n    1718904000000,\n    'Project Alpha',\n    'Risk\
+  \ Assessment',\n    'Analyzing potential risks and mitigation strategies.',\n  \
+  \  'Completed',\n    'High'\nUNION ALL\nSELECT\n    1718902000000,\n    1718906000000,\n\
+  \    'Project Beta',\n    'Client Review',\n    'Review meeting with key stakeholders\
+  \ for Beta.',\n    'In Progress',\n    'High'\nUNION ALL\nSELECT\n    1718904000000,\n\
+  \    1718908000000,\n    'Project Gamma',\n    'Documentation',\n    'Creating technical\
+  \ and user documentation.',\n    'Planned',\n    'Low'\nUNION ALL\nSELECT\n    1718906000000,\n\
+  \    1718910000000,\n    'Project Alpha',\n    'Feature Implementation',\n    'Implementing\
+  \ new requested features for Alpha.',\n    'In Progress',\n    'High'\nUNION ALL\n\
+  SELECT\n    1718908000000,\n    1718912000000,\n    'Project Beta',\n    'User Acceptance\
+  \ Testing',\n    'Final UAT before production release.',\n    'Planned',\n    'High'\n\
+  UNION ALL\nSELECT\n    1718910000000,\n    1718914000000,\n    'Project Gamma',\n\
+  \    'Bug Fixing',\n    'Addressing critical bugs reported post-release.',\n   \
+  \ 'In Progress',\n    'Medium';"
+table_name: project_management
+template_params: null
+uuid: d638a239-f255-44fc-b0c1-c3f3b7f00ee0
+version: 1.0.0

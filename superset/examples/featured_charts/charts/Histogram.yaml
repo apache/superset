@@ -14,33 +14,35 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Histogram
-description: null
-certified_by: null
-certification_details: null
-viz_type: histogram_v2
-params:
-  datasource: 22__table
-  viz_type: histogram_v2
-  slice_id: 130
-  column: quantity_ordered
-  groupby:
-    - deal_size
-  adhoc_filters:
-    - clause: WHERE
-      comparator: No filter
-      expressionType: SIMPLE
-      operator: TEMPORAL_RANGE
-      subject: order_date
-  row_limit: 10000
-  bins: 10
-  normalize: false
-  color_scheme: supersetAndPresetColors
-  show_value: false
-  show_legend: true
-  extra_form_data: {}
-  dashboards: []
 cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: null
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: order_date
+  annotation_layers: []
+  bins: 10
+  color_scheme: supersetAndPresetColors
+  column: quantity_ordered
+  dashboards: []
+  datasource: 22__table
+  extra_form_data: {}
+  groupby:
+  - deal_size
+  normalize: false
+  row_limit: 10000
+  show_legend: true
+  show_value: false
+  slice_id: 130
+  viz_type: histogram_v2
+query_context: null
+slice_name: Histogram
 uuid: 2a89c19d-d0d2-4f5e-9007-e0fb65440e80
 version: 1.0.0
-dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+viz_type: histogram_v2

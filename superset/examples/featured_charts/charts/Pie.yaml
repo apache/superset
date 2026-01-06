@@ -14,18 +14,34 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Pie
-description: null
-certified_by: null
+cache_timeout: null
 certification_details: null
-viz_type: pie
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: null
 params:
-  datasource: 22__table
-  viz_type: pie
-  groupby:
-    - product_line
-  metric:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
     expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: order_date
+  annotation_layers: []
+  color_scheme: supersetColors
+  dashboards:
+  - 13
+  datasource: 22__table
+  date_format: smart_date
+  extra_form_data: {}
+  groupby:
+  - product_line
+  innerRadius: 30
+  label_type: key
+  labels_outside: true
+  legendOrientation: top
+  legendType: scroll
+  metric:
+    aggregate: SUM
     column:
       advanced_data_type: null
       certification_details: null
@@ -43,36 +59,22 @@ params:
       type_generic: 0
       verbose_name: null
       warning_markdown: null
-    aggregate: SUM
-    sqlExpression: null
     datasourceWarning: false
+    expressionType: SIMPLE
     hasCustomLabel: false
     label: SUM(sales)
     optionName: metric_m2fycvcvjie_4gnezrycwmb
-  adhoc_filters:
-    - clause: WHERE
-      subject: order_date
-      operator: TEMPORAL_RANGE
-      comparator: No filter
-      expressionType: SIMPLE
+    sqlExpression: null
+  number_format: SMART_NUMBER
+  outerRadius: 70
   row_limit: 100
-  sort_by_metric: true
-  color_scheme: supersetColors
+  show_labels: true
   show_labels_threshold: 5
   show_legend: true
-  legendType: scroll
-  legendOrientation: top
-  label_type: key
-  number_format: SMART_NUMBER
-  date_format: smart_date
-  show_labels: true
-  labels_outside: true
-  outerRadius: 70
-  innerRadius: 30
-  extra_form_data: {}
-  dashboards:
-    - 13
-cache_timeout: null
+  sort_by_metric: true
+  viz_type: pie
+query_context: null
+slice_name: Pie
 uuid: 02ed54c5-dc22-468c-9edf-729b5401b182
 version: 1.0.0
-dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+viz_type: pie

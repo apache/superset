@@ -14,10 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: New Members per Month
-viz_type: big_number
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 9dd99cda-ff6b-4575-9a74-684d06e871ab
+description: null
 params:
   adhoc_filters: []
+  annotation_layers: []
   color_picker:
     a: 1
     b: 135
@@ -60,7 +64,8 @@ params:
   url_params: {}
   viz_type: big_number
   y_axis_format: SMART_NUMBER
-cache_timeout: null
+query_context: null
+slice_name: New Members per Month
 uuid: 92e1d712-bcf9-4d7e-9b94-26cffe502908
 version: 1.0.0
-dataset_uuid: 9dd99cda-ff6b-4575-9a74-684d06e871ab
+viz_type: big_number

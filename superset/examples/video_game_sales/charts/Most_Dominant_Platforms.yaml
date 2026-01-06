@@ -14,8 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Most Dominant Platforms
-viz_type: pie
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283
+description: null
 params:
   adhoc_filters:
   - clause: WHERE
@@ -27,6 +30,7 @@ params:
     operator: <=
     sqlExpression: null
     subject: rank
+  annotation_layers: []
   color_scheme: supersetColors
   datasource: 21__table
   donut: true
@@ -35,6 +39,7 @@ params:
   - publisher
   innerRadius: 45
   label_line: true
+  label_type: key
   labels_outside: true
   metric:
     aggregate: SUM
@@ -58,7 +63,6 @@ params:
     sqlExpression: null
   number_format: SMART_NUMBER
   outerRadius: 67
-  label_type: key
   queryFields:
     groupby: groupby
     metric: metrics
@@ -69,7 +73,8 @@ params:
   time_range: No filter
   url_params: {}
   viz_type: pie
-cache_timeout: null
+query_context: null
+slice_name: Most Dominant Platforms
 uuid: 1810975a-f6d4-07c3-495c-c3b535d01f21
 version: 1.0.0
-dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283
+viz_type: pie

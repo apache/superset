@@ -14,12 +14,79 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: hierarchical_dataset
-main_dttm_col: null
-description: null
-default_endpoint: null
-offset: 0
+always_filter_main_dttm: false
 cache_timeout: null
+catalog: null
+columns:
+- advanced_data_type: null
+  column_name: parent
+  description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: INTEGER
+  verbose_name: null
+- advanced_data_type: null
+  column_name: count
+  description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: INTEGER
+  verbose_name: null
+- advanced_data_type: null
+  column_name: id
+  description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: INTEGER
+  verbose_name: null
+- advanced_data_type: null
+  column_name: name
+  description: null
+  expression: null
+  extra: '{}'
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: null
+database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
+default_endpoint: null
+description: null
+extra: null
+fetch_values_predicate: null
+filter_select_enabled: true
+folders: null
+main_dttm_col: null
+metrics:
+- currency: null
+  d3format: null
+  description: null
+  expression: COUNT(*)
+  extra: '{"warning_markdown": ""}'
+  metric_name: count
+  metric_type: count
+  verbose_name: COUNT(*)
+  warning_text: null
+normalize_columns: false
+offset: 0
+params: null
 schema: public
 sql: 'SELECT 1 as "id", null as "parent", ''USA'' as "name", 1 as "count"
 
@@ -44,73 +111,7 @@ sql: 'SELECT 1 as "id", null as "parent", ''USA'' as "name", 1 as "count"
   UNION SELECT 11, 4, ''Dallas'', 9
 
   UNION SELECT 12, 5, ''Miami'', 6'
-params: null
+table_name: hierarchical_dataset
 template_params: null
-filter_select_enabled: true
-fetch_values_predicate: null
-extra: null
-normalize_columns: false
-always_filter_main_dttm: false
 uuid: f710a997-c65e-4aa6-aaed-b7d6998565ae
-metrics:
-  - metric_name: count
-    verbose_name: COUNT(*)
-    metric_type: count
-    expression: COUNT(*)
-    description: null
-    d3format: null
-    currency: null
-    extra:
-      warning_markdown: ""
-    warning_text: null
-columns:
-  - column_name: parent
-    verbose_name: null
-    is_dttm: false
-    is_active: true
-    type: INTEGER
-    advanced_data_type: null
-    groupby: true
-    filterable: true
-    expression: null
-    description: null
-    python_date_format: null
-    extra: {}
-  - column_name: count
-    verbose_name: null
-    is_dttm: false
-    is_active: true
-    type: INTEGER
-    advanced_data_type: null
-    groupby: true
-    filterable: true
-    expression: null
-    description: null
-    python_date_format: null
-    extra: {}
-  - column_name: id
-    verbose_name: null
-    is_dttm: false
-    is_active: true
-    type: INTEGER
-    advanced_data_type: null
-    groupby: true
-    filterable: true
-    expression: null
-    description: null
-    python_date_format: null
-    extra: {}
-  - column_name: name
-    verbose_name: null
-    is_dttm: false
-    is_active: true
-    type: STRING
-    advanced_data_type: null
-    groupby: true
-    filterable: true
-    expression: null
-    description: null
-    python_date_format: null
-    extra: {}
 version: 1.0.0
-database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee

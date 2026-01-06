@@ -14,8 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Games
-viz_type: table
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283
+description: null
 params:
   adhoc_filters: []
   all_columns:
@@ -25,6 +28,7 @@ params:
   - genre
   - publisher
   - year
+  annotation_layers: []
   color_pn: false
   datasource: 21__table
   granularity_sqla: year
@@ -69,7 +73,8 @@ params:
   time_range: No filter
   url_params: {}
   viz_type: table
-cache_timeout: null
+query_context: null
+slice_name: Games
 uuid: 2a5e562b-ab37-1b9b-1de3-1be4335c8e83
 version: 1.0.0
-dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283
+viz_type: table

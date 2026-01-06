@@ -89,9 +89,9 @@ def export_dataset_yaml(dataset: SqlaTable) -> dict[str, Any]:
         "offset": dataset.offset,
         "cache_timeout": dataset.cache_timeout,
         "catalog": dataset.catalog,
-        "schema": dataset.schema,
+        "schema": None,  # Don't export - use target database's default schema
         "sql": dataset.sql,
-        "params": dataset.params,
+        "params": None,  # Don't export - contains stale import metadata
         "template_params": dataset.template_params,
         "filter_select_enabled": dataset.filter_select_enabled,
         "fetch_values_predicate": dataset.fetch_values_predicate,

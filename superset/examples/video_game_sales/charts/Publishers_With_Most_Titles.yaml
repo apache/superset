@@ -14,8 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Publishers With Most Titles
-viz_type: table
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283
+description: null
 params:
   adhoc_filters: []
   all_columns:
@@ -26,6 +29,7 @@ params:
   - genre
   - publisher
   - year
+  annotation_layers: []
   color_pn: false
   datasource: 21__table
   granularity_sqla: year
@@ -48,7 +52,8 @@ params:
   time_range: No filter
   url_params: {}
   viz_type: table
-cache_timeout: null
+query_context: null
+slice_name: Publishers With Most Titles
 uuid: d20b7324-3b80-24d4-37e2-3bd583b66713
 version: 1.0.0
-dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283
+viz_type: table

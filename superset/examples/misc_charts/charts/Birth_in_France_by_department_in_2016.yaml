@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Birth in France by department in 2016
-description: null
-certified_by: null
+cache_timeout: null
 certification_details: null
-viz_type: country_map
+certified_by: null
+dataset_uuid: 50bbe397-7ac4-415b-a3b4-d520797692e5
+description: null
 params:
   entity: DEPT_ID
   granularity_sqla: ''
@@ -36,7 +36,7 @@ params:
   until: ''
   viz_type: country_map
 query_context: null
-cache_timeout: null
-uuid: 26b3bbd2-4a6e-4b1d-8a52-4aca217bbd3d
+slice_name: Birth in France by department in 2016
+uuid: f5a6cebe-8857-4433-9563-11203197adb7
 version: 1.0.0
-dataset_uuid: d1801260-332a-4c9d-ae50-c23a432a7ac6
+viz_type: country_map

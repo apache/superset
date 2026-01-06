@@ -14,19 +14,36 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Waterfall
-description: null
-certified_by: null
+cache_timeout: null
 certification_details: null
-viz_type: waterfall
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: null
 params:
-  datasource: 22__table
-  viz_type: waterfall
-  x_axis: order_date
-  time_grain_sqla: P3M
-  groupby: []
-  metric:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
     expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: order_date
+  annotation_layers: []
+  dashboards:
+  - 13
+  datasource: 22__table
+  decrease_color:
+    a: 1
+    b: 85
+    g: 67
+    r: 224
+  extra_form_data: {}
+  groupby: []
+  increase_color:
+    a: 1
+    b: 137
+    g: 193
+    r: 90
+  metric:
+    aggregate: SUM
     column:
       advanced_data_type: null
       certification_details: null
@@ -44,42 +61,27 @@ params:
       type_generic: 0
       verbose_name: null
       warning_markdown: null
-    aggregate: SUM
-    sqlExpression: null
     datasourceWarning: false
+    expressionType: SIMPLE
     hasCustomLabel: false
     label: SUM(sales)
     optionName: metric_uufmfvmm7_zhsh1h4vbh
-  adhoc_filters:
-    - clause: WHERE
-      subject: order_date
-      operator: TEMPORAL_RANGE
-      comparator: No filter
-      expressionType: SIMPLE
+    sqlExpression: null
   row_limit: 10000
   show_value: true
-  increase_color:
-    r: 90
-    g: 193
-    b: 137
-    a: 1
-  decrease_color:
-    r: 224
-    g: 67
-    b: 85
-    a: 1
+  time_grain_sqla: P3M
   total_color:
-    r: 102
-    g: 102
-    b: 102
     a: 1
+    b: 102
+    g: 102
+    r: 102
+  viz_type: waterfall
+  x_axis: order_date
   x_axis_time_format: smart_date
   x_ticks_layout: auto
   y_axis_format: SMART_NUMBER
-  extra_form_data: {}
-  dashboards:
-    - 13
-cache_timeout: null
+query_context: null
+slice_name: Waterfall
 uuid: 97c77c60-0613-4066-aec7-a9c6a75ad8d8
 version: 1.0.0
-dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+viz_type: waterfall

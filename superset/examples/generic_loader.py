@@ -56,6 +56,7 @@ def load_parquet_table(  # noqa: C901
     force: bool = False,
     sample_rows: Optional[int] = None,
     data_file: Optional[Any] = None,
+    schema: Optional[str] = None,
 ) -> SqlaTable:
     """Load a Parquet file into the example database.
 
@@ -67,16 +68,24 @@ def load_parquet_table(  # noqa: C901
         force: If True, replace existing table
         sample_rows: If specified, only load this many rows
         data_file: Optional specific file path (Path object) to load from
+        schema: Schema to load into (defaults to database default schema)
 
     Returns:
         The created SqlaTable object
     """
+    from sqlalchemy import text
+
     if database is None:
         database = get_example_database()
 
-    # Check if table exists
+    # Determine schema - use provided or fall back to database default
     with database.get_sqla_engine() as engine:
-        schema = inspect(engine).default_schema_name
+        if schema is None:
+            schema = inspect(engine).default_schema_name
+        else:
+            # Create schema if it doesn't exist (PostgreSQL)
+            with engine.begin() as conn:
+                conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
 
     table_exists = database.has_table(Table(table_name, schema=schema))
     if table_exists and not force:
@@ -184,6 +193,7 @@ def create_generic_loader(
     description: Optional[str] = None,
     sample_rows: Optional[int] = None,
     data_file: Optional[Any] = None,
+    schema: Optional[str] = None,
 ) -> Callable[[Database, SqlaTable], None]:
     """Create a loader function for a specific Parquet file.
 
@@ -196,6 +206,7 @@ def create_generic_loader(
         description: Description for the dataset
         sample_rows: Default number of rows to sample
         data_file: Optional specific file path (Path object) for data/ folder pattern
+        schema: Schema to load into (defaults to database default schema)
 
     Returns:
         A loader function with the standard signature
@@ -218,6 +229,7 @@ def create_generic_loader(
             force=force,
             sample_rows=rows,
             data_file=data_file,
+            schema=schema,
         )
 
         if description and tbl:

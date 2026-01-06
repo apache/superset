@@ -14,10 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Weekly Threads
-viz_type: big_number
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: d7438be6-6078-17dd-cf9a-56f0ef546c80
+description: null
 params:
   adhoc_filters: []
+  annotation_layers: []
   color_picker:
     a: 1
     b: 135
@@ -41,7 +45,8 @@ params:
   url_params: {}
   viz_type: big_number
   y_axis_format: SMART_NUMBER
-cache_timeout: null
+query_context: null
+slice_name: Weekly Threads
 uuid: 9f742bdd-cac1-468c-3a37-35c9b3cfd5bb
 version: 1.0.0
-dataset_uuid: d7438be6-6078-17dd-cf9a-56f0ef546c80
+viz_type: big_number

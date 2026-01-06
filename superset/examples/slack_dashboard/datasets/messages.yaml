@@ -14,469 +14,562 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: messages
-main_dttm_col: bot_profile__updated
-description: null
-default_endpoint: null
-offset: 0
+always_filter_main_dttm: false
 cache_timeout: null
-schema: null
-sql: null
-params: null
-template_params: null
-filter_select_enabled: true
-fetch_values_predicate: null
-extra: null
-uuid: e032c69e-716e-d700-eff7-07800d0f9989
-metrics:
-- metric_name: count
-  verbose_name: COUNT(*)
-  metric_type: count
-  expression: COUNT(*)
-  description: null
-  d3format: null
-  extra: null
-  warning_text: null
+catalog: null
 columns:
-- column_name: bot_profile__updated
-  verbose_name: null
+- advanced_data_type: null
+  column_name: bot_profile__updated
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: true
-  is_active: true
-  type: TIMESTAMP WITHOUT TIME ZONE
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-- column_name: last_read
+  type: TIMESTAMP WITHOUT TIME ZONE
   verbose_name: null
+- advanced_data_type: null
+  column_name: last_read
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: true
-  is_active: true
-  type: TIMESTAMP WITHOUT TIME ZONE
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-- column_name: ts
+  type: TIMESTAMP WITHOUT TIME ZONE
   verbose_name: null
+- advanced_data_type: null
+  column_name: ts
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: true
-  is_active: true
+  python_date_format: null
   type: TIMESTAMP WITHOUT TIME ZONE
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: bot_profile__team_id
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: bot_profile__team_id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: bot_profile__app_id
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: bot_profile__app_id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: bot_profile__name
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: bot_profile__name
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: bot_profile__id
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: bot_profile__id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: parent_user_id
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: parent_user_id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: client_msg_id
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: client_msg_id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: icons__emoji
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: icons__emoji
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: channel_id
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: channel_id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: source_team
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: source_team
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: thread_ts
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: thread_ts
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: old_name
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: old_name
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: latest_reply
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: latest_reply
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: user_team
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: user_team
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: bot_id
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: bot_id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: file_id
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: file_id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: username
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: username
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: permalink
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: permalink
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: name
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: name
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: team
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: team
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: subtype
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: subtype
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: topic
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: topic
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: inviter
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: inviter
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: purpose
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: purpose
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: type
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: type
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: user
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: user
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: VARCHAR
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: text
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: text
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: TEXT
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: bot_profile__deleted
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: bot_profile__deleted
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BOOLEAN
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: display_as_bot
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: display_as_bot
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BOOLEAN
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: is_delayed_message
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: is_delayed_message
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BOOLEAN
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: is_starred
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: is_starred
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BOOLEAN
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: is_intro
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: is_intro
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BOOLEAN
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: upload
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: upload
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BOOLEAN
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: subscribed
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: subscribed
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BOOLEAN
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: reply_users_count
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: reply_users_count
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BIGINT
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: unread_count
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: unread_count
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BIGINT
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: reply_count
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: reply_count
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BIGINT
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: file_ids
   verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: TEXT
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: file_ids
   description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
   python_date_format: null
-- column_name: pinned_to
+  type: TEXT
   verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: TEXT
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: pinned_to
   description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
   python_date_format: null
-- column_name: reply_users
+  type: TEXT
   verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: TEXT
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: reply_users
   description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
   python_date_format: null
-- column_name: reactions
+  type: TEXT
   verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: TEXT
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: reactions
   description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
   python_date_format: null
-- column_name: blocks
+  type: TEXT
   verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: TEXT
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: blocks
   description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
   python_date_format: null
-version: 1.0.0
+  type: TEXT
+  verbose_name: null
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
+default_endpoint: null
+description: null
+extra: null
+fetch_values_predicate: null
+filter_select_enabled: true
+folders: null
+main_dttm_col: bot_profile__updated
+metrics:
+- currency: null
+  d3format: null
+  description: null
+  expression: COUNT(*)
+  extra: null
+  metric_name: count
+  metric_type: count
+  verbose_name: COUNT(*)
+  warning_text: null
+normalize_columns: false
+offset: 0
+params: null
+schema: main
+sql: null
+table_name: messages
+template_params: null
+uuid: e032c69e-716e-d700-eff7-07800d0f9989
+version: 1.0.0

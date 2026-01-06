@@ -14,10 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Weekly Messages
-viz_type: big_number
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: e032c69e-716e-d700-eff7-07800d0f9989
+description: null
 params:
   adhoc_filters: []
+  annotation_layers: []
   color_picker:
     a: 1
     b: 135
@@ -42,7 +46,8 @@ params:
   url_params: {}
   viz_type: big_number
   y_axis_format: SMART_NUMBER
-cache_timeout: null
+query_context: null
+slice_name: Weekly Messages
 uuid: abe2c022-ceee-a60a-e601-ab93f7ee52b1
 version: 1.0.0
-dataset_uuid: e032c69e-716e-d700-eff7-07800d0f9989
+viz_type: big_number

@@ -30,18 +30,14 @@ _logger = logging.getLogger(__name__)
 
 YAML_EXTENSIONS = {".yaml", ".yml"}
 
-# Examples that should always be loaded (were in original configs/ directory
-# or are needed by test fixtures)
-# New examples (deck_gl, misc_charts) only loaded when load_test_data=True
-CORE_EXAMPLES = {
-    "birth_names",
-    "cleaned_sales_data",
-    "fcc_2018_survey",
-    "featured_charts",
-    "slack_dashboard",
-    "video_game_sales",
-    "wb_health_population",
-}
+
+def _normalize_dataset_schema(content: str) -> str:
+    """Normalize schema in dataset YAML content.
+
+    Converts SQLite's 'main' schema to null for portability across databases.
+    """
+    # Replace 'schema: main' with 'schema: null' to use target database default
+    return content.replace("schema: main", "schema: null")
 
 
 def _read_file_if_exists(base: Any, path: Any) -> str | None:
@@ -106,7 +102,9 @@ def _load_datasets_from_folder(
         content = _read_file_if_exists(base, dataset_file)
         if content:
             dataset_name = Path(dataset_filename).stem
-            contents[f"datasets/examples/{dataset_name}.yaml"] = content
+            contents[f"datasets/examples/{dataset_name}.yaml"] = (
+                _normalize_dataset_schema(content)
+            )
     return contents
 
 
@@ -145,7 +143,9 @@ def _load_example_contents(
     # Single dataset.yaml at root (backward compatible)
     dataset_content = _read_file_if_exists(base, example_dir / "dataset.yaml")
     if dataset_content and (load_test_data or not test_re.search("dataset.yaml")):
-        contents[f"datasets/examples/{example_name}.yaml"] = dataset_content
+        contents[f"datasets/examples/{example_name}.yaml"] = _normalize_dataset_schema(
+            dataset_content
+        )
 
     # Multiple datasets in datasets/ folder
     contents.update(
@@ -231,10 +231,6 @@ def load_contents(load_test_data: bool = False) -> dict[str, Any]:
             continue
 
         example_name = item_name
-
-        # When load_test_data=False, only load core examples (for test compatibility)
-        if not load_test_data and example_name not in CORE_EXAMPLES:
-            continue
 
         example_contents = _load_example_contents(
             example_dir, example_name, test_re, load_test_data

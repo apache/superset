@@ -14,28 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Sankey
-description: null
-certified_by: null
+cache_timeout: null
 certification_details: null
-viz_type: sankey_v2
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: null
 params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: order_date
+  annotation_layers: []
+  color_scheme: supersetColors
+  dashboards: []
   datasource: 22__table
-  viz_type: sankey_v2
+  extra_form_data: {}
+  metric: count
+  row_limit: 10000
   source: product_line
   target: deal_size
-  metric: count
-  adhoc_filters:
-    - clause: WHERE
-      subject: order_date
-      operator: TEMPORAL_RANGE
-      comparator: No filter
-      expressionType: SIMPLE
-  row_limit: 10000
-  color_scheme: supersetColors
-  extra_form_data: {}
-  dashboards: []
-cache_timeout: null
+  viz_type: sankey_v2
+query_context: null
+slice_name: Sankey
 uuid: fead4d46-ecb9-4fd9-8b9c-420629269c02
 version: 1.0.0
-dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+viz_type: sankey_v2

@@ -14,35 +14,36 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: TreeMap
-description: null
-certified_by: null
+cache_timeout: null
 certification_details: null
-viz_type: treemap_v2
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: null
 params:
-  datasource: 23__table
-  viz_type: treemap_v2
-  groupby:
-    - year
-    - product_line
-  metric: count
-  row_limit: 10000
   adhoc_filters:
-    - clause: WHERE
-      subject: order_date
-      operator: TEMPORAL_RANGE
-      comparator: No filter
-      expressionType: SIMPLE
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: order_date
+  annotation_layers: []
   color_scheme: supersetColors
-  show_labels: true
-  show_upper_labels: true
-  label_type: key_value
-  number_format: SMART_NUMBER
+  dashboards: []
+  datasource: 23__table
   date_format: smart_date
   extra_form_data: {}
-  dashboards: []
+  groupby:
+  - year
+  - product_line
+  label_type: key_value
+  metric: count
+  number_format: SMART_NUMBER
+  row_limit: 10000
+  show_labels: true
+  show_upper_labels: true
+  viz_type: treemap_v2
 query_context: null
-cache_timeout: null
+slice_name: TreeMap
 uuid: 36367ecc-e09a-4c9f-80df-5dbaf97f741f
 version: 1.0.0
-dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+viz_type: treemap_v2

@@ -14,211 +14,211 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: birth_france_by_region
-main_dttm_col: dttm
-description: null
-default_endpoint: null
-offset: 0
+always_filter_main_dttm: false
 cache_timeout: null
 catalog: null
-schema: public
-sql: null
-params: null
-template_params: null
-filter_select_enabled: true
-fetch_values_predicate: null
-extra: null
-normalize_columns: false
-always_filter_main_dttm: false
-folders: null
-uuid: d1801260-332a-4c9d-ae50-c23a432a7ac6
-metrics:
-- metric_name: avg__2004
-  verbose_name: null
-  metric_type: null
-  expression: AVG("2004")
-  description: null
-  d3format: null
-  currency: null
-  extra: null
-  warning_text: null
-- metric_name: count
-  verbose_name: COUNT(*)
-  metric_type: count
-  expression: COUNT(*)
-  description: null
-  d3format: null
-  currency: null
-  extra: null
-  warning_text: null
 columns:
-- column_name: DEPT_ID
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: VARCHAR(10)
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
+- advanced_data_type: null
+  column_name: DEPT_ID
   description: null
-  python_date_format: null
+  expression: null
   extra: null
-- column_name: '2010'
-  verbose_name: null
-  is_dttm: false
+  filterable: true
+  groupby: true
   is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: VARCHAR
+  verbose_name: null
+- advanced_data_type: null
+  column_name: '2003'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
   type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  extra: null
-- column_name: '2003'
   verbose_name: null
-  is_dttm: false
+- advanced_data_type: null
+  column_name: '2004'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
   is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  extra: null
-- column_name: '2004'
-  verbose_name: null
   is_dttm: false
-  is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-- column_name: '2005'
+  type: BIGINT
   verbose_name: null
+- advanced_data_type: null
+  column_name: '2005'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: false
-  is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-- column_name: '2006'
+  type: BIGINT
   verbose_name: null
+- advanced_data_type: null
+  column_name: '2006'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: false
-  is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-- column_name: '2007'
+  type: BIGINT
   verbose_name: null
+- advanced_data_type: null
+  column_name: '2007'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: false
-  is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-- column_name: '2008'
+  type: BIGINT
   verbose_name: null
+- advanced_data_type: null
+  column_name: '2008'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: false
-  is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-- column_name: '2009'
+  type: BIGINT
   verbose_name: null
+- advanced_data_type: null
+  column_name: '2009'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: false
-  is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-- column_name: '2011'
+  type: BIGINT
   verbose_name: null
+- advanced_data_type: null
+  column_name: '2010'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: false
-  is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-- column_name: '2012'
+  type: BIGINT
   verbose_name: null
+- advanced_data_type: null
+  column_name: '2011'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: false
-  is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-- column_name: '2013'
+  type: BIGINT
   verbose_name: null
+- advanced_data_type: null
+  column_name: '2012'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: false
-  is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-- column_name: '2014'
+  type: BIGINT
   verbose_name: null
+- advanced_data_type: null
+  column_name: '2013'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: false
-  is_active: true
-  type: BIGINT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-- column_name: dttm
+  type: BIGINT
   verbose_name: null
+- advanced_data_type: null
+  column_name: '2014'
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BIGINT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: dttm
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
   is_dttm: true
-  is_active: true
-  type: DATE
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
   python_date_format: null
-  extra: null
-version: 1.0.0
+  type: DATE
+  verbose_name: null
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
+default_endpoint: null
+description: null
+extra: null
+fetch_values_predicate: null
+filter_select_enabled: true
+folders: null
+main_dttm_col: dttm
+metrics:
+- currency: null
+  d3format: null
+  description: null
+  expression: AVG("2004")
+  extra: null
+  metric_name: avg__2004
+  metric_type: null
+  verbose_name: null
+  warning_text: null
+- currency: null
+  d3format: null
+  description: null
+  expression: COUNT(*)
+  extra: null
+  metric_name: count
+  metric_type: count
+  verbose_name: COUNT(*)
+  warning_text: null
+normalize_columns: false
+offset: 0
+params: null
+schema: main
+sql: null
+table_name: birth_france_by_region
+template_params: null
+uuid: 50bbe397-7ac4-415b-a3b4-d520797692e5
+version: 1.0.0

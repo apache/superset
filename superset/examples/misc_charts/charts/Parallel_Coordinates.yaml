@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Parallel Coordinates
-description: null
-certified_by: null
+cache_timeout: null
 certification_details: null
-viz_type: para
+certified_by: null
+dataset_uuid: 2c6e1db3-3f2f-44c5-8794-4b4300266a8b
+description: null
 params:
   compare_lag: '10'
   compare_suffix: o10Y
@@ -41,7 +41,7 @@ params:
   until: '2012-01-01'
   viz_type: para
 query_context: null
-cache_timeout: null
-uuid: 5cab3136-24e1-48f3-bf68-c3ec2291a27f
+slice_name: Parallel Coordinates
+uuid: e7e7c711-8dd2-4e50-a8eb-2ee4ae7e13d1
 version: 1.0.0
-dataset_uuid: 41156372-3528-4550-b40c-93a170d4cbf7
+viz_type: para

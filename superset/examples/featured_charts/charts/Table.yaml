@@ -14,44 +14,46 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Table
-description: null
-certified_by: null
+cache_timeout: null
 certification_details: null
-viz_type: table
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: null
 params:
-  datasource: 22__table
-  viz_type: table
-  query_mode: raw
-  groupby: []
-  time_grain_sqla: P1D
-  temporal_columns_lookup:
-    order_date: true
-  all_columns:
-    - order_date
-    - product_line
-    - status
-    - price_each
-    - sales
-  percent_metrics: []
   adhoc_filters:
-    - clause: WHERE
-      subject: order_date
-      operator: TEMPORAL_RANGE
-      comparator: No filter
-      expressionType: SIMPLE
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: order_date
+  all_columns:
+  - order_date
+  - product_line
+  - status
+  - price_each
+  - sales
+  allow_render_html: true
+  annotation_layers: []
+  color_pn: true
+  dashboards:
+  - 13
+  datasource: 22__table
+  extra_form_data: {}
+  groupby: []
   order_by_cols: []
+  order_desc: true
+  percent_metrics: []
+  query_mode: raw
   row_limit: 1000
   server_page_length: 10
-  order_desc: true
-  table_timestamp_format: smart_date
   show_cell_bars: true
-  color_pn: true
-  allow_render_html: true
-  extra_form_data: {}
-  dashboards:
-    - 13
-cache_timeout: null
+  table_timestamp_format: smart_date
+  temporal_columns_lookup:
+    order_date: true
+  time_grain_sqla: P1D
+  viz_type: table
+query_context: null
+slice_name: Table
 uuid: d0e7b367-f16f-4d7a-adde-7c7f455fa9bc
 version: 1.0.0
-dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+viz_type: table

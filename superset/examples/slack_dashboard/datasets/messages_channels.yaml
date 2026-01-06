@@ -14,60 +14,71 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: messages_channels
-main_dttm_col: null
-description: null
-default_endpoint: null
-offset: 0
+always_filter_main_dttm: false
 cache_timeout: null
-schema: null
+catalog: null
+columns:
+- advanced_data_type: null
+  column_name: ts
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: true
+  python_date_format: null
+  type: DATETIME
+  verbose_name: null
+- advanced_data_type: null
+  column_name: name
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: VAR_STRING
+  verbose_name: null
+- advanced_data_type: null
+  column_name: text
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BLOB
+  verbose_name: null
+database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
+default_endpoint: null
+description: null
+extra: null
+fetch_values_predicate: null
+filter_select_enabled: true
+folders: null
+main_dttm_col: null
+metrics:
+- currency: null
+  d3format: null
+  description: null
+  expression: count(*)
+  extra: null
+  metric_name: count
+  metric_type: null
+  verbose_name: null
+  warning_text: null
+normalize_columns: false
+offset: 0
+params: null
+schema: main
 sql: SELECT m.ts, c.name, m.text FROM messages m JOIN channels c ON m.channel_id =
   c.id
-params: null
+table_name: messages_channels
 template_params: null
-filter_select_enabled: true
-fetch_values_predicate: null
-extra: null
 uuid: 6e533506-fce6-4f6a-b116-d139df6dbdea
-metrics:
-- metric_name: count
-  verbose_name: null
-  metric_type: null
-  expression: count(*)
-  description: null
-  d3format: null
-  extra: null
-  warning_text: null
-columns:
-- column_name: ts
-  verbose_name: null
-  is_dttm: true
-  is_active: true
-  type: DATETIME
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: name
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: VAR_STRING
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: text
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: BLOB
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
 version: 1.0.0
-database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
