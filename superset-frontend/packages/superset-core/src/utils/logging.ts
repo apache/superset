@@ -16,23 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
 
-export default function validateServerPagination(
-  v: unknown,
-  serverPagination: boolean,
-  maxValueWithoutServerPagination: number,
-  maxServer: number,
-) {
-  if (
-    Number(v) > +maxValueWithoutServerPagination &&
-    Number(v) <= maxServer &&
-    !serverPagination
-  ) {
-    return t(
-      'Server pagination needs to be enabled for values over %s',
-      maxValueWithoutServerPagination,
-    );
-  }
-  return false;
-}
+const console = window.console || {};
+const log = console.log || (() => {});
+
+const logger = {
+  log,
+  debug: console.debug || log,
+  info: console.info || log,
+  warn: console.warn || log,
+  error: console.error || log,
+  trace: console.trace || log,
+  table: console.table || log,
+};
+
+/**
+ * Superset logger, currently just an alias to console.
+ * This may be extended to support numerous console operations safely
+ * i.e.: https://developer.mozilla.org/en-US/docs/Web/API/Console
+ */
+export default logger;

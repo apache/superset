@@ -17,7 +17,7 @@
  * under the License.
  */
 import UntypedJed from 'jed';
-import logging from '../utils/logging';
+import logging from '../../utils/logging';
 import {
   Jed,
   TranslatorConfig,
