@@ -17,7 +17,7 @@
 """add currency column support
 
 Revision ID: 9787190b3d89
-Revises: a9c01ec10479
+Revises: f5b5f88d8526
 Create Date: 2025-11-18 14:00:00.000000
 
 """
@@ -28,7 +28,7 @@ from superset.migrations.shared.utils import add_columns, drop_columns
 
 # revision identifiers, used by Alembic.
 revision = "9787190b3d89"
-down_revision = "a9c01ec10479"
+down_revision = "f5b5f88d8526"
 
 
 def upgrade():
