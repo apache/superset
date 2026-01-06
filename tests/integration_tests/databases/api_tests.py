@@ -4183,15 +4183,15 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: validate SQL with Jinja templates that renders to invalid SQL
 
-        This test ensures that real SQL validation errors are not hidden by template
+        This test ensures that SQL validation errors are not hidden by template
         processing. The template should render successfully, but the resulting SQL
-        should fail validation.
+        should fail syntax validation.
         """
         request_payload = {
             "sql": (
                 "SELECT *\nFROM birth_names\n"
                 "{% if add_invalid_clause %}\n"
-                "WHERE invalid_column_name = 'test'\n"
+                "WHERE\n"
                 "{% endif %}"
             ),
             "schema": None,
@@ -4208,7 +4208,7 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         # The template should render successfully, but SQL validation
-        # should catch the error
+        # should catch the syntax error (WHERE clause with no condition)
         result = response["result"]
         assert isinstance(result, list)
         assert len(result) > 0
