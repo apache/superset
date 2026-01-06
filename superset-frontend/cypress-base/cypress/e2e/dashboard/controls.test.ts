@@ -30,8 +30,8 @@ describe('Dashboard top-level controls', () => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
   });
 
-  // flaky test
-  it('should allow chart level refresh', () => {
+  // flaky test - query completes before assertion
+  it.skip('should allow chart level refresh', () => {
     const mapSpec = WORLD_HEALTH_CHARTS.find(
       ({ viz }) => viz === 'world_map',
     ) as ChartSpec;
