@@ -180,7 +180,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       let anchor: string | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
-        if (permalinkValue) {
+        if (permalinkValue?.state) {
           ({ dataMask, activeTabs, chartStates, anchor } = permalinkValue.state);
         }
       } else if (nativeFilterKeyValue) {

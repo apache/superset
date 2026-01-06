@@ -84,8 +84,8 @@ const getDashboardPermalink = async ({
     { key },
   );
 
-  // If callback returned a URL, use it; otherwise use Superset's default URL
-  if (resolvedUrl) {
+  // If callback returned a valid URL string, use it; otherwise use Superset's default URL
+  if (typeof resolvedUrl === 'string' && resolvedUrl.length > 0) {
     return resolvedUrl;
   }
 

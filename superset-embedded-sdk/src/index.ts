@@ -252,14 +252,20 @@ export async function embedDashboard({
   setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(guestToken));
 
   // Register the resolvePermalinkUrl method for the iframe to call
-  // Returns null if no callback provided, allowing iframe to use default URL
+  // Returns null if no callback provided or on error, allowing iframe to use default URL
   ourPort.defineMethod(
     'resolvePermalinkUrl',
-    async ({ key }: { key: string }) => {
+    async ({ key }: { key: string }): Promise<string | null> => {
       if (!resolvePermalinkUrl) {
         return null;
       }
-      return resolvePermalinkUrl({ key });
+      try {
+        const result = await resolvePermalinkUrl({ key });
+        return result;
+      } catch (error) {
+        log('Error in resolvePermalinkUrl callback:', error);
+        return null;
+      }
     },
   );
 
