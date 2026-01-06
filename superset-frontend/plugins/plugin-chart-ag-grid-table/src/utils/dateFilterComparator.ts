@@ -41,12 +41,14 @@ const dateFilterComparator = (filterDate: Date, cellValue: Date) => {
     return -1;
   }
 
+  // Filter date from AG Grid uses local timezone (what the user selected)
   const filterUTC = Date.UTC(
     filterDate.getFullYear(),
     filterDate.getMonth(),
     filterDate.getDate(),
   );
 
+  // Cell data is in UTC - extract UTC components to compare actual dates
   const cellUTC = Date.UTC(
     cellDate.getUTCFullYear(),
     cellDate.getUTCMonth(),
