@@ -85,24 +85,74 @@ def test_create_response_caching_middleware_returns_none_when_disabled():
             assert result is None
 
 
-def test_create_response_caching_middleware_returns_none_when_no_prefix():
-    """Caching middleware returns None when CACHE_KEY_PREFIX is not set."""
+def test_create_response_caching_middleware_falls_back_to_memory_when_no_prefix():
+    """Caching middleware uses in-memory store when CACHE_KEY_PREFIX is not set."""
     mock_flask_app = MagicMock()
-    mock_flask_app.config.get.return_value = {
-        "enabled": True,
-        "CACHE_KEY_PREFIX": None,
+    mock_configs = {
+        "MCP_CACHE_CONFIG": {"enabled": True, "list_tools_ttl": 300},
+        "MCP_STORE_CONFIG": {"enabled": True},  # Store enabled but no CACHE_KEY_PREFIX
     }
+    mock_flask_app.config.get.side_effect = lambda key, default=None: mock_configs.get(
+        key, default
+    )
+
+    mock_middleware = MagicMock()
 
     with patch(
         "superset.mcp_service.flask_singleton.get_flask_app",
         return_value=mock_flask_app,
     ):
         with patch("flask.has_app_context", return_value=True):
-            from superset.mcp_service.caching import create_response_caching_middleware
+            with patch(
+                "fastmcp.server.middleware.caching.ResponseCachingMiddleware",
+                return_value=mock_middleware,
+            ) as mock_middleware_class:
+                from superset.mcp_service.caching import (
+                    create_response_caching_middleware,
+                )
 
-            result = create_response_caching_middleware()
+                result = create_response_caching_middleware()
 
-            assert result is None
+                # Middleware should be created with cache_storage=None (in-memory)
+                assert result is mock_middleware
+                mock_middleware_class.assert_called_once()
+                call_kwargs = mock_middleware_class.call_args[1]
+                assert call_kwargs["cache_storage"] is None
+
+
+def test_create_response_caching_middleware_uses_memory_store_when_store_disabled():
+    """Caching middleware uses in-memory store when MCP_STORE_CONFIG is disabled."""
+    mock_flask_app = MagicMock()
+    mock_configs = {
+        "MCP_CACHE_CONFIG": {"enabled": True, "list_tools_ttl": 300},
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    mock_flask_app.config.get.side_effect = lambda key, default=None: mock_configs.get(
+        key, default
+    )
+
+    mock_middleware = MagicMock()
+
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app",
+        return_value=mock_flask_app,
+    ):
+        with patch("flask.has_app_context", return_value=True):
+            with patch(
+                "fastmcp.server.middleware.caching.ResponseCachingMiddleware",
+                return_value=mock_middleware,
+            ) as mock_middleware_class:
+                from superset.mcp_service.caching import (
+                    create_response_caching_middleware,
+                )
+
+                result = create_response_caching_middleware()
+
+                # Middleware should be created with cache_storage=None (in-memory)
+                assert result is mock_middleware
+                mock_middleware_class.assert_called_once()
+                call_kwargs = mock_middleware_class.call_args[1]
+                assert call_kwargs["cache_storage"] is None
 
 
 def test_create_response_caching_middleware_creates_middleware():

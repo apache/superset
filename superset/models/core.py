@@ -95,6 +95,8 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from superset_core.api.types import AsyncQueryHandle, QueryOptions, QueryResult
+
     from superset.models.sql_lab import Query
 
 
@@ -1275,6 +1277,38 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         db.session.query(DatabaseUserOAuth2Tokens).filter(
             DatabaseUserOAuth2Tokens.id == self.id
         ).delete()
+
+    def execute(
+        self,
+        sql: str,
+        options: QueryOptions | None = None,
+    ) -> QueryResult:
+        """
+        Execute SQL synchronously.
+
+        :param sql: SQL query to execute
+        :param options: QueryOptions with execution settings
+        :returns: QueryResult with status, data, and metadata
+        """
+        from superset.sql.execution import SQLExecutor
+
+        return SQLExecutor(self).execute(sql, options)
+
+    def execute_async(
+        self,
+        sql: str,
+        options: QueryOptions | None = None,
+    ) -> AsyncQueryHandle:
+        """
+        Execute SQL asynchronously via Celery.
+
+        :param sql: SQL query to execute
+        :param options: QueryOptions with execution settings
+        :returns: AsyncQueryHandle for tracking the query
+        """
+        from superset.sql.execution import SQLExecutor
+
+        return SQLExecutor(self).execute_async(sql, options)
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)

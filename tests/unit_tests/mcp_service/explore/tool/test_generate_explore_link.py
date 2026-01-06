@@ -589,3 +589,99 @@ class TestGenerateExploreLink:
                 expected_url = f"http://localhost:9001/explore/?datasource_type=table&datasource_id={dataset_id}"
                 assert result.data["error"] is None
                 assert result.data["url"] == expected_url
+
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_tool_exception_handling(self, mcp_server):
+        """Test that tool-level exceptions are properly handled and return error."""
+        import sys
+
+        # Get the actual module object from sys.modules (not via __init__.py which
+        # returns the function)
+        explore_module = sys.modules[
+            "superset.mcp_service.explore.tool.generate_explore_link"
+        ]
+
+        original_func = explore_module.map_config_to_form_data
+
+        def raise_error(*args, **kwargs):
+            raise ValueError("Invalid config structure")
+
+        explore_module.map_config_to_form_data = raise_error
+        try:
+            config = TableChartConfig(
+                chart_type="table", columns=[ColumnRef(name="test_col")]
+            )
+            request = GenerateExploreLinkRequest(dataset_id="1", config=config)
+
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_explore_link", {"request": request.model_dump()}
+                )
+
+                # Should return error response with empty URL
+                assert result.data["url"] == ""
+                assert result.data["form_data"] == {}
+                assert result.data["form_data_key"] is None
+                assert "Invalid config structure" in result.data["error"]
+        finally:
+            # Restore original function
+            explore_module.map_config_to_form_data = original_func
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch(
+        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
+    )
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_returns_form_data_key(
+        self, mock_create_form_data, mock_find_dataset, mcp_server
+    ):
+        """Test that form_data_key is properly extracted from URL."""
+        mock_create_form_data.return_value = "extracted_form_key_xyz"
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="region")]
+        )
+        request = GenerateExploreLinkRequest(dataset_id="1", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["error"] is None
+            assert result.data["form_data_key"] == "extracted_form_key_xyz"
+            assert "form_data_key=extracted_form_key_xyz" in result.data["url"]
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch(
+        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
+    )
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_returns_form_data(
+        self, mock_create_form_data, mock_find_dataset, mcp_server
+    ):
+        """Test that form_data dict is returned for external rendering."""
+        mock_create_form_data.return_value = "form_data_test_key"
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+        )
+        request = GenerateExploreLinkRequest(dataset_id="1", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["error"] is None
+            assert "form_data" in result.data
+            assert isinstance(result.data["form_data"], dict)
+            assert result.data["form_data"].get("viz_type") == "echarts_timeseries_line"
+            assert result.data["form_data"].get("x_axis") == "date"
+            # Verify datasource field format: "{dataset_id}__table"
+            assert result.data["form_data"].get("datasource") == "1__table"

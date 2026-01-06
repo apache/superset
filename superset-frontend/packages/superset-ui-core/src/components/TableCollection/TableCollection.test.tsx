@@ -240,3 +240,86 @@ test('should call setSortBy when clicking sortable column header', () => {
     },
   ]);
 });
+
+test('should not apply highlight class when highlightRowId is undefined', () => {
+  const propsWithoutHighlight = {
+    ...defaultProps,
+    highlightRowId: undefined,
+  };
+
+  const { container } = render(<TableCollection {...propsWithoutHighlight} />);
+
+  // Check that no rows have the highlight class
+  const highlightedRows = container.querySelectorAll('.table-row-highlighted');
+  expect(highlightedRows).toHaveLength(0);
+});
+
+test('should not apply highlight class when highlightRowId is null', () => {
+  const propsWithNullHighlight = {
+    ...defaultProps,
+    highlightRowId: null,
+  };
+
+  const { container } = render(<TableCollection {...propsWithNullHighlight} />);
+
+  // Check that no rows have the highlight class
+  const highlightedRows = container.querySelectorAll('.table-row-highlighted');
+  expect(highlightedRows).toHaveLength(0);
+});
+
+test('should apply highlight class only to matching row when highlightRowId is provided', () => {
+  // Create data where the first row has id: 1 to match highlightRowId: 1
+  const dataWithIds = [
+    {
+      col1: 'Line 01 - Col 01',
+      col2: 'Line 01 - Col 02',
+      id: 1, // This should be highlighted
+      parent: { child: 'Nested Value 1' },
+    },
+    {
+      col1: 'Line 02 - Col 01',
+      col2: 'Line 02 - Col 02',
+      id: 2,
+      parent: { child: 'Nested Value 2' },
+    },
+    {
+      col1: 'Line 03 - Col 01',
+      col2: 'Line 03 - Col 02',
+      id: 3,
+      parent: { child: 'Nested Value 3' },
+    },
+  ];
+
+  // Create new table hook with data that has ids
+  const { result } = renderHook(() =>
+    useTable({ columns: tableHook.columns, data: dataWithIds }),
+  );
+  const newTableHook = result.current;
+
+  const propsWithHighlight = {
+    ...defaultProps,
+    highlightRowId: 1,
+    rows: newTableHook.rows,
+    prepareRow: newTableHook.prepareRow,
+  };
+
+  const { container } = render(<TableCollection {...propsWithHighlight} />);
+
+  // Check that only one row has the highlight class
+  const highlightedRows = container.querySelectorAll('.table-row-highlighted');
+  expect(highlightedRows).toHaveLength(1);
+});
+
+test('should not apply highlight when records have no id field and highlightRowId is undefined', () => {
+  // This is the key test for the bug fix - use original data without id field
+  const propsWithNoIds = {
+    ...defaultProps,
+    highlightRowId: undefined,
+  };
+
+  const { container } = render(<TableCollection {...propsWithNoIds} />);
+
+  // Check that no rows have the highlight class (was the bug: all rows were highlighted)
+  const highlightedRows = container.querySelectorAll('.table-row-highlighted');
+  expect(highlightedRows).toHaveLength(0);
+});

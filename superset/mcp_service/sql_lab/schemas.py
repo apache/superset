@@ -28,10 +28,14 @@ class ExecuteSqlRequest(BaseModel):
     database_id: int = Field(
         ..., description="Database connection ID to execute query against"
     )
-    sql: str = Field(..., description="SQL query to execute")
+    sql: str = Field(
+        ...,
+        description="SQL query to execute (supports Jinja2 {{ var }} template syntax)",
+    )
     schema_name: str | None = Field(
         None, description="Schema to use for query execution", alias="schema"
     )
+    catalog: str | None = Field(None, description="Catalog name for query execution")
     limit: int = Field(
         default=1000,
         description="Maximum number of rows to return",
@@ -41,8 +45,21 @@ class ExecuteSqlRequest(BaseModel):
     timeout: int = Field(
         default=30, description="Query timeout in seconds", ge=1, le=300
     )
-    parameters: dict[str, Any] | None = Field(
-        None, description="Parameters for query substitution"
+    template_params: dict[str, Any] | None = Field(
+        None, description="Jinja2 template parameters for SQL rendering"
+    )
+    dry_run: bool = Field(
+        default=False,
+        description="Return transformed SQL without executing (for debugging)",
+    )
+    force_refresh: bool = Field(
+        default=False,
+        description=(
+            "Bypass cache and re-execute query. "
+            "IMPORTANT: Only set to true when the user EXPLICITLY requests "
+            "fresh/updated data (e.g., 'refresh', 'get latest', 're-run'). "
+            "Default to false to reduce database load."
+        ),
     )
 
     @field_validator("sql")
@@ -61,11 +78,24 @@ class ColumnInfo(BaseModel):
     is_nullable: bool | None = Field(None, description="Whether column allows NULL")
 
 
+class StatementInfo(BaseModel):
+    """Information about a single SQL statement execution."""
+
+    original_sql: str = Field(..., description="Original SQL as submitted")
+    executed_sql: str = Field(
+        ..., description="SQL after transformations (RLS, mutations, limits)"
+    )
+    row_count: int = Field(..., description="Number of rows returned/affected")
+    execution_time_ms: float | None = Field(
+        None, description="Statement execution time in milliseconds"
+    )
+
+
 class ExecuteSqlResponse(BaseModel):
     """Response schema for SQL execution results."""
 
     success: bool = Field(..., description="Whether query executed successfully")
-    rows: Any | None = Field(
+    rows: list[dict[str, Any]] | None = Field(
         None, description="Query result rows as list of dictionaries"
     )
     columns: list[ColumnInfo] | None = Field(
@@ -75,12 +105,14 @@ class ExecuteSqlResponse(BaseModel):
     affected_rows: int | None = Field(
         None, description="Number of rows affected (for DML queries)"
     )
-    query_id: str | None = Field(None, description="Query tracking ID")
     execution_time: float | None = Field(
         None, description="Query execution time in seconds"
     )
     error: str | None = Field(None, description="Error message if query failed")
     error_type: str | None = Field(None, description="Type of error if failed")
+    statements: list[StatementInfo] | None = Field(
+        None, description="Per-statement execution info (for multi-statement queries)"
+    )
 
 
 class OpenSqlLabRequest(BaseModel):

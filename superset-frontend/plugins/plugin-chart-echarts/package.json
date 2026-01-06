@@ -25,14 +25,14 @@
   ],
   "dependencies": {
     "@types/react-redux": "^7.1.34",
-    "d3-array": "^1.2.0",
+    "d3-array": "^3.2.4",
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
     "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "dayjs": "^1.11.18",
+    "dayjs": "^1.11.19",
     "echarts": "*",
     "memoize-one": "*",
     "react": "^17.0.2"

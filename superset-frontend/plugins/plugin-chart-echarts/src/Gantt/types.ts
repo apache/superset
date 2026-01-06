@@ -56,8 +56,7 @@ export type EchartsGanttFormData = QueryFormData &
     showExtraControls?: boolean;
   };
 
-export interface EchartsGanttChartProps
-  extends ChartProps<EchartsGanttFormData> {
+export interface EchartsGanttChartProps extends ChartProps<EchartsGanttFormData> {
   formData: EchartsGanttFormData;
   queriesData: ChartDataResponseResult[];
 }

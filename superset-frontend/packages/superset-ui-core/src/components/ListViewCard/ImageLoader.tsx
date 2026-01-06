@@ -36,8 +36,10 @@ const ImageContainer = styled.div<ImageContainerProps>`
   width: calc(100% - 2px);
   margin: 1px 1px 0 1px;
 `;
-interface ImageLoaderProps
-  extends DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface ImageLoaderProps extends DetailedHTMLProps<
+  HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> {
   fallback: string;
   src: string;
   isLoading?: boolean;
