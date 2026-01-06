@@ -486,7 +486,7 @@ function generateReadmeLogos(databases) {
     const logo = db.documentation.logo;
     const alt = name.toLowerCase().replace(/\s+/g, '-');
     // Use docs site URL for logos
-    return `  <img src="https://superset.apache.org/img/databases/${logo}" alt="${alt}" border="0" width="120" height="60" />`;
+    return `  <img src="https://superset.apache.org/img/databases/${logo}" alt="${alt}" border="0" width="120" height="60" class="database-logo" />`;
   });
 
   return `<p align="center">
