@@ -488,9 +488,14 @@ export default function sqlLabReducer(
           ...state.unsavedQueryEditor,
         },
       );
-      return alterInArr(mergeUnsavedState, 'queryEditors', action.queryEditor!, {
-        ...action.queryEditor!,
-      });
+      return alterInArr(
+        mergeUnsavedState,
+        'queryEditors',
+        action.queryEditor!,
+        {
+          ...action.queryEditor!,
+        },
+      );
     },
     [actions.SET_TABLES]() {
       return extendArr(state, 'tables', action.tables!);
