@@ -24,15 +24,18 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.async_tasks.filters import AsyncTaskFilter
 from superset.async_tasks.schemas import (
+    AsyncTaskBulkCancelResponseSchema,
     AsyncTaskCancelResponseSchema,
     AsyncTaskResponseSchema,
     AsyncTaskStatusResponseSchema,
     openapi_spec_methods_override,
 )
+from superset.commands.async_tasks.bulk_cancel import BulkCancelAsyncTasksCommand
 from superset.commands.async_tasks.cancel import CancelAsyncTaskCommand
 from superset.commands.async_tasks.exceptions import (
     AsyncTaskCancelFailedError,
     AsyncTaskForbiddenError,
+    AsyncTaskInvalidError,
     AsyncTaskNotFoundError,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -53,14 +56,16 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
 
     class_permission_name = "AsyncTask"
 
-    # Map cancel and status to write/read permissions
+    # Map bulk_cancel, cancel, and status to write/read permissions
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "bulk_cancel": "write",
         "cancel": "write",
         "status": "read",
     }
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        "bulk_cancel",
         "cancel",
         "status",
     }
@@ -124,6 +129,7 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Async Tasks"
     openapi_spec_component_schemas = (
         AsyncTaskResponseSchema,
+        AsyncTaskBulkCancelResponseSchema,
         AsyncTaskCancelResponseSchema,
         AsyncTaskStatusResponseSchema,
     )
@@ -298,3 +304,103 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
         except (ValueError, TypeError):
             return self.response_404()
+
+    @expose("/bulk_cancel", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_cancel",
+        log_to_statsd=False,
+    )
+    def bulk_cancel(self) -> Response:
+        """Bulk cancel async tasks.
+        ---
+        post:
+          summary: Cancel multiple async tasks
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    task_uuids:
+                      type: array
+                      items:
+                        type: string
+                      description: List of task UUIDs to cancel
+          responses:
+            200:
+              description: Tasks cancelled successfully (including partial success)
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/AsyncTaskBulkCancelResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            from flask import request
+
+            # Get task_uuids from request body
+            if not request.json or "task_uuids" not in request.json:
+                return self.response_400(message="task_uuids is required")
+
+            task_uuids = request.json.get("task_uuids", [])
+
+            if not isinstance(task_uuids, list):
+                return self.response_400(message="task_uuids must be an array")
+
+            if not task_uuids:
+                return self.response_400(
+                    message="At least one task UUID must be provided"
+                )
+
+            # Execute bulk cancel command
+            cancelled_count, total_requested = BulkCancelAsyncTasksCommand(
+                task_uuids
+            ).run()
+
+            failed_count = total_requested - cancelled_count
+
+            # Build response message
+            if cancelled_count == total_requested:
+                message = f"Successfully cancelled {cancelled_count} task(s)"
+            elif cancelled_count > 0:
+                message = (
+                    f"Partially successful: cancelled {cancelled_count} "
+                    f"out of {total_requested} task(s)"
+                )
+            else:
+                message = "No tasks were cancelled"
+
+            result = {
+                "message": message,
+                "cancelled_count": cancelled_count,
+                "failed_count": failed_count,
+            }
+            return self.response(200, **result)
+
+        except AsyncTaskInvalidError as ex:
+            logger.error(
+                "Invalid bulk cancel request: %s",
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+        except AsyncTaskForbiddenError:
+            return self.response_403()
+        except Exception as ex:
+            logger.error(
+                "Error during bulk cancel: %s",
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_500(message="Internal server error")

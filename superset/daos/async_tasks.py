@@ -129,6 +129,51 @@ class AsyncTaskDAO(BaseDAO[AsyncTask]):
         return True
 
     @classmethod
+    def bulk_cancel_tasks(
+        cls, task_uuids: list[str], skip_base_filter: bool = False
+    ) -> tuple[int, int]:
+        """
+        Cancel multiple tasks by UUIDs.
+
+        This method does NOT use @transaction() to allow partial success -
+        successfully cancelled tasks will be committed even if some fail.
+
+        :param task_uuids: List of task UUIDs to cancel
+        :param skip_base_filter: If True, skip base filter (for admin cancellations)
+        :returns: Tuple of (cancelled_count, total_requested)
+        """
+        if not task_uuids:
+            return 0, 0
+
+        total_requested = len(task_uuids)
+
+        all_tasks = cls.find_by_ids(
+            task_uuids, skip_base_filter=skip_base_filter, id_column="uuid"
+        )
+
+        cancellable_tasks = [
+            task
+            for task in all_tasks
+            if task.status in [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]
+        ]
+
+        cancelled_count = 0
+        for task in cancellable_tasks:
+            try:
+                task.set_status(TaskStatus.CANCELLED.value)
+                db.session.commit()
+                cancelled_count += 1
+            except Exception as ex:
+                logger.error("Failed to cancel task %s: %s", task.uuid, str(ex))
+                db.session.rollback()
+                # Continue with other tasks
+
+        logger.info(
+            "Bulk cancelled %d out of %d tasks", cancelled_count, total_requested
+        )
+        return cancelled_count, total_requested
+
+    @classmethod
     @transaction()
     def delete_old_completed_tasks(cls, older_than: Any, batch_size: int = 1000) -> int:
         """

@@ -244,3 +244,100 @@ class TestAsyncTaskDAO:
         assert result == 8  # 3 + 3 + 2
         assert mock_session.delete.call_count == 8
         assert mock_session.commit.call_count == 1
+
+    @patch("superset.daos.async_tasks.AsyncTaskDAO.find_by_ids")
+    @patch("superset.daos.async_tasks.db.session")
+    def test_bulk_cancel_tasks_success(self, mock_session, mock_find_by_ids):
+        """Test successful bulk cancellation of tasks"""
+        mock_task1 = MagicMock(spec=AsyncTask)
+        mock_task1.uuid = "uuid1"
+        mock_task1.status = TaskStatus.PENDING.value
+
+        mock_task2 = MagicMock(spec=AsyncTask)
+        mock_task2.uuid = "uuid2"
+        mock_task2.status = TaskStatus.IN_PROGRESS.value
+
+        mock_find_by_ids.return_value = [mock_task1, mock_task2]
+
+        cancelled_count, total_requested = AsyncTaskDAO.bulk_cancel_tasks(
+            ["uuid1", "uuid2"]
+        )
+
+        assert cancelled_count == 2
+        assert total_requested == 2
+        mock_task1.set_status.assert_called_once_with(TaskStatus.CANCELLED.value)
+        mock_task2.set_status.assert_called_once_with(TaskStatus.CANCELLED.value)
+        assert mock_session.commit.call_count == 2
+
+    @patch("superset.daos.async_tasks.AsyncTaskDAO.find_all")
+    def test_bulk_cancel_tasks_empty_list(self, mock_find_all):
+        """Test bulk cancel with empty list"""
+        cancelled_count, total_requested = AsyncTaskDAO.bulk_cancel_tasks([])
+
+        assert cancelled_count == 0
+        assert total_requested == 0
+        mock_find_all.assert_not_called()
+
+    @patch("superset.daos.async_tasks.AsyncTaskDAO.find_by_ids")
+    @patch("superset.daos.async_tasks.db.session")
+    def test_bulk_cancel_tasks_partial_success(self, mock_session, mock_find_by_ids):
+        """Test bulk cancel with partial success (some tasks fail)"""
+        mock_task1 = MagicMock(spec=AsyncTask)
+        mock_task1.uuid = "uuid1"
+        mock_task1.status = TaskStatus.PENDING.value
+
+        mock_task2 = MagicMock(spec=AsyncTask)
+        mock_task2.uuid = "uuid2"
+        mock_task2.status = TaskStatus.IN_PROGRESS.value
+        mock_task2.set_status.side_effect = Exception("Database error")
+
+        mock_find_by_ids.return_value = [mock_task1, mock_task2]
+
+        cancelled_count, total_requested = AsyncTaskDAO.bulk_cancel_tasks(
+            ["uuid1", "uuid2", "uuid3"]
+        )
+
+        assert cancelled_count == 1  # Only task1 succeeded
+        assert total_requested == 3
+        mock_task1.set_status.assert_called_once_with(TaskStatus.CANCELLED.value)
+        mock_task2.set_status.assert_called_once_with(TaskStatus.CANCELLED.value)
+        # One commit for successful task, one rollback for failed task
+        assert mock_session.commit.call_count == 1
+        assert mock_session.rollback.call_count == 1
+
+    @patch("superset.daos.async_tasks.AsyncTaskDAO.find_by_ids")
+    def test_bulk_cancel_tasks_no_cancellable_tasks(self, mock_find_by_ids):
+        """Test bulk cancel when no tasks are in cancellable state"""
+        # Simulate tasks exist but are not in cancellable state
+        mock_task1 = MagicMock(spec=AsyncTask)
+        mock_task1.status = TaskStatus.SUCCESS.value
+
+        mock_task2 = MagicMock(spec=AsyncTask)
+        mock_task2.status = TaskStatus.FAILURE.value
+
+        mock_find_by_ids.return_value = [mock_task1, mock_task2]
+
+        cancelled_count, total_requested = AsyncTaskDAO.bulk_cancel_tasks(
+            ["uuid1", "uuid2"]
+        )
+
+        assert cancelled_count == 0
+        assert total_requested == 2
+
+    @patch("superset.daos.async_tasks.AsyncTaskDAO.find_by_ids")
+    @patch("superset.daos.async_tasks.db.session")
+    def test_bulk_cancel_tasks_with_skip_base_filter(
+        self, mock_session, mock_find_by_ids
+    ):
+        """Test bulk cancel respects skip_base_filter parameter"""
+        mock_task = MagicMock(spec=AsyncTask)
+        mock_task.status = TaskStatus.PENDING.value
+        mock_find_by_ids.return_value = [mock_task]
+
+        AsyncTaskDAO.bulk_cancel_tasks(["uuid1"], skip_base_filter=True)
+
+        # Verify find_by_ids was called with skip_base_filter=True
+        mock_find_by_ids.assert_called_once()
+        call_args = mock_find_by_ids.call_args
+        assert call_args.kwargs.get("skip_base_filter") is True
+        assert call_args.kwargs.get("id_column") == "uuid"
