@@ -57,9 +57,8 @@ import {
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 
-import TimezoneSelector, {
-  areTimezoneOptionsCached,
-} from '@superset-ui/core/components/TimezoneSelector';
+import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
+import { timezoneOptionsCache } from '@superset-ui/core/components/TimezoneSelector/TimezoneOptionsCache';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import {
@@ -2049,7 +2048,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               ? key.includes('schedule')
               : key === 'schedule';
             if (isSchedulePanel) {
-              const isCached = areTimezoneOptionsCached();
+              const isCached = timezoneOptionsCache.isCached();
               if (isCached) {
                 // Options are cached, render immediately
                 setShouldRenderTimezoneSelector(true);

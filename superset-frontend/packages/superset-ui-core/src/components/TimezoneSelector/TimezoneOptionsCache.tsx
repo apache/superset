@@ -23,6 +23,39 @@ import type { TimezoneOption, OffsetsToName, GetOffsetKeyFn } from './types';
 // Import dayjs plugin types for TypeScript support
 import 'dayjs/plugin/timezone';
 
+const DEFAULT_TIMEZONE = {
+  name: 'GMT Standard Time',
+  value: 'Africa/Abidjan', // timezones are deduped by the first alphabetical value
+};
+
+const JANUARY_REF = extendedDayjs.tz('2021-01-01');
+const JULY_REF = extendedDayjs.tz('2021-07-01');
+
+const offsetsToName: OffsetsToName = {
+  '-300-240': ['Eastern Standard Time', 'Eastern Daylight Time'],
+  '-360-300': ['Central Standard Time', 'Central Daylight Time'],
+  '-420-360': ['Mountain Standard Time', 'Mountain Daylight Time'],
+  '-420-420': [
+    'Mountain Standard Time - Phoenix',
+    'Mountain Standard Time - Phoenix',
+  ],
+  '-480-420': ['Pacific Standard Time', 'Pacific Daylight Time'],
+  '-540-480': ['Alaska Standard Time', 'Alaska Daylight Time'],
+  '-600-600': ['Hawaii Standard Time', 'Hawaii Daylight Time'],
+  '60120': ['Central European Time', 'Central European Daylight Time'],
+  '00': [DEFAULT_TIMEZONE.name, DEFAULT_TIMEZONE.name],
+  '060': ['GMT Standard Time - London', 'British Summer Time'],
+};
+
+export function getOffsetKey(timezoneName: string): string {
+  return (
+    JANUARY_REF.tz(timezoneName).utcOffset().toString() +
+    JULY_REF.tz(timezoneName).utcOffset().toString()
+  );
+}
+
+export { DEFAULT_TIMEZONE };
+
 function getTimezoneDisplayName(
   timezoneName: string,
   currentDate: ReturnType<typeof extendedDayjs>,
@@ -118,3 +151,9 @@ export class TimezoneOptionsCache {
     return this.computePromise;
   }
 }
+
+// Export singleton instance
+export const timezoneOptionsCache = new TimezoneOptionsCache(
+  getOffsetKey,
+  offsetsToName,
+);

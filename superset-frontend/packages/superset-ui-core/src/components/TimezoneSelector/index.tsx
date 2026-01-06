@@ -21,7 +21,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core';
 import { Select } from '@superset-ui/core/components';
 import { extendedDayjs } from '../../utils/dates';
-import { TimezoneOptionsCache } from './TimezoneOptionsCache';
+import {
+  timezoneOptionsCache,
+  getOffsetKey,
+  DEFAULT_TIMEZONE,
+} from './TimezoneOptionsCache';
 import type { TimezoneOption } from './types';
 
 // Import dayjs plugin types for TypeScript support
@@ -34,49 +38,7 @@ export type TimezoneSelectorProps = {
   placeholder?: string;
 };
 
-const DEFAULT_TIMEZONE = {
-  name: 'GMT Standard Time',
-  value: 'Africa/Abidjan', // timezones are deduped by the first alphabetical value
-};
-
 const MIN_SELECT_WIDTH = '400px';
-
-const JANUARY_REF = extendedDayjs.tz('2021-01-01');
-const JULY_REF = extendedDayjs.tz('2021-07-01');
-
-const offsetsToName: Record<string, [string, string]> = {
-  '-300-240': ['Eastern Standard Time', 'Eastern Daylight Time'],
-  '-360-300': ['Central Standard Time', 'Central Daylight Time'],
-  '-420-360': ['Mountain Standard Time', 'Mountain Daylight Time'],
-  '-420-420': [
-    'Mountain Standard Time - Phoenix',
-    'Mountain Standard Time - Phoenix',
-  ],
-  '-480-420': ['Pacific Standard Time', 'Pacific Daylight Time'],
-  '-540-480': ['Alaska Standard Time', 'Alaska Daylight Time'],
-  '-600-600': ['Hawaii Standard Time', 'Hawaii Daylight Time'],
-  '60120': ['Central European Time', 'Central European Daylight Time'],
-  '00': [DEFAULT_TIMEZONE.name, DEFAULT_TIMEZONE.name],
-  '060': ['GMT Standard Time - London', 'British Summer Time'],
-};
-
-function getOffsetKey(timezoneName: string): string {
-  return (
-    JANUARY_REF.tz(timezoneName).utcOffset().toString() +
-    JULY_REF.tz(timezoneName).utcOffset().toString()
-  );
-}
-
-const timezoneCache = new TimezoneOptionsCache(getOffsetKey, offsetsToName);
-
-// Export function to check if options are cached (for parent components)
-export function areTimezoneOptionsCached(): boolean {
-  return timezoneCache.isCached();
-}
-
-function getTimezoneOptionsAsync(): Promise<TimezoneOption[]> {
-  return timezoneCache.getOptionsAsync();
-}
 
 function findMatchingTimezone(
   timezone: string | null | undefined,
@@ -110,7 +72,7 @@ export default function TimezoneSelector({
 }: TimezoneSelectorProps) {
   const [timezoneOptions, setTimezoneOptions] = useState<
     TimezoneOption[] | null
-  >(timezoneCache.getOptions());
+  >(timezoneOptionsCache.getOptions());
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const hasSetDefaultRef = useRef(false);
 
@@ -118,7 +80,8 @@ export default function TimezoneSelector({
     (isOpen: boolean) => {
       if (isOpen && !timezoneOptions && !isLoadingOptions) {
         setIsLoadingOptions(true);
-        getTimezoneOptionsAsync()
+        timezoneOptionsCache
+          .getOptionsAsync()
           .then(options => {
             setTimezoneOptions(options);
           })
@@ -156,7 +119,8 @@ export default function TimezoneSelector({
 
     setIsLoadingOptions(true);
 
-    getTimezoneOptionsAsync()
+    timezoneOptionsCache
+      .getOptionsAsync()
       .then(options => {
         setTimezoneOptions(options);
 
