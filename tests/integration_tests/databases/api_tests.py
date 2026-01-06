@@ -4126,6 +4126,115 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 422
         assert "Kaboom!" in response["errors"][0]["message"]
 
+    @mock.patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_with_jinja_templates(self):
+        """
+        Database API: validate SQL with Jinja templates
+        """
+        request_payload = {
+            "sql": (
+                "SELECT *\nFROM birth_names\nWHERE 1=1\n"
+                "{% if city_filter is defined %}\n"
+                "    AND city = '{{ city_filter }}'\n{% endif %}\n"
+                "LIMIT {{ limit | default(100) }}"
+            ),
+            "schema": None,
+            "template_params": {},
+        }
+
+        example_db = get_example_database()
+        if example_db.backend not in ("presto", "postgresql"):
+            pytest.skip("Only presto and PG are implemented")
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        # Template was successfully rendered and validated
+        # so a valid query returns an empty result list
+        result = response["result"]
+        assert isinstance(result, list)
+        assert len(result) == 0
+
+    @mock.patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_with_jinja_templates_and_params(self):
+        """
+        Database API: validate SQL with Jinja templates and parameters
+        """
+        request_payload = {
+            "sql": (
+                "SELECT *\nFROM birth_names\nWHERE 1=1\n"
+                "{% if city_filter is defined %}\n"
+                "    AND city = '{{ city_filter }}'\n"
+                "{% endif %}\nLIMIT {{ limit }}"
+            ),
+            "schema": None,
+            "template_params": {"city_filter": "New York", "limit": 50},
+        }
+
+        example_db = get_example_database()
+        if example_db.backend not in ("presto", "postgresql"):
+            pytest.skip("Only presto and PG are implemented")
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        # Template was successfully rendered with parameters and validated
+        # so a valid query returns an empty result list
+        result = response["result"]
+        assert isinstance(result, list)
+        assert len(result) == 0
+
+    @mock.patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_with_jinja_invalid_sql_after_render(self):
+        """
+        Database API: validate SQL with Jinja templates that renders to invalid SQL
+
+        This test ensures that SQL validation errors are not hidden by template
+        processing. The template should render successfully, but the resulting SQL
+        should fail syntax validation.
+        """
+        request_payload = {
+            "sql": (
+                "SELECT *\nFROM birth_names\n"
+                "{% if add_invalid_clause %}\n"
+                "WHERE\n"
+                "{% endif %}"
+            ),
+            "schema": None,
+            "template_params": {"add_invalid_clause": True},
+        }
+
+        example_db = get_example_database()
+        if example_db.backend not in ("presto", "postgresql"):
+            pytest.skip("Only presto and PG are implemented")
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        # The template should render successfully, but SQL validation
+        # should catch the syntax error (WHERE clause with no condition)
+        result = response["result"]
+        assert isinstance(result, list)
+        assert len(result) > 0
+
     def test_get_databases_with_extra_filters(self):
         """
         API: Test get database with extra query filter.
