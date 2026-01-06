@@ -34,10 +34,6 @@ def _should_skip_loader(
     if loader_name in ["load_css_templates", "load_examples_from_configs"]:
         return True
 
-    # Skip dashboards (loaded separately)
-    if loader_name in ["load_tabbed_dashboard", "load_supported_charts_dashboard"]:
-        return True
-
     # Skip big data if not requested or when only metadata is requested
     if loader_name == "load_big_data" and (not load_big_data or only_metadata):
         return True
@@ -96,13 +92,6 @@ def load_examples_run(
 
         loader = getattr(examples, loader_name)
         _load_dataset(loader, loader_name, only_metadata, force)
-
-    # Load dashboards
-    if load_test_data:
-        logger.info("Loading [Tabbed dashboard]")
-        examples.load_tabbed_dashboard(only_metadata)
-        logger.info("Loading [Supported Charts Dashboard]")
-        examples.load_supported_charts_dashboard()
 
     # Load examples that are stored as YAML config files
     examples.load_examples_from_configs(force, load_test_data)

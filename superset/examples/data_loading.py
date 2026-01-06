@@ -16,6 +16,7 @@
 #  under the License.
 """Auto-discover and load example datasets from Parquet files."""
 
+import logging
 from pathlib import Path
 from typing import Callable, Dict, Optional
 
@@ -29,6 +30,8 @@ from .css_templates import load_css_templates
 # Import generic loader for Parquet datasets
 from .generic_loader import create_generic_loader
 from .utils import load_examples_from_configs
+
+logger = logging.getLogger(__name__)
 
 
 def get_dataset_config_from_yaml(example_dir: Path) -> Dict[str, Optional[str]]:
@@ -44,7 +47,7 @@ def get_dataset_config_from_yaml(example_dir: Path) -> Dict[str, Optional[str]]:
                 # Treat SQLite's 'main' schema as null (use target database default)
                 result["schema"] = None if schema == "main" else schema
         except Exception:
-            pass
+            logger.debug("Could not read dataset.yaml from %s", example_dir)
     return result
 
 
@@ -102,28 +105,28 @@ def discover_datasets() -> Dict[str, Callable[..., None]]:
         if example_dir.name.startswith("_"):
             continue
 
-        # For multi-dataset examples, check datasets/{name}.yaml for table_name and schema
+        # For multi-dataset examples, check datasets/{name}.yaml for config
         datasets_yaml = example_dir / "datasets" / f"{dataset_name}.yaml"
-        table_name = dataset_name
-        schema = None
+        multi_table_name = dataset_name
+        multi_schema: Optional[str] = None
         if datasets_yaml.exists():
             try:
                 with open(datasets_yaml) as f:
-                    config = yaml.safe_load(f)
-                    table_name = config.get("table_name", dataset_name)
-                    raw_schema = config.get("schema")
+                    yaml_config = yaml.safe_load(f)
+                    multi_table_name = yaml_config.get("table_name") or dataset_name
+                    raw_schema = yaml_config.get("schema")
                     # Treat SQLite's 'main' schema as null (use target database default)
-                    schema = None if raw_schema == "main" else raw_schema
+                    multi_schema = None if raw_schema == "main" else raw_schema
             except Exception:
-                pass
+                logger.debug("Could not read datasets yaml from %s", datasets_yaml)
 
         # Create loader function
         loader_name = f"load_{dataset_name}"
         if loader_name not in loaders:  # Don't override existing loaders
             loaders[loader_name] = create_generic_loader(
                 dataset_name,
-                table_name=table_name,
-                schema=schema,
+                table_name=multi_table_name,
+                schema=multi_schema,
                 data_file=data_file,
             )
 
