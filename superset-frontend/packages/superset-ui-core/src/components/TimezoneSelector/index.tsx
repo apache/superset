@@ -20,20 +20,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core';
 import { Select } from '@superset-ui/core/components';
-import { isDST, extendedDayjs } from '../../utils/dates';
+import { extendedDayjs } from '../../utils/dates';
+import { TimezoneOptionsCache } from './TimezoneOptionsCache';
+import type { TimezoneOption } from './types';
+
+// Import dayjs plugin types for TypeScript support
+import 'dayjs/plugin/timezone';
 
 export type TimezoneSelectorProps = {
   onTimezoneChange: (value: string) => void;
   timezone?: string | null;
   minWidth?: string;
   placeholder?: string;
-};
-
-type TimezoneOption = {
-  label: string;
-  value: string;
-  offsets: string;
-  timezoneName: string;
 };
 
 const DEFAULT_TIMEZONE = {
@@ -69,91 +67,7 @@ function getOffsetKey(timezoneName: string): string {
   );
 }
 
-function getTimezoneDisplayName(
-  timezoneName: string,
-  currentDate: ReturnType<typeof extendedDayjs>,
-): string {
-  const offsetKey = getOffsetKey(timezoneName);
-  const dateInZone = currentDate.tz(timezoneName);
-  const isDSTActive = isDST(dateInZone, timezoneName);
-  const namePair = offsetsToName[offsetKey];
-  return namePair ? (isDSTActive ? namePair[1] : namePair[0]) : timezoneName;
-}
-
-class TimezoneOptionsCache {
-  private cachedOptions: TimezoneOption[] | null = null;
-
-  private computePromise: Promise<TimezoneOption[]> | null = null;
-
-  public isCached(): boolean {
-    return this.cachedOptions !== null;
-  }
-
-  public getOptions(): TimezoneOption[] | null {
-    return this.cachedOptions;
-  }
-
-  private computeOptions(): TimezoneOption[] {
-    const currentDate = extendedDayjs(new Date());
-    const allZones = Intl.supportedValuesOf('timeZone');
-    const seenLabels = new Set<string>();
-    const options: TimezoneOption[] = [];
-
-    for (const zone of allZones) {
-      const offsetKey = getOffsetKey(zone);
-      const displayName = getTimezoneDisplayName(zone, currentDate);
-      const offset = currentDate.tz(zone).format('Z');
-      const label = `GMT ${offset} (${displayName})`;
-
-      if (!seenLabels.has(label)) {
-        seenLabels.add(label);
-        options.push({
-          label,
-          value: zone,
-          offsets: offsetKey,
-          timezoneName: zone,
-        });
-      }
-    }
-
-    this.cachedOptions = options;
-    return options;
-  }
-
-  public getOptionsAsync(): Promise<TimezoneOption[]> {
-    if (this.cachedOptions) {
-      return Promise.resolve(this.cachedOptions);
-    }
-
-    if (this.computePromise) {
-      return this.computePromise;
-    }
-
-    // Use queueMicrotask for better performance than setTimeout(0)
-    // Falls back to setTimeout for older browsers
-    this.computePromise = new Promise<TimezoneOption[]>((resolve, reject) => {
-      const run = () => {
-        try {
-          const result = this.computeOptions();
-          resolve(result);
-        } catch (err) {
-          reject(err);
-        } finally {
-          this.computePromise = null;
-        }
-      };
-      if (typeof queueMicrotask === 'function') {
-        queueMicrotask(run);
-      } else {
-        setTimeout(run, 0);
-      }
-    });
-
-    return this.computePromise;
-  }
-}
-
-const timezoneCache = new TimezoneOptionsCache();
+const timezoneCache = new TimezoneOptionsCache(getOffsetKey, offsetsToName);
 
 // Export function to check if options are cached (for parent components)
 export function areTimezoneOptionsCached(): boolean {
