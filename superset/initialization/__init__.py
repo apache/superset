@@ -168,6 +168,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasource.api import DatasourceRestApi
         from superset.embedded.api import EmbeddedDashboardRestApi
         from superset.embedded.view import EmbeddedView
+        from superset.embedded_chart.api import EmbeddedChartRestApi
+        from superset.embedded_chart.view import EmbeddedChartView
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
@@ -256,6 +258,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DatasetMetricRestApi)
         appbuilder.add_api(DatasourceRestApi)
         appbuilder.add_api(EmbeddedDashboardRestApi)
+        appbuilder.add_api(EmbeddedChartRestApi)
         appbuilder.add_api(ExploreRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
         appbuilder.add_api(ExplorePermalinkRestApi)
@@ -416,6 +419,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(DatasetEditor)
         appbuilder.add_view_no_menu(EmbeddedView)
+        appbuilder.add_view_no_menu(EmbeddedChartView)
         appbuilder.add_view_no_menu(ExploreView)
         appbuilder.add_view_no_menu(ExplorePermalinkView)
         appbuilder.add_view_no_menu(SavedQueryView)

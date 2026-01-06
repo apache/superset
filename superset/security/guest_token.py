@@ -30,6 +30,7 @@ class GuestTokenUser(TypedDict, total=False):
 
 class GuestTokenResourceType(StrEnum):
     DASHBOARD = "dashboard"
+    CHART_PERMALINK = "chart_permalink"
 
 
 class GuestTokenResource(TypedDict):

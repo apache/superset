@@ -300,6 +300,7 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
+    embeddedChart: addPreamble('/src/embeddedChart/index.tsx'),
   },
   cache: {
     type: 'filesystem', // Enable filesystem caching
