@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from flask import current_app
@@ -111,9 +111,7 @@ class QueryCacheManager:
             self.df = query_result.df
             self.sql_rowcount = query_result.sql_rowcount
             self.annotation_data = {} if annotation_data is None else annotation_data
-            self.queried_dttm = (
-                datetime.now(datetime.timezone.utc).isoformat().split(".")[0]
-            )
+            self.queried_dttm = datetime.now(tz=timezone.utc).isoformat().split(".")[0]
 
             if self.status != QueryStatus.FAILED:
                 current_app.config["STATS_LOGGER"].incr("loaded_from_source")
