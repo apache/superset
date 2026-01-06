@@ -107,44 +107,44 @@ Here are some of the major database solutions that are supported:
 
 <!-- SUPPORTED_DATABASES_START -->
 <p align="center">
-  <img src="https://superset.apache.org/img/databases/doris.png" alt="apache-doris" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/apache-drill.png" alt="apache-drill" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/druid.png" alt="apache-druid" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/apache-hive.svg" alt="apache-hive" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/apache-impala.png" alt="apache-impala" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/apache-kylin.png" alt="apache-kylin" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/apache-pinot.svg" alt="apache-pinot" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/amazon-athena.jpg" alt="aws-athena" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/redshift.png" alt="aws-redshift" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/couchbase.svg" alt="couchbase" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/databend.png" alt="databend" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/databricks.png" alt="databricks" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/denodo.png" alt="denodo" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/dremio.png" alt="dremio" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/firebird.png" alt="firebird" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/firebolt.png" alt="firebolt" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/google-big-query.svg" alt="google-bigquery" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/google-sheets.svg" alt="google-sheets" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/ibm-db2.svg" alt="ibm-db2" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/netezza.png" alt="ibm-netezza" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/msql.png" alt="microsoft-sql-server" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/oraclelogo.png" alt="oracle" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/postgresql.svg" alt="postgresql" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/presto-og.png" alt="presto" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="sap-hana" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/snowflake.svg" alt="snowflake" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/tdengine.png" alt="tdengine" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/teradata.png" alt="teradata" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/vertica.png" alt="vertica" border="0" width="120" height="60" style="object-fit: contain;" />
-  <img src="https://superset.apache.org/img/databases/ydb.svg" alt="ydb" border="0" width="120" height="60" style="object-fit: contain;" />
+  <img src="https://superset.apache.org/img/databases/doris.png" alt="apache-doris" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/apache-drill.png" alt="apache-drill" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/druid.png" alt="apache-druid" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/apache-hive.svg" alt="apache-hive" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/apache-impala.png" alt="apache-impala" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/apache-kylin.png" alt="apache-kylin" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/apache-pinot.svg" alt="apache-pinot" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/amazon-athena.jpg" alt="aws-athena" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/redshift.png" alt="aws-redshift" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/couchbase.svg" alt="couchbase" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/databend.png" alt="databend" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/databricks.png" alt="databricks" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/denodo.png" alt="denodo" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/dremio.png" alt="dremio" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/firebird.png" alt="firebird" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/firebolt.png" alt="firebolt" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/google-big-query.svg" alt="google-bigquery" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/google-sheets.svg" alt="google-sheets" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/ibm-db2.svg" alt="ibm-db2" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/netezza.png" alt="ibm-netezza" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/msql.png" alt="microsoft-sql-server" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/oraclelogo.png" alt="oracle" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/postgresql.svg" alt="postgresql" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/presto-og.png" alt="presto" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="sap-hana" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/snowflake.svg" alt="snowflake" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/tdengine.png" alt="tdengine" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/teradata.png" alt="teradata" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/vertica.png" alt="vertica" border="0" width="120" height="60" />
+  <img src="https://superset.apache.org/img/databases/ydb.svg" alt="ydb" border="0" width="120" height="60" />
 </p>
 <!-- SUPPORTED_DATABASES_END -->
 
