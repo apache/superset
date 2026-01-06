@@ -116,6 +116,9 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     if (this.tickTimer) {
       clearInterval(this.tickTimer);
     }
+    if (this.state.lastUpdate !== null) {
+      this.props.onViewportChange?.(this.state.viewport);
+    }
   }
 
   tick() {
