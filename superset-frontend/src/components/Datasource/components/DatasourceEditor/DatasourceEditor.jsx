@@ -74,6 +74,7 @@ import {
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
+import { makeUrl } from 'src/utils/pathUtils';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -650,6 +651,14 @@ class DatasourceEditor extends PureComponent {
       usageChartsCount: 0,
     };
 
+    this.isComponentMounted = false;
+    this.abortControllers = {
+      formatQuery: null,
+      formatSql: null,
+      syncMetadata: null,
+      fetchUsageData: null,
+    };
+
     this.onChange = this.onChange.bind(this);
     this.onChangeEditMode = this.onChangeEditMode.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
@@ -740,24 +749,42 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+  /**
+   * Formats SQL query using the formatQuery action.
+   * Aborts any pending format requests before starting a new one.
+   */
   async onQueryFormat() {
     const { datasource } = this.state;
     if (!datasource.sql || !this.state.isEditMode) {
       return;
     }
 
+    // Abort previous formatQuery if still pending
+    if (this.abortControllers.formatQuery) {
+      this.abortControllers.formatQuery.abort();
+    }
+
+    this.abortControllers.formatQuery = new AbortController();
+    const { signal } = this.abortControllers.formatQuery;
+
     try {
-      const response = await this.props.formatQuery(datasource.sql);
+      const response = await this.props.formatQuery(datasource.sql, { signal });
+
       this.onDatasourcePropChange('sql', response.json.result);
       this.props.addSuccessToast(t('SQL was formatted'));
     } catch (error) {
+      if (error.name === 'AbortError') return;
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
+
       this.props.addDangerToast(
         clientError ||
           statusText ||
           t('An error occurred while formatting SQL'),
       );
+    } finally {
+      this.abortControllers.formatQuery = null;
     }
   }
 
@@ -770,7 +797,7 @@ class DatasourceEditor extends PureComponent {
       autorun: true,
       isDataset: true,
     });
-    return `/sqllab/?${queryParams.toString()}`;
+    return makeUrl(`/sqllab/?${queryParams.toString()}`);
   }
 
   openOnSqlLab() {
@@ -784,36 +811,71 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+  /**
+   * Formats SQL query using the SQL format API endpoint.
+   * Aborts any pending format requests before starting a new one.
+   */
   async formatSql() {
     const { datasource } = this.state;
     if (!datasource.sql) {
       return;
     }
 
+    // Abort previous formatSql if still pending
+    if (this.abortControllers.formatSql) {
+      this.abortControllers.formatSql.abort();
+    }
+
+    this.abortControllers.formatSql = new AbortController();
+    const { signal } = this.abortControllers.formatSql;
+
     try {
       const response = await SupersetClient.post({
         endpoint: '/api/v1/sql/format',
         body: JSON.stringify({ sql: datasource.sql }),
         headers: { 'Content-Type': 'application/json' },
+        signal,
       });
+
       this.onDatasourcePropChange('sql', response.json.result);
       this.props.addSuccessToast(t('SQL was formatted'));
     } catch (error) {
+      if (error.name === 'AbortError') return;
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
+
       this.props.addDangerToast(
         clientError ||
           statusText ||
           t('An error occurred while formatting SQL'),
       );
+    } finally {
+      this.abortControllers.formatSql = null;
     }
   }
 
+  /**
+   * Syncs dataset columns with the database schema.
+   * Fetches column metadata from the underlying table/view and updates the dataset.
+   * Aborts any pending sync requests before starting a new one.
+   */
   async syncMetadata() {
     const { datasource } = this.state;
+
+    // Abort previous syncMetadata if still pending
+    if (this.abortControllers.syncMetadata) {
+      this.abortControllers.syncMetadata.abort();
+    }
+
+    this.abortControllers.syncMetadata = new AbortController();
+    const { signal } = this.abortControllers.syncMetadata;
+
     this.setState({ metadataLoading: true });
+
     try {
-      const newCols = await fetchSyncedColumns(datasource);
+      const newCols = await fetchSyncedColumns(datasource, signal);
+
       const columnChanges = updateColumns(
         datasource.columns,
         newCols,
@@ -830,15 +892,36 @@ class DatasourceEditor extends PureComponent {
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
     } catch (error) {
+      if (error.name === 'AbortError') {
+        // Only update state if still mounted (abort may happen during unmount)
+        if (this.isComponentMounted) {
+          this.setState({ metadataLoading: false });
+        }
+        return;
+      }
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
+
       this.props.addDangerToast(
         clientError || statusText || t('An error has occurred'),
       );
       this.setState({ metadataLoading: false });
+    } finally {
+      this.abortControllers.syncMetadata = null;
     }
   }
 
+  /**
+   * Fetches chart usage data for this dataset (which charts use this dataset).
+   * Aborts any pending fetch requests before starting a new one.
+   *
+   * @param {number} page - Page number (1-indexed)
+   * @param {number} pageSize - Number of results per page
+   * @param {string} sortColumn - Column to sort by
+   * @param {string} sortDirection - Sort direction ('asc' or 'desc')
+   * @returns {Promise<{charts: Array, count: number, ids: Array}>} Chart usage data
+   */
   async fetchUsageData(
     page = 1,
     pageSize = 25,
@@ -846,6 +929,15 @@ class DatasourceEditor extends PureComponent {
     sortDirection = 'desc',
   ) {
     const { datasource } = this.state;
+
+    // Abort previous fetchUsageData if still pending
+    if (this.abortControllers.fetchUsageData) {
+      this.abortControllers.fetchUsageData.abort();
+    }
+
+    this.abortControllers.fetchUsageData = new AbortController();
+    const { signal } = this.abortControllers.fetchUsageData;
+
     try {
       const queryParams = rison.encode({
         columns: [
@@ -881,6 +973,7 @@ class DatasourceEditor extends PureComponent {
 
       const { json = {} } = await SupersetClient.get({
         endpoint: `/api/v1/chart/?q=${queryParams}`,
+        signal,
       });
 
       const charts = json?.result || [];
@@ -892,10 +985,13 @@ class DatasourceEditor extends PureComponent {
         id: ids[index],
       }));
 
-      this.setState({
-        usageCharts: chartsWithIds,
-        usageChartsCount: json?.count || 0,
-      });
+      // Only update state if not aborted and component still mounted
+      if (!signal.aborted && this.isComponentMounted) {
+        this.setState({
+          usageCharts: chartsWithIds,
+          usageChartsCount: json?.count || 0,
+        });
+      }
 
       return {
         charts: chartsWithIds,
@@ -903,8 +999,12 @@ class DatasourceEditor extends PureComponent {
         ids,
       };
     } catch (error) {
+      // Rethrow AbortError so callers can handle gracefully
+      if (error.name === 'AbortError') throw error;
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
+
       this.props.addDangerToast(
         clientError ||
           statusText ||
@@ -914,11 +1014,14 @@ class DatasourceEditor extends PureComponent {
         usageCharts: [],
         usageChartsCount: 0,
       });
+
       return {
         charts: [],
         count: 0,
         ids: [],
       };
+    } finally {
+      this.abortControllers.fetchUsageData = null;
     }
   }
 
@@ -2011,6 +2114,7 @@ class DatasourceEditor extends PureComponent {
   }
 
   componentDidMount() {
+    this.isComponentMounted = true;
     Mousetrap.bind('ctrl+shift+f', e => {
       e.preventDefault();
       if (this.state.isEditMode) {
@@ -2018,10 +2122,19 @@ class DatasourceEditor extends PureComponent {
       }
       return false;
     });
-    this.fetchUsageData();
+    this.fetchUsageData().catch(error => {
+      if (error?.name !== 'AbortError') throw error;
+    });
   }
 
   componentWillUnmount() {
+    this.isComponentMounted = false;
+
+    // Abort all pending requests
+    Object.values(this.abortControllers).forEach(controller => {
+      if (controller) controller.abort();
+    });
+
     Mousetrap.unbind('ctrl+shift+f');
     this.props.resetQuery();
   }
@@ -2035,7 +2148,7 @@ const DataSourceComponent = withTheme(DatasourceEditor);
 const mapDispatchToProps = dispatch => ({
   runQuery: payload => dispatch(executeQuery(payload)),
   resetQuery: () => dispatch(resetDatabaseState()),
-  formatQuery: sql => dispatch(formatQuery(sql)),
+  formatQuery: (sql, options) => dispatch(formatQuery(sql, options)),
 });
 const mapStateToProps = state => ({
   database: state?.database,

@@ -90,6 +90,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   onSearchColChange: (searchCol: string) => void;
   searchOptions: SearchOption[];
   onFilteredDataChange?: (rows: Row<D>[], filterValue?: string) => void;
+  onFilteredRowsChange?: (rows: D[]) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -133,6 +134,7 @@ export default typedMemo(function DataTable<D extends object>({
   onSearchColChange,
   searchOptions,
   onFilteredDataChange,
+  onFilteredRowsChange,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -204,6 +206,7 @@ export default typedMemo(function DataTable<D extends object>({
   );
 
   const {
+    rows, // filtered/sorted rows before pagination
     getTableProps,
     getTableBodyProps,
     prepareRow,
@@ -218,7 +221,6 @@ export default typedMemo(function DataTable<D extends object>({
     wrapStickyTable,
     setColumnOrder,
     allColumns,
-    rows,
     state: {
       pageIndex,
       pageSize,
@@ -451,6 +453,83 @@ export default typedMemo(function DataTable<D extends object>({
     resultOnPageChange = (pageNumber: number) =>
       onServerPaginationChange(pageNumber, serverPageSize);
   }
+
+  // Emit filtered rows to parent in client-side mode (debounced via RAF)
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const rafRef = useRef<number | null>(null);
+  const lastSigRef = useRef<string>('');
+
+  // Prefer a stable identifier from original row data; otherwise use a deterministic
+  // concatenation of visible values (keys sorted so column order changes are detected).
+  function stableRowKey<D extends object>(r: Row<D>): string {
+    const orig = r.original as Record<string, unknown> | undefined;
+    if (orig) {
+      const idLike =
+        (orig as any).id ??
+        (orig as any).ID ??
+        (orig as any).key ??
+        (orig as any).uuid;
+      if (idLike != null) return String(idLike);
+    }
+
+    // Fallback: derive from row.values, but make it stable against column order changes.
+    const v = r.values as Record<string, unknown>;
+    const keys = Object.keys(v).sort(); // detect column order changes
+    return keys.map(k => String(v[k] ?? '')).join('|');
+  }
+
+  // Very small, fast hash for strings (no crypto dependency).
+  function hashString(s: string): string {
+    let h = 0;
+    for (let i = 0; i < s.length; i += 1) {
+      h = (h * 31 + s.charCodeAt(i)) | 0;
+    }
+    return String(h);
+  }
+
+  function signatureOfRows<D extends object>(rs: Row<D>[]): string {
+    const keys = rs.map(stableRowKey);
+    const len = keys.length;
+    const first = keys[0] ?? '';
+    const last = keys[len - 1] ?? '';
+    const digest = hashString(keys.join('\u0001')); // non-printable separator to avoid collisions
+    return `${len}|${first}|${last}|${digest}`;
+  }
+
+  useEffect(() => {
+    if (serverPagination || typeof onFilteredRowsChange !== 'function') {
+      return;
+    }
+
+    const sig = signatureOfRows(rows);
+
+    if (sig !== lastSigRef.current) {
+      lastSigRef.current = sig;
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      rafRef.current = requestAnimationFrame(() => {
+        if (isMountedRef.current) {
+          // Only emit originals when the signature truly changed
+          onFilteredRowsChange(rows.map(r => r.original as D));
+        }
+      });
+    }
+
+    return () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [rows, serverPagination, onFilteredRowsChange]);
 
   return (
     <div

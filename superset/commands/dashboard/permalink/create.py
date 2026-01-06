@@ -29,7 +29,12 @@ from superset.key_value.exceptions import (
     KeyValueCodecEncodeException,
     KeyValueUpsertFailedError,
 )
-from superset.key_value.utils import encode_permalink_key, get_deterministic_uuid
+from superset.key_value.utils import (
+    encode_permalink_key,
+    get_deterministic_uuid,
+    get_deterministic_uuid_with_algorithm,
+    get_fallback_algorithms,
+)
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
@@ -71,9 +76,31 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
             "state": self.state,
         }
         user_id = get_user_id()
-        entry = KeyValueDAO.upsert_entry(
+        payload = (user_id, value)
+
+        # Try to find existing entry with current algorithm
+        uuid_key = get_deterministic_uuid(self.salt, payload)
+        entry = KeyValueDAO.get_entry(self.resource, uuid_key)
+
+        # Fallback: check configured fallback algorithms for backward compatibility
+        if not entry:
+            for fallback_algo in get_fallback_algorithms():
+                uuid_fallback = get_deterministic_uuid_with_algorithm(
+                    self.salt, payload, fallback_algo
+                )
+                entry = KeyValueDAO.get_entry(self.resource, uuid_fallback)
+                if entry:
+                    break
+
+        if entry:
+            # Return existing entry
+            assert entry.id  # for type checks
+            return encode_permalink_key(key=entry.id, salt=self.salt)
+
+        # Create new entry with current algorithm
+        entry = KeyValueDAO.create_entry(
             resource=self.resource,
-            key=get_deterministic_uuid(self.salt, (user_id, value)),
+            key=uuid_key,
             value=value,
             codec=self.codec,
         )

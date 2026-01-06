@@ -20,6 +20,7 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
+from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -284,6 +285,43 @@ async def generate_chart(  # noqa: C901
                 raise
             # Update explore URL to use saved chart
             explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"
+
+            # Generate form_data_key for saved charts (needed for chatbot rendering)
+            try:
+                from superset.commands.explore.form_data.parameters import (
+                    CommandParameters,
+                )
+                from superset.mcp_service.commands.create_form_data import (
+                    MCPCreateFormDataCommand,
+                )
+                from superset.utils.core import DatasourceType
+
+                # Add datasource to form_data for the cache
+                form_data_with_datasource = {
+                    **form_data,
+                    "datasource": f"{dataset.id}__table",
+                }
+
+                cmd_params = CommandParameters(
+                    datasource_type=DatasourceType.TABLE,
+                    datasource_id=dataset.id,
+                    chart_id=chart.id,
+                    tab_id=None,
+                    form_data=json.dumps(form_data_with_datasource),
+                )
+                form_data_key = MCPCreateFormDataCommand(cmd_params).run()
+                await ctx.debug(
+                    "Generated form_data_key for saved chart: form_data_key=%s"
+                    % (form_data_key,)
+                )
+            except Exception as fdk_error:
+                logger.warning(
+                    "Failed to generate form_data_key for saved chart: %s", fdk_error
+                )
+                await ctx.warning(
+                    "Failed to generate form_data_key: error=%s" % (str(fdk_error),)
+                )
+                # form_data_key remains None but chart is still valid
         else:
             await ctx.report_progress(2, 5, "Generating temporary chart preview")
             # Generate explore link with cached form_data for preview-only mode
@@ -292,9 +330,13 @@ async def generate_chart(  # noqa: C901
             explore_url = generate_explore_link(request.dataset_id, form_data)
             await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
 
-            # Extract form_data_key from the explore URL
-            if explore_url and "form_data_key=" in explore_url:
-                form_data_key = explore_url.split("form_data_key=")[1].split("&")[0]
+            # Extract form_data_key from the explore URL using proper URL parsing
+            if explore_url:
+                parsed = urlparse(explore_url)
+                query_params = parse_qs(parsed.query)
+                form_data_key_list = query_params.get("form_data_key", [])
+                if form_data_key_list:
+                    form_data_key = form_data_key_list[0]
 
         # Generate semantic analysis
         capabilities = analyze_chart_capabilities(chart, request.config)
@@ -405,25 +447,37 @@ async def generate_chart(  # noqa: C901
 
         # Return enhanced data while maintaining backward compatibility
         await ctx.report_progress(4, 5, "Building response")
+
+        # Build chart info using serialize_chart_object for saved charts
+        chart_info = None
+        if request.save_chart and chart:
+            from superset.mcp_service.chart.schemas import serialize_chart_object
+
+            chart_info = serialize_chart_object(chart)
+            if chart_info:
+                # Override the URL with explore_url
+                chart_info.url = explore_url
+
+        # Safely serialize chart_info - handle both Pydantic models and dicts
+        chart_data = None
+        if chart_info:
+            if hasattr(chart_info, "model_dump"):
+                chart_data = chart_info.model_dump()
+            elif isinstance(chart_info, dict):
+                chart_data = chart_info
+            else:
+                chart_data = chart_info  # Pass through as-is
+
         result = {
-            "chart": {
-                "id": chart.id if chart else None,
-                "slice_name": chart.slice_name
-                if chart
-                else generate_chart_name(request.config),
-                "viz_type": chart.viz_type if chart else form_data.get("viz_type"),
-                "url": explore_url,
-                "uuid": str(chart.uuid) if chart and chart.uuid else None,
-                "saved": request.save_chart,
-            }
-            if request.save_chart and chart
-            else None,
+            "chart": chart_data,
             "error": None,
             # Enhanced fields for better LLM integration
             "previews": previews,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
+            # Form data fields - REQUIRED for chatbot/external client rendering
+            "form_data": form_data,
             "form_data_key": form_data_key,
             "api_endpoints": {
                 "data": f"{get_superset_base_url()}/api/v1/chart/{chart.id}/data/"

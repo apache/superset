@@ -20,6 +20,57 @@ import { dirname, join } from 'path';
 // Superset's webpack.config.js
 const customConfig = require('../webpack.config.js');
 
+// Filter out plugins that shouldn't be included in Storybook's static build
+// ReactRefreshWebpackPlugin adds Fast Refresh code that requires a dev server runtime,
+// which isn't available when serving the static storybook build
+const filteredPlugins = customConfig.plugins.filter(
+  plugin => plugin.constructor.name !== 'ReactRefreshWebpackPlugin',
+);
+
+// Deep clone and modify rules to disable React Fast Refresh and dev mode in SWC loader
+// The Fast Refresh transform adds $RefreshSig$ calls that require a runtime
+// which isn't present when serving the static build.
+// Also disable development mode to use jsx instead of jsxDEV runtime.
+const disableDevModeInRules = rules =>
+  rules.map(rule => {
+    if (!rule.use) return rule;
+
+    const newUse = (Array.isArray(rule.use) ? rule.use : [rule.use]).map(
+      loader => {
+        // Check if this is the swc-loader with react transform settings
+        if (
+          typeof loader === 'object' &&
+          loader.loader?.includes('swc-loader') &&
+          loader.options?.jsc?.transform?.react
+        ) {
+          return {
+            ...loader,
+            options: {
+              ...loader.options,
+              jsc: {
+                ...loader.options.jsc,
+                transform: {
+                  ...loader.options.jsc.transform,
+                  react: {
+                    ...loader.options.jsc.transform.react,
+                    refresh: false,
+                    development: false,
+                  },
+                },
+              },
+            },
+          };
+        }
+        return loader;
+      },
+    );
+
+    return {
+      ...rule,
+      use: Array.isArray(rule.use) ? newUse : newUse[0],
+    };
+  });
+
 module.exports = {
   stories: [
     '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.stories.@(tsx|jsx)',
@@ -41,13 +92,19 @@ module.exports = {
     ...config,
     module: {
       ...config.module,
-      rules: customConfig.module.rules,
+      rules: disableDevModeInRules(customConfig.module.rules),
     },
     resolve: {
       ...config.resolve,
       ...customConfig.resolve,
+      alias: {
+        ...config.resolve?.alias,
+        ...customConfig.resolve?.alias,
+        // Fix for Storybook 8.6.x with React 17 - resolve ESM module paths
+        'react-dom/test-utils': require.resolve('react-dom/test-utils'),
+      },
     },
-    plugins: [...config.plugins, ...customConfig.plugins],
+    plugins: [...config.plugins, ...filteredPlugins],
   }),
 
   typescript: {

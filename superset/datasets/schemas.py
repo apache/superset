@@ -258,6 +258,7 @@ class ImportV1ColumnSchema(Schema):
     expression = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
     python_date_format = fields.String(allow_none=True)
+    datetime_format = fields.String(allow_none=True)
 
 
 class ImportMetricCurrencySchema(Schema):

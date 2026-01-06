@@ -36,6 +36,7 @@ module.exports = {
         'extensions/overview',
         'extensions/quick-start',
         'extensions/architecture',
+        'extensions/dependencies',
         'extensions/contribution-types',
         {
           type: 'category',

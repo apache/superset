@@ -181,6 +181,8 @@ beforeAll(() => {
 });
 
 afterEach(() => {
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
   jest.restoreAllMocks();
 });
 
@@ -311,18 +313,17 @@ test('render time filter types as disabled if there are no temporal columns in t
 test('validates the name', async () => {
   defaultRender();
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-  await waitFor(
-    async () => {
-      expect(await screen.findByText(NAME_REQUIRED_REGEX)).toBeInTheDocument();
-    },
-    { timeout: 10000 },
-  );
+  expect(
+    await screen.findByText(NAME_REQUIRED_REGEX, {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
 });
 
 test('validates the column', async () => {
   defaultRender();
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-  expect(await screen.findByText(COLUMN_REQUIRED_REGEX)).toBeInTheDocument();
+  expect(
+    await screen.findByText(COLUMN_REQUIRED_REGEX, {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
 });
 
 // eslint-disable-next-line jest/no-disabled-tests
@@ -356,6 +357,7 @@ test('validates the pre-filter value', async () => {
       expect(errorMessages.length).toBeGreaterThan(0);
     });
   } finally {
+    jest.runOnlyPendingTimers();
     jest.useRealTimers();
   }
 

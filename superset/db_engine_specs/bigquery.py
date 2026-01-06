@@ -47,7 +47,7 @@ from superset.exceptions import SupersetException
 from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils, json
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.expression import Select
@@ -268,7 +268,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         :param label: Expected expression label
         :return: Conditionally mutated label
         """
-        label_hashed = "_" + md5_sha_from_str(label)
+        label_hashed = "_" + hash_from_str(label)
 
         # if label starts with number, add underscore as first character
         label_mutated = "_" + label if re.match(r"^\d", label) else label
@@ -290,7 +290,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         :param label: expected expression label
         :return: truncated label
         """
-        return "_" + md5_sha_from_str(label)
+        return "_" + hash_from_str(label)
 
     @classmethod
     def where_latest_partition(

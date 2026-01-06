@@ -199,6 +199,32 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+# ---------------------------------------------------------
+# FedRAMP Cryptographic Compliance
+# ---------------------------------------------------------
+
+# Hash algorithm used for non-cryptographic purposes (cache keys, thumbnails, etc.)
+# Options: 'md5' (legacy), 'sha256'
+#
+# IMPORTANT: Changing this value will invalidate all existing cached content.
+# Cache will re-warm naturally within 24-48 hours.
+#
+# For FedRAMP compliance, set to 'sha256'
+# For backward compatibility with existing deployments, keep as 'md5'
+HASH_ALGORITHM: Literal["md5", "sha256"] = "sha256"
+
+# Fallback hash algorithms for UUID lookup (backward compatibility)
+# When looking up entries by UUID, try these algorithms after the primary one fails.
+# This enables gradual migration from MD5 to SHA-256 without breaking existing entries.
+#
+# Example: When HASH_ALGORITHM='sha256', lookups will try:
+#   1. SHA-256 UUID (primary)
+#   2. MD5 UUID (fallback for legacy entries)
+#
+# Set to empty list to disable fallback (strict mode - only use HASH_ALGORITHM)
+HASH_ALGORITHM_FALLBACKS: list[Literal["md5", "sha256"]] = ["md5"]
+
 # ---------------------------------------------------------
 
 # Your App secret key. Make sure you override it on superset_config.py
@@ -538,6 +564,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ALERT_REPORT_TABS": False,
     "ALERT_REPORTS_FILTER": False,
     "ALERT_REPORT_SLACK_V2": False,
+    "ALERT_REPORT_WEBHOOK": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_ADVANCED_DATA_TYPES": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
@@ -766,6 +793,7 @@ THEME_DEFAULT: Theme = {
         "colorSuccess": "#5ac189",
         "colorInfo": "#66bcfe",
         # Fonts
+        "fontUrls": [],
         "fontFamily": "Inter, Helvetica, Arial",
         "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
         # Extra tokens
@@ -797,14 +825,17 @@ THEME_DARK: Optional[Theme] = {
 # Enable UI-based theme administration for admins
 ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
 
-# Custom font configuration
-# Load external fonts at runtime without rebuilding the application
-# Example:
-# CUSTOM_FONT_URLS = [
-#     "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-#     "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap",
-# ]
-CUSTOM_FONT_URLS: list[str] = []
+# Maximum number of font URLs allowed per theme.
+THEME_FONTS_MAX_URLS: int = 15
+
+# Domains allowed for loading fonts via theme fontUrls token.
+# Only HTTPS URLs from these domains will be accepted.
+THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
+    "fonts.googleapis.com",  # Google Fonts API (serves CSS)
+    "fonts.gstatic.com",  # Google Fonts CDN (serves font files)
+    "use.typekit.net",  # Adobe Fonts (serves both CSS and fonts)
+    "use.typekit.com",  # Adobe Fonts alternate (serves both CSS and fonts)
+]
 
 # ---------------------------------------------------
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
@@ -1750,6 +1781,8 @@ ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
 # You can also assign a function to the config that returns the expected integer
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
+# Enforce HTTPS for webhook alerts/reports
+ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
@@ -1920,6 +1953,11 @@ TALISMAN_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
+        ],
+        "font-src": [
+            "'self'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
         ],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
@@ -1955,6 +1993,11 @@ TALISMAN_DEV_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
+        ],
+        "font-src": [
+            "'self'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
         ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },

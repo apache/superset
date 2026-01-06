@@ -141,8 +141,7 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
-export interface EchartsMixedTimeseriesProps
-  extends BaseChartProps<EchartsMixedTimeseriesFormData> {
+export interface EchartsMixedTimeseriesProps extends BaseChartProps<EchartsMixedTimeseriesFormData> {
   formData: EchartsMixedTimeseriesFormData;
 }
 
