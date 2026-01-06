@@ -386,7 +386,7 @@ def test_prepare_cancel_query(
 @patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @patch("superset.db_engine_specs.trino.db")
-@patch("superset.db_engine_specs.trino.app")
+@patch("superset.db_engine_specs.trino.current_app")
 def test_handle_cursor_early_cancel(
     mock_app: Mock,
     mock_db: Mock,
@@ -924,7 +924,7 @@ def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
 @patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @patch("superset.db_engine_specs.trino.db")
-@patch("superset.db_engine_specs.trino.app")
+@patch("superset.db_engine_specs.trino.current_app")
 def test_handle_cursor_progress_updates(
     mock_app: Mock,
     mock_db: Mock,
@@ -974,7 +974,7 @@ def test_handle_cursor_progress_updates(
 @patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @patch("superset.db_engine_specs.trino.db")
-@patch("superset.db_engine_specs.trino.app")
+@patch("superset.db_engine_specs.trino.current_app")
 def test_handle_cursor_cancels_on_stopped_status(
     mock_app: Mock,
     mock_db: Mock,
@@ -1009,7 +1009,7 @@ def test_handle_cursor_cancels_on_stopped_status(
 @patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @patch("superset.db_engine_specs.trino.db")
-@patch("superset.db_engine_specs.trino.app")
+@patch("superset.db_engine_specs.trino.current_app")
 def test_handle_cursor_cancels_on_timed_out_status(
     mock_app: Mock,
     mock_db: Mock,
@@ -1044,7 +1044,7 @@ def test_handle_cursor_cancels_on_timed_out_status(
 @patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @patch("superset.db_engine_specs.trino.db")
-@patch("superset.db_engine_specs.trino.app")
+@patch("superset.db_engine_specs.trino.current_app")
 def test_handle_cursor_breaks_on_execute_error(
     mock_app: Mock,
     mock_db: Mock,
@@ -1079,7 +1079,7 @@ def test_handle_cursor_breaks_on_execute_error(
 @patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @patch("superset.db_engine_specs.trino.db")
-@patch("superset.db_engine_specs.trino.app")
+@patch("superset.db_engine_specs.trino.current_app")
 def test_handle_cursor_breaks_on_execute_event_set(
     mock_app: Mock,
     mock_db: Mock,
@@ -1120,7 +1120,7 @@ def test_handle_cursor_breaks_on_execute_event_set(
 @patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @patch("superset.db_engine_specs.trino.db")
-@patch("superset.db_engine_specs.trino.app")
+@patch("superset.db_engine_specs.trino.current_app")
 def test_handle_cursor_handles_zero_total_splits(
     mock_app: Mock,
     mock_db: Mock,
@@ -1165,7 +1165,7 @@ def test_handle_cursor_handles_zero_total_splits(
 @patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @patch("superset.db_engine_specs.trino.db")
-@patch("superset.db_engine_specs.trino.app")
+@patch("superset.db_engine_specs.trino.current_app")
 def test_handle_cursor_only_commits_on_progress_change(
     mock_app: Mock,
     mock_db: Mock,

@@ -225,7 +225,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         terminal_states = {"FINISHED", "FAILED", "CANCELED"}
         state = "QUEUED"
         progress = 0.0
-        poll_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(cls.engine, 1)
+        poll_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
+            cls.engine, 1
+        )
         max_wait_time = current_app.config.get("SQLLAB_ASYNC_TIME_LIMIT_SEC", 21600)
         start_time = time.time()
         while state not in terminal_states:
