@@ -33,5 +33,8 @@ if (appMountPoint) {
       );
       ReactDOM.render(<App />, appMountPoint);
     }
-  })();
+  })().catch(err => {
+    // eslint-disable-next-line no-console
+    console.error('Unhandled error during app initialization', err);
+  });
 }
