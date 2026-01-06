@@ -4134,14 +4134,10 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         # Template was successfully rendered and validated
-        # For valid SQL, expect either an empty list or warnings (not errors)
+        # so a valid query returns an empty result list
         result = response["result"]
         assert isinstance(result, list)
-        # As a smoke check, ensure Jinja syntax was rendered
-        # (no '{' or '%' in error messages)
-        for error in result:
-            assert "{" not in error["message"]
-            assert "%" not in error["message"]
+        assert len(result) == 0
 
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
@@ -4173,14 +4169,10 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         # Template was successfully rendered with parameters and validated
-        # For valid SQL, expect either an empty list or warnings (not errors)
+        # so a valid query returns an empty result list
         result = response["result"]
         assert isinstance(result, list)
-        # As a smoke check, ensure Jinja syntax was rendered
-        # (no '{' or '%' in error messages)
-        for error in result:
-            assert "{" not in error["message"]
-            assert "%" not in error["message"]
+        assert len(result) == 0
 
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
@@ -4219,14 +4211,7 @@ class TestDatabaseApi(SupersetTestCase):
         # should catch the error
         result = response["result"]
         assert isinstance(result, list)
-        # We expect validation errors for the invalid column
-        # The exact error depends on the validator, but it should be present
-        # and should NOT contain Jinja syntax (confirming template was rendered)
-        if len(result) > 0:
-            for error in result:
-                # Ensure no Jinja syntax in error messages
-                assert "{" not in error["message"]
-                assert "%" not in error["message"]
+        assert len(result) > 0
 
     def test_get_databases_with_extra_filters(self):
         """
