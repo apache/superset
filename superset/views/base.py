@@ -477,9 +477,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     )
 
     language = (
-        locale.language
-        if locale
-        else app.config.get("BABEL_DEFAULT_LOCALE", "en")
+        locale.language if locale else app.config.get("BABEL_DEFAULT_LOCALE", "en")
     )
     auth_type = app.config["AUTH_TYPE"]
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
