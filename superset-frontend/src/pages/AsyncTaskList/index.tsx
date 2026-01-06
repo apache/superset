@@ -25,6 +25,7 @@ import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
+  type ListViewProps,
 } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -34,6 +35,7 @@ import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import AsyncTaskStatusIcon from 'src/features/asyncTasks/AsyncTaskStatusIcon';
 import AsyncTaskPayloadPopover from 'src/features/asyncTasks/AsyncTaskPayloadPopover';
 import { AsyncTask, TaskStatus } from 'src/features/asyncTasks/types';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 
 const PAGE_SIZE = 25;
 
@@ -53,14 +55,24 @@ function AsyncTaskList({
   user,
 }: AsyncTaskListProps) {
   const {
-    state: { loading, resourceCount: tasksCount, resourceCollection: tasks },
+    state: {
+      loading,
+      resourceCount: tasksCount,
+      resourceCollection: tasks,
+      bulkSelectEnabled,
+    },
+    hasPerm,
     fetchData,
     refreshData,
+    toggleBulkSelect,
   } = useListViewResource<AsyncTask>(
     'async_task',
     t('async task'),
     addDangerToast,
   );
+
+  const isAdmin = useMemo(() => isUserAdmin(user), [user]);
+  const canWrite = hasPerm('can_write');
 
   const handleTaskCancel = useCallback(
     (task: AsyncTask) => {
@@ -81,6 +93,55 @@ function AsyncTaskList({
       );
     },
     [addDangerToast, addSuccessToast, refreshData],
+  );
+
+  const handleBulkCancel = useCallback(
+    (tasks: AsyncTask[]) => {
+      const cancellableTasks = tasks.filter(
+        task =>
+          task.status === TaskStatus.Pending ||
+          task.status === TaskStatus.InProgress,
+      );
+
+      if (cancellableTasks.length === 0) {
+        addDangerToast(
+          t('None of the selected tasks can be cancelled (already completed)'),
+        );
+        return;
+      }
+
+      const taskUuids = cancellableTasks.map(task => task.uuid);
+
+      SupersetClient.post({
+        endpoint: '/api/v1/async_task/bulk_cancel',
+        jsonPayload: { task_uuids: taskUuids },
+      }).then(
+        ({ json }) => {
+          refreshData();
+          toggleBulkSelect();
+          const { cancelled_count, failed_count } = json;
+          if (failed_count > 0) {
+            addDangerToast(
+              t(
+                'Partially cancelled: %s of %s tasks cancelled successfully',
+                cancelled_count,
+                cancellableTasks.length,
+              ),
+            );
+          } else {
+            addSuccessToast(
+              t('Successfully cancelled %s task(s)', cancelled_count),
+            );
+          }
+        },
+        createErrorHandler(errMsg => {
+          addDangerToast(
+            t('There was an issue cancelling the selected tasks: %s', errMsg),
+          );
+        }),
+      );
+    },
+    [addDangerToast, addSuccessToast, refreshData, toggleBulkSelect],
   );
 
   const columns = useMemo(
@@ -262,8 +323,8 @@ function AsyncTaskList({
     [handleTaskCancel],
   );
 
-  const filters: ListViewFilters = useMemo(
-    () => [
+  const filters: ListViewFilters = useMemo(() => {
+    const baseFilters: ListViewFilters = [
       {
         Header: t('Status'),
         key: 'status',
@@ -286,7 +347,11 @@ function AsyncTaskList({
         input: 'search',
         operator: FilterOperator.Contains,
       },
-      {
+    ];
+
+    // Only show user filter for admins
+    if (isAdmin) {
+      baseFilters.push({
         Header: t('User'),
         key: 'created_by',
         id: 'created_by',
@@ -302,10 +367,11 @@ function AsyncTaskList({
           user,
         ),
         paginate: true,
-      },
-    ],
-    [user],
-  );
+      });
+    }
+
+    return baseFilters;
+  }, [isAdmin, user]);
 
   const initialSort = [{ id: 'created_on', desc: true }];
 
@@ -317,9 +383,39 @@ function AsyncTaskList({
     ),
   };
 
+  const bulkActions: ListViewProps['bulkActions'] = canWrite
+    ? [
+        {
+          key: 'cancel',
+          name: t('Cancel'),
+          type: 'secondary',
+          onSelect: (tasks: AsyncTask[]) => {
+            handleBulkCancel(tasks);
+          },
+        },
+      ]
+    : [];
+
+  const subMenuButtons = useMemo(() => {
+    if (!canWrite) {
+      return [];
+    }
+    return [
+      {
+        name: (
+          <>
+            <Icons.StopOutlined iconSize="l" /> {t('Bulk Select')}
+          </>
+        ),
+        buttonStyle: 'secondary' as const,
+        onClick: toggleBulkSelect,
+      },
+    ];
+  }, [canWrite, toggleBulkSelect]);
+
   return (
     <>
-      <SubMenu name={t('Async Tasks')} />
+      <SubMenu name={t('Async Tasks')} buttons={subMenuButtons} />
       <ListView<AsyncTask>
         className="async-task-list-view"
         columns={columns}
@@ -334,7 +430,8 @@ function AsyncTaskList({
         refreshData={refreshData}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
-        bulkSelectEnabled={false}
+        bulkSelectEnabled={bulkSelectEnabled}
+        bulkActions={bulkActions}
       />
     </>
   );

@@ -144,6 +144,18 @@ class AsyncTaskCancelResponseSchema(Schema):
     task = fields.Nested(AsyncTaskResponseSchema, allow_none=True)
 
 
+class AsyncTaskBulkCancelResponseSchema(Schema):
+    """Schema for bulk async task cancellation response"""
+
+    message = fields.String(metadata={"description": "Status message"})
+    cancelled_count = fields.Int(
+        metadata={"description": "Number of tasks successfully cancelled"}
+    )
+    failed_count = fields.Int(
+        metadata={"description": "Number of tasks that could not be cancelled"}
+    )
+
+
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get an async task detail"}},
     "get_list": {
