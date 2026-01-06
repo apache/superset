@@ -72,6 +72,11 @@ class AsyncTaskResponseSchema(Schema):
     status = fields.String(metadata={"description": status_description})
     created_on = fields.DateTime(metadata={"description": created_on_description})
     changed_on = fields.DateTime(metadata={"description": changed_on_description})
+    changed_on_delta_humanized = Method(
+        "get_changed_on_delta_humanized",
+        metadata={"description": "Humanized time since last change"},
+    )
+    changed_by = fields.Nested(UserSchema, allow_none=True)
     started_at = fields.DateTime(
         metadata={"description": started_at_description}, allow_none=True
     )
@@ -120,6 +125,10 @@ class AsyncTaskResponseSchema(Schema):
     def get_is_cancelled(self, obj):
         """Check if task is cancelled"""
         return obj.is_cancelled
+
+    def get_changed_on_delta_humanized(self, obj):
+        """Get humanized time since last change"""
+        return obj.changed_on_delta_humanized()
 
 
 class AsyncTaskStatusResponseSchema(Schema):

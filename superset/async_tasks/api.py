@@ -74,6 +74,9 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
         "status",
         "created_on",
         "changed_on",
+        "changed_on_delta_humanized",
+        "changed_by.first_name",
+        "changed_by.last_name",
         "started_at",
         "ended_at",
         "created_by.id",
@@ -89,7 +92,7 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
         "is_cancelled",
     ]
 
-    list_select_columns = list_columns + ["created_by_fk"]
+    list_select_columns = list_columns + ["created_by_fk", "changed_by_fk"]
 
     show_columns = list_columns
 
