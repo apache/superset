@@ -182,24 +182,24 @@ class TestGenerateChart:
     @pytest.mark.asyncio
     async def test_save_chart_flag(self):
         """Test save_chart flag behavior."""
-        # Default should be True (save chart)
+        # Default should be False (preview only, not saved)
         request1 = GenerateChartRequest(
             dataset_id="1",
             config=TableChartConfig(
                 chart_type="table", columns=[ColumnRef(name="col1")]
             ),
         )
-        assert request1.save_chart is True
+        assert request1.save_chart is False
 
-        # Explicit False (preview only)
+        # Explicit True (save chart permanently)
         request2 = GenerateChartRequest(
             dataset_id="1",
             config=TableChartConfig(
                 chart_type="table", columns=[ColumnRef(name="col1")]
             ),
-            save_chart=False,
+            save_chart=True,
         )
-        assert request2.save_chart is False
+        assert request2.save_chart is True
 
     @pytest.mark.asyncio
     async def test_preview_formats(self):

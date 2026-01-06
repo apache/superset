@@ -835,7 +835,7 @@ class GenerateChartRequest(QueryCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
     save_chart: bool = Field(
-        default=True,
+        default=False,
         description="Whether to permanently save the chart in Superset",
     )
     generate_preview: bool = Field(
