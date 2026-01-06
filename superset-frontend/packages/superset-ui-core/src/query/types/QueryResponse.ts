@@ -43,6 +43,11 @@ export interface ChartDataResponseResult {
   cache_timeout: number | null;
   cached_dttm: string | null;
   /**
+   * UTC timestamp when the query was executed (ISO 8601 format).
+   * For cached queries, this is when the original query ran.
+   */
+  queried_dttm: string | null;
+  /**
    * Array of data records as dictionary
    */
   data: DataRecord[];
@@ -75,7 +80,8 @@ export interface ChartDataResponseResult {
   applied_filters?: any[];
 }
 
-export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {
+export interface TimeseriesChartDataResponseResult
+  extends ChartDataResponseResult {
   data: TimeseriesDataRecord[];
   label_map: Record<string, string[]>;
 }
