@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from flask import current_app
@@ -67,6 +68,7 @@ class QueryCacheManager:
         cache_dttm: str | None = None,
         cache_value: dict[str, Any] | None = None,
         sql_rowcount: int | None = None,
+        queried_dttm: str | None = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -83,6 +85,7 @@ class QueryCacheManager:
         self.cache_dttm = cache_dttm
         self.cache_value = cache_value
         self.sql_rowcount = sql_rowcount
+        self.queried_dttm = queried_dttm
 
     # pylint: disable=too-many-arguments
     def set_query_result(
@@ -108,6 +111,9 @@ class QueryCacheManager:
             self.df = query_result.df
             self.sql_rowcount = query_result.sql_rowcount
             self.annotation_data = {} if annotation_data is None else annotation_data
+            self.queried_dttm = (
+                datetime.now(datetime.timezone.utc).isoformat().split(".")[0]
+            )
 
             if self.status != QueryStatus.FAILED:
                 current_app.config["STATS_LOGGER"].incr("loaded_from_source")
@@ -181,6 +187,7 @@ class QueryCacheManager:
                 query_cache.cache_dttm = (
                     cache_value["dttm"] if cache_value is not None else None
                 )
+                query_cache.queried_dttm = cache_value.get("dttm")
                 query_cache.cache_value = cache_value
                 current_app.config["STATS_LOGGER"].incr("loaded_from_cache")
             except KeyError as ex:
