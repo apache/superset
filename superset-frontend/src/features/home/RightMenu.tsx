@@ -335,7 +335,12 @@ const RightMenu = ({
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
   const handleLogout = () => {
-    localStorage.removeItem('redux');
+    try {
+      window.localStorage.removeItem('redux');
+      window.sessionStorage.removeItem('login_attempted');
+    } catch (error) {
+      console.warn('Failed to clear storage on logout:', error);
+    }
   };
 
   // Use the theme menu hook
@@ -389,14 +394,13 @@ const RightMenu = ({
               items.push({
                 key: menu.label,
                 label: isFrontendRoute(menu.url) ? (
-                  <Link to={menu.url || ''}>
-                    {menu.icon} {menu.label}
-                  </Link>
+                  <Link to={menu.url || ''}>{menu.label}</Link>
                 ) : (
                   <Typography.Link href={ensureAppRoot(menu.url || '')}>
-                    {menu.icon} {menu.label}
+                    {menu.label}
                   </Typography.Link>
                 ),
+                icon: menu.icon,
               });
             }
           }
@@ -406,14 +410,13 @@ const RightMenu = ({
           items.push({
             key: menu.label,
             label: isFrontendRoute(menu.url) ? (
-              <Link to={menu.url || ''}>
-                {menu.icon} {menu.label}
-              </Link>
+              <Link to={menu.url || ''}>{menu.label}</Link>
             ) : (
               <Typography.Link href={ensureAppRoot(menu.url || '')}>
-                {menu.icon} {menu.label}
+                {menu.label}
               </Typography.Link>
             ),
+            icon: menu.icon,
           });
         }
       });

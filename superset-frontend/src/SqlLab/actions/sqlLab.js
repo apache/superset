@@ -1098,12 +1098,14 @@ export function reFetchQueryResults(query) {
 
 export function expandTable(table) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.post({
-          endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
-          postPayload: { expanded: true },
-        })
-      : Promise.resolve();
+    const sync =
+      isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
+      table.initialized
+        ? SupersetClient.post({
+            endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
+            postPayload: { expanded: true },
+          })
+        : Promise.resolve();
 
     return sync
       .then(() => dispatch({ type: EXPAND_TABLE, table }))
@@ -1122,12 +1124,14 @@ export function expandTable(table) {
 
 export function collapseTable(table) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.post({
-          endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
-          postPayload: { expanded: false },
-        })
-      : Promise.resolve();
+    const sync =
+      isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
+      table.initialized
+        ? SupersetClient.post({
+            endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
+            postPayload: { expanded: false },
+          })
+        : Promise.resolve();
 
     return sync
       .then(() => dispatch({ type: COLLAPSE_TABLE, table }))

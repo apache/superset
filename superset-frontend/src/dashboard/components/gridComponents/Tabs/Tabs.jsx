@@ -362,7 +362,7 @@ const Tabs = props => {
         setActiveKey(currentActiveTabId);
       }
     },
-    [props.component, props.updateComponents, selectedTabIndex],
+    [props.component, props.updateComponents, selectedTabIndex, activeKey],
   );
 
   const {
