@@ -22,6 +22,7 @@ import { shallowEqual } from 'react-redux';
 import { now } from '@superset-ui/core/utils/dates';
 import type { SqlLabRootState, QueryEditor, Table } from '../types';
 import * as actions from '../actions/sqlLab';
+import type { SqlLabAction } from '../actions/sqlLab';
 import {
   addToObject,
   alterInObject,
@@ -33,12 +34,6 @@ import {
 } from '../../reduxUtils';
 
 type SqlLabState = SqlLabRootState['sqlLab'];
-
-interface SqlLabAction {
-  type: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
 
 function alterUnsavedQueryEditorState(
   state: SqlLabState,
@@ -83,10 +78,10 @@ export default function sqlLabReducer(
       );
       const newState = {
         ...mergeUnsavedState,
-        tabHistory: [...state.tabHistory, action.queryEditor.id],
+        tabHistory: [...state.tabHistory, action.queryEditor!.id],
       };
       return addToArr(newState, 'queryEditors', {
-        ...action.queryEditor,
+        ...action.queryEditor!,
         updatedAt: new Date().getTime(),
       });
     },
@@ -99,21 +94,21 @@ export default function sqlLabReducer(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         existing as any,
         {
-          remoteId: result.remoteId,
-          name: query.name,
+          remoteId: result!.remoteId,
+          name: (query as { name: string }).name,
         },
         'id',
       );
     },
     [actions.UPDATE_QUERY_EDITOR]() {
-      const id = action.alterations.remoteId;
+      const id = action.alterations!.remoteId;
       const existing = state.queryEditors.find(qe => qe.remoteId === id);
       if (existing == null) return state;
       return alterInArr(
         state,
         'queryEditors',
         existing,
-        action.alterations,
+        action.alterations!,
         'remoteId',
       );
     },
@@ -129,13 +124,14 @@ export default function sqlLabReducer(
       const qe = {
         remoteId: progenitor.remoteId,
         name: t('Copy of %s', progenitor.name),
-        dbId: action.query.dbId ? action.query.dbId : null,
-        catalog: action.query.catalog ? action.query.catalog : null,
-        schema: action.query.schema ? action.query.schema : null,
+        dbId: action.query!.dbId ? action.query!.dbId : null,
+        catalog: action.query!.catalog ? action.query!.catalog : null,
+        schema: action.query!.schema ? action.query!.schema : null,
         autorun: true,
-        sql: action.query.sql,
-        queryLimit: action.query.queryLimit,
-        maxRow: action.query.maxRow,
+        sql: action.query!.sql,
+        queryLimit: action.query!.queryLimit,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        maxRow: (action.query as any)?.maxRow,
       };
       const stateWithoutUnsavedState = {
         ...state,
@@ -143,13 +139,14 @@ export default function sqlLabReducer(
       };
       return sqlLabReducer(
         stateWithoutUnsavedState,
-        actions.addQueryEditor(qe),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        actions.addQueryEditor(qe as any),
       );
     },
     [actions.REMOVE_QUERY_EDITOR]() {
       const queryEditor = {
-        ...action.queryEditor,
-        ...(action.queryEditor.id === state.unsavedQueryEditor.id &&
+        ...action.queryEditor!,
+        ...(action.queryEditor!.id === state.unsavedQueryEditor.id &&
           state.unsavedQueryEditor),
       };
       let newState = removeFromArr(state, 'queryEditors', queryEditor);
@@ -185,13 +182,13 @@ export default function sqlLabReducer(
         tables,
         queries,
         unsavedQueryEditor: {
-          ...(action.queryEditor.id !== state.unsavedQueryEditor.id &&
+          ...(action.queryEditor!.id !== state.unsavedQueryEditor.id &&
             state.unsavedQueryEditor),
         },
         destroyedQueryEditors: {
           ...newState.destroyedQueryEditors,
           ...(!queryEditor.inLocalStorage && {
-            [queryEditor.tabViewId ?? queryEditor.id]: Date.now(),
+            [(queryEditor.tabViewId ?? queryEditor.id)!]: Date.now(),
           }),
         },
       };
@@ -199,19 +196,19 @@ export default function sqlLabReducer(
     },
     [actions.CLEAR_DESTROYED_QUERY_EDITOR]() {
       const destroyedQueryEditors = { ...state.destroyedQueryEditors };
-      delete destroyedQueryEditors[action.queryEditorId];
+      delete destroyedQueryEditors[action.queryEditorId!];
       return { ...state, destroyedQueryEditors };
     },
     [actions.REMOVE_QUERY]() {
       const newQueries = { ...state.queries };
-      delete newQueries[action.query.id];
+      delete newQueries[action.query!.id!];
       return { ...state, queries: newQueries };
     },
     [actions.RESET_STATE]() {
       return { ...action.sqlLabInitialState };
     },
     [actions.MERGE_TABLE]() {
-      const at = { ...action.table };
+      const at = { ...action.table } as Table;
       const existingTableIndex = state.tables.findIndex(
         xt =>
           xt.dbId === at.dbId &&
@@ -222,7 +219,7 @@ export default function sqlLabReducer(
       );
       if (existingTableIndex >= 0) {
         if (action.query) {
-          at.dataPreviewQueryId = action.query.id;
+          at.dataPreviewQueryId = action.query!.id;
         }
         return {
           ...state,
@@ -250,30 +247,30 @@ export default function sqlLabReducer(
       };
       if (action.query) {
         newState = alterInArr(newState, 'tables', at, {
-          dataPreviewQueryId: action.query.id,
+          dataPreviewQueryId: action.query!.id,
         });
       }
       return newState;
     },
     [actions.EXPAND_TABLE]() {
-      return alterInArr(state, 'tables', action.table, { expanded: true });
+      return alterInArr(state, 'tables', action.table!, { expanded: true });
     },
     [actions.REMOVE_DATA_PREVIEW]() {
       const queries = { ...state.queries };
-      delete queries[action.table.dataPreviewQueryId];
-      const newState = alterInArr(state, 'tables', action.table, {
+      delete queries[action.table!.dataPreviewQueryId!];
+      const newState = alterInArr(state, 'tables', action.table!, {
         dataPreviewQueryId: null,
       });
       return { ...newState, queries };
     },
     [actions.CHANGE_DATA_PREVIEW_ID]() {
       const queries = { ...state.queries };
-      delete queries[action.oldQueryId];
+      delete queries[action.oldQueryId!];
 
       const newTables: Table[] = [];
       state.tables.forEach(xt => {
         if (xt.dataPreviewQueryId === action.oldQueryId) {
-          newTables.push({ ...xt, dataPreviewQueryId: action.newQuery.id });
+          newTables.push({ ...xt, dataPreviewQueryId: action.newQuery!.id });
         } else {
           newTables.push(xt);
         }
@@ -285,20 +282,20 @@ export default function sqlLabReducer(
       };
     },
     [actions.COLLAPSE_TABLE]() {
-      return alterInArr(state, 'tables', action.table, { expanded: false });
+      return alterInArr(state, 'tables', action.table!, { expanded: false });
     },
     [actions.REMOVE_TABLES]() {
-      const tableIds = action.tables.map((table: Table) => table.id);
+      const tableIds = action.tables!.map((table: Table) => table.id);
       const tables = state.tables.filter(table => !tableIds.includes(table.id));
 
       return {
         ...state,
         tables,
-        ...(tableIds.includes(state.activeSouthPaneTab) && {
+        ...(tableIds.includes(state.activeSouthPaneTab as string) && {
           activeSouthPaneTab:
             tables.find(
               ({ queryEditorId }) =>
-                queryEditorId === action.tables[0].queryEditorId,
+                queryEditorId === action.tables![0].queryEditorId,
             )?.id ?? 'Results',
         }),
       };
@@ -308,7 +305,7 @@ export default function sqlLabReducer(
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.id]: {
+          [action.query!.id!]: {
             completed: false,
             cost: null,
             error: null,
@@ -321,9 +318,9 @@ export default function sqlLabReducer(
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.id]: {
+          [action.query!.id!]: {
             completed: true,
-            cost: action.json.result,
+            cost: action.json!.result,
             error: null,
           },
         },
@@ -334,7 +331,7 @@ export default function sqlLabReducer(
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.id]: {
+          [action.query!.id!]: {
             completed: false,
             cost: null,
             error: action.error,
@@ -345,15 +342,15 @@ export default function sqlLabReducer(
     [actions.START_QUERY]() {
       let newState = { ...state };
       let sqlEditorId;
-      if (action.query.sqlEditorId) {
+      if (action.query!.sqlEditorId) {
         const queryEditorByTabId = getFromArr(
           state.queryEditors,
-          action.query.sqlEditorId,
+          action.query!.sqlEditorId,
           'tabViewId',
         );
         sqlEditorId =
           (queryEditorByTabId as QueryEditor | undefined)?.id ??
-          action.query.sqlEditorId;
+          action.query!.sqlEditorId;
         const foundQueryEditor = getFromArr(state.queryEditors, sqlEditorId);
         const baseQe = foundQueryEditor || {};
         const qe = {
@@ -375,36 +372,37 @@ export default function sqlLabReducer(
           newState = { ...state, queries };
         }
       }
-      newState = addToObject(newState, 'queries', action.query) as SqlLabState;
+      newState = addToObject(newState, 'queries', action.query!) as SqlLabState;
 
       return {
         ...newState,
         ...alterUnsavedQueryEditorState(
           state,
           {
-            latestQueryId: action.query.id,
+            latestQueryId: action.query!.id,
           },
-          sqlEditorId,
-          action.query.isDataPreview,
+          sqlEditorId!,
+          action.query!.isDataPreview,
         ),
       };
     },
     [actions.STOP_QUERY]() {
-      return alterInObject(state, 'queries', action.query, {
+      return alterInObject(state, 'queries', action.query!, {
         state: QueryState.Stopped,
         results: [],
       });
     },
     [actions.CLEAR_QUERY_RESULTS]() {
-      const newResults = { ...action.query.results };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const newResults = { ...(action.query as any).results };
       newResults.data = [];
-      return alterInObject(state, 'queries', action.query, {
+      return alterInObject(state, 'queries', action.query!, {
         results: newResults,
         cached: true,
       });
     },
     [actions.REQUEST_QUERY_RESULTS]() {
-      return alterInObject(state, 'queries', action.query, {
+      return alterInObject(state, 'queries', action.query!, {
         state: QueryState.Fetching,
       });
     },
@@ -412,7 +410,7 @@ export default function sqlLabReducer(
       // prevent race condition where query succeeds shortly after being canceled
       // or the final result was unsuccessful
       if (
-        action.query.state === QueryState.Stopped ||
+        action.query!.state === QueryState.Stopped ||
         (action.results as { status?: string })?.status !== QueryState.Success
       ) {
         return state;
@@ -437,10 +435,10 @@ export default function sqlLabReducer(
         alts.resultsKey = resultsKey;
       }
 
-      return alterInObject(state, 'queries', action.query, alts);
+      return alterInObject(state, 'queries', action.query!, alts);
     },
     [actions.QUERY_FAILED]() {
-      if (action.query.state === QueryState.Stopped) {
+      if (action.query!.state === QueryState.Stopped) {
         return state;
       }
       const alts = {
@@ -450,13 +448,13 @@ export default function sqlLabReducer(
         endDttm: now(),
         link: action.link,
       };
-      return alterInObject(state, 'queries', action.query, alts);
+      return alterInObject(state, 'queries', action.query!, alts);
     },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
       const qeIds = state.queryEditors.map(qe => qe.id);
       if (
-        qeIds.indexOf(action.queryEditor?.id) > -1 &&
-        state.tabHistory[state.tabHistory.length - 1] !== action.queryEditor.id
+        qeIds.indexOf(action.queryEditor!.id!) > -1 &&
+        state.tabHistory[state.tabHistory.length - 1] !== action.queryEditor!.id
       ) {
         const mergeUnsavedState = {
           ...alterInArr(state, 'queryEditors', state.unsavedQueryEditor, {
@@ -465,18 +463,18 @@ export default function sqlLabReducer(
           unsavedQueryEditor: {},
         };
         return {
-          ...(action.queryEditor.id === state.unsavedQueryEditor.id
+          ...(action.queryEditor!.id === state.unsavedQueryEditor.id
             ? alterInArr(
                 mergeUnsavedState,
                 'queryEditors',
-                action.queryEditor,
+                action.queryEditor!,
                 {
-                  ...action.queryEditor,
+                  ...action.queryEditor!,
                   ...state.unsavedQueryEditor,
                 },
               )
             : mergeUnsavedState),
-          tabHistory: [...state.tabHistory, action.queryEditor.id],
+          tabHistory: [...state.tabHistory, action.queryEditor!.id],
         };
       }
       return state;
@@ -490,12 +488,12 @@ export default function sqlLabReducer(
           ...state.unsavedQueryEditor,
         },
       );
-      return alterInArr(mergeUnsavedState, 'queryEditors', action.queryEditor, {
-        ...action.queryEditor,
+      return alterInArr(mergeUnsavedState, 'queryEditors', action.queryEditor!, {
+        ...action.queryEditor!,
       });
     },
     [actions.SET_TABLES]() {
-      return extendArr(state, 'tables', action.tables);
+      return extendArr(state, 'tables', action.tables!);
     },
     [actions.SET_ACTIVE_SOUTHPANE_TAB]() {
       return { ...state, activeSouthPaneTab: action.tabId };
@@ -505,7 +503,7 @@ export default function sqlLabReducer(
         // remove migrated query editor from localStorage
         const { sqlLab } = JSON.parse(localStorage.getItem('redux') || '{}');
         sqlLab.queryEditors = sqlLab.queryEditors.filter(
-          (qe: QueryEditor) => qe.id !== action.oldQueryEditor.id,
+          (qe: QueryEditor) => qe.id !== action.oldQueryEditor!.id,
         );
         localStorage.setItem('redux', JSON.stringify({ sqlLab }));
       } catch (error) {
@@ -515,8 +513,8 @@ export default function sqlLabReducer(
       return alterInArr(
         state,
         'queryEditors',
-        action.oldQueryEditor,
-        action.newQueryEditor,
+        action.oldQueryEditor!,
+        action.newQueryEditor!,
       );
     },
     [actions.MIGRATE_TABLE]() {
@@ -524,7 +522,7 @@ export default function sqlLabReducer(
         // remove migrated table from localStorage
         const { sqlLab } = JSON.parse(localStorage.getItem('redux') || '{}');
         sqlLab.tables = sqlLab.tables.filter(
-          (table: Table) => table.id !== action.oldTable.id,
+          (table: Table) => table.id !== action.oldTable!.id,
         );
         localStorage.setItem('redux', JSON.stringify({ sqlLab }));
       } catch (error) {
@@ -533,14 +531,14 @@ export default function sqlLabReducer(
 
       // replace localStorage table with the server backed one
       return addToArr(
-        removeFromArr(state, 'tables', action.oldTable),
+        removeFromArr(state, 'tables', action.oldTable!),
         'tables',
-        action.newTable,
+        action.newTable!,
       );
     },
     [actions.MIGRATE_QUERY]() {
       const query = {
-        ...state.queries[action.queryId],
+        ...state.queries[action.queryId!],
         // point query to migrated query editor
         sqlEditorId: action.queryEditorId,
       };
@@ -555,7 +553,7 @@ export default function sqlLabReducer(
           {
             dbId: action.dbId,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
@@ -567,7 +565,7 @@ export default function sqlLabReducer(
           {
             catalog: action.catalog,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
@@ -577,9 +575,9 @@ export default function sqlLabReducer(
         ...alterUnsavedQueryEditorState(
           state,
           {
-            schema: action.schema,
+            schema: action.schema ?? undefined,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
@@ -591,14 +589,14 @@ export default function sqlLabReducer(
           {
             name: action.name,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
       const { unsavedQueryEditor } = state;
       if (
-        unsavedQueryEditor?.id === action.queryEditor.id &&
+        unsavedQueryEditor?.id === action.queryEditor!.id &&
         unsavedQueryEditor.sql === action.sql
       ) {
         return state;
@@ -608,10 +606,10 @@ export default function sqlLabReducer(
         ...alterUnsavedQueryEditorState(
           state,
           {
-            sql: action.sql,
+            sql: action.sql ?? undefined,
             ...(action.queryId && { latestQueryId: action.queryId }),
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
@@ -623,7 +621,7 @@ export default function sqlLabReducer(
           {
             cursorPosition: action.position,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
@@ -635,7 +633,7 @@ export default function sqlLabReducer(
           {
             queryLimit: action.queryLimit,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
@@ -647,7 +645,7 @@ export default function sqlLabReducer(
           {
             templateParams: action.templateParams,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
@@ -657,9 +655,9 @@ export default function sqlLabReducer(
         ...alterUnsavedQueryEditorState(
           state,
           {
-            selectedText: action.sql,
+            selectedText: action.sql ?? undefined,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
           true,
         ),
       };
@@ -672,7 +670,7 @@ export default function sqlLabReducer(
           {
             autorun: action.autorun,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
@@ -685,7 +683,7 @@ export default function sqlLabReducer(
             northPercent: action.northPercent,
             southPercent: action.southPercent,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
@@ -697,7 +695,7 @@ export default function sqlLabReducer(
           {
             hideLeftBar: action.hideLeftBar,
           },
-          action.queryEditor.id,
+          action.queryEditor!.id!,
         ),
       };
     },
@@ -705,7 +703,7 @@ export default function sqlLabReducer(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const databases: any = {};
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      action.databases.forEach((db: any) => {
+      (action.databases as any[])!.forEach((db: any) => {
         databases[db.id] = {
           ...db,
           extra_json: JSON.parse(db.extra || ''),
@@ -719,7 +717,7 @@ export default function sqlLabReducer(
       let change = false;
       let { queriesLastUpdate } = state;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Object.entries(action.alteredQueries).forEach(
+      Object.entries(action.alteredQueries!).forEach(
         ([id, changedQuery]: [string, any]) => {
           if (
             !state.queries.hasOwnProperty(id) ||
@@ -781,7 +779,7 @@ export default function sqlLabReducer(
           .filter(([, query]) => {
             if (
               ['running', 'pending'].includes(query.state) &&
-              Date.now() - query.startDttm > action.interval &&
+              Date.now() - query.startDttm > action.interval! &&
               query.progress === 0
             ) {
               return false;

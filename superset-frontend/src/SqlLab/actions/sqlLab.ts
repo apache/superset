@@ -40,7 +40,7 @@ import {
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { logEvent } from 'src/logger/actions';
-import type { QueryEditor, Table } from '../types';
+import type { QueryEditor, SqlLabRootState, Table } from '../types';
 import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
@@ -110,14 +110,6 @@ export interface SqlExecuteResponse {
   query_id?: number;
 }
 
-interface SqlLabAction {
-  type: string;
-  [key: string]: unknown;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SqlLabThunkAction<R = any> = ThunkAction<R, any, any, any>;
-
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
 export const UPDATE_QUERY_EDITOR = 'UPDATE_QUERY_EDITOR';
@@ -179,6 +171,71 @@ export const CREATE_DATASOURCE_FAILED = 'CREATE_DATASOURCE_FAILED';
 export const SET_EDITOR_TAB_LAST_UPDATE = 'SET_EDITOR_TAB_LAST_UPDATE';
 export const SET_LAST_UPDATED_ACTIVE_TAB = 'SET_LAST_UPDATED_ACTIVE_TAB';
 export const CLEAR_DESTROYED_QUERY_EDITOR = 'CLEAR_DESTROYED_QUERY_EDITOR';
+
+// SqlLab action interface with optional properties for reducer compatibility.
+// Uses explicit property types instead of `any` for better type safety.
+export interface SqlLabAction {
+  type: string;
+  // Query editor related
+  queryEditor?: QueryEditor | Partial<QueryEditor>;
+  alterations?: Partial<QueryEditor>;
+  oldQueryEditor?: QueryEditor;
+  newQueryEditor?: QueryEditor;
+  queryEditorId?: string;
+  // Query related
+  query?: Query | Partial<Query>;
+  queries?: Query[];
+  alteredQueries?: Record<string, Partial<Query>>;
+  queryId?: string;
+  // Table related
+  table?: Table | Partial<Table>;
+  tables?: Table[];
+  oldTable?: Table;
+  newTable?: Table;
+  // Database related
+  databases?: Database[] | Record<string, Database>;
+  dbId?: number;
+  // State and config
+  sqlLabInitialState?: SqlLabRootState['sqlLab'];
+  sql?: string | null;
+  name?: string;
+  catalog?: string | null;
+  schema?: string | null;
+  autorun?: boolean;
+  templateParams?: string;
+  queryLimit?: number;
+  position?: { row: number; column: number };
+  functionNames?: string[];
+  northPercent?: number;
+  southPercent?: number;
+  hideLeftBar?: boolean;
+  // Results and errors
+  results?: SqlExecuteResponse;
+  errors?: SupersetError[];
+  error?: string;
+  msg?: string;
+  link?: string;
+  err?: string;
+  // Misc
+  tabId?: string | number;
+  timestamp?: number;
+  interval?: number;
+  offline?: boolean;
+  datasource?: unknown;
+  clientId?: string;
+  result?: { remoteId: number };
+  prepend?: boolean;
+  json?: { result: unknown };
+  oldQueryId?: string;
+  newQuery?: { id: string };
+}
+
+type SqlLabThunkAction<R = void> = ThunkAction<
+  R,
+  SqlLabRootState,
+  unknown,
+  SqlLabAction
+>;
 
 export const addInfoToast = addInfoToastAction;
 export const addSuccessToast = addSuccessToastAction;

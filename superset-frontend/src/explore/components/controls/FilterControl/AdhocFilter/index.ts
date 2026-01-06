@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { AdhocFilter as CoreAdhocFilter } from '@superset-ui/core';
 import {
   CUSTOM_OPERATORS,
   DISABLE_INPUT_OPERATORS,
@@ -82,11 +83,9 @@ export default class AdhocFilter {
       this.sqlExpression =
         typeof adhocFilter.sqlExpression === 'string'
           ? adhocFilter.sqlExpression
-          : // Cast to unknown first to handle type mismatch between AdhocFilterInput and AdhocFilter from @superset-ui/core
-            translateToSql(
-              adhocFilter as unknown as Parameters<typeof translateToSql>[0],
-              { useSimple: true },
-            );
+          : translateToSql(adhocFilter as unknown as CoreAdhocFilter, {
+              useSimple: true,
+            });
       this.clause = adhocFilter.clause;
       if (
         adhocFilter.operator &&
@@ -185,9 +184,33 @@ export default class AdhocFilter {
   }
 
   translateToSql(): string {
-    // Cast to unknown first to handle type mismatch between class and @superset-ui/core AdhocFilter type
-    return translateToSql(
-      this as unknown as Parameters<typeof translateToSql>[0],
-    );
+    return translateToSql(this as unknown as CoreAdhocFilter);
   }
+}
+
+/**
+ * Adapter function to create an AdhocFilter instance from a core AdhocFilter type.
+ * This bridges the type gap between @superset-ui/core's AdhocFilter and the local class.
+ */
+export function fromCoreAdhocFilter(filter: CoreAdhocFilter): AdhocFilter {
+  return new AdhocFilter(filter as AdhocFilterInput);
+}
+
+/**
+ * Type guard to check if an object can be used to construct an AdhocFilter.
+ * Returns true for plain objects that have filter-like properties.
+ */
+export function isDictionaryForAdhocFilter(
+  value: unknown,
+): value is AdhocFilterInput {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !(value instanceof AdhocFilter) &&
+    ('expressionType' in value ||
+      'subject' in value ||
+      'operator' in value ||
+      'sqlExpression' in value ||
+      'clause' in value)
+  );
 }

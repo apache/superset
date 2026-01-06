@@ -24,7 +24,9 @@ import { withTheme, type SupersetTheme } from '@apache-superset/core/ui';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
-import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import AdhocMetric, {
+  isDictionaryForAdhocMetric,
+} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
   Operators,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
@@ -39,7 +41,9 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { Modal } from '@superset-ui/core/components';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
-import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter, {
+  isDictionaryForAdhocFilter,
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import adhocFilterType from 'src/explore/components/controls/FilterControl/adhocFilterType';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
 import { toQueryString } from 'src/utils/urlUtils';
@@ -134,14 +138,6 @@ const defaultProps = {
   selectedMetrics: [],
 };
 
-function isDictionaryForAdhocFilter(value: unknown): boolean {
-  return !!(
-    value &&
-    !(value instanceof AdhocFilter) &&
-    (value as Record<string, unknown>).expressionType
-  );
-}
-
 function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
   const options = [
     ...(props.columns || []),
@@ -150,8 +146,9 @@ function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
         metric &&
         (typeof metric === 'string'
           ? { saved_metric_name: metric }
-          : // Cast to handle type mismatch between @superset-ui/core AdhocMetric and local class
-            new AdhocMetric(metric as unknown as Record<string, unknown>)),
+          : isDictionaryForAdhocMetric(metric)
+            ? new AdhocMetric(metric)
+            : metric),
     ),
   ].filter(option => option);
 
@@ -201,10 +198,7 @@ class AdhocFilterControl extends Component<
     this.removeFilter = this.removeFilter.bind(this);
 
     const filters = (this.props.value || []).map(filter =>
-      // Cast filter to handle type mismatch with @superset-ui/core AdhocFilter type
-      isDictionaryForAdhocFilter(filter)
-        ? new AdhocFilter(filter as unknown as Record<string, unknown>)
-        : filter,
+      isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
     );
 
     this.optionRenderer = option => <FilterDefinitionOption option={option} />;
@@ -283,10 +277,7 @@ class AdhocFilterControl extends Component<
     if (this.props.value !== prevProps.value) {
       this.setState({
         values: (this.props.value || []).map(filter =>
-          // Cast filter to handle type mismatch with @superset-ui/core AdhocFilter type
-          isDictionaryForAdhocFilter(filter)
-            ? new AdhocFilter(filter as unknown as Record<string, unknown>)
-            : filter,
+          isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
         ),
       });
     }
