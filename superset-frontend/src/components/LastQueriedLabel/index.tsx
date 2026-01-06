@@ -35,7 +35,7 @@ const LastQueriedLabel: FC<LastQueriedLabelProps> = ({ queriedDttm }) => {
   const formattedTime = extendedDayjs
     .utc(queriedDttm)
     .local()
-    .format('YYYY-MM-DD HH:mm:ss');
+    .format('L LTS');
 
   return (
     <div
