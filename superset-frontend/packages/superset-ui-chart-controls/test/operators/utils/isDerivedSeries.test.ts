@@ -29,20 +29,19 @@ const series = {
   data: [100],
 };
 
-test('should be false if comparison type is not actual values', () => {
+test('should be false if time_compare is not set', () => {
   expect(isDerivedSeries(series, formData)).toEqual(false);
-  Object.keys(ComparisonType)
-    .filter(type => type === ComparisonType.Values)
-    .forEach(type => {
-      const formDataWithComparisonType = {
-        ...formData,
-        comparison_type: type,
-        time_compare: ['1 month ago'],
-      };
-      expect(isDerivedSeries(series, formDataWithComparisonType)).toEqual(
-        false,
-      );
-    });
+});
+
+test('should be true if series name matches time_compare regardless of comparison_type', () => {
+  Object.values(ComparisonType).forEach(type => {
+    const formDataWithComparisonType = {
+      ...formData,
+      comparison_type: type,
+      time_compare: ['1 month ago'],
+    };
+    expect(isDerivedSeries(series, formDataWithComparisonType)).toEqual(true);
+  });
 });
 
 test('should be true if comparison type is values', () => {
