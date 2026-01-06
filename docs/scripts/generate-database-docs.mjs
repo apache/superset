@@ -28,11 +28,10 @@
  * 2. Fallback mode (documentation only) - uses just the DATABASE_DOCS from lib.py
  */
 
-import { execSync, spawn, spawnSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import yaml from 'js-yaml';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,7 +40,6 @@ const DOCS_DIR = path.resolve(__dirname, '..');
 const DATA_OUTPUT_DIR = path.join(DOCS_DIR, 'src/data');
 const DATA_OUTPUT_FILE = path.join(DATA_OUTPUT_DIR, 'databases.json');
 const MDX_OUTPUT_DIR = path.join(DOCS_DIR, 'docs/databases');
-const LIB_PY_PATH = path.join(ROOT_DIR, 'superset/db_engine_specs/lib.py');
 
 /**
  * Try to run the full lib.py script with Flask context
@@ -257,7 +255,7 @@ function buildStatistics(databases) {
     if (db.max_score > stats.maxScore) stats.maxScore = db.max_score;
 
     // Categorize databases
-    const category = categorizeDatabase(name, docs);
+    const category = categorizeDatabase(name);
     if (!stats.byCategory[category]) {
       stats.byCategory[category] = [];
     }
@@ -272,7 +270,7 @@ function buildStatistics(databases) {
 /**
  * Categorize a database by its type
  */
-function categorizeDatabase(name, docs) {
+function categorizeDatabase(name) {
   const nameLower = name.toLowerCase();
 
   if (nameLower.includes('aws') || nameLower.includes('amazon'))
@@ -328,7 +326,7 @@ function toSlug(name) {
 /**
  * Generate MDX content for a single database page
  */
-function generateDatabaseMDX(name, db, slug) {
+function generateDatabaseMDX(name, db) {
   const description = db.documentation?.description || `Documentation for ${name} database connection.`;
   const shortDesc = description
     .slice(0, 160)
@@ -662,7 +660,7 @@ async function main() {
   let mdxCount = 0;
   for (const [name, db] of Object.entries(databases)) {
     const slug = toSlug(name);
-    const mdxContent = generateDatabaseMDX(name, db, slug);
+    const mdxContent = generateDatabaseMDX(name, db);
     const mdxPath = path.join(MDX_OUTPUT_DIR, `${slug}.mdx`);
     fs.writeFileSync(mdxPath, mdxContent);
     mdxCount++;

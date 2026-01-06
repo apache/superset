@@ -27,7 +27,7 @@ import {
   SearchOutlined,
   LinkOutlined,
 } from '@ant-design/icons';
-import type { DatabaseData, DatabaseInfo, CompatibleDatabase } from './types';
+import type { DatabaseData, DatabaseInfo } from './types';
 
 interface DatabaseIndexProps {
   data: DatabaseData;
