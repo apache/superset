@@ -105,14 +105,14 @@ test('matches UTC end-of-day timestamp', () => {
 
 test('correctly compares dates from ISO string cell values', () => {
   const filterDate = new Date(2003, 9, 8);
-  const cellDate = new Date('2003-10-08');
+  const cellDate = new Date('2003-10-08T00:00:00Z');
 
   expect(dateFilterComparator(filterDate, cellDate)).toBe(0);
 });
 
-test('handles cell value passed as timestamp number', () => {
+test('handles cell value created from UTC timestamp', () => {
   const filterDate = new Date(2003, 9, 8);
-  // Oct 8, 2003 12:00:00 UTC as timestamp
+  // Oct 8, 2003 12:00:00 UTC
   const cellDate = new Date(Date.UTC(2003, 9, 8, 12, 0, 0));
 
   expect(dateFilterComparator(filterDate, cellDate)).toBe(0);
