@@ -25,6 +25,7 @@ import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
+import { makeUrl } from './utils/pathUtils';
 import './hooks/useLocale';
 
 // Import dayjs plugin types for global TypeScript support
@@ -38,6 +39,8 @@ import 'dayjs/plugin/updateLocale';
 import 'dayjs/plugin/localizedFormat';
 
 let initPromise: Promise<void> | null = null;
+
+const LANGUAGE_PACK_REQUEST_TIMEOUT_MS = 5000;
 
 export default function initPreamble(): Promise<void> {
   if (initPromise) {
@@ -62,8 +65,16 @@ export default function initPreamble(): Promise<void> {
     // Use native fetch to avoid race condition with SupersetClient initialization
     const lang = bootstrapData.common.locale || 'en';
     if (lang !== 'en') {
+      const abortController = new AbortController();
+      const timeoutId = window.setTimeout(() => {
+        abortController.abort();
+      }, LANGUAGE_PACK_REQUEST_TIMEOUT_MS);
+
       try {
-        const resp = await fetch(`/superset/language_pack/${lang}/`);
+        const languagePackUrl = makeUrl(`/superset/language_pack/${lang}/`);
+        const resp = await fetch(languagePackUrl, {
+          signal: abortController.signal,
+        });
         if (!resp.ok) {
           throw new Error(`Failed to fetch language pack: ${resp.status}`);
         }
@@ -77,6 +88,8 @@ export default function initPreamble(): Promise<void> {
         );
         configure();
         dayjs.locale('en');
+      } finally {
+        window.clearTimeout(timeoutId);
       }
     }
 
