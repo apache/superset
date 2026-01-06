@@ -618,7 +618,7 @@ test('duplicate button visible only for virtual datasets', async () => {
   expect(virtualDuplicateButton).toBeVisible();
 });
 
-test('bulk select enables checkboxes for all rows', async () => {
+test('bulk select enables checkboxes', async () => {
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
@@ -1436,9 +1436,11 @@ test('sort order persists after deleting a dataset', async () => {
     expect(currentCalls).toBeGreaterThan(callsBeforeDelete);
   });
 
-  // Now re-query the header and assert the sort indicators still exist
+  // Re-query the header fresh (DOM may have been replaced on re-render)
+  // and assert the sort indicators still exist
   await waitFor(() => {
-    const carets = within(nameHeader.closest('th')!).getAllByLabelText(
+    const freshHeader = screen.getByRole('columnheader', { name: /Name/i });
+    const carets = within(freshHeader.closest('th')!).getAllByLabelText(
       /caret/i,
     );
     expect(carets.length).toBeGreaterThan(0);
@@ -1488,8 +1490,8 @@ test('bulk selection clears when filter changes', async () => {
   await userEvent.click(checkboxes[1]);
   await userEvent.click(checkboxes[2]);
 
-  // Wait for selections to register - assert on "selected" text which is what users see
-  await screen.findByText(/selected/i);
+  // Wait for selections to register - assert specific count to avoid matching "0 Selected"
+  await screen.findByText(/2 selected/i);
 
   // Record API call count before filter
   const beforeFilterCallCount = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
