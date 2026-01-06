@@ -25,7 +25,7 @@ import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 import { WORLD_HEALTH_CHARTS } from './utils';
 import { isLegacyResponse } from '../../utils/vizPlugins';
 
-describe.skip('Dashboard top-level controls', () => {
+describe('Dashboard top-level controls', () => {
   beforeEach(() => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
   });

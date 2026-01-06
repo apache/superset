@@ -18,7 +18,7 @@
  */
 import { interceptChart } from 'cypress/utils';
 
-describe.skip('AdhocMetrics', () => {
+describe('AdhocMetrics', () => {
   beforeEach(() => {
     interceptChart({ legacy: false }).as('chartData');
     cy.visitChartByName('Num Births Trend');
