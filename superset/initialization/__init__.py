@@ -192,6 +192,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
+        from superset.views.async_tasks import AsyncTaskModelView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -408,6 +409,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             menu_cond=lambda: feature_flag_manager.is_feature_enabled(
                 "ENABLE_EXTENSIONS"
             ),
+        )
+
+        appbuilder.add_view(
+            AsyncTaskModelView,
+            "Async Tasks",
+            label=_("Async Tasks"),
+            icon="fa-clock-o",
+            category="Manage",
+            category_label=_("Manage"),
         )
 
         #
