@@ -164,7 +164,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     state => state.dashboardInfo.metadata?.chart_customization_config || [],
   );
   const slices = useSelector<RootState, Record<string, Slice>>(
-    state => state.sliceEntities.slices || {},
+    state => state.sliceEntities?.slices || {},
   );
   const dispatch = useDispatch();
   const [updateKey, setUpdateKey] = useState(0);

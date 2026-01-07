@@ -205,7 +205,7 @@ export function saveChartCustomization(
         dispatch(onSave(lastModifiedTime));
       }
 
-      const { sliceEntities } = getState();
+      const sliceEntities = getState().sliceEntities || {};
       const slices = sliceEntities.slices || {};
       const affectedChartIds: number[] = [];
       simpleItems.forEach(customization => {
