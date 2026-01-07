@@ -32,6 +32,7 @@ import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
 interface Props {
   latestQueryFormData: QueryFormData;
+  ownState?: object;
 }
 
 type Result = {
@@ -47,7 +48,7 @@ const ViewQueryModalContainer = styled.div`
   gap: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
+const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +59,7 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
       formData: latestQueryFormData,
       resultFormat: 'json',
       resultType,
+      ownState: ownState || {},
     })
       .then(({ json }) => {
         setResult(ensureIsArray(json.result));
@@ -78,7 +80,7 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
   };
   useEffect(() => {
     loadChartData('query');
-  }, [JSON.stringify(latestQueryFormData)]);
+  }, [JSON.stringify(latestQueryFormData), JSON.stringify(ownState)]);
 
   if (isLoading) {
     return <Loading />;
