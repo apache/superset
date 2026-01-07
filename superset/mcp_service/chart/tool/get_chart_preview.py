@@ -480,7 +480,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         except Exception as e:
             logger.warning("Error in field type analysis: %s", e)
             # Return nominal types for all fields as fallback
-            return {field: "nominal" for field in fields}
+            return dict.fromkeys(fields, "nominal")
 
         return field_types
 

@@ -27,11 +27,11 @@ import logging
 from typing import Callable, Literal
 
 from fastmcp import Context
-from superset_core.mcp import tool
 
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
+from superset.mcp_service.app import mcp
 from superset.mcp_service.common.schema_discovery import (
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
@@ -114,7 +114,7 @@ _SCHEMA_CORE_FACTORIES: dict[
 }
 
 
-@tool(tags=["discovery"])
+@mcp.tool(tags=["discovery"])
 @parse_request(GetSchemaRequest)
 async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaResponse:
     """
