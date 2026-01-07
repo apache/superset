@@ -106,29 +106,29 @@ class AsyncTaskResponseSchema(Schema):
         "get_is_cancelled", metadata={"description": is_cancelled_description}
     )
 
-    def get_payload_dict(self, obj):
+    def get_payload_dict(self, obj: object) -> dict[str, object] | None:
         """Get payload as dictionary"""
-        return obj.get_payload()
+        return obj.get_payload()  # type: ignore[attr-defined]
 
-    def get_duration(self, obj):
+    def get_duration(self, obj: object) -> float | None:
         """Get duration in seconds"""
-        return obj.duration_seconds
+        return obj.duration_seconds  # type: ignore[attr-defined]
 
-    def get_is_finished(self, obj):
+    def get_is_finished(self, obj: object) -> bool:
         """Check if task is finished"""
-        return obj.is_finished
+        return obj.is_finished  # type: ignore[attr-defined]
 
-    def get_is_successful(self, obj):
+    def get_is_successful(self, obj: object) -> bool:
         """Check if task is successful"""
-        return obj.is_successful
+        return obj.is_successful  # type: ignore[attr-defined]
 
-    def get_is_cancelled(self, obj):
+    def get_is_cancelled(self, obj: object) -> bool:
         """Check if task is cancelled"""
-        return obj.is_cancelled
+        return obj.is_cancelled  # type: ignore[attr-defined]
 
-    def get_created_on_delta_humanized(self, obj):
+    def get_created_on_delta_humanized(self, obj: object) -> str:
         """Get humanized time since creation"""
-        return obj.created_on_delta_humanized()
+        return obj.created_on_delta_humanized()  # type: ignore[attr-defined]
 
 
 class AsyncTaskStatusResponseSchema(Schema):

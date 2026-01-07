@@ -17,7 +17,7 @@
 """Generic Celery task executor for the Global Async Task Framework (GATF)"""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from superset_core.api.types import TaskStatus
@@ -43,11 +43,13 @@ def execute_async_task(
     Generic Celery task executor for GATF tasks.
 
     This executor:
-    1. Fetches task from metastore
-    2. Builds context (task + user) and sets ambient context via contextvars
-    3. Executes the task function (which accesses context via get_context())
-    4. Updates task status throughout lifecycle
-    5. Resets context after execution
+    1. Checks if task was cancelled before execution starts
+    2. Fetches task from metastore
+    3. Builds context (task + user) and sets ambient context via contextvars
+    4. Executes the task function (which accesses context via get_context())
+    5. Updates task status throughout lifecycle
+    6. Runs cleanup handlers on task end (success/failure/cancellation)
+    7. Resets context after execution
 
     :param task_uuid: UUID of the task to execute
     :param task_name: Name of the task (for registry lookup)
@@ -62,6 +64,18 @@ def execute_async_task(
 
     # Build context from task (includes user who created the task)
     ctx = TaskContext(task_uuid=task_uuid)
+
+    # AUTOMATIC PRE-EXECUTION CHECK: Don't execute if already cancelled
+    if ctx.is_cancelled():
+        logger.info(
+            "Task %s (uuid=%s) was cancelled before execution started",
+            task_name,
+            task_uuid,
+        )
+        task = ctx.task
+        task.ended_at = datetime.utcnow()
+        ctx.update_task(task)
+        return {"status": TaskStatus.CANCELLED.value, "task_uuid": task_uuid}
 
     # Update status to IN_PROGRESS
     task = ctx.task  # Fresh fetch
@@ -89,7 +103,6 @@ def execute_async_task(
         task = ctx.task
         if task.status == TaskStatus.IN_PROGRESS.value:
             task.status = TaskStatus.SUCCESS.value
-            task.ended_at = datetime.utcnow()
             ctx.update_task(task)
 
         logger.info("Task %s (uuid=%s) completed successfully", task_name, task_uuid)
@@ -98,7 +111,6 @@ def execute_async_task(
         task = ctx.task
         task.status = TaskStatus.FAILURE.value
         task.error_message = str(ex)
-        task.ended_at = datetime.utcnow()
         logger.error(
             "Task %s (uuid=%s) failed with error: %s",
             task_name,
@@ -107,5 +119,15 @@ def execute_async_task(
             exc_info=True,
         )
         ctx.update_task(task)
+
+    finally:
+        # ALWAYS run cleanup handlers
+        ctx._run_cleanup()
+
+        # Always set end time
+        task = ctx.task
+        if not task.ended_at:
+            task.ended_at = datetime.now(timezone.utc)
+            ctx.update_task(task)
 
     return {"status": task.status, "task_uuid": task_uuid}
