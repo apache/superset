@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sqlLab as sqlLabType } from '@apache-superset/core';
+import { sqlLab as sqlLabApi } from '@apache-superset/core';
 import {
   QUERY_FAILED,
   QUERY_SUCCESS,
@@ -47,7 +47,7 @@ import {
   QueryErrorResultContext,
 } from './models';
 
-const { CTASMethod } = sqlLabType;
+const { CTASMethod } = sqlLabApi;
 
 const getSqlLabState = () => {
   const { sqlLab }: { sqlLab: SqlLabRootState['sqlLab'] } = store.getState();
@@ -99,10 +99,6 @@ const getTab = (id: string): Tab | undefined => {
     );
   }
   return undefined;
-};
-
-const notImplemented = (): never => {
-  throw new Error('Not implemented yet');
 };
 
 function extractBaseData(action: any): {
@@ -216,17 +212,17 @@ function createQueryErrorContext(
   );
 }
 
-const getCurrentTab: typeof sqlLabType.getCurrentTab = () =>
+const getCurrentTab: typeof sqlLabApi.getCurrentTab = () =>
   getTab(activeEditorId());
 
-const getTabs: typeof sqlLabType.getTabs = () => {
+const getTabs: typeof sqlLabApi.getTabs = () => {
   const { queryEditors } = getSqlLabState();
   return queryEditors
     .map(qe => getTab(qe.id))
     .filter((tab): tab is Tab => tab !== undefined);
 };
 
-const getDatabases: typeof sqlLabType.getDatabases = () => {
+const getDatabases: typeof sqlLabApi.getDatabases = () => {
   const { databases } = getSqlLabState();
   return Object.values(databases).map(
     db => new Database(db.id, db.database_name, [], []),
@@ -274,8 +270,8 @@ const globalPredicate =
   action =>
     action.type === actionType;
 
-const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
-  listener: (queryContext: sqlLabType.QueryContext) => void,
+const onDidQueryRun: typeof sqlLabApi.onDidQueryRun = (
+  listener: (queryContext: sqlLabApi.QueryContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -285,8 +281,8 @@ const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
     thisArgs,
   );
 
-const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
-  listener: (queryResultContext: sqlLabType.QueryResultContext) => void,
+const onDidQuerySuccess: typeof sqlLabApi.onDidQuerySuccess = (
+  listener: (queryResultContext: sqlLabApi.QueryResultContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -297,8 +293,8 @@ const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
     thisArgs,
   );
 
-const onDidQueryStop: typeof sqlLabType.onDidQueryStop = (
-  listener: (queryContext: sqlLabType.QueryContext) => void,
+const onDidQueryStop: typeof sqlLabApi.onDidQueryStop = (
+  listener: (queryContext: sqlLabApi.QueryContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -308,9 +304,9 @@ const onDidQueryStop: typeof sqlLabType.onDidQueryStop = (
     thisArgs,
   );
 
-const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
+const onDidQueryFail: typeof sqlLabApi.onDidQueryFail = (
   listener: (
-    queryErrorResultContext: sqlLabType.QueryErrorResultContext,
+    queryErrorResultContext: sqlLabApi.QueryErrorResultContext,
   ) => void,
   thisArgs?: any,
 ): Disposable =>
@@ -322,7 +318,7 @@ const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
     thisArgs,
   );
 
-const onDidChangeEditorDatabase: typeof sqlLabType.onDidChangeEditorDatabase = (
+const onDidChangeEditorDatabase: typeof sqlLabApi.onDidChangeEditorDatabase = (
   listener: (e: number) => void,
   thisArgs?: any,
 ): Disposable =>
@@ -334,8 +330,8 @@ const onDidChangeEditorDatabase: typeof sqlLabType.onDidChangeEditorDatabase = (
     thisArgs,
   );
 
-const onDidCloseTab: typeof sqlLabType.onDidCloseTab = (
-  listener: (tab: sqlLabType.Tab) => void,
+const onDidCloseTab: typeof sqlLabApi.onDidCloseTab = (
+  listener: (tab: sqlLabApi.Tab) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -346,8 +342,8 @@ const onDidCloseTab: typeof sqlLabType.onDidCloseTab = (
     thisArgs,
   );
 
-const onDidChangeActiveTab: typeof sqlLabType.onDidChangeActiveTab = (
-  listener: (tab: sqlLabType.Tab) => void,
+const onDidChangeActiveTab: typeof sqlLabApi.onDidChangeActiveTab = (
+  listener: (tab: sqlLabApi.Tab) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -358,7 +354,7 @@ const onDidChangeActiveTab: typeof sqlLabType.onDidChangeActiveTab = (
     thisArgs,
   );
 
-const onDidChangeEditorSchema: typeof sqlLabType.onDidChangeEditorSchema = (
+const onDidChangeEditorSchema: typeof sqlLabApi.onDidChangeEditorSchema = (
   listener: (schema: string) => void,
   thisArgs?: any,
 ): Disposable =>
@@ -369,8 +365,8 @@ const onDidChangeEditorSchema: typeof sqlLabType.onDidChangeEditorSchema = (
     thisArgs,
   );
 
-const onDidChangeActivePanel: typeof sqlLabType.onDidChangeActivePanel = (
-  listener: (panel: sqlLabType.Panel) => void,
+const onDidChangeActivePanel: typeof sqlLabApi.onDidChangeActivePanel = (
+  listener: (panel: sqlLabApi.Panel) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -380,7 +376,7 @@ const onDidChangeActivePanel: typeof sqlLabType.onDidChangeActivePanel = (
     thisArgs,
   );
 
-const onDidChangeTabTitle: typeof sqlLabType.onDidChangeTabTitle = (
+const onDidChangeTabTitle: typeof sqlLabApi.onDidChangeTabTitle = (
   listener: (title: string) => void,
   thisArgs?: any,
 ): Disposable =>
@@ -391,31 +387,11 @@ const onDidChangeTabTitle: typeof sqlLabType.onDidChangeTabTitle = (
     thisArgs,
   );
 
-// Not implemented yet
-const onDidChangeEditorContent: typeof sqlLabType.onDidChangeEditorContent =
-  notImplemented;
-const onDidChangeEditorCatalog: typeof sqlLabType.onDidChangeEditorCatalog =
-  notImplemented;
-const onDidChangeEditorTable: typeof sqlLabType.onDidChangeEditorTable =
-  notImplemented;
-const onDidClosePanel: typeof sqlLabType.onDidClosePanel = notImplemented;
-const onDidRefreshDatabases: typeof sqlLabType.onDidRefreshDatabases =
-  notImplemented;
-const onDidRefreshCatalogs: typeof sqlLabType.onDidRefreshCatalogs =
-  notImplemented;
-const onDidRefreshSchemas: typeof sqlLabType.onDidRefreshSchemas =
-  notImplemented;
-const onDidRefreshTables: typeof sqlLabType.onDidRefreshTables = notImplemented;
-
-export const sqlLab: typeof sqlLabType = {
+export const sqlLab: typeof sqlLabApi = {
   CTASMethod,
   getCurrentTab,
-  onDidChangeEditorContent,
   onDidChangeEditorDatabase,
-  onDidChangeEditorCatalog,
   onDidChangeEditorSchema,
-  onDidChangeEditorTable,
-  onDidClosePanel,
   onDidChangeActivePanel,
   onDidChangeTabTitle,
   onDidQueryRun,
@@ -426,10 +402,6 @@ export const sqlLab: typeof sqlLabType = {
   getTabs,
   onDidCloseTab,
   onDidChangeActiveTab,
-  onDidRefreshDatabases,
-  onDidRefreshCatalogs,
-  onDidRefreshSchemas,
-  onDidRefreshTables,
 };
 
 // Export all models
