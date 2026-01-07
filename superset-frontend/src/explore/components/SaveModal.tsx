@@ -34,11 +34,7 @@ import {
   Divider,
 } from '@superset-ui/core/components';
 import { t, logging } from '@apache-superset/core';
-import {
-  DatasourceType,
-  isDefined,
-  SupersetClient,
-} from '@superset-ui/core';
+import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
 import { css, styled, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
