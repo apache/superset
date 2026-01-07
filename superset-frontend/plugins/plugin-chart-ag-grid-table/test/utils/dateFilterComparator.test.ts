@@ -43,15 +43,13 @@ test('returns 1 when cell date is after filter date', () => {
 test('returns -1 when cell value is null', () => {
   const filterDate = new Date(2003, 9, 8);
 
-  expect(dateFilterComparator(filterDate, null as unknown as Date)).toBe(-1);
+  expect(dateFilterComparator(filterDate, null)).toBe(-1);
 });
 
 test('returns -1 when cell value is undefined', () => {
   const filterDate = new Date(2003, 9, 8);
 
-  expect(dateFilterComparator(filterDate, undefined as unknown as Date)).toBe(
-    -1,
-  );
+  expect(dateFilterComparator(filterDate, undefined)).toBe(-1);
 });
 
 test('returns -1 when cell value is an invalid date string', () => {

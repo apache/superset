@@ -31,7 +31,10 @@
  * - AG Grid Issue #3921: DateFilter timezone regression
  *
  */
-const dateFilterComparator = (filterDate: Date, cellValue: Date) => {
+const dateFilterComparator = (
+  filterDate: Date,
+  cellValue: Date | null | undefined,
+) => {
   if (cellValue == null) {
     return -1;
   }
