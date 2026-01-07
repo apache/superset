@@ -16,12 +16,19 @@
 # under the License.
 """Concrete TaskContext implementation for GATF"""
 
-from superset_core.api.types import TaskContext as CoreTaskContext
+import logging
+from typing import Any, Callable, TypeVar
+
+from superset_core.api.types import TaskContext as CoreTaskContext, TaskStatus
 
 from superset.daos.async_tasks import AsyncTaskDAO
 from superset.extensions import db
 from superset.models.async_tasks import AsyncTask
 from superset.utils.decorators import transaction
+
+logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 class TaskContext(CoreTaskContext):
@@ -42,6 +49,7 @@ class TaskContext(CoreTaskContext):
         :param task_uuid: The UUID of the AsyncTask this context manages
         """
         self._task_uuid = task_uuid
+        self._cleanup_handlers: list[Callable[[], None]] = []
 
     @property
     def task(self) -> AsyncTask:
@@ -71,3 +79,110 @@ class TaskContext(CoreTaskContext):
         :param task: AsyncTask entity to update
         """
         db.session.merge(task)
+
+    def is_cancelled(self) -> bool:
+        """
+        Check if the task has been cancelled.
+
+        Returns True if the task status is CANCELLED. Fetches fresh state
+        from the database to ensure current status.
+
+        :returns: True if task is cancelled, False otherwise
+        """
+        task = self.task
+        return task.status == TaskStatus.CANCELLED.value
+
+    def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
+        """
+        Register a cleanup handler that runs when the task ends.
+
+        Cleanup handlers are called when the task completes (success),
+        fails with an error, or is cancelled. Multiple handlers can be
+        registered and will execute in LIFO order (last registered runs first).
+
+        Can be used as a decorator:
+            @ctx.on_cleanup
+            def cleanup():
+                logger.info("Task ended")
+
+        Or called directly:
+            ctx.on_cleanup(lambda: logger.info("Task ended"))
+
+        :param handler: Cleanup function to register
+        :returns: The handler (for decorator compatibility)
+        """
+        self._cleanup_handlers.append(handler)
+        return handler
+
+    def _run_cleanup(self) -> None:
+        """
+        Run all cleanup handlers in reverse order.
+
+        Internal method called by the framework when task execution ends.
+        Handlers are executed in LIFO order (last registered runs first).
+        Errors in handlers are logged but don't stop execution of other handlers.
+        """
+        for handler in reversed(self._cleanup_handlers):
+            try:
+                handler()
+            except Exception as ex:
+                logger.error(
+                    "Cleanup handler failed for task %s: %s",
+                    self._task_uuid,
+                    str(ex),
+                    exc_info=True,
+                )
+
+    def run(self, operation: Callable[[], T]) -> T | None:
+        """
+        Execute an operation if the task is not cancelled.
+
+        Checks cancellation status before executing the operation. If the
+        task is cancelled, returns None without executing. Cannot interrupt
+        an operation once it has started.
+
+        :param operation: Callable to execute
+        :returns: Operation result if not cancelled, None if cancelled
+
+        Example:
+            response = ctx.run(lambda: requests.get(url, timeout=60))
+            if response is None:
+                return  # Task was cancelled
+        """
+        if self.is_cancelled():
+            return None
+        return operation()
+
+    @transaction()
+    def update_progress(self, current: int, total: int, **extra: Any) -> bool:
+        """
+        Update task progress and check for cancellation.
+
+        Convenience method that combines progress update with cancellation check.
+        Updates the task payload with progress information and returns whether
+        execution should continue.
+
+        :param current: Current progress value
+        :param total: Total expected value
+        :param extra: Additional payload fields to update
+        :returns: True if should continue, False if cancelled
+
+        Example:
+            for i, item in enumerate(items):
+                if not ctx.update_progress(i + 1, len(items)):
+                    return  # Cancelled
+                process(item)
+        """
+        if self.is_cancelled():
+            return False
+
+        task = self.task
+        task.set_payload(
+            {
+                "progress": f"{current}/{total}",
+                "progress_pct": (current / total * 100) if total > 0 else 0,
+                **extra,
+            }
+        )
+        db.session.merge(task)
+        return True

@@ -248,6 +248,81 @@ class TaskContext(ABC):
         """
         ...
 
+    @abstractmethod
+    def is_cancelled(self) -> bool:
+        """
+        Check if the task has been cancelled.
+
+        Returns True if the task status is CANCELLED. Fetches fresh state
+        from the database to ensure current status.
+
+        :returns: True if task is cancelled, False otherwise
+        """
+        ...
+
+    @abstractmethod
+    def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
+        """
+        Register a cleanup handler that runs when the task ends.
+
+        Cleanup handlers are called when the task completes (success),
+        fails with an error, or is cancelled. Multiple handlers can be
+        registered and will execute in LIFO order (last registered runs first).
+
+        Can be used as a decorator:
+            @ctx.on_cleanup
+            def cleanup():
+                logger.info("Task ended")
+
+        Or called directly:
+            ctx.on_cleanup(lambda: logger.info("Task ended"))
+
+        :param handler: Cleanup function to register
+        :returns: The handler (for decorator compatibility)
+        """
+        ...
+
+    @abstractmethod
+    def run(self, operation: Callable[..., Any]) -> Any:
+        """
+        Execute an operation if the task is not cancelled.
+
+        Checks cancellation status before executing the operation. If the
+        task is cancelled, returns None without executing. Cannot interrupt
+        an operation once it has started.
+
+        :param operation: Callable to execute
+        :returns: Operation result if not cancelled, None if cancelled
+
+        Example:
+            response = ctx.run(lambda: requests.get(url, timeout=60))
+            if response is None:
+                return  # Task was cancelled
+        """
+        ...
+
+    @abstractmethod
+    def update_progress(self, current: int, total: int, **extra: Any) -> bool:
+        """
+        Update task progress and check for cancellation.
+
+        Convenience method that combines progress update with cancellation check.
+        Updates the task payload with progress information and returns whether
+        execution should continue.
+
+        :param current: Current progress value
+        :param total: Total expected value
+        :param extra: Additional payload fields to update
+        :returns: True if should continue, False if cancelled
+
+        Example:
+            for i, item in enumerate(items):
+                if not ctx.update_progress(i + 1, len(items)):
+                    return  # Cancelled
+                process(item)
+        """
+        ...
+
 
 def async_task(
     name: str | None = None,

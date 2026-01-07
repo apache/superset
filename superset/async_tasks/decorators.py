@@ -19,7 +19,7 @@
 import inspect
 import logging
 from datetime import datetime
-from typing import Callable, ParamSpec, TypeVar
+from typing import Callable, Generic, ParamSpec, TypeVar
 
 from superset_core.api.types import TaskStatus
 
@@ -88,14 +88,14 @@ def async_task(
     return decorator
 
 
-class AsyncTaskWrapper:
+class AsyncTaskWrapper(Generic[P, R]):
     """
     Wrapper for async task functions that provides .schedule() method.
 
     Direct calls execute synchronously (for testing), .schedule() runs async via Celery.
     """
 
-    def __init__(self, name: str, func: Callable[P, R]):
+    def __init__(self, name: str, func: Callable[P, R]) -> None:
         self.name = name
         self.func = func
         self.__name__ = func.__name__
@@ -195,9 +195,7 @@ class AsyncTaskWrapper:
             # Return the failed task entity (don't re-raise in sync mode)
             return task
 
-    def schedule(
-        self, *args: P.args, options: TaskOptions | None = None, **kwargs: P.kwargs
-    ) -> AsyncTask:
+    def schedule(self, *args: P.args, **kwargs: P.kwargs) -> AsyncTask:
         """
         Schedule this task for asynchronous execution via Celery.
 
@@ -224,8 +222,12 @@ class AsyncTaskWrapper:
         Note: Unlike direct calls (__call__), this schedules async execution via Celery.
         The function returns immediately with the AsyncTask model in PENDING status.
         """
-        if options is None:
+        # Extract options from kwargs if present
+        options_raw = kwargs.pop("options", None)
+        if options_raw is None:
             options = TaskOptions()
+        else:
+            options = options_raw  # type: ignore[assignment]
 
         # Use idempotency_key if provided, otherwise None
         task_id = options.idempotency_key
