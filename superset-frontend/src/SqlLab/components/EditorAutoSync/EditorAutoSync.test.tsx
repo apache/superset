@@ -41,8 +41,8 @@ import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { logging } from '@apache-superset/core';
 import EditorAutoSync, { INTERVAL } from '.';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+jest.mock('@apache-superset/core', () => ({
+  ...jest.requireActual('@apache-superset/core'),
   logging: {
     warn: jest.fn(),
   },

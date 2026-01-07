@@ -26,6 +26,9 @@ jest.mock('@superset-ui/core', () => ({
   SupersetClient: {
     get: jest.fn(),
   },
+}));
+
+jest.mock('@apache-superset/core', () => ({
   logging: {
     warn: jest.fn(),
     error: jest.fn(),
