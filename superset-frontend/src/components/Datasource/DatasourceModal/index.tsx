@@ -19,7 +19,11 @@
 import { FunctionComponent, useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core';
-import { SupersetClient, getClientErrorObject, SupersetError,  } from '@superset-ui/core';
+import {
+  SupersetClient,
+  getClientErrorObject,
+  SupersetError,
+} from '@superset-ui/core';
 import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 
 import {

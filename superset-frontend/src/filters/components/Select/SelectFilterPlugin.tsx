@@ -19,7 +19,15 @@
 /* eslint-disable no-param-reassign */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core';
-import { AppSection, DataMask, ensureIsArray, ExtraFormData, getColumnLabel, JsonObject, finestTemporalGrainFormatter} from '@superset-ui/core';
+import {
+  AppSection,
+  DataMask,
+  ensureIsArray,
+  ExtraFormData,
+  getColumnLabel,
+  JsonObject,
+  finestTemporalGrainFormatter,
+} from '@superset-ui/core';
 import { tn } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
@@ -30,10 +38,12 @@ import {
   LabeledValue,
   Select,
   Space,
-  Constants} from '@superset-ui/core/components';
+  Constants,
+} from '@superset-ui/core/components';
 import {
   hasOption,
-  propertyComparator} from '@superset-ui/core/components/Select/utils';
+  propertyComparator,
+} from '@superset-ui/core/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 import { FilterPluginStyle, StatusMessage } from '../common';
@@ -56,7 +66,8 @@ function reducer(draft: DataMask, action: DataMaskAction) {
     case 'ownState':
       draft.ownState = {
         ...draft.ownState,
-        ...action.ownState};
+        ...action.ownState,
+      };
       return draft;
     case 'filterState':
       if (
@@ -121,7 +132,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inputRef,
     filterBarOrientation,
     clearAllTrigger,
-    onClearAllComplete} = props;
+    onClearAllComplete,
+  } = props;
   const {
     enableEmptyFilter,
     creatable,
@@ -129,7 +141,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     showSearch,
     inverseSelection,
     defaultToFirstItem,
-    searchAllOptions} = formData;
+    searchAllOptions,
+  } = formData;
 
   const groupby = useMemo(
     () => ensureIsArray(formData.groupby).map(getColumnLabel),
@@ -142,12 +155,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const prevDataRef = useRef(data);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
-    filterState});
+    filterState,
+  });
   const datatype: GenericDataType = coltypeMap[col];
   const labelFormatter = useMemo(
     () =>
       getDataRecordFormatter({
-        timeFormatter: finestTemporalGrainFormatter(data.map(el => el[col]))}),
+        timeFormatter: finestTemporalGrainFormatter(data.map(el => el[col])),
+      }),
     [data, col],
   );
   const [excludeFilterValues, setExcludeFilterValues] = useState(
@@ -205,7 +220,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             appSection === AppSection.FilterConfigModal && defaultToFirstItem
               ? undefined
               : values,
-          excludeFilterValues}});
+          excludeFilterValues,
+        },
+      });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -234,7 +251,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             type: 'ownState',
             ownState: {
               coltypeMap: initialColtypeMap,
-              search}});
+              search,
+            },
+          });
         }
       }, Constants.SLOW_DEBOUNCE),
     [dispatchDataMask, initialColtypeMap, searchAllOptions],
@@ -281,7 +300,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     return [...allOptions].map((value: string) => ({
       label: labelFormatter(value, datatype),
       value,
-      isNewOption: false}));
+      isNewOption: false,
+    }));
   }, [data, datatype, col, labelFormatter]);
 
   const options = useMemo(() => {
@@ -289,7 +309,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       uniqueOptions.unshift({
         label: search,
         value: search,
-        isNewOption: true});
+        isNewOption: true,
+      });
     }
     return uniqueOptions;
   }, [multiSelect, search, uniqueOptions]);
@@ -430,7 +451,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         extraFormData: {},
         filterState: {
           value: undefined,
-          label: undefined}});
+          label: undefined,
+        },
+      });
 
       updateDataMask(null);
       setSearch('');
@@ -454,7 +477,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             label?: string;
             excludeFilterValues?: boolean;
           }),
-          excludeFilterValues}});
+          excludeFilterValues,
+        },
+      });
       prevExcludeFilterValues.current = excludeFilterValues;
     }
   }, [excludeFilterValues]);

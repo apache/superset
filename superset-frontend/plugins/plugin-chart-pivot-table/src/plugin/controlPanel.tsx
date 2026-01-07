@@ -24,7 +24,14 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core';
-import { ensureIsArray, isAdhocColumn, isPhysicalColumn, QueryFormMetric, SMART_DATE_ID, validateNonEmpty,  } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  isAdhocColumn,
+  isPhysicalColumn,
+  QueryFormMetric,
+  SMART_DATE_ID,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {

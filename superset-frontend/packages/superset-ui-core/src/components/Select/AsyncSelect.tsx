@@ -32,7 +32,11 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core';
-import { ensureIsArray, usePrevious, getClientErrorObject,  } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  usePrevious,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,

@@ -19,7 +19,12 @@
 
 import { Component, ReactNode } from 'react';
 import { t } from '@apache-superset/core';
-import { SupersetClient, Method, makeApi, SupersetApiError,  } from '@superset-ui/core';
+import {
+  SupersetClient,
+  Method,
+  makeApi,
+  SupersetApiError,
+} from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components';
 import ErrorMessage from './ErrorMessage';
 

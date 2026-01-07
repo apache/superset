@@ -17,7 +17,18 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { CategoricalColorNamespace, getColumnLabel, getMetricLabel, getNumberFormatter, getTimeFormatter, NumberFormats, ValueFormatter, getValueFormatter, tooltipHtml, DataRecord,  } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  getColumnLabel,
+  getMetricLabel,
+  getNumberFormatter,
+  getTimeFormatter,
+  NumberFormats,
+  ValueFormatter,
+  getValueFormatter,
+  tooltipHtml,
+  DataRecord,
+} from '@superset-ui/core';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { PieSeriesOption } from 'echarts/charts';

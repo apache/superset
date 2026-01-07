@@ -20,7 +20,11 @@
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
 import { Color } from '@deck.gl/core';
 import { t } from '@apache-superset/core';
-import { JsonObject, QueryFormData, CategoricalColorNamespace,  } from '@superset-ui/core';
+import {
+  JsonObject,
+  QueryFormData,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import {
   COLOR_SCHEME_TYPES,

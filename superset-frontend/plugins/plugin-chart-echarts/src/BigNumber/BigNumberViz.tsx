@@ -18,7 +18,14 @@
  */
 import { useState, useEffect, useRef, MouseEvent } from 'react';
 import { t } from '@apache-superset/core';
-import { getNumberFormatter, getTimeFormatter, SMART_DATE_VERBOSE_ID, computeMaxFontSize, BRAND_COLOR, BinaryQueryObjectFilterClause,  } from '@superset-ui/core';
+import {
+  getNumberFormatter,
+  getTimeFormatter,
+  SMART_DATE_VERBOSE_ID,
+  computeMaxFontSize,
+  BRAND_COLOR,
+  BinaryQueryObjectFilterClause,
+} from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';

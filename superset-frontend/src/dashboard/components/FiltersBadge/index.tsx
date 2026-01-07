@@ -30,7 +30,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
 import { t } from '@apache-superset/core';
-import { DataMaskStateWithId, Filters, JsonObject, usePrevious,  } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  Filters,
+  JsonObject,
+  usePrevious,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';

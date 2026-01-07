@@ -17,7 +17,12 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { ensureIsArray, NO_TIME_RANGE, QueryFormData, validateNonEmpty,  } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  NO_TIME_RANGE,
+  QueryFormData,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   BaseControlConfig,
   ControlPanelState,

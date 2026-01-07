@@ -20,7 +20,12 @@ import { useCallback, useEffect, useMemo, useState, ReactNode } from 'react';
 import { useSelector } from 'react-redux';
 
 import { t } from '@apache-superset/core';
-import { AdhocColumn, isAdhocColumn, Metric, QueryFormMetric,  } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  isAdhocColumn,
+  Metric,
+  QueryFormMetric,
+} from '@superset-ui/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';

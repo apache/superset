@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { ChartDataResponseResult, QueryFormMetric, validateNumber,  } from '@superset-ui/core';
+import {
+  ChartDataResponseResult,
+  QueryFormMetric,
+  validateNumber,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ControlPanelConfig,

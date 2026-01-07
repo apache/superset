@@ -27,7 +27,8 @@ import {
   AddIconButton,
   AddControlLabel,
   HeaderContainer,
-  LabelsContainer} from 'src/explore/components/controls/OptionControls';
+  LabelsContainer,
+} from 'src/explore/components/controls/OptionControls';
 import columnType from './columnType';
 import MetricDefinitionValue from './MetricDefinitionValue';
 import AdhocMetric from './AdhocMetric';
@@ -47,13 +48,15 @@ const propTypes = {
   isLoading: PropTypes.bool,
   multi: PropTypes.bool,
   clearable: PropTypes.bool,
-  datasource: PropTypes.object};
+  datasource: PropTypes.object,
+};
 
 const defaultProps = {
   onChange: () => {},
   clearable: true,
   savedMetrics: [],
-  columns: []};
+  columns: [],
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getOptionsForSavedMetrics(

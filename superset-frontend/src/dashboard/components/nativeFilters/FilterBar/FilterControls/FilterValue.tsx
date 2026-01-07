@@ -27,7 +27,19 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core';
-import { ChartDataResponseResult, Behavior, DataMask, isFeatureEnabled, FeatureFlag, getChartMetadataRegistry, JsonObject, QueryFormData, SuperChart, ClientErrorObject, getClientErrorObject,  } from '@superset-ui/core';
+import {
+  ChartDataResponseResult,
+  Behavior,
+  DataMask,
+  isFeatureEnabled,
+  FeatureFlag,
+  getChartMetadataRegistry,
+  JsonObject,
+  QueryFormData,
+  SuperChart,
+  ClientErrorObject,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';

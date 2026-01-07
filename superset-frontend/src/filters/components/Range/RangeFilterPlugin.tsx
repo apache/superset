@@ -17,7 +17,13 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { ensureIsArray, getColumnLabel, getNumberFormatter, isEqualArray, NumberFormats,  } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  getColumnLabel,
+  getNumberFormatter,
+  isEqualArray,
+  NumberFormats,
+} from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/ui';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';

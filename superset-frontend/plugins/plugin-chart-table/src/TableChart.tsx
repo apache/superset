@@ -40,7 +40,17 @@ import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
 import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
 import cx from 'classnames';
 import { t } from '@apache-superset/core';
-import { DataRecord, DataRecordValue, DTTM_ALIAS, ensureIsArray, getSelectedText, getTimeFormatterForGranularity, BinaryQueryObjectFilterClause, tn, extractTextFromHTML,  } from '@superset-ui/core';
+import {
+  DataRecord,
+  DataRecordValue,
+  DTTM_ALIAS,
+  ensureIsArray,
+  getSelectedText,
+  getTimeFormatterForGranularity,
+  BinaryQueryObjectFilterClause,
+  tn,
+  extractTextFromHTML,
+} from '@superset-ui/core';
 import { styled, css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {

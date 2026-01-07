@@ -20,7 +20,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core';
-import { ensureIsArray, isAdhocMetricSimple, isSavedMetric, Metric, QueryFormMetric} from '@superset-ui/core';
+import {
+  ensureIsArray,
+  isAdhocMetricSimple,
+  isSavedMetric,
+  Metric,
+  QueryFormMetric,
+} from '@superset-ui/core';
 import { tn } from '@apache-superset/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
@@ -29,7 +35,8 @@ import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricCon
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
 import {
   DatasourcePanelDndItem,
-  isDatasourcePanelDndItem} from 'src/explore/components/DatasourcePanel/types';
+  isDatasourcePanelDndItem,
+} from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
@@ -71,7 +78,8 @@ const coerceMetrics = (
       return {
         metric_name: metric,
         error_text: t('This metric might be incompatible with current dataset'),
-        uuid: nanoid()};
+        uuid: nanoid(),
+      };
     }
     if (!isDictionaryForAdhocMetric(metric)) {
       return metric;
@@ -84,7 +92,8 @@ const coerceMetrics = (
         // Cast entire config object to handle type mismatch between @superset-ui/core and local types
         return new AdhocMetric({
           ...(metric as unknown as Record<string, unknown>),
-          column} as Record<string, unknown>);
+          column,
+        } as Record<string, unknown>);
       }
     }
     // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric
@@ -346,7 +355,8 @@ const DndMetricSelect = (props: any) => {
       const itemValue = droppedItem.value as ColumnMeta;
       // Cast config to handle ColumnMeta/ColumnType mismatch
       const config = {
-        column: itemValue} as Partial<AdhocMetric>;
+        column: itemValue,
+      } as Partial<AdhocMetric>;
       if (itemValue.type_generic === GenericDataType.Numeric) {
         config.aggregate = AGGREGATES.SUM;
       } else if (

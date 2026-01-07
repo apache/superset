@@ -18,7 +18,11 @@
  */
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core';
-import { legacyValidateInteger, isFeatureEnabled, FeatureFlag,  } from '@superset-ui/core';
+import {
+  legacyValidateInteger,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,

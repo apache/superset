@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { DatasourceType, getChartControlPanelRegistry, VizType,  } from '@superset-ui/core';
+import {
+  DatasourceType,
+  getChartControlPanelRegistry,
+  VizType,
+} from '@superset-ui/core';
 import {
   ControlConfig,
   ControlPanelState,

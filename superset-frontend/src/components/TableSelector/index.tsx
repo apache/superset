@@ -26,7 +26,7 @@ import {
 import type { SelectValue } from '@superset-ui/core/components';
 
 import { t } from '@apache-superset/core';
-import { getClientErrorMessage, getClientErrorObject,  } from '@superset-ui/core';
+import { getClientErrorMessage, getClientErrorObject } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { CertifiedBadge, Select } from '@superset-ui/core/components';
 import { DatabaseSelector } from 'src/components';

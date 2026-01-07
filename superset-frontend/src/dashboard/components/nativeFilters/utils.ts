@@ -17,7 +17,20 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { AdhocFilter, Behavior, DataMaskStateWithId, EXTRA_FORM_DATA_APPEND_KEYS, EXTRA_FORM_DATA_OVERRIDE_KEYS, ExtraFormData, Filter, getChartMetadataRegistry, QueryFormData, ExtraFormDataOverride, TimeGranularity, ExtraFormDataAppend,  } from '@superset-ui/core';
+import {
+  AdhocFilter,
+  Behavior,
+  DataMaskStateWithId,
+  EXTRA_FORM_DATA_APPEND_KEYS,
+  EXTRA_FORM_DATA_OVERRIDE_KEYS,
+  ExtraFormData,
+  Filter,
+  getChartMetadataRegistry,
+  QueryFormData,
+  ExtraFormDataOverride,
+  TimeGranularity,
+  ExtraFormDataAppend,
+} from '@superset-ui/core';
 import { LayoutItem } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isIterable, OnlyKeyWithType } from 'src/utils/types';

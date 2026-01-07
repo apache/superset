@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { SMART_DATE_ID, NumberFormats, getNumberFormatter,  } from '@superset-ui/core';
+import {
+  SMART_DATE_ID,
+  NumberFormats,
+  getNumberFormatter,
+} from '@superset-ui/core';
 
 // D3 specific formatting config
 export const D3_FORMAT_DOCS = t(

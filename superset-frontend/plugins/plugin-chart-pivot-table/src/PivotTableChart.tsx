@@ -19,7 +19,20 @@
 import { useCallback, useMemo } from 'react';
 import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import { t } from '@apache-superset/core';
-import { AdhocMetric, BinaryQueryObjectFilterClause, CurrencyFormatter, DataRecordValue, FeatureFlag, getColumnLabel, getNumberFormatter, getSelectedText, isAdhocColumn, isFeatureEnabled, isPhysicalColumn, NumberFormatter,  } from '@superset-ui/core';
+import {
+  AdhocMetric,
+  BinaryQueryObjectFilterClause,
+  CurrencyFormatter,
+  DataRecordValue,
+  FeatureFlag,
+  getColumnLabel,
+  getNumberFormatter,
+  getSelectedText,
+  isAdhocColumn,
+  isFeatureEnabled,
+  isPhysicalColumn,
+  NumberFormatter,
+} from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';
 import {

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { legacyValidateInteger, legacyValidateNumber,  } from '@superset-ui/core';
+import { legacyValidateInteger, legacyValidateNumber } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 import { displayTimeRelatedControls } from '../utils';
 

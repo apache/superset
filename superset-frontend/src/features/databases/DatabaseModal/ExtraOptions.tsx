@@ -19,7 +19,11 @@
 import { ChangeEvent, EventHandler, useState, useEffect } from 'react';
 import cx from 'classnames';
 import { t } from '@apache-superset/core';
-import { DatabaseConnectionExtension, isFeatureEnabled, FeatureFlag,  } from '@superset-ui/core';
+import {
+  DatabaseConnectionExtension,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/ui';
 import {
   Input,

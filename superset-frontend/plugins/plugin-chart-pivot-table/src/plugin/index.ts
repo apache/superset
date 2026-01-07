@@ -17,7 +17,13 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { Behavior, ChartMetadata, ChartPlugin, ChartProps, QueryFormData,  } from '@superset-ui/core';
+import {
+  Behavior,
+  ChartMetadata,
+  ChartPlugin,
+  ChartProps,
+  QueryFormData,
+} from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';

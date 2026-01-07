@@ -18,7 +18,14 @@
  */
 
 import { t } from '@apache-superset/core';
-import { logging, configure, tn, addLocaleData, addTranslation, addTranslations,  } from '@superset-ui/core';
+import {
+  logging,
+  configure,
+  tn,
+  addLocaleData,
+  addTranslation,
+  addTranslations,
+} from '@superset-ui/core';
 import Translator from '../../src/translation/Translator';
 import languagePackZh from './languagePacks/zh';
 import languagePackEn from './languagePacks/en';

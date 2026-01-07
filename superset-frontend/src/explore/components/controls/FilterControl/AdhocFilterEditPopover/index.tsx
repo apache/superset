@@ -37,7 +37,8 @@ import type { ColumnType } from 'src/explore/components/controls/FilterControl/A
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
-  Operators} from 'src/explore/constants';
+  Operators,
+} from 'src/explore/constants';
 import rison from 'rison';
 import { isObject } from 'lodash';
 import { ExpressionTypes } from '../types';
@@ -96,7 +97,8 @@ const propTypes = {
   theme: PropTypes.object,
   sections: PropTypes.arrayOf(PropTypes.string),
   operators: PropTypes.arrayOf(PropTypes.string),
-  requireSave: PropTypes.bool};
+  requireSave: PropTypes.bool,
+};
 
 const FilterPopoverContentContainer = styled.div`
   .adhoc-filter-edit-tabs > .nav-tabs {
@@ -170,7 +172,8 @@ export default class AdhocFilterEditPopover extends Component<
       isSimpleTabValid: true,
       selectedLayers: [{ id: null, value: -1, label: 'All' }],
       layerOptions: [],
-      hasLayerFilterScopeChanged: false};
+      hasLayerFilterScopeChanged: false,
+    };
 
     this.popoverContentRef = createRef();
   }
@@ -196,7 +199,8 @@ export default class AdhocFilterEditPopover extends Component<
             return layerOption;
           });
           this.setState({
-            selectedLayers: selectedLayers.filter(Boolean) as LayerOption[]});
+            selectedLayers: selectedLayers.filter(Boolean) as LayerOption[],
+          });
         }
       });
     }
@@ -234,7 +238,8 @@ export default class AdhocFilterEditPopover extends Component<
       return item;
     });
     const correctedAdhocFilter = this.state.adhocFilter.duplicateWith({
-      layerFilterScope: selectedLayers});
+      layerFilterScope: selectedLayers,
+    });
     this.setState({ hasLayerFilterScopeChanged: false });
     this.props.onChange(correctedAdhocFilter);
     this.props.onClose();
@@ -258,7 +263,8 @@ export default class AdhocFilterEditPopover extends Component<
       height: Math.max(
         this.dragStartHeight + (e.clientY - this.dragStartY),
         POPOVER_INITIAL_HEIGHT,
-      )});
+      ),
+    });
   }
 
   onMouseUp() {
@@ -267,7 +273,8 @@ export default class AdhocFilterEditPopover extends Component<
 
   onTabChange(activeKey: string) {
     this.setState({
-      activeKey});
+      activeKey,
+    });
   }
 
   adjustHeight(heightDifference: number) {
@@ -281,19 +288,23 @@ export default class AdhocFilterEditPopover extends Component<
       page,
       page_size: pageSize,
       order_column: 'slice_name',
-      order_direction: 'asc'});
+      order_direction: 'asc',
+    });
 
     return SupersetClient.get({
-      endpoint: `/api/v1/chart/?q=${query}`}).then(response => {
+      endpoint: `/api/v1/chart/?q=${query}`,
+    }).then(response => {
       if (!response?.json?.result) {
         return {
           data: [
             {
               id: null,
               value: -1,
-              label: 'All'},
+              label: 'All',
+            },
           ],
-          totalCount: 1};
+          totalCount: 1,
+        };
       }
 
       const deckSlices = (this.props.adhocFilter?.deck_slices ||
@@ -303,7 +314,8 @@ export default class AdhocFilterEditPopover extends Component<
         {
           id: null,
           value: -1,
-          label: 'All'},
+          label: 'All',
+        },
         ...response.json.result
           .map((item: { id: number; slice_name: string }) => {
             const sliceIndex = deckSlices.indexOf(item.id);
@@ -311,7 +323,8 @@ export default class AdhocFilterEditPopover extends Component<
               id: item.id,
               value: sliceIndex >= 0 ? sliceIndex : item.id,
               label: item.slice_name,
-              sliceIndex};
+              sliceIndex,
+            };
           })
           .filter((item: { sliceIndex: number }) => item.sliceIndex !== -1)
           .map(
@@ -329,7 +342,8 @@ export default class AdhocFilterEditPopover extends Component<
 
       return {
         data: list,
-        totalCount: list.length};
+        totalCount: list.length,
+      };
     });
   }
 
@@ -422,7 +436,8 @@ export default class AdhocFilterEditPopover extends Component<
                     validHandler={this.setSimpleTabIsValid}
                   />
                 </ErrorBoundary>
-              )},
+              ),
+            },
             {
               key: ExpressionTypes.Sql,
               label: t('Custom SQL'),
@@ -436,7 +451,8 @@ export default class AdhocFilterEditPopover extends Component<
                     datasource={datasource}
                   />
                 </ErrorBoundary>
-              )},
+              ),
+            },
           ]}
         />
         {hasDeckSlices && (

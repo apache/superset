@@ -18,7 +18,13 @@
  */
 
 import { t } from '@apache-superset/core';
-import { logging, SupersetClient, SupersetClientResponse, getClientErrorObject, lruCache,  } from '@superset-ui/core';
+import {
+  logging,
+  SupersetClient,
+  SupersetClientResponse,
+  getClientErrorObject,
+  lruCache,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';

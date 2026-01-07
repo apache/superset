@@ -19,7 +19,13 @@
 import { useMemo, ReactNode } from 'react';
 
 import { t } from '@apache-superset/core';
-import { ColorScheme, ColorSchemeGroup, SequentialScheme, getLabelsColorMap, CategoricalColorNamespace,  } from '@superset-ui/core';
+import {
+  ColorScheme,
+  ColorSchemeGroup,
+  SequentialScheme,
+  getLabelsColorMap,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { sortBy } from 'lodash';
 import { ControlHeader } from '@superset-ui/chart-controls';

@@ -27,7 +27,13 @@ import {
   useState,
 } from 'react';
 import { t } from '@apache-superset/core';
-import { DataMask, DataMaskStateWithId, Filter, Divider, isNativeFilterWithDataMask,  } from '@superset-ui/core';
+import {
+  DataMask,
+  DataMaskStateWithId,
+  Filter,
+  Divider,
+  isNativeFilterWithDataMask,
+} from '@superset-ui/core';
 import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';
 import {
   createHtmlPortalNode,

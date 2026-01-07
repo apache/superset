@@ -18,7 +18,23 @@
  */
 import memoizeOne from 'memoize-one';
 import { t } from '@apache-superset/core';
-import { ComparisonType, CurrencyFormatter, Currency, DataRecord, ensureIsArray, extractTimegrain, getMetricLabel, getNumberFormatter, getTimeFormatter, getTimeFormatterForGranularity, NumberFormats, QueryMode, SMART_DATE_ID, TimeFormats, TimeFormatter,  } from '@superset-ui/core';
+import {
+  ComparisonType,
+  CurrencyFormatter,
+  Currency,
+  DataRecord,
+  ensureIsArray,
+  extractTimegrain,
+  getMetricLabel,
+  getNumberFormatter,
+  getTimeFormatter,
+  getTimeFormatterForGranularity,
+  NumberFormats,
+  QueryMode,
+  SMART_DATE_ID,
+  TimeFormats,
+  TimeFormatter,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ColorFormatters,

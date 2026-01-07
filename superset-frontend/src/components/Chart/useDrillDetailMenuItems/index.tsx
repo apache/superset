@@ -26,7 +26,14 @@ import {
 } from 'react';
 import { isEmpty } from 'lodash';
 import { t } from '@apache-superset/core';
-import { Behavior, BinaryQueryObjectFilterClause, extractQueryFields, getChartMetadataRegistry, QueryFormData, removeHTMLTags,  } from '@superset-ui/core';
+import {
+  Behavior,
+  BinaryQueryObjectFilterClause,
+  extractQueryFields,
+  getChartMetadataRegistry,
+  QueryFormData,
+  removeHTMLTags,
+} from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 import { type ItemType } from '@superset-ui/core/components/Menu';

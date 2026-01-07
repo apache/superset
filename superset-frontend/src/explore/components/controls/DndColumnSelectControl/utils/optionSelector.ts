@@ -18,7 +18,12 @@
  */
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core';
-import { AdhocColumn, ensureIsArray, QueryFormColumn, isPhysicalColumn,  } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  ensureIsArray,
+  QueryFormColumn,
+  isPhysicalColumn,
+} from '@superset-ui/core';
 
 const getColumnNameOrAdhocColumn = (
   column: ColumnMeta | AdhocColumn,

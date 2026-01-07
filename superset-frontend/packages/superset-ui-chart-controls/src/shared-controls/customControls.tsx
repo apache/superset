@@ -18,7 +18,14 @@
  */
 
 import { t } from '@apache-superset/core';
-import { ContributionType, ensureIsArray, getColumnLabel, getMetricLabel, QueryFormColumn, QueryFormMetric,  } from '@superset-ui/core';
+import {
+  ContributionType,
+  ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
+  QueryFormColumn,
+  QueryFormMetric,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ControlPanelState,

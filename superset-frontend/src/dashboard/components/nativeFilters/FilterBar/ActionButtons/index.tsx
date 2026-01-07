@@ -18,7 +18,11 @@
  */
 import { useMemo } from 'react';
 import { t } from '@apache-superset/core';
-import { DataMaskState, DataMaskStateWithId, isDefined,  } from '@superset-ui/core';
+import {
+  DataMaskState,
+  DataMaskStateWithId,
+  isDefined,
+} from '@superset-ui/core';
 import { css, SupersetTheme, styled } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';

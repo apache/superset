@@ -18,7 +18,7 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core';
-import { AdhocColumn, QueryFormColumn, isAdhocColumn} from '@superset-ui/core';
+import { AdhocColumn, QueryFormColumn, isAdhocColumn } from '@superset-ui/core';
 import { tn } from '@apache-superset/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
@@ -47,7 +47,8 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     name,
     label,
     isTemporal,
-    disabledTabs} = props;
+    disabledTabs,
+  } = props;
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
   const optionSelector = useMemo(() => {

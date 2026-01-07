@@ -21,7 +21,7 @@ import {
   ControlStateMapping,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core';
-import { ensureIsArray, QueryFormColumn, QueryMode,  } from '@superset-ui/core';
+import { ensureIsArray, QueryFormColumn, QueryMode } from '@superset-ui/core';
 
 export function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;

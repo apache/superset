@@ -18,7 +18,11 @@
  */
 
 import { t } from '@apache-superset/core';
-import { ClientErrorObject, getClientErrorObject, SupersetClient,  } from '@superset-ui/core';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+  SupersetClient,
+} from '@superset-ui/core';
 import type { TagType } from 'src/types/TagType';
 
 import rison from 'rison';

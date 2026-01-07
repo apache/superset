@@ -17,7 +17,12 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { ensureIsArray, isAdhocColumn, isPhysicalColumn, validateNonEmpty,  } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  isAdhocColumn,
+  isPhysicalColumn,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,

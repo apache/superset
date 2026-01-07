@@ -28,7 +28,13 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core';
-import { AdhocColumn, isAdhocColumn, DatasourceType, Metric, QueryFormMetric,  } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  isAdhocColumn,
+  DatasourceType,
+  Metric,
+  QueryFormMetric,
+} from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/ui';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from '@superset-ui/core/components/Tabs';

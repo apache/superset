@@ -18,7 +18,15 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core';
-import { AdhocColumn, isAdhocColumn, Metric, ensureIsArray, Datasource, QueryFormMetric, QueryFormData} from '@superset-ui/core';
+import {
+  AdhocColumn,
+  isAdhocColumn,
+  Metric,
+  ensureIsArray,
+  Datasource,
+  QueryFormMetric,
+  QueryFormData,
+} from '@superset-ui/core';
 import { tn } from '@apache-superset/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isString } from 'lodash';
@@ -118,7 +126,8 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
     label,
     isTemporal,
     disabledTabs,
-    formData} = props;
+    formData,
+  } = props;
 
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
@@ -271,7 +280,8 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
 
           const columnItem = {
             item_type: 'column',
-            column_name: item};
+            column_name: item,
+          };
           const hasMultipleValues =
             formData && fieldHasMultipleValues(columnItem, formData);
           const multiValueWarningMessage = hasMultipleValues

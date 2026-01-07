@@ -18,7 +18,12 @@
  */
 import { FC } from 'react';
 import { t } from '@apache-superset/core';
-import { Behavior, SetDataMaskHook, SuperChart, AppSection,  } from '@superset-ui/core';
+import {
+  Behavior,
+  SetDataMaskHook,
+  SuperChart,
+  AppSection,
+} from '@superset-ui/core';
 import { Loading, type FormInstance } from '@superset-ui/core/components';
 import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';

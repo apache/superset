@@ -19,7 +19,12 @@
 import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { t } from '@apache-superset/core';
-import { FeatureFlag, isFeatureEnabled, getExtensionsRegistry, usePrevious,  } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  getExtensionsRegistry,
+  usePrevious,
+} from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/ui';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Checkbox } from '@superset-ui/core/components';

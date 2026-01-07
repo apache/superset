@@ -17,7 +17,16 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { extractTimegrain, getNumberFormatter, NumberFormats, getMetricLabel, getXAxisLabel, Metric, getValueFormatter, tooltipHtml,  } from '@superset-ui/core';
+import {
+  extractTimegrain,
+  getNumberFormatter,
+  NumberFormats,
+  getMetricLabel,
+  getXAxisLabel,
+  Metric,
+  getValueFormatter,
+  tooltipHtml,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { EChartsCoreOption, graphic } from 'echarts/core';
 import { aggregationChoices } from '@superset-ui/chart-controls';

@@ -28,7 +28,15 @@ import {
 import { RouteComponentProps, useHistory } from 'react-router-dom';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { t } from '@apache-superset/core';
-import { Behavior, isFeatureEnabled, FeatureFlag, getChartMetadataRegistry, VizType, BinaryQueryObjectFilterClause, QueryFormData,  } from '@superset-ui/core';
+import {
+  Behavior,
+  isFeatureEnabled,
+  FeatureFlag,
+  getChartMetadataRegistry,
+  VizType,
+  BinaryQueryObjectFilterClause,
+  QueryFormData,
+} from '@superset-ui/core';
 import { css, useTheme, styled } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';

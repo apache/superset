@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { DataRecord, DataRecordValue, getTimeFormatterForGranularity,  } from '@superset-ui/core';
+import {
+  DataRecord,
+  DataRecordValue,
+  getTimeFormatterForGranularity,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { isEqual } from 'lodash';
