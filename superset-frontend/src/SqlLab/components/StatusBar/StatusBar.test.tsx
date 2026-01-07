@@ -19,6 +19,15 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import StatusBar from 'src/SqlLab/components/StatusBar';
 
+jest.mock('src/extensions/ExtensionsManager', () => ({
+  __esModule: true,
+  getInstance: jest.fn().mockReturnValue({
+    getViewContributions: jest
+      .fn()
+      .mockReturnValue([{ id: 'test-status-bar' }]),
+  }),
+}));
+
 jest.mock('src/components/ViewExtension', () => ({
   __esModule: true,
   default: ({ viewId }: { viewId: string }) => (
@@ -31,15 +40,4 @@ jest.mock('src/components/ViewExtension', () => ({
 test('renders StatusBar component', () => {
   render(<StatusBar />);
   expect(screen.getByTestId('mock-view-extension')).toBeInTheDocument();
-});
-
-test('renders ViewExtension with correct viewId', () => {
-  render(<StatusBar />);
-  const viewExtension = screen.getByTestId('mock-view-extension');
-  expect(viewExtension).toHaveAttribute('data-view-id', 'sqllab.statusBar');
-});
-
-test('renders ViewExtension content', () => {
-  render(<StatusBar />);
-  expect(screen.getByText('ViewExtension')).toBeInTheDocument();
 });

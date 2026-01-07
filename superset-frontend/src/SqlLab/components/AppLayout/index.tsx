@@ -96,10 +96,6 @@ const AppLayout: React.FC = ({ children }) => {
     ExtensionsManager.getInstance().getViewContributions(
       ViewContribution.RightSidebar,
     ) || [];
-  const statusBarContributions =
-    ExtensionsManager.getInstance().getViewContributions(
-      ViewContribution.StatusBar,
-    ) || [];
 
   return (
     <StyledContainer>
@@ -144,7 +140,7 @@ const AppLayout: React.FC = ({ children }) => {
           </Splitter.Panel>
         )}
       </Splitter>
-      {statusBarContributions.length > 0 && <StatusBar />}
+      <StatusBar />
     </StyledContainer>
   );
 };

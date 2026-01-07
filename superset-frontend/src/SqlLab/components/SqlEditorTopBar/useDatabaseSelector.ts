@@ -57,9 +57,14 @@ export default function useDatabaseSelector(queryEditorId: string) {
   );
   const { catalog, schema } = queryEditor;
 
-  const onDbChange = ({ id: dbId }: { id: number }) => {
-    dispatch(queryEditorSetDb(queryEditor, dbId));
-  };
+  const onDbChange = useCallback(
+    ({ id: dbId }: { id: number }) => {
+      if (queryEditor) {
+        dispatch(queryEditorSetDb(queryEditor, dbId));
+      }
+    },
+    [dispatch, queryEditor],
+  );
 
   const handleCatalogChange = useCallback(
     (catalog: string | null) => {
