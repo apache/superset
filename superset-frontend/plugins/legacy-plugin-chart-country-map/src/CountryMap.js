@@ -175,7 +175,6 @@ function CountryMap(element, props) {
     }
   }
 
-
   const colorMap = {};
   parsedData.forEach(r => {
     const iso = r.country_id;
