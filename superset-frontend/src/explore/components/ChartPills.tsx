@@ -25,7 +25,6 @@ import {
   Timer,
 } from '@superset-ui/core/components';
 import RowCountLabel from 'src/components/RowCountLabel';
-import LastQueriedLabel from 'src/components/LastQueriedLabel';
 
 const CHART_STATUS_MAP = {
   failed: 'danger' as LabelType,
@@ -62,48 +61,33 @@ export const ChartPills = forwardRef(
     const isLoading = chartStatus === 'loading';
     const firstQueryResponse = queriesResponse?.[0];
 
-    const queriedDttm = firstQueryResponse?.queried_dttm ?? null;
-
     return (
       <div ref={ref}>
         <div
           css={(theme: SupersetTheme) => css`
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            justify-content: flex-end;
             padding-bottom: ${theme.sizeUnit * 4}px;
           `}
         >
-          <div>
-            {!isLoading && queriedDttm && (
-              <LastQueriedLabel queriedDttm={queriedDttm} />
-            )}
-          </div>
-          <div
-            css={css`
-              display: flex;
-              align-items: center;
-            `}
-          >
-            {!isLoading && !hideRowCount && firstQueryResponse && (
-              <RowCountLabel
-                rowcount={Number(firstQueryResponse.sql_rowcount) || 0}
-                limit={Number(rowLimit ?? 0)}
-              />
-            )}
-            {!isLoading && firstQueryResponse?.is_cached && (
-              <CachedLabel
-                onClick={refreshCachedQuery}
-                cachedTimestamp={firstQueryResponse.cached_dttm}
-              />
-            )}
-            <Timer
-              startTime={chartUpdateStartTime}
-              endTime={chartUpdateEndTime}
-              isRunning={isLoading}
-              status={CHART_STATUS_MAP[chartStatus ?? 'unknown']}
+          {!isLoading && !hideRowCount && firstQueryResponse && (
+            <RowCountLabel
+              rowcount={Number(firstQueryResponse.sql_rowcount) || 0}
+              limit={Number(rowLimit ?? 0)}
             />
-          </div>
+          )}
+          {!isLoading && firstQueryResponse?.is_cached && (
+            <CachedLabel
+              onClick={refreshCachedQuery}
+              cachedTimestamp={firstQueryResponse.cached_dttm}
+            />
+          )}
+          <Timer
+            startTime={chartUpdateStartTime}
+            endTime={chartUpdateEndTime}
+            isRunning={isLoading}
+            status={CHART_STATUS_MAP[chartStatus ?? 'unknown']}
+          />
         </div>
       </div>
     );
