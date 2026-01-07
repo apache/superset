@@ -40,6 +40,9 @@ from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
+# Maximum rows to prevent unbounded fetches and excessive memory/DB load
+MAX_ROW_LIMIT = 10000
+
 
 @tool(tags=["data"])
 @parse_request(GetChartDataRequest)
@@ -164,11 +167,13 @@ async def get_chart_data(  # noqa: C901
                     await ctx.debug(
                         "Found %s columns in datasource" % len(raw_columns_list)
                     )
+                    # Cap row limit to prevent excessive memory/DB load
+                    row_limit = min(request.limit or 100, MAX_ROW_LIMIT)
                     query_spec = {
                         "filters": form_data.get("filters", []),
                         "columns": raw_columns_list,  # All columns, no aggregation
                         "metrics": [],  # No metrics = no aggregation
-                        "row_limit": request.limit or 100,
+                        "row_limit": row_limit,
                         "order_desc": True,
                         "cache_timeout": request.cache_timeout,
                     }
@@ -177,20 +182,22 @@ async def get_chart_data(  # noqa: C901
                         "Could not load datasource for raw data, "
                         "falling back to chart query"
                     )
+                    row_limit = min(request.limit or 100, MAX_ROW_LIMIT)
                     query_spec = {
                         "filters": form_data.get("filters", []),
                         "columns": form_data.get("groupby", []),
                         "metrics": form_data.get("metrics", []),
-                        "row_limit": request.limit or 100,
+                        "row_limit": row_limit,
                         "order_desc": True,
                         "cache_timeout": request.cache_timeout,
                     }
             else:
+                row_limit = min(request.limit or 100, MAX_ROW_LIMIT)
                 query_spec = {
                     "filters": form_data.get("filters", []),
                     "columns": form_data.get("groupby", []),
                     "metrics": form_data.get("metrics", []),
-                    "row_limit": request.limit or 100,
+                    "row_limit": row_limit,
                     "order_desc": True,
                     "cache_timeout": request.cache_timeout,
                 }
