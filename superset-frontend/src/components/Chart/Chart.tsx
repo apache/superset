@@ -17,12 +17,11 @@
  * under the License.
  */
 import { PureComponent } from 'react';
-import { t } from '@apache-superset/core';
+import { t, logging } from '@apache-superset/core';
 import {
   ensureIsArray,
   FeatureFlag,
   isFeatureEnabled,
-  logging,
   QueryFormData,
   SqlaFormData,
   ClientErrorObject,

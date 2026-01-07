@@ -39,7 +39,6 @@ import { FaSort } from '@react-icons/all-files/fa/FaSort';
 import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
 import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
 import cx from 'classnames';
-import { t } from '@apache-superset/core';
 import {
   DataRecord,
   DataRecordValue,
@@ -48,10 +47,16 @@ import {
   getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
-  tn,
   extractTextFromHTML,
 } from '@superset-ui/core';
-import { styled, css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  useTheme,
+  SupersetTheme,
+  t,
+  tn,
+} from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Input,

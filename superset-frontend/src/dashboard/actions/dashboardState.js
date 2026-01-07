@@ -24,9 +24,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getLabelsColorMap,
-  logging,
   SupersetClient,
-  t,
   getClientErrorObject,
   getCategoricalSchemeRegistry,
   promiseTimeout,
@@ -36,6 +34,8 @@ import {
   removeChart,
   refreshChart,
 } from 'src/components/Chart/chartAction';
+import { logging } from '@apache-superset/core';
+import { t } from '@apache-superset/core/ui';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import {

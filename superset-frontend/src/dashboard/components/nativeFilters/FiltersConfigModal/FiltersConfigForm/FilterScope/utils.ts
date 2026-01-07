@@ -24,7 +24,8 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { t } from '@apache-superset/core';
-import { logging, NativeFilterScope } from '@superset-ui/core';
+import { NativeFilterScope } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { BuildTreeLeafTitle, TreeItem } from './types';
 
 export const isShowTypeInTree = ({ type }: LayoutItem) =>

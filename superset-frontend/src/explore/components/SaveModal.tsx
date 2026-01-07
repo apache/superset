@@ -33,11 +33,10 @@ import {
   Loading,
   Divider,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
+import { t, logging } from '@apache-superset/core';
 import {
   DatasourceType,
   isDefined,
-  logging,
   SupersetClient,
 } from '@superset-ui/core';
 import { css, styled, Alert } from '@apache-superset/core/ui';

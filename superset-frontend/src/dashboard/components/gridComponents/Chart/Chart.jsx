@@ -19,8 +19,8 @@
 import cx from 'classnames';
 import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { t, logging } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core';
+import { styled, t } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 import { useHistory } from 'react-router-dom';
 import { bindActionCreators } from 'redux';

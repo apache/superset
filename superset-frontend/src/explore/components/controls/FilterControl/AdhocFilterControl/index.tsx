@@ -18,7 +18,8 @@
  */
 import { Component, ReactNode } from 'react';
 import PropTypes from 'prop-types';
-import { logging, SupersetClient, ensureIsArray } from '@superset-ui/core';
+import { SupersetClient, ensureIsArray } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { t } from '@apache-superset/core';
 import { withTheme, type SupersetTheme } from '@apache-superset/core/ui';
 

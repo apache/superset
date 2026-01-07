@@ -35,16 +35,3 @@ export * from './ui-overrides';
 export * from './hooks';
 export * from './currency-format';
 export * from './time-comparison';
-
-// Re-export translation functions and types from @apache-superset/core
-export {
-  t,
-  tn,
-  configure,
-  addLocaleData,
-  addTranslation,
-  addTranslations,
-  resetTranslation,
-  type LanguagePack,
-  type Locale,
-} from '@apache-superset/core/ui/translation';

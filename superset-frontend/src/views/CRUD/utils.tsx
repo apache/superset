@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t, logging } from '@apache-superset/core';
 import {
-  logging,
   SupersetClient,
   SupersetClientResponse,
   getClientErrorObject,

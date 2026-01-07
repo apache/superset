@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 import transformProps from './transformProps';
 import example from './images/example.jpg';
 import exampleDark from './images/example-dark.jpg';
