@@ -36,7 +36,6 @@ import {
   Tooltip,
   Input,
   Label,
-  Loading,
 } from '@superset-ui/core/components';
 import {
   CopyToClipboard,
@@ -90,7 +89,6 @@ import { makeUrl } from 'src/utils/pathUtils';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
-import QueryStateLabel from '../QueryStateLabel';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { ViewContribution } from 'src/SqlLab/contributions';
 
@@ -816,34 +814,20 @@ const ResultSet = ({
     }
   }
 
-  let progressBar;
-  if (query.progress > 0) {
-    progressBar = (
-      <ProgressBar percent={parseInt(query.progress.toFixed(0), 10)} striped />
-    );
-  }
-
   const progressMsg = query?.extra?.progress ?? null;
 
   return (
-    <>
-      <ResultlessStyles>
-        <div>{!progressBar && <Loading position="normal" />}</div>
-        {/* show loading bar whenever progress bar is completed but needs time to render */}
-        <div>{query.progress === 100 && <Loading position="normal" />}</div>
-        <QueryStateLabel query={query} />
-        <div>
-          {progressMsg && <Alert type="success" message={progressMsg} />}
-        </div>
-        <div>{query.progress !== 100 && progressBar}</div>
-        {trackingUrl && <div>{trackingUrl}</div>}
-      </ResultlessStyles>
+    <ResultlessStyles>
+      {progressMsg && (
+        <Alert type="success" message={progressMsg} closable={false} />
+      )}
+      {trackingUrl && <div>{trackingUrl}</div>}
       <StreamingExportModal
         visible={showStreamingModal}
         onCancel={handleCloseStreamingModal}
         progress={progress}
       />
-    </>
+    </ResultlessStyles>
   );
 };
 
