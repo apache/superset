@@ -145,19 +145,27 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-test('only expected API endpoints are called on initial render', async () => {
+test('required API endpoints are called and no unmocked calls on initial render', async () => {
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
 
-  // Verify only expected endpoints were called (no unmocked calls)
-  // These are the minimum required endpoints for initial dataset list render
-  assertOnlyExpectedCalls([
+  // Verify expected endpoints were called and no unmocked calls
+  // Note: This checks minimum required calls but doesn't enforce "only these" -
+  // extra mocked calls would pass. For stricter enforcement, compare total call count.
+  const expectedEndpoints = [
     API_ENDPOINTS.DATASETS_INFO, // Permission check
     API_ENDPOINTS.DATASETS, // Main dataset list data
-  ]);
+  ];
+  assertOnlyExpectedCalls(expectedEndpoints);
+
+  // Verify no extra unexpected calls by checking total matched call count
+  const allMatchedCalls = fetchMock
+    .calls(true)
+    .filter(call => !call.isUnmatched);
+  expect(allMatchedCalls.length).toBe(expectedEndpoints.length);
 });
 
 test('renders all required column headers', async () => {
@@ -701,10 +709,12 @@ test('bulk export triggers export with selected IDs', async () => {
   const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
   await userEvent.click(bulkSelectButton);
 
-  // Select checkbox
+  // Wait for bulk select controls container to appear first (fast query)
+  await screen.findByTestId('bulk-select-controls');
+
+  // Then wait for checkboxes to render
   await waitFor(() => {
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes.length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
   const checkboxes = screen.getAllByRole('checkbox');
@@ -741,10 +751,12 @@ test('bulk delete opens confirmation modal', async () => {
   const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
   await userEvent.click(bulkSelectButton);
 
-  // Select checkbox
+  // Wait for bulk select controls container to appear first (fast query)
+  await screen.findByTestId('bulk-select-controls');
+
+  // Then wait for checkboxes to render
   await waitFor(() => {
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes.length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
   const checkboxes = screen.getAllByRole('checkbox');
@@ -1509,10 +1521,13 @@ test('bulk selection clears when filter changes', async () => {
   const urlAfterFilter = fetchMock
     .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.[0] as string;
-  const risonAfterFilter = urlAfterFilter.split('?q=')[1];
+  const risonAfterFilter = new URL(
+    urlAfterFilter,
+    'http://localhost',
+  ).searchParams.get('q');
   expect(risonAfterFilter).toBeTruthy();
   const decodedAfterFilter = rison.decode(
-    decodeURIComponent(risonAfterFilter),
+    decodeURIComponent(risonAfterFilter!),
   ) as Record<string, unknown>;
   expect(decodedAfterFilter.filters).toEqual(
     expect.arrayContaining([
@@ -1552,9 +1567,9 @@ test('type filter API call includes correct filter parameter', async () => {
   const url = fetchMock.calls(API_ENDPOINTS.DATASETS).at(-1)?.[0] as string;
   expect(url).toContain('filters');
 
-  const risonPayload = url.split('?q=')[1];
+  const risonPayload = new URL(url, 'http://localhost').searchParams.get('q');
   expect(risonPayload).toBeTruthy();
-  const decoded = rison.decode(decodeURIComponent(risonPayload)) as Record<
+  const decoded = rison.decode(decodeURIComponent(risonPayload!)) as Record<
     string,
     unknown
   >;
@@ -1598,10 +1613,13 @@ test('type filter persists after duplicating a dataset', async () => {
   const urlAfterFilter = fetchMock
     .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.[0] as string;
-  const risonAfterFilter = urlAfterFilter.split('?q=')[1];
+  const risonAfterFilter = new URL(
+    urlAfterFilter,
+    'http://localhost',
+  ).searchParams.get('q');
   expect(risonAfterFilter).toBeTruthy();
   const decodedAfterFilter = rison.decode(
-    decodeURIComponent(risonAfterFilter),
+    decodeURIComponent(risonAfterFilter!),
   ) as Record<string, unknown>;
   expect(decodedAfterFilter.filters).toEqual(
     expect.arrayContaining([
@@ -1652,10 +1670,13 @@ test('type filter persists after duplicating a dataset', async () => {
   const urlAfterDuplicate = fetchMock
     .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.[0] as string;
-  const risonAfterDuplicate = urlAfterDuplicate.split('?q=')[1];
+  const risonAfterDuplicate = new URL(
+    urlAfterDuplicate,
+    'http://localhost',
+  ).searchParams.get('q');
   expect(risonAfterDuplicate).toBeTruthy();
   const decodedAfterDuplicate = rison.decode(
-    decodeURIComponent(risonAfterDuplicate),
+    decodeURIComponent(risonAfterDuplicate!),
   ) as Record<string, unknown>;
   expect(decodedAfterDuplicate.filters).toEqual(
     expect.arrayContaining([

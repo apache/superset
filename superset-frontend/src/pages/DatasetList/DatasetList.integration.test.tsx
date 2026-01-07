@@ -42,8 +42,8 @@ import {
 
 jest.mock('src/utils/export');
 
-// Increase default timeout for all tests in this file
-jest.setTimeout(30000);
+// Increase default timeout for tests that involve multiple async operations
+jest.setTimeout(15000);
 
 beforeEach(() => {
   setupMocks();
@@ -51,6 +51,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Reset browser history state to prevent query params leaking between tests
+  window.history.replaceState({}, '', '/');
+
   fetchMock.resetHistory();
   fetchMock.restore();
   jest.restoreAllMocks();
@@ -94,8 +97,8 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   const latestCall = calls[calls.length - 1];
   const url = latestCall[0] as string;
 
-  // Decode the rison payload
-  const risonPayload = url.split('?q=')[1];
+  // Decode the rison payload using URL parser
+  const risonPayload = new URL(url, 'http://localhost').searchParams.get('q');
   expect(risonPayload).toBeTruthy();
   const decoded = rison.decode(decodeURIComponent(risonPayload!)) as Record<
     string,
@@ -146,9 +149,12 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   });
   await userEvent.click(bulkSelectButton);
 
+  // Wait for bulk select controls container to appear first (fast query)
+  await screen.findByTestId('bulk-select-controls');
+
+  // Then wait for checkboxes to render
   await waitFor(() => {
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes.length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
   // Select first 2 items (skip select-all checkbox at index 0)

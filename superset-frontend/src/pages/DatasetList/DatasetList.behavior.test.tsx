@@ -42,8 +42,8 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
   default: <P extends object>(Component: ComponentType<P>) => Component,
 }));
 
-// Increase default timeout for all tests in this file
-jest.setTimeout(30000);
+// Increase default timeout for tests that involve multiple async operations
+jest.setTimeout(15000);
 
 beforeEach(() => {
   setupMocks();
@@ -51,6 +51,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Reset browser history state to prevent query params leaking between tests
+  window.history.replaceState({}, '', '/');
+
   fetchMock.resetHistory();
   fetchMock.restore();
   jest.restoreAllMocks();
@@ -107,7 +110,7 @@ test('typing in search triggers debounced API call with search filter', async ()
 
   // URL should contain filters parameter with search term
   expect(url).toContain('filters');
-  const risonPayload = url.split('?q=')[1];
+  const risonPayload = new URL(url, 'http://localhost').searchParams.get('q');
   expect(risonPayload).toBeTruthy();
   const decoded = rison.decode(decodeURIComponent(risonPayload!)) as Record<
     string,

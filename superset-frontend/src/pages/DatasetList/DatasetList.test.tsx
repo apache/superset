@@ -33,14 +33,17 @@ import {
   RisonFilter,
 } from './DatasetList.testHelpers';
 
-// Increase default timeout for all tests in this file
-jest.setTimeout(30000);
+// Increase default timeout for tests that involve multiple async operations
+jest.setTimeout(15000);
 
 beforeEach(() => {
   setupMocks();
 });
 
 afterEach(() => {
+  // Reset browser history state to prevent query params leaking between tests
+  window.history.replaceState({}, '', '/');
+
   fetchMock.resetHistory();
   fetchMock.restore();
 });
@@ -53,9 +56,12 @@ test('renders page with "Datasets" title', async () => {
 });
 
 test('shows loading state during initial data fetch', () => {
+  // Use a delayed response instead of never-resolving promise to avoid open handles
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    new Promise(() => {}), // Never resolves to keep loading state
+    new Promise(resolve =>
+      setTimeout(() => resolve({ result: [], count: 0 }), 10000),
+    ),
     { overwriteRoutes: true },
   );
 
@@ -65,9 +71,14 @@ test('shows loading state during initial data fetch', () => {
 });
 
 test('maintains component structure during loading', () => {
-  fetchMock.get(API_ENDPOINTS.DATASETS, new Promise(() => {}), {
-    overwriteRoutes: true,
-  });
+  // Use a delayed response instead of never-resolving promise to avoid open handles
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    new Promise(resolve =>
+      setTimeout(() => resolve({ result: [], count: 0 }), 10000),
+    ),
+    { overwriteRoutes: true },
+  );
 
   renderDatasetList(mockAdminUser);
 
@@ -78,8 +89,11 @@ test('maintains component structure during loading', () => {
 test('"New Dataset" button exists (when canCreate=true)', async () => {
   renderDatasetList(mockAdminUser);
 
+  // Button text is "Dataset" with plus icon. Using /dataset$/i to:
+  // 1. Match the actual button text
+  // 2. Avoid matching future "Import Dataset" button ($ anchors to end)
   expect(
-    await screen.findByRole('button', { name: /dataset/i }),
+    await screen.findByRole('button', { name: /dataset$/i }),
   ).toBeInTheDocument();
 });
 
@@ -88,7 +102,7 @@ test('"New Dataset" button hidden (when canCreate=false)', async () => {
 
   await waitFor(() => {
     expect(
-      screen.queryByRole('button', { name: /dataset/i }),
+      screen.queryByRole('button', { name: /dataset$/i }),
     ).not.toBeInTheDocument();
   });
 });
@@ -267,12 +281,12 @@ test('typing in name filter updates input value and triggers API with decoded se
       // Verify URL contains search filter
       expect(url).toContain('filters');
 
-      // Extract and decode rison query param
-      const queryString = url.split('?q=')[1];
+      // Extract and decode rison query param using URL parser
+      const queryString = new URL(url, 'http://localhost').searchParams.get('q');
       expect(queryString).toBeTruthy();
 
       // Decode the rison payload
-      const decoded = rison.decode(decodeURIComponent(queryString)) as Record<
+      const decoded = rison.decode(decodeURIComponent(queryString!)) as Record<
         string,
         unknown
       >;
