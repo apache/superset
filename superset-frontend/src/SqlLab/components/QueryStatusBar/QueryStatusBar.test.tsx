@@ -104,7 +104,7 @@ test('returns null when query is successful with results', () => {
     },
   });
   const { container } = render(<QueryStatusBar query={query} />);
-  expect(container.firstChild).toBeEmptyDOMElement();
+  expect(container).toBeEmptyDOMElement();
 });
 
 test('displays progress percentage when available', () => {
