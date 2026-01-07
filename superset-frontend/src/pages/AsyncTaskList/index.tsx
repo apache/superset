@@ -234,11 +234,11 @@ function AsyncTaskList({
         Cell: ({
           row: {
             original: {
-              changed_on_delta_humanized: changedOn,
-              changed_by: changedBy,
+              created_on_delta_humanized: createdOn,
+              created_by: createdBy,
             },
           },
-        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
+        }: any) => <ModifiedInfo date={createdOn} user={createdBy} />,
         Header: t('Created'),
         accessor: 'created_on',
         size: 'xl',
