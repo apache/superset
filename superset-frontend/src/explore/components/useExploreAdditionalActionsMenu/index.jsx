@@ -293,7 +293,7 @@ export const useExploreAdditionalActionsMenu = (
         ? exportChart({
             formData: latestQueryFormData,
             ownState,
-            resultType: 'full',
+            resultType: 'results',
             resultFormat: 'json',
           })
         : null,
@@ -306,7 +306,7 @@ export const useExploreAdditionalActionsMenu = (
         ? exportChart({
             formData: latestQueryFormData,
             ownState,
-            resultType: 'full',
+            resultType: 'results',
             resultFormat: 'xlsx',
           })
         : null,

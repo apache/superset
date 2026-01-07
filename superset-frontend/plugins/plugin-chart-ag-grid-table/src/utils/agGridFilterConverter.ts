@@ -476,7 +476,10 @@ function convertDateFilter(
   const { type, dateFrom, dateTo } = filter;
 
   // Handle null/blank checks for date columns
-  if (type === FILTER_OPERATORS.BLANK || type === FILTER_OPERATORS.SERVER_BLANK) {
+  if (
+    type === FILTER_OPERATORS.BLANK ||
+    type === FILTER_OPERATORS.SERVER_BLANK
+  ) {
     return {
       col: columnName,
       op: SQL_OPERATORS.IS_NULL,

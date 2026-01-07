@@ -126,7 +126,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     }
-  }, [rowCount, serverPagination, serverPaginationData, serverPageLength, setDataMask]);
+  }, [
+    rowCount,
+    serverPagination,
+    serverPaginationData,
+    serverPageLength,
+    setDataMask,
+  ]);
 
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
