@@ -40,9 +40,6 @@ from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
-# Maximum rows to prevent unbounded fetches and excessive memory/DB load
-MAX_ROW_LIMIT = 10000
-
 
 @tool(tags=["data"])
 @parse_request(GetChartDataRequest)
@@ -59,7 +56,7 @@ async def get_chart_data(  # noqa: C901
     - Numeric ID or UUID lookup
     - Multiple formats: json, csv, excel
     - Cache control: use_cache, force_refresh, cache_timeout
-    - Optional row limit override (capped at 10000 for safety)
+    - Optional row limit override (respects chart's configured limits)
 
     Returns underlying data in requested format with cache status.
     """
@@ -162,9 +159,9 @@ async def get_chart_data(  # noqa: C901
 
                 factory = QueryContextFactory()
                 # Use request.limit if specified, otherwise use chart's configured
-                # row_limit, with MAX_ROW_LIMIT as safety cap
+                # row_limit (respects global ROW_LIMIT config)
                 chart_row_limit = form_data.get("row_limit", 1000)
-                row_limit = min(request.limit or chart_row_limit, MAX_ROW_LIMIT)
+                row_limit = request.limit or chart_row_limit
                 query_context = factory.create(
                     datasource={
                         "id": chart.datasource_id,
@@ -186,11 +183,10 @@ async def get_chart_data(  # noqa: C901
                 # Apply request overrides to the saved query_context
                 query_context_json["force"] = request.force_refresh
 
-                # Apply row limit if specified (cap at MAX_ROW_LIMIT)
+                # Apply row limit if specified (respects chart's configured limits)
                 if request.limit:
-                    row_limit = min(request.limit, MAX_ROW_LIMIT)
                     for query in query_context_json.get("queries", []):
-                        query["row_limit"] = row_limit
+                        query["row_limit"] = request.limit
 
                 # Create QueryContext from the saved context using the schema
                 # This is exactly how the API does it

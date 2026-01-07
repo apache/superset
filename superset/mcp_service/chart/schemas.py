@@ -973,7 +973,7 @@ class GetChartDataRequest(QueryCacheControl):
         default=None,
         description=(
             "Maximum number of data rows to return. If not specified, uses the "
-            "chart's configured row limit. Capped at 10000 for safety."
+            "chart's configured row limit."
         ),
     )
     format: Literal["json", "csv", "excel"] = Field(

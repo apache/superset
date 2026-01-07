@@ -16,13 +16,12 @@
 # under the License.
 
 """
-Tests for the get_chart_data request schema and MAX_ROW_LIMIT
+Tests for the get_chart_data request schema
 """
 
 import pytest
 
 from superset.mcp_service.chart.schemas import GetChartDataRequest
-from superset.mcp_service.chart.tool.get_chart_data import MAX_ROW_LIMIT
 
 
 class TestGetChartDataRequestSchema:
@@ -98,36 +97,3 @@ class TestGetChartDataRequestSchema:
         assert data["identifier"] == 123
         assert data["limit"] == 50
         assert data["format"] == "json"
-
-
-class TestMaxRowLimit:
-    """Test the MAX_ROW_LIMIT constant."""
-
-    def test_max_row_limit_is_defined(self):
-        """Test that MAX_ROW_LIMIT is defined and reasonable."""
-        assert MAX_ROW_LIMIT is not None
-        assert isinstance(MAX_ROW_LIMIT, int)
-        assert MAX_ROW_LIMIT > 0
-
-    def test_max_row_limit_value(self):
-        """Test that MAX_ROW_LIMIT has expected value."""
-        assert MAX_ROW_LIMIT == 10000
-
-    def test_row_limit_capping_logic(self):
-        """Test the row limit capping logic used in get_chart_data."""
-        # Test that the capping logic works correctly when limit is specified
-        test_cases = [
-            (50, 50),  # Within limit
-            (100, 100),  # Reasonable limit
-            (5000, 5000),  # Within limit
-            (10000, 10000),  # At limit
-            (15000, 10000),  # Exceeds limit, capped
-            (100000, 10000),  # Far exceeds limit, capped
-        ]
-
-        for requested_limit, expected in test_cases:
-            result = min(requested_limit, MAX_ROW_LIMIT)
-            assert result == expected, (
-                f"For requested_limit={requested_limit}, "
-                f"expected {expected} but got {result}"
-            )
