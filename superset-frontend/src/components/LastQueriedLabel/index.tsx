@@ -32,10 +32,12 @@ const LastQueriedLabel: FC<LastQueriedLabelProps> = ({ queriedDttm }) => {
     return null;
   }
 
-  const formattedTime = extendedDayjs
-    .utc(queriedDttm)
-    .local()
-    .format('L LTS');
+  const parsedDate = extendedDayjs.utc(queriedDttm);
+  if (!parsedDate.isValid()) {
+    return null;
+  }
+
+  const formattedTime = parsedDate.local().format('L LTS');
 
   return (
     <div

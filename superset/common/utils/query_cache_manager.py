@@ -129,6 +129,7 @@ class QueryCacheManager:
                 "rejected_filter_columns": self.rejected_filter_columns,
                 "annotation_data": self.annotation_data,
                 "sql_rowcount": self.sql_rowcount,
+                "queried_dttm": self.queried_dttm,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
                 self.set(
@@ -185,7 +186,9 @@ class QueryCacheManager:
                 query_cache.cache_dttm = (
                     cache_value["dttm"] if cache_value is not None else None
                 )
-                query_cache.queried_dttm = cache_value.get("dttm")
+                query_cache.queried_dttm = cache_value.get(
+                    "queried_dttm", cache_value.get("dttm")
+                )
                 query_cache.cache_value = cache_value
                 current_app.config["STATS_LOGGER"].incr("loaded_from_cache")
             except KeyError as ex:
