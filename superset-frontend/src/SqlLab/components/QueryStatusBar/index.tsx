@@ -114,15 +114,14 @@ const ProgressSpin = () => {
   );
 };
 
-const customDot: StepsProps['progressDot'] = (dot, { status }) => {
-  return status === 'process' ? (
+const customDot: StepsProps['progressDot'] = (dot, { status }) =>
+  status === 'process' ? (
     <ActiveDot>
       <ProgressSpin />
     </ActiveDot>
   ) : (
     <>{dot}</>
   );
-};
 
 const QueryStatusBar: FC<QueryStatusBarProps> = ({ query }) => {
   const steps = [
