@@ -25,6 +25,6 @@ export const isDerivedSeries = (
   series: JsonObject,
   formData: QueryFormData,
 ): boolean => {
-  const timeCompare: string[] = ensureIsArray(formData?.time_compare);
+  const timeCompare = ensureIsArray(formData?.time_compare).filter((v): v is string => typeof v === 'string');
   return hasTimeOffset(series, timeCompare);
 };
