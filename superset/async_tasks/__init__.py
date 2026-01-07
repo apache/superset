@@ -61,9 +61,9 @@ from superset.async_tasks.manager import TaskManager  # noqa: F401
 from superset.async_tasks.registry import TaskRegistry  # noqa: F401
 from superset.async_tasks.types import TaskOptions
 
-superset_core.api.types.async_task = async_task  # type: ignore[attr-defined]
-superset_core.api.types.get_context = get_context  # type: ignore[attr-defined]
-superset_core.api.types.TaskOptions = TaskOptions  # type: ignore[attr-defined]
+superset_core.api.types.async_task = async_task
+superset_core.api.types.get_context = get_context
+superset_core.api.types.TaskOptions = TaskOptions  # type: ignore[assignment,misc]
 
 __all__ = [
     "async_task",

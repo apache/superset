@@ -26,54 +26,58 @@ GATF uses the **ambient context pattern** where tasks access their execution con
 ### Define a Task
 
 ```python
-from superset_core.api.types import async_task, get_context, TaskOptions
+import requests
+from superset_core.api.types import async_task, get_context
 
-@async_task(name="generate_thumbnail")  # name is optional
-def generate_chart_thumbnail(chart_id: int, force: bool = False) -> None:
-    """Generate chart thumbnail asynchronously."""
-    ctx = get_context()  # Access ambient context
+@async_task()
+def fetch_data(api_url: str) -> None:
+    """
+    Example task that fetches data from an external API.
 
-    # Update task payload
-    task = ctx.task
+    Features:
+    - Automatic cancellation check before execution
+    - Simple cleanup handler
+    - Cancellation checking during execution
+    """
+    ctx = get_context()
 
-    # Check for cancellation
-    if ctx.task.is_cancelled:
+    # Cleanup runs automatically on success, failure, or cancellation
+    @ctx.on_cleanup
+    def cleanup():
+        logger.info("Data fetch completed")
+
+    # No initial check needed - framework checks before execution!
+    # Fetch data with timeout (prevents hanging)
+    response = requests.get(api_url, timeout=60)
+    data = response.json()
+
+    # Check before next operation
+    if ctx.is_cancelled():
         return
 
-    task.set_payload({"chart_id": chart_id, "started": True})
-    ctx.update_task(task)
-
-    # Your business logic
-    thumbnail_url = generate_thumbnail_for_chart(chart_id)
-
-    # Update with results
-    task = ctx.task
-    task.set_payload({"thumbnail_url": thumbnail_url})
-    ctx.update_task(task)
+    # Process and cache the data
+    process_and_cache(data)
 ```
 
-### Schedule Tasks
+### Execute Tasks Asynchronously or Synchronously
+
+The `@async_task` decorator enables flexible execution modes:
 
 ```python
-# Auto-generated task ID (no deduplication)
-task = generate_chart_thumbnail.schedule(chart_id=123)
+# Asynchronous execution via Celery (for production workloads)
+task = long_running_task.schedule()
+# Task runs in background worker, returns immediately
+print(task.status)  # "pending"
 
-# Custom idempotency key for deduplication
-task = generate_chart_thumbnail.schedule(
-    123,
-    force=True,
-    options=TaskOptions(idempotency_key=f"thumbnail_chart_123")
-)
+# Synchronous execution (for testing or when blocking is acceptable)
+task = long_running_task()
+# Task executes inline, blocks until complete
+print(task.status)  # "success"
 ```
 
-### Test Synchronously
-
-```python
-# Direct call executes synchronously (perfect for testing)
-task = generate_chart_thumbnail(chart_id=123)
-assert task.is_finished
-assert task.status == "success"
-```
+**When to use each mode:**
+- **Async (`.schedule()`)**: Production workloads, long-running operations, non-blocking execution
+- **Sync (direct call)**: Unit testing, development, or lightweight operations
 
 ## Core Concepts
 
@@ -115,37 +119,195 @@ task2 = my_task.schedule(arg=1, options=TaskOptions(idempotency_key="key"))
 # task2 is the same as task1 if task1 is PENDING or IN_PROGRESS
 ```
 
-## Advanced Usage
+## Cancellation Support
 
-### Cancellation Support
+The framework provides built-in cancellation support with minimal boilerplate.
+
+### Cleanup Handlers
+
+Register cleanup functions that run automatically when a task ends (success, failure, or cancellation):
 
 ```python
 @async_task()
-def long_running_task(num_items: int) -> None:
+def my_task() -> None:
     ctx = get_context()
 
-    for i in range(num_items):
-        if ctx.task.is_cancelled:
+    @ctx.on_cleanup
+    def cleanup():
+        """Runs automatically when task ends"""
+        logger.info("Task completed")
+```
+
+**Multiple cleanup handlers** (execute in LIFO order):
+
+```python
+@ctx.on_cleanup
+def cleanup_cache():
+    cache.clear()
+
+@ctx.on_cleanup
+def cleanup_log():
+    logger.info("Done")
+```
+
+### Automatic Pre-Execution Check
+
+**The framework automatically checks if a task was cancelled before execution starts.** You don't need an initial `if ctx.is_cancelled()` check - just start working!
+
+### Checking During Execution
+
+Check for cancellation at key points during execution:
+
+```python
+@async_task()
+def process_items(items: list[int]) -> None:
+    ctx = get_context()
+
+    @ctx.on_cleanup
+    def cleanup():
+        logger.info("Processing ended")
+
+    # No initial check needed - framework handles it!
+
+    for i, item in enumerate(items):
+        # Check every 10 items
+        if i % 10 == 0 and ctx.is_cancelled():
             return
-        process_item(i)
+
+        process_single_item(item)
+```
+
+### Using Helper Methods
+
+**`ctx.run()` - Pre-check wrapper (optional):**
+
+```python
+@async_task()
+def fetch_and_process(api_url: str) -> None:
+    ctx = get_context()
+
+    @ctx.on_cleanup
+    def cleanup():
+        logger.info("Fetch completed")
+
+    # Helper checks cancellation before executing
+    response = ctx.run(lambda: requests.get(api_url, timeout=60))
+    if response is None:
+        return  # Cancelled
+
+    data = ctx.run(lambda: response.json())
+    if data is None:
+        return
+
+    cache.set("data", data)
+```
+
+**`ctx.update_progress()` - Progress tracking with cancellation check:**
+
+```python
+@async_task()
+def process_batch(item_ids: list[int]) -> None:
+    ctx = get_context()
+
+    for i, item_id in enumerate(item_ids):
+        # Combined progress update + cancellation check
+        if not ctx.update_progress(i + 1, len(item_ids)):
+            return  # Cancelled
+
+        process_single_item(item_id)
+```
+
+## Advanced Usage
+
+### Complete Example: API Fetch with Cleanup
+
+```python
+@async_task()
+def fetch_and_cache(api_url: str, chart_id: int) -> None:
+    """Fetch from external API and cache results."""
+    ctx = get_context()
+    cache_key = f"chart_{chart_id}_data"
+
+    @ctx.on_cleanup
+    def cleanup():
+        if ctx.is_cancelled():
+            # Clear partial cache on cancellation
+            cache.delete(cache_key)
+            logger.info(f"Fetch cancelled, cleared cache: {cache_key}")
+        else:
+            logger.info(f"Fetch completed: {cache_key}")
+
+    # Fetch with timeout (prevents hanging)
+    response = requests.get(api_url, timeout=60)
+    data = response.json()
+
+    # Check before expensive processing
+    if ctx.is_cancelled():
+        return
+
+    processed = process_data(data)
+    cache.set(cache_key, processed)
 ```
 
 ### Progressive Updates
+
+Update progress and check cancellation simultaneously:
 
 ```python
 @async_task()
 def multi_step_task(item_ids: list[int]) -> None:
     ctx = get_context()
 
+    @ctx.on_cleanup
+    def cleanup():
+        logger.info(f"Processed {ctx.task.get_payload().get('count', 0)} items")
+
     for i, item_id in enumerate(item_ids):
-        task = ctx.task
-        task.set_payload({
-            "progress": f"{i+1}/{len(item_ids)}",
-            "current_item": item_id
-        })
-        ctx.update_task(task)
+        # Update progress and check cancellation
+        if not ctx.update_progress(
+            i + 1,
+            len(item_ids),
+            current_item=item_id
+        ):
+            return  # Cancelled
 
         process_item(item_id)
+
+    ctx.task.set_payload({"count": len(item_ids)})
+```
+
+### Important: Use Timeouts
+
+Cancellation checks happen at specific points - they cannot interrupt operations mid-execution. **Always use timeouts** to prevent operations from hanging:
+
+**Good:**
+```python
+# Timeout prevents hanging if server is slow
+response = requests.get(url, timeout=30)
+```
+
+**Bad:**
+```python
+# No timeout - could hang indefinitely
+response = requests.get(url)
+```
+
+### How Cancellation Works
+
+1. **Before execution:** Framework checks if task cancelled → skips if true
+2. **During execution:** Developer checks at key points → returns early if cancelled
+3. **Cannot interrupt:** Operations run to completion once started
+4. **Cleanup handlers:** Run automatically regardless of how task ends
+
+**Cancellation flow:**
+```
+User cancels → AsyncTask.status = CANCELLED
+                    ↓
+Framework checks before execution → Skip if already cancelled
+                    ↓
+Task executes → Checks at developer-defined points → Returns early if cancelled
+                    ↓
+Cleanup handlers run automatically
 ```
 
 ## Testing
@@ -227,12 +389,24 @@ class TaskContext:
     def task(self) -> AsyncTask:
         """Latest task entity from metastore"""
 
-    @property  
+    @property
     def user(self) -> User:
         """User who dispatched the task"""
 
     def update_task(self, task: AsyncTask) -> None:
         """Update task in metastore"""
+
+    def is_cancelled(self) -> bool:
+        """Check if task is cancelled"""
+
+    def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
+        """Register cleanup handler (runs on task end)"""
+
+    def run(self, operation: Callable[[], T]) -> T | None:
+        """Execute operation if not cancelled (optional helper)"""
+
+    def update_progress(self, current: int, total: int, **extra) -> bool:
+        """Update progress and check cancellation (optional helper)"""
 ```
 
 ## Architecture
