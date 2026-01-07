@@ -56,7 +56,9 @@ test('renders page with "Datasets" title', async () => {
 });
 
 test('shows loading state during initial data fetch', () => {
-  // Use a delayed response instead of never-resolving promise to avoid open handles
+  // Use fake timers to avoid leaving real timers running after test
+  jest.useFakeTimers();
+
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     new Promise(resolve =>
@@ -68,10 +70,14 @@ test('shows loading state during initial data fetch', () => {
   renderDatasetList(mockAdminUser);
 
   expect(screen.getByRole('status')).toBeInTheDocument();
+
+  jest.useRealTimers();
 });
 
 test('maintains component structure during loading', () => {
-  // Use a delayed response instead of never-resolving promise to avoid open handles
+  // Use fake timers to avoid leaving real timers running after test
+  jest.useFakeTimers();
+
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     new Promise(resolve =>
@@ -84,16 +90,17 @@ test('maintains component structure during loading', () => {
 
   expect(screen.getByText('Datasets')).toBeInTheDocument();
   expect(screen.getByRole('status')).toBeInTheDocument();
+
+  jest.useRealTimers();
 });
 
 test('"New Dataset" button exists (when canCreate=true)', async () => {
   renderDatasetList(mockAdminUser);
 
-  // Button text is "Dataset" with plus icon. Using /dataset$/i to:
-  // 1. Match the actual button text
-  // 2. Avoid matching future "Import Dataset" button ($ anchors to end)
+  // Button has plus icon (aria-label="plus") and "Dataset" text.
+  // Using pattern that matches "plus Dataset" to avoid matching future "Import Dataset" button.
   expect(
-    await screen.findByRole('button', { name: /dataset$/i }),
+    await screen.findByRole('button', { name: /plus\s*Dataset/i }),
   ).toBeInTheDocument();
 });
 
@@ -102,7 +109,7 @@ test('"New Dataset" button hidden (when canCreate=false)', async () => {
 
   await waitFor(() => {
     expect(
-      screen.queryByRole('button', { name: /dataset$/i }),
+      screen.queryByRole('button', { name: /plus\s*Dataset/i }),
     ).not.toBeInTheDocument();
   });
 });
@@ -282,7 +289,9 @@ test('typing in name filter updates input value and triggers API with decoded se
       expect(url).toContain('filters');
 
       // Extract and decode rison query param using URL parser
-      const queryString = new URL(url, 'http://localhost').searchParams.get('q');
+      const queryString = new URL(url, 'http://localhost').searchParams.get(
+        'q',
+      );
       expect(queryString).toBeTruthy();
 
       // Decode the rison payload
