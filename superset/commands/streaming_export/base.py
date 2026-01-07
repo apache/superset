@@ -43,8 +43,7 @@ def preserve_g_context(
     Context manager that restores captured flask.g attributes.
 
     This is needed for streaming responses where the generator runs in a new
-    app context but needs access to request-scoped data (like tenant info
-    in multi-tenant setups).
+    app context but needs access to request-scoped data from the original request.
 
     Args:
         captured_g: Dictionary of g attributes captured before context switch
@@ -54,7 +53,6 @@ def preserve_g_context(
     try:
         yield
     finally:
-        # Clean up the attributes we set
         for key in captured_g:
             if hasattr(g, key):
                 delattr(g, key)
@@ -84,15 +82,11 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         """
         self._chunk_size = chunk_size
         self._current_app = app._get_current_object()
-        # Capture flask.g attributes for multi-tenant support.
-        # When streaming responses run in a new app context, we need to
-        # preserve request-scoped data like tenant/workspace info.
+        # Capture flask.g attributes to preserve request-scoped data
+        # when the streaming generator runs in a new app context.
         self._captured_g: dict[str, Any] = {}
         if has_app_context():
-            # Capture all g attributes (excludes internal Flask attributes)
-            self._captured_g = {
-                key: getattr(g, key) for key in dir(g) if not key.startswith("_")
-            }
+            self._captured_g = g._get_current_object().__dict__.copy()
 
     @abstractmethod
     def _get_sql_and_database(self) -> tuple[str, Any]:
@@ -227,13 +221,11 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         # to avoid DetachedInstanceError
         sql, database = self._get_sql_and_database()
         limit = self._get_row_limit()
-        # Capture g attributes for restoration in the new context
         captured_g = self._captured_g
 
         def csv_generator() -> Generator[str, None, None]:
             """Generator that yields CSV data chunks."""
             with self._current_app.app_context():
-                # Restore flask.g attributes (e.g., tenant info for multi-tenant setups)
                 with preserve_g_context(captured_g):
                     try:
                         yield from self._execute_query_and_stream(sql, database, limit)
