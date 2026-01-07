@@ -23,15 +23,41 @@ import io
 import logging
 import time
 from abc import abstractmethod
+from contextlib import contextmanager
 from typing import Any, Callable, Generator
 
-from flask import current_app as app
+from flask import current_app as app, g, has_app_context
 from sqlalchemy import text
 
 from superset import db
 from superset.commands.base import BaseCommand
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def preserve_g_context(
+    captured_g: dict[str, Any],
+) -> Generator[None, None, None]:
+    """
+    Context manager that restores captured flask.g attributes.
+
+    This is needed for streaming responses where the generator runs in a new
+    app context but needs access to request-scoped data (like tenant info
+    in multi-tenant setups).
+
+    Args:
+        captured_g: Dictionary of g attributes captured before context switch
+    """
+    for key, value in captured_g.items():
+        setattr(g, key, value)
+    try:
+        yield
+    finally:
+        # Clean up the attributes we set
+        for key in captured_g:
+            if hasattr(g, key):
+                delattr(g, key)
 
 
 class BaseStreamingCSVExportCommand(BaseCommand):
@@ -58,6 +84,15 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         """
         self._chunk_size = chunk_size
         self._current_app = app._get_current_object()
+        # Capture flask.g attributes for multi-tenant support.
+        # When streaming responses run in a new app context, we need to
+        # preserve request-scoped data like tenant/workspace info.
+        self._captured_g: dict[str, Any] = {}
+        if has_app_context():
+            # Capture all g attributes (excludes internal Flask attributes)
+            self._captured_g = {
+                key: getattr(g, key) for key in dir(g) if not key.startswith("_")
+            }
 
     @abstractmethod
     def _get_sql_and_database(self) -> tuple[str, Any]:
@@ -192,23 +227,27 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         # to avoid DetachedInstanceError
         sql, database = self._get_sql_and_database()
         limit = self._get_row_limit()
+        # Capture g attributes for restoration in the new context
+        captured_g = self._captured_g
 
         def csv_generator() -> Generator[str, None, None]:
             """Generator that yields CSV data chunks."""
             with self._current_app.app_context():
-                try:
-                    yield from self._execute_query_and_stream(sql, database, limit)
-                except Exception as e:
-                    logger.error("Error in streaming CSV generator: %s", e)
-                    import traceback
+                # Restore flask.g attributes (e.g., tenant info for multi-tenant setups)
+                with preserve_g_context(captured_g):
+                    try:
+                        yield from self._execute_query_and_stream(sql, database, limit)
+                    except Exception as e:
+                        logger.error("Error in streaming CSV generator: %s", e)
+                        import traceback
 
-                    logger.error("Traceback: %s", traceback.format_exc())
+                        logger.error("Traceback: %s", traceback.format_exc())
 
-                    # Send error marker for frontend to detect
-                    error_marker = (
-                        "__STREAM_ERROR__:Export failed. "
-                        "Please try again in some time.\n"
-                    )
-                    yield error_marker
+                        # Send error marker for frontend to detect
+                        error_marker = (
+                            "__STREAM_ERROR__:Export failed. "
+                            "Please try again in some time.\n"
+                        )
+                        yield error_marker
 
         return csv_generator
