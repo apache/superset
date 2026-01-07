@@ -92,9 +92,7 @@ export type ResidualQueryObjectData = {
  * and `transformProps`.
  */
 export interface QueryObject
-  extends QueryFields,
-    TimeRange,
-    ResidualQueryObjectData {
+  extends QueryFields, TimeRange, ResidualQueryObjectData {
   /**
    * Definition for annotation layers.
    */
@@ -325,7 +323,6 @@ export type Query = {
   isDataPreview: boolean;
   link?: string;
   progress: number;
-  progressText?: string;
   resultsKey: string | null;
   catalog?: string | null;
   schema?: string;
