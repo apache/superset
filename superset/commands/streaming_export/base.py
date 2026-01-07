@@ -50,12 +50,7 @@ def preserve_g_context(
     """
     for key, value in captured_g.items():
         setattr(g, key, value)
-    try:
-        yield
-    finally:
-        for key in captured_g:
-            if hasattr(g, key):
-                delattr(g, key)
+    yield
 
 
 class BaseStreamingCSVExportCommand(BaseCommand):
