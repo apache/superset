@@ -35,7 +35,9 @@ export function Timer({
   status = 'success',
 }: TimerProps) {
   const theme = useTheme();
-  const [clockStr, setClockStr] = useState('00:00:00.00');
+  const [clockStr, setClockStr] = useState(
+    startTime && endTime ? fDuration(startTime, endTime) : '00:00:00.00',
+  );
   const timer = useRef<ReturnType<typeof setInterval>>();
 
   useEffect(() => {
