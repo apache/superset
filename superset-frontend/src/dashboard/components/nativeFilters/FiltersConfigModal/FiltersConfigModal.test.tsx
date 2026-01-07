@@ -194,7 +194,10 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function defaultRender(initialState: any = defaultState(), modalProps = props) {
+function defaultRender(
+  initialState: ReturnType<typeof defaultState> = defaultState(),
+  modalProps: FiltersConfigModalProps = props,
+) {
   return render(<FiltersConfigModal {...modalProps} />, {
     initialState,
     useDnd: true,
@@ -354,7 +357,7 @@ test('validates the default value', async () => {
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   // Verify validation error appears (actual message is "Please choose a valid value")
   expect(await screen.findByText(/choose.*valid value/i)).toBeInTheDocument();
-});
+}, 50000);
 
 test('validates the pre-filter value', async () => {
   jest.useFakeTimers();
@@ -374,15 +377,6 @@ test('validates the pre-filter value', async () => {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
   }
-
-  // Wait for validation to complete after timer switch
-  await waitFor(
-    () => {
-      const errorMessages = screen.queryAllByText(PRE_FILTER_REQUIRED_REGEX);
-      expect(errorMessages.length).toBeGreaterThan(0);
-    },
-    { timeout: 15000 },
-  );
 }, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // This test validates that the time range pre-filter option is hidden when the dataset

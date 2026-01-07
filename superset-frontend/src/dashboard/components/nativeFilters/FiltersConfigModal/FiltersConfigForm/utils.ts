@@ -78,6 +78,12 @@ export const hasTemporalColumns = (
   );
 };
 
+// Determines whether to show the time range picker in pre-filter settings.
+// Returns true if dataset is undefined (precautionary default) or has temporal columns.
+export const shouldShowTimeRangePicker = (
+  currentDataset: (Dataset & { column_types: GenericDataType[] }) | undefined,
+): boolean => (currentDataset ? hasTemporalColumns(currentDataset) : true);
+
 export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
   !column.type_generic ||
   !(filterType in FILTER_SUPPORTED_TYPES) ||

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/api/core';
-import { hasTemporalColumns } from './utils';
+import { hasTemporalColumns, shouldShowTimeRangePicker } from './utils';
 
 // Test hasTemporalColumns - validates time range pre-filter visibility logic
 // This addresses the coverage gap from the skipped FiltersConfigModal test
@@ -82,5 +82,34 @@ describe('hasTemporalColumns', () => {
   test('handles null dataset gracefully', () => {
     // @ts-expect-error testing null input
     expect(hasTemporalColumns(null)).toBe(true);
+  });
+});
+
+// Test shouldShowTimeRangePicker - wrapper function used by FiltersConfigForm
+// to determine if time range picker should be displayed in pre-filter settings
+describe('shouldShowTimeRangePicker', () => {
+  const createDataset = (columnTypes: GenericDataType[] | undefined) =>
+    ({
+      column_types: columnTypes,
+    }) as Parameters<typeof shouldShowTimeRangePicker>[0];
+
+  test('returns true when dataset is undefined (precautionary default)', () => {
+    expect(shouldShowTimeRangePicker(undefined)).toBe(true);
+  });
+
+  test('returns true when dataset has temporal columns', () => {
+    const dataset = createDataset([
+      GenericDataType.String,
+      GenericDataType.Temporal,
+    ]);
+    expect(shouldShowTimeRangePicker(dataset)).toBe(true);
+  });
+
+  test('returns false when dataset has no temporal columns', () => {
+    const dataset = createDataset([
+      GenericDataType.String,
+      GenericDataType.Numeric,
+    ]);
+    expect(shouldShowTimeRangePicker(dataset)).toBe(false);
   });
 });
