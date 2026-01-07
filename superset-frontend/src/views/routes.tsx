@@ -140,9 +140,7 @@ const RowLevelSecurityList = lazy(
 
 const AsyncTaskList = lazy(
   () =>
-    import(
-      /* webpackChunkName: "AsyncTaskList" */ 'src/pages/AsyncTaskList'
-    ),
+    import(/* webpackChunkName: "AsyncTaskList" */ 'src/pages/AsyncTaskList'),
 );
 
 const RolesList = lazy(
