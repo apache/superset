@@ -50,6 +50,8 @@ import {
   clearAllChartCustomizationsFromMetadata,
 } from 'src/dashboard/actions/chartCustomizationActions';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
+import { getRelatedChartsForChartCustomization } from 'src/dashboard/util/getRelatedCharts';
+import { Slice } from 'src/types/Chart';
 
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
@@ -161,6 +163,9 @@ const FilterBar: FC<FiltersBarProps> = ({
   const chartCustomizationItems = useSelector<RootState, any[]>(
     state => state.dashboardInfo.metadata?.chart_customization_config || [],
   );
+  const slices = useSelector<RootState, Record<string, Slice>>(
+    state => state.sliceEntities.slices || {},
+  );
   const dispatch = useDispatch();
   const [updateKey, setUpdateKey] = useState(0);
   const tabId = useTabId();
@@ -175,9 +180,6 @@ const FilterBar: FC<FiltersBarProps> = ({
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
   const previousDashboardId = usePrevious(dashboardId);
-  const chartIds = useSelector<RootState, number[]>(
-    state => state.dashboardState.sliceIds || [],
-  );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -364,8 +366,18 @@ const FilterBar: FC<FiltersBarProps> = ({
 
         dispatch(setChartCustomization(mergedCustomizations));
 
-        if (chartIds.length > 0) {
-          chartIds.forEach(chartId => {
+        const affectedChartIds: number[] = [];
+        mergedCustomizations.forEach(customization => {
+          const relatedCharts = getRelatedChartsForChartCustomization(
+            customization,
+            slices,
+          );
+          affectedChartIds.push(...relatedCharts);
+        });
+
+        const uniqueAffectedChartIds = [...new Set(affectedChartIds)];
+        if (uniqueAffectedChartIds.length > 0) {
+          uniqueAffectedChartIds.forEach(chartId => {
             dispatch(triggerQuery(true, chartId));
           });
         }
@@ -391,7 +403,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     hasClearedChartCustomizations,
     chartCustomizationItems,
     dashboardId,
-    chartIds,
+    slices,
   ]);
 
   const handleClearAll = useCallback(() => {

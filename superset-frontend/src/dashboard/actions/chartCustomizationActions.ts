@@ -30,6 +30,7 @@ import {
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
 import { onSave } from './dashboardState';
+import { getRelatedChartsForChartCustomization } from 'src/dashboard/util/getRelatedCharts';
 
 const createUpdateDashboardApi = (id: number) =>
   makeApi<
@@ -204,10 +205,20 @@ export function saveChartCustomization(
         dispatch(onSave(lastModifiedTime));
       }
 
-      const { dashboardState } = getState();
-      const chartIds = dashboardState.sliceIds || [];
-      if (chartIds.length > 0) {
-        chartIds.forEach(chartId => {
+      const { sliceEntities } = getState();
+      const slices = sliceEntities.slices || {};
+      const affectedChartIds: number[] = [];
+      simpleItems.forEach(customization => {
+        const relatedCharts = getRelatedChartsForChartCustomization(
+          customization,
+          slices,
+        );
+        affectedChartIds.push(...relatedCharts);
+      });
+
+      const uniqueAffectedChartIds = [...new Set(affectedChartIds)];
+      if (uniqueAffectedChartIds.length > 0) {
+        uniqueAffectedChartIds.forEach(chartId => {
           dispatch(triggerQuery(true, chartId));
         });
       }
