@@ -35,7 +35,6 @@ import {
   cachedQuery,
   failedQueryWithErrors,
   queries,
-  runningQuery,
   stoppedQuery,
   initialState,
   user,
@@ -82,32 +81,6 @@ const stoppedQueryState = {
     ...initialState.sqlLab,
     queries: {
       [stoppedQuery.id]: stoppedQuery,
-    },
-  },
-};
-const runningQueryState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [runningQuery.id]: runningQuery,
-    },
-  },
-};
-const fetchingQueryState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [mockedProps.queryId]: {
-        dbId: 1,
-        cached: false,
-        ctas: false,
-        id: 'ryhHUZCGb',
-        progress: 100,
-        state: 'fetching',
-        startDttm: Date.now() - 500,
-      },
     },
   },
 };
