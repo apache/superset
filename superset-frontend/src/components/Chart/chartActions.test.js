@@ -540,16 +540,23 @@ describe('chart actions timeout', () => {
       },
     };
 
-    let fetchChartFormDataStub;
+    const chartApiEndpoint = `glob:*/api/v1/chart/${chartId}*`;
 
     beforeEach(() => {
-      fetchChartFormDataStub = sinon
-        .stub(exploreUtils, 'fetchChartFormData')
-        .resolves(mockFreshFormData);
+      fetchMock.reset();
+      fetchMock.get(
+        chartApiEndpoint,
+        {
+          result: {
+            params: JSON.stringify(mockFreshFormData),
+          },
+        },
+        { overwriteRoutes: true },
+      );
     });
 
     afterEach(() => {
-      fetchChartFormDataStub.restore();
+      fetchMock.reset();
     });
 
     test('should fetch fresh chart definition from database', async () => {
@@ -559,8 +566,10 @@ describe('chart actions timeout', () => {
 
       await actionThunk(mockDispatch, mockGetState);
 
-      expect(fetchChartFormDataStub.calledOnce).toBe(true);
-      expect(fetchChartFormDataStub.calledWith(chartId)).toBe(true);
+      expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
+      expect(fetchMock.calls(chartApiEndpoint)[0][0]).toContain(
+        `/api/v1/chart/${chartId}`,
+      );
     });
 
     test('should dispatch with fresh form_data after fetching', async () => {
@@ -570,15 +579,19 @@ describe('chart actions timeout', () => {
 
       await actionThunk(mockDispatch, mockGetState);
 
-      // Verify fetchChartFormData was called to get fresh data
-      expect(fetchChartFormDataStub.calledOnce).toBe(true);
+      // Verify API was called to get fresh data
+      expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
       // Verify dispatch was called with the thunk (meaning postChartFormData was executed)
       expect(mockDispatch.calledOnce).toBe(true);
       expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
     });
 
     test('should dispatch with cached form_data if fetch fails', async () => {
-      fetchChartFormDataStub.rejects(new Error('Network error'));
+      fetchMock.get(
+        chartApiEndpoint,
+        { status: 500, body: { error: 'Network error' } },
+        { overwriteRoutes: true },
+      );
 
       const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
       const mockDispatch = sinon.spy();
@@ -586,8 +599,8 @@ describe('chart actions timeout', () => {
 
       await actionThunk(mockDispatch, mockGetState);
 
-      // Verify fetchChartFormData was attempted
-      expect(fetchChartFormDataStub.calledOnce).toBe(true);
+      // Verify API call was attempted
+      expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
       // Verify dispatch was still called (fallback to cached data)
       expect(mockDispatch.calledOnce).toBe(true);
       expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
@@ -610,7 +623,7 @@ describe('chart actions timeout', () => {
 
       await actionThunk(mockDispatch, mockGetState);
 
-      expect(fetchChartFormDataStub.called).toBe(false);
+      expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(0);
       expect(mockDispatch.called).toBe(false);
     });
 
@@ -621,8 +634,8 @@ describe('chart actions timeout', () => {
 
       await actionThunk(mockDispatch, mockGetState);
 
-      // Verify fetchChartFormData was called
-      expect(fetchChartFormDataStub.calledOnce).toBe(true);
+      // Verify API was called
+      expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
       // Verify dispatch was called (refresh happened regardless of force value)
       expect(mockDispatch.calledOnce).toBe(true);
       expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');

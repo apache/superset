@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint no-param-reassign: ["error", { "props": false }] */
+import rison from 'rison';
 import {
   FeatureFlag,
   isDefined,
@@ -33,7 +34,6 @@ import {
   buildV1ChartDataPayload,
   getQuerySettings,
   getChartDataUri,
-  fetchChartFormData,
 } from 'src/explore/exploreUtils';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
@@ -596,7 +596,13 @@ export function refreshChart(chartKey, force, dashboardId) {
     // the most recent configuration (e.g., if the chart was modified in another tab)
     let formDataToUse = chart.latestQueryFormData;
     try {
-      formDataToUse = await fetchChartFormData(chart.id);
+      const queryParams = rison.encode({
+        columns: ['params'],
+      });
+      const response = await SupersetClient.get({
+        endpoint: `/api/v1/chart/${chart.id}?q=${queryParams}`,
+      });
+      formDataToUse = JSON.parse(response.json.result.params);
     } catch (error) {
       // If fetching fails, fall back to using the cached latestQueryFormData
       // eslint-disable-next-line no-console

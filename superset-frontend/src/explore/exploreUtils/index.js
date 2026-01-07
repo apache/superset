@@ -352,18 +352,3 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
 export function formatSelectOptions(options) {
   return options.map(opt => [opt, opt.toString()]);
 }
-
-/**
- * Fetches the latest chart configuration from the database
- * @param {number} chartId - The chart ID to fetch
- * @returns {Promise<Object>} - Promise resolving to the chart's form_data
- */
-export async function fetchChartFormData(chartId) {
-  const queryParams = rison.encode({
-    columns: ['params'],
-  });
-  const response = await SupersetClient.get({
-    endpoint: `/api/v1/chart/${chartId}?q=${queryParams}`,
-  });
-  return JSON.parse(response.json.result.params);
-}
