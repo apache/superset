@@ -599,10 +599,13 @@ export function refreshChart(chartKey, force, dashboardId) {
       const queryParams = rison.encode({
         columns: ['params'],
       });
-      const response = await SupersetClient.get({
+      const { json } = await SupersetClient.get({
         endpoint: `/api/v1/chart/${chart.id}?q=${queryParams}`,
       });
-      formDataToUse = JSON.parse(response.json.result.params);
+      const chartResult = Array.isArray(json.result) ? json.result[0] : json.result;
+      if (chartResult && chartResult.params) {
+        formDataToUse = JSON.parse(chartResult.params);
+      }
     } catch (error) {
       // If fetching fails, fall back to using the cached latestQueryFormData
       // eslint-disable-next-line no-console

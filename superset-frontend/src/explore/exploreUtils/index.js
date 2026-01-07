@@ -20,7 +20,6 @@
 import { useCallback, useEffect } from 'react';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
-import rison from 'rison';
 import {
   buildQueryContext,
   ensureIsArray,

@@ -503,11 +503,12 @@ describe('chart actions timeout', () => {
     expect(postSpy).toHaveBeenCalledWith(expectedPayload);
   });
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('refreshChart', () => {
+  // Test helpers for refreshChart tests
+  const createRefreshChartTestData = () => {
     const chartKey = 1;
     const chartId = 123;
     const dashboardId = 456;
+
     const mockLatestQueryFormData = {
       datasource: '1__table',
       viz_type: 'big_number_total',
@@ -542,103 +543,177 @@ describe('chart actions timeout', () => {
 
     const chartApiEndpoint = `glob:*/api/v1/chart/${chartId}*`;
 
-    beforeEach(() => {
-      fetchMock.reset();
-      fetchMock.get(
-        chartApiEndpoint,
-        {
-          result: {
-            params: JSON.stringify(mockFreshFormData),
-          },
+    return {
+      chartKey,
+      chartId,
+      dashboardId,
+      mockLatestQueryFormData,
+      mockFreshFormData,
+      mockStateWithChart,
+      chartApiEndpoint,
+    };
+  };
+
+  test('refreshChart: should fetch fresh chart definition from database', async () => {
+    const {
+      chartKey,
+      chartId,
+      dashboardId,
+      mockFreshFormData,
+      mockStateWithChart,
+      chartApiEndpoint,
+    } = createRefreshChartTestData();
+
+    fetchMock.resetHistory();
+    fetchMock.get(
+      chartApiEndpoint,
+      {
+        result: {
+          params: JSON.stringify(mockFreshFormData),
         },
-        { overwriteRoutes: true },
-      );
-    });
+      },
+      { overwriteRoutes: true },
+    );
 
-    afterEach(() => {
-      fetchMock.reset();
-    });
+    const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+    const mockDispatch = sinon.spy();
+    const mockGetState = () => mockStateWithChart;
 
-    test('should fetch fresh chart definition from database', async () => {
-      const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
-      const mockDispatch = sinon.spy();
-      const mockGetState = () => mockStateWithChart;
+    await actionThunk(mockDispatch, mockGetState);
 
-      await actionThunk(mockDispatch, mockGetState);
+    expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
+    expect(fetchMock.calls(chartApiEndpoint)[0][0]).toContain(
+      `/api/v1/chart/${chartId}`,
+    );
 
-      expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
-      expect(fetchMock.calls(chartApiEndpoint)[0][0]).toContain(
-        `/api/v1/chart/${chartId}`,
-      );
-    });
+    fetchMock.resetHistory();
+  });
 
-    test('should dispatch with fresh form_data after fetching', async () => {
-      const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
-      const mockDispatch = sinon.spy();
-      const mockGetState = () => mockStateWithChart;
+  test('refreshChart: should dispatch with fresh form_data after fetching', async () => {
+    const {
+      chartKey,
+      dashboardId,
+      mockFreshFormData,
+      mockStateWithChart,
+      chartApiEndpoint,
+    } = createRefreshChartTestData();
 
-      await actionThunk(mockDispatch, mockGetState);
-
-      // Verify API was called to get fresh data
-      expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
-      // Verify dispatch was called with the thunk (meaning postChartFormData was executed)
-      expect(mockDispatch.calledOnce).toBe(true);
-      expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
-    });
-
-    test('should dispatch with cached form_data if fetch fails', async () => {
-      fetchMock.get(
-        chartApiEndpoint,
-        { status: 500, body: { error: 'Network error' } },
-        { overwriteRoutes: true },
-      );
-
-      const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
-      const mockDispatch = sinon.spy();
-      const mockGetState = () => mockStateWithChart;
-
-      await actionThunk(mockDispatch, mockGetState);
-
-      // Verify API call was attempted
-      expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
-      // Verify dispatch was still called (fallback to cached data)
-      expect(mockDispatch.calledOnce).toBe(true);
-      expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
-    });
-
-    test('should not refresh if latestQueryFormData is empty', async () => {
-      const stateWithEmptyFormData = {
-        ...mockStateWithChart,
-        charts: {
-          [chartKey]: {
-            id: chartId,
-            latestQueryFormData: {},
-          },
+    fetchMock.resetHistory();
+    fetchMock.get(
+      chartApiEndpoint,
+      {
+        result: {
+          params: JSON.stringify(mockFreshFormData),
         },
-      };
+      },
+      { overwriteRoutes: true },
+    );
 
-      const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
-      const mockDispatch = sinon.spy();
-      const mockGetState = () => stateWithEmptyFormData;
+    const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+    const mockDispatch = sinon.spy();
+    const mockGetState = () => mockStateWithChart;
 
-      await actionThunk(mockDispatch, mockGetState);
+    await actionThunk(mockDispatch, mockGetState);
 
-      expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(0);
-      expect(mockDispatch.called).toBe(false);
-    });
+    // Verify API was called to get fresh data
+    expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
+    // Verify dispatch was called with the thunk (meaning postChartFormData was executed)
+    expect(mockDispatch.calledOnce).toBe(true);
+    expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
 
-    test('should dispatch when force parameter is false', async () => {
-      const actionThunk = actions.refreshChart(chartKey, false, dashboardId);
-      const mockDispatch = sinon.spy();
-      const mockGetState = () => mockStateWithChart;
+    fetchMock.resetHistory();
+  });
 
-      await actionThunk(mockDispatch, mockGetState);
+  test('refreshChart: should dispatch with cached form_data if fetch fails', async () => {
+    const { chartKey, dashboardId, mockStateWithChart, chartApiEndpoint } =
+      createRefreshChartTestData();
 
-      // Verify API was called
-      expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
-      // Verify dispatch was called (refresh happened regardless of force value)
-      expect(mockDispatch.calledOnce).toBe(true);
-      expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
-    });
+    fetchMock.resetHistory();
+    fetchMock.get(
+      chartApiEndpoint,
+      { status: 500, body: { error: 'Network error' } },
+      { overwriteRoutes: true },
+    );
+
+    const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+    const mockDispatch = sinon.spy();
+    const mockGetState = () => mockStateWithChart;
+
+    await actionThunk(mockDispatch, mockGetState);
+
+    // Verify API call was attempted
+    expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
+    // Verify dispatch was still called (fallback to cached data)
+    expect(mockDispatch.calledOnce).toBe(true);
+    expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
+
+    fetchMock.resetHistory();
+  });
+
+  test('refreshChart: should not refresh if latestQueryFormData is empty', async () => {
+    const {
+      chartKey,
+      chartId,
+      dashboardId,
+      chartApiEndpoint,
+      mockStateWithChart,
+    } = createRefreshChartTestData();
+    const stateWithEmptyFormData = {
+      ...mockStateWithChart,
+      charts: {
+        [chartKey]: {
+          id: chartId,
+          latestQueryFormData: {},
+        },
+      },
+    };
+
+    fetchMock.resetHistory();
+
+    const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+    const mockDispatch = sinon.spy();
+    const mockGetState = () => stateWithEmptyFormData;
+
+    await actionThunk(mockDispatch, mockGetState);
+
+    expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(0);
+    expect(mockDispatch.called).toBe(false);
+
+    fetchMock.resetHistory();
+  });
+
+  test('refreshChart: should dispatch when force parameter is false', async () => {
+    const {
+      chartKey,
+      dashboardId,
+      mockFreshFormData,
+      mockStateWithChart,
+      chartApiEndpoint,
+    } = createRefreshChartTestData();
+
+    fetchMock.resetHistory();
+    fetchMock.get(
+      chartApiEndpoint,
+      {
+        result: {
+          params: JSON.stringify(mockFreshFormData),
+        },
+      },
+      { overwriteRoutes: true },
+    );
+
+    const actionThunk = actions.refreshChart(chartKey, false, dashboardId);
+    const mockDispatch = sinon.spy();
+    const mockGetState = () => mockStateWithChart;
+
+    await actionThunk(mockDispatch, mockGetState);
+
+    // Verify API was called
+    expect(fetchMock.calls(chartApiEndpoint)).toHaveLength(1);
+    // Verify dispatch was called (refresh happened regardless of force value)
+    expect(mockDispatch.calledOnce).toBe(true);
+    expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
+
+    fetchMock.resetHistory();
   });
 });
