@@ -36,11 +36,13 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
 @tool(tags=["data"])
+@parse_request(GetChartDataRequest)
 async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
@@ -52,6 +54,9 @@ async def get_chart_data(  # noqa: C901
     - Numeric ID or UUID lookup
     - Multiple formats: json, csv, excel
     - Cache control: use_cache, force_refresh, cache_timeout
+    - Raw data mode: include_raw_data=true retrieves all columns from the
+      underlying dataset instead of the chart's aggregated view. Useful for
+      charts like big_number that normally return only a single aggregated value.
 
     Returns underlying data in requested format with cache status.
     """
@@ -138,19 +143,61 @@ async def get_chart_data(  # noqa: C901
 
             # Create a proper QueryContext using the factory with cache control
             factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={"id": chart.datasource_id, "type": chart.datasource_type},
-                queries=[
-                    {
+
+            # Build query based on whether raw data is requested
+            if request.include_raw_data:
+                await ctx.info(
+                    "Raw data mode enabled - retrieving underlying dataset columns"
+                )
+                # Get the datasource to access its columns using DAO pattern
+                from superset.daos.dataset import DatasetDAO
+
+                datasource = (
+                    DatasetDAO.find_by_id(chart.datasource_id)
+                    if chart.datasource_type == "table"
+                    else None
+                )
+
+                if datasource:
+                    # Get all column names from the datasource
+                    raw_columns_list = [col.column_name for col in datasource.columns]
+                    await ctx.debug(
+                        "Found %s columns in datasource" % len(raw_columns_list)
+                    )
+                    query_spec = {
+                        "filters": form_data.get("filters", []),
+                        "columns": raw_columns_list,  # All columns, no aggregation
+                        "metrics": [],  # No metrics = no aggregation
+                        "row_limit": request.limit or 100,
+                        "order_desc": True,
+                        "cache_timeout": request.cache_timeout,
+                    }
+                else:
+                    await ctx.warning(
+                        "Could not load datasource for raw data, "
+                        "falling back to chart query"
+                    )
+                    query_spec = {
                         "filters": form_data.get("filters", []),
                         "columns": form_data.get("groupby", []),
                         "metrics": form_data.get("metrics", []),
                         "row_limit": request.limit or 100,
                         "order_desc": True,
-                        # Apply cache control from request
                         "cache_timeout": request.cache_timeout,
                     }
-                ],
+            else:
+                query_spec = {
+                    "filters": form_data.get("filters", []),
+                    "columns": form_data.get("groupby", []),
+                    "metrics": form_data.get("metrics", []),
+                    "row_limit": request.limit or 100,
+                    "order_desc": True,
+                    "cache_timeout": request.cache_timeout,
+                }
+
+            query_context = factory.create(
+                datasource={"id": chart.datasource_id, "type": chart.datasource_type},
+                queries=[query_spec],
                 form_data=form_data,
                 # Use cache unless force_refresh is True
                 force=request.force_refresh,

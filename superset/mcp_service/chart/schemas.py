@@ -975,6 +975,14 @@ class GetChartDataRequest(QueryCacheControl):
     format: Literal["json", "csv", "excel"] = Field(
         default="json", description="Data export format"
     )
+    include_raw_data: bool = Field(
+        default=False,
+        description=(
+            "If true, retrieves raw data from the underlying dataset instead of "
+            "the chart's aggregated view. Useful for charts like big_number that "
+            "normally return only a single aggregated value."
+        ),
+    )
 
 
 class DataColumn(BaseModel):
