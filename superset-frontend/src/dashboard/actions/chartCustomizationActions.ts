@@ -30,7 +30,7 @@ import {
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
 import { onSave } from './dashboardState';
-import { getRelatedChartsForChartCustomization } from 'src/dashboard/util/getRelatedCharts';
+import { getAffectedChartIdsFromCustomizations } from 'src/dashboard/util/getRelatedCharts';
 
 const createUpdateDashboardApi = (id: number) =>
   makeApi<
@@ -207,16 +207,10 @@ export function saveChartCustomization(
 
       const sliceEntities = getState().sliceEntities || {};
       const slices = sliceEntities.slices || {};
-      const affectedChartIds: number[] = [];
-      simpleItems.forEach(customization => {
-        const relatedCharts = getRelatedChartsForChartCustomization(
-          customization,
-          slices,
-        );
-        affectedChartIds.push(...relatedCharts);
-      });
-
-      const uniqueAffectedChartIds = [...new Set(affectedChartIds)];
+      const uniqueAffectedChartIds = getAffectedChartIdsFromCustomizations(
+        simpleItems,
+        slices,
+      );
       if (uniqueAffectedChartIds.length > 0) {
         uniqueAffectedChartIds.forEach(chartId => {
           dispatch(triggerQuery(true, chartId));

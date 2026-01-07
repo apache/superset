@@ -50,7 +50,7 @@ import {
   clearAllChartCustomizationsFromMetadata,
 } from 'src/dashboard/actions/chartCustomizationActions';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
-import { getRelatedChartsForChartCustomization } from 'src/dashboard/util/getRelatedCharts';
+import { getAffectedChartIdsFromCustomizations } from 'src/dashboard/util/getRelatedCharts';
 import { Slice } from 'src/types/Chart';
 
 import { useImmer } from 'use-immer';
@@ -366,16 +366,10 @@ const FilterBar: FC<FiltersBarProps> = ({
 
         dispatch(setChartCustomization(mergedCustomizations));
 
-        const affectedChartIds: number[] = [];
-        mergedCustomizations.forEach(customization => {
-          const relatedCharts = getRelatedChartsForChartCustomization(
-            customization,
-            slices,
-          );
-          affectedChartIds.push(...relatedCharts);
-        });
-
-        const uniqueAffectedChartIds = [...new Set(affectedChartIds)];
+        const uniqueAffectedChartIds = getAffectedChartIdsFromCustomizations(
+          mergedCustomizations,
+          slices,
+        );
         if (uniqueAffectedChartIds.length > 0) {
           uniqueAffectedChartIds.forEach(chartId => {
             dispatch(triggerQuery(true, chartId));

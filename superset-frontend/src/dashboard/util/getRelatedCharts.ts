@@ -142,3 +142,28 @@ export function getRelatedChartsForChartCustomization(
     })
     .map(slice => slice.slice_id);
 }
+
+/**
+ * Get unique chart IDs affected by chart customizations.
+ * This function calculates which charts are affected by the given customizations
+ * and returns a deduplicated list of chart IDs.
+ *
+ * @param customizations - Array of chart customization items
+ * @param slices - Record of slice/chart entities keyed by chart ID
+ * @returns Array of unique chart IDs that are affected by the customizations
+ */
+export function getAffectedChartIdsFromCustomizations(
+  customizations: ChartCustomizationItem[],
+  slices: Record<string, Slice>,
+): number[] {
+  const affectedChartIds: number[] = [];
+  customizations.forEach(customization => {
+    const relatedCharts = getRelatedChartsForChartCustomization(
+      customization,
+      slices,
+    );
+    affectedChartIds.push(...relatedCharts);
+  });
+
+  return [...new Set(affectedChartIds)];
+}
