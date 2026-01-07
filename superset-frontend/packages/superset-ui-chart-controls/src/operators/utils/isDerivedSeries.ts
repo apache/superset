@@ -17,7 +17,8 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { ensureIsArray, JsonObject, QueryFormData } from '@superset-ui/core';
+import { ensureIsArray } from '@superset-ui/core';
+import type { JsonObject, QueryFormData } from '@superset-ui/core';
 import { hasTimeOffset } from './timeOffset';
 
 export const isDerivedSeries = (
