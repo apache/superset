@@ -49,8 +49,6 @@ async def get_chart_data(  # noqa: C901
     """Get chart data by ID or UUID.
 
     Returns the actual data behind a chart for LLM analysis without image rendering.
-    Uses the chart's saved query_context to retrieve data exactly as shown in the
-    visualization (same as /api/v1/chart/{id}/data endpoint).
 
     Supports:
     - Numeric ID or UUID lookup
@@ -126,7 +124,6 @@ async def get_chart_data(  # noqa: C901
 
         try:
             await ctx.report_progress(2, 4, "Preparing data query")
-            # Get chart data using the same approach as /api/v1/chart/{id}/data
             from superset.charts.schemas import ChartDataQueryContextSchema
             from superset.commands.chart.data.get_data_command import ChartDataCommand
 
