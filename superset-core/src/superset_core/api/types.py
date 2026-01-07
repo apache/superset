@@ -181,6 +181,33 @@ class TaskStatus(Enum):
     CANCELLED = "cancelled"
 
 
+# TaskOptions stub - host will provide concrete implementation
+# This is a placeholder that will be replaced during initialization
+try:
+    from dataclasses import dataclass
+
+    @dataclass(frozen=True)
+    class TaskOptions:
+        """
+        Execution metadata for async tasks.
+
+        Host implementations will replace this class during initialization
+        with a concrete implementation providing actual functionality.
+
+        Example:
+            from superset_core.api.types import TaskOptions
+
+            task = my_task.schedule(
+                arg1,
+                options=TaskOptions(idempotency_key="custom_key")
+            )
+        """
+
+        idempotency_key: str | None = None
+except ImportError:
+    TaskOptions = None  # type: ignore[misc, assignment]
+
+
 class TaskContext(ABC):
     """
     Abstract task context for interaction with the async task framework.
@@ -223,26 +250,31 @@ class TaskContext(ABC):
 
 
 def async_task(
-    task_type: str,
-    dedup_key_fn: Callable[..., str] | None = None,
-    timeout: int = 3600,
+    name: str | None = None,
 ) -> Callable[..., Any]:
     """
-    Decorator to register an async task executor.
+    Decorator to register an async task.
 
     Host implementations will replace this function during initialization
     with a concrete implementation providing actual functionality.
 
-    :param task_type: Unique identifier for the task type
-    :param dedup_key_fn: Function to generate deduplication key from args/kwargs
-    :param timeout: Task timeout in seconds
-    :returns: Decorated function
+    :param name: Optional unique task name (e.g., "superset.generate_thumbnail").
+                 If not provided, uses the function name as the task name.
+    :returns: Decorated function with .schedule() method
 
     Example:
-        @async_task("thumbnail_generation")
-        def generate_chart_thumbnail(ctx: TaskContext, chart_id: int):
-            ctx.update_payload({"chart_id": chart_id})
+        from superset_core.api.types import async_task, get_context
+
+        @async_task(name="generate_thumbnail")
+        def generate_chart_thumbnail(chart_id: int) -> None:
+            ctx = get_context()  # Access ambient context
+            task = ctx.task
+            task.set_payload({"chart_id": chart_id})
+            ctx.update_task(task)
             # ... task implementation
+
+        # Schedule async execution
+        task = generate_chart_thumbnail.schedule(chart_id=123)
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
@@ -278,6 +310,31 @@ def create_async_task(
     raise NotImplementedError("Function will be replaced during initialization")
 
 
+def get_context() -> TaskContext:
+    """
+    Get the current task context from ambient context.
+
+    Host implementations will replace this function during initialization
+    with a concrete implementation providing actual functionality.
+
+    This function provides ambient access to the task context without
+    requiring it to be passed as a parameter. It can only be called
+    from within an async task execution.
+
+    :returns: The current TaskContext
+    :raises RuntimeError: If called outside a task execution context
+
+    Example:
+        @async_task("thumbnail_generation")
+        def generate_chart_thumbnail(chart_id: int):
+            ctx = get_context()  # Access ambient context
+            task = ctx.task
+            task.set_payload({"chart_id": chart_id})
+            ctx.update_task(task)
+    """
+    raise NotImplementedError("Function will be replaced during initialization")
+
+
 __all__ = [
     # Query execution types
     "QueryStatus",
@@ -289,6 +346,8 @@ __all__ = [
     # Async task types
     "TaskStatus",
     "TaskContext",
+    "TaskOptions",
     "async_task",
     "create_async_task",
+    "get_context",
 ]
