@@ -36,7 +36,7 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["explore"])
+@tool(tags=["explore"], class_permission_name="SQLLab")
 @parse_request(OpenSqlLabRequest)
 def open_sql_lab_with_context(
     request: OpenSqlLabRequest, ctx: Context

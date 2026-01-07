@@ -80,10 +80,13 @@ def mcp_server():
 
 @pytest.fixture(autouse=True)
 def mock_auth():
-    """Mock authentication for all tests."""
+    """Mock authentication and RBAC permissions for all tests."""
     from unittest.mock import Mock, patch
 
-    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+    ):
         mock_user = Mock()
         mock_user.id = 1
         mock_user.username = "admin"

@@ -2019,7 +2019,7 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
 
-@tool(tags=["data"])
+@tool(tags=["data"], class_permission_name="Chart")
 @parse_request(GetChartPreviewRequest)
 async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context
