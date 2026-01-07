@@ -21,7 +21,7 @@
 import mockConsole from 'jest-mock-console';
 import { t } from '@apache-superset/core';
 import { configure, resetTranslation, tn } from '@superset-ui/core';
-import Translator from '../../src/translation/Translator';
+import Translator from '@apache-superset/core/ui/translation/Translator';
 
 import languagePackEn from './languagePacks/en';
 import languagePackZh from './languagePacks/zh';

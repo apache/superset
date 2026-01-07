@@ -26,7 +26,7 @@ import {
   addTranslation,
   addTranslations,
 } from '@superset-ui/core';
-import Translator from '../../src/translation/Translator';
+import Translator from '@apache-superset/core/ui/translation/Translator';
 import languagePackZh from './languagePacks/zh';
 import languagePackEn from './languagePacks/en';
 
