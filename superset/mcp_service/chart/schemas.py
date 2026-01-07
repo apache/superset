@@ -970,7 +970,11 @@ class GetChartDataRequest(QueryCacheControl):
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
     limit: int | None = Field(
-        default=100, description="Maximum number of data rows to return"
+        default=None,
+        description=(
+            "Maximum number of data rows to return. If not specified, uses the "
+            "chart's configured row limit."
+        ),
     )
     format: Literal["json", "csv", "excel"] = Field(
         default="json", description="Data export format"
