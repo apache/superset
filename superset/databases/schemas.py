@@ -889,7 +889,11 @@ class ImportV1DatabaseSchema(Schema):
     external_url = fields.String(allow_none=True)
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
     configuration_method = fields.Enum(
-        ConfigurationMethod, by_value=True, required=False, allow_none=True
+        ConfigurationMethod,
+        by_value=True,
+        required=False,
+        allow_none=True,
+        load_default=ConfigurationMethod.SQLALCHEMY_FORM,
     )
 
     @validates_schema
