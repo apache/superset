@@ -657,7 +657,15 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "the future",
             "example": 7,
         },
-        min=0,
+        validate=[
+            Range(
+                min=0,
+                min_inclusive=True,
+                error=_(
+                    "`periods` must be greater than or equal to 0"
+                    ),
+            ),
+        ],
         required=True,
     )
     confidence_interval = fields.Float(
