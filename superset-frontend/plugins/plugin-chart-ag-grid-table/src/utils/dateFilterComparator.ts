@@ -40,7 +40,7 @@ const dateFilterComparator = (
   }
 
   const cellDate = new Date(cellValue);
-  if (Number.isNaN(cellDate?.getTime())) {
+  if (Number.isNaN(cellDate.getTime())) {
     return -1;
   }
 
