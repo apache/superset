@@ -476,7 +476,6 @@ categories:
       logo: cirrus.svg
       contributors: ["@jeroenhabets", "@ddmm-white", "@paulrocost"]
 
-
     - name: Open edX
       url: https://openedx.org/
 
