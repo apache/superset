@@ -37,7 +37,7 @@ export type AdhocMetricPopoverTriggerProps = {
   onMetricEdit(newMetric: Metric, oldMetric: Metric): void;
   columns: { column_name: string; type: string }[];
   savedMetricsOptions: savedMetricType[];
-  savedMetric: savedMetricType;
+  savedMetric: savedMetricType | Record<string, never>;
   datasource: Datasource & ISaveableDatasource;
   children: ReactNode;
   isControlledComponent?: boolean;
@@ -201,8 +201,8 @@ class AdhocMetricPopoverTrigger extends PureComponent<
     const { visible, togglePopover, closePopover } = isControlledComponent
       ? {
           visible: this.props.visible,
-          togglePopover: this.props.togglePopover,
-          closePopover: this.props.closePopover,
+          togglePopover: this.props.togglePopover ?? this.togglePopover,
+          closePopover: this.props.closePopover ?? this.closePopover,
         }
       : {
           visible: this.state.popoverVisible,
@@ -216,12 +216,20 @@ class AdhocMetricPopoverTrigger extends PureComponent<
           adhocMetric={adhocMetric}
           columns={columns}
           savedMetricsOptions={savedMetricsOptions}
-          savedMetric={savedMetric}
-          datasource={datasource}
+          savedMetric={savedMetric as savedMetricType}
+          datasource={
+            datasource as unknown as {
+              type?: string;
+              id?: number | string;
+              extra?: string;
+            }
+          }
           handleDatasetModal={this.handleDatasetModal}
           onResize={this.onPopoverResize}
           onClose={closePopover}
-          onChange={this.onChange}
+          onChange={
+            this.onChange as (newMetric: unknown, oldMetric?: unknown) => void
+          }
           getCurrentTab={this.getCurrentTab}
           getCurrentLabel={this.getCurrentLabel}
           isNewMetric={this.props.isNew}

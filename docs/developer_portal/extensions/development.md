@@ -130,10 +130,6 @@ export const getDatabases: () => Database[];
 
 export const getTabs: () => Tab[];
 
-export const onDidChangeEditorContent: Event<string>;
-
-export const onDidClosePanel: Event<Panel>;
-
 export const onDidChangeActivePanel: Event<Panel>;
 
 export const onDidChangeTabTitle: Event<string>;
