@@ -77,11 +77,6 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         """
         self._chunk_size = chunk_size
         self._current_app = app._get_current_object()
-        # Capture flask.g attributes to preserve request-scoped data
-        # when the streaming generator runs in a new app context.
-        self._captured_g: dict[str, Any] = {}
-        if has_app_context():
-            self._captured_g = g._get_current_object().__dict__.copy()
 
     @abstractmethod
     def _get_sql_and_database(self) -> tuple[str, Any]:
@@ -216,7 +211,11 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         # to avoid DetachedInstanceError
         sql, database = self._get_sql_and_database()
         limit = self._get_row_limit()
-        captured_g = self._captured_g
+        # Capture flask.g attributes to preserve request-scoped data
+        # when the streaming generator runs in a new app context.
+        captured_g = (
+            g._get_current_object().__dict__.copy() if has_app_context() else {}
+        )
 
         def csv_generator() -> Generator[str, None, None]:
             """Generator that yields CSV data chunks."""
