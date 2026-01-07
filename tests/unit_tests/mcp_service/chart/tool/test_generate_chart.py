@@ -201,6 +201,17 @@ class TestGenerateChart:
         )
         assert request2.save_chart is True
 
+        # Both False should raise validation error (no-op request)
+        with pytest.raises(ValueError, match="At least one of"):
+            GenerateChartRequest(
+                dataset_id="1",
+                config=TableChartConfig(
+                    chart_type="table", columns=[ColumnRef(name="col1")]
+                ),
+                save_chart=False,
+                generate_preview=False,
+            )
+
     @pytest.mark.asyncio
     async def test_preview_formats(self):
         """Test preview format options."""

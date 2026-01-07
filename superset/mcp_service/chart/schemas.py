@@ -862,6 +862,16 @@ class GenerateChartRequest(QueryCacheControl):
             )
         return self
 
+    @model_validator(mode="after")
+    def validate_save_or_preview(self) -> "GenerateChartRequest":
+        """Ensure at least one of save_chart or generate_preview is enabled."""
+        if not self.save_chart and not self.generate_preview:
+            raise ValueError(
+                "At least one of 'save_chart' or 'generate_preview' must be True. "
+                "A request with both set to False would be a no-op."
+            )
+        return self
+
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
