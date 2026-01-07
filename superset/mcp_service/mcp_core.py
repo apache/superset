@@ -593,6 +593,6 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
                 f"{len(self.sortable_columns)} sortable columns"
             )
             return response
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError) as e:
             self._log_error(e, f"getting schema for {self.model_type}")
             raise

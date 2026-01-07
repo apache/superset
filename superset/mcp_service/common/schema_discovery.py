@@ -23,7 +23,7 @@ filters, and sorting options for each model type (chart, dataset, dashboard).
 Column metadata is extracted dynamically from SQLAlchemy models.
 """
 
-from typing import Any, Dict, List, Literal, Type
+from typing import Any, Literal, Type
 
 import sqlalchemy as sa
 from pydantic import BaseModel, Field
@@ -55,16 +55,16 @@ class ModelSchemaInfo(BaseModel):
     model_type: Literal["chart", "dataset", "dashboard"] = Field(
         ..., description="The model type this schema describes"
     )
-    select_columns: List[ColumnMetadata] = Field(
+    select_columns: list[ColumnMetadata] = Field(
         ..., description="All columns available for selection via select_columns"
     )
-    filter_columns: Dict[str, List[str]] = Field(
+    filter_columns: dict[str, list[str]] = Field(
         ..., description="Filterable columns mapped to their supported operators"
     )
-    sortable_columns: List[str] = Field(
+    sortable_columns: list[str] = Field(
         ..., description="Columns that can be used with order_column"
     )
-    default_select: List[str] = Field(
+    default_select: list[str] = Field(
         ..., description="Columns returned when select_columns is not specified"
     )
     default_sort: str = Field(
@@ -73,7 +73,7 @@ class ModelSchemaInfo(BaseModel):
     default_sort_direction: Literal["asc", "desc"] = Field(
         "desc", description="Default sort direction"
     )
-    search_columns: List[str] = Field(
+    search_columns: list[str] = Field(
         default_factory=list,
         description="Columns searched when using the search parameter",
     )
@@ -121,9 +121,9 @@ def _get_sqlalchemy_type_name(col_type: Any) -> str:
 
 def get_columns_from_model(
     model_cls: Type[Any],
-    default_columns: List[str],
-    extra_columns: Dict[str, ColumnMetadata] | None = None,
-) -> List[ColumnMetadata]:
+    default_columns: list[str],
+    extra_columns: dict[str, ColumnMetadata] | None = None,
+) -> list[ColumnMetadata]:
     """
     Dynamically extract column metadata from a SQLAlchemy model.
 
@@ -135,7 +135,7 @@ def get_columns_from_model(
     Returns:
         List of ColumnMetadata objects for all columns
     """
-    columns: List[ColumnMetadata] = []
+    columns: list[ColumnMetadata] = []
     mapper = inspect(model_cls)
 
     for col in mapper.columns:
@@ -183,7 +183,7 @@ CHART_SORTABLE_COLUMNS = [
     "created_on",
 ]
 CHART_SEARCH_COLUMNS = ["slice_name", "description"]
-CHART_EXTRA_COLUMNS: Dict[str, ColumnMetadata] = {
+CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "datasource_name": ColumnMetadata(
         name="datasource_name",
         description="Data source name",
@@ -259,7 +259,7 @@ DATASET_SORTABLE_COLUMNS = [
     "created_on",
 ]
 DATASET_SEARCH_COLUMNS = ["table_name", "description"]
-DATASET_EXTRA_COLUMNS: Dict[str, ColumnMetadata] = {
+DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "database_name": ColumnMetadata(
         name="database_name",
         description="Database connection name",
@@ -333,7 +333,7 @@ DASHBOARD_SORTABLE_COLUMNS = [
     "created_on",
 ]
 DASHBOARD_SEARCH_COLUMNS = ["dashboard_title", "slug"]
-DASHBOARD_EXTRA_COLUMNS: Dict[str, ColumnMetadata] = {
+DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "url": ColumnMetadata(
         name="url", description="Dashboard URL", type="str", is_default=False
     ),
@@ -385,14 +385,14 @@ DASHBOARD_EXTRA_COLUMNS: Dict[str, ColumnMetadata] = {
 }
 
 
-def get_chart_columns() -> List[ColumnMetadata]:
+def get_chart_columns() -> list[ColumnMetadata]:
     """Get column metadata for Chart model dynamically."""
     from superset.models.slice import Slice
 
     return get_columns_from_model(Slice, CHART_DEFAULT_COLUMNS, CHART_EXTRA_COLUMNS)
 
 
-def get_dataset_columns() -> List[ColumnMetadata]:
+def get_dataset_columns() -> list[ColumnMetadata]:
     """Get column metadata for Dataset model dynamically."""
     from superset.connectors.sqla.models import SqlaTable
 
@@ -401,7 +401,7 @@ def get_dataset_columns() -> List[ColumnMetadata]:
     )
 
 
-def get_dashboard_columns() -> List[ColumnMetadata]:
+def get_dashboard_columns() -> list[ColumnMetadata]:
     """Get column metadata for Dashboard model dynamically."""
     from superset.models.dashboard import Dashboard
 
@@ -410,13 +410,13 @@ def get_dashboard_columns() -> List[ColumnMetadata]:
     )
 
 
-def get_all_column_names(columns: List[ColumnMetadata]) -> List[str]:
+def get_all_column_names(columns: list[ColumnMetadata]) -> list[str]:
     """Extract all column names from column metadata list."""
     return [col.name for col in columns]
 
 
 # For backwards compatibility with existing code that imports these
 # These will be populated lazily when needed
-CHART_ALL_COLUMNS: List[str] = []
-DATASET_ALL_COLUMNS: List[str] = []
-DASHBOARD_ALL_COLUMNS: List[str] = []
+CHART_ALL_COLUMNS: list[str] = []
+DATASET_ALL_COLUMNS: list[str] = []
+DASHBOARD_ALL_COLUMNS: list[str] = []
