@@ -92,7 +92,6 @@ export interface SqlExecuteQueryResult {
   limitingFactor?: string;
   tempTable?: string | null;
   progress?: number;
-  progressText?: string | null;
   state?: string;
   [key: string]: unknown;
 }
