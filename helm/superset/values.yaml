@@ -612,7 +612,7 @@ supersetCeleryFlower:
 
 supersetWebsockets:
   # -- This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode
-  # see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
+  # see https://superset.apache.org/docs/contributing/misc#async-chart-queries
   enabled: false
   replicaCount: 1
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWebsockets pods

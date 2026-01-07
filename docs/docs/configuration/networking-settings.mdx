@@ -60,7 +60,7 @@ There are two approaches to making dashboards publicly accessible:
 
 **Option 2: Dashboard-level access (selective control)**
 1. Set `PUBLIC_ROLE_LIKE = "Public"` in `superset_config.py`
-2. Add the `'DASHBOARD_RBAC': True` [Feature Flag](https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md)
+2. Add the `'DASHBOARD_RBAC': True` [Feature Flag](/docs/configuration/feature-flags)
 3. Edit each dashboard's properties and add the "Public" role
 4. Only dashboards with the Public role explicitly assigned are visible to anonymous users
 

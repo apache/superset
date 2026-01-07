@@ -1,0 +1,379 @@
+{
+  "generated": true,
+  "source": "superset/config.py",
+  "flags": {
+    "development": [
+      {
+        "name": "AG_GRID_TABLE_ENABLED",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enables Table V2 (AG Grid) viz plugin"
+      },
+      {
+        "name": "ALERT_REPORT_TABS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enables experimental tabs UI for Alerts and Reports"
+      },
+      {
+        "name": "CHART_PLUGINS_EXPERIMENTAL",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enables experimental chart plugins"
+      },
+      {
+        "name": "CSV_UPLOAD_PYARROW_ENGINE",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Experimental PyArrow engine for CSV parsing (may have issues with dates/nulls)"
+      },
+      {
+        "name": "DATASET_FOLDERS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Allow metrics and columns to be grouped into folders in the chart builder"
+      },
+      {
+        "name": "DATE_RANGE_TIMESHIFTS_ENABLED",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable support for date range timeshifts (e.g., \"2015-01-03 : 2015-01-04\") in addition to relative timeshifts (e.g., \"1 day ago\")"
+      },
+      {
+        "name": "ENABLE_ADVANCED_DATA_TYPES",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enables advanced data type support"
+      },
+      {
+        "name": "ENABLE_EXTENSIONS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable Superset extensions for custom functionality without modifying core"
+      },
+      {
+        "name": "MATRIXIFY",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable Matrixify feature for matrix-style chart layouts"
+      },
+      {
+        "name": "OPTIMIZE_SQL",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Try to optimize SQL queries \u2014 for now only predicate pushdown is supported"
+      },
+      {
+        "name": "PRESTO_EXPAND_DATA",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Expand nested types in Presto into extra columns/arrays. Experimental, doesn't work with all nested types."
+      },
+      {
+        "name": "TABLE_V2_TIME_COMPARISON_ENABLED",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable Table V2 time comparison feature"
+      },
+      {
+        "name": "TAGGING_SYSTEM",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enables the tagging system for organizing assets"
+      }
+    ],
+    "testing": [
+      {
+        "name": "ALERT_REPORTS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enables Alerts and Reports functionality",
+        "docs": "https://superset.apache.org/docs/configuration/alerts-reports"
+      },
+      {
+        "name": "ALERT_REPORTS_FILTER",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enables filter functionality in Alerts and Reports"
+      },
+      {
+        "name": "ALERT_REPORT_SLACK_V2",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enables Slack V2 integration for Alerts and Reports"
+      },
+      {
+        "name": "ALERT_REPORT_WEBHOOK",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enables webhook integration for Alerts and Reports"
+      },
+      {
+        "name": "ALLOW_FULL_CSV_EXPORT",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Allow users to export full CSV of table viz type. Warning: Could cause server memory/compute issues with large datasets."
+      },
+      {
+        "name": "CACHE_IMPERSONATION",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enable caching per impersonation key in datasources with user impersonation"
+      },
+      {
+        "name": "DATE_FORMAT_IN_EMAIL_SUBJECT",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Allow users to optionally specify date formats in email subjects",
+        "docs": "https://superset.apache.org/docs/configuration/alerts-reports"
+      },
+      {
+        "name": "DYNAMIC_PLUGINS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enable dynamic plugin loading"
+      },
+      {
+        "name": "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Generate screenshots (PDF/JPG) of dashboards using web driver. Depends on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS."
+      },
+      {
+        "name": "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enables endpoints to cache and retrieve dashboard screenshots via webdriver. Requires Celery and THUMBNAIL_CACHE_CONFIG."
+      },
+      {
+        "name": "ENABLE_SUPERSET_META_DB",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Allows users to add a superset:// DB that can query across databases. Experimental with potential security/performance risks. See SUPERSET_META_DB_LIMIT.",
+        "docs": "https://superset.apache.org/docs/configuration/databases/#querying-across-databases"
+      },
+      {
+        "name": "ESTIMATE_QUERY_COST",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enable query cost estimation. Supported in Presto, Postgres, and BigQuery. Requires `cost_estimate_enabled: true` in database `extra` attribute."
+      },
+      {
+        "name": "GLOBAL_ASYNC_QUERIES",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enable async queries for dashboards and Explore via WebSocket. Requires Redis 5.0+ and Celery workers.",
+        "docs": "https://superset.apache.org/docs/contributing/misc#async-chart-queries"
+      },
+      {
+        "name": "IMPERSONATE_WITH_EMAIL_PREFIX",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "When impersonating a user, use the email prefix instead of username"
+      },
+      {
+        "name": "PLAYWRIGHT_REPORTS_AND_THUMBNAILS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Replace Selenium with Playwright for reports and thumbnails. Supports deck.gl visualizations. Requires playwright pip package."
+      },
+      {
+        "name": "RLS_IN_SQLLAB",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Apply RLS rules to SQL Lab queries. Requires query parsing/manipulation. May break queries or allow RLS bypass. Use with care!"
+      },
+      {
+        "name": "SSH_TUNNELING",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Allow users to enable SSH tunneling when creating a DB connection. DB engine must support SSH Tunnels.",
+        "docs": "https://superset.apache.org/docs/configuration/setup-ssh-tunneling"
+      },
+      {
+        "name": "USE_ANALOGOUS_COLORS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Use analogous colors in charts"
+      }
+    ],
+    "stable": [
+      {
+        "name": "ALERTS_ATTACH_REPORTS",
+        "default": true,
+        "lifecycle": "stable",
+        "description": "When enabled, alerts send email/slack with screenshot AND link. When disabled, alerts send only link; reports still send screenshot.",
+        "category": "runtime_config"
+      },
+      {
+        "name": "ALLOW_ADHOC_SUBQUERY",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Allow ad-hoc subqueries in SQL Lab",
+        "category": "runtime_config"
+      },
+      {
+        "name": "CACHE_QUERY_BY_USER",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Enable caching per user key for Superset cache",
+        "category": "runtime_config"
+      },
+      {
+        "name": "CSS_TEMPLATES",
+        "default": true,
+        "lifecycle": "stable",
+        "description": "Enables CSS Templates in Settings menu and dashboard forms",
+        "category": "runtime_config"
+      },
+      {
+        "name": "DASHBOARD_RBAC",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Role-based access control for dashboards",
+        "docs": "https://superset.apache.org/docs/using-superset/creating-your-first-dashboard",
+        "category": "runtime_config"
+      },
+      {
+        "name": "DASHBOARD_VIRTUALIZATION",
+        "default": true,
+        "lifecycle": "stable",
+        "description": "Enables dashboard virtualization for improved performance",
+        "category": "path_to_deprecation"
+      },
+      {
+        "name": "DATAPANEL_CLOSED_BY_DEFAULT",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Data panel closed by default in chart builder",
+        "category": "runtime_config"
+      },
+      {
+        "name": "DRILL_BY",
+        "default": true,
+        "lifecycle": "stable",
+        "description": "Enable drill-by functionality in charts",
+        "category": "runtime_config"
+      },
+      {
+        "name": "DRUID_JOINS",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Enable Druid JOINs (requires Druid version with JOIN support)",
+        "category": "runtime_config"
+      },
+      {
+        "name": "EMBEDDABLE_CHARTS",
+        "default": true,
+        "lifecycle": "stable",
+        "description": "Enable sharing charts with embedding",
+        "category": "runtime_config"
+      },
+      {
+        "name": "EMBEDDED_SUPERSET",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Enable embedded Superset functionality",
+        "category": "runtime_config"
+      },
+      {
+        "name": "ENABLE_FACTORY_RESET_COMMAND",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Enable factory reset CLI command",
+        "category": "internal"
+      },
+      {
+        "name": "ENABLE_TEMPLATE_PROCESSING",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Enable Jinja templating in SQL queries",
+        "category": "runtime_config"
+      },
+      {
+        "name": "ESCAPE_MARKDOWN_HTML",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Escape HTML in Markdown components (rather than rendering it)",
+        "category": "runtime_config"
+      },
+      {
+        "name": "FILTERBAR_CLOSED_BY_DEFAULT",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Filter bar closed by default when opening dashboard",
+        "category": "runtime_config"
+      },
+      {
+        "name": "FORCE_GARBAGE_COLLECTION_AFTER_EVERY_REQUEST",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Force garbage collection after every request",
+        "category": "runtime_config"
+      },
+      {
+        "name": "LISTVIEWS_DEFAULT_CARD_VIEW",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Use card view as default in list views",
+        "category": "runtime_config"
+      },
+      {
+        "name": "MENU_HIDE_USER_INFO",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Hide user info in the navigation menu",
+        "category": "runtime_config"
+      },
+      {
+        "name": "SLACK_ENABLE_AVATARS",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Use Slack avatars for users. Requires adding slack-edge.com to TALISMAN_CONFIG.",
+        "category": "runtime_config"
+      },
+      {
+        "name": "SQLLAB_BACKEND_PERSISTENCE",
+        "default": true,
+        "lifecycle": "stable",
+        "description": "Enable SQL Lab backend persistence for query state",
+        "category": "runtime_config"
+      },
+      {
+        "name": "SQLLAB_FORCE_RUN_ASYNC",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Force SQL Lab to run async via Celery regardless of database settings",
+        "category": "runtime_config"
+      },
+      {
+        "name": "THUMBNAILS",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Exposes API endpoint to compute thumbnails",
+        "docs": "https://superset.apache.org/docs/configuration/cache",
+        "category": "runtime_config"
+      }
+    ],
+    "deprecated": [
+      {
+        "name": "AVOID_COLORS_COLLISION",
+        "default": true,
+        "lifecycle": "deprecated",
+        "description": "Avoid color collisions in charts by using distinct colors"
+      },
+      {
+        "name": "DRILL_TO_DETAIL",
+        "default": true,
+        "lifecycle": "deprecated",
+        "description": "Enable drill-to-detail functionality in charts"
+      },
+      {
+        "name": "ENABLE_JAVASCRIPT_CONTROLS",
+        "default": false,
+        "lifecycle": "deprecated",
+        "description": "Allow JavaScript in chart controls. WARNING: XSS security vulnerability!"
+      }
+    ]
+  }
+}

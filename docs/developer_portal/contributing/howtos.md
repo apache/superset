@@ -342,25 +342,78 @@ ruff check --fix .
 
 Pre-commit hooks run automatically on `git commit` if installed.
 
-### TypeScript
+### TypeScript / JavaScript
 
-We use ESLint and Prettier for TypeScript:
+We use a hybrid linting approach combining OXC (Oxidation Compiler) for standard rules and a custom AST-based checker for Superset-specific patterns.
+
+#### Quick Commands
 
 ```bash
 cd superset-frontend
 
-# Run eslint checks
+# Run both OXC and custom rules
+npm run lint:full
+
+# Run OXC linter only (faster for most checks)
 npm run lint
+
+# Fix auto-fixable issues with OXC
+npm run lint-fix
+
+# Run custom rules checker only
+npm run check:custom-rules
 
 # Run tsc (typescript) checks
 npm run type
 
-# Fix lint issues
-npm run lint-fix
-
 # Format with Prettier
 npm run prettier
 ```
+
+#### Architecture
+
+The linting system consists of two components:
+
+1. **OXC Linter** (`oxlint`) - A Rust-based linter that's 50-100x faster than ESLint
+   - Handles all standard JavaScript/TypeScript rules
+   - Configured via `oxlint.json`
+   - Runs via `npm run lint` or `npm run lint-fix`
+
+2. **Custom Rules Checker** - A Node.js AST-based checker for Superset-specific patterns
+   - Enforces no literal colors (use theme colors)
+   - Prevents FontAwesome usage (use @superset-ui/core Icons)
+   - Validates i18n template usage (no template variables)
+   - Runs via `npm run check:custom-rules`
+
+#### Why This Approach?
+
+- **50-100x faster linting** compared to ESLint for standard rules via OXC
+- **Apache-compatible** - No custom binaries, ASF-friendly
+- **Maintainable** - Custom rules in JavaScript, not Rust
+- **Flexible** - Can evolve as OXC adds plugin support
+
+#### Troubleshooting
+
+**"Plugin 'basic-custom-plugin' not found" Error**
+
+Ensure you're using the explicit config:
+```bash
+npx oxlint --config oxlint.json
+```
+
+**Custom Rules Not Running**
+
+Verify the AST parsing dependencies are installed:
+```bash
+npm ls @babel/parser @babel/traverse glob
+```
+
+#### Adding New Custom Rules
+
+1. Edit `scripts/check-custom-rules.js`
+2. Add a new check function following the AST visitor pattern
+3. Call the function in `processFile()`
+4. Test with `npm run check:custom-rules`
 
 ## GitHub Ephemeral Environments
 
