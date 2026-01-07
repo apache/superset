@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
+from flask import current_app
 from superset_core.mcp import tool
 
 if TYPE_CHECKING:
@@ -155,10 +156,11 @@ async def get_chart_data(  # noqa: C901
                 from superset.common.query_context_factory import QueryContextFactory
 
                 factory = QueryContextFactory()
-                # Use request.limit if specified, otherwise use chart's configured
-                # row_limit (respects global ROW_LIMIT config)
-                chart_row_limit = form_data.get("row_limit", 1000)
-                row_limit = request.limit or chart_row_limit
+                row_limit = (
+                    request.limit
+                    or form_data.get("row_limit")
+                    or current_app.config["ROW_LIMIT"]
+                )
                 query_context = factory.create(
                     datasource={
                         "id": chart.datasource_id,
