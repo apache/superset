@@ -52,14 +52,14 @@ async def get_chart_data(  # noqa: C901
     """Get chart data by ID or UUID.
 
     Returns the actual data behind a chart for LLM analysis without image rendering.
+    Uses the chart's saved query_context to retrieve data exactly as shown in the
+    visualization (same as /api/v1/chart/{id}/data endpoint).
 
     Supports:
     - Numeric ID or UUID lookup
     - Multiple formats: json, csv, excel
     - Cache control: use_cache, force_refresh, cache_timeout
-    - Raw data mode: include_raw_data=true retrieves all columns from the
-      underlying dataset instead of the chart's aggregated view. Useful for
-      charts like big_number that normally return only a single aggregated value.
+    - Optional row limit override (capped at 10000 for safety)
 
     Returns underlying data in requested format with cache status.
     """
@@ -129,86 +129,69 @@ async def get_chart_data(  # noqa: C901
 
         try:
             await ctx.report_progress(2, 4, "Preparing data query")
-            # Get chart data using the existing API
+            # Get chart data using the same approach as /api/v1/chart/{id}/data
+            from superset.charts.schemas import ChartDataQueryContextSchema
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
 
-            # Parse the form_data to get query context
-            form_data = utils_json.loads(chart.params) if chart.params else {}
-            await ctx.debug(
-                "Chart form data parsed: has_filters=%s, has_groupby=%s, has_metrics=%s"
-                % (
-                    bool(form_data.get("filters")),
-                    bool(form_data.get("groupby")),
-                    bool(form_data.get("metrics")),
-                )
-            )
-
-            # Create a proper QueryContext using the factory with cache control
-            factory = QueryContextFactory()
-
-            # Build query based on whether raw data is requested
-            if request.include_raw_data:
-                await ctx.info(
-                    "Raw data mode enabled - retrieving underlying dataset columns"
-                )
-                # Get the datasource to access its columns using DAO pattern
-                from superset.daos.dataset import DatasetDAO
-
-                datasource = (
-                    DatasetDAO.find_by_id(chart.datasource_id)
-                    if chart.datasource_type == "table"
-                    else None
-                )
-
-                if datasource:
-                    # Get all column names from the datasource
-                    raw_columns_list = [col.column_name for col in datasource.columns]
+            # Use the chart's saved query_context - this is the key!
+            # The query_context contains all the information needed to reproduce
+            # the chart's data exactly as shown in the visualization
+            query_context_json = None
+            if chart.query_context:
+                try:
+                    query_context_json = utils_json.loads(chart.query_context)
                     await ctx.debug(
-                        "Found %s columns in datasource" % len(raw_columns_list)
+                        "Using chart's saved query_context for data retrieval"
                     )
-                    # Cap row limit to prevent excessive memory/DB load
-                    row_limit = min(request.limit or 100, MAX_ROW_LIMIT)
-                    query_spec = {
-                        "filters": form_data.get("filters", []),
-                        "columns": raw_columns_list,  # All columns, no aggregation
-                        "metrics": [],  # No metrics = no aggregation
-                        "row_limit": row_limit,
-                        "order_desc": True,
-                        "cache_timeout": request.cache_timeout,
-                    }
-                else:
+                except (TypeError, ValueError) as e:
                     await ctx.warning(
-                        "Could not load datasource for raw data, "
-                        "falling back to chart query"
+                        "Failed to parse chart query_context: %s" % str(e)
                     )
-                    row_limit = min(request.limit or 100, MAX_ROW_LIMIT)
-                    query_spec = {
-                        "filters": form_data.get("filters", []),
-                        "columns": form_data.get("groupby", []),
-                        "metrics": form_data.get("metrics", []),
-                        "row_limit": row_limit,
-                        "order_desc": True,
-                        "cache_timeout": request.cache_timeout,
-                    }
-            else:
-                row_limit = min(request.limit or 100, MAX_ROW_LIMIT)
-                query_spec = {
-                    "filters": form_data.get("filters", []),
-                    "columns": form_data.get("groupby", []),
-                    "metrics": form_data.get("metrics", []),
-                    "row_limit": row_limit,
-                    "order_desc": True,
-                    "cache_timeout": request.cache_timeout,
-                }
 
-            query_context = factory.create(
-                datasource={"id": chart.datasource_id, "type": chart.datasource_type},
-                queries=[query_spec],
-                form_data=form_data,
-                # Use cache unless force_refresh is True
-                force=request.force_refresh,
-            )
+            if query_context_json is None:
+                # Fallback: Chart has no saved query_context
+                # This can happen with older charts that haven't been re-saved
+                await ctx.warning(
+                    "Chart has no saved query_context. "
+                    "Data may not match the chart visualization exactly. "
+                    "Consider re-saving the chart to enable full data retrieval."
+                )
+                # Try to construct from form_data as a fallback
+                form_data = utils_json.loads(chart.params) if chart.params else {}
+                from superset.common.query_context_factory import QueryContextFactory
+
+                factory = QueryContextFactory()
+                row_limit = min(request.limit or 100, MAX_ROW_LIMIT)
+                query_context = factory.create(
+                    datasource={
+                        "id": chart.datasource_id,
+                        "type": chart.datasource_type,
+                    },
+                    queries=[
+                        {
+                            "filters": form_data.get("filters", []),
+                            "columns": form_data.get("groupby", []),
+                            "metrics": form_data.get("metrics", []),
+                            "row_limit": row_limit,
+                            "order_desc": True,
+                        }
+                    ],
+                    form_data=form_data,
+                    force=request.force_refresh,
+                )
+            else:
+                # Apply request overrides to the saved query_context
+                query_context_json["force"] = request.force_refresh
+
+                # Apply row limit if specified (cap at MAX_ROW_LIMIT)
+                if request.limit:
+                    row_limit = min(request.limit, MAX_ROW_LIMIT)
+                    for query in query_context_json.get("queries", []):
+                        query["row_limit"] = row_limit
+
+                # Create QueryContext from the saved context using the schema
+                # This is exactly how the API does it
+                query_context = ChartDataQueryContextSchema().load(query_context_json)
 
             await ctx.report_progress(3, 4, "Executing data query")
             await ctx.debug(

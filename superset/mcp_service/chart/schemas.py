@@ -970,18 +970,14 @@ class GetChartDataRequest(QueryCacheControl):
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
     limit: int | None = Field(
-        default=100, description="Maximum number of data rows to return"
+        default=None,
+        description=(
+            "Maximum number of data rows to return. If not specified, uses the "
+            "chart's configured row limit. Capped at 10000 for safety."
+        ),
     )
     format: Literal["json", "csv", "excel"] = Field(
         default="json", description="Data export format"
-    )
-    include_raw_data: bool = Field(
-        default=False,
-        description=(
-            "If true, retrieves raw data from the underlying dataset instead of "
-            "the chart's aggregated view. Useful for charts like big_number that "
-            "normally return only a single aggregated value."
-        ),
     )
 
 

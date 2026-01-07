@@ -33,9 +33,8 @@ class TestGetChartDataRequestSchema:
         request = GetChartDataRequest(identifier=1)
 
         assert request.identifier == 1
-        assert request.limit == 100
+        assert request.limit is None  # Uses chart's configured limit by default
         assert request.format == "json"
-        assert request.include_raw_data is False
         assert request.use_cache is True
         assert request.force_refresh is False
         assert request.cache_timeout is None
@@ -46,18 +45,6 @@ class TestGetChartDataRequestSchema:
         request = GetChartDataRequest(identifier=uuid)
 
         assert request.identifier == uuid
-
-    def test_request_with_include_raw_data_true(self):
-        """Test creating request with include_raw_data enabled."""
-        request = GetChartDataRequest(identifier=1, include_raw_data=True)
-
-        assert request.include_raw_data is True
-
-    def test_request_with_include_raw_data_false(self):
-        """Test creating request with include_raw_data explicitly disabled."""
-        request = GetChartDataRequest(identifier=1, include_raw_data=False)
-
-        assert request.include_raw_data is False
 
     def test_request_with_custom_limit(self):
         """Test creating request with custom limit."""
@@ -103,7 +90,6 @@ class TestGetChartDataRequestSchema:
             identifier=123,
             limit=50,
             format="json",
-            include_raw_data=True,
         )
 
         data = request.model_dump()
@@ -112,7 +98,6 @@ class TestGetChartDataRequestSchema:
         assert data["identifier"] == 123
         assert data["limit"] == 50
         assert data["format"] == "json"
-        assert data["include_raw_data"] is True
 
 
 class TestMaxRowLimit:
@@ -130,11 +115,10 @@ class TestMaxRowLimit:
 
     def test_row_limit_capping_logic(self):
         """Test the row limit capping logic used in get_chart_data."""
-        # Test that the capping logic works correctly
+        # Test that the capping logic works correctly when limit is specified
         test_cases = [
-            (None, 100),  # None defaults to 100
             (50, 50),  # Within limit
-            (100, 100),  # Default
+            (100, 100),  # Reasonable limit
             (5000, 5000),  # Within limit
             (10000, 10000),  # At limit
             (15000, 10000),  # Exceeds limit, capped
@@ -142,7 +126,7 @@ class TestMaxRowLimit:
         ]
 
         for requested_limit, expected in test_cases:
-            result = min(requested_limit or 100, MAX_ROW_LIMIT)
+            result = min(requested_limit, MAX_ROW_LIMIT)
             assert result == expected, (
                 f"For requested_limit={requested_limit}, "
                 f"expected {expected} but got {result}"
