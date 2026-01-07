@@ -18,7 +18,7 @@
  */
 import { useMemo } from 'react';
 import { t } from '@apache-superset/core';
-import { tn } from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 import MetadataBar, {
   MetadataType,
 } from '@superset-ui/core/components/MetadataBar';

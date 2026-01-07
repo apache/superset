@@ -22,24 +22,20 @@ import {
   Button,
   AsyncSelect,
   EmptyState,
-  ColorPicker,
-} from '@superset-ui/core/components';
+  ColorPicker} from '@superset-ui/core/components';
 import {
-  t,
   SupersetClient,
   getCategoricalSchemeRegistry,
   getChartMetadataRegistry,
   validateNonEmpty,
   isValidExpression,
   getColumnLabel,
-  VizType,
-  type QueryFormColumn,
-} from '@superset-ui/core';
+  VizTypeype QueryFormColumn} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   styled,
   withTheme,
-  type SupersetTheme,
-} from '@apache-superset/core/ui';
+  type SupersetTheme} from '@apache-superset/core/ui';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
@@ -51,8 +47,7 @@ import {
   ANNOTATION_TYPES_METADATA,
   DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
-  ANNOTATION_SOURCE_TYPES_METADATA,
-} from './AnnotationTypes';
+  ANNOTATION_SOURCE_TYPES_METADATA} from './AnnotationTypes';
 
 interface SelectOption {
   value: string | number;
@@ -183,8 +178,7 @@ class AnnotationLayer extends PureComponent<
     intervalEndColumn: '',
     addAnnotationLayer: () => {},
     removeAnnotationLayer: () => {},
-    close: () => {},
-  };
+    close: () => {}};
 
   constructor(props: AnnotationLayerProps) {
     super(props);
@@ -206,8 +200,7 @@ class AnnotationLayer extends PureComponent<
       descriptionColumns,
       timeColumn,
       intervalEndColumn,
-      vizType,
-    } = props;
+      vizType} = props;
 
     // Only allow override whole time_range
     const processedOverrides: AnnotationOverrides = overrides
@@ -252,8 +245,7 @@ class AnnotationLayer extends PureComponent<
       hideLine: hideLine ?? false,
       // refData
       isNew: !name,
-      slice: null,
-    };
+      slice: null};
     this.submitAnnotation = this.submitAnnotation.bind(this);
     this.deleteAnnotation = this.deleteAnnotation.bind(this);
     this.applyAnnotation = this.applyAnnotation.bind(this);
@@ -311,8 +303,7 @@ class AnnotationLayer extends PureComponent<
       )
       .map(({ key, value: chartMetadata }) => ({
         value: key === VizType.Line ? 'line' : key,
-        label: chartMetadata?.name || key,
-      }));
+        label: chartMetadata?.name || key}));
     // Prepend native source if applicable
     const annotationMeta =
       ANNOTATION_TYPES_METADATA[
@@ -355,8 +346,7 @@ class AnnotationLayer extends PureComponent<
       sourceType,
       value,
       timeColumn,
-      intervalEndColumn,
-    } = this.state;
+      intervalEndColumn} = this.state;
     const errors = [
       validateNonEmpty(name),
       validateNonEmpty(annotationType),
@@ -382,8 +372,7 @@ class AnnotationLayer extends PureComponent<
       annotationType,
       sourceType: null,
       value: null,
-      slice: null,
-    });
+      slice: null});
   }
 
   handleAnnotationSourceType(sourceType: string): void {
@@ -393,8 +382,7 @@ class AnnotationLayer extends PureComponent<
       this.setState({
         sourceType,
         value: null,
-        slice: null,
-      });
+        slice: null});
     }
   }
 
@@ -405,14 +393,12 @@ class AnnotationLayer extends PureComponent<
       intervalEndColumn: '',
       timeColumn: '',
       titleColumn: '',
-      overrides: { time_range: null },
-    });
+      overrides: { time_range: null }});
   }
 
   handleTextValue(inputValue: string): void {
     this.setState({
-      value: inputValue,
-    });
+      value: inputValue});
   }
 
   fetchNativeAnnotations = async (
@@ -425,29 +411,24 @@ class AnnotationLayer extends PureComponent<
         {
           col: 'name',
           opr: 'ct',
-          value: search,
-        },
+          value: search},
       ],
       columns: ['id', 'name'],
       page,
-      page_size: pageSize,
-    });
+      page_size: pageSize});
 
     const { json } = await SupersetClient.get({
-      endpoint: `/api/v1/annotation_layer/?q=${queryParams}`,
-    });
+      endpoint: `/api/v1/annotation_layer/?q=${queryParams}`});
 
     const { result, count } = json;
 
     const layersArray = result.map((layer: { id: number; name: string }) => ({
       value: layer.id,
-      label: layer.name,
-    }));
+      label: layer.name}));
 
     return {
       data: layersArray,
-      totalCount: count,
-    };
+      totalCount: count};
   };
 
   fetchCharts = async (
@@ -463,18 +444,15 @@ class AnnotationLayer extends PureComponent<
         {
           col: 'id',
           opr: 'chart_owned_created_favored_by_me',
-          value: true,
-        },
+          value: true},
       ],
       columns: ['id', 'slice_name', 'viz_type'],
       order_column: 'slice_name',
       order_direction: 'asc',
       page,
-      page_size: pageSize,
-    });
+      page_size: pageSize});
     const { json } = await SupersetClient.get({
-      endpoint: `/api/v1/chart/?q=${queryParams}`,
-    });
+      endpoint: `/api/v1/chart/?q=${queryParams}`});
 
     const { result, count } = json;
     const registry = getChartMetadataRegistry();
@@ -487,13 +465,11 @@ class AnnotationLayer extends PureComponent<
       .map((chart: { id: number; slice_name: string; viz_type: string }) => ({
         value: chart.id,
         label: chart.slice_name,
-        viz_type: chart.viz_type,
-      }));
+        viz_type: chart.viz_type}));
 
     return {
       data: chartsArray,
-      totalCount: count,
-    };
+      totalCount: count};
   };
 
   fetchOptions = (
@@ -511,11 +487,9 @@ class AnnotationLayer extends PureComponent<
 
   fetchSliceData = (id: string | number): void => {
     const queryParams = rison.encode({
-      columns: ['query_context'],
-    });
+      columns: ['query_context']});
     SupersetClient.get({
-      endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
-    }).then(({ json }) => {
+      endpoint: `/api/v1/chart/${id}?q=${queryParams}`}).then(({ json }) => {
       const { result } = json;
       const queryContext = result.query_context;
       const formData = JSON.parse(queryContext).form_data;
@@ -524,12 +498,9 @@ class AnnotationLayer extends PureComponent<
           ...formData,
           groupby: formData.groupby?.map((column: QueryFormColumn) =>
             getColumnLabel(column),
-          ),
-        },
-      };
+          )}};
       this.setState({
-        slice: dataObject,
-      });
+        slice: dataObject});
     });
   };
 
@@ -537,11 +508,9 @@ class AnnotationLayer extends PureComponent<
     const { annotationType } = this.state;
     const registry = getChartMetadataRegistry();
     const queryParams = rison.encode({
-      columns: ['slice_name', 'query_context', 'viz_type'],
-    });
+      columns: ['slice_name', 'query_context', 'viz_type']});
     SupersetClient.get({
-      endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
-    }).then(({ json }) => {
+      endpoint: `/api/v1/chart/${id}?q=${queryParams}`}).then(({ json }) => {
       const { result } = json;
       const sliceName = result.slice_name;
       const queryContext = result.query_context;
@@ -554,33 +523,26 @@ class AnnotationLayer extends PureComponent<
         this.setState({
           value: {
             value: id,
-            label: sliceName,
-          },
+            label: sliceName},
           slice: {
             data: {
               ...formData,
               groupby: formData.groupby?.map((column: QueryFormColumn) =>
                 getColumnLabel(column),
-              ),
-            },
-          },
-        });
+              )}}});
       }
     });
   }
 
   fetchAppliedNativeAnnotation(id: string | number): void {
     SupersetClient.get({
-      endpoint: `/api/v1/annotation_layer/${id}`,
-    }).then(({ json }) => {
+      endpoint: `/api/v1/annotation_layer/${id}`}).then(({ json }) => {
       const { result } = json;
       const layer = result;
       this.setState({
         value: {
           value: layer.id,
-          label: layer.name,
-        },
-      });
+          label: layer.name}});
     });
   }
 
@@ -738,8 +700,7 @@ class AnnotationLayer extends PureComponent<
       titleColumn,
       timeColumn,
       intervalEndColumn,
-      descriptionColumns,
-    } = this.state;
+      descriptionColumns} = this.state;
 
     if (!slice || !value) {
       return '';
@@ -854,8 +815,7 @@ class AnnotationLayer extends PureComponent<
                   delete overrides.time_range;
                   if (v) {
                     this.setState({
-                      overrides: { ...overrides, time_range: null },
-                    });
+                      overrides: { ...overrides, time_range: null }});
                   } else {
                     this.setState({ overrides: { ...overrides } });
                   }
@@ -876,9 +836,7 @@ class AnnotationLayer extends PureComponent<
                       overrides: {
                         ...overrides,
                         time_grain_sqla: null,
-                        granularity: null,
-                      },
-                    });
+                        granularity: null}});
                   } else {
                     this.setState({ overrides: { ...overrides } });
                   }
@@ -912,8 +870,7 @@ class AnnotationLayer extends PureComponent<
       width,
       showMarkers,
       hideLine,
-      annotationType,
-    } = this.state;
+      annotationType} = this.state;
     const colorScheme =
       getCategoricalSchemeRegistry()
         .get(this.props.colorScheme)
@@ -967,8 +924,7 @@ class AnnotationLayer extends PureComponent<
         <div
           style={{
             marginTop: this.props.theme.sizeUnit * 2,
-            marginBottom: this.props.theme.sizeUnit * 2,
-          }}
+            marginBottom: this.props.theme.sizeUnit * 2}}
         >
           <CheckboxControl
             name="annotation-layer-automatic-color"
@@ -980,8 +936,7 @@ class AnnotationLayer extends PureComponent<
               } else {
                 // Set to first theme color or dark color as fallback
                 this.setState({
-                  color: colorScheme[0] || this.props.theme.colorTextBase,
-                });
+                  color: colorScheme[0] || this.props.theme.colorTextBase});
               }
             }}
           />

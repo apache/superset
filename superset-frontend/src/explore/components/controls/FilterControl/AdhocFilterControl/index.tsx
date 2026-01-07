@@ -18,32 +18,29 @@
  */
 import { Component, ReactNode } from 'react';
 import PropTypes from 'prop-types';
-import { t, logging, SupersetClient, ensureIsArray } from '@superset-ui/core';
+import { logging, SupersetClient, ensureIsArray } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { withTheme, type SupersetTheme } from '@apache-superset/core/ui';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric, {
-  isDictionaryForAdhocMetric,
-} from 'src/explore/components/controls/MetricControl/AdhocMetric';
+  isDictionaryForAdhocMetric} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
   Operators,
-  OPERATOR_ENUM_TO_OPERATOR_TYPE,
-} from 'src/explore/constants';
+  OPERATOR_ENUM_TO_OPERATOR_TYPE} from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {
   AddControlLabel,
   HeaderContainer,
-  LabelsContainer,
-} from 'src/explore/components/controls/OptionControls';
+  LabelsContainer} from 'src/explore/components/controls/OptionControls';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Modal } from '@superset-ui/core/components';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
 import AdhocFilter, {
-  isDictionaryForAdhocFilter,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+  isDictionaryForAdhocFilter} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import adhocFilterType from 'src/explore/components/controls/FilterControl/adhocFilterType';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
 import { toQueryString } from 'src/utils/urlUtils';
@@ -127,16 +124,14 @@ const propTypes = {
     PropTypes.arrayOf(selectedMetricType),
   ]),
   isLoading: PropTypes.bool,
-  canDelete: PropTypes.func,
-};
+  canDelete: PropTypes.func};
 
 const defaultProps = {
   name: '',
   onChange: () => {},
   columns: [],
   savedMetrics: [],
-  selectedMetrics: [],
-};
+  selectedMetrics: []};
 
 function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
   const options = [
@@ -157,18 +152,15 @@ function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
       if ((option as FilterOption).saved_metric_name) {
         results.push({
           ...(option as FilterOption),
-          filterOptionName: (option as FilterOption).saved_metric_name,
-        });
+          filterOptionName: (option as FilterOption).saved_metric_name});
       } else if ((option as FilterOption).column_name) {
         results.push({
           ...(option as FilterOption),
-          filterOptionName: `_col_${(option as FilterOption).column_name}`,
-        });
+          filterOptionName: `_col_${(option as FilterOption).column_name}`});
       } else if (option instanceof AdhocMetric) {
         results.push({
           ...option,
-          filterOptionName: `_adhocmetric_${option.label}`,
-        } as FilterOption);
+          filterOptionName: `_adhocmetric_${option.label}`} as FilterOption);
       }
       return results;
     }, [])
@@ -224,8 +216,7 @@ class AdhocFilterControl extends Component<
     this.state = {
       values: filters,
       options: optionsForSelect(this.props),
-      partitionColumn: null,
-    };
+      partitionColumn: null};
   }
 
   componentDidMount() {
@@ -236,8 +227,7 @@ class AdhocFilterControl extends Component<
         datasource_name: name,
         catalog,
         schema,
-        is_sqllab_view: isSqllabView,
-      } = datasource;
+        is_sqllab_view: isSqllabView} = datasource;
 
       if (!isSqllabView && dbId && name && schema) {
         SupersetClient.get({
@@ -245,10 +235,8 @@ class AdhocFilterControl extends Component<
             {
               name,
               catalog,
-              schema,
-            },
-          )}`,
-        })
+              schema},
+          )}`})
           .then(({ json }) => {
             if (json && json.partitions) {
               const { partitions } = json;
@@ -278,8 +266,7 @@ class AdhocFilterControl extends Component<
       this.setState({
         values: (this.props.value || []).map(filter =>
           isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
-        ),
-      });
+        )});
     }
   }
 
@@ -288,8 +275,7 @@ class AdhocFilterControl extends Component<
     valuesCopy.splice(index, 1);
     this.setState(prevState => ({
       ...prevState,
-      values: valuesCopy,
-    }));
+      values: valuesCopy}));
     this.props.onChange?.(valuesCopy);
   }
 
@@ -310,8 +296,7 @@ class AdhocFilterControl extends Component<
       this.setState(
         prevState => ({
           ...prevState,
-          values: [...prevState.values, mappedOption],
-        }),
+          values: [...prevState.values, mappedOption]}),
         () => {
           this.props.onChange?.(this.state.values);
         },
@@ -368,8 +353,7 @@ class AdhocFilterControl extends Component<
         operator:
           OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
         comparator: 0,
-        clause: Clauses.Having,
-      });
+        clause: Clauses.Having});
     }
     // has a custom label, meaning it's custom column
     if (option.label) {
@@ -379,8 +363,7 @@ class AdhocFilterControl extends Component<
         operator:
           OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
         comparator: 0,
-        clause: Clauses.Having,
-      });
+        clause: Clauses.Having});
     }
     // add a new filter item
     if (option.column_name) {
@@ -390,8 +373,7 @@ class AdhocFilterControl extends Component<
         operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
         comparator: '',
         clause: Clauses.Where,
-        isNew: true,
-      });
+        isNew: true});
     }
     return null;
   }

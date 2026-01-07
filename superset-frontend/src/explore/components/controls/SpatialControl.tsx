@@ -24,7 +24,7 @@ import {
   Label,
   Popover,
 } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 
 import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from '../ControlHeader';

@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { t } from '@apache-superset/core';
-import { tn } from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 
 import type { ErrorMessageComponentProps } from './types';
 import { IssueCode } from './IssueCode';

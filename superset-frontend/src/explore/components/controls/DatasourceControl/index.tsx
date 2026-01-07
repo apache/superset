@@ -23,28 +23,24 @@ import PropTypes from 'prop-types';
 import {
   DatasourceType,
   SupersetClient,
-  t,
-  Datasource,
-} from '@superset-ui/core';
+  Datasource} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   css,
   styled,
   withTheme,
-  type SupersetTheme,
-} from '@apache-superset/core/ui';
+  type SupersetTheme} from '@apache-superset/core/ui';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import {
   Dropdown,
   Tooltip,
   Button,
-  ModalTrigger,
-} from '@superset-ui/core/components';
+  ModalTrigger} from '@superset-ui/core/components';
 import {
   ChangeDatasourceModal,
   DatasourceModal,
-  ErrorAlert,
-} from 'src/components';
+  ErrorAlert} from 'src/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
@@ -52,8 +48,7 @@ import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import {
   userHasPermission,
-  isUserAdmin,
-} from 'src/dashboard/util/permissionUtils';
+  isUserAdmin} from 'src/dashboard/util/permissionUtils';
 import { ErrorMessageWithStackTrace } from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
@@ -139,15 +134,13 @@ const propTypes = {
   default: PropTypes.any,
   description: PropTypes.string,
   validationErrors: PropTypes.array,
-  name: PropTypes.string,
-};
+  name: PropTypes.string};
 
 const defaultProps = {
   onChange: () => {},
   onDatasourceSave: null,
   value: null,
-  isEditable: true,
-};
+  isEditable: true};
 
 const getDatasetType = (datasource: ExtendedDatasource): string => {
   if (datasource.type === 'query') {
@@ -223,8 +216,7 @@ const VISIBLE_TITLE_LENGTH = 25;
 export const datasourceIconLookup: Record<string, React.ReactNode> = {
   query: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
   physical_dataset: <Icons.TableOutlined className="datasource-svg" />,
-  virtual_dataset: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
-};
+  virtual_dataset: <Icons.ConsoleSqlOutlined className="datasource-svg" />};
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
 export const renderDatasourceTitle = (
@@ -271,8 +263,7 @@ class DatasourceControl extends PureComponent<
     this.state = {
       showEditDatasourceModal: false,
       showChangeDatasourceModal: false,
-      showSaveDatasetModal: false,
-    };
+      showSaveDatasetModal: false};
   }
 
   onDatasourceSave = (datasource: Datasource) => {
@@ -312,26 +303,22 @@ class DatasourceControl extends PureComponent<
 
   toggleShowDatasource = () => {
     this.setState(({ showDatasource }) => ({
-      showDatasource: !showDatasource,
-    }));
+      showDatasource: !showDatasource}));
   };
 
   toggleChangeDatasourceModal = () => {
     this.setState(({ showChangeDatasourceModal }) => ({
-      showChangeDatasourceModal: !showChangeDatasourceModal,
-    }));
+      showChangeDatasourceModal: !showChangeDatasourceModal}));
   };
 
   toggleEditDatasourceModal = () => {
     this.setState(({ showEditDatasourceModal }) => ({
-      showEditDatasourceModal: !showEditDatasourceModal,
-    }));
+      showEditDatasourceModal: !showEditDatasourceModal}));
   };
 
   toggleSaveDatasetModal = () => {
     this.setState(({ showSaveDatasetModal }) => ({
-      showSaveDatasetModal: !showSaveDatasetModal,
-    }));
+      showSaveDatasetModal: !showSaveDatasetModal}));
   };
 
   handleMenuItemClick = ({ key }: { key: string }) => {
@@ -349,11 +336,9 @@ class DatasourceControl extends PureComponent<
           const { datasource } = this.props;
           const payload = {
             datasourceKey: `${datasource.id}__${datasource.type}`,
-            sql: datasource.sql,
-          };
+            sql: datasource.sql};
           SupersetClient.postForm('/sqllab/', {
-            form_data: safeStringify(payload),
-          });
+            form_data: safeStringify(payload)});
         }
         break;
 
@@ -370,8 +355,7 @@ class DatasourceControl extends PureComponent<
     const {
       showChangeDatasourceModal,
       showEditDatasourceModal,
-      showSaveDatasetModal,
-    } = this.state;
+      showSaveDatasetModal} = this.state;
     const { datasource, onChange, theme } = this.props;
     let extra;
     if (datasource?.extra) {
@@ -404,8 +388,7 @@ class DatasourceControl extends PureComponent<
     const editText = t('Edit dataset');
     const requestedQuery = {
       datasourceKey: `${datasource.id}__${datasource.type}`,
-      sql: datasource.sql,
-    };
+      sql: datasource.sql};
     const defaultDatasourceMenuItems = [];
     if (this.props.isEditable && !isMissingDatasource) {
       defaultDatasourceMenuItems.push({
@@ -422,14 +405,12 @@ class DatasourceControl extends PureComponent<
           editText
         ),
         disabled: !allowEdit,
-        'data-test': 'edit-dataset',
-      });
+        'data-test': 'edit-dataset'});
     }
 
     defaultDatasourceMenuItems.push({
       key: CHANGE_DATASET,
-      label: t('Swap dataset'),
-    });
+      label: t('Swap dataset')});
 
     if (!isMissingDatasource && canAccessSqlLab) {
       defaultDatasourceMenuItems.push({
@@ -438,14 +419,12 @@ class DatasourceControl extends PureComponent<
           <Link
             to={{
               pathname: '/sqllab',
-              state: { requestedQuery },
-            }}
+              state: { requestedQuery }}}
             onClick={preventRouterLinkWhileMetaClicked}
           >
             {t('View in SQL Lab')}
           </Link>
-        ),
-      });
+        )});
     }
 
     const defaultDatasourceMenu = (
@@ -476,16 +455,14 @@ class DatasourceControl extends PureComponent<
                 datasource={{
                   id: String(datasource.id),
                   sql: datasource.sql || '',
-                  type: datasource.type,
-                }}
+                  type: datasource.type}}
               />
             }
             draggable={false}
             resizable={false}
             responsive
           />
-        ),
-      },
+        )},
     ];
 
     if (canAccessSqlLab) {
@@ -495,20 +472,17 @@ class DatasourceControl extends PureComponent<
           <Link
             to={{
               pathname: '/sqllab',
-              state: { requestedQuery },
-            }}
+              state: { requestedQuery }}}
             onClick={preventRouterLinkWhileMetaClicked}
           >
             {t('View in SQL Lab')}
           </Link>
-        ),
-      });
+        )});
     }
 
     queryDatasourceMenuItems.push({
       key: SAVE_AS_DATASET,
-      label: <span>{t('Save as dataset')}</span>,
-    });
+      label: <span>{t('Save as dataset')}</span>});
 
     const queryDatasourceMenu = (
       <Menu

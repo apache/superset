@@ -18,7 +18,8 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
+import { ensureIsArray, usePrevious } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { isEqual } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -26,8 +27,7 @@ import {
   AddIconButton,
   AddControlLabel,
   HeaderContainer,
-  LabelsContainer,
-} from 'src/explore/components/controls/OptionControls';
+  LabelsContainer} from 'src/explore/components/controls/OptionControls';
 import columnType from './columnType';
 import MetricDefinitionValue from './MetricDefinitionValue';
 import AdhocMetric from './AdhocMetric';
@@ -47,15 +47,13 @@ const propTypes = {
   isLoading: PropTypes.bool,
   multi: PropTypes.bool,
   clearable: PropTypes.bool,
-  datasource: PropTypes.object,
-};
+  datasource: PropTypes.object};
 
 const defaultProps = {
   onChange: () => {},
   clearable: true,
   savedMetrics: [],
-  columns: [],
-};
+  columns: []};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getOptionsForSavedMetrics(

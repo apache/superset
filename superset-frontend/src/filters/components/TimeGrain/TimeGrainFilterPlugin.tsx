@@ -17,13 +17,13 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { ensureIsArray, ExtraFormData, TimeGranularity, tn,  } from '@superset-ui/core';
+import { ensureIsArray, ExtraFormData, TimeGranularity} from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 import { useEffect, useMemo, useState } from 'react';
 import {
   FormItem,
   type FormItemProps,
-  Select,
-} from '@superset-ui/core/components';
+  Select} from '@superset-ui/core/components';
 import { FilterPluginStyle, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
 
@@ -42,8 +42,7 @@ export default function PluginFilterTimegrain(
     unsetFocusedFilter,
     setFilterActive,
     filterState,
-    inputRef,
-  } = props;
+    inputRef} = props;
   const { defaultValue } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
@@ -52,8 +51,7 @@ export default function PluginFilterTimegrain(
       data.reduce(
         (agg, { duration, name }: { duration: string; name: string }) => ({
           ...agg,
-          [duration]: name,
-        }),
+          [duration]: name}),
         {} as { [key in string]: string },
       ),
     [JSON.stringify(data)],
@@ -73,9 +71,7 @@ export default function PluginFilterTimegrain(
       extraFormData,
       filterState: {
         label,
-        value: resultValue.length ? resultValue : null,
-      },
-    });
+        value: resultValue.length ? resultValue : null}});
   };
 
   useEffect(() => {
@@ -107,8 +103,7 @@ export default function PluginFilterTimegrain(
       const { name, duration } = row;
       return {
         label: name,
-        value: duration,
-      };
+        value: duration};
     },
   );
 

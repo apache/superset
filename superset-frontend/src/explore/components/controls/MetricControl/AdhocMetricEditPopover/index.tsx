@@ -19,7 +19,8 @@
 /* eslint-disable camelcase */
 import { PureComponent, createRef } from 'react';
 import PropTypes from 'prop-types';
-import { isDefined, t, ensureIsArray, DatasourceType } from '@superset-ui/core';
+import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -29,24 +30,20 @@ import {
   FormItem,
   Icons,
   Select,
-  Tooltip,
-} from '@superset-ui/core/components';
+  Tooltip} from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 import {
   AGGREGATES_OPTIONS,
   POPOVER_INITIAL_HEIGHT,
-  POPOVER_INITIAL_WIDTH,
-} from 'src/explore/constants';
+  POPOVER_INITIAL_WIDTH} from 'src/explore/constants';
 import columnType from 'src/explore/components/controls/MetricControl/columnType';
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric, {
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/MetricControl/AdhocMetric';
+  EXPRESSION_TYPES} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
   StyledMetricOption,
-  StyledColumnOption,
-} from 'src/explore/components/optionRenderers';
+  StyledColumnOption} from 'src/explore/components/optionRenderers';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
 import type { RefObject } from 'react';
@@ -116,14 +113,12 @@ const propTypes = {
   savedMetric: savedMetricType,
   datasource: PropTypes.object,
   isNewMetric: PropTypes.bool,
-  isLabelModified: PropTypes.bool,
-};
+  isLabelModified: PropTypes.bool};
 
 const defaultProps = {
   columns: [],
   getCurrentTab: noOp,
-  isNewMetric: false,
-};
+  isNewMetric: false};
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -176,8 +171,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
       adhocMetric: this.props.adhocMetric,
       savedMetric: this.props.savedMetric,
       width: POPOVER_INITIAL_WIDTH,
-      height: POPOVER_INITIAL_HEIGHT,
-    };
+      height: POPOVER_INITIAL_HEIGHT};
     document.addEventListener('mouseup', this.onMouseUp);
   }
 
@@ -201,8 +195,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
         savedMetricLabel:
           this.state.savedMetric?.verbose_name ||
           this.state.savedMetric?.metric_name,
-        adhocMetricLabel: this.state.adhocMetric?.getDefaultLabel(),
-      });
+        adhocMetricLabel: this.state.adhocMetric?.getDefaultLabel()});
     }
   }
 
@@ -236,8 +229,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
       : this.props.adhocMetric;
     this.props.onChange(
       {
-        ...metric,
-      } as Metric,
+        ...metric} as Metric,
       oldMetric as Metric,
     );
     this.props.onClose();
@@ -247,8 +239,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
     this.setState(
       {
         adhocMetric: this.props.adhocMetric,
-        savedMetric: this.props.savedMetric,
-      },
+        savedMetric: this.props.savedMetric},
       this.props.onClose,
     );
   }
@@ -260,10 +251,8 @@ export default class AdhocMetricEditPopover extends PureComponent<
     this.setState(prevState => ({
       adhocMetric: prevState.adhocMetric.duplicateWith({
         column,
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-      }),
-      savedMetric: undefined,
-    }));
+        expressionType: EXPRESSION_TYPES.SIMPLE}),
+      savedMetric: undefined}));
   }
 
   onAggregateChange(aggregate: string | null): void {
@@ -271,10 +260,8 @@ export default class AdhocMetricEditPopover extends PureComponent<
     this.setState(prevState => ({
       adhocMetric: prevState.adhocMetric.duplicateWith({
         aggregate,
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-      }),
-      savedMetric: undefined,
-    }));
+        expressionType: EXPRESSION_TYPES.SIMPLE}),
+      savedMetric: undefined}));
   }
 
   onSavedMetricChange(savedMetricName: string): void {
@@ -287,19 +274,15 @@ export default class AdhocMetricEditPopover extends PureComponent<
         column: undefined,
         aggregate: undefined,
         sqlExpression: undefined,
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-      }),
-    }));
+        expressionType: EXPRESSION_TYPES.SIMPLE})}));
   }
 
   onSqlExpressionChange(sqlExpression: string): void {
     this.setState(prevState => ({
       adhocMetric: prevState.adhocMetric.duplicateWith({
         sqlExpression,
-        expressionType: EXPRESSION_TYPES.SQL,
-      }),
-      savedMetric: undefined,
-    }));
+        expressionType: EXPRESSION_TYPES.SQL}),
+      savedMetric: undefined}));
   }
 
   onDragDown(e: React.MouseEvent): void {
@@ -320,8 +303,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
       height: Math.max(
         this.dragStartHeight + (e.clientY - this.dragStartY),
         POPOVER_INITIAL_HEIGHT,
-      ),
-    });
+      )});
   }
 
   onMouseUp(): void {
@@ -396,8 +378,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
       value: columnValue,
       onChange: this.onColumnChange,
       allowClear: true,
-      autoFocus: !columnValue,
-    };
+      autoFocus: !columnValue};
 
     const aggregateSelectProps = {
       ariaLabel: t('Select aggregate options'),
@@ -408,8 +389,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
         undefined,
       onChange: this.onAggregateChange as (value: unknown) => void,
       allowClear: true,
-      autoFocus: !!columnValue,
-    };
+      autoFocus: !!columnValue};
 
     const savedSelectProps = {
       ariaLabel: t('Select saved metrics'),
@@ -417,8 +397,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
       value: savedMetric?.metric_name,
       onChange: this.onSavedMetricChange,
       allowClear: true,
-      autoFocus: true,
-    };
+      autoFocus: true};
 
     const stateIsValid = adhocMetric.isValid() || savedMetric?.metric_name;
     const hasUnsavedChanges =
@@ -465,8 +444,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
                         savedMetric => ({
                           value: savedMetric.metric_name,
                           label: this.renderMetricOption(savedMetric),
-                          key: savedMetric.id,
-                        }),
+                          key: savedMetric.id}),
                       )}
                       {...savedSelectProps}
                     />
@@ -501,8 +479,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
                       </>
                     }
                   />
-                ),
-            },
+                )},
             {
               key: EXPRESSION_TYPES.SIMPLE,
               label: extra.disallow_adhoc_metrics ? (
@@ -524,8 +501,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
                       options={columnsArray.map(column => ({
                         value: column.column_name,
                         key: (column as { id?: unknown }).id,
-                        label: this.renderColumnOption(column),
-                      }))}
+                        label: this.renderColumnOption(column)}))}
                       {...columnSelectProps}
                     />
                   </FormItem>
@@ -534,14 +510,12 @@ export default class AdhocMetricEditPopover extends PureComponent<
                       options={AGGREGATES_OPTIONS.map(option => ({
                         value: option,
                         label: option,
-                        key: option,
-                      }))}
+                        key: option}))}
                       {...aggregateSelectProps}
                     />
                   </FormItem>
                 </>
-              ),
-            },
+              )},
             {
               key: EXPRESSION_TYPES.SQL,
               label: extra.disallow_adhoc_metrics ? (
@@ -579,8 +553,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
                   datasourceId={datasource?.id}
                   datasourceType={datasource?.type}
                 />
-              ),
-            },
+              )},
           ]}
         />
         <div>

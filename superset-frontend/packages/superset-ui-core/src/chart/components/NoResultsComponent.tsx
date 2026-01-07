@@ -19,7 +19,7 @@
 
 import { CSSProperties } from 'react';
 import { css, styled } from '@apache-superset/core/ui';
-import { t } from '../../translation';
+import { t } from '@apache-superset/core/ui/translation';
 
 const MESSAGE_STYLES: CSSProperties = { maxWidth: 800 };
 const MIN_WIDTH_FOR_BODY = 250;

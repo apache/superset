@@ -58,12 +58,11 @@
  */
 import type { Column, SequentialScheme } from '@superset-ui/core';
 import {
-  t,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   legacyValidateInteger,
-  validateNonEmpty,
-} from '@superset-ui/core';
+  validateNonEmpty} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { formatSelectOptions } from 'src/explore/exploreUtils';
 import { TIME_FILTER_LABELS } from './constants';
 import { StyledColumnOption } from './components/optionRenderers';
@@ -131,8 +130,7 @@ const timeColumnOption = {
   description: t(
     'A reference to the [Time] configuration, taking granularity into ' +
       'account',
-  ),
-};
+  )};
 
 const groupByControl = {
   type: 'SelectControl',
@@ -163,8 +161,7 @@ const groupByControl = {
       }
     }
     return newState;
-  },
-};
+  }};
 
 const metrics = {
   type: 'MetricsControl',
@@ -176,17 +173,14 @@ const metrics = {
     return {
       columns: datasource ? datasource.columns : [],
       savedMetrics: datasource ? datasource.metrics : [],
-      datasource,
-    };
+      datasource};
   },
-  description: t('One or many metrics to display'),
-};
+  description: t('One or many metrics to display')};
 const metric = {
   ...metrics,
   multi: false,
   label: t('Metric'),
-  description: t('Metric'),
-};
+  description: t('Metric')};
 
 export function columnChoices(
   datasource: Datasource | null | undefined,
@@ -219,30 +213,25 @@ export const controls = {
     description: null,
     mapStateToProps: ({ datasource }: ControlState) => ({
       datasource,
-      isEditable: !!datasource,
-    }),
-  },
+      isEditable: !!datasource})},
 
   viz_type: {
     type: 'VizTypeControl',
     default: 'table',
-    description: t('The type of visualization to display'),
-  },
+    description: t('The type of visualization to display')},
 
   color_picker: {
     label: t('Fixed color'),
     description: t('Use this to define a static color for all circles'),
     type: 'ColorPickerControl',
     default: PRIMARY_COLOR,
-    renderTrigger: true,
-  },
+    renderTrigger: true},
 
   metric_2: {
     ...metric,
     label: t('Right axis metric'),
     clearable: true,
-    description: t('Choose a metric for right axis'),
-  },
+    description: t('Choose a metric for right axis')},
 
   linear_color_scheme: {
     type: 'ColorSchemeControl',
@@ -260,24 +249,21 @@ export const controls = {
     description: '',
     renderTrigger: true,
     schemes: () => sequentialSchemeRegistry.getMap(),
-    isLinear: true,
-  },
+    isLinear: true},
 
   secondary_metric: {
     ...metric,
     label: t('Color metric'),
     default: null,
     validators: [],
-    description: t('A metric to use for color'),
-  },
+    description: t('A metric to use for color')},
 
   groupby: groupByControl,
 
   columns: {
     ...groupByControl,
     label: t('Columns'),
-    description: t('One or many controls to pivot as columns'),
-  },
+    description: t('One or many controls to pivot as columns')},
 
   granularity: {
     type: 'SelectControl',
@@ -306,8 +292,7 @@ export const controls = {
       'The time granularity for the visualization. Note that you ' +
         'can type and use simple natural language as in `10 seconds`,' +
         '`1 day` or `56 weeks`',
-    ),
-  },
+    )},
 
   granularity_sqla: {
     type: 'SelectControl',
@@ -334,8 +319,7 @@ export const controls = {
         }
       }
       return props;
-    },
-  },
+    }},
 
   time_grain_sqla: {
     type: 'SelectControl',
@@ -349,9 +333,7 @@ export const controls = {
         'engine basis in the Superset source code.',
     ),
     mapStateToProps: (state: ControlState) => ({
-      choices: state.datasource ? state.datasource.time_grain_sqla : null,
-    }),
-  },
+      choices: state.datasource ? state.datasource.time_grain_sqla : null})},
 
   time_range: {
     type: 'DateFilterControl',
@@ -365,8 +347,7 @@ export const controls = {
         'in UTC (sans timezone). The timestamps are then evaluated by the database ' +
         "using the engine's local timezone. Note one can explicitly set the timezone " +
         'per the ISO 8601 format if specifying either the start and/or end time.',
-    ),
-  },
+    )},
 
   row_limit: {
     type: 'SelectControl',
@@ -375,8 +356,7 @@ export const controls = {
     validators: [legacyValidateInteger],
     default: 10000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
-    description: t('Limits the number of rows that get displayed.'),
-  },
+    description: t('Limits the number of rows that get displayed.')},
 
   limit: {
     type: 'SelectControl',
@@ -390,8 +370,7 @@ export const controls = {
         'where subqueries are not supported) is applied to limit the number of series that get ' +
         'fetched and rendered. This feature is useful when grouping by high cardinality ' +
         'column(s) though does increase the query complexity and cost.',
-    ),
-  },
+    )},
 
   timeseries_limit_metric: {
     type: 'MetricsControl',
@@ -405,9 +384,7 @@ export const controls = {
     mapStateToProps: (state: ControlState) => ({
       columns: state.datasource ? state.datasource.columns : [],
       savedMetrics: state.datasource ? state.datasource.metrics : [],
-      datasource: state.datasource,
-    }),
-  },
+      datasource: state.datasource})},
 
   series: {
     ...groupByControl,
@@ -418,8 +395,7 @@ export const controls = {
       'Defines the grouping of entities. ' +
         'Each series is shown as a specific color on the chart and ' +
         'has a legend toggle',
-    ),
-  },
+    )},
 
   entity: {
     ...groupByControl,
@@ -427,28 +403,24 @@ export const controls = {
     default: null,
     multi: false,
     validators: [validateNonEmpty],
-    description: t('This defines the element to be plotted on the chart'),
-  },
+    description: t('This defines the element to be plotted on the chart')},
 
   x: {
     ...metric,
     label: t('X Axis'),
     description: t('Metric assigned to the [X] axis'),
-    default: null,
-  },
+    default: null},
 
   y: {
     ...metric,
     label: t('Y Axis'),
     default: null,
-    description: t('Metric assigned to the [Y] axis'),
-  },
+    description: t('Metric assigned to the [Y] axis')},
 
   size: {
     ...metric,
     label: t('Bubble size'),
-    default: null,
-  },
+    default: null},
 
   y_axis_format: {
     type: 'SelectControl',
@@ -468,10 +440,8 @@ export const controls = {
                 'Axis Format is forced to `.1%`',
             )
           : null,
-        disabled: showWarning,
-      };
-    },
-  },
+        disabled: showWarning};
+    }},
 
   adhoc_filters: {
     type: 'AdhocFilterControl',
@@ -483,9 +453,7 @@ export const controls = {
         ? state.datasource.columns.filter((c: Column) => c.filterable)
         : [],
       savedMetrics: state.datasource ? state.datasource.metrics : [],
-      datasource: state.datasource,
-    }),
-  },
+      datasource: state.datasource})},
 
   color_scheme: {
     type: 'ColorSchemeControl',
@@ -494,6 +462,4 @@ export const controls = {
     renderTrigger: true,
     choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
     description: t('The color scheme for rendering chart'),
-    schemes: () => categoricalSchemeRegistry.getMap(),
-  },
-};
+    schemes: () => categoricalSchemeRegistry.getMap()}};

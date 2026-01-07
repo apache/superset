@@ -22,8 +22,7 @@ import {
   useState,
   memo,
   ChangeEvent,
-  MouseEvent,
-} from 'react';
+  MouseEvent} from 'react';
 
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -36,22 +35,20 @@ import {
   Card,
   Input,
   Label,
-  Loading,
-} from '@superset-ui/core/components';
+  Loading} from '@superset-ui/core/components';
 import {
   CopyToClipboard,
   FilterableTable,
-  ErrorMessageWithStackTrace,
-} from 'src/components';
+  ErrorMessageWithStackTrace} from 'src/components';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core';
-import { QueryState, tn, usePrevious, getNumberFormatter, getExtensionsRegistry, ErrorTypeEnum,  } from '@superset-ui/core';
+import { QueryState, usePrevious, getNumberFormatter, getExtensionsRegistry, ErrorTypeEnum} from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 import {
   ISaveableDatasource,
   ISimpleColumn,
-  SaveDatasetModal,
-} from 'src/SqlLab/components/SaveDatasetModal';
+  SaveDatasetModal} from 'src/SqlLab/components/SaveDatasetModal';
 import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
@@ -65,15 +62,13 @@ import {
   CtasEnum,
   fetchQueryResults,
   reFetchQueryResults,
-  reRunQuery,
-} from 'src/SqlLab/actions/sqlLab';
+  reRunQuery} from 'src/SqlLab/actions/sqlLab';
 import { URL_PARAMS } from 'src/constants';
 import useLogAction from 'src/logger/useLogAction';
 import {
   LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD,
   LOG_ACTIONS_SQLLAB_CREATE_CHART,
-  LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
-} from 'src/logger/LogUtils';
+  LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV} from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { findPermission } from 'src/utils/findPermission';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
@@ -89,8 +84,7 @@ enum LimitingFactor {
   Query = 'QUERY',
   QueryAndDropdown = 'QUERY_AND_DROPDOWN',
   Dropdown = 'DROPDOWN',
-  NotLimited = 'NOT_LIMITED',
-}
+  NotLimited = 'NOT_LIMITED'}
 
 export interface ResultSetProps {
   cache?: boolean;
@@ -179,8 +173,7 @@ const ResultSet = ({
   showSqlInline = false,
   visualize = true,
   defaultQueryLimit,
-  useFixedHeight = false,
-}: ResultSetProps) => {
+  useFixedHeight = false}: ResultSetProps) => {
   const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
   const streamingThreshold = useSelector(
     (state: SqlLabRootState) =>
@@ -238,8 +231,7 @@ const ResultSet = ({
       onComplete: () => {},
       onError: error => {
         addDangerToast(t('Export failed: %s', error));
-      },
-    });
+      }});
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
     if (
@@ -276,8 +268,7 @@ const ResultSet = ({
       name: tempTable,
       autorun: false,
       dbId: query.dbId,
-      sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
-    };
+      sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`};
     dispatch(addQueryEditor(qe));
   };
 
@@ -295,11 +286,9 @@ const ResultSet = ({
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
 
-        all_columns: results.columns.map(column => column.column_name),
-      });
+        all_columns: results.columns.map(column => column.column_name)});
       const url = mountExploreUrl(null, {
-        [URL_PARAMS.formDataKey.name]: key,
-      });
+        [URL_PARAMS.formDataKey.name]: key});
       if (openInNewWindow) {
         window.open(url, '_blank', 'noreferrer');
       } else {
@@ -352,8 +341,7 @@ const ResultSet = ({
         dbId: query?.dbId,
         sql: query?.sql,
         templateParams: query?.templateParams,
-        schema: query?.schema,
-      };
+        schema: query?.schema};
 
       const canExportData = findPermission(
         'can_export_csv',
@@ -377,8 +365,7 @@ const ResultSet = ({
               window.location.href = getExportCsvUrl(query.id);
             },
             confirmText: t('OK'),
-            cancelText: t('Close'),
-          });
+            cancelText: t('Close')});
         }
       };
 
@@ -406,8 +393,7 @@ const ResultSet = ({
                 buttonSize="small"
                 buttonStyle="secondary"
                 {...(!shouldUseStreamingExport() && {
-                  href: getExportCsvUrl(query.id),
-                })}
+                  href: getExportCsvUrl(query.id)})}
                 data-test="export-csv-button"
                 onClick={e => {
                   const useStreaming = shouldUseStreamingExport();
@@ -420,8 +406,7 @@ const ResultSet = ({
                       url: '/api/v1/sqllab/export_streaming/',
                       payload: { client_id: query.id },
                       exportType: 'csv',
-                      expectedRows: rows,
-                    });
+                      expectedRows: rows});
                   } else {
                     handleDownloadCsv(e);
                   }
@@ -484,8 +469,7 @@ const ResultSet = ({
           'Please add additional limits/filters, download to csv, or contact an admin ' +
           'to see more rows up to the %(limit)d limit.',
         { rows: rowsCount, limit },
-      ),
-    };
+      )};
     const shouldUseDefaultDropdownAlert =
       limit === defaultQueryLimit && limitingFactor === LimitingFactor.Dropdown;
 
@@ -510,8 +494,7 @@ const ResultSet = ({
     }
     const formattedRowCount = getNumberFormatter()(rows);
     const rowsReturnedMessage = t('%(rows)d rows returned', {
-      rows,
-    });
+      rows});
 
     const tooltipText = `${rowsReturnedMessage}. ${limitMessage}`;
 
@@ -715,8 +698,7 @@ const ResultSet = ({
         orderedColumnKeys: results.columns.map(col => col.column_name),
         filterText: searchText,
         expandedColumns,
-        allowHTML,
-      };
+        allowHTML};
 
       return (
         <>
@@ -812,8 +794,7 @@ const ResultSet = ({
               dispatch(
                 reFetchQueryResults({
                   ...query,
-                  isDataPreview: true,
-                }),
+                  isDataPreview: true}),
               )
             }
           >
