@@ -16,13 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ensureIsArray,
-  isAdhocColumn,
-  isPhysicalColumn,
-  t,
-  validateNonEmpty,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray, isAdhocColumn, isPhysicalColumn, validateNonEmpty,  } from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,

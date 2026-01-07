@@ -20,15 +20,8 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { isEmpty, isEqual, noop } from 'lodash';
-import {
-  BinaryAdhocFilter,
-  ensureIsArray,
-  fetchTimeRange,
-  getTimeOffset,
-  parseDttmToDate,
-  SimpleAdhocFilter,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { BinaryAdhocFilter, ensureIsArray, fetchTimeRange, getTimeOffset, parseDttmToDate, SimpleAdhocFilter,  } from '@superset-ui/core';
 import { css } from '@apache-superset/core/ui';
 import ControlHeader, {
   ControlHeaderProps,

@@ -19,7 +19,7 @@
 import { ContourLayer } from '@deck.gl/aggregation-layers';
 import { PolygonLayer } from '@deck.gl/layers';
 import { Position } from '@deck.gl/core';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';

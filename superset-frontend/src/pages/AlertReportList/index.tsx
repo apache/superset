@@ -19,12 +19,8 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
-import {
-  t,
-  SupersetClient,
-  makeApi,
-  getExtensionsRegistry,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, makeApi, getExtensionsRegistry,  } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/ui';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {

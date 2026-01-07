@@ -19,7 +19,8 @@
 
 /* eslint no-console: 0 */
 import mockConsole from 'jest-mock-console';
-import { configure, resetTranslation, t, tn } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { configure, resetTranslation, tn } from '@superset-ui/core';
 import Translator from '../../src/translation/Translator';
 
 import languagePackEn from './languagePacks/en';

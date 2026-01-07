@@ -19,11 +19,8 @@
 
 import { useCallback, useMemo } from 'react';
 import { Tag } from 'src/components/Tag';
-import {
-  BinaryQueryObjectFilterClause,
-  isAdhocColumn,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { BinaryQueryObjectFilterClause, isAdhocColumn,  } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { Icons } from '@superset-ui/core/components/Icons';

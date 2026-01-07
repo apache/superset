@@ -17,14 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  logging,
-  Metric,
-  QueryFormData,
-  QueryFormMetric,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { logging, Metric, QueryFormData, QueryFormMetric, SupersetClient,  } from '@superset-ui/core';
 import {
   ColumnMeta,
   isColumnMeta,

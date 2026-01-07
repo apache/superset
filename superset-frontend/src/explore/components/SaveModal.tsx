@@ -33,13 +33,8 @@ import {
   Loading,
   Divider,
 } from '@superset-ui/core/components';
-import {
-  DatasourceType,
-  isDefined,
-  logging,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { DatasourceType, isDefined, logging, SupersetClient,  } from '@superset-ui/core';
 import { css, styled, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';

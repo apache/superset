@@ -17,15 +17,8 @@
  * under the License.
  */
 
-import {
-  ContributionType,
-  ensureIsArray,
-  getColumnLabel,
-  getMetricLabel,
-  QueryFormColumn,
-  QueryFormMetric,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ContributionType, ensureIsArray, getColumnLabel, getMetricLabel, QueryFormColumn, QueryFormMetric,  } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ControlPanelState,

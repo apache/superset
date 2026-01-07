@@ -16,16 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  COMMON_ERR_MESSAGES,
-  JsonObject,
-  SupersetClientResponse,
-  t,
-  SupersetError,
-  ErrorTypeEnum,
-  isProbablyHTML,
-  isJsonString,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { COMMON_ERR_MESSAGES, JsonObject, SupersetClientResponse, SupersetError, ErrorTypeEnum, isProbablyHTML, isJsonString,  } from '@superset-ui/core';
 
 // The response always contains an error attribute, can contain anything from
 // the SupersetClientResponse object, and can contain a spread JSON blob

@@ -17,12 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
-import {
-  t,
-  SupersetClient,
-  isFeatureEnabled,
-  FeatureFlag,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, isFeatureEnabled, FeatureFlag,  } from '@superset-ui/core';
 import { styled, Alert } from '@apache-superset/core/ui';
 import { CssEditor, Select } from '@superset-ui/core/components';
 import rison from 'rison';

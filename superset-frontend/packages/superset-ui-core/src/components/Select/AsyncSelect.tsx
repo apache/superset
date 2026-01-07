@@ -31,12 +31,8 @@ import {
   ClipboardEvent,
 } from 'react';
 
-import {
-  ensureIsArray,
-  t,
-  usePrevious,
-  getClientErrorObject,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray, usePrevious, getClientErrorObject,  } from '@superset-ui/core';
 import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,

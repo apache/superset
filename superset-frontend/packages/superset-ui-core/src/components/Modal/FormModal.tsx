@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useCallback } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Button } from '../Button';
 import { Form } from '../Form';
 import { Modal } from './Modal';

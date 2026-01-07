@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  SMART_DATE_ID,
-  NumberFormats,
-  getNumberFormatter,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SMART_DATE_ID, NumberFormats, getNumberFormatter,  } from '@superset-ui/core';
 
 // D3 specific formatting config
 export const D3_FORMAT_DOCS = t(

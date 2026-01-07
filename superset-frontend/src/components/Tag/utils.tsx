@@ -17,12 +17,8 @@
  * under the License.
  */
 
-import {
-  ClientErrorObject,
-  getClientErrorObject,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ClientErrorObject, getClientErrorObject, SupersetClient,  } from '@superset-ui/core';
 import type { TagType } from 'src/types/TagType';
 
 import rison from 'rison';

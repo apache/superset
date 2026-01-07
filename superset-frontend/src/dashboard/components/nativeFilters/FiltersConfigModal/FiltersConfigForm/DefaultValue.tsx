@@ -17,13 +17,8 @@
  * under the License.
  */
 import { FC } from 'react';
-import {
-  Behavior,
-  SetDataMaskHook,
-  SuperChart,
-  AppSection,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Behavior, SetDataMaskHook, SuperChart, AppSection,  } from '@superset-ui/core';
 import { Loading, type FormInstance } from '@superset-ui/core/components';
 import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';

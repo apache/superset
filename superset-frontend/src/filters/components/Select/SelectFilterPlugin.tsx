@@ -18,17 +18,8 @@
  */
 /* eslint-disable no-param-reassign */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  AppSection,
-  DataMask,
-  ensureIsArray,
-  ExtraFormData,
-  getColumnLabel,
-  JsonObject,
-  finestTemporalGrainFormatter,
-  t,
-  tn,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { AppSection, DataMask, ensureIsArray, ExtraFormData, getColumnLabel, JsonObject, finestTemporalGrainFormatter, tn,  } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { debounce, isUndefined } from 'lodash';

@@ -16,17 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  extractTimegrain,
-  getNumberFormatter,
-  NumberFormats,
-  getMetricLabel,
-  getXAxisLabel,
-  Metric,
-  getValueFormatter,
-  t,
-  tooltipHtml,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { extractTimegrain, getNumberFormatter, NumberFormats, getMetricLabel, getXAxisLabel, Metric, getValueFormatter, tooltipHtml,  } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { EChartsCoreOption, graphic } from 'echarts/core';
 import { aggregationChoices } from '@superset-ui/chart-controls';

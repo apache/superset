@@ -16,19 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  CategoricalColorNamespace,
-  getColumnLabel,
-  getMetricLabel,
-  getNumberFormatter,
-  getTimeFormatter,
-  NumberFormats,
-  t,
-  ValueFormatter,
-  getValueFormatter,
-  tooltipHtml,
-  DataRecord,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { CategoricalColorNamespace, getColumnLabel, getMetricLabel, getNumberFormatter, getTimeFormatter, NumberFormats, ValueFormatter, getValueFormatter, tooltipHtml, DataRecord,  } from '@superset-ui/core';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { PieSeriesOption } from 'echarts/charts';

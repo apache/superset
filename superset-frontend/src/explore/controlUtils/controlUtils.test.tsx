@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DatasourceType,
-  getChartControlPanelRegistry,
-  t,
-  VizType,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { DatasourceType, getChartControlPanelRegistry, VizType,  } from '@superset-ui/core';
 import {
   ControlConfig,
   ControlPanelState,

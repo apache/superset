@@ -18,12 +18,8 @@
  */
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import {
-  Currency,
-  ensureIsArray,
-  getCurrencySymbol,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Currency, ensureIsArray, getCurrencySymbol,  } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/ui';
 import { CSSObject } from '@emotion/react';
 import { Select, type SelectProps } from '@superset-ui/core/components';

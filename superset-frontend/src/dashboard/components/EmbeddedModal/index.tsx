@@ -17,12 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
-import {
-  makeApi,
-  SupersetApiError,
-  t,
-  getExtensionsRegistry,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { makeApi, SupersetApiError, getExtensionsRegistry,  } from '@superset-ui/core';
 import { styled, css, Alert } from '@apache-superset/core/ui';
 import {
   Button,

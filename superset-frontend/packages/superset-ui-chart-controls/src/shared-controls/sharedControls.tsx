@@ -33,19 +33,8 @@
  * control interface.
  */
 import { isEmpty } from 'lodash';
-import {
-  t,
-  getCategoricalSchemeRegistry,
-  getSequentialSchemeRegistry,
-  SequentialScheme,
-  legacyValidateInteger,
-  ComparisonType,
-  ensureIsArray,
-  isDefined,
-  NO_TIME_RANGE,
-  validateMaxValue,
-  getColumnLabel,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry, SequentialScheme, legacyValidateInteger, ComparisonType, ensureIsArray, isDefined, NO_TIME_RANGE, validateMaxValue, getColumnLabel,  } from '@superset-ui/core';
 
 import {
   formatSelectOptions,

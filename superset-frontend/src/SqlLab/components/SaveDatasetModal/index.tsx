@@ -30,18 +30,8 @@ import {
   Icons,
   Flex,
 } from '@superset-ui/core/components';
-import {
-  t,
-  SupersetClient,
-  JsonResponse,
-  JsonObject,
-  QueryResponse,
-  QueryFormData,
-  VizType,
-  FeatureFlag,
-  isFeatureEnabled,
-  getClientErrorObject,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, JsonResponse, JsonObject, QueryResponse, QueryFormData, VizType, FeatureFlag, isFeatureEnabled, getClientErrorObject,  } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { useSelector, useDispatch } from 'react-redux';

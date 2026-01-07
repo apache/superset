@@ -18,13 +18,8 @@
  */
 import { ComponentProps, RefObject } from 'react';
 import copyTextToClipboard from 'src/utils/copy';
-import {
-  t,
-  logging,
-  FeatureFlag,
-  isFeatureEnabled,
-  LatestQueryFormData,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { logging, FeatureFlag, isFeatureEnabled, LatestQueryFormData,  } from '@superset-ui/core';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';

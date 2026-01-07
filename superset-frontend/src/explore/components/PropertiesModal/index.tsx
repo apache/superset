@@ -26,14 +26,8 @@ import {
   type SelectValue,
 } from '@superset-ui/core/components';
 import rison from 'rison';
-import {
-  t,
-  SupersetClient,
-  isFeatureEnabled,
-  FeatureFlag,
-  getClientErrorObject,
-  ensureIsArray,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, isFeatureEnabled, FeatureFlag, getClientErrorObject, ensureIsArray,  } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';

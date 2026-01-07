@@ -18,12 +18,8 @@
  */
 import { useState, useEffect, ReactElement, useCallback } from 'react';
 
-import {
-  ensureIsArray,
-  t,
-  getChartMetadataRegistry,
-  getClientErrorObject,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray, getChartMetadataRegistry, getClientErrorObject,  } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';

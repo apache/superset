@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { configure, t, tn } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { configure, tn } from '@superset-ui/core';
 
 describe('index', () => {
   it('exports configure()', () => {

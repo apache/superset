@@ -17,18 +17,8 @@
  * under the License.
  */
 import { PureComponent } from 'react';
-import {
-  ensureIsArray,
-  FeatureFlag,
-  isFeatureEnabled,
-  logging,
-  QueryFormData,
-  t,
-  SqlaFormData,
-  ClientErrorObject,
-  type JsonObject,
-  type AgGridChartState,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray, FeatureFlag, isFeatureEnabled, logging, QueryFormData, SqlaFormData, ClientErrorObject, type JsonObject, type AgGridChartState,  } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';

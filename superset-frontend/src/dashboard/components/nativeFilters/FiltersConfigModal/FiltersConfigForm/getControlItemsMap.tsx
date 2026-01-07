@@ -25,7 +25,8 @@ import {
   Tooltip,
   type FormInstance,
 } from '@superset-ui/core/components';
-import { Filter, getChartControlPanelRegistry, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Filter, getChartControlPanelRegistry } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import {
   doesColumnMatchFilterType,

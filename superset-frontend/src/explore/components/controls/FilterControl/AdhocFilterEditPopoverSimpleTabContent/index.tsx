@@ -25,12 +25,12 @@ import {
   Tooltip,
   type SelectValue,
 } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core';
 import {
   isFeatureEnabled,
   FeatureFlag,
   isDefined,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/ui';
 import {

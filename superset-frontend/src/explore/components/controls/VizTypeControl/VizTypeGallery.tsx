@@ -29,12 +29,8 @@ import {
 
 import Fuse from 'fuse.js';
 import cx from 'classnames';
-import {
-  t,
-  ChartMetadata,
-  chartLabelWeight,
-  chartLabelExplanations,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ChartMetadata, chartLabelWeight, chartLabelExplanations,  } from '@superset-ui/core';
 import {
   styled,
   css,

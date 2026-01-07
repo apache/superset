@@ -18,12 +18,8 @@
  */
 import { useCallback, useMemo, ReactNode } from 'react';
 import rison from 'rison';
-import {
-  t,
-  JsonResponse,
-  ClientErrorObject,
-  getClientErrorObject,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { JsonResponse, ClientErrorObject, getClientErrorObject,  } from '@superset-ui/core';
 import { AsyncSelect } from '@superset-ui/core/components';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {

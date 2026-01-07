@@ -26,13 +26,8 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import {
-  BinaryQueryObjectFilterClause,
-  ensureIsArray,
-  JsonObject,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { BinaryQueryObjectFilterClause, ensureIsArray, JsonObject, QueryFormData,  } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { useResizeDetector } from 'react-resize-detector';

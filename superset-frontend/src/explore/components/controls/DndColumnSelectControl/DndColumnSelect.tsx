@@ -17,13 +17,8 @@
  * under the License.
  */
 import { useCallback, useMemo, useState } from 'react';
-import {
-  AdhocColumn,
-  tn,
-  QueryFormColumn,
-  t,
-  isAdhocColumn,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { AdhocColumn, tn, QueryFormColumn, isAdhocColumn,  } from '@superset-ui/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';

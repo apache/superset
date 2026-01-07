@@ -26,14 +26,8 @@ import {
   ReactNode,
 } from 'react';
 
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  SupersetClient,
-  t,
-  VizType,
-  getExtensionsRegistry,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { isFeatureEnabled, FeatureFlag, SupersetClient, VizType, getExtensionsRegistry,  } from '@superset-ui/core';
 import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';

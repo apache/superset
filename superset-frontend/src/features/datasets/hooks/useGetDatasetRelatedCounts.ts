@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { SupersetClient, logging, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, logging } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 
 const useGetDatasetRelatedCounts = (id: string) => {

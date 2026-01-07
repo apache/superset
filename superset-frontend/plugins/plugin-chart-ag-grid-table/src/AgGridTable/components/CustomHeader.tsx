@@ -20,7 +20,7 @@
  */
 
 import { useRef, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import FilterIcon from './Filter';
 import KebabMenu from './KebabMenu';

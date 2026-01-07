@@ -17,12 +17,8 @@
  * under the License.
  */
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
-import {
-  t,
-  legacyValidateInteger,
-  isFeatureEnabled,
-  FeatureFlag,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { legacyValidateInteger, isFeatureEnabled, FeatureFlag,  } from '@superset-ui/core';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,

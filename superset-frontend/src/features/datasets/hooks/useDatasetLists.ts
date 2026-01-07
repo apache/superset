@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { SupersetClient, logging, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, logging } from '@superset-ui/core';
 import rison from 'rison';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';

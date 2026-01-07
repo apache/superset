@@ -17,7 +17,8 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import { FeatureFlag, isFeatureEnabled, logging, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { FeatureFlag, isFeatureEnabled, logging } from '@superset-ui/core';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
 import { MenuKeys } from 'src/dashboard/types';

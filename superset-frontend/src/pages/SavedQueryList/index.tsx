@@ -17,12 +17,8 @@
  * under the License.
  */
 
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { FeatureFlag, isFeatureEnabled, SupersetClient,  } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';

@@ -28,19 +28,8 @@ import {
 } from 'react';
 import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  Behavior,
-  BinaryQueryObjectFilterClause,
-  Column,
-  ContextMenuFilters,
-  ensureIsArray,
-  FeatureFlag,
-  getChartMetadataRegistry,
-  getExtensionsRegistry,
-  isFeatureEnabled,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Behavior, BinaryQueryObjectFilterClause, Column, ContextMenuFilters, ensureIsArray, FeatureFlag, getChartMetadataRegistry, getExtensionsRegistry, isFeatureEnabled, QueryFormData,  } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/ui';
 import { RootState } from 'src/dashboard/types';
 import { MenuItem } from '@superset-ui/core/components/Menu';

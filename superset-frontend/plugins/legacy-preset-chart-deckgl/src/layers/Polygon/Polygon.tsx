@@ -22,16 +22,8 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ContextMenuFilters,
-  FilterState,
-  HandlerFunction,
-  JsonObject,
-  JsonValue,
-  QueryFormData,
-  SetDataMaskHook,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ContextMenuFilters, FilterState, HandlerFunction, JsonObject, JsonValue, QueryFormData, SetDataMaskHook,  } from '@superset-ui/core';
 
 import { PolygonLayer } from '@deck.gl/layers';
 

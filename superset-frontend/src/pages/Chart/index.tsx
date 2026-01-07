@@ -19,15 +19,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import {
-  getLabelsColorMap,
-  isDefined,
-  JsonObject,
-  makeApi,
-  LabelsColorMapSource,
-  t,
-  getClientErrorObject,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getLabelsColorMap, isDefined, JsonObject, makeApi, LabelsColorMapSource, getClientErrorObject,  } from '@superset-ui/core';
 import { Loading } from '@superset-ui/core/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';

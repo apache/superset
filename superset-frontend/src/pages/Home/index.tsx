@@ -17,13 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  getExtensionsRegistry,
-  JsonObject,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { isFeatureEnabled, FeatureFlag, getExtensionsRegistry, JsonObject,  } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import rison from 'rison';
 import { Collapse, ListViewCard } from '@superset-ui/core/components';

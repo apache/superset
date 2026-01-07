@@ -28,15 +28,8 @@ import {
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
 import rison from 'rison';
-import {
-  ensureIsArray,
-  isFeatureEnabled,
-  FeatureFlag,
-  getCategoricalSchemeRegistry,
-  SupersetClient,
-  t,
-  getClientErrorObject,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray, isFeatureEnabled, FeatureFlag, getCategoricalSchemeRegistry, SupersetClient, getClientErrorObject,  } from '@superset-ui/core';
 
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';

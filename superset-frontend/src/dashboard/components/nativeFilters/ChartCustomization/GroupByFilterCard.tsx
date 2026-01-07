@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
-import { t, DataMaskStateWithId, useTruncation } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { DataMaskStateWithId, useTruncation } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/ui';
 import {
   Typography,

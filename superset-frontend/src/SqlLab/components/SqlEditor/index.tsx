@@ -32,14 +32,8 @@ import type AceEditor from 'react-ace';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-  getExtensionsRegistry,
-  QueryResponse,
-  Query,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { FeatureFlag, isFeatureEnabled, getExtensionsRegistry, QueryResponse, Query,  } from '@superset-ui/core';
 import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 import type {
   QueryEditor,

@@ -18,28 +18,8 @@
  */
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
-import {
-  AnnotationLayer,
-  AxisType,
-  buildCustomFormatters,
-  CategoricalColorNamespace,
-  CurrencyFormatter,
-  ensureIsArray,
-  tooltipHtml,
-  getCustomFormatter,
-  getMetricLabel,
-  getNumberFormatter,
-  getXAxisLabel,
-  isDefined,
-  isEventAnnotationLayer,
-  isFormulaAnnotationLayer,
-  isIntervalAnnotationLayer,
-  isPhysicalColumn,
-  isTimeseriesAnnotationLayer,
-  t,
-  TimeseriesChartDataResponseResult,
-  NumberFormats,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { AnnotationLayer, AxisType, buildCustomFormatters, CategoricalColorNamespace, CurrencyFormatter, ensureIsArray, tooltipHtml, getCustomFormatter, getMetricLabel, getNumberFormatter, getXAxisLabel, isDefined, isEventAnnotationLayer, isFormulaAnnotationLayer, isIntervalAnnotationLayer, isPhysicalColumn, isTimeseriesAnnotationLayer, TimeseriesChartDataResponseResult, NumberFormats,  } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   extractExtraMetrics,

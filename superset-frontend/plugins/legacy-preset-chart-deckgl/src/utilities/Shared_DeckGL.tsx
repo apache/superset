@@ -17,16 +17,8 @@
  * under the License.
  */
 
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-  validateNonEmpty,
-  validateMapboxStylesUrl,
-  getCategoricalSchemeRegistry,
-  getSequentialSchemeRegistry,
-  SequentialScheme,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { FeatureFlag, isFeatureEnabled, validateNonEmpty, validateMapboxStylesUrl, getCategoricalSchemeRegistry, getSequentialSchemeRegistry, SequentialScheme,  } from '@superset-ui/core';
 import {
   ControlPanelState,
   CustomControlItem,

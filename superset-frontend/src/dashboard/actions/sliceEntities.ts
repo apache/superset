@@ -17,12 +17,8 @@
  * under the License.
  */
 import rison from 'rison';
-import {
-  DatasourceType,
-  SupersetClient,
-  t,
-  getClientErrorObject,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { DatasourceType, SupersetClient, getClientErrorObject,  } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Dispatch } from 'redux';
 import { Slice } from '../types';

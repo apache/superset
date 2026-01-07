@@ -23,7 +23,8 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { logging, NativeFilterScope, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { logging, NativeFilterScope } from '@superset-ui/core';
 import { BuildTreeLeafTitle, TreeItem } from './types';
 
 export const isShowTypeInTree = ({ type }: LayoutItem) =>

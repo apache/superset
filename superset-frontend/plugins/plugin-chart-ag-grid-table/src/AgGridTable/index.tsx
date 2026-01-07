@@ -42,13 +42,8 @@ import {
   CellClickedEvent,
   IMenuActionParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
-import {
-  AgGridChartState,
-  DataRecordValue,
-  DataRecord,
-  JsonObject,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { AgGridChartState, DataRecordValue, DataRecord, JsonObject,  } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode, SyntheticEvent } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
 
 // Importing svg images

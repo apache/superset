@@ -28,19 +28,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  ensureIsArray,
-  t,
-  getChartControlPanelRegistry,
-  QueryFormData,
-  DatasourceType,
-  isDefined,
-  JsonValue,
-  NO_TIME_RANGE,
-  usePrevious,
-  isFeatureEnabled,
-  FeatureFlag,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray, getChartControlPanelRegistry, QueryFormData, DatasourceType, isDefined, JsonValue, NO_TIME_RANGE, usePrevious, isFeatureEnabled, FeatureFlag,  } from '@superset-ui/core';
 import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   ControlPanelSectionConfig,
