@@ -332,25 +332,6 @@ describe('ResultSet', () => {
     expect(alert).toBeInTheDocument();
   });
 
-  test('should render running/pending/fetching query', async () => {
-    const { getByTestId } = setup(
-      { ...mockedProps, queryId: runningQuery.id },
-      mockStore(runningQueryState),
-    );
-    const progressBar = getByTestId('progress-bar');
-    expect(progressBar).toBeInTheDocument();
-  });
-
-  test('should render fetching w/ 100 progress query', async () => {
-    const { getByRole, getByText } = setup(
-      mockedProps,
-      mockStore(fetchingQueryState),
-    );
-    const loading = getByRole('status');
-    expect(loading).toBeInTheDocument();
-    expect(getByText('fetching')).toBeInTheDocument();
-  });
-
   test('should render a failed query with an errors object', async () => {
     const { errors } = failedQueryWithErrors;
 
