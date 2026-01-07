@@ -153,8 +153,7 @@ const QueryStatusBar: FC<QueryStatusBarProps> = ({ query }) => {
     [query.state],
   );
   const prevStepRef = useRef<number>(0);
-  const progress =
-    query.progress > 0 ? parseInt(query.progress.toFixed(0), 10) : undefined;
+  const progress = query.progress > 0 ? query.progress : undefined;
   const { progress_text: progressText } = query.extra ?? {};
   const state =
     query.state === QueryState.Success &&
