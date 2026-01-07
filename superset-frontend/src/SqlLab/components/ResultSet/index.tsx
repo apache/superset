@@ -61,7 +61,6 @@ import {
 import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
