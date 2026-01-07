@@ -155,12 +155,12 @@ const QueryStatusBar: FC<QueryStatusBarProps> = ({ query }) => {
   const prevStepRef = useRef<number>(0);
   const progress =
     query.progress > 0 ? parseInt(query.progress.toFixed(0), 10) : undefined;
-  const { progress_text: progressText } = query.extra;
+  const { progress_text: progressText } = query.extra ?? {};
   const state =
     query.state === QueryState.Success &&
     prevStepRef.current === STATE_TO_STEP[QueryState.Running] &&
     !query.results
-      ? 'fetching'
+      ? QueryState.Fetching
       : query.state;
 
   const currentIndex = STATE_TO_STEP[state] || 0;
