@@ -36,10 +36,6 @@ const Container = styled(Flex)`
   }
 `;
 
-export interface StatusBarProps {
-  queryEditorId: string;
-}
-
 const StatusBar = () => (
   <Container align="center" justify="space-between">
     <ViewExtension viewId={ViewContribution.StatusBar} />
