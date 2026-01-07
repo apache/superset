@@ -65,6 +65,8 @@ export interface ListViewFilter {
   min?: number;
   max?: number;
   dropdownStyle?: React.CSSProperties;
+  autoComplete?: string;
+  inputName?: string;
 }
 
 export type ListViewFilters = ListViewFilter[];

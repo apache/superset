@@ -28,7 +28,6 @@
  * - `commands`: Execute Superset commands and operations
  * - `contributions`: Register UI contributions and customizations
  * - `core`: Access fundamental Superset types and utilities
- * - `environment`: Interact with the execution environment
  * - `extensions`: Manage extension lifecycle and metadata
  * - `sqlLab`: Integrate with SQL Lab functionality
  */
@@ -37,6 +36,5 @@ export * as authentication from './authentication';
 export * as commands from './commands';
 export * as contributions from './contributions';
 export * as core from './core';
-export * as environment from './environment';
 export * as extensions from './extensions';
 export * as sqlLab from './sqlLab';

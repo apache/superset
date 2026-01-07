@@ -26,6 +26,7 @@ from typing import Any, Generator, Iterable, Tuple
 from zipfile import ZipFile
 
 from flask import current_app
+from pydantic import ValidationError
 from superset_core.extensions.types import Manifest
 
 from superset.extensions.types import BundleFile, LoadedExtension
@@ -121,7 +122,7 @@ def get_bundle_files_from_path(base_path: str) -> Generator[BundleFile, None, No
 
 
 def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
-    manifest: Manifest = {}
+    manifest: Manifest | None = None
     frontend: dict[str, bytes] = {}
     backend: dict[str, bytes] = {}
 
@@ -131,13 +132,12 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
 
         if filename == "manifest.json":
             try:
-                manifest = json.loads(content)
-                if "id" not in manifest:
-                    raise Exception("Missing 'id' in manifest")
-                if "name" not in manifest:
-                    raise Exception("Missing 'name' in manifest")
+                manifest_data = json.loads(content)
+                manifest = Manifest.model_validate(manifest_data)
+            except ValidationError as e:
+                raise Exception(f"Invalid manifest.json: {e}") from e
             except Exception as e:
-                raise Exception("Invalid manifest.json: %s" % e) from e
+                raise Exception(f"Failed to parse manifest.json: {e}") from e
 
         elif (match := FRONTEND_REGEX.match(filename)) is not None:
             frontend[match.group(1)] = content
@@ -146,40 +146,39 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
             backend[match.group(1)] = content
 
         else:
-            raise Exception("Unexpected file in bundle: %s" % filename)
+            raise Exception(f"Unexpected file in bundle: {filename}")
 
-    id_ = manifest["id"]
-    name = manifest["name"]
-    version = manifest["version"]
+    if manifest is None:
+        raise Exception("Missing manifest.json in extension bundle")
+
     return LoadedExtension(
-        id=id_,
-        name=name,
+        id=manifest.id,
+        name=manifest.name,
         manifest=manifest,
         frontend=frontend,
         backend=backend,
-        version=version,
+        version=manifest.version,
     )
 
 
 def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
-    manifest: Manifest = extension.manifest
+    manifest = extension.manifest
     extension_data: dict[str, Any] = {
-        "id": manifest["id"],
+        "id": manifest.id,
         "name": extension.name,
         "version": extension.version,
-        "description": manifest.get("description", ""),
-        "dependencies": manifest.get("dependencies", []),
-        "extensionDependencies": manifest.get("extensionDependencies", []),
+        "description": manifest.description or "",
+        "dependencies": manifest.dependencies,
     }
-    if frontend := manifest.get("frontend"):
-        module_federation = frontend.get("moduleFederation", {})
-        remote_entry = frontend["remoteEntry"]
+    if manifest.frontend:
+        frontend = manifest.frontend
+        module_federation = frontend.moduleFederation
+        remote_entry_url = f"/api/v1/extensions/{manifest.id}/{frontend.remoteEntry}"
         extension_data.update(
             {
-                "remoteEntry": "/api/v1/extensions/%s/%s"
-                % (manifest["id"], remote_entry),  # noqa: E501
-                "exposedModules": module_federation.get("exposes", []),
-                "contributions": frontend.get("contributions", {}),
+                "remoteEntry": remote_entry_url,
+                "exposedModules": module_federation.exposes,
+                "contributions": frontend.contributions.model_dump(),
             }
         )
     return extension_data
@@ -192,7 +191,7 @@ def get_extensions() -> dict[str, LoadedExtension]:
     for path in current_app.config["LOCAL_EXTENSIONS"]:
         files = get_bundle_files_from_path(path)
         extension = get_loaded_extension(files)
-        extension_id = extension.manifest["id"]
+        extension_id = extension.manifest.id
         extensions[extension_id] = extension
         logger.info(
             "Loading extension %s (ID: %s) from local filesystem",
@@ -205,7 +204,7 @@ def get_extensions() -> dict[str, LoadedExtension]:
         from superset.extensions.discovery import discover_and_load_extensions
 
         for extension in discover_and_load_extensions(extensions_path):
-            extension_id = extension.manifest["id"]
+            extension_id = extension.manifest.id
             if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
                 extensions[extension_id] = extension
                 logger.info(

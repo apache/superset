@@ -1,6 +1,6 @@
 ---
 title: Development
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 <!--
@@ -129,10 +129,6 @@ export const getCurrentTab: () => Tab | undefined;
 export const getDatabases: () => Database[];
 
 export const getTabs: () => Tab[];
-
-export const onDidChangeEditorContent: Event<string>;
-
-export const onDidClosePanel: Event<Panel>;
 
 export const onDidChangeActivePanel: Event<Panel>;
 

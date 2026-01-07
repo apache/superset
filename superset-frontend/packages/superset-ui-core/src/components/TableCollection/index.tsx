@@ -280,7 +280,9 @@ function TableCollection<T extends object>({
 
   const getRowClassName = useCallback(
     (record: Record<string, unknown>) =>
-      record?.id === highlightRowId ? 'table-row-highlighted' : '',
+      highlightRowId !== undefined && record?.id === highlightRowId
+        ? 'table-row-highlighted'
+        : '',
     [highlightRowId],
   );
 

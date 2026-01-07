@@ -49,8 +49,22 @@ const BADGE_PATH_PATTERNS = [
 // Cache for downloaded badges (persists across files in a single build)
 const badgeCache = new Map();
 
+// Track in-flight downloads to prevent duplicate concurrent requests
+const inFlightDownloads = new Map();
+
 // Track if we've already ensured the badges directory exists
 let badgesDirCreated = false;
+
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
+/**
+ * Sleep for a given number of milliseconds
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 /**
  * Generate a stable filename for a badge URL
@@ -74,21 +88,61 @@ function isBadgeUrl(url) {
   try {
     const parsed = new URL(url);
     // Check if it's from a known badge domain
-    if (BADGE_DOMAINS.some((domain) => parsed.hostname.includes(domain))) {
+    if (BADGE_DOMAINS.some(domain => parsed.hostname.includes(domain))) {
       return true;
     }
     // Check if it matches a badge path pattern
-    return BADGE_PATH_PATTERNS.some((pattern) => pattern.test(url));
+    return BADGE_PATH_PATTERNS.some(pattern => pattern.test(url));
   } catch {
     return false;
   }
 }
 
 /**
+ * Fetch a badge with retry logic
+ */
+async function fetchWithRetry(url, retries = MAX_RETRIES) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          // Some services need a user agent
+          'User-Agent': 'Mozilla/5.0 (compatible; DocusaurusBuild/1.0)',
+          Accept: 'image/svg+xml,image/*,*/*',
+        },
+        // Follow redirects
+        redirect: 'follow',
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        const delay = RETRY_DELAY_MS * attempt; // Exponential backoff
+        console.log(
+          `[remark-localize-badges] Retry ${attempt}/${retries} for ${url} after ${delay}ms...`,
+        );
+        await sleep(delay);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+/**
  * Download a badge and return the local path
  */
 async function downloadBadge(url, staticDir) {
-  // Check cache first
+  // Check memory cache first
   if (badgeCache.has(url)) {
     return badgeCache.get(url);
   }
@@ -105,58 +159,67 @@ async function downloadBadge(url, staticDir) {
   const localPath = path.join(badgesDir, filename);
   const webPath = `/badges/${filename}`;
 
-  // Check if already downloaded in a previous build
+  // Check if already downloaded in a previous build or by another concurrent request
   if (fs.existsSync(localPath)) {
     badgeCache.set(url, webPath);
     return webPath;
   }
 
-  console.log(`[remark-localize-badges] Downloading: ${url}`);
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        // Some services need a user agent
-        'User-Agent': 'Mozilla/5.0 (compatible; DocusaurusBuild/1.0)',
-        Accept: 'image/svg+xml,image/*,*/*',
-      },
-      // Follow redirects
-      redirect: 'follow',
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const contentType = response.headers.get('content-type') || '';
-    const content = await response.text();
-
-    // Validate it's actually an SVG or image
-    if (
-      !contentType.includes('svg') &&
-      !contentType.includes('image') &&
-      !content.trim().startsWith('<svg') &&
-      !content.trim().startsWith('<?xml')
-    ) {
-      throw new Error(
-        `Invalid content type: ${contentType}. Expected SVG image.`,
-      );
-    }
-
-    // Write the badge to disk
-    fs.writeFileSync(localPath, content, 'utf8');
-    console.log(`[remark-localize-badges] Saved: ${filename}`);
-
-    badgeCache.set(url, webPath);
-    return webPath;
-  } catch (error) {
-    // Fail the build on badge download failure
-    throw new Error(
-      `[remark-localize-badges] Failed to download badge: ${url}\n` +
-        `Error: ${error.message}\n` +
-        `Build cannot continue with broken badges. Please fix the badge URL or remove it.`,
-    );
+  // Check if there's already an in-flight download for this URL
+  // This prevents duplicate concurrent downloads of the same badge
+  if (inFlightDownloads.has(url)) {
+    return inFlightDownloads.get(url);
   }
+
+  // Create the download promise and store it
+  const downloadPromise = (async () => {
+    // Double-check file existence after acquiring the "lock"
+    if (fs.existsSync(localPath)) {
+      badgeCache.set(url, webPath);
+      return webPath;
+    }
+
+    console.log(`[remark-localize-badges] Downloading: ${url}`);
+
+    try {
+      const response = await fetchWithRetry(url);
+
+      const contentType = response.headers.get('content-type') || '';
+      const content = await response.text();
+
+      // Validate it's actually an SVG or image
+      if (
+        !contentType.includes('svg') &&
+        !contentType.includes('image') &&
+        !content.trim().startsWith('<svg') &&
+        !content.trim().startsWith('<?xml')
+      ) {
+        throw new Error(
+          `Invalid content type: ${contentType}. Expected SVG image.`,
+        );
+      }
+
+      // Write the badge to disk
+      fs.writeFileSync(localPath, content, 'utf8');
+      console.log(`[remark-localize-badges] Saved: ${filename}`);
+
+      badgeCache.set(url, webPath);
+      return webPath;
+    } catch (error) {
+      // Fail the build on badge download failure
+      throw new Error(
+        `[remark-localize-badges] Failed to download badge: ${url}\n` +
+          `Error: ${error.message}\n` +
+          `Build cannot continue with broken badges. Please fix the badge URL or remove it.`,
+      );
+    } finally {
+      // Clean up the in-flight tracker
+      inFlightDownloads.delete(url);
+    }
+  })();
+
+  inFlightDownloads.set(url, downloadPromise);
+  return downloadPromise;
 }
 
 /**
@@ -168,15 +231,14 @@ export default function remarkLocalizeBadges(options = {}) {
   const docsRoot = path.resolve(currentDir, '..');
   const staticDir = options.staticDir || path.join(docsRoot, 'static');
 
-
   return async function transformer(tree) {
     const promises = [];
 
     // Find all image nodes
-    visit(tree, 'image', (node) => {
+    visit(tree, 'image', node => {
       if (isBadgeUrl(node.url)) {
         promises.push(
-          downloadBadge(node.url, staticDir).then((localPath) => {
+          downloadBadge(node.url, staticDir).then(localPath => {
             node.url = localPath;
           }),
         );
@@ -184,7 +246,7 @@ export default function remarkLocalizeBadges(options = {}) {
     });
 
     // Also handle HTML img tags in raw HTML or JSX
-    visit(tree, ['html', 'jsx'], (node) => {
+    visit(tree, ['html', 'jsx'], node => {
       if (!node.value) return;
 
       // Find img src attributes pointing to badge URLs
@@ -195,7 +257,7 @@ export default function remarkLocalizeBadges(options = {}) {
         const url = match[1];
         if (isBadgeUrl(url)) {
           promises.push(
-            downloadBadge(url, staticDir).then((localPath) => {
+            downloadBadge(url, staticDir).then(localPath => {
               node.value = node.value.replace(url, localPath);
             }),
           );
@@ -204,12 +266,12 @@ export default function remarkLocalizeBadges(options = {}) {
     });
 
     // Also handle markdown link images: [![alt](img-url)](link-url)
-    visit(tree, 'link', (node) => {
+    visit(tree, 'link', node => {
       if (node.children) {
-        node.children.forEach((child) => {
+        node.children.forEach(child => {
           if (child.type === 'image' && isBadgeUrl(child.url)) {
             promises.push(
-              downloadBadge(child.url, staticDir).then((localPath) => {
+              downloadBadge(child.url, staticDir).then(localPath => {
                 child.url = localPath;
               }),
             );

@@ -25,6 +25,13 @@ export default function webpackExtendPlugin(): Plugin<void> {
     name: 'custom-webpack-plugin',
     configureWebpack(config) {
       const isDev = process.env.NODE_ENV === 'development';
+
+      // Add YAML loader rule directly to existing rules
+      config.module?.rules?.push({
+        test: /\.ya?ml$/,
+        use: 'js-yaml-loader',
+      });
+
       return {
         devtool: isDev ? 'eval-source-map' : config.devtool,
         ...(isDev && {
