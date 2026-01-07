@@ -124,34 +124,38 @@ const datasetResult = (id: number) => ({
   show_columns: ['id', 'table_name'],
 });
 
-fetchMock.get('glob:*/api/v1/dataset/1', datasetResult(1));
-fetchMock.get(`glob:*/api/v1/dataset/${id}`, datasetResult(id));
-// Mock the dataset list endpoint for the dataset selector dropdown
-fetchMock.get('glob:*/api/v1/dataset/?*', {
-  result: [
-    {
-      id: 1,
-      table_name: 'birth_names',
-      database: { database_name: 'examples' },
-      schema: 'public',
-    },
-  ],
-  count: 1,
-});
+function setupFetchMocks() {
+  fetchMock.get(`glob:*/api/v1/dataset/${id}`, datasetResult(id));
+  // Mock dataset 1 for buildNativeFilter fixtures which use datasetId: 1
+  fetchMock.get('glob:*/api/v1/dataset/1', datasetResult(1));
+  // Mock the dataset list endpoint for the dataset selector dropdown
+  // Uses id from mockDatasource (7) to match fixture data
+  fetchMock.get('glob:*/api/v1/dataset/?*', {
+    result: [
+      {
+        id,
+        table_name: 'birth_names',
+        database: { database_name: 'examples' },
+        schema: 'public',
+      },
+    ],
+    count: 1,
+  });
 
-fetchMock.post('glob:*/api/v1/chart/data', {
-  result: [
-    {
-      status: 'success',
-      data: [
-        { name: 'Aaron', count: 453 },
-        { name: 'Abigail', count: 228 },
-        { name: 'Adam', count: 454 },
-      ],
-      applied_filters: [{ column: 'name' }],
-    },
-  ],
-});
+  fetchMock.post('glob:*/api/v1/chart/data', {
+    result: [
+      {
+        status: 'success',
+        data: [
+          { name: 'Aaron', count: 453 },
+          { name: 'Abigail', count: 228 },
+          { name: 'Adam', count: 454 },
+        ],
+        applied_filters: [{ column: 'name' }],
+      },
+    ],
+  });
+}
 
 const FILTER_TYPE_REGEX = /^filter type$/i;
 const FILTER_NAME_REGEX = /^filter name$/i;
@@ -188,10 +192,15 @@ beforeAll(() => {
   new MainPreset().register();
 });
 
+beforeEach(() => {
+  setupFetchMocks();
+});
+
 afterEach(() => {
   jest.runOnlyPendingTimers();
   jest.useRealTimers();
   jest.restoreAllMocks();
+  fetchMock.restore();
 });
 
 function defaultRender(
@@ -337,12 +346,23 @@ test('validates the column', async () => {
   ).toBeInTheDocument();
 });
 
-// Note: This test validates the "default value" field validation.
-// Feedback suggested adding dataset/column selection using async select flow,
-// but with createNewOnOpen: true, the modal starts in an error state where
-// form fields don't render until validation is resolved, making it infeasible
-// to test the async select flow in this context. The test still validates the
-// core behavior: enabling default value without setting a value shows validation error.
+// This test validates the "default value" field validation.
+//
+// LIMITATION: Does not exercise the full dataset/column selection flow.
+// With createNewOnOpen: true, the modal renders in a state where form fields
+// are visible but selecting dataset/column through async selects requires
+// complex setup that proved unreliable (see PROJECT.md Investigation section).
+//
+// What this test covers:
+// - Default value checkbox can be enabled
+// - Validation error appears when default value is enabled without a value
+//
+// What would require integration/E2E testing:
+// - Full flow: open modal → select dataset → select column → enable default value → validate
+// - This flow is better tested with Playwright where the full component lifecycle is available
+//
+// The core validation logic is still covered - this guards against regressions where
+// the "Please choose a valid value" error fails to appear when default value is enabled.
 test('validates the default value', async () => {
   defaultRender();
   // Wait for the default value checkbox to appear
@@ -360,23 +380,20 @@ test('validates the default value', async () => {
 }, 50000);
 
 test('validates the pre-filter value', async () => {
-  jest.useFakeTimers();
-  try {
-    defaultRender();
+  // Use real timers to avoid userEvent + fake timers compatibility issues
+  defaultRender();
 
-    await userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-    await userEvent.click(getCheckbox(PRE_FILTER_REGEX));
+  await userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
+  await userEvent.click(getCheckbox(PRE_FILTER_REGEX));
 
-    jest.runAllTimers();
-
-    await waitFor(() => {
+  // Wait for validation error to appear
+  await waitFor(
+    () => {
       const errorMessages = screen.getAllByText(PRE_FILTER_REQUIRED_REGEX);
       expect(errorMessages.length).toBeGreaterThan(0);
-    });
-  } finally {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
-  }
+    },
+    { timeout: 10000 },
+  );
 }, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // This test validates that the time range pre-filter option is hidden when the dataset

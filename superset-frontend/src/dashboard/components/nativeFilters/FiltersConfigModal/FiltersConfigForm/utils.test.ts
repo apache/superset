@@ -23,93 +23,86 @@ import { hasTemporalColumns, shouldShowTimeRangePicker } from './utils';
 // This addresses the coverage gap from the skipped FiltersConfigModal test
 // "doesn't render time range pre-filter if there are no temporal columns in datasource"
 
-describe('hasTemporalColumns', () => {
-  const createDataset = (columnTypes: GenericDataType[] | undefined) =>
-    ({
-      column_types: columnTypes,
-    }) as Parameters<typeof hasTemporalColumns>[0];
+type DatasetParam = Parameters<typeof hasTemporalColumns>[0];
 
-  test('returns true when column_types is undefined (precautionary default)', () => {
-    const dataset = createDataset(undefined);
-    expect(hasTemporalColumns(dataset)).toBe(true);
-  });
+const createDataset = (
+  columnTypes: GenericDataType[] | undefined,
+): DatasetParam => ({ column_types: columnTypes }) as DatasetParam;
 
-  test('returns true when column_types is empty array (precautionary default)', () => {
-    const dataset = createDataset([]);
-    expect(hasTemporalColumns(dataset)).toBe(true);
-  });
+test('hasTemporalColumns returns true when column_types is undefined (precautionary default)', () => {
+  const dataset = createDataset(undefined);
+  expect(hasTemporalColumns(dataset)).toBe(true);
+});
 
-  test('returns true when column_types includes Temporal', () => {
-    const dataset = createDataset([
-      GenericDataType.String,
-      GenericDataType.Temporal,
-      GenericDataType.Numeric,
-    ]);
-    expect(hasTemporalColumns(dataset)).toBe(true);
-  });
+test('hasTemporalColumns returns true when column_types is empty array (precautionary default)', () => {
+  const dataset = createDataset([]);
+  expect(hasTemporalColumns(dataset)).toBe(true);
+});
 
-  test('returns true when column_types is only Temporal', () => {
-    const dataset = createDataset([GenericDataType.Temporal]);
-    expect(hasTemporalColumns(dataset)).toBe(true);
-  });
+test('hasTemporalColumns returns true when column_types includes Temporal', () => {
+  const dataset = createDataset([
+    GenericDataType.String,
+    GenericDataType.Temporal,
+    GenericDataType.Numeric,
+  ]);
+  expect(hasTemporalColumns(dataset)).toBe(true);
+});
 
-  test('returns false when column_types has no Temporal columns', () => {
-    const dataset = createDataset([
-      GenericDataType.String,
-      GenericDataType.Numeric,
-    ]);
-    expect(hasTemporalColumns(dataset)).toBe(false);
-  });
+test('hasTemporalColumns returns true when column_types is only Temporal', () => {
+  const dataset = createDataset([GenericDataType.Temporal]);
+  expect(hasTemporalColumns(dataset)).toBe(true);
+});
 
-  test('returns false when column_types has only Numeric columns', () => {
-    const dataset = createDataset([GenericDataType.Numeric]);
-    expect(hasTemporalColumns(dataset)).toBe(false);
-  });
+test('hasTemporalColumns returns false when column_types has no Temporal columns', () => {
+  const dataset = createDataset([
+    GenericDataType.String,
+    GenericDataType.Numeric,
+  ]);
+  expect(hasTemporalColumns(dataset)).toBe(false);
+});
 
-  test('returns false when column_types has only String columns', () => {
-    const dataset = createDataset([GenericDataType.String]);
-    expect(hasTemporalColumns(dataset)).toBe(false);
-  });
+test('hasTemporalColumns returns false when column_types has only Numeric columns', () => {
+  const dataset = createDataset([GenericDataType.Numeric]);
+  expect(hasTemporalColumns(dataset)).toBe(false);
+});
 
-  test('returns false when column_types has Boolean but no Temporal', () => {
-    const dataset = createDataset([
-      GenericDataType.Boolean,
-      GenericDataType.String,
-    ]);
-    expect(hasTemporalColumns(dataset)).toBe(false);
-  });
+test('hasTemporalColumns returns false when column_types has only String columns', () => {
+  const dataset = createDataset([GenericDataType.String]);
+  expect(hasTemporalColumns(dataset)).toBe(false);
+});
 
-  test('handles null dataset gracefully', () => {
-    // @ts-expect-error testing null input
-    expect(hasTemporalColumns(null)).toBe(true);
-  });
+test('hasTemporalColumns returns false when column_types has Boolean but no Temporal', () => {
+  const dataset = createDataset([
+    GenericDataType.Boolean,
+    GenericDataType.String,
+  ]);
+  expect(hasTemporalColumns(dataset)).toBe(false);
+});
+
+test('hasTemporalColumns handles null dataset gracefully', () => {
+  // @ts-expect-error testing null input
+  expect(hasTemporalColumns(null)).toBe(true);
 });
 
 // Test shouldShowTimeRangePicker - wrapper function used by FiltersConfigForm
 // to determine if time range picker should be displayed in pre-filter settings
-describe('shouldShowTimeRangePicker', () => {
-  const createDataset = (columnTypes: GenericDataType[] | undefined) =>
-    ({
-      column_types: columnTypes,
-    }) as Parameters<typeof shouldShowTimeRangePicker>[0];
 
-  test('returns true when dataset is undefined (precautionary default)', () => {
-    expect(shouldShowTimeRangePicker(undefined)).toBe(true);
-  });
+test('shouldShowTimeRangePicker returns true when dataset is undefined (precautionary default)', () => {
+  expect(shouldShowTimeRangePicker(undefined)).toBe(true);
+});
 
-  test('returns true when dataset has temporal columns', () => {
-    const dataset = createDataset([
-      GenericDataType.String,
-      GenericDataType.Temporal,
-    ]);
-    expect(shouldShowTimeRangePicker(dataset)).toBe(true);
-  });
+test('shouldShowTimeRangePicker returns true when dataset has temporal columns', () => {
+  const dataset = createDataset([
+    GenericDataType.String,
+    GenericDataType.Temporal,
+  ]);
+  expect(shouldShowTimeRangePicker(dataset)).toBe(true);
+});
 
-  test('returns false when dataset has no temporal columns', () => {
-    const dataset = createDataset([
-      GenericDataType.String,
-      GenericDataType.Numeric,
-    ]);
-    expect(shouldShowTimeRangePicker(dataset)).toBe(false);
-  });
+test('shouldShowTimeRangePicker returns false when dataset has no temporal columns', () => {
+  const dataset = createDataset([
+    GenericDataType.String,
+    GenericDataType.Numeric,
+  ]);
+  expect(shouldShowTimeRangePicker(dataset)).toBe(false);
 });
