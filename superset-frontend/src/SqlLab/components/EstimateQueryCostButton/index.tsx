@@ -27,6 +27,7 @@ import {
   ModalTrigger,
   TableView,
   EmptyWrapperType,
+  Icons,
 } from '@superset-ui/core/components';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, QueryCostEstimate } from 'src/SqlLab/types';
@@ -36,6 +37,7 @@ export interface EstimateQueryCostButtonProps {
   queryEditorId: string;
   tooltip?: string;
   disabled?: boolean;
+  compactMode?: boolean;
 }
 
 const CostEstimateModalStyles = styled.div`
@@ -49,6 +51,7 @@ const EstimateQueryCostButton = ({
   queryEditorId,
   tooltip = '',
   disabled = false,
+  compactMode = false,
 }: EstimateQueryCostButtonProps) => {
   const queryCostEstimate = useSelector<
     SqlLabRootState,
@@ -111,13 +114,16 @@ const EstimateQueryCostButton = ({
         modalBody={renderModalBody()}
         triggerNode={
           <Button
+            buttonStyle="secondary"
             style={{ height: 32, padding: '4px 15px' }}
             onClick={onClickHandler}
             key="query-estimate-btn"
             tooltip={tooltip}
             disabled={disabled}
+            icon={<Icons.MonitorOutlined iconSize="m" />}
+            aria-label={btnText}
           >
-            {btnText}
+            {!compactMode ? btnText : undefined}
           </Button>
         }
       />

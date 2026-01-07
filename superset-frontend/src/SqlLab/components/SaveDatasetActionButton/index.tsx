@@ -19,27 +19,61 @@
 import { t } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { Button, DropdownButton } from '@superset-ui/core/components';
 
 interface SaveDatasetActionButtonProps {
   setShowSave: (arg0: boolean) => void;
-  overlayMenu: JSX.Element | null;
+  onSaveAsExplore?: () => void;
+  compactMode?: boolean;
 }
 
 const SaveDatasetActionButton = ({
   setShowSave,
-  overlayMenu,
+  onSaveAsExplore,
+  compactMode,
 }: SaveDatasetActionButtonProps) => {
   const theme = useTheme();
 
-  return !overlayMenu ? (
+  if (compactMode) {
+    return (
+      <>
+        <Button
+          onClick={() => setShowSave(true)}
+          buttonStyle="secondary"
+          icon={<Icons.SaveOutlined />}
+          tooltip={t('Save query')}
+        />
+        {onSaveAsExplore && (
+          <Button
+            onClick={() => onSaveAsExplore?.()}
+            buttonStyle="secondary"
+            icon={<Icons.TableOutlined />}
+            tooltip={t('Save or Overwrite Dataset')}
+          />
+        )}
+      </>
+    );
+  }
+
+  return !onSaveAsExplore ? (
     <Button onClick={() => setShowSave(true)} buttonStyle="primary">
       {t('Save')}
     </Button>
   ) : (
     <DropdownButton
       onClick={() => setShowSave(true)}
-      popupRender={() => overlayMenu}
+      popupRender={() => (
+        <Menu
+          items={[
+            {
+              label: t('Save dataset'),
+              key: 'save-dataset',
+              onClick: onSaveAsExplore,
+            },
+          ]}
+        />
+      )}
       icon={
         <Icons.DownOutlined iconSize="xs" iconColor={theme.colorPrimaryText} />
       }

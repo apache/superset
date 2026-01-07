@@ -16,9 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export enum ViewContribution {
-  RightSidebar = 'sqllab.rightSidebar',
-  Panels = 'sqllab.panels',
-  Editor = 'sqllab.editor',
-  StatusBar = 'sqllab.statusBar',
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+
+export interface ViewExtensionProps {
+  viewId: string;
 }
+
+const ViewExtension = ({ viewId }: ViewExtensionProps) => {
+  const contributions =
+    ExtensionsManager.getInstance().getViewContributions(viewId) || [];
+  const { getView } = useExtensionsContext();
+
+  return <>{contributions.map(contribution => getView(contribution.id))}</>;
+};
+
+export default ViewExtension;

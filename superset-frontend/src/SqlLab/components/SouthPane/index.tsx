@@ -25,9 +25,11 @@ import { css, styled, useTheme } from '@apache-superset/core/ui';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
-import { Label } from '@superset-ui/core/components';
+import { Flex, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
+import { ViewContribution } from 'src/SqlLab/contributions';
+import MenuExtension from 'src/components/MenuExtension';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -41,7 +43,6 @@ import {
 } from '../../constants';
 import Results from './Results';
 import TablePreview from '../TablePreview';
-import { ViewContribution } from 'src/SqlLab/contributions';
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -73,6 +74,10 @@ const StyledPane = styled.div`
       overflow-y: auto;
     }
   }
+  .ant-tabs-extra-content {
+    margin: 0 ${({ theme }) => theme.sizeUnit * 4}px
+      ${({ theme }) => theme.sizeUnit * 2}px;
+  }
   .ant-tabs-tabpane {
     .scrollable {
       overflow-y: auto;
@@ -101,7 +106,7 @@ const SouthPane = ({
   const dispatch = useDispatch();
   const contributions =
     ExtensionsManager.getInstance().getViewContributions(
-      ViewContribution.SouthPanels,
+      ViewContribution.Panels,
     ) || [];
   const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
@@ -219,6 +224,18 @@ const SouthPane = ({
   return (
     <StyledPane data-test="south-pane" className="SouthPane" ref={southPaneRef}>
       <Tabs
+        tabBarExtraContent={{
+          right: (
+            <Flex
+              css={css`
+                padding: 8px;
+              `}
+            >
+              <MenuExtension viewId={ViewContribution.Panels} primary />
+              <MenuExtension viewId={ViewContribution.Panels} secondary />
+            </Flex>
+          ),
+        }}
         type="editable-card"
         activeKey={pinnedTableKeys[activeSouthPaneTab] || activeSouthPaneTab}
         className="SouthPaneTabs"

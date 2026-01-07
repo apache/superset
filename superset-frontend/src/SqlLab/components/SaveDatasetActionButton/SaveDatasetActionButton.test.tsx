@@ -17,20 +17,16 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { Menu } from '@superset-ui/core/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
-
-const overlayMenu = (
-  <Menu items={[{ label: 'Save dataset', key: 'save-dataset' }]} />
-);
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetActionButton', () => {
   test('renders a split save button', async () => {
+    const onSaveAsExplore = jest.fn();
     render(
       <SaveDatasetActionButton
         setShowSave={() => true}
-        overlayMenu={overlayMenu}
+        onSaveAsExplore={onSaveAsExplore}
       />,
     );
 
@@ -45,10 +41,11 @@ describe('SaveDatasetActionButton', () => {
   });
 
   test('renders a "save dataset" dropdown menu item when user clicks caret button', async () => {
+    const onSaveAsExplore = jest.fn();
     render(
       <SaveDatasetActionButton
         setShowSave={() => true}
-        overlayMenu={overlayMenu}
+        onSaveAsExplore={onSaveAsExplore}
       />,
     );
 

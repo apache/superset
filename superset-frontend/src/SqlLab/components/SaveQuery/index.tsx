@@ -30,7 +30,6 @@ import {
   Col,
   Icons,
 } from '@superset-ui/core/components';
-import { Menu } from '@superset-ui/core/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 import {
   SaveDatasetModal,
@@ -53,6 +52,7 @@ interface SaveQueryProps {
   onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
   database: Partial<DatabaseObject> | undefined;
+  compactMode?: boolean;
 }
 
 export type QueryPayload = {
@@ -81,6 +81,7 @@ const SaveQuery = ({
   saveQueryWarning,
   database,
   columns,
+  compactMode,
 }: SaveQueryProps) => {
   const queryEditor = useQueryEditor(queryEditorId, [
     'autorun',
@@ -116,20 +117,10 @@ const SaveQuery = ({
   const shouldShowSaveButton =
     database?.allows_virtual_table_explore !== undefined;
 
-  const overlayMenu = (
-    <Menu
-      items={[
-        {
-          label: t('Save dataset'),
-          key: 'save-dataset',
-          onClick: () => {
-            logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
-            setShowSaveDatasetModal(true);
-          },
-        },
-      ]}
-    />
-  );
+  const onSaveAsExplore = () => {
+    logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
+    setShowSaveDatasetModal(true);
+  };
 
   const queryPayload = () => ({
     name: label,
@@ -209,7 +200,8 @@ const SaveQuery = ({
       {shouldShowSaveButton && (
         <SaveDatasetActionButton
           setShowSave={setShowSave}
-          overlayMenu={canExploreDatabase ? overlayMenu : null}
+          onSaveAsExplore={canExploreDatabase ? onSaveAsExplore : undefined}
+          compactMode={compactMode}
         />
       )}
       <SaveDatasetModal
