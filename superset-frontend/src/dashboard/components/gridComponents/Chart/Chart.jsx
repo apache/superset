@@ -317,7 +317,10 @@ const Chart = props => {
   const getChartHeight = useCallback(() => {
     const headerHeight = getHeaderHeight();
     const queriedLabelHeight = queriedDttm ? QUERIED_LABEL_HEIGHT : 0;
-    return Math.max(height - headerHeight - descriptionHeight - queriedLabelHeight, 20);
+    return Math.max(
+      height - headerHeight - descriptionHeight - queriedLabelHeight,
+      20,
+    );
   }, [getHeaderHeight, height, descriptionHeight, queriedDttm]);
 
   const handleFilterMenuOpen = useCallback(
