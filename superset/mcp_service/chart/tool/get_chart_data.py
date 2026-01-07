@@ -161,7 +161,10 @@ async def get_chart_data(  # noqa: C901
                 from superset.common.query_context_factory import QueryContextFactory
 
                 factory = QueryContextFactory()
-                row_limit = min(request.limit or 100, MAX_ROW_LIMIT)
+                # Use request.limit if specified, otherwise use chart's configured
+                # row_limit, with MAX_ROW_LIMIT as safety cap
+                chart_row_limit = form_data.get("row_limit", 1000)
+                row_limit = min(request.limit or chart_row_limit, MAX_ROW_LIMIT)
                 query_context = factory.create(
                     datasource={
                         "id": chart.datasource_id,
