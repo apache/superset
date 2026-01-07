@@ -344,7 +344,9 @@ categories:
       contributors: ["@rodo"]
 
     - name: PlaidCloud
-      url: https://www.plaidcloud.com
+      url: https://plaidcloud.com
+      logo: plaidcloud.svg
+      contributors: ["@rad-pat"]
 
     - name: Preset, Inc.
       url: https://preset.io
