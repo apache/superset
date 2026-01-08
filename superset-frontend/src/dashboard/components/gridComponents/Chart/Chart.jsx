@@ -314,8 +314,8 @@ const Chart = props => {
   }, [headerRef]);
 
   const queriedDttm = Array.isArray(queriesResponse)
-    ? queriesResponse[queriesResponse.length - 1]?.queried_dttm ?? null
-    : queriesResponse?.queried_dttm ?? null;
+    ? (queriesResponse[queriesResponse.length - 1]?.queried_dttm ?? null)
+    : (queriesResponse?.queried_dttm ?? null);
 
   const getChartHeight = useCallback(() => {
     const headerHeight = getHeaderHeight();
@@ -626,6 +626,7 @@ const Chart = props => {
         isExpanded={isExpanded}
         isCached={isCached}
         cachedDttm={cachedDttm}
+        queriedDttm={queriedDttm}
         updatedDttm={chartUpdateEndTime}
         toggleExpandSlice={boundActionCreators.toggleExpandSlice}
         forceRefresh={forceRefresh}
