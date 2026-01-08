@@ -270,7 +270,7 @@ def test_granularity_sqla_override_updates_temporal_range_filter_subject(
     """
 
     form_data_with_temporal_filter = {
-        "datasource": f"{dataset.id}__table",
+        "datasource": f"{dataset.id}__{dataset.type}",
         "viz_type": "country_map",
         "time_range": "Last week",
         "adhoc_filters": [
@@ -302,7 +302,7 @@ def test_granularity_sqla_override_updates_temporal_range_filter_subject(
         },
     }
 
-    test_form_data_key = "test_granularity_override_key"
+    test_form_data_key = f"test_granularity_override_key_{chart_id}_{dataset.id}"
     entry: TemporaryExploreState = {
         "owner": admin_id,
         "datasource_id": dataset.id,
@@ -331,18 +331,14 @@ def test_granularity_sqla_override_updates_temporal_range_filter_subject(
             and f.get("expressionType") == "SIMPLE"
         ]
 
-        assert len(temporal_range_filters) == 2, (
-            "Expected two TEMPORAL_RANGE filters"
-        )
+        assert len(temporal_range_filters) == 2, "Expected two TEMPORAL_RANGE filters"
         for temporal_filter in temporal_range_filters:
             assert temporal_filter["subject"] == "year", (
                 "Time Column native filter (granularity_sqla) should override "
                 "TEMPORAL_RANGE filter subject for all matching filters"
             )
 
-        non_temporal_filters = [
-            f for f in adhoc_filters if f.get("operator") == "=="
-        ]
+        non_temporal_filters = [f for f in adhoc_filters if f.get("operator") == "=="]
         assert len(non_temporal_filters) == 1
         assert non_temporal_filters[0]["subject"] == "non_temporal_col"
 

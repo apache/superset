@@ -1059,7 +1059,9 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:  # noqa: C901
                     if fltr
                 )
 
-    if granularity_sqla_override := extra_form_data.get("granularity_sqla"):
+    granularity_sqla_override = extra_form_data.get("granularity_sqla")
+
+    if granularity_sqla_override is not None:
         for adhoc_filter in form_data.get("adhoc_filters", []):
             if (
                 adhoc_filter.get("operator") == "TEMPORAL_RANGE"
