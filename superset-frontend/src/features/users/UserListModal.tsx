@@ -332,12 +332,12 @@ export const UserListAddModal = (
 
 export const UserListEditModal = (
   props: Omit<UserModalProps, 'isEditMode'> & { user: UserObject },
-) => <UserListModal {...props} isEditMode={true} isPasswordChange={false} />;
+) => <UserListModal {...props} isEditMode isPasswordChange={false} />;
 
 export const UserListPasswordChangeModal = (
   props: Omit<UserModalProps, 'isEditMode' | 'isPasswordChange'> & {
     user: UserObject;
   },
-) => <UserListModal {...props} isEditMode={false} isPasswordChange={true} />;
+) => <UserListModal {...props} isEditMode={false} isPasswordChange />;
 
 export default UserListModal;
