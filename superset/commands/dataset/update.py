@@ -212,26 +212,37 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             valid_uuids: set[UUID] = set()
             if metrics:
                 valid_uuids.update(
-                    UUID(metric["uuid"]) for metric in metrics if "uuid" in metric
+                    (
+                        metric["uuid"]
+                        if isinstance(metric["uuid"], UUID)
+                        else UUID(metric["uuid"])
+                    )
+                    for metric in metrics
+                    if "uuid" in metric
                 )
             else:
                 valid_uuids.update(metric.uuid for metric in self._model.metrics)
 
             if columns:
                 valid_uuids.update(
-                    UUID(column["uuid"]) for column in columns if "uuid" in column
+                    (
+                        column["uuid"]
+                        if isinstance(column["uuid"], UUID)
+                        else UUID(column["uuid"])
+                    )
+                    for column in columns
+                    if "uuid" in column
                 )
             else:
                 valid_uuids.update(column.uuid for column in self._model.columns)
 
+            schema = FolderSchema(many=True)
             try:
-                validate_folders(folders, valid_uuids)
+                loaded_folders = schema.load(folders)
+                validate_folders(loaded_folders, valid_uuids)
+                self._properties["folders"] = schema.dump(loaded_folders)
             except ValidationError as ex:
                 exceptions.append(ex)
-
-            # dump schema to convert UUID to string
-            schema = FolderSchema(many=True)
-            self._properties["folders"] = schema.dump(folders)
 
     def _validate_columns(
         self, columns: list[dict[str, Any]], exceptions: list[ValidationError]

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
+import { FoldersEditorItemType } from 'src/components/Datasource/types';
 import { DndItemType } from '../DndItemType';
 
 export type DndItemValue = ColumnMeta | Metric;
@@ -48,24 +49,25 @@ export type DatasourcePanelColumn = {
   type?: string;
 };
 
+export type DatasourceFolderItem = {
+  type: FoldersEditorItemType.Column | FoldersEditorItemType.Metric;
+  uuid: string;
+  name: string;
+};
 export type DatasourceFolder = {
   uuid: string;
-  type: 'folder';
+  type: FoldersEditorItemType.Folder;
   name: string;
   description?: string;
-  children?: (
-    | DatasourceFolder
-    | { type: 'metric'; uuid: string; name: string }
-    | { type: 'column'; uuid: string; name: string }
-  )[];
+  children?: (DatasourceFolder | DatasourceFolderItem)[];
 };
 
 export type MetricItem = Metric & {
-  type: 'metric';
+  type: FoldersEditorItemType.Metric;
 };
 
 export type ColumnItem = DatasourcePanelColumn & {
-  type: 'column';
+  type: FoldersEditorItemType.Column;
 };
 
 export type FolderItem = MetricItem | ColumnItem;
