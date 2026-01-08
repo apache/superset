@@ -1217,7 +1217,7 @@ msgstr ""
 "dans les paramètres de fragment SQL du jeu de données virtuel."
 
 msgid "Aggregate"
-msgstr "Agrégger"
+msgstr "Agréger"
 
 msgid "Aggregate Mean"
 msgstr "Moyenne agrégée"
