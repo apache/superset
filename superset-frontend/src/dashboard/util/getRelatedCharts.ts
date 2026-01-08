@@ -128,7 +128,12 @@ export function getRelatedChartsForChartCustomization(
     return [];
   }
 
-  const targetDatasetId = String(dataset);
+  let targetDatasetId: string;
+  if (typeof dataset === 'object' && dataset !== null && 'value' in dataset) {
+    targetDatasetId = String(dataset.value);
+  } else {
+    targetDatasetId = String(dataset);
+  }
 
   return Object.values(slices)
     .filter(slice => {
