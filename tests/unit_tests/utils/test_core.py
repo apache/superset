@@ -39,6 +39,7 @@ from superset.utils.core import (
     get_user_agent,
     is_test,
     merge_extra_filters,
+    merge_extra_form_data,
     merge_request_params,
     normalize_dttm_col,
     parse_boolean_string,
@@ -1087,6 +1088,73 @@ def test_merge_extra_filters_when_applied_time_extras_predefined():
         "applied_time_extras": {"__time_range": "Last week"},
         "adhoc_filters": [],
     }
+
+
+def test_merge_extra_form_data_updates_temporal_range_subject():
+    """
+    Test that when extra_form_data contains granularity_sqla, it should update
+    the subject of any TEMPORAL_RANGE adhoc filter to use the new time column.
+    """
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+            "time_range": "Last week",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["subject"] == "event_date"
+    assert form_data["time_range"] == "Last week"
+    assert form_data["granularity"] == "event_date"
+
+
+def test_time_column_filter_with_multiple_temporal_range_filters():
+    """
+    Test that Time Column native filter updates ALL TEMPORAL_RANGE filters
+    in the adhoc_filters list, but leaves non-TEMPORAL_RANGE filters unchanged.
+    """
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Last week",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "default_time_col",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": "foo",
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "some_column",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": "Last month",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "another_time_col",
+            },
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "selected_time_col",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["subject"] == "selected_time_col"
+    assert form_data["adhoc_filters"][1]["subject"] == "some_column"
+    assert form_data["adhoc_filters"][2]["subject"] == "selected_time_col"
 
 
 def test_merge_request_params_when_url_params_undefined():

@@ -254,3 +254,72 @@ def test_get_url_params(test_client, login_as_admin, chart_id):
         "foo": "bar",
         "slice_id": str(chart_id),
     }
+
+
+def test_granularity_sqla_override_updates_temporal_range_filter_subject(
+    test_client, login_as_admin, chart_id, admin_id, dataset
+):
+    """
+    Test that extra_form_data.granularity_sqla overrides TEMPORAL_RANGE filter subject.
+
+    The flow is:
+    1. Chart has a TEMPORAL_RANGE adhoc filter on 'original_time_col'
+    2. Dashboard applies Time Column native filter selecting 'year' via extra_form_data
+    3. Explore API processes form_data through merge_extra_filters/merge_extra_form_data
+    4. The TEMPORAL_RANGE filter's subject should be updated to 'year'
+    """
+
+    form_data_with_temporal_filter = {
+        "datasource": f"{dataset.id}__table",
+        "viz_type": "country_map",
+        "time_range": "Last week",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "some_other_time_col",
+            }
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "year",
+            "time_range": "Last month",
+        },
+    }
+
+    test_form_data_key = "test_granularity_override_key"
+    entry: TemporaryExploreState = {
+        "owner": admin_id,
+        "datasource_id": dataset.id,
+        "datasource_type": dataset.type,
+        "chart_id": chart_id,
+        "form_data": json.dumps(form_data_with_temporal_filter),
+    }
+    cache_manager.explore_form_data_cache.set(test_form_data_key, entry)
+
+    resp = test_client.get(
+        f"api/v1/explore/?form_data_key={test_form_data_key}"
+        f"&datasource_id={dataset.id}&datasource_type={dataset.type}"
+    )
+    assert resp.status_code == 200
+
+    data = json.loads(resp.data.decode("utf-8"))
+    result = data.get("result")
+    form_data = result["form_data"]
+
+    adhoc_filters = form_data.get("adhoc_filters", [])
+    temporal_range_filters = [
+        f for f in adhoc_filters if f.get("operator") == "TEMPORAL_RANGE"
+    ]
+
+    assert len(temporal_range_filters) > 0, (
+        "Expected at least one TEMPORAL_RANGE filter"
+    )
+    assert temporal_range_filters[0]["subject"] == "year", (
+        "Time Column native filter (granularity_sqla) should override "
+        "TEMPORAL_RANGE filter subject"
+    )
+
+    assert form_data["time_range"] == "Last month"
+    assert form_data.get("granularity") == "year"
