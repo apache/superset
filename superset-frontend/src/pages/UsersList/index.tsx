@@ -342,7 +342,7 @@ function UsersList({ user }: UsersListProps) {
           const handlePasswordChange = () => {
             setCurrentUser(original);
             openModal(ModalType.PASSWORD_CHANGE);
-          }
+          };
           const actions = isAdmin
             ? [
                 {
@@ -365,7 +365,7 @@ function UsersList({ user }: UsersListProps) {
                   placement: 'bottom',
                   icon: 'KeyOutlined',
                   onClick: handlePasswordChange,
-                }
+                },
               ]
             : [];
 
@@ -592,7 +592,6 @@ function UsersList({ user }: UsersListProps) {
           groups={groups}
         />
       )}
-
 
       <ConfirmStatusChange
         title={t('Please confirm')}

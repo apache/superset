@@ -165,10 +165,7 @@ function UserListModal({
       onHide={onHide}
       name={modalName}
       title={
-        <ModalTitleWithIcon
-          isEditMode={modalIsEditLike}
-          title={modalTitle}
-        />
+        <ModalTitleWithIcon isEditMode={modalIsEditLike} title={modalTitle} />
       }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
@@ -182,7 +179,9 @@ function UserListModal({
               <FormItem
                 name="first_name"
                 label={t('First name')}
-                rules={[{ required: true, message: t('First name is required') }]}
+                rules={[
+                  { required: true, message: t('First name is required') },
+                ]}
               >
                 <Input
                   name="first_name"
@@ -192,7 +191,9 @@ function UserListModal({
               <FormItem
                 name="last_name"
                 label={t('Last name')}
-                rules={[{ required: true, message: t('Last name is required') }]}
+                rules={[
+                  { required: true, message: t('Last name is required') },
+                ]}
               >
                 <Input
                   name="last_name"
@@ -231,10 +232,7 @@ function UserListModal({
                   },
                 ]}
               >
-                <Input
-                  name="email"
-                  placeholder={t("Enter the user's email")}
-                />
+                <Input name="email" placeholder={t("Enter the user's email")} />
               </FormItem>
             </>
           )}
