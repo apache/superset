@@ -253,13 +253,21 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       };
 
       sortByFromOwnState = sortSource
-        .map((sortItem: any) => {
-          const colId = sortItem?.colId || sortItem?.key;
-          const sortKey = mapColIdToIdentifier(colId);
-          if (!sortKey) return null;
-          const isDesc = sortItem?.sort === 'desc' || sortItem?.desc;
-          return [sortKey, !isDesc] as QueryFormOrderBy;
-        })
+        .map(
+          (sortItem: {
+            colId?: string;
+            key?: string;
+            sort?: string;
+            desc?: boolean;
+          }) => {
+            const colId = sortItem?.colId || sortItem?.key;
+            if (!colId) return null;
+            const sortKey = mapColIdToIdentifier(colId);
+            if (!sortKey) return null;
+            const isDesc = sortItem?.sort === 'desc' || sortItem?.desc;
+            return [sortKey, !isDesc] as QueryFormOrderBy;
+          },
+        )
         .filter((item): item is QueryFormOrderBy => item !== null);
 
       // Add secondary sort for stable ordering (matches AG Grid's stable sort behavior)
@@ -439,25 +447,25 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ) {
         // Get columns that have AG Grid filters
         const agGridFilterColumns = new Set(
-          ownState.agGridSimpleFilters.map((filter: any) => filter.col),
+          ownState.agGridSimpleFilters.map(
+            (filter: { col: string }) => filter.col,
+          ),
         );
 
         // Remove existing TEMPORAL_RANGE filters for columns that have new AG Grid filters
         // This prevents duplicate filters like "No filter" and actual date ranges
-        const existingFilters = (queryObject.filters || []).filter(
-          (filter: any) => {
-            // Keep filter if it doesn't have the expected structure
-            if (!filter || typeof filter !== 'object' || !filter.col) {
-              return true;
-            }
-            // Keep filter if it's not a temporal range filter
-            if (filter.op !== 'TEMPORAL_RANGE') {
-              return true;
-            }
-            // Remove if this column has an AG Grid filter
-            return !agGridFilterColumns.has(filter.col);
-          },
-        );
+        const existingFilters = (queryObject.filters || []).filter(filter => {
+          // Keep filter if it doesn't have the expected structure
+          if (!filter || typeof filter !== 'object' || !filter.col) {
+            return true;
+          }
+          // Keep filter if it's not a temporal range filter
+          if (filter.op !== 'TEMPORAL_RANGE') {
+            return true;
+          }
+          // Remove if this column has an AG Grid filter
+          return !agGridFilterColumns.has(filter.col);
+        });
 
         queryObject = {
           ...queryObject,
@@ -605,8 +613,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 // Use this closure to cache changing of external filters, if we have server pagination we need reset page to 0, after
 // external filter changed
 export const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
-  let cachedChanges: any = {};
-  const setCachedChanges = (newChanges: any) => {
+  let cachedChanges: Record<string, unknown> = {};
+  const setCachedChanges = (newChanges: Record<string, unknown>) => {
     cachedChanges = { ...cachedChanges, ...newChanges };
   };
 

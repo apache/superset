@@ -19,7 +19,7 @@
  */
 import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
-import { DataRecord } from '@superset-ui/core';
+import { DataRecord, DataRecordValue } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
@@ -27,6 +27,7 @@ import {
   BasicColorFormatterType,
   CellRendererProps,
   InputColumn,
+  ValueRange,
 } from '../types';
 import getCellClass from './getCellClass';
 import filterValueGetter from './filterValueGetter';
@@ -41,7 +42,7 @@ import { valueFormatter, valueGetter } from './formatValue';
 import getCellStyle from './getCellStyle';
 
 interface InputData {
-  [key: string]: any;
+  [key: string]: DataRecordValue;
 }
 
 type UseColDefsProps = {
@@ -61,8 +62,6 @@ type UseColDefsProps = {
   alignPositiveNegative: boolean;
   slice_id: number;
 };
-
-type ValueRange = [number, number];
 
 function getValueRange(
   key: string,

@@ -237,11 +237,17 @@ export interface InputColumn {
   isNumeric: boolean;
   isMetric: boolean;
   isPercentMetric: boolean;
-  config: Record<string, any>;
-  formatter?: Function;
+  config: TableColumnConfig;
+  formatter?:
+    | TimeFormatter
+    | NumberFormatter
+    | CustomFormatter
+    | CurrencyFormatter;
   originalLabel?: string;
   metricName?: string;
 }
+
+export type ValueRange = [number, number] | null;
 
 export type CellRendererProps = CustomCellRendererProps & {
   hasBasicColorFormatters: boolean | undefined;
@@ -249,7 +255,7 @@ export type CellRendererProps = CustomCellRendererProps & {
   basicColorFormatters: {
     [Key: string]: BasicColorFormatterType;
   }[];
-  valueRange: any;
+  valueRange: ValueRange;
   alignPositiveNegative: boolean;
   colorPositiveNegative: boolean;
   allowRenderHtml: boolean;
