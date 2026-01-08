@@ -50,7 +50,10 @@ import {
   clearAllChartCustomizationsFromMetadata,
 } from 'src/dashboard/actions/chartCustomizationActions';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
-import { getAffectedChartIdsFromCustomizations } from 'src/dashboard/util/getRelatedCharts';
+import {
+  getAffectedChartIdsFromCustomizations,
+  getRelatedChartsForChartCustomization,
+} from 'src/dashboard/util/getRelatedCharts';
 import { Slice } from 'src/types/Chart';
 
 import { useImmer } from 'use-immer';
@@ -322,25 +325,36 @@ const FilterBar: FC<FiltersBarProps> = ({
       pendingChartCustomizations &&
       Object.keys(pendingChartCustomizations).length > 0
     ) {
-      Object.values(pendingChartCustomizations).forEach(
-        (customization: any) => {
-          if (customization) {
-            const customizationFilterId = `chart_customization_${customization.id}`;
-            const dataMask = {
-              extraFormData: {},
-              filterState: {},
-              ownState: {
-                column: customization.customization?.column || null,
-              },
-            };
-            dispatch(updateDataMask(customizationFilterId, dataMask));
-          }
-        },
-      );
-
       const pendingItems = Object.values(pendingChartCustomizations).filter(
         Boolean,
       ) as ChartCustomizationSavePayload[];
+
+      const existingCustomizations = chartCustomizationItems || [];
+      const existingMap = new Map(
+        existingCustomizations.map(item => [item.id, item]),
+      );
+
+      pendingItems.forEach((customization: ChartCustomizationSavePayload) => {
+        const existingItem = existingMap.get(customization.id);
+        const pendingColumn = customization.customization?.column || null;
+        const existingColumn = existingItem?.customization?.column || null;
+
+        const columnChanged =
+          pendingColumn !== existingColumn &&
+          !isEqual(pendingColumn, existingColumn);
+
+        if (columnChanged) {
+          const customizationFilterId = `chart_customization_${customization.id}`;
+          const dataMask = {
+            extraFormData: {},
+            filterState: {},
+            ownState: {
+              column: pendingColumn,
+            },
+          };
+          dispatch(updateDataMask(customizationFilterId, dataMask));
+        }
+      });
 
       if (pendingItems.length > 0) {
         const newCustomizations: ChartCustomizationItem[] = pendingItems.map(
@@ -353,11 +367,6 @@ const FilterBar: FC<FiltersBarProps> = ({
           }),
         );
 
-        const existingCustomizations = chartCustomizationItems || [];
-        const existingMap = new Map(
-          existingCustomizations.map(item => [item.id, item]),
-        );
-
         newCustomizations.forEach(newItem => {
           existingMap.set(newItem.id, newItem);
         });
@@ -366,10 +375,71 @@ const FilterBar: FC<FiltersBarProps> = ({
 
         dispatch(setChartCustomization(mergedCustomizations));
 
-        const uniqueAffectedChartIds = getAffectedChartIdsFromCustomizations(
-          mergedCustomizations,
+        const customizationsWithColumns = mergedCustomizations.filter(item => {
+          if (item.removed) return false;
+          const column = item.customization?.column;
+          if (!column) return false;
+
+          if (typeof column === 'string') {
+            return column.trim() !== '';
+          }
+          if (Array.isArray(column)) {
+            return column.length > 0;
+          }
+          return true;
+        });
+
+        const newAffectedChartIds = getAffectedChartIdsFromCustomizations(
+          customizationsWithColumns,
           slices,
         );
+
+        const previouslyAffectedChartIds: number[] = [];
+        const originalCustomizations = chartCustomizationItems || [];
+
+        originalCustomizations.forEach(oldItem => {
+          const oldColumn = oldItem.customization?.column;
+          const hadColumnBefore =
+            oldColumn !== null &&
+            oldColumn !== undefined &&
+            (typeof oldColumn === 'string'
+              ? oldColumn.trim() !== ''
+              : Array.isArray(oldColumn)
+                ? oldColumn.length > 0
+                : false);
+
+          if (!hadColumnBefore) {
+            return;
+          }
+
+          const newItem = mergedCustomizations.find(
+            item => item.id === oldItem.id,
+          );
+          const wasRemoved = !newItem || newItem.removed;
+
+          const newColumn = newItem?.customization?.column;
+          const hasColumnNow =
+            newColumn !== null &&
+            newColumn !== undefined &&
+            (typeof newColumn === 'string'
+              ? newColumn.trim() !== ''
+              : Array.isArray(newColumn)
+                ? newColumn.length > 0
+                : false);
+
+          if (wasRemoved || !hasColumnNow) {
+            const relatedCharts = getRelatedChartsForChartCustomization(
+              oldItem,
+              slices,
+            );
+            previouslyAffectedChartIds.push(...relatedCharts);
+          }
+        });
+
+        const uniqueAffectedChartIds = [
+          ...new Set([...newAffectedChartIds, ...previouslyAffectedChartIds]),
+        ];
+
         if (uniqueAffectedChartIds.length > 0) {
           uniqueAffectedChartIds.forEach(chartId => {
             dispatch(triggerQuery(true, chartId));
