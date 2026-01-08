@@ -615,43 +615,46 @@ def test_date_range_migration() -> None:
 
 # Tests for bounded whitespace regex patterns in time_range_lookup
 @pytest.mark.parametrize(
-    "time_range,should_parse",
+    "time_range",
     [
-        ("last 7 days : ", True),
-        ("this week : ", True),
-        ("start of next month : ", True),
-        ("prior quarter : ", True),
-        ("last  7 days : ", True),
-        ("last   7 days : ", True),
-        ("last    7 days : ", True),
-        ("last     7 days : ", True),
-        ("last      7 days : ", False),  # 6 spaces - exceeds bound
-        ("start of     next     month : ", True),  # 5 spaces - valid
-        ("last week : ", True),
-        ("last  week : ", True),
-        ("last     week : ", True),
-        ("next 12 months : ", True),
-        ("next  12  months : ", True),
-        ("next     12     months : ", True),
-        ("last7days : ", False),  # no space after scope - invalid
-        ("last 7days : ", True),  # \s{0,5} allows 0 spaces after number - valid
-        ("lastweek : ", False),  # no space after scope - invalid
-        # === Negative Tests: Partial matches ===
-        ("last : ", False),
-        ("start of : ", False),
-        ("last 7 days extra : ", False),
+        "last 7 days : ",
+        "this week : ",
+        "start of next month : ",
+        "prior quarter : ",
+        "last  7 days : ",
+        "last   7 days : ",
+        "last    7 days : ",
+        "last     7 days : ",
+        "start of     next     month : ",  # 5 spaces - valid
+        "last week : ",
+        "last  week : ",
+        "last     week : ",
+        "next 12 months : ",
+        "next  12  months : ",
+        "next     12     months : ",
+        "last 7days : ",  # \s{0,5} allows 0 spaces after number - valid
     ],
 )
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
-def test_time_range_bounded_whitespace_regex(
-    time_range: str, should_parse: bool
-) -> None:
-    """
-    1. Match expressions with 1-5 spaces between tokens
-    2. Reject expressions with 0 or 6+ spaces (fall back to DATETIME wrapping)
-    """
+def test_time_range_bounded_whitespace_regex_valid(time_range: str) -> None:
+    """Match expressions with 1-5 spaces between tokens."""
     result = get_since_until(time_range)
-    if should_parse:
-        assert result[0] is not None, f"Expected '{time_range}' to parse successfully"
-    else:
-        assert result[0] is None, f"Expected '{time_range}' to NOT match bounded regex"
+    assert result[0] is not None, f"Expected '{time_range}' to parse successfully"
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    [
+        "last      7 days : ",
+        "last7days : ",
+        "lastweek : ",
+        "last : ",
+        "start of : ",
+        "last 7 days extra : ",
+    ],
+)
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_time_range_bounded_whitespace_regex_invalid(time_range: str) -> None:
+    """Reject expressions with 0 or 6+ spaces (fall back to DATETIME wrapping)."""
+    result = get_since_until(time_range)
+    assert result[0] is None, f"Expected '{time_range}' to NOT match bounded regex"
