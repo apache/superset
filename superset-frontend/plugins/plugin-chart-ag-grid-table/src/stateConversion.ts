@@ -25,10 +25,7 @@ import {
   type AgGridFilterModel,
   type AgGridFilter,
 } from '@superset-ui/core';
-import {
-  getStartOfDay,
-  getEndOfDay,
-} from './utils/agGridFilterConverter';
+import { getStartOfDay, getEndOfDay } from './utils/agGridFilterConverter';
 
 /**
  * AG Grid text filter type to backend operator mapping

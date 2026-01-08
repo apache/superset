@@ -95,7 +95,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters).toHaveLength(1);
       expect(result.simpleFilters[0]).toEqual({
         col: 'name',
-        op: '==',
+        op: '=',
         val: 'John',
       });
     });
@@ -416,7 +416,7 @@ describe('agGridFilterConverter', () => {
       const result = convertAgGridFiltersToSQL(filterModel);
 
       expect(result.complexWhere).toBe(
-        "(status == 'urgent' OR status == 'critical')",
+        "(status = 'urgent' OR status = 'critical')",
       );
     });
 
@@ -465,7 +465,7 @@ describe('agGridFilterConverter', () => {
       const result = convertAgGridFiltersToSQL(filterModel);
 
       // Should only include valid condition
-      expect(result.complexWhere).toBe("field == 'valid'");
+      expect(result.complexWhere).toBe("field = 'valid'");
     });
 
     it('should handle multi-condition filters (conditions array)', () => {
@@ -496,7 +496,7 @@ describe('agGridFilterConverter', () => {
       const result = convertAgGridFiltersToSQL(filterModel);
 
       expect(result.complexWhere).toBe(
-        "(category == 'A' OR category == 'B' OR category == 'C')",
+        "(category = 'A' OR category = 'B' OR category = 'C')",
       );
     });
   });
@@ -617,7 +617,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters).toHaveLength(1);
       expect(result.simpleFilters[0]).toEqual({
         col: 'status',
-        op: '==',
+        op: '=',
         val: 'active',
       });
 
@@ -828,7 +828,7 @@ describe('agGridFilterConverter', () => {
 
       expect(result.simpleFilters[0]).toEqual({
         col: 'is_active',
-        op: '==',
+        op: '=',
         val: true,
       });
     });
