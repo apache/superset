@@ -15,18 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from flask import g, Response
-from flask_appbuilder.api import expose, safe
+from flask import g, request, Response
+from flask_appbuilder.api import expose, protect, safe
 
+from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
 from superset.daos.key_value import KeyValueDAO
 from superset.embedded_chart.exceptions import (
     EmbeddedChartAccessDeniedError,
     EmbeddedChartPermalinkNotFoundError,
 )
 from superset.explore.permalink.schemas import ExplorePermalinkSchema
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.key_value.shared_entries import get_permalink_salt
 from superset.key_value.types import (
     KeyValueResource,
@@ -34,7 +36,13 @@ from superset.key_value.types import (
     SharedKey,
 )
 from superset.key_value.utils import decode_permalink_id
-from superset.security.guest_token import GuestTokenResourceType, GuestUser
+from superset.security.guest_token import (
+    GuestTokenResource,
+    GuestTokenResourceType,
+    GuestTokenRlsRule,
+    GuestTokenUser,
+    GuestUser,
+)
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -156,4 +164,135 @@ class EmbeddedChartRestApi(BaseSupersetApi):
             return self.response_404()
         except Exception:
             logger.exception("Error fetching embedded chart")
+            return self.response_500()
+
+    @expose("/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        log_to_statsd=False,
+    )
+    def post(self) -> Response:
+        """Create an embeddable chart with guest token.
+        ---
+        post:
+          summary: Create embeddable chart
+          description: >-
+            Creates an embeddable chart configuration with a guest token.
+            The returned iframe_url and guest_token can be used to embed
+            the chart in external applications.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required:
+                    - form_data
+                  properties:
+                    form_data:
+                      type: object
+                      description: Chart form_data configuration
+                    allowed_domains:
+                      type: array
+                      items:
+                        type: string
+                      description: Domains allowed to embed this chart
+                    ttl_minutes:
+                      type: integer
+                      default: 60
+                      description: Time-to-live for the embed in minutes
+          responses:
+            200:
+              description: Embeddable chart created
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      iframe_url:
+                        type: string
+                        description: URL to use in iframe src
+                      guest_token:
+                        type: string
+                        description: Guest token for authentication
+                      permalink_key:
+                        type: string
+                        description: Permalink key for the chart
+                      expires_at:
+                        type: string
+                        format: date-time
+                        description: When the embed expires
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = request.json or {}
+            form_data = body.get("form_data", {})
+            allowed_domains: list[str] = body.get("allowed_domains", [])
+            ttl_minutes: int = body.get("ttl_minutes", 60)
+
+            if not form_data:
+                return self.response_400(message="form_data is required")
+
+            # Create permalink with the form_data
+            state = {
+                "formData": form_data,
+                "allowedDomains": allowed_domains,
+            }
+            permalink_key = CreateExplorePermalinkCommand(state).run()
+
+            # Calculate expiration
+            expires_at = datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)
+
+            # Generate guest token
+            username = g.user.username if hasattr(g, "user") and g.user else "anonymous"
+            guest_user: GuestTokenUser = {
+                "username": f"embed_{username}",
+                "first_name": "Embed",
+                "last_name": "User",
+            }
+
+            resources: list[GuestTokenResource] = [
+                {
+                    "type": GuestTokenResourceType.CHART_PERMALINK,
+                    "id": permalink_key,
+                }
+            ]
+
+            rls_rules: list[GuestTokenRlsRule] = []
+
+            guest_token_result = security_manager.create_guest_access_token(
+                user=guest_user,
+                resources=resources,
+                rls=rls_rules,
+            )
+
+            # Handle both bytes (older PyJWT) and string (PyJWT 2.0+)
+            guest_token = (
+                guest_token_result.decode("utf-8")
+                if isinstance(guest_token_result, bytes)
+                else guest_token_result
+            )
+
+            # Build iframe URL using request host
+            base_url = request.host_url.rstrip("/")
+            iframe_url = f"{base_url}/embedded/chart/?permalink_key={permalink_key}"
+
+            return self.response(
+                200,
+                iframe_url=iframe_url,
+                guest_token=guest_token,
+                permalink_key=permalink_key,
+                expires_at=expires_at.isoformat(),
+            )
+
+        except Exception:
+            logger.exception("Error creating embedded chart")
             return self.response_500()
