@@ -71,9 +71,7 @@ describe('SafeMarkdown', () => {
 
       // This will throw "Cannot set properties of undefined (setting 'inTable')"
       // if remark-gfm v4+ is used with react-markdown v8
-      const { container } = render(
-        <SafeMarkdown source={markdownWithTable} />,
-      );
+      const { container } = render(<SafeMarkdown source={markdownWithTable} />);
 
       // Wait for async markdown rendering
       await waitFor(() => {
@@ -201,9 +199,7 @@ Use \`console.log()\` for debugging ~~or use alerts~~.
         expect(table?.querySelectorAll('tbody tr')).toHaveLength(2);
 
         // Check task list
-        const checkboxes = container.querySelectorAll(
-          'input[type="checkbox"]',
-        );
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
         expect(checkboxes).toHaveLength(2);
       });
     });
