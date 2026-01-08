@@ -111,7 +111,9 @@ class QueryCacheManager:
             self.df = query_result.df
             self.sql_rowcount = query_result.sql_rowcount
             self.annotation_data = {} if annotation_data is None else annotation_data
-            self.queried_dttm = datetime.now(tz=timezone.utc).isoformat().split(".")[0]
+            self.queried_dttm = (
+                datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat()
+            )
 
             if self.status != QueryStatus.FAILED:
                 current_app.config["STATS_LOGGER"].incr("loaded_from_source")
@@ -130,6 +132,7 @@ class QueryCacheManager:
                 "annotation_data": self.annotation_data,
                 "sql_rowcount": self.sql_rowcount,
                 "queried_dttm": self.queried_dttm,
+                "dttm": self.queried_dttm,  # Backwards compatibility
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
                 self.set(

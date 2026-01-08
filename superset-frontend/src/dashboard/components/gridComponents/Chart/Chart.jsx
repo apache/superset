@@ -313,11 +313,13 @@ const Chart = props => {
     return DEFAULT_HEADER_HEIGHT;
   }, [headerRef]);
 
-  const queriedDttm = queriesResponse?.[0]?.queried_dttm ?? null;
+  const queriedDttm = Array.isArray(queriesResponse)
+    ? queriesResponse[queriesResponse.length - 1]?.queried_dttm ?? null
+    : queriesResponse?.queried_dttm ?? null;
 
   const getChartHeight = useCallback(() => {
     const headerHeight = getHeaderHeight();
-    const queriedLabelHeight = queriedDttm ? QUERIED_LABEL_HEIGHT : 0;
+    const queriedLabelHeight = queriedDttm != null ? QUERIED_LABEL_HEIGHT : 0;
     return Math.max(
       height - headerHeight - descriptionHeight - queriedLabelHeight,
       20,
@@ -726,7 +728,7 @@ const Chart = props => {
         />
       </ChartWrapper>
 
-      {!isLoading && queriedDttm && (
+      {!isLoading && queriedDttm != null && (
         <LastQueriedLabel queriedDttm={queriedDttm} />
       )}
 
