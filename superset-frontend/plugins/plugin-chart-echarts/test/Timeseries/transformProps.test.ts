@@ -30,6 +30,10 @@ import {
 import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import transformProps from '../../src/Timeseries/transformProps';
+import {
+  EchartsTimeseriesSeriesType,
+  OrientationType,
+} from '../../src/Timeseries/types';
 
 type YAxisFormatter = (value: number, index: number) => string;
 
@@ -854,4 +858,172 @@ test('EchartsTimeseries should preserve static currency format with £ for GBP',
   // Static mode should always show £
   const formatter = getYAxisFormatter(transformed);
   expect(formatter(1000, 0)).toContain('£');
+});
+
+describe('Horizontal bar chart axis bounds', () => {
+  const baseFormData: SqlaFormData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: '__timestamp',
+    metric: 'sum__num',
+    groupby: [],
+    viz_type: 'echarts_timeseries',
+    seriesType: EchartsTimeseriesSeriesType.Bar,
+    orientation: OrientationType.Horizontal,
+    truncateYAxis: true,
+    yAxisBounds: [null, null],
+  };
+
+  it('should set yAxis max to actual data max for horizontal bar charts', () => {
+    const queriesData = [
+      {
+        data: [
+          { 'Series A': 15000, __timestamp: 599616000000 },
+          { 'Series A': 20000, __timestamp: 599916000000 },
+          { 'Series A': 18000, __timestamp: 600216000000 },
+        ],
+      },
+    ];
+
+    const chartProps = new ChartProps({
+      formData: baseFormData,
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
+    const xAxis = transformedProps.echartOptions.xAxis as any;
+    expect(xAxis.max).toBe(20000); // Should be the actual max value, not rounded
+  });
+
+  it('should set yAxis min and max for diverging horizontal bar charts', () => {
+    const queriesData = [
+      {
+        data: [
+          { 'Series A': -21000, __timestamp: 599616000000 },
+          { 'Series A': 20000, __timestamp: 599916000000 },
+          { 'Series A': 18000, __timestamp: 600216000000 },
+        ],
+      },
+    ];
+
+    const chartProps = new ChartProps({
+      formData: baseFormData,
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
+    const xAxis = transformedProps.echartOptions.xAxis as any;
+    expect(xAxis.max).toBe(20000); // Should be the actual max value
+    expect(xAxis.min).toBe(-21000); // Should be the actual min value for diverging bars
+  });
+
+  it('should not override explicit yAxisBounds', () => {
+    const queriesData = [
+      {
+        data: [
+          { 'Series A': 15000, __timestamp: 599616000000 },
+          { 'Series A': 20000, __timestamp: 599916000000 },
+          { 'Series A': 18000, __timestamp: 600216000000 },
+        ],
+      },
+    ];
+
+    const chartProps = new ChartProps({
+      formData: {
+        ...baseFormData,
+        yAxisBounds: [0, 25000], // Explicit bounds
+      },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
+    const xAxis = transformedProps.echartOptions.xAxis as any;
+    expect(xAxis.max).toBe(25000); // Should respect explicit bound
+    expect(xAxis.min).toBe(0); // Should respect explicit bound
+  });
+
+  it('should not apply when truncateYAxis is false', () => {
+    const queriesData = [
+      {
+        data: [
+          { 'Series A': 15000, __timestamp: 599616000000 },
+          { 'Series A': 20000, __timestamp: 599916000000 },
+          { 'Series A': 18000, __timestamp: 600216000000 },
+        ],
+      },
+    ];
+
+    const chartProps = new ChartProps({
+      formData: {
+        ...baseFormData,
+        truncateYAxis: false,
+      },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
+    const xAxis = transformedProps.echartOptions.xAxis as any;
+    // Should not have explicit max set when truncateYAxis is false
+    expect(xAxis.max).toBeUndefined();
+  });
+
+  it('should not apply when seriesType is not Bar', () => {
+    const queriesData = [
+      {
+        data: [
+          { 'Series A': 15000, __timestamp: 599616000000 },
+          { 'Series A': 20000, __timestamp: 599916000000 },
+          { 'Series A': 18000, __timestamp: 600216000000 },
+        ],
+      },
+    ];
+
+    const chartProps = new ChartProps({
+      formData: {
+        ...baseFormData,
+        seriesType: EchartsTimeseriesSeriesType.Line,
+      },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
+    const xAxis = transformedProps.echartOptions.xAxis as any;
+    // Should not have explicit max set when seriesType is not Bar
+    expect(xAxis.max).toBeUndefined();
+  });
 });
