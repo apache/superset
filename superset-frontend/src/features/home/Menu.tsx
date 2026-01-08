@@ -343,24 +343,26 @@ export function Menu({
             className="main-nav"
             selectedKeys={activeTabs}
             disabledOverflow
-            items={menu.map(item => {
-              const props = {
-                ...item,
-                isFrontendRoute: isFrontendRoute(item.url),
-                childs: item.childs?.map(c => {
-                  if (typeof c === 'string') {
-                    return c;
-                  }
+            items={menu
+              .filter(item => screens.md || item.label === 'Dashboards')
+              .map(item => {
+                const props = {
+                  ...item,
+                  isFrontendRoute: isFrontendRoute(item.url),
+                  childs: item.childs?.map(c => {
+                    if (typeof c === 'string') {
+                      return c;
+                    }
 
-                  return {
-                    ...c,
-                    isFrontendRoute: isFrontendRoute(c.url),
-                  };
-                }),
-              };
+                    return {
+                      ...c,
+                      isFrontendRoute: isFrontendRoute(c.url),
+                    };
+                  }),
+                };
 
-              return buildMenuItem(props);
-            })}
+                return buildMenuItem(props);
+              })}
           />
         </StyledCol>
         <Col md={8} xs={24}>
