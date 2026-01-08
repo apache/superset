@@ -38,7 +38,7 @@ export default {
               validators: [validateNonEmpty],
               default: [],
               description: t(
-                'Layers let you combine multiple visualizations on one map. Each layer is a saved deck.gl chart (like scatter plots, polygons, or arcs) that displays different data or insights. Stack them to reveal patterns and relationships across your data. Layers render in order—first selected appears at the bottom.',
+                'Select layers in the order you want them stacked. First selected appears at the bottom.Layers let you combine multiple visualizations on one map. Each layer is a saved deck.gl chart (like scatter plots, polygons, or arcs) that displays different data or insights. Stack them to reveal patterns and relationships across your data.',
               ),
               dataEndpoint:
                 'api/v1/chart/?q=(filters:!((col:viz_type,opr:sw,value:deck)))',
