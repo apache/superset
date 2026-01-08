@@ -121,6 +121,10 @@ categories:
       url: https://www.bazaartech.com
       contributors: ["@umair-abro"]
 
+    - name: Blinkit
+      url: https://www.blinkit.com/
+      contributors: ["@amsharm2"]
+
     - name: Dragonpass
       url: https://www.dragonpass.com.cn/
       contributors: ["@zhxjdwh"]
@@ -203,10 +207,6 @@ categories:
     - name: Zepto
       url: https://www.zeptonow.com/
       contributors: ["@gwthm-in"]
-
-    - name: Blinkit
-      url: https://www.blinkit.com/
-      contributors: ["@amsharm2"]
 
   Enterprise Technology:
     - name: A3Data
