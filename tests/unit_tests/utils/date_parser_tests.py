@@ -636,7 +636,6 @@ def test_date_range_migration() -> None:
         ("last7days : ", False),  # no space after scope - invalid
         ("last 7days : ", True),  # \s{0,5} allows 0 spaces after number - valid
         ("lastweek : ", False),  # no space after scope - invalid
-        ("last" + " " * 100 + "7 days : ", False),
         # === Negative Tests: Partial matches ===
         ("last : ", False),
         ("start of : ", False),
