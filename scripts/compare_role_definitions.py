@@ -34,7 +34,7 @@ from typing import Any
 
 def load_definitions(path: Path) -> dict[str, Any]:
     """Load role definitions from a JSON file."""
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def compare_sets(
@@ -73,8 +73,8 @@ def generate_diff(
     }
 
     for key in all_keys:
-        base_values = base_constants.get(key, [])
-        head_values = head_constants.get(key, [])
+        base_values = base_constants.get(key) or []
+        head_values = head_constants.get(key) or []
 
         added, removed, _ = compare_sets(base_values, head_values)
 
@@ -250,7 +250,7 @@ def main() -> int:
     try:
         base = load_definitions(base_path)
         head = load_definitions(head_path)
-    except json.JSONDecodeError as e:
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
         print(f"Error parsing JSON: {e}")
         return 1
 

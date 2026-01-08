@@ -52,15 +52,27 @@ ROLE_DEFINING_CONSTANTS = [
 ]
 
 
+def _is_set_or_frozenset_call(node: ast.Call) -> bool:
+    """Check if an AST Call node is a set() or frozenset() call."""
+    if isinstance(node.func, ast.Name):
+        return node.func.id in ("frozenset", "set")
+    if isinstance(node.func, ast.Attribute):
+        # Handle builtins.frozenset, builtins.set, etc.
+        return node.func.attr in ("frozenset", "set")
+    return False
+
+
 def parse_set_or_tuple(node: ast.expr) -> list[Any]:
-    """Parse an AST node representing a set, frozenset, tuple, or set operations."""
+    """Parse an AST node representing a set, frozenset, tuple, list, or set operations."""
     if isinstance(node, ast.Set):
         return [parse_element(elt) for elt in node.elts]
     if isinstance(node, ast.Tuple):
         return [parse_element(elt) for elt in node.elts]
+    if isinstance(node, ast.List):
+        return [parse_element(elt) for elt in node.elts]
     if isinstance(node, ast.Call):
-        # Handle frozenset() or set() calls
-        if isinstance(node.func, ast.Name) and node.func.id in ("frozenset", "set"):
+        # Handle frozenset() or set() calls (including attribute access like builtins.set)
+        if _is_set_or_frozenset_call(node):
             if node.args:
                 return parse_set_or_tuple(node.args[0])
         return []
@@ -120,20 +132,37 @@ def extract_class_attributes(
 def resolve_references(
     definitions: dict[str, list[Any]],
 ) -> dict[str, list[Any]]:
-    """Resolve references to other constants (marked with $)."""
+    """Resolve references to other constants (marked with $) with cycle detection."""
     resolved: dict[str, list[Any]] = {}
+
+    def resolve_value(
+        value: Any,
+        seen: set[str],
+    ) -> list[Any]:
+        """Recursively resolve a single value, tracking seen references for cycles."""
+        if not (isinstance(value, str) and value.startswith("$")):
+            return [value]
+
+        ref_name = value[1:]
+
+        # Cycle detection: if we've seen this reference, skip it
+        if ref_name in seen:
+            return []
+
+        if ref_name not in definitions:
+            return [value]  # Keep unresolved reference as-is
+
+        # Mark as seen and recursively resolve
+        new_seen = seen | {ref_name}
+        result = []
+        for ref_value in definitions[ref_name]:
+            result.extend(resolve_value(ref_value, new_seen))
+        return result
 
     for name, values in definitions.items():
         resolved_values = []
         for value in values:
-            if isinstance(value, str) and value.startswith("$"):
-                ref_name = value[1:]
-                if ref_name in definitions:
-                    resolved_values.extend(definitions[ref_name])
-                else:
-                    resolved_values.append(value)
-            else:
-                resolved_values.append(value)
+            resolved_values.extend(resolve_value(value, {name}))
         resolved[name] = sorted(set(str(v) for v in resolved_values))
 
     return resolved
