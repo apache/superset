@@ -38,11 +38,10 @@ export interface FilterState {
 }
 
 /**
- * Detects which input position (first or second) was last modified in a filter
- * @param gridApi - AG Grid API reference
- * @param filterModel - Current filter model
- * @param activeElement - The currently focused DOM element
- * @returns Object containing lastFilteredColumn and inputPosition
+ * Detects which input position (first or second) was last modified in a filter.
+ * Note: activeElement is captured before async operations and passed here to ensure
+ * we check against the element that was focused when the detection was initiated,
+ * not what might be focused after async operations complete.
  */
 async function detectLastFilteredInput(
   gridApi: GridApi,
@@ -118,15 +117,14 @@ async function detectLastFilteredInput(
 }
 
 /**
- * Gets complete filter state including SQL conversion and input position detection
- * @param gridRef - React ref to AG Grid component
- * @param metricColumns - Array of metric column names for SQL conversion
- * @returns Complete filter state object
+ * Gets complete filter state including SQL conversion and input position detection.
  */
 export async function getCompleteFilterState(
   gridRef: RefObject<AgGridReact>,
   metricColumns: string[],
 ): Promise<FilterState> {
+  // Capture activeElement before any async operations to detect which input
+  // was focused when the user triggered the filter change
   const activeElement = document.activeElement as HTMLElement;
 
   if (!gridRef.current?.api) {

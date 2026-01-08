@@ -63,16 +63,7 @@ const getSortIcon = (sortState: SortState[], colId: string | null) => {
   return null;
 };
 
-/**
- * Auto-opens the filter popover and focuses the correct input field.
- * Used when restoring filter state after server-side filtering to maintain UX continuity.
- *
- * @param column - AG Grid column instance
- * @param api - AG Grid API instance
- * @param filterRef - React ref to the filter DOM container
- * @param setFilterVisible - State setter to control filter popover visibility
- * @param lastFilteredInputPosition - Position of the last filtered input
- */
+// Auto-opens filter popover and focuses the correct input after server-side filtering
 const autoOpenFilterAndFocus = async (
   column: Column,
   api: GridApi,
@@ -176,15 +167,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     }
   };
 
-  /**
-   * Auto-open filter popover for the last filtered column after server data refresh.
-   *
-   * The delay (FILTER_POPOVER_OPEN_DELAY) is necessary to:
-   * 1. Allow AG Grid to complete rendering with new data
-   * 2. Ensure filter instance is available via getColumnFilterInstance()
-   * 3. Allow React reconciliation to complete
-   * 4. Provide smooth UX without jarring immediate reopen
-   */
+  // Re-open filter popover after server refresh (delay allows AG Grid to finish rendering)
   useEffect(() => {
     if (lastFilteredColumn === colId && !isFilterVisible) {
       const timeoutId = setTimeout(

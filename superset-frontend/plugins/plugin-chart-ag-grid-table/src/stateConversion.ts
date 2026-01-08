@@ -25,12 +25,16 @@ import {
   type AgGridFilterModel,
   type AgGridFilter,
 } from '@superset-ui/core';
+import {
+  getStartOfDay,
+  getEndOfDay,
+} from './utils/agGridFilterConverter';
 
 /**
  * AG Grid text filter type to backend operator mapping
  */
 const TEXT_FILTER_OPERATORS: Record<string, string> = {
-  equals: '==',
+  equals: '=',
   notEqual: '!=',
   contains: 'ILIKE',
   notContains: 'NOT ILIKE',
@@ -42,7 +46,7 @@ const TEXT_FILTER_OPERATORS: Record<string, string> = {
  * AG Grid number filter type to backend operator mapping
  */
 const NUMBER_FILTER_OPERATORS: Record<string, string> = {
-  equals: '==',
+  equals: '=',
   notEqual: '!=',
   lessThan: '<',
   lessThanOrEqual: '<=',
@@ -98,45 +102,6 @@ function getTextComparator(type: string, value: string): string {
     return `%${value}`;
   }
   return value;
-}
-
-/**
- * Format a date string to ISO format for SQL queries, preserving local timezone.
- * @param dateStr - Date string from AG Grid filter
- * @returns ISO formatted date string in local timezone
- */
-function formatDateForSQL(dateStr: string): string {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) {
-    return dateStr;
-  }
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-}
-
-/**
- * Get the start of day (00:00:00) for a given date string
- */
-function getStartOfDay(dateStr: string): string {
-  const date = new Date(dateStr);
-  date.setHours(0, 0, 0, 0);
-  return formatDateForSQL(date.toISOString());
-}
-
-/**
- * Get the end of day (23:59:59) for a given date string
- */
-function getEndOfDay(dateStr: string): string {
-  const date = new Date(dateStr);
-  date.setHours(23, 59, 59, 999);
-  return formatDateForSQL(date.toISOString());
 }
 
 /**

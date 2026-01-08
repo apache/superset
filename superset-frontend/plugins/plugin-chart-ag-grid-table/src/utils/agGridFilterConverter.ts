@@ -69,7 +69,7 @@ export const FILTER_OPERATORS = {
 } as const;
 
 export const SQL_OPERATORS = {
-  EQUALS: '==',
+  EQUALS: '=',
   NOT_EQUALS: '!=',
   ILIKE: 'ILIKE',
   NOT_ILIKE: 'NOT ILIKE',
@@ -86,6 +86,10 @@ export const SQL_OPERATORS = {
 
 export type FilterValue = string | number | boolean | Date | null;
 
+// Regex for validating column names. Allows:
+// - Alphanumeric chars, underscores, dots, spaces (standard column names)
+// - Parentheses for aggregate functions like COUNT(*)
+// - % for LIKE patterns, * for wildcards, + - / for computed columns
 const COLUMN_NAME_REGEX = /^[a-zA-Z0-9_. ()%*+\-/]+$/;
 
 export interface AgGridSimpleFilter {
@@ -414,10 +418,8 @@ function compoundFilterToWhereClause(
 
 /**
  * Format a date string to ISO format expected by Superset, preserving local timezone
- * @param dateStr - Date string from AG Grid filter
- * @returns ISO formatted date string in local timezone
  */
-function formatDateForSuperset(dateStr: string): string {
+export function formatDateForSuperset(dateStr: string): string {
   // AG Grid typically provides dates in format: "YYYY-MM-DD HH:MM:SS"
   // Superset expects: "YYYY-MM-DDTHH:MM:SS" in local timezone (not UTC)
   const date = new Date(dateStr);
@@ -438,33 +440,24 @@ function formatDateForSuperset(dateStr: string): string {
 }
 
 /**
- * Get the start of day for a given date string
- * @param dateStr - Date string from AG Grid filter
- * @returns ISO formatted date string at 00:00:00
+ * Get the start of day (00:00:00) for a given date string
  */
-function getStartOfDay(dateStr: string): string {
+export function getStartOfDay(dateStr: string): string {
   const date = new Date(dateStr);
   date.setHours(0, 0, 0, 0);
   return formatDateForSuperset(date.toISOString());
 }
 
 /**
- * Get the end of day for a given date string
- * @param dateStr - Date string from AG Grid filter
- * @returns ISO formatted date string at 23:59:59
+ * Get the end of day (23:59:59) for a given date string
  */
-function getEndOfDay(dateStr: string): string {
+export function getEndOfDay(dateStr: string): string {
   const date = new Date(dateStr);
   date.setHours(23, 59, 59, 999);
   return formatDateForSuperset(date.toISOString());
 }
 
-/**
- * Check if a filter is a date filter and convert to TEMPORAL_RANGE format
- * @param columnName - Column name
- * @param filter - AG Grid filter
- * @returns SQLAlchemy filter or null if not a date filter
- */
+// Converts date filters to TEMPORAL_RANGE format for Superset backend
 function convertDateFilter(
   columnName: string,
   filter: AgGridSimpleFilter,
@@ -578,13 +571,7 @@ function convertDateFilter(
   return result;
 }
 
-/**
- * Convert AG Grid filter model to SQLAlchemy filters
- *
- * @param filterModel - AG Grid filter model from onFilterChanged event
- * @param metricColumns - Array of metric column names (for HAVING clause)
- * @returns Object containing simple filters, WHERE clause, and HAVING clause
- */
+// Converts AG Grid filters to SQLAlchemy format, separating dimension (WHERE) and metric (HAVING) filters
 export function convertAgGridFiltersToSQL(
   filterModel: AgGridFilterModel,
   metricColumns: string[] = [],
