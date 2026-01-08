@@ -396,40 +396,6 @@ test('validates the pre-filter value', async () => {
   );
 }, 50000); // Slow-running test, increase timeout to 50 seconds.
 
-// This test validates that the time range pre-filter option is hidden when the dataset
-// has no temporal columns.
-//
-// SKIPPED DUE TO ARCHITECTURAL LIMITATION:
-// After 11 fix attempts (see PROJECT.md), this test cannot be reliably implemented as a unit test due to:
-// 1. Modal with createNewOnOpen:false requires complex Redux + API mock coordination
-// 2. showTimeRangePicker depends on loadedDatasets populated by async API fetch during mount
-// 3. API mock (datasetResult) must include column_types in correct structure
-// 4. Timing issues between state updates and component rendering create race conditions
-//
-// The underlying functionality (hiding time range when dataset has no temporal columns) works
-// in production and is verified manually. This specific scenario is better suited for
-// integration/E2E testing where the full modal lifecycle can be tested without excessive mocking.
-//
-// Key technical challenge: The modal architecture makes it difficult to:
-// - Pre-populate Redux with correct dataset structure
-// - Ensure API mocks return column_types to the right location
-// - Synchronize async data loading with test assertions
-//
-// See PROJECT.md "Root Cause for Test 2" section for detailed investigation history.
-// eslint-disable-next-line jest/no-disabled-tests
-test.skip("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
-  // Test intent (if it could work):
-  // 1. Create filter with dataset that has NO temporal columns (column_types: [0, 1])
-  // 2. Render modal with existing filter
-  // 3. Navigate to Settings tab
-  // 4. Enable pre-filter checkbox
-  // 5. Verify time range pre-filter option is NOT shown
-  //
-  // This validates that showTimeRangePicker correctly returns false when
-  // hasTemporalColumns detects no Temporal type (GenericDataType.Temporal = 2)
-  // in the dataset's column_types array.
-});
-
 test('filters are draggable', async () => {
   const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
