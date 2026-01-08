@@ -165,18 +165,20 @@ function escapeSQLString(value: string): string {
   return value.replace(/'/g, "''");
 }
 
+// Maximum column name length - conservative upper bound that exceeds all common
+// database identifier limits (MySQL: 64, PostgreSQL: 63, SQL Server: 128, Oracle: 128)
+const MAX_COLUMN_NAME_LENGTH = 255;
+
 /**
  * Validates a column name to prevent SQL injection
  * Checks for: non-empty string, length limit, allowed characters
- * @param columnName - Column name to validate
- * @returns True if the column name is valid, false otherwise
  */
-function validateColumnName(columnName: string): boolean {
+export function validateColumnName(columnName: string): boolean {
   if (!columnName || typeof columnName !== 'string') {
     return false;
   }
 
-  if (columnName.length > 255) {
+  if (columnName.length > MAX_COLUMN_NAME_LENGTH) {
     return false;
   }
 

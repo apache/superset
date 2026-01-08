@@ -22,6 +22,7 @@ import {
   ensureIsArray,
   getColumnLabel,
   getMetricLabel,
+  isDefined,
   isPhysicalColumn,
   QueryFormColumn,
   QueryFormMetric,
@@ -255,14 +256,16 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       sortByFromOwnState = sortSource
         .map(
           (sortItem: {
-            colId?: string;
-            key?: string;
+            colId?: string | number;
+            key?: string | number;
             sort?: string;
             desc?: boolean;
           }) => {
-            const colId = sortItem?.colId || sortItem?.key;
-            if (!colId) return null;
-            const sortKey = mapColIdToIdentifier(colId);
+            const colId = isDefined(sortItem?.colId)
+              ? sortItem.colId
+              : sortItem?.key;
+            if (!isDefined(colId)) return null;
+            const sortKey = mapColIdToIdentifier(String(colId));
             if (!sortKey) return null;
             const isDesc = sortItem?.sort === 'desc' || sortItem?.desc;
             return [sortKey, !isDesc] as QueryFormOrderBy;
