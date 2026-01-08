@@ -42,15 +42,8 @@ class BulkCancelAsyncTasksCommand(BaseCommand):
         """
         self.validate()
 
-        # For non-admins, verify they can only cancel their own tasks
-        # by using the base filter (skip_base_filter=False)
-        from superset import security_manager
-
-        skip_base_filter = security_manager.is_admin()
-
-        # Bulk cancel the tasks (DAO handles commits, no transaction needed)
         cancelled_count, total_requested = AsyncTaskDAO.bulk_cancel_tasks(
-            self._task_uuids, skip_base_filter=skip_base_filter
+            self._task_uuids,
         )
 
         logger.info(
