@@ -17,8 +17,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-11-05 14:28+0300\n"
-"PO-Revision-Date: 2025-11-05 14:37+0300\n"
+"POT-Creation-Date: 2025-11-11 10:32+0300\n"
+"PO-Revision-Date: 2025-11-11 10:38+0300\n"
 "Last-Translator: innovark\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -339,13 +339,6 @@ msgstr "%s вариант(ов)"
 #, python-format
 msgid "%s recipients"
 msgstr "%s получатели"
-
-#, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] "%s запись"
-msgstr[1] "%s записи..."
-msgstr[2] "%s записей..."
 
 #, python-format
 msgid "%s row"
@@ -5353,6 +5346,9 @@ msgstr "Введите ваш логин и пароль ниже:"
 msgid "Entity"
 msgstr "Элемент"
 
+msgid "Entries per page"
+msgstr "Записей на странице"
+
 msgid "Equal Date Sizes"
 msgstr "Одинаковые размеры дат"
 
@@ -10062,6 +10058,9 @@ msgstr "Поиск по всем диаграммам"
 
 msgid "Search box"
 msgstr "Строка поиска"
+
+msgid "Search by"
+msgstr "Поиск по"
 
 msgid "Search by query text"
 msgstr "Поиск по тексту запроса"
@@ -15303,9 +15302,6 @@ msgstr "заканчивается на"
 
 msgid "entries"
 msgstr "записи(ей)"
-
-msgid "entries per page"
-msgstr "записей на странице"
 
 msgid "error"
 msgstr "ошибка"
