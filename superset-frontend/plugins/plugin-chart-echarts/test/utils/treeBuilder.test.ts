@@ -271,4 +271,244 @@ describe('test treeBuilder', () => {
       },
     ]);
   });
+
+  it('include null values', () => {
+    const tree = treeBuilder(
+      [
+        ...data,
+        {
+          foo: 'a-2',
+          bar: null,
+          count: 2,
+          count2: 3,
+        },
+      ],
+      ['foo', 'bar'],
+      'count',
+    );
+    expect(tree).toEqual([
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'a',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'a-1',
+        secondaryValue: 2,
+        value: 2,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'a',
+            secondaryValue: 2,
+            value: 2,
+          },
+          {
+            groupBy: 'bar',
+            name: null,
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'a-2',
+        secondaryValue: 4,
+        value: 4,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'b',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'b-1',
+        secondaryValue: 2,
+        value: 2,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'b',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'b-2',
+        secondaryValue: 2,
+        value: 2,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'c',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'c-1',
+        secondaryValue: 2,
+        value: 2,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'c',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'c-2',
+        secondaryValue: 2,
+        value: 2,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'd',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'd-1',
+        secondaryValue: 2,
+        value: 2,
+      },
+    ]);
+  });
+
+  it('filter null values', () => {
+    const tree = treeBuilder(
+      [
+        ...data,
+        {
+          foo: 'a-2',
+          bar: null,
+          count: 2,
+          count2: 3,
+        },
+      ],
+      ['foo', 'bar'],
+      'count',
+      undefined,
+      true,
+    );
+    expect(tree).toEqual([
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'a',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'a-1',
+        secondaryValue: 2,
+        value: 2,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'a',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'a-2',
+        secondaryValue: 4,
+        value: 4,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'b',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'b-1',
+        secondaryValue: 2,
+        value: 2,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'b',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'b-2',
+        secondaryValue: 2,
+        value: 2,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'c',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'c-1',
+        secondaryValue: 2,
+        value: 2,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'c',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'c-2',
+        secondaryValue: 2,
+        value: 2,
+      },
+      {
+        children: [
+          {
+            groupBy: 'bar',
+            name: 'd',
+            secondaryValue: 2,
+            value: 2,
+          },
+        ],
+        groupBy: 'foo',
+        name: 'd-1',
+        secondaryValue: 2,
+        value: 2,
+      },
+    ]);
+  });
 });
