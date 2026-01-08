@@ -17,7 +17,12 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/api/core';
-import { hasTemporalColumns, shouldShowTimeRangePicker } from './utils';
+import {
+  hasTemporalColumns,
+  shouldShowTimeRangePicker,
+  mostUsedDataset,
+  doesColumnMatchFilterType,
+} from './utils';
 
 // Test hasTemporalColumns - validates time range pre-filter visibility logic
 // This addresses the coverage gap from the skipped FiltersConfigModal test
@@ -105,4 +110,133 @@ test('shouldShowTimeRangePicker returns false when dataset has no temporal colum
     GenericDataType.Numeric,
   ]);
   expect(shouldShowTimeRangePicker(dataset)).toBe(false);
+});
+
+// Test mostUsedDataset - finds the dataset used by the most charts
+// Used to pre-select dataset when creating new filters
+
+test('mostUsedDataset returns the dataset ID used by most charts', () => {
+  const datasets = {
+    '7__table': { id: 7 },
+    '8__table': { id: 8 },
+  };
+  const charts = {
+    '1': { form_data: { datasource: '7__table' } },
+    '2': { form_data: { datasource: '7__table' } },
+    '3': { form_data: { datasource: '8__table' } },
+  };
+  expect(mostUsedDataset(datasets as any, charts as any)).toBe(7);
+});
+
+test('mostUsedDataset returns undefined when charts is empty', () => {
+  const datasets = { '7__table': { id: 7 } };
+  const charts = {};
+  expect(mostUsedDataset(datasets as any, charts as any)).toBeUndefined();
+});
+
+test('mostUsedDataset returns undefined when dataset not in datasets map', () => {
+  const datasets = {};
+  const charts = {
+    '1': { form_data: { datasource: '7__table' } },
+  };
+  expect(mostUsedDataset(datasets as any, charts as any)).toBeUndefined();
+});
+
+test('mostUsedDataset skips charts without form_data', () => {
+  const datasets = {
+    '7__table': { id: 7 },
+  };
+  const charts = {
+    '1': { form_data: { datasource: '7__table' } },
+    '2': {}, // No form_data
+    '3': { form_data: null }, // Null form_data
+  };
+  expect(mostUsedDataset(datasets as any, charts as any)).toBe(7);
+});
+
+test('mostUsedDataset handles single chart correctly', () => {
+  const datasets = {
+    '8__table': { id: 8 },
+  };
+  const charts = {
+    '1': { form_data: { datasource: '8__table' } },
+  };
+  expect(mostUsedDataset(datasets as any, charts as any)).toBe(8);
+});
+
+// Test doesColumnMatchFilterType - validates column compatibility with filter types
+// Used to filter column options in the filter configuration UI
+
+test('doesColumnMatchFilterType returns true when column has no type_generic', () => {
+  const column = { column_name: 'name' };
+  expect(doesColumnMatchFilterType('filter_select', column as any)).toBe(true);
+});
+
+test('doesColumnMatchFilterType returns true for unknown filter type', () => {
+  const column = { column_name: 'name', type_generic: GenericDataType.String };
+  expect(doesColumnMatchFilterType('unknown_filter', column as any)).toBe(true);
+});
+
+test('doesColumnMatchFilterType returns true when column type matches filter_select', () => {
+  const stringColumn = {
+    column_name: 'name',
+    type_generic: GenericDataType.String,
+  };
+  const numericColumn = {
+    column_name: 'count',
+    type_generic: GenericDataType.Numeric,
+  };
+  const boolColumn = {
+    column_name: 'active',
+    type_generic: GenericDataType.Boolean,
+  };
+  expect(doesColumnMatchFilterType('filter_select', stringColumn as any)).toBe(
+    true,
+  );
+  expect(doesColumnMatchFilterType('filter_select', numericColumn as any)).toBe(
+    true,
+  );
+  expect(doesColumnMatchFilterType('filter_select', boolColumn as any)).toBe(
+    true,
+  );
+});
+
+test('doesColumnMatchFilterType returns true when column type matches filter_range', () => {
+  const numericColumn = {
+    column_name: 'count',
+    type_generic: GenericDataType.Numeric,
+  };
+  expect(doesColumnMatchFilterType('filter_range', numericColumn as any)).toBe(
+    true,
+  );
+});
+
+test('doesColumnMatchFilterType returns false when column type does not match filter_range', () => {
+  const stringColumn = {
+    column_name: 'name',
+    type_generic: GenericDataType.String,
+  };
+  expect(doesColumnMatchFilterType('filter_range', stringColumn as any)).toBe(
+    false,
+  );
+});
+
+test('doesColumnMatchFilterType returns true when column type matches filter_time', () => {
+  const temporalColumn = {
+    column_name: 'created_at',
+    type_generic: GenericDataType.Temporal,
+  };
+  expect(doesColumnMatchFilterType('filter_time', temporalColumn as any)).toBe(
+    true,
+  );
+});
+
+test('doesColumnMatchFilterType returns false when column type does not match filter_time', () => {
+  const stringColumn = {
+    column_name: 'name',
+    type_generic: GenericDataType.String,
+  };
+  expect(doesColumnMatchFilterType('filter_time', stringColumn as any)).toBe(
+    false,
+  );
 });
