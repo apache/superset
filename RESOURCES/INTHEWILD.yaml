@@ -635,6 +635,11 @@ categories:
     - name: Grassroot
       url: https://www.grassrootinstitute.org/
 
+    - name: HOLLYLAND猛玛
+      url: https://www.hollyland.com
+      logo: hollyland猛玛.svg
+      contributors: ["@xianggao-1020"]
+
     - name: Increff
       url: https://www.increff.com/
       contributors: ["@ishansinghania"]
