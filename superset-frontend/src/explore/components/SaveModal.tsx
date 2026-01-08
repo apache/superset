@@ -47,7 +47,7 @@ import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
-import { SaveActionType } from 'src/explore/types';
+import { SaveActionType, ChartStatusType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   removeChartState,
@@ -102,7 +102,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     this.state = {
       newSliceName: props.sliceName,
       datasetName: props.datasource?.name,
-      action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
+      action: this.canOverwriteSlice()
+        ? ChartStatusType.overwrite
+        : ChartStatusType.saveas,
       isLoading: false,
       dashboard: undefined,
       tabsData: [],
@@ -258,7 +260,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             : [...sliceDashboards, dashboard.id];
           formData.dashboards = sliceDashboards;
           if (
-            this.state.action === 'saveas' &&
+            this.state.action === ChartStatusType.saveas &&
             this.state.selectedTab?.value !== 'OUT_OF_TAB'
           ) {
             selectedTabId = this.state.selectedTab?.value as string;
@@ -603,7 +605,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           <Radio
             id="saveas-radio"
             data-test="saveas-radio"
-            checked={this.state.action === 'saveas'}
+            checked={this.state.action === ChartStatusType.saveas}
             onChange={() => this.changeAction('saveas')}
           >
             {t('Save as...')}
@@ -657,7 +659,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             }
           />
         </FormItem>
-        {this.state.action === 'saveas' && (
+        {this.state.action === ChartStatusType.saveas && (
           <FormItem
             label={t('Add to tabs')}
             data-test="save-chart-modal-select-tabs-form"

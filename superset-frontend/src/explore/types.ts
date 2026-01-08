@@ -35,6 +35,11 @@ import { Slice } from 'src/types/Chart';
 
 export type SaveActionType = 'overwrite' | 'saveas';
 
+export enum ChartStatusType {
+  overwrite = 'overwrite',
+  saveas = 'saveas',
+}
+
 export type ChartStatus =
   | 'loading'
   | 'rendered'
