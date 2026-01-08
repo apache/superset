@@ -592,7 +592,6 @@ categories:
       url: https://www.skyscanner.net/
       contributors: ["@cleslie", "@stanhoucke"]
 
-
   Logistics:
     - name: Stockarea
       url: https://stockarea.io
