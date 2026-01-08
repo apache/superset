@@ -28,6 +28,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import {
   StreamingExportModal,
   useStreamingExport,
@@ -50,7 +51,7 @@ import {
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
-import LastQueriedLabel from '../../../../components/LastQueriedLabel';
+
 import {
   addDangerToast,
   addSuccessToast,
