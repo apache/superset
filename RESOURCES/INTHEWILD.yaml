@@ -79,6 +79,9 @@ categories:
     - name: Clark.de
       url: https://clark.de/
 
+    - name: EnquiryLabs
+      url: https://www.enquirylabs.co.uk
+
     - name: Europace
       url: https://europace.de
 
@@ -341,7 +344,9 @@ categories:
       contributors: ["@rodo"]
 
     - name: PlaidCloud
-      url: https://www.plaidcloud.com
+      url: https://plaidcloud.com
+      logo: plaidcloud.svg
+      contributors: ["@rad-pat"]
 
     - name: Preset, Inc.
       url: https://preset.io
@@ -468,6 +473,11 @@ categories:
     - name: Brilliant.org
       url: https://brilliant.org/
 
+    - name: Cirrus Assessment
+      url: https://cirrusassessment.com/
+      logo: cirrus.svg
+      contributors: ["@jeroenhabets", "@ddmm-white", "@paulrocost"]
+
     - name: Open edX
       url: https://openedx.org/
 
@@ -514,6 +524,10 @@ categories:
     - name: Wattbewerb
       url: https://wattbewerb.de/
       contributors: ["@wattbewerb"]
+
+    - name: Rogow
+      url: https://rogow.com.br/
+      contributors: ["@nilmonto"]
 
   Healthcare:
     - name: Amino
@@ -576,6 +590,12 @@ categories:
     - name: NRLM - Sarathi, India
       url: https://pib.gov.in/PressReleasePage.aspx?PRID=1999586
 
+  Mobile Software:
+    - name: VLMedia
+      url: https://www.vlmedia.com.tr
+      logo: vlmedia.svg
+      contributors: ["@iercan"]
+
   Travel:
     - name: Agoda
       url: https://www.agoda.com/
@@ -635,10 +655,6 @@ categories:
 
     - name: X
       url: https://x.com/
-
-    - name: VLMedia
-      url: https://www.vlmedia.com.tr/
-      contributors: ["@ibotheperfect"]
 
     - name: Yahoo!
       url: https://yahoo.com/
