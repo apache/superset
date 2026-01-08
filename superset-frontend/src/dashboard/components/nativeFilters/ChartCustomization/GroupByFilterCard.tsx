@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { t } from '@apache-superset/core';
 import { DataMaskStateWithId, useTruncation } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/ui';
@@ -416,9 +416,15 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     setLoading(chartCustomizationLoading);
   }, [chartCustomizationLoading]);
 
+  const lastFetchedDatasetIdRef = useRef<string | number | null>(null);
+  const isFetchingRef = useRef<boolean>(false);
+
   useEffect(() => {
     const fetchColumnOptions = async () => {
-      if (!dataset) return;
+      if (!dataset) {
+        lastFetchedDatasetIdRef.current = null;
+        return;
+      }
 
       try {
         const datasetId =
@@ -430,9 +436,23 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
               ? (dataset as { value: string | number }).value
               : null;
 
-        if (!datasetId) return;
+        if (!datasetId) {
+          lastFetchedDatasetIdRef.current = null;
+          return;
+        }
 
-        const response = await fetch(`/api/v1/dataset/${datasetId}`);
+        if (
+          datasetId === lastFetchedDatasetIdRef.current ||
+          isFetchingRef.current
+        ) {
+          return;
+        }
+
+        isFetchingRef.current = true;
+        const currentDatasetId = datasetId;
+        lastFetchedDatasetIdRef.current = currentDatasetId;
+
+        const response = await fetch(`/api/v1/dataset/${currentDatasetId}`);
         const data = await response.json();
 
         if (data?.result?.columns) {
@@ -444,9 +464,15 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             }));
           setColumnOptions(options);
         }
+        isFetchingRef.current = false;
       } catch (error) {
         console.warn('Failed to fetch column options:', error);
         setColumnOptions([]);
+        isFetchingRef.current = false;
+        const currentDatasetId = lastFetchedDatasetIdRef.current;
+        if (currentDatasetId !== null) {
+          lastFetchedDatasetIdRef.current = null;
+        }
       }
     };
 

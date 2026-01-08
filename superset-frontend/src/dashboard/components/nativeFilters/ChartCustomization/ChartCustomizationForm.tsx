@@ -409,18 +409,35 @@ const ChartCustomizationForm: FC<Props> = ({
     }
   }, [form, item.id]);
 
+  const lastFetchedDatasetIdRef = useRef<number | null>(null);
+  const isFetchingRef = useRef<boolean>(false);
+
   const fetchDatasetInfo = useCallback(async () => {
     const formValues = getFormValues();
     const dataset = formValues.dataset || customization.dataset;
 
     if (!dataset) {
       setMetrics([]);
+      lastFetchedDatasetIdRef.current = null;
       return;
     }
 
     try {
       const datasetId = getDatasetId(dataset);
-      if (datasetId === null) return;
+      if (datasetId === null) {
+        lastFetchedDatasetIdRef.current = null;
+        return;
+      }
+
+      if (
+        datasetId === lastFetchedDatasetIdRef.current ||
+        isFetchingRef.current
+      ) {
+        return;
+      }
+
+      isFetchingRef.current = true;
+      lastFetchedDatasetIdRef.current = datasetId;
 
       const cachedData = getCachedDataset(datasetId);
       if (cachedData) {
@@ -465,6 +482,7 @@ const ChartCustomizationForm: FC<Props> = ({
         } else {
           setMetrics([]);
         }
+        isFetchingRef.current = false;
         return;
       }
 
@@ -520,11 +538,16 @@ const ChartCustomizationForm: FC<Props> = ({
           setMetrics([]);
         }
       }
+      isFetchingRef.current = false;
     } catch (error) {
       console.error('Error fetching dataset info:', error);
       setMetrics([]);
+      isFetchingRef.current = false;
+      if (lastFetchedDatasetIdRef.current !== null) {
+        lastFetchedDatasetIdRef.current = null;
+      }
     }
-  }, [form, item.id, customization.dataset, getDatasetId]);
+  }, [form, item.id, customization.dataset, getDatasetId, getFormValues]);
 
   useEffect(() => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
@@ -533,11 +556,20 @@ const ChartCustomizationForm: FC<Props> = ({
     if (dataset) {
       const datasetId = getDatasetId(dataset);
 
-      if (datasetId !== null) {
+      if (datasetId !== null && datasetId !== lastFetchedDatasetIdRef.current) {
         fetchDatasetInfo();
+      } else if (
+        datasetId === null &&
+        lastFetchedDatasetIdRef.current !== null
+      ) {
+        lastFetchedDatasetIdRef.current = null;
+        setMetrics([]);
       }
+    } else if (lastFetchedDatasetIdRef.current !== null) {
+      lastFetchedDatasetIdRef.current = null;
+      setMetrics([]);
     }
-  }, [customization.dataset, fetchDatasetInfo, getDatasetId]);
+  }, [customization.dataset, fetchDatasetInfo, getDatasetId, form, item.id]);
 
   const fetchDefaultValueData = useCallback(async () => {
     const formValues = getFormValues();
