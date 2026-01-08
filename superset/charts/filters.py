@@ -120,7 +120,7 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if is_feature_enabled("DATASET_RBAC"):
             # Roles access
             roles_based_query = get_datasets_authorized_for_user_roles()
-            feature_flagged_filters.append(SqlaTable.id.in_(roles_based_query))
+            feature_flagged_filters.append(table_alias.id.in_(roles_based_query))
 
             # Owners access
             owners_based_query = get_charts_authorized_for_owners()
