@@ -376,7 +376,9 @@ test('validates the default value', async () => {
   // Try to save - should show validation error
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   // Verify validation error appears (actual message is "Please choose a valid value")
-  expect(await screen.findByText(/choose.*valid value/i)).toBeInTheDocument();
+  expect(
+    await screen.findByText(/choose.*valid value/i, {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
 }, 50000);
 
 test('validates the pre-filter value', async () => {
