@@ -309,3 +309,16 @@ class ReportScheduleForbiddenError(ForbiddenError):
 
 class ReportSchedulePruneLogError(CommandException):
     message = _("An error occurred while pruning logs ")
+
+
+class ReportScheduleUserEmailNotFoundError(ValidationError):
+    """
+    Validation error when user email is required but not found
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Unable to create report: User email address is required but not found. "
+              "Please ensure your user profile has a valid email address."),
+            field_name="recipients",
+        )
