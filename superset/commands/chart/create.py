@@ -43,6 +43,15 @@ class CreateChartCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
+        if self._properties.get('params'):
+            try:
+                import json
+                params = json.loads(self._properties['params'])
+                if 'viz_type' in params:
+                    self._properties['viz_type'] = params['viz_type']
+            except json.JSONDecodeError as ex:
+                raise ex
+
     @transaction(on_error=partial(on_error, reraise=ChartCreateFailedError))
     def run(self) -> Model:
         self.validate()
