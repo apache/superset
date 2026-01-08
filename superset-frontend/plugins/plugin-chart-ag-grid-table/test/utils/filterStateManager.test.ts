@@ -76,7 +76,7 @@ describe('filterStateManager', () => {
       expect(result.simpleFilters).toHaveLength(2);
       expect(result.simpleFilters[0]).toEqual({
         col: 'name',
-        op: '==',
+        op: '=',
         val: 'John',
       });
       expect(result.simpleFilters[1]).toEqual({
