@@ -344,7 +344,7 @@
     "react-resizable": "^3.0.5",
     "redux-mock-store": "^1.5.4",
     "sinon": "^18.0.0",
-    "source-map": "^0.7.4",
+    "source-map": "^0.7.6",
     "source-map-support": "^0.5.21",
     "speed-measure-webpack-plugin": "^1.5.0",
     "storybook": "8.6.15",
