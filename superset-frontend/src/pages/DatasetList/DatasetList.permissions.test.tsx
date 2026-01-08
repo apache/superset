@@ -53,7 +53,7 @@ test('admin users see all UI elements', async () => {
 
   // Admin should see create button
   expect(
-    screen.getByRole('button', { name: /plus\s*Dataset/i }),
+    screen.getByRole('button', { name: /(?:plus\s*)?Dataset$/i }),
   ).toBeInTheDocument();
 
   // Admin should see import button
@@ -120,7 +120,7 @@ test('read-only users cannot see Create/Import buttons', async () => {
 
   // Create button should not be visible
   expect(
-    screen.queryByRole('button', { name: /plus\s*Dataset/i }),
+    screen.queryByRole('button', { name: /(?:plus\s*)?Dataset$/i }),
   ).not.toBeInTheDocument();
 
   // Import button should not be visible
@@ -174,7 +174,7 @@ test('write users see Create/Import buttons', async () => {
 
   // Create button should be visible
   expect(
-    screen.getByRole('button', { name: /plus\s*Dataset/i }),
+    screen.getByRole('button', { name: /(?:plus\s*)?Dataset$/i }),
   ).toBeInTheDocument();
 
   // Import button should be visible
@@ -211,7 +211,7 @@ test('export-only users cannot see Create/Import buttons', async () => {
 
   // Create and Import should not be visible for export-only users
   expect(
-    screen.queryByRole('button', { name: /plus\s*Dataset/i }),
+    screen.queryByRole('button', { name: /(?:plus\s*)?Dataset$/i }),
   ).not.toBeInTheDocument();
   // Note: Using testId - import button lacks accessible text content
   // TODO: Add aria-label or text to import button

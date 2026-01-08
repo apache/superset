@@ -41,6 +41,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Restore real timers in case a test using fake timers threw early
+  jest.useRealTimers();
+
   // Reset browser history state to prevent query params leaking between tests
   window.history.replaceState({}, '', '/');
 
@@ -97,10 +100,12 @@ test('maintains component structure during loading', () => {
 test('"New Dataset" button exists (when canCreate=true)', async () => {
   renderDatasetList(mockAdminUser);
 
-  // Button has plus icon (aria-label="plus") and "Dataset" text.
-  // Using pattern that matches "plus Dataset" to avoid matching future "Import Dataset" button.
+  // Button has plus icon and "Dataset" text. Pattern handles both:
+  // - "plus Dataset" (if icon contributes to accessible name)
+  // - "Dataset" (if icon is aria-hidden)
+  // The $ anchor prevents matching future "Import Dataset" button.
   expect(
-    await screen.findByRole('button', { name: /plus\s*Dataset/i }),
+    await screen.findByRole('button', { name: /(?:plus\s*)?Dataset$/i }),
   ).toBeInTheDocument();
 });
 
@@ -109,7 +114,7 @@ test('"New Dataset" button hidden (when canCreate=false)', async () => {
 
   await waitFor(() => {
     expect(
-      screen.queryByRole('button', { name: /plus\s*Dataset/i }),
+      screen.queryByRole('button', { name: /(?:plus\s*)?Dataset$/i }),
     ).not.toBeInTheDocument();
   });
 });

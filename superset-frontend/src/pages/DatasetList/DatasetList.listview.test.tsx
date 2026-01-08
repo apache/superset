@@ -153,25 +153,11 @@ test('required API endpoints are called and no unmocked calls on initial render'
   });
 
   // Verify expected endpoints were called and no unmocked calls
-  const expectedEndpoints = [
+  // assertOnlyExpectedCalls checks: 1) no unmatched calls, 2) each expected endpoint was called
+  assertOnlyExpectedCalls([
     API_ENDPOINTS.DATASETS_INFO, // Permission check
     API_ENDPOINTS.DATASETS, // Main dataset list data
-  ];
-  assertOnlyExpectedCalls(expectedEndpoints);
-
-  // Verify only expected endpoints were called (allows multiple calls to same endpoint)
-  const allMatchedCalls = fetchMock
-    .calls(true)
-    .filter(call => !call.isUnmatched);
-  const calledEndpoints = new Set(
-    allMatchedCalls.map(call => {
-      const url = call[0] as string;
-      // Extract base endpoint path (before query params)
-      return url.split('?')[0];
-    }),
-  );
-  const expectedEndpointSet = new Set(expectedEndpoints);
-  expect(calledEndpoints).toEqual(expectedEndpointSet);
+  ]);
 });
 
 test('renders all required column headers', async () => {
