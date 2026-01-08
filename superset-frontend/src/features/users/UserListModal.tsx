@@ -63,7 +63,7 @@ function UserListModal({
   const showPasswordFields = !isEditMode || isPasswordChange;
 
   const sanitizeValues = (formValues: FormValues) => {
-    const { confirmPassword, ...rest } = formValues;
+    const { confirmPassword: _confirmPassword, ...rest } = formValues;
     return rest;
   };
 

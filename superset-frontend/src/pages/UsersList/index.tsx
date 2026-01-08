@@ -157,7 +157,7 @@ function UsersList({ user }: UsersListProps) {
       refreshData();
       setUserCurrentlyDeleting(null);
       addSuccessToast(t('Deleted user: %s', username));
-    } catch (error) {
+    } catch {
       addDangerToast(t('There was an issue deleting %s', username));
     }
   };
@@ -171,7 +171,7 @@ function UsersList({ user }: UsersListProps) {
           .then(() => {
             deletedUserNames.push(user.username);
           })
-          .catch(err => {
+          .catch(_err => {
             addDangerToast(t('Error deleting %s', user.username));
           }),
       ),
