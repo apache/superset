@@ -58,7 +58,7 @@ const DATE_FILTER_OPERATOR_MAP: Record<string, string> = {
 /**
  * Blank filter operator types
  */
-const BLANK_OPERATORS = new Set([
+const BLANK_OPERATORS: Set<string> = new Set([
   FILTER_OPERATORS.BLANK,
   FILTER_OPERATORS.NOT_BLANK,
   FILTER_OPERATORS.SERVER_BLANK,
