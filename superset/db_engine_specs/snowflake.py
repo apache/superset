@@ -188,6 +188,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             cls.supports_oauth2
             and cls.engine_name in app.config["DATABASE_OAUTH2_CLIENTS"]
         )
+
     @classmethod
     def get_oauth2_config(cls) -> OAuth2ClientConfig | None:
         """
