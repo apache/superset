@@ -39,7 +39,7 @@ R = TypeVar("R")
 
 def async_task(
     name: str | None = None,
-) -> Callable[[Callable[P, R]], "AsyncTaskWrapper[P, R]"]:
+) -> Callable[[Callable[P, R]], "AsyncTaskWrapper[P]"]:
     """
     Decorator to register an async task.
 
@@ -58,9 +58,14 @@ def async_task(
         def generate_thumbnail(chart_id: int) -> None:
             ctx = get_context()
             ...  # task name will be "generate_thumbnail"
+
+    Note:
+        Both direct calls and .schedule() return AsyncTask, regardless of the
+        original function's return type. The decorated function's return value
+        is discarded; only side effects and context updates matter.
     """
 
-    def decorator(func: Callable[P, R]) -> "AsyncTaskWrapper[P, R]":
+    def decorator(func: Callable[P, R]) -> "AsyncTaskWrapper[P]":
         # Use function name if no name provided
         task_name = name if name is not None else func.__name__
 
@@ -88,9 +93,12 @@ def async_task(
     return decorator
 
 
-class AsyncTaskWrapper(Generic[P, R]):
+class AsyncTaskWrapper(Generic[P]):
     """
     Wrapper for async task functions that provides .schedule() method.
+
+    Both direct calls and .schedule() return AsyncTask. The original function's
+    return value is discarded.
 
     Direct calls execute synchronously (for testing), .schedule() runs async via Celery.
     """

@@ -148,7 +148,7 @@ def inject_async_task_implementations() -> None:
 
     # Replace abstract classes and functions with concrete implementations
     core_async_tasks_module.TaskContext = TaskContext  # type: ignore[assignment,misc]
-    core_async_tasks_module.async_task = async_task
+    core_async_tasks_module.async_task = async_task  # type: ignore[assignment]
     core_async_tasks_module.get_context = get_context
 
     # Note: create_async_task is not yet implemented in the concrete package,
