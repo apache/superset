@@ -500,6 +500,7 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
     true, // Force refresh
     0, // Interval
     23, // Dashboard ID
+    true, // isLazyLoad flag
   );
 });
 
