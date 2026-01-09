@@ -182,16 +182,16 @@ export const ExploreChartHeader = ({
     streamingExportState,
     embedChartModal,
   ] = useExploreAdditionalActionsMenu(
-      latestQueryFormData,
-      canDownload,
-      slice,
-      redirectToSQLLab,
-      openPropertiesModal,
-      ownState,
-      metadata?.dashboards,
-      showReportModal,
-      setCurrentReportDeleting,
-    );
+    latestQueryFormData,
+    canDownload,
+    slice,
+    redirectToSQLLab,
+    openPropertiesModal,
+    ownState,
+    metadata?.dashboards,
+    showReportModal,
+    setCurrentReportDeleting,
+  );
 
   const metadataBar = useExploreMetadataBar(metadata, slice);
   const oldSliceName = slice?.slice_name;
