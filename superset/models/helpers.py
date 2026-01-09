@@ -2387,6 +2387,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         )
 
+        # Apply timezone offset to convert local time boundaries to UTC
+        # The offset is in hours (e.g., 6 for UTC+6)
+        # If offset is set, we subtract it from the datetime to convert to UTC
+        # Example: User selects "Last day" which gives midnight local time
+        # If offset=6 (UTC+6), we subtract 6 hours to get UTC time
+        offset_hours = getattr(self, "offset", 0) or 0
+        if offset_hours and start_dttm:
+            start_dttm = start_dttm - timedelta(hours=offset_hours)
+        if offset_hours and end_dttm:
+            end_dttm = end_dttm - timedelta(hours=offset_hours)
+
         l = []  # noqa: E741
         if start_dttm:
             l.append(
