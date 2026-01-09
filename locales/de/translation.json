@@ -1,7 +1,7 @@
 {
     "Channels": "Kanäle",
     "Dates": "Daten",
-    "Granularity": "Granularität",
+    "Granularity": "Detailebene",
     "Status": "Status",
     "Groups": "Gruppen",
     "Performance Report": "Performance-Report",
@@ -23,7 +23,7 @@
     "Clicks": "Klicks",
     "Views": "Aufrufe",
     "Conversion rate": "Conversion Rate",
-    "AOV": "AOV",
+    "AOV": "Durchschnittl. Warenkorbwert",
     "Total Commission": "Gesamtprovision",
     "EPHC": "EPHC",
     "ROI %": "ROI (%)",
@@ -167,7 +167,7 @@
     "Show %s entries": "%s Einträge anzeigen",
     "Tabs": "Tabs",
     "Time filter": "Zeitfilter",
-    "Time grain": "Zeitgranularität",
+    "Time grain": "Zeitdetailebene",
     "Use %s to open in a new tab.": "Verwende %s, um einen neuen Tab zu öffnen.",
     "View as table": "Als Tabelle anzeigen",
     "View query": "Abfrage anzeigen",
@@ -207,7 +207,7 @@
     "Comm Type": "Provisionsart",
     "Subtotal": "Zwischensumme",
     "Dependent on": "Abhängig von",
-    "AVG Basket": "AOV",
+    "AVG Basket": "Durchschnittl. Warenkorbwert",
     "Unexpected error": "Unerwarteter Fehler",
     "See more": "Mehr anzeigen",
     "Publishers by Product": "Publisher nach Produkt",
@@ -283,7 +283,7 @@
     "Publishers: First": "Publisher: Erster",
     "Publishers: Last": "Publisher: Letzter",
     "Post-view transactions": "Postview-Transaktionen",
-    "Post-view AOV": "Postview-AOV",
+    "Post-view AOV": "Durchschnittl. Warenkorbwert (Postview)",
     "Post-view sales value": "Postview-Umsatz",
     "Post-click sales value": "Postclick-Umsatz",
     "eCPM": "eCPM",
@@ -308,5 +308,6 @@
     "Campaigns: First vs last clicks": "Kampagnen: Erster vs. letzter Klick",
     "KUR": "KUR",
     "Comment": "Kommentar",
-    "There is currently no information to display.": "Derzeit gibt es keine Informationen zum Anzeigen."
+    "There is currently no information to display.": "Derzeit gibt es keine Informationen zum Anzeigen.",
+    "Total Spend": "Gesamtausgaben"
 }
