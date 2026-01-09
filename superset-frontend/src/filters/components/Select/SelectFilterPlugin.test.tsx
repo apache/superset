@@ -602,6 +602,81 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('alpha');
   });
 
+  test('Select boolean FALSE value in single-select mode', async () => {
+    const setDataMaskMock = jest.fn();
+    render(
+      // @ts-ignore
+      <SelectFilterPlugin
+        // @ts-ignore
+        {...transformProps({
+          ...selectMultipleProps,
+          formData: {
+            ...selectMultipleProps.formData,
+            multiSelect: false,
+            groupby: ['is_active'],
+          },
+          queriesData: [
+            {
+              rowcount: 2,
+              colnames: ['is_active'],
+              coltypes: [1],
+              data: [{ is_active: true }, { is_active: false }],
+              applied_filters: [{ column: 'is_active' }],
+              rejected_filters: [],
+            },
+          ],
+          filterState: { value: undefined },
+        })}
+        setDataMask={setDataMaskMock}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: {
+              'test-filter': {
+                name: 'Test Filter',
+              },
+            },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: {
+                value: undefined,
+              },
+            },
+          },
+        },
+      },
+    );
+
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    const falseOption = await screen.findByRole('option', { name: /false/i });
+    expect(falseOption).toBeInTheDocument();
+    userEvent.click(falseOption);
+
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: {
+          filters: [
+            {
+              col: 'is_active',
+              op: 'IN',
+              val: [false],
+            },
+          ],
+        },
+        filterState: expect.objectContaining({
+          value: [false],
+        }),
+      }),
+    );
+  });
+
   test('preserves backend order even when sortAscending is false and sortMetric is specified', () => {
     const testData = [
       { gender: 'zebra' },
