@@ -19,7 +19,7 @@
 import logging
 from typing import Any
 
-from superset.async_tasks.utils import generate_random_task_id
+from superset.async_tasks.utils import generate_random_task_key
 from superset.daos.async_tasks import AsyncTaskDAO
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.models.async_tasks import AsyncTask
@@ -39,8 +39,9 @@ class TaskManager:
 
     @staticmethod
     def submit_task(
-        task_name: str,
-        task_id: str | None,
+        task_type: str,
+        task_key: str | None,
+        task_name: str | None,
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
     ) -> AsyncTask:
@@ -54,31 +55,31 @@ class TaskManager:
         4. Submit to Celery for background execution
         5. Return AsyncTask model to caller
 
-        :param task_name: Task type identifier (e.g., "superset.generate_thumbnail")
-        :param task_id: Optional deduplication key (None for random UUID)
+        :param task_type: Task type identifier (e.g., "superset.generate_thumbnail")
+        :param task_key: Optional deduplication key (None for random UUID)
+        :param task_name: Human readable task name
         :param args: Positional arguments for the task function
         :param kwargs: Keyword arguments for the task function
         :returns: AsyncTask model representing the scheduled task
         """
-        # Generate task_id if not provided (default behavior - no deduplication)
-        if task_id is None:
-            task_id = generate_random_task_id()
+        if task_key is None:
+            task_key = generate_random_task_key()
 
         try:
             # Create task entry in metastore
             task = AsyncTaskDAO.create_task(
-                task_id=task_id,
-                task_type=task_name,
-                task_name=f"{task_name}:{task_id[:50]}",
-                # created_by_fk will be set automatically from current user context
+                task_key=task_key,
+                task_type=task_type,
+                task_name=task_name,
             )
 
             # Import here to avoid circular dependency
-            from superset.async_tasks.celery_executor import execute_async_task
+            from superset.async_tasks.executor import execute_async_task
 
             # Schedule Celery task for background execution
             execute_async_task.delay(
                 task_uuid=task.uuid,
+                task_type=task_type,
                 task_name=task_name,
                 args=args,
                 kwargs=kwargs,
@@ -86,22 +87,22 @@ class TaskManager:
 
             logger.info(
                 "Scheduled async task %s (uuid=%s) for background execution",
-                task_name,
+                task_type,
                 task.uuid,
             )
 
             return task
 
         except DAOCreateFailedError:
-            # Task with same task_id already exists and is active
+            # Task with same task_key already exists and is active
             # Return existing task instead of creating duplicate
-            existing = AsyncTaskDAO.find_by_task_id(task_name, task_id)
+            existing = AsyncTaskDAO.find_by_task_key(task_type, task_key)
             if existing:
                 logger.info(
-                    "Task %s with id '%s' already exists (uuid=%s), returning "
+                    "Task %s with key '%s' already exists (uuid=%s), returning "
                     "existing task",
-                    task_name,
-                    task_id,
+                    task_type,
+                    task_key,
                     existing.uuid,
                 )
                 return existing
@@ -109,8 +110,8 @@ class TaskManager:
             # Race condition: task completed between check and here
             # Try again to create new task
             logger.warning(
-                "Race condition detected for task %s with id '%s', retrying",
-                task_name,
-                task_id,
+                "Race condition detected for task %s with key '%s', retrying",
+                task_type,
+                task_key,
             )
-            return TaskManager.submit_task(task_name, task_id, args, kwargs)
+            return TaskManager.submit_task(task_type, task_key, task_name, args, kwargs)

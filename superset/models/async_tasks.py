@@ -21,10 +21,10 @@ from datetime import datetime
 from typing import Any
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+from superset_core.api.async_tasks import TaskStatus
 from superset_core.api.models import AsyncTask as CoreAsyncTask
-from superset_core.api.types import TaskStatus
 
 from superset.models.helpers import AuditMixinNullable
 from superset.utils import json
@@ -45,7 +45,7 @@ class AsyncTask(CoreAsyncTask, AuditMixinNullable, Model):
     uuid = Column(
         String(36), nullable=False, unique=True, default=lambda: str(uuid.uuid4())
     )
-    task_id = Column(String(256), nullable=False, index=True)  # For deduplication
+    task_key = Column(String(256), nullable=False, index=True)  # For deduplication
     task_type = Column(String(100), nullable=False, index=True)  # e.g., 'sql_execution'
     task_name = Column(String(256), nullable=True)  # Human readable name
     status = Column(
@@ -61,6 +61,7 @@ class AsyncTask(CoreAsyncTask, AuditMixinNullable, Model):
     payload = Column(
         Text, nullable=True, default="{}"
     )  # JSON serialized task-specific data
+    progress = Column(Float, nullable=True)  # Progress 0.0-1.0, null by default
 
     # Relationships
     database = relationship("Database", foreign_keys=[database_id])
@@ -108,7 +109,7 @@ class AsyncTask(CoreAsyncTask, AuditMixinNullable, Model):
         elif status in [
             TaskStatus.SUCCESS.value,
             TaskStatus.FAILURE.value,
-            TaskStatus.CANCELLED.value,
+            TaskStatus.ABORTED.value,
         ]:
             if not self.ended_at:
                 self.ended_at = now
@@ -125,11 +126,11 @@ class AsyncTask(CoreAsyncTask, AuditMixinNullable, Model):
 
     @property
     def is_finished(self) -> bool:
-        """Check if task has finished (success, failure, or cancelled)."""
+        """Check if task has finished (success, failure, or aborted)."""
         return self.status in [
             TaskStatus.SUCCESS.value,
             TaskStatus.FAILURE.value,
-            TaskStatus.CANCELLED.value,
+            TaskStatus.ABORTED.value,
         ]
 
     @property
@@ -138,9 +139,9 @@ class AsyncTask(CoreAsyncTask, AuditMixinNullable, Model):
         return self.status == TaskStatus.SUCCESS.value
 
     @property
-    def is_cancelled(self) -> bool:
-        """Check if task was cancelled."""
-        return self.status == TaskStatus.CANCELLED.value
+    def is_aborted(self) -> bool:
+        """Check if task was aborted."""
+        return self.status == TaskStatus.ABORTED.value
 
     @property
     def duration_seconds(self) -> float | None:
@@ -158,7 +159,7 @@ class AsyncTask(CoreAsyncTask, AuditMixinNullable, Model):
         return {
             "id": self.id,
             "uuid": self.uuid,
-            "task_id": self.task_id,
+            "task_key": self.task_key,
             "task_type": self.task_type,
             "task_name": self.task_name,
             "status": self.status,
@@ -171,8 +172,9 @@ class AsyncTask(CoreAsyncTask, AuditMixinNullable, Model):
             "database_id": self.database_id,
             "error_message": self.error_message,
             "payload": self.get_payload(),
+            "progress": self.progress,
             "duration_seconds": self.duration_seconds,
             "is_finished": self.is_finished,
             "is_successful": self.is_successful,
-            "is_cancelled": self.is_cancelled,
+            "is_aborted": self.is_aborted,
         }

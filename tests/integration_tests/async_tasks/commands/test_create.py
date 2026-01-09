@@ -16,7 +16,7 @@
 # under the License.
 
 import pytest
-from superset_core.api.types import TaskStatus
+from superset_core.api.async_tasks import TaskStatus
 
 from superset import db
 from superset.commands.async_tasks import CreateAsyncTaskCommand
@@ -32,8 +32,8 @@ def test_create_task_success(app_context, login_as) -> None:
 
     command = CreateAsyncTaskCommand(
         data={
-            "task_type": "test_type",
-            "task_id": "test-id",
+            "task_type": "test-type",
+            "task_key": "test-key",
             "task_name": "Test Task",
         }
     )
@@ -42,8 +42,8 @@ def test_create_task_success(app_context, login_as) -> None:
         result = command.run()
 
         # Verify task was created
-        assert result.task_type == "test_type"
-        assert result.task_id == "test-id"
+        assert result.task_type == "test-type"
+        assert result.task_key == "test-key"
         assert result.task_name == "Test Task"
         assert result.status == TaskStatus.PENDING.value
         assert result.payload == "{}"
@@ -65,8 +65,8 @@ def test_create_task_with_all_fields(app_context, login_as, get_user) -> None:
 
     command = CreateAsyncTaskCommand(
         data={
-            "task_type": "test_type",
-            "task_id": "test-id-full",
+            "task_type": "test-type",
+            "task_key": "test-key-full",
             "task_name": "Test Task Full",
             "user_id": admin.id,
             "database_id": 1,
@@ -78,8 +78,8 @@ def test_create_task_with_all_fields(app_context, login_as, get_user) -> None:
         result = command.run()
 
         # Verify all fields were set
-        assert result.task_type == "test_type"
-        assert result.task_id == "test-id-full"
+        assert result.task_type == "test-type"
+        assert result.task_key == "test-key-full"
         assert result.task_name == "Test Task Full"
         assert result.user_id == admin.id
         assert result.database_id == 1
@@ -103,31 +103,31 @@ def test_create_task_missing_task_type(app_context, login_as) -> None:
     assert "task_type" in exc_info.value._exceptions[0].field_name
 
 
-def test_create_task_duplicate_task_id(app_context, login_as) -> None:
-    """Test creation fails when task_id already exists"""
+def test_create_task_duplicate_task_key(app_context, login_as) -> None:
+    """Test creation fails when task_key already exists"""
     login_as("admin")
 
     # Create first task
     command1 = CreateAsyncTaskCommand(
         data={
-            "task_type": "test_type",
-            "task_id": "duplicate-id",
+            "task_type": "test-type",
+            "task_key": "duplicate-key",
             "task_name": "First Task",
         }
     )
     task1 = command1.run()
 
     try:
-        # Try to create second task with same task_id and type
+        # Try to create second task with same task_key and type
         command2 = CreateAsyncTaskCommand(
             data={
-                "task_type": "test_type",
-                "task_id": "duplicate-id",
+                "task_type": "test-type",
+                "task_key": "duplicate-key",
                 "task_name": "Second Task",
             }
         )
 
-        # Should fail due to duplicate task_id
+        # Should fail due to duplicate task_key
         with pytest.raises(AsyncTaskCreateFailedError):
             command2.run()
     finally:
@@ -136,13 +136,13 @@ def test_create_task_duplicate_task_id(app_context, login_as) -> None:
         db.session.commit()
 
 
-def test_create_task_without_task_id(app_context, login_as) -> None:
-    """Test task creation without task_id (DAO generates UUID)"""
+def test_create_task_without_task_key(app_context, login_as) -> None:
+    """Test task creation without task_key (DAO generates UUID)"""
     login_as("admin")
 
     command = CreateAsyncTaskCommand(
         data={
-            "task_type": "test_type",
+            "task_type": "test-type",
             "task_name": "Test Task No ID",
         }
     )
@@ -150,10 +150,10 @@ def test_create_task_without_task_id(app_context, login_as) -> None:
     try:
         result = command.run()
 
-        # Verify task was created and DAO generated a task_id
-        assert result.task_type == "test_type"
+        # Verify task was created and DAO generated a task_key
+        assert result.task_type == "test-type"
         assert result.task_name == "Test Task No ID"
-        assert result.task_id is not None  # DAO generated UUID
+        assert result.task_key is not None  # DAO generated UUID
         assert result.uuid is not None
     finally:
         # Cleanup

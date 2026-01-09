@@ -40,30 +40,21 @@ Example:
     # Schedule task with automatic deduplication
     task = generate_chart_thumbnail.schedule(
         123,
-        options=TaskOptions(idempotency_key=f"thumbnail_chart_123")
+        options=TaskOptions(task_key=f"thumbnail_chart_123")
     )
 """
 
-# Inject concrete implementations into superset-core
-# This follows the dependency injection pattern used elsewhere in Superset
-import superset_core.api.types
+# Re-export from superset-core (simple types with no dependencies)
+from superset_core.api.async_tasks import TaskOptions, TaskStatus
 
-# Re-export TaskStatus from superset-core
-from superset_core.api.types import TaskStatus
-
+# Re-export concrete implementations
 from superset.async_tasks.ambient_context import get_context
-
-# Import concrete implementations to ensure they're available
-from superset.async_tasks.celery_executor import execute_async_task  # noqa: F401
-from superset.async_tasks.context import TaskContext  # noqa: F401
 from superset.async_tasks.decorators import async_task
-from superset.async_tasks.manager import TaskManager  # noqa: F401
-from superset.async_tasks.registry import TaskRegistry  # noqa: F401
-from superset.async_tasks.types import TaskOptions
 
-superset_core.api.types.async_task = async_task
-superset_core.api.types.get_context = get_context
-superset_core.api.types.TaskOptions = TaskOptions  # type: ignore[assignment,misc]
+# Note: Dependency injection for async tasks is handled in
+# superset/core/api/core_api_injection.py via inject_async_task_implementations()
+# The concrete implementations (TaskContext, TaskManager, TaskRegistry, etc.)
+# are automatically available via the injection system.
 
 __all__ = [
     "async_task",

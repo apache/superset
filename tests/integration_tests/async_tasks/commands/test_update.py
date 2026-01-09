@@ -16,7 +16,7 @@
 # under the License.
 
 import pytest
-from superset_core.api.types import TaskStatus
+from superset_core.api.async_tasks import TaskStatus
 
 from superset import db
 from superset.commands.async_tasks import UpdateAsyncTaskCommand
@@ -33,8 +33,8 @@ def test_update_task_success(app_context, get_user, login_as) -> None:
 
     # Create a task
     task = AsyncTask(
-        task_id="update_test",
         task_type="test_type",
+        task_key="update_test",
         status=TaskStatus.IN_PROGRESS.value,
     )
     task.created_by = admin
@@ -81,8 +81,8 @@ def test_update_task_forbidden(app_context, get_user, login_as) -> None:
 
     # Create a task owned by admin
     task = AsyncTask(
-        task_id="forbidden_test",
         task_type="test_type",
+        task_key="forbidden_test",
         status=TaskStatus.IN_PROGRESS.value,
     )
     task.created_by = admin
@@ -119,8 +119,8 @@ def test_update_task_payload(app_context, get_user, login_as) -> None:
 
     # Create a task
     task = AsyncTask(
-        task_id="payload_test",
         task_type="test_type",
+        task_key="payload_test",
         status=TaskStatus.IN_PROGRESS.value,
         payload='{"initial": "data"}',
     )
@@ -159,8 +159,8 @@ def test_update_multiple_fields(app_context, get_user, login_as) -> None:
 
     # Create a task
     task = AsyncTask(
-        task_id="multiple_test",
         task_type="test_type",
+        task_key="multiple_test",
         status=TaskStatus.IN_PROGRESS.value,
     )
     task.created_by = admin

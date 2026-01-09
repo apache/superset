@@ -17,7 +17,7 @@
 """Integration tests for AsyncTask REST API"""
 
 import prison
-from superset_core.api.types import TaskStatus
+from superset_core.api.async_tasks import TaskStatus
 
 from superset import db
 from superset.models.async_tasks import AsyncTask

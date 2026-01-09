@@ -22,7 +22,7 @@ Create Date: 2024-12-18 02:20:00.000000
 
 """
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import Column, DateTime, Float, Integer, String, Text
 
 from superset.migrations.shared.utils import (
     create_fks_for_table,
@@ -51,15 +51,15 @@ def upgrade():
         TABLE_NAME,
         Column("id", Integer, primary_key=True),
         Column("uuid", String(36), nullable=False, unique=True),
-        Column("task_id", String(256), nullable=False),  # For deduplication
+        Column("task_key", String(256), nullable=False),  # For deduplication
         Column("task_type", String(100), nullable=False),  # e.g., 'sql_execution'
         Column("task_name", String(256), nullable=True),  # Human readable name
         Column("status", String(50), nullable=False),  # PENDING, IN_PROGRESS, etc.
         # AuditMixinNullable columns
         Column("created_on", DateTime, nullable=True),
         Column("changed_on", DateTime, nullable=True),
-        Column("created_by_fk", Integer, nullable=True),  # FK to ab_user.id
-        Column("changed_by_fk", Integer, nullable=True),  # FK to ab_user.id
+        Column("created_by_fk", Integer, nullable=True),
+        Column("changed_by_fk", Integer, nullable=True),
         # Task-specific columns
         Column("started_at", DateTime, nullable=True),
         Column("ended_at", DateTime, nullable=True),
@@ -67,11 +67,12 @@ def upgrade():
         Column("database_id", Integer, nullable=True),  # Optional FK to dbs.id
         Column("error_message", Text, nullable=True),
         Column("payload", Text, nullable=True),  # JSON serialized task-specific data
+        Column("progress", Float, nullable=True),  # Progress 0.0-1.0, null by default
     )
 
     # Create indexes for optimal query performance
     create_index(TABLE_NAME, "idx_async_tasks_status", ["status"])
-    create_index(TABLE_NAME, "idx_async_tasks_task_id", ["task_id"])
+    create_index(TABLE_NAME, "idx_async_tasks_task_key", ["task_key"])
     create_index(TABLE_NAME, "idx_async_tasks_created_by", ["created_by_fk"])
     create_index(TABLE_NAME, "idx_async_tasks_created_on", ["created_on"])
     create_index(TABLE_NAME, "idx_async_tasks_task_type", ["task_type"])
@@ -122,7 +123,7 @@ def downgrade():
 
     # Drop indexes
     drop_index(TABLE_NAME, "idx_async_tasks_status")
-    drop_index(TABLE_NAME, "idx_async_tasks_task_id")
+    drop_index(TABLE_NAME, "idx_async_tasks_task_key")
     drop_index(TABLE_NAME, "idx_async_tasks_created_by")
     drop_index(TABLE_NAME, "idx_async_tasks_created_on")
     drop_index(TABLE_NAME, "idx_async_tasks_task_type")

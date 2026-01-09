@@ -126,7 +126,7 @@ def my_task(business_arg: int) -> None:
 
 ### Deduplication
 
-By default, each task gets a random UUID. Use `idempotency_key` for explicit deduplication:
+By default, each task gets a random UUID. Use `task_key` for explicit deduplication:
 
 ```python
 # Without deduplication - creates new task each time
@@ -134,8 +134,8 @@ task1 = my_task.schedule(arg=1)
 task2 = my_task.schedule(arg=1)  # Separate task
 
 # With deduplication - returns existing if active
-task1 = my_task.schedule(arg=1, options=TaskOptions(idempotency_key="key"))
-task2 = my_task.schedule(arg=1, options=TaskOptions(idempotency_key="key"))
+task1 = my_task.schedule(arg=1, options=TaskOptions(task_key="key"))
+task2 = my_task.schedule(arg=1, options=TaskOptions(task_key="key"))
 # task2 is the same as task1 if task1 is PENDING or IN_PROGRESS
 ```
 
@@ -393,13 +393,13 @@ Gets the current task execution context.
 ### Task Options
 
 ```python
-TaskOptions(idempotency_key: str | None = None)
+TaskOptions(task_key: str | None = None)
 ```
 
 Execution metadata for tasks.
 
 **Parameters:**
-- `idempotency_key`: Optional key for deduplication
+- `task_key`: Optional key for deduplication
 
 ### Task Context
 
@@ -455,6 +455,6 @@ Only call `get_context()` from within `@async_task` decorated functions.
 2. Verify registration: Check logs for "Registered async task"
 3. Check database: `SELECT * FROM async_tasks WHERE uuid = '...'`
 
-### Duplicate Tasks Despite Idempotency Key
+### Duplicate Tasks Despite Task Key
 
 Deduplication only prevents duplicates while task is PENDING or IN_PROGRESS. Once complete, new tasks with same key can be created.

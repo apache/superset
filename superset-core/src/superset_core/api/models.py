@@ -376,7 +376,7 @@ class AsyncTask(CoreModel):
     # Type hints for expected attributes (no actual field definitions)
     id: int
     uuid: str
-    task_id: str
+    task_key: str
     task_type: str
     task_name: str | None
     status: str
@@ -389,6 +389,7 @@ class AsyncTask(CoreModel):
     database_id: int | None
     error_message: str | None
     payload: str  # JSON serialized data
+    progress: float | None  # Progress 0.0-1.0, null by default
 
     def get_payload(self) -> dict[str, Any]:
         """
