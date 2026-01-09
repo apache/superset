@@ -766,8 +766,8 @@ describe('Horizontal bar chart axis bounds', () => {
     );
 
     // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
-    const xAxis = transformedProps.echartOptions.xAxis as any;
-    expect(xAxis.max).toBe(20000); // Should be the actual max value, not rounded
+    const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+    expect(xAxisRaw.max).toBe(20000); // Should be the actual max value, not rounded
   });
 
   it('should set yAxis min and max for diverging horizontal bar charts', () => {
@@ -794,9 +794,9 @@ describe('Horizontal bar chart axis bounds', () => {
     );
 
     // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
-    const xAxis = transformedProps.echartOptions.xAxis as any;
-    expect(xAxis.max).toBe(20000); // Should be the actual max value
-    expect(xAxis.min).toBe(-21000); // Should be the actual min value for diverging bars
+    const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+    expect(xAxisRaw.max).toBe(20000); // Should be the actual max value
+    expect(xAxisRaw.min).toBe(-21000); // Should be the actual min value for diverging bars
   });
 
   it('should not override explicit yAxisBounds', () => {
@@ -826,9 +826,9 @@ describe('Horizontal bar chart axis bounds', () => {
     );
 
     // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
-    const xAxis = transformedProps.echartOptions.xAxis as any;
-    expect(xAxis.max).toBe(25000); // Should respect explicit bound
-    expect(xAxis.min).toBe(0); // Should respect explicit bound
+    const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+    expect(xAxisRaw.max).toBe(25000); // Should respect explicit bound
+    expect(xAxisRaw.min).toBe(0); // Should respect explicit bound
   });
 
   it('should not apply when truncateYAxis is false', () => {
@@ -890,8 +890,8 @@ describe('Horizontal bar chart axis bounds', () => {
     );
 
     // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
-    const xAxis = transformedProps.echartOptions.xAxis as any;
+    const xAxisRaw = transformedProps.echartOptions.xAxis as any;
     // Should not have explicit max set when seriesType is not Bar
-    expect(xAxis.max).toBeUndefined();
+    expect(xAxisRaw.max).toBeUndefined();
   });
 });

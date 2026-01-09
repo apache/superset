@@ -46,7 +46,7 @@ export const TIMESERIES_CONSTANTS = {
   dataZoomEnd: 100,
   yAxisLabelTopOffset: 20,
   extraControlsOffset: 22,
-  // Minimum right padding for horizontal bar charts to ensure value labels are fully visible
+  // Min right padding (px) for horizontal bar charts to ensure value labels are fully visible
   horizontalBarLabelRightPadding: 70,
 };
 
