@@ -259,7 +259,7 @@
     "@swc/core": "^1.14.0",
     "@swc/plugin-emotion": "^12.0.0",
     "@swc/plugin-transform-imports": "^10.0.0",
-    "@testing-library/dom": "^8.20.1",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^12.1.5",
     "@testing-library/react-hooks": "^8.0.1",

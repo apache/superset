@@ -21,7 +21,7 @@
     "typescript": "^5.0.0",
     "@emotion/styled": "^11.14.1",
     "@types/lodash": "^4.17.21",
-    "@testing-library/dom": "^8.20.1",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^12.1.5",
     "@testing-library/react-hooks": "*",
