@@ -140,9 +140,11 @@ export const ChartEmbedControls = ({ chartId, onHide }: Props) => {
         throw err;
       })
       .then(({ result }) => {
-        setReady(true);
         setEmbedded(result);
         setAllowedDomains(result ? result.allowed_domains.join(', ') : '');
+      })
+      .finally(() => {
+        setReady(true);
       });
   }, [chartId, addDangerToast, endpoint]);
 
