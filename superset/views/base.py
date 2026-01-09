@@ -35,7 +35,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH, AUTH_SAML
+from flask_appbuilder.const import AUTH_LDAP, AUTH_OAUTH, AUTH_SAML
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -508,7 +508,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
     should_show_recaptcha = auth_user_registration and (
-        auth_type not in (AUTH_OAUTH, AUTH_SAML)
+        auth_type not in (AUTH_OAUTH, AUTH_SAML, AUTH_LDAP)
     )
 
     if auth_user_registration:
