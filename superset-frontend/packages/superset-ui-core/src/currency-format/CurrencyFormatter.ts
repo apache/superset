@@ -117,9 +117,13 @@ class CurrencyFormatter extends ExtensibleFunction {
           try {
             const symbol = getCurrencySymbol({ symbol: normalizedCurrency });
             if (symbol) {
-              return this.currency.symbolPosition === 'prefix'
-                ? `${symbol} ${formattedValue}`
-                : `${formattedValue} ${symbol}`;
+              if (this.currency.symbolPosition === 'prefix') {
+                return `${symbol} ${formattedValue}`;
+              } else if (this.currency.symbolPosition === 'suffix') {
+                return `${formattedValue} ${symbol}`;
+              }
+              // Unknown symbolPosition - default to suffix
+              return `${formattedValue} ${symbol}`;
             }
           } catch {
             // Invalid currency code - return value without currency symbol
@@ -132,9 +136,13 @@ class CurrencyFormatter extends ExtensibleFunction {
 
     try {
       const symbol = getCurrencySymbol(this.currency);
-      return this.currency.symbolPosition === 'prefix'
-        ? `${symbol} ${formattedValue}`
-        : `${formattedValue} ${symbol}`;
+      if (this.currency.symbolPosition === 'prefix') {
+        return `${symbol} ${formattedValue}`;
+      } else if (this.currency.symbolPosition === 'suffix') {
+        return `${formattedValue} ${symbol}`;
+      }
+      // Unknown symbolPosition - default to suffix
+      return `${formattedValue} ${symbol}`;
     } catch {
       // Invalid currency code - return value without currency symbol
       return formattedValue;
