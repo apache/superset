@@ -32,8 +32,15 @@ class AsyncTaskFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
     def apply(self, query: Query, value: Any) -> Query:
         """Apply the filter to the query."""
+        from flask import g, has_request_context
+
         from superset import security_manager
         from superset.models.async_tasks import AsyncTask
+
+        # If no request context or no user, return unfiltered query
+        # (this handles background tasks and system operations)
+        if not has_request_context() or not hasattr(g, "user"):
+            return query
 
         # If user is admin, return unfiltered query
         if security_manager.is_admin():
