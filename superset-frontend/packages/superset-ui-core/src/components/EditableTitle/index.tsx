@@ -89,7 +89,10 @@ export function EditableTitle({
   onEditingChange,
   ...rest
 }: EditableTitleProps) {
-  const [isEditing, setIsEditing] = useState(editing);
+  const [isEditingInternal, setIsEditingInternal] = useState(editing);
+  // Use editing prop directly when provided, otherwise use internal state
+  const isEditing = editing || isEditingInternal;
+  const setIsEditing = setIsEditingInternal;
   const [currentTitle, setCurrentTitle] = useState(title);
   const [lastTitle, setLastTitle] = useState(title);
   const [inputWidth, setInputWidth] = useState<number>(0);
@@ -123,12 +126,12 @@ export function EditableTitle({
     }
   }, [title]);
 
-  // Support controlled editing mode - sync isEditing when editing prop changes to true
+  // Sync internal state when editing prop changes (for controlled mode)
   useEffect(() => {
-    if (editing && !isEditing) {
-      setIsEditing(true);
+    if (editing) {
+      setIsEditingInternal(true);
     }
-  }, [editing, isEditing]);
+  }, [editing]);
 
   useEffect(() => {
     if (isEditing && contentRef.current) {
@@ -140,16 +143,12 @@ export function EditableTitle({
         textArea.scrollTop = textArea.scrollHeight;
       }
     }
-    // Skip notification only when entering controlled mode
-    // (editing=true, isEditing=false, and isEditing was already false before)
-    // This distinguishes from exiting edit mode (where prevIsEditing was true)
-    const isEnteringControlledMode =
-      editing && !isEditing && !prevIsEditingRef.current;
-    if (!isEnteringControlledMode) {
+    // Notify parent of editing state changes
+    if (prevIsEditingRef.current !== isEditing) {
       onEditingChange?.(isEditing);
     }
     prevIsEditingRef.current = isEditing;
-  }, [isEditing, editing, onEditingChange]);
+  }, [isEditing, onEditingChange]);
 
   function handleClick() {
     if (!canEdit || isEditing) return;
