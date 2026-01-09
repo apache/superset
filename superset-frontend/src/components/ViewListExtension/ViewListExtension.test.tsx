@@ -191,11 +191,7 @@ test('renders views for different viewIds independently', async () => {
   expect(screen.getByText(/view-a-component/)).toBeInTheDocument();
   expect(screen.queryByText(/view-b-component/)).not.toBeInTheDocument();
 
-  rerender(
-    <ExtensionsProvider>
-      <ViewListExtension viewId={VIEW_ID_B} />
-    </ExtensionsProvider>,
-  );
+  rerender(<ViewListExtension viewId={VIEW_ID_B} />);
 
   expect(screen.getByText(/view-b-component/)).toBeInTheDocument();
   expect(screen.queryByText(/view-a-component/)).not.toBeInTheDocument();
