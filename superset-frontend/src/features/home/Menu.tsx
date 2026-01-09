@@ -323,7 +323,18 @@ export function Menu({
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
       <StyledRow>
-        <StyledCol md={16} xs={screens.md ? 24 : 12}>
+        {/* Mobile: left placeholder for future icon */}
+        {!screens.md && <Col xs={4} />}
+        <StyledCol
+          md={16}
+          xs={screens.md ? 24 : 16}
+          css={
+            !screens.md &&
+            css`
+              justify-content: center;
+            `
+          }
+        >
           <Tooltip
             id="brand-tooltip"
             placement="bottomLeft"
@@ -366,7 +377,7 @@ export function Menu({
             />
           )}
         </StyledCol>
-        <Col md={8} xs={screens.md ? 24 : 12}>
+        <Col md={8} xs={screens.md ? 24 : 4}>
           <RightMenu
             align="flex-end"
             settings={settings}

@@ -39,6 +39,7 @@ import {
   Tooltip,
   DeleteModal,
   UnsavedChangesModal,
+  Grid,
 } from '@superset-ui/core/components';
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -162,8 +163,12 @@ const discardChanges = () => {
   window.location.assign(url);
 };
 
+const { useBreakpoint } = Grid;
+
 const Header = () => {
   const dispatch = useDispatch();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const [didNotifyMaxUndoHistoryToast, setDidNotifyMaxUndoHistoryToast] =
     useState(false);
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
@@ -606,7 +611,7 @@ const Header = () => {
 
   const titlePanelAdditionalItems = useMemo(
     () => [
-      !editMode && (
+      !editMode && !isMobile && (
         <PublishedStatus
           dashboardId={dashboardInfo.id}
           isPublished={isPublished}
@@ -616,12 +621,13 @@ const Header = () => {
           visible={!editMode}
         />
       ),
-      !editMode && !isEmbedded && metadataBar,
+      !editMode && !isEmbedded && !isMobile && metadataBar,
     ],
     [
       boundActionCreators.savePublished,
       dashboardInfo.id,
       editMode,
+      isMobile,
       metadataBar,
       isEmbedded,
       isPublished,
@@ -714,7 +720,7 @@ const Header = () => {
         ) : (
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
-            {userCanEdit && (
+            {userCanEdit && !isMobile && (
               <Button
                 buttonStyle="secondary"
                 onClick={handleEnterEditMode}
@@ -742,6 +748,7 @@ const Header = () => {
       handleCtrlZ,
       handleEnterEditMode,
       hasUnsavedChanges,
+      isMobile,
       overwriteDashboard,
       redoLength,
       toggleEditMode,
@@ -779,6 +786,10 @@ const Header = () => {
     userCanSave: userCanSaveAs,
     userCanCurate,
     isLoading,
+    isMobile,
+    isStarred,
+    isPublished,
+    saveFaveStar: boundActionCreators.saveFaveStar,
     showReportModal,
     showPropertiesModal,
     showRefreshModal,
@@ -805,7 +816,7 @@ const Header = () => {
           onOpenChange: setIsDropdownVisible,
         }}
         additionalActionsMenu={menu}
-        showFaveStar={user?.userId && dashboardInfo?.id}
+        showFaveStar={user?.userId && dashboardInfo?.id && !isMobile}
         showTitlePanelItems
       />
       {showingPropertiesModal && (
