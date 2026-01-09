@@ -52,7 +52,6 @@ interface SaveQueryProps {
   onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
   database: Partial<DatabaseObject> | undefined;
-  compactMode?: boolean;
 }
 
 export type QueryPayload = {
@@ -80,7 +79,6 @@ const SaveQuery = ({
   saveQueryWarning,
   database,
   columns,
-  compactMode,
 }: SaveQueryProps) => {
   const queryEditor = useQueryEditor(queryEditorId, [
     'autorun',
@@ -200,7 +198,6 @@ const SaveQuery = ({
         <SaveDatasetActionButton
           setShowSave={setShowSave}
           onSaveAsExplore={canExploreDatabase ? onSaveAsExplore : undefined}
-          compactMode={compactMode}
         />
       )}
       <SaveDatasetModal

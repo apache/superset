@@ -787,9 +787,8 @@ const SqlEditor: FC<Props> = ({
           }
           saveQueryWarning={saveQueryWarning}
           database={database}
-          compactMode
         />
-        <ShareSqlLabQuery queryEditorId={queryEditor.id} compactMode />
+        <ShareSqlLabQuery queryEditorId={queryEditor.id} />
       </>
     );
   };

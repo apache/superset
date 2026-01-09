@@ -214,7 +214,7 @@ test('executes command when primary action button is clicked', async () => {
 
   render(<MenuListExtension viewId={TEST_VIEW_ID} primary />);
 
-  const button = screen.getByText('test.action Title').closest('button')!;
+  const button = screen.getByRole('button', { name: 'test.action Title' });
   await userEvent.click(button);
 
   expect(commands.executeCommand).toHaveBeenCalledWith('test.action');
@@ -359,7 +359,7 @@ test('renders multiple primary actions from multiple contributions', async () =>
 
   render(<MenuListExtension viewId={TEST_VIEW_ID} primary />);
 
-  expect(screen.getByText('test.action1 Title')).toBeInTheDocument();
+  expect(await screen.findByText('test.action1 Title')).toBeInTheDocument();
   expect(screen.getByText('test.action2 Title')).toBeInTheDocument();
 });
 

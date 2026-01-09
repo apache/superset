@@ -30,33 +30,15 @@ describe('SaveDatasetActionButton', () => {
       />,
     );
 
-    const saveBtn = screen.getByRole('button', { name: /save/i });
-    const caretBtn = screen.getByRole('button', { name: /down/i });
+    const saveBtn = screen.getByRole('button', { name: 'Save' });
+    const saveDatasetBtn = screen.getByRole('button', {
+      name: /save dataset/i,
+    });
 
     expect(
-      await screen.findByRole('button', { name: /save/i }),
+      await screen.findByRole('button', { name: 'Save' }),
     ).toBeInTheDocument();
     expect(saveBtn).toBeVisible();
-    expect(caretBtn).toBeVisible();
-  });
-
-  test('renders a "save dataset" dropdown menu item when user clicks caret button', async () => {
-    const onSaveAsExplore = jest.fn();
-    render(
-      <SaveDatasetActionButton
-        setShowSave={() => true}
-        onSaveAsExplore={onSaveAsExplore}
-      />,
-    );
-
-    const caretBtn = screen.getByRole('button', { name: /down/i });
-    expect(
-      await screen.findByRole('button', { name: /down/i }),
-    ).toBeInTheDocument();
-    userEvent.click(caretBtn);
-
-    const saveDatasetMenuItem = screen.getByText(/save dataset/i);
-
-    expect(saveDatasetMenuItem).toBeInTheDocument();
+    expect(saveDatasetBtn).toBeVisible();
   });
 });

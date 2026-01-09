@@ -52,7 +52,6 @@ const MenuListExtension = ({
   compactMode,
 }: MenuListExtensionProps) => {
   const theme = useTheme();
-  const iconColor = theme.colorPrimary;
   const contributions =
     ExtensionsManager.getInstance().getMenuContributions(viewId);
 
@@ -65,23 +64,30 @@ const MenuListExtension = ({
               ExtensionsManager.getInstance().getCommandContribution(
                 contribution.command,
               )!;
-            // @ts-ignore
-            const Icon = Icons[command?.icon as IconNameType];
+            if (!command?.icon) {
+              return null;
+            }
+            const Icon =
+              (Icons as Record<string, typeof Icons.FileOutlined>)[
+                command.icon
+              ] ?? Icons.FileOutlined;
 
             return (
               <Button
                 key={contribution.view}
                 onClick={() => commands.executeCommand(command?.command)}
-                tooltip={command?.description}
-                icon={<Icon iconSize="m" iconColor={iconColor} />}
+                tooltip={command?.description ?? command?.title}
+                icon={<Icon iconSize="m" />}
                 buttonSize="small"
+                aria-label={command?.title}
+                {...(compactMode && { variant: 'text', color: 'primary' })}
               >
                 {!compactMode ? command?.title : undefined}
               </Button>
             );
           })
         : [],
-    [actions, primary, iconColor, compactMode],
+    [actions, primary, compactMode],
   );
   const secondaryActions = useMemo(
     () =>

@@ -24,11 +24,23 @@ export interface ViewListExtensionProps {
 }
 
 const ViewListExtension = ({ viewId }: ViewListExtensionProps) => {
-  const contributions =
-    ExtensionsManager.getInstance().getViewContributions(viewId) || [];
+  const maybeContributions =
+    ExtensionsManager.getInstance().getViewContributions(viewId);
+  const contributions = Array.isArray(maybeContributions)
+    ? maybeContributions
+    : [];
   const { getView } = useExtensionsContext();
 
-  return <>{contributions.map(contribution => getView(contribution.id))}</>;
+  return (
+    <>
+      {contributions
+        .filter(
+          contribution =>
+            contribution && typeof contribution.id !== 'undefined',
+        )
+        .map(contribution => getView(contribution.id))}
+    </>
+  );
 };
 
 export default ViewListExtension;
