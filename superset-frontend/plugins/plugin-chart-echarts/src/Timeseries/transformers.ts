@@ -656,7 +656,9 @@ export function getPadding(
       top:
         yAxisTitlePosition && yAxisTitlePosition === 'Top'
           ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
-          : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
+          : yAxisTitlePosition === 'Left'
+            ? TIMESERIES_CONSTANTS.gridOffsetTop
+            : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
       bottom:
         zoomable && !isHorizontal
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
