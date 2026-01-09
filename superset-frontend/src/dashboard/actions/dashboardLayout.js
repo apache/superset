@@ -85,20 +85,11 @@ export const updateComponents = setUnsavedChangesAfterAction(
   }),
 );
 
-// Update a slice name override and auto-save to persist the change
-export function updateSliceNameWithSave(componentId, component, nextName) {
+// Helper function to update a component and auto-save the dashboard layout
+function updateComponentAndSave(componentId, updatedComponent, errorMessage) {
   return (dispatch, getState) => {
-    const { dashboardInfo, dashboardLayout } = getState();
+    const { dashboardInfo } = getState();
     const dashboardId = dashboardInfo.id;
-
-    // Update the component with the new name override
-    const updatedComponent = {
-      ...component,
-      meta: {
-        ...component.meta,
-        sliceNameOverride: nextName,
-      },
-    };
 
     // Dispatch the update for immediate UI feedback
     dispatch(
@@ -108,7 +99,7 @@ export function updateSliceNameWithSave(componentId, component, nextName) {
     );
 
     // Get the updated layout after the dispatch
-    const { dashboardLayout: updatedLayout, dashboardFilters } = getState();
+    const { dashboardLayout: updatedLayout } = getState();
     const layout = updatedLayout.present;
 
     // Serialize the layout for saving
@@ -131,7 +122,7 @@ export function updateSliceNameWithSave(componentId, component, nextName) {
       })
       .catch(async response => {
         const { error } = await getClientErrorObject(response);
-        logging.error('Error saving slice name:', error);
+        logging.error(errorMessage, error);
         dispatch(
           addDangerToast(
             t('Could not save your changes. Please try again.'),
@@ -139,6 +130,38 @@ export function updateSliceNameWithSave(componentId, component, nextName) {
         );
       });
   };
+}
+
+// Update a slice name override and auto-save to persist the change
+export function updateSliceNameWithSave(componentId, component, nextName) {
+  const updatedComponent = {
+    ...component,
+    meta: {
+      ...component.meta,
+      sliceNameOverride: nextName,
+    },
+  };
+  return updateComponentAndSave(
+    componentId,
+    updatedComponent,
+    'Error saving slice name:',
+  );
+}
+
+// Update a tab title and auto-save to persist the change
+export function updateTabTitleWithSave(componentId, component, nextTitle) {
+  const updatedComponent = {
+    ...component,
+    meta: {
+      ...component.meta,
+      text: nextTitle,
+    },
+  };
+  return updateComponentAndSave(
+    componentId,
+    updatedComponent,
+    'Error saving tab title:',
+  );
 }
 
 export function updateDashboardTitle(text) {

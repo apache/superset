@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useCallback, memo, useEffect } from 'react';
+import { Fragment, useCallback, memo, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
@@ -27,7 +27,7 @@ import { EditableTitle, EmptyState } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import AnchorLink from 'src/dashboard/components/AnchorLink';
+import TabMenu from './TabMenu';
 import {
   DragDroppable,
   Droppable,
@@ -94,14 +94,16 @@ const TabTitleContainer = styled.div`
     transition: box-shadow 0.2s ease-in-out;
     ${isHighlighted ? `box-shadow: 0 0 ${sizeUnit}px ${colorPrimaryBg};` : ''}
 
-    .anchor-link-container {
+    .anchor-link-container,
+    > button {
       position: absolute;
       left: 100%;
       opacity: 0;
       transition: opacity 0.2s ease-in-out;
     }
 
-    &:hover .anchor-link-container {
+    &:hover .anchor-link-container,
+    &:hover > button {
       opacity: 1;
     }
   `}
@@ -120,7 +122,10 @@ const renderDraggableContent = dropProps =>
 
 const Tab = props => {
   const dispatch = useDispatch();
-  const canEdit = useSelector(state => state.dashboardInfo.dash_edit_perm);
+  const canEditDashboard = useSelector(
+    state => state.dashboardInfo.dash_edit_perm,
+  );
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const dashboardLayout = useSelector(state => state.dashboardLayout.present);
   const lastRefreshTime = useSelector(
     state => state.dashboardState.lastRefreshTime,
@@ -167,20 +172,32 @@ const Tab = props => {
 
   const handleChangeText = useCallback(
     nextTabText => {
-      const { updateComponents, component } = props;
+      const { updateComponents, updateTabTitleWithSave, component, editMode } =
+        props;
       if (nextTabText && nextTabText !== component.meta.text) {
-        updateComponents({
-          [component.id]: {
-            ...component,
-            meta: {
-              ...component.meta,
-              text: nextTabText,
+        // Use auto-save when editing from the menu (not in full edit mode)
+        if (!editMode && isEditingTitle) {
+          updateTabTitleWithSave(component.id, component, nextTabText);
+        } else {
+          updateComponents({
+            [component.id]: {
+              ...component,
+              meta: {
+                ...component.meta,
+                text: nextTabText,
+              },
             },
-          },
-        });
+          });
+        }
       }
     },
-    [props.updateComponents, props.component],
+    [
+      props.updateComponents,
+      props.updateTabTitleWithSave,
+      props.component,
+      props.editMode,
+      isEditingTitle,
+    ],
   );
 
   const handleDrop = useCallback(
@@ -260,7 +277,7 @@ const Tab = props => {
                 : t('There are no components added to this tab')
             }
             description={
-              canEdit &&
+              canEditDashboard &&
               (editMode ? (
                 <span>
                   {t('You can')}{' '}
@@ -341,7 +358,7 @@ const Tab = props => {
     props.setDirectPathToChild,
     props.updateComponents,
     handleHoverTab,
-    canEdit,
+    canEditDashboard,
     handleChangeTab,
     handleChangeText,
     handleDrop,
@@ -349,17 +366,29 @@ const Tab = props => {
     shouldDropToChild,
   ]);
 
+  const handleEditTitle = useCallback(() => {
+    setIsEditingTitle(true);
+  }, []);
+
+  const handleEditingChange = useCallback(
+    editing => {
+      if (!editing) {
+        setIsEditingTitle(false);
+      }
+      props.onTabTitleEditingChange?.(editing);
+    },
+    [props.onTabTitleEditingChange],
+  );
+
   const renderTabChild = useCallback(
     ({ dropIndicatorProps, dragSourceRef, draggingTabOnTab }) => {
       const {
         component,
-        index,
         editMode,
         isFocused,
         isHighlighted,
         dashboardId,
         embeddedMode,
-        onTabTitleEditingChange,
       } = props;
       return (
         <TabTitleContainer
@@ -371,17 +400,18 @@ const Tab = props => {
             title={component.meta.text}
             defaultTitle={component.meta.defaultText}
             placeholder={component.meta.placeholder}
-            canEdit={editMode && isFocused}
+            canEdit={(editMode && isFocused) || isEditingTitle}
             onSaveTitle={handleChangeText}
             showTooltip={false}
-            editing={editMode && isFocused}
-            onEditingChange={onTabTitleEditingChange}
+            editing={(editMode && isFocused) || isEditingTitle}
+            onEditingChange={handleEditingChange}
           />
           {!editMode && !embeddedMode && (
-            <AnchorLink
-              id={component.id}
+            <TabMenu
+              tabId={component.id}
               dashboardId={dashboardId}
-              placement={index >= 5 ? 'left' : 'right'}
+              canEditDashboard={canEditDashboard}
+              onEditTitle={handleEditTitle}
             />
           )}
 
@@ -396,13 +426,16 @@ const Tab = props => {
     },
     [
       props.component,
-      props.index,
       props.editMode,
       props.isFocused,
       props.isHighlighted,
       props.dashboardId,
-      props.onTabTitleEditingChange,
+      props.embeddedMode,
+      isEditingTitle,
+      canEditDashboard,
       handleChangeText,
+      handleEditTitle,
+      handleEditingChange,
     ],
   );
 
