@@ -202,7 +202,7 @@
     "react-transition-group": "^4.4.5",
     "react-virtualized-auto-sizer": "^1.0.26",
     "react-window": "^1.8.10",
-    "redux": "^4.2.1",
+    "redux": "^5.0.1",
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
     "redux-undo": "^1.0.0-beta9-9-7",
