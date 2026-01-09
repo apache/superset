@@ -23,7 +23,7 @@ import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
 export const TITLE_MARGIN_OPTIONS: number[] = [
-  15, 30, 50, 75, 100, 125, 150, 200,
+  0, 15, 30, 50, 75, 100, 125, 150, 200,
 ];
 export const TITLE_POSITION_OPTIONS: [string, string][] = [
   ['Left', t('Left')],
@@ -82,7 +82,7 @@ export const titleControls: ControlPanelSectionConfig = {
           clearable: true,
           label: t('Y Axis Title Margin'),
           renderTrigger: true,
-          default: TITLE_MARGIN_OPTIONS[1],
+          default: TITLE_MARGIN_OPTIONS[0],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
         },
       },
