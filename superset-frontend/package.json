@@ -214,7 +214,7 @@
     "urijs": "^1.19.8",
     "use-event-callback": "^0.1.0",
     "use-immer": "^0.11.0",
-    "use-query-params": "^1.1.9",
+    "use-query-params": "^2.2.2",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "yargs": "^17.7.2"
   },
