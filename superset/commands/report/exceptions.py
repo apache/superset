@@ -318,7 +318,9 @@ class ReportScheduleUserEmailNotFoundError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__(
-            _("Unable to create report: User email address is required but not found. "
-              "Please ensure your user profile has a valid email address."),
+            _(
+                "Unable to create report: User email address is required but not found. "
+                "Please ensure your user profile has a valid email address."
+            ),
             field_name="recipients",
         )

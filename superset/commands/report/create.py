@@ -60,16 +60,19 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
     def _populate_recipients(self, exceptions: list[ValidationError]) -> None:
         """
         Populate recipients based on creation method and current user.
-        
+
         For reports initiated from charts or dashboards, always use
         the current user's email as the recipient, ignoring any
         client-provided recipient values. Raises validation error if
         user has no email address.
         """
         creation_method = self._properties.get("creation_method")
-        
+
         # For reports from charts/dashboards, always use current user
-        if creation_method in (ReportCreationMethod.CHARTS, ReportCreationMethod.DASHBOARDS):
+        if creation_method in (
+            ReportCreationMethod.CHARTS,
+            ReportCreationMethod.DASHBOARDS,
+        ):
             if hasattr(g, "user") and g.user and g.user.email:
                 # Override any provided recipients with current user's email
                 self._properties["recipients"] = [
@@ -103,7 +106,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         exceptions: list[ValidationError] = []
-        
+
         # Populate recipients if needed (may add validation errors)
         self._populate_recipients(exceptions)
 
