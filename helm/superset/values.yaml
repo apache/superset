@@ -143,6 +143,17 @@ optionalDependencies: []
   # - "bigquery"      # For Google BigQuery
   # - "elasticsearch" # For Elasticsearch
 
+# -- Extra pip packages to install at container startup (for POC/dev only)
+# ⚠️ PRODUCTION: Leave this empty in production - dependencies should be pre-installed in a custom image
+# These are arbitrary Python packages that will be installed via `uv pip install`
+# Use this for packages not available in Superset's optional dependencies
+# Example: ["redis>=4.0.0", "boto3", "my-custom-package==1.2.3"]
+extraPipPackages: []
+  # - "redis>=4.0.0"           # Install specific version of redis
+  # - "boto3"                  # AWS SDK
+  # - "my-custom-package"      # Custom package from PyPI
+  # - "git+https://github.com/org/repo.git"  # Install from git repository
+
 # -- Install additional packages and do any other bootstrap configuration in this script
 # For production clusters it's recommended to build own image with this step done in CI
 # ⚠️ PRODUCTION: In production, optionalDependencies should be empty (deps pre-installed in custom image)
