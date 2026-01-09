@@ -56,6 +56,7 @@ def setup_mocks(
     mock_feature_flags: MagicMock,
     mock_engine_specs: MagicMock,
     mock_app: MagicMock,
+    mock_appbuilder: MagicMock,
     config: dict[str, Any],
 ) -> None:
     """Setup common mock return values"""
@@ -65,6 +66,7 @@ def setup_mocks(
     mock_menu_data.return_value = {}
     mock_theme_data.return_value = {}
     mock_g.user = None
+    mock_appbuilder.sm.oauth_providers = config.get("OAUTH_PROVIDERS", [])
 
 
 @pytest.mark.parametrize(
@@ -76,6 +78,7 @@ def setup_mocks(
         (AUTH_OAUTH, False),
     ],
 )
+@patch("superset.views.base.appbuilder")
 @patch("superset.views.base.app")
 @patch("superset.views.base.get_available_engine_specs")
 @patch("superset.views.base.get_feature_flags")
@@ -89,6 +92,7 @@ def test_recaptcha_visibility_by_auth_type(
     mock_feature_flags: MagicMock,
     mock_engine_specs: MagicMock,
     mock_app: MagicMock,
+    mock_appbuilder: MagicMock,
     auth_type: int,
     should_show_recaptcha: bool,
 ) -> None:
@@ -101,6 +105,7 @@ def test_recaptcha_visibility_by_auth_type(
         mock_feature_flags,
         mock_engine_specs,
         mock_app,
+        mock_appbuilder,
         config,
     )
 
@@ -115,6 +120,7 @@ def test_recaptcha_visibility_by_auth_type(
         assert "RECAPTCHA_PUBLIC_KEY" not in result["conf"]
 
 
+@patch("superset.views.base.appbuilder")
 @patch("superset.views.base.app")
 @patch("superset.views.base.get_available_engine_specs")
 @patch("superset.views.base.get_feature_flags")
@@ -128,6 +134,7 @@ def test_should_not_show_recaptcha_without_user_registration(
     mock_feature_flags: MagicMock,
     mock_engine_specs: MagicMock,
     mock_app: MagicMock,
+    mock_appbuilder: MagicMock,
 ) -> None:
     """Test that reCAPTCHA is NOT shown when user registration is disabled"""
     config = get_base_config(AUTH_USER_REGISTRATION=False)
@@ -139,6 +146,7 @@ def test_should_not_show_recaptcha_without_user_registration(
         mock_feature_flags,
         mock_engine_specs,
         mock_app,
+        mock_appbuilder,
         config,
     )
 
@@ -150,6 +158,7 @@ def test_should_not_show_recaptcha_without_user_registration(
     assert "AUTH_USER_REGISTRATION_ROLE" not in result["conf"]
 
 
+@patch("superset.views.base.appbuilder")
 @patch("superset.views.base.app")
 @patch("superset.views.base.get_available_engine_specs")
 @patch("superset.views.base.get_feature_flags")
@@ -163,6 +172,7 @@ def test_ldap_auth_with_registration_role_still_set(
     mock_feature_flags: MagicMock,
     mock_engine_specs: MagicMock,
     mock_app: MagicMock,
+    mock_appbuilder: MagicMock,
 ) -> None:
     """Test AUTH_USER_REGISTRATION_ROLE is set for LDAP auth when registration on"""
     config = get_base_config(
@@ -176,6 +186,7 @@ def test_ldap_auth_with_registration_role_still_set(
         mock_feature_flags,
         mock_engine_specs,
         mock_app,
+        mock_appbuilder,
         config,
     )
 
