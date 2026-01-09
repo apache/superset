@@ -1487,15 +1487,29 @@ test('bulk selection clears when filter changes', async () => {
   });
 
   // Verify multiple checkboxes exist (header + row checkboxes)
-  const checkboxes = screen.getAllByRole('checkbox');
+  let checkboxes = screen.getAllByRole('checkbox');
   expect(checkboxes.length).toBeGreaterThan(1);
 
-  // Select first 2 items (indices 1 and 2 - index 0 is header)
+  // Select first item
   await userEvent.click(checkboxes[1]);
+
+  // Wait for first selection to register
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
+  });
+
+  // Re-query checkboxes (DOM may have updated) and select second item
+  checkboxes = screen.getAllByRole('checkbox');
   await userEvent.click(checkboxes[2]);
 
   // Wait for selections to register - assert specific count to avoid matching "0 Selected"
-  await screen.findByText(/2 selected/i);
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /2 Selected/i,
+    );
+  });
 
   // Record API call count before filter
   const beforeFilterCallCount = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
@@ -1675,4 +1689,461 @@ test('type filter persists after duplicating a dataset', async () => {
       expect.objectContaining({ col: 'sql', value: false }),
     ]),
   );
+});
+
+// Error Path Tests - Missing coverage for error handling flows
+
+test('edit action shows error toast when dataset fetch fails', async () => {
+  const dataset = mockDatasets[0];
+  // Make the dataset owned by admin so edit button is enabled
+  const ownedDataset = {
+    ...dataset,
+    owners: [
+      {
+        first_name: mockAdminUser.firstName,
+        last_name: mockAdminUser.lastName,
+        id: mockAdminUser.userId as number,
+      },
+    ],
+  };
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [ownedDataset], count: 1 },
+    { overwriteRoutes: true },
+  );
+
+  // Mock SupersetClient.get to fail for the specific dataset endpoint
+  jest.spyOn(SupersetClient, 'get').mockImplementation(async request => {
+    if (request.endpoint?.includes(`/api/v1/dataset/${dataset.id}`)) {
+      throw buildSupersetClientError({
+        status: 500,
+        message: 'Failed to fetch dataset',
+      });
+    }
+    // Let other calls go through normally via fetchMock
+    const response = await fetch(request.endpoint!, { method: 'GET' });
+    return { json: await response.json(), response };
+  });
+
+  renderDatasetList(mockAdminUser, {
+    addDangerToast: mockAddDangerToast,
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText(ownedDataset.table_name)).toBeInTheDocument();
+  });
+
+  const table = screen.getByTestId('listview-table');
+  const editButton = await within(table).findByTestId('edit');
+
+  await userEvent.click(editButton);
+
+  // Wait for error toast
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      expect.stringMatching(/error.*fetching dataset/i),
+    );
+  });
+
+  // Verify edit modal did NOT open
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+test('bulk export error shows toast and clears loading state', async () => {
+  // Mock handleResourceExport to throw an error
+  mockHandleResourceExport.mockRejectedValueOnce(new Error('Export failed'));
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [mockDatasets[0]], count: 1 },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser, {
+    addDangerToast: mockAddDangerToast,
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Enter bulk select mode
+  const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
+  await userEvent.click(bulkSelectButton);
+
+  // Wait for bulk select controls
+  await screen.findByTestId('bulk-select-controls');
+
+  await waitFor(() => {
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+  });
+
+  // Select first row
+  const checkboxes = screen.getAllByRole('checkbox');
+  await userEvent.click(checkboxes[1]);
+
+  // Click bulk export
+  const exportButton = await screen.findByRole('button', { name: /export/i });
+  await userEvent.click(exportButton);
+
+  // Wait for error toast
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      expect.stringMatching(/issue exporting.*selected datasets/i),
+    );
+  });
+
+  // Verify export was called
+  expect(mockHandleResourceExport).toHaveBeenCalled();
+});
+
+test('bulk delete error shows toast without refreshing list', async () => {
+  // Mock bulk delete to fail
+  fetchMock.delete(
+    API_ENDPOINTS.DATASET_BULK_DELETE,
+    { status: 500, body: { message: 'Bulk delete failed' } },
+    { overwriteRoutes: true },
+  );
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [mockDatasets[0]], count: 1 },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser, {
+    addDangerToast: mockAddDangerToast,
+    addSuccessToast: mockAddSuccessToast,
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Enter bulk select mode
+  const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
+  await userEvent.click(bulkSelectButton);
+
+  // Wait for bulk select controls
+  await screen.findByTestId('bulk-select-controls');
+
+  await waitFor(() => {
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+  });
+
+  // Select first row
+  const checkboxes = screen.getAllByRole('checkbox');
+  await userEvent.click(checkboxes[1]);
+
+  // Click bulk delete - find by test ID since multiple bulk actions exist
+  const bulkActionButtons = await screen.findAllByTestId('bulk-select-action');
+  const bulkDeleteButton = bulkActionButtons.find(btn =>
+    btn.textContent?.includes('Delete'),
+  );
+  expect(bulkDeleteButton).toBeTruthy();
+  await userEvent.click(bulkDeleteButton!);
+
+  // Confirm delete in modal - type DELETE to enable button
+  const modal = await screen.findByRole('dialog');
+  const confirmInput = within(modal).getByTestId('delete-modal-input');
+  await userEvent.clear(confirmInput);
+  await userEvent.type(confirmInput, 'DELETE');
+
+  const confirmButton = within(modal)
+    .getAllByRole('button', { name: /^delete$/i })
+    .pop();
+  await userEvent.click(confirmButton!);
+
+  // Wait for error toast
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      expect.stringMatching(/issue deleting.*selected datasets/i),
+    );
+  });
+
+  // Verify success toast was NOT called
+  expect(mockAddSuccessToast).not.toHaveBeenCalled();
+
+  // Verify original dataset still in list
+  expect(screen.getByText(mockDatasets[0].table_name)).toBeInTheDocument();
+});
+
+// Bulk Select Copy Tests - Verify count labels for different selection types
+
+test('bulk select shows "N Selected (Virtual)" for virtual-only selection', async () => {
+  // Use only virtual datasets
+  const virtualDatasets = mockDatasets.filter(d => d.kind === 'virtual');
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: virtualDatasets, count: virtualDatasets.length },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Enter bulk select mode
+  const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
+  await userEvent.click(bulkSelectButton);
+
+  await screen.findByTestId('bulk-select-controls');
+
+  await waitFor(() => {
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+  });
+
+  // Select first virtual dataset
+  const checkboxes = screen.getAllByRole('checkbox');
+  await userEvent.click(checkboxes[1]);
+
+  // Verify label shows "Virtual"
+  await waitFor(() => {
+    expect(screen.getByText(/1 Selected \(Virtual\)/i)).toBeInTheDocument();
+  });
+});
+
+test('bulk select shows "N Selected (Physical)" for physical-only selection', async () => {
+  // Use only physical datasets
+  const physicalDatasets = mockDatasets.filter(d => d.kind === 'physical');
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: physicalDatasets, count: physicalDatasets.length },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Enter bulk select mode
+  const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
+  await userEvent.click(bulkSelectButton);
+
+  await screen.findByTestId('bulk-select-controls');
+
+  await waitFor(() => {
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+  });
+
+  // Select first physical dataset
+  const checkboxes = screen.getAllByRole('checkbox');
+  await userEvent.click(checkboxes[1]);
+
+  // Verify label shows "Physical"
+  await waitFor(() => {
+    expect(screen.getByText(/1 Selected \(Physical\)/i)).toBeInTheDocument();
+  });
+});
+
+test('bulk select shows mixed count for virtual and physical selection', async () => {
+  // Use a small mixed set - 1 physical + 1 virtual
+  const mixedDatasets = [
+    mockDatasets.find(d => d.kind === 'physical')!,
+    mockDatasets.find(d => d.kind === 'virtual')!,
+  ];
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: mixedDatasets, count: mixedDatasets.length },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Enter bulk select mode
+  const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
+  await userEvent.click(bulkSelectButton);
+
+  await screen.findByTestId('bulk-select-controls');
+
+  await waitFor(() => {
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+  });
+
+  // Get checkboxes - [0] is select-all, [1] and [2] are row checkboxes
+  let checkboxes = screen.getAllByRole('checkbox');
+  expect(checkboxes.length).toBeGreaterThanOrEqual(3);
+
+  // Click first row checkbox
+  await userEvent.click(checkboxes[1]);
+
+  // Wait for first selection to register
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
+  });
+
+  // Re-query checkboxes (DOM may have updated after first selection)
+  checkboxes = screen.getAllByRole('checkbox');
+
+  // Click second row checkbox
+  await userEvent.click(checkboxes[2]);
+
+  // Wait for second selection and verify mixed count
+  await waitFor(() => {
+    const bulkSelectCopy = screen.getByTestId('bulk-select-copy');
+    expect(bulkSelectCopy).toHaveTextContent(/2 Selected/i);
+  });
+
+  // Verify label shows both Physical and Virtual
+  const bulkSelectCopy = screen.getByTestId('bulk-select-copy');
+  expect(bulkSelectCopy).toHaveTextContent(/Physical/i);
+  expect(bulkSelectCopy).toHaveTextContent(/Virtual/i);
+});
+
+// Delete Modal Related Objects Tests
+
+test('delete modal shows affected dashboards with overflow for >10 items', async () => {
+  const dataset = mockDatasets[0];
+
+  // Create mock with more than 10 dashboards
+  const manyDashboards = Array.from({ length: 15 }, (_, i) => ({
+    id: 200 + i,
+    title: `Dashboard ${i + 1}`,
+  }));
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [dataset], count: 1 },
+    { overwriteRoutes: true },
+  );
+
+  fetchMock.get(
+    `glob:*/api/v1/dataset/${dataset.id}/related_objects*`,
+    {
+      charts: { count: 0, result: [] },
+      dashboards: { count: 15, result: manyDashboards },
+    },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  const table = screen.getByTestId('listview-table');
+  const deleteButton = await within(table).findByTestId('delete');
+  await userEvent.click(deleteButton);
+
+  // Wait for modal
+  const modal = await screen.findByRole('dialog');
+
+  // Verify "Affected Dashboards" header
+  expect(within(modal).getByText('Affected Dashboards')).toBeInTheDocument();
+
+  // Verify first 10 dashboards are shown
+  expect(within(modal).getByText('Dashboard 1')).toBeInTheDocument();
+  expect(within(modal).getByText('Dashboard 10')).toBeInTheDocument();
+
+  // Verify overflow message
+  expect(within(modal).getByText(/\.\.\. and 5 others/)).toBeInTheDocument();
+
+  // Verify Dashboard 11+ are NOT shown
+  expect(within(modal).queryByText('Dashboard 11')).not.toBeInTheDocument();
+});
+
+test('delete modal hides affected dashboards section when count is zero', async () => {
+  const dataset = mockDatasets[0];
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [dataset], count: 1 },
+    { overwriteRoutes: true },
+  );
+
+  fetchMock.get(
+    `glob:*/api/v1/dataset/${dataset.id}/related_objects*`,
+    {
+      charts: { count: 2, result: [{ id: 1, slice_name: 'Chart 1' }] },
+      dashboards: { count: 0, result: [] },
+    },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  const table = screen.getByTestId('listview-table');
+  const deleteButton = await within(table).findByTestId('delete');
+  await userEvent.click(deleteButton);
+
+  // Wait for modal
+  const modal = await screen.findByRole('dialog');
+
+  // Verify "Affected Dashboards" header is NOT present
+  expect(
+    within(modal).queryByText('Affected Dashboards'),
+  ).not.toBeInTheDocument();
+
+  // But "Affected Charts" should still be shown
+  expect(within(modal).getByText('Affected Charts')).toBeInTheDocument();
+});
+
+test('delete modal shows affected charts with overflow for >10 items', async () => {
+  const dataset = mockDatasets[0];
+
+  // Create mock with more than 10 charts
+  const manyCharts = Array.from({ length: 12 }, (_, i) => ({
+    id: 100 + i,
+    slice_name: `Chart ${i + 1}`,
+  }));
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [dataset], count: 1 },
+    { overwriteRoutes: true },
+  );
+
+  fetchMock.get(
+    `glob:*/api/v1/dataset/${dataset.id}/related_objects*`,
+    {
+      charts: { count: 12, result: manyCharts },
+      dashboards: { count: 0, result: [] },
+    },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  const table = screen.getByTestId('listview-table');
+  const deleteButton = await within(table).findByTestId('delete');
+  await userEvent.click(deleteButton);
+
+  // Wait for modal
+  const modal = await screen.findByRole('dialog');
+
+  // Verify "Affected Charts" header
+  expect(within(modal).getByText('Affected Charts')).toBeInTheDocument();
+
+  // Verify first 10 charts are shown
+  expect(within(modal).getByText('Chart 1')).toBeInTheDocument();
+  expect(within(modal).getByText('Chart 10')).toBeInTheDocument();
+
+  // Verify overflow message
+  expect(within(modal).getByText(/\.\.\. and 2 others/)).toBeInTheDocument();
+
+  // Verify Chart 11+ are NOT shown
+  expect(within(modal).queryByText('Chart 11')).not.toBeInTheDocument();
 });
