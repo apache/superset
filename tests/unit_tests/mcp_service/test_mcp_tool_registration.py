@@ -49,3 +49,120 @@ def test_tool_import_works():
     # Should return a decorator function
     decorator = tool(name="test", description="test")
     assert callable(decorator)
+
+
+def test_prompt_import_works():
+    """Test that prompt can be imported from superset_core.mcp after
+    initialization."""
+    from superset_core.mcp import prompt
+
+    # Should be callable
+    assert callable(prompt)
+
+    # Should return a decorator function
+    decorator = prompt(name="test", description="test")
+    assert callable(decorator)
+
+
+def _find_mcp_creation_line(tree):
+    """Find line number of mcp = create_mcp_app() assignment."""
+    import ast
+
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if not isinstance(target, ast.Name) or target.id != "mcp":
+                continue
+            if not isinstance(node.value, ast.Call):
+                continue
+            if (
+                hasattr(node.value.func, "id")
+                and node.value.func.id == "create_mcp_app"
+            ):
+                return node.lineno
+    return None
+
+
+def _find_injection_call_line(tree):
+    """Find line number of initialize_core_mcp_dependencies() call."""
+    import ast
+
+    for node in tree.body:
+        if not isinstance(node, ast.Expr):
+            continue
+        if not isinstance(node.value, ast.Call):
+            continue
+        func = node.value.func
+        if hasattr(func, "id") and func.id == "initialize_core_mcp_dependencies":
+            return node.lineno
+    return None
+
+
+def _find_first_tool_import_line(tree):
+    """Find line number of first tool/prompt import."""
+    import ast
+
+    for node in tree.body:
+        if not isinstance(node, ast.ImportFrom):
+            continue
+        if node.module and "superset.mcp_service.chart" in node.module:
+            return node.lineno
+    return None
+
+
+def test_mcp_app_initialization_order():
+    """Test that app.py initializes dependencies before importing tools."""
+    import ast
+
+    with open("superset/mcp_service/app.py", "r") as f:
+        tree = ast.parse(f.read())
+
+    mcp_line = _find_mcp_creation_line(tree)
+    injection_line = _find_injection_call_line(tree)
+    import_line = _find_first_tool_import_line(tree)
+
+    assert mcp_line is not None, "Could not find mcp = create_mcp_app()"
+    assert injection_line is not None, "Could not find initialize call"
+    assert import_line is not None, "Could not find tool imports"
+
+    # Verify order: mcp creation < injection < tool imports
+    assert mcp_line < injection_line, "mcp creation must come before injection"
+    assert injection_line < import_line, "injection must come before tool imports"
+
+
+def test_mcp_app_imports_successfully():
+    """Test that the MCP app can be imported without errors.
+
+    This is the ultimate integration test - if this fails, the initialization
+    order is broken.
+    """
+    # This import should succeed without NotImplementedError
+    from superset.mcp_service.app import mcp
+
+    # Verify mcp instance is valid
+    assert mcp is not None
+    assert hasattr(mcp, "_tool_manager")
+
+    # Verify tools are registered
+    tools = mcp._tool_manager._tools
+    assert len(tools) > 0, "No tools registered"
+
+    # Verify some expected tools exist
+    tool_names = list(tools.keys())
+    assert "health_check" in tool_names
+    assert "list_charts" in tool_names
+    assert "get_schema" in tool_names
+
+
+def test_mcp_prompts_registered():
+    """Test that MCP prompts are registered after initialization."""
+    from superset.mcp_service.app import mcp
+
+    # Verify prompts are registered
+    prompts = mcp._prompt_manager._prompts
+    assert len(prompts) > 0, "No prompts registered"
+
+    # Verify expected prompts exist
+    prompt_names = list(prompts.keys())
+    assert "quickstart" in prompt_names or "create_chart_guided" in prompt_names

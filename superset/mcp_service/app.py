@@ -275,7 +275,17 @@ def create_mcp_app(
 
 
 # Create default MCP instance for backward compatibility
-mcp = create_mcp_app(stateless_http=True)
+# Note: stateless_http should be provided when calling run(), not at creation time
+mcp = create_mcp_app()
+
+# Initialize MCP dependency injection BEFORE importing tools/prompts
+# This replaces the abstract @tool and @prompt decorators in superset_core.mcp
+# with concrete implementations that can register with the mcp instance
+from superset.core.mcp.core_mcp_injection import (  # noqa: E402
+    initialize_core_mcp_dependencies,
+)
+
+initialize_core_mcp_dependencies()
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.

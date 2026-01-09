@@ -328,6 +328,71 @@ class TestGetSchemaEdgeCases:
             assert info["default_sort_direction"] == "desc"
 
 
+class TestGetSchemaLazyImports:
+    """Test lazy imports for DAOs to avoid circular dependencies."""
+
+    def test_no_module_level_dao_imports(self):
+        """Verify get_schema.py has no module-level DAO imports.
+
+        This is critical because module-level DAO imports trigger SQLAlchemy model
+        loading, which requires Flask app to be initialized (for encrypted fields).
+        DAOs must be imported inside functions (lazy imports) to avoid this issue.
+        """
+        import ast
+
+        with open("superset/mcp_service/system/tool/get_schema.py", "r") as f:
+            source = f.read()
+
+        tree = ast.parse(source)
+
+        # Check only top-level imports (direct children of Module)
+        dao_imports = []
+        for node in tree.body:
+            if isinstance(node, ast.ImportFrom):
+                module_name = node.module or ""
+                if "dao" in module_name.lower():
+                    dao_imports.append(module_name)
+
+        # Should be empty - no module-level DAO imports
+        assert dao_imports == [], (
+            f"Found module-level DAO imports: {dao_imports}. "
+            "DAOs must be imported inside functions to avoid circular dependencies."
+        )
+
+    def test_dao_imports_inside_factory_functions(self):
+        """Verify DAOs are imported inside factory functions."""
+        import ast
+
+        with open("superset/mcp_service/system/tool/get_schema.py", "r") as f:
+            source = f.read()
+
+        tree = ast.parse(source)
+
+        # Find DAO imports inside functions
+        function_dao_imports = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                for child in ast.walk(node):
+                    if isinstance(child, ast.ImportFrom):
+                        module_name = child.module or ""
+                        if "dao" in module_name.lower():
+                            function_dao_imports.append((node.name, module_name))
+
+        # Should have DAO imports inside the factory functions
+        expected_functions = [
+            "_get_chart_schema_core",
+            "_get_dataset_schema_core",
+            "_get_dashboard_schema_core",
+        ]
+        functions_with_imports = {fn for fn, _ in function_dao_imports}
+
+        for fn in expected_functions:
+            assert fn in functions_with_imports, (
+                f"Expected DAO import inside {fn} but not found. "
+                "Each factory function should have a lazy DAO import."
+            )
+
+
 class TestSchemaDiscoveryConstants:
     """Test schema discovery constant definitions."""
 
