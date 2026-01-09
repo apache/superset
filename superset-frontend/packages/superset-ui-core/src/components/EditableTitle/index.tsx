@@ -94,6 +94,7 @@ export function EditableTitle({
   const [lastTitle, setLastTitle] = useState(title);
   const [inputWidth, setInputWidth] = useState<number>(0);
   const contentRef = useRef<TextAreaRef>(null);
+  const prevIsEditingRef = useRef(isEditing);
 
   function measureTextWidth(text: string, font = '14px Arial') {
     const canvas = document.createElement('canvas');
@@ -139,11 +140,15 @@ export function EditableTitle({
         textArea.scrollTop = textArea.scrollHeight;
       }
     }
-    // Don't notify parent during controlled mode sync
-    // (when editing prop is true but local state hasn't caught up yet)
-    if (!(editing && !isEditing)) {
+    // Skip notification only when entering controlled mode
+    // (editing=true, isEditing=false, and isEditing was already false before)
+    // This distinguishes from exiting edit mode (where prevIsEditing was true)
+    const isEnteringControlledMode =
+      editing && !isEditing && !prevIsEditingRef.current;
+    if (!isEnteringControlledMode) {
       onEditingChange?.(isEditing);
     }
+    prevIsEditingRef.current = isEditing;
   }, [isEditing, editing, onEditingChange]);
 
   function handleClick() {
