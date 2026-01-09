@@ -594,13 +594,13 @@ export default function transformProps(
       minInterval:
         xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+                (formData.extraFormData.time_grain_sqla ?? timeGrainSqla) as keyof typeof TIMEGRAIN_TO_TIMESTAMP
             ]
           : 0,
       maxInterval:
         xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+                (formData.extraFormData.time_grain_sqla ?? timeGrainSqla) as keyof typeof TIMEGRAIN_TO_TIMESTAMP
             ]
           : undefined,
       ...getMinAndMaxFromBounds(
