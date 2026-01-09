@@ -31,7 +31,7 @@ import {
   SQL_EDITOR_RIGHTBAR_WIDTH,
 } from 'src/SqlLab/constants';
 import { ViewContribution } from 'src/SqlLab/contributions';
-import ViewExtension from 'src/components/ViewExtension';
+import ViewListExtension from 'src/components/ViewListExtension';
 
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import StatusBar from '../StatusBar';
@@ -135,7 +135,7 @@ const AppLayout: React.FC = ({ children }) => {
             min={SQL_EDITOR_RIGHTBAR_WIDTH}
           >
             <ContentWrapper>
-              <ViewExtension viewId={ViewContribution.RightSidebar} />
+              <ViewListExtension viewId={ViewContribution.RightSidebar} />
             </ContentWrapper>
           </Splitter.Panel>
         )}

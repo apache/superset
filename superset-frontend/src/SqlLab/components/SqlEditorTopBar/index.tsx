@@ -16,20 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Flex } from '@superset-ui/core/components';
+import { Divider, Flex } from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/ui';
 import { ViewContribution } from 'src/SqlLab/contributions';
-import MenuExtension, {
-  type MenuExtensionProps,
-} from 'src/components/MenuExtension';
+import MenuListExtension, {
+  type MenuListExtensionProps,
+} from 'src/components/MenuListExtension';
 
 const StyledFlex = styled(Flex)`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+
+  & .ant-divider {
+    margin: ${({ theme }) => theme.sizeUnit * 2}px 0;
+    height: ${({ theme }) => theme.sizeUnit * 6}px;
+  }
 `;
 export interface SqlEditorTopBarProps {
   queryEditorId: string;
   defaultPrimaryActions: React.ReactNode;
-  defaultSecondaryActions: MenuExtensionProps['defaultItems'];
+  defaultSecondaryActions: MenuListExtensionProps['defaultItems'];
 }
 
 const SqlEditorTopBar = ({
@@ -37,17 +42,19 @@ const SqlEditorTopBar = ({
   defaultSecondaryActions,
 }: SqlEditorTopBarProps) => (
   <StyledFlex justify="space-between" gap="small" id="js-sql-toolbar">
-    <Flex flex={1} gap="small" justify="space-between">
-      <Flex gap="small">
-        <MenuExtension viewId={ViewContribution.Editor} primary compactMode>
+    <Flex flex={1} gap="small" align="center">
+      <Flex gap="small" align="center">
+        <MenuListExtension viewId={ViewContribution.Editor} primary compactMode>
           {defaultPrimaryActions}
-        </MenuExtension>
+        </MenuListExtension>
       </Flex>
-      <MenuExtension
+      <Divider type="vertical" />
+      <MenuListExtension
         viewId={ViewContribution.Editor}
         secondary
         defaultItems={defaultSecondaryActions}
       />
+      <Divider type="vertical" />
     </Flex>
   </StyledFlex>
 );

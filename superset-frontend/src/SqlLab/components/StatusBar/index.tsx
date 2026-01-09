@@ -18,7 +18,7 @@
  */
 import { styled } from '@apache-superset/core';
 import { Flex } from '@superset-ui/core/components';
-import ViewExtension from 'src/components/ViewExtension';
+import ViewListExtension from 'src/components/ViewListExtension';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import { SQL_EDITOR_STATUSBAR_HEIGHT } from 'src/SqlLab/constants';
 import { ViewContribution } from 'src/SqlLab/contributions';
@@ -47,7 +47,7 @@ const StatusBar = () => {
     <>
       {statusBarContributions.length > 0 && (
         <Container align="center" justify="space-between">
-          <ViewExtension viewId={ViewContribution.StatusBar} />
+          <ViewListExtension viewId={ViewContribution.StatusBar} />
         </Container>
       )}
     </>

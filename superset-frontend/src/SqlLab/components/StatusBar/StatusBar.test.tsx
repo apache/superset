@@ -28,11 +28,11 @@ jest.mock('src/extensions/ExtensionsManager', () => {
   return { getInstance };
 });
 
-jest.mock('src/components/ViewExtension', () => ({
+jest.mock('src/components/ViewListExtension', () => ({
   __esModule: true,
   default: ({ viewId }: { viewId: string }) => (
     <div data-test="mock-view-extension" data-view-id={viewId}>
-      ViewExtension
+      ViewListExtension
     </div>
   ),
 }));

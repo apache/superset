@@ -30,13 +30,11 @@ import useLogAction from 'src/logger/useLogAction';
 interface ShareSqlLabQueryProps {
   queryEditorId: string;
   addDangerToast: (msg: string) => void;
-  compactMode?: boolean;
 }
 
 const ShareSqlLabQuery = ({
   queryEditorId,
   addDangerToast,
-  compactMode,
 }: ShareSqlLabQueryProps) => {
   const logAction = useLogAction({ queryEditorId });
   const { dbId, name, schema, autorun, sql, templateParams } = useQueryEditor(
@@ -73,7 +71,8 @@ const ShareSqlLabQuery = ({
     const tooltip = t('Copy query link to your clipboard');
     return (
       <Button
-        buttonStyle="secondary"
+        color="primary"
+        variant="text"
         tooltip={tooltip}
         css={css`
           span > :first-of-type {
@@ -81,9 +80,7 @@ const ShareSqlLabQuery = ({
           }
         `}
         icon={<Icons.LinkOutlined iconSize="m" />}
-      >
-        {!compactMode ? t('Copy link') : undefined}
-      </Button>
+      />
     );
   };
 

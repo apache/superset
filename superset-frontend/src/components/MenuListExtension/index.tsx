@@ -24,7 +24,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { commands } from 'src/core';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 
-export type MenuExtensionProps = {
+export type MenuListExtensionProps = {
   viewId: string;
 } & (
   | {
@@ -43,14 +43,14 @@ export type MenuExtensionProps = {
     }
 );
 
-const MenuExtension = ({
+const MenuListExtension = ({
   viewId,
   primary,
   secondary,
   defaultItems,
   children,
   compactMode,
-}: MenuExtensionProps) => {
+}: MenuListExtensionProps) => {
   const theme = useTheme();
   const iconColor = theme.colorPrimary;
   const contributions =
@@ -129,7 +129,8 @@ const MenuExtension = ({
       >
         <Button
           showMarginRight={false}
-          buttonStyle="secondary"
+          color="primary"
+          variant="text"
           css={css`
             padding: 8px;
           `}
@@ -147,4 +148,4 @@ const MenuExtension = ({
   );
 };
 
-export default MenuExtension;
+export default MenuListExtension;

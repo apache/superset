@@ -39,15 +39,17 @@ const SaveDatasetActionButton = ({
     return (
       <>
         <Button
+          color="primary"
+          variant="text"
           onClick={() => setShowSave(true)}
-          buttonStyle="secondary"
           icon={<Icons.SaveOutlined />}
           tooltip={t('Save query')}
         />
         {onSaveAsExplore && (
           <Button
+            color="primary"
+            variant="text"
             onClick={() => onSaveAsExplore?.()}
-            buttonStyle="secondary"
             icon={<Icons.TableOutlined />}
             tooltip={t('Save or Overwrite Dataset')}
           />

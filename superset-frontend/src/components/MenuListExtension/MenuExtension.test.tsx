@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event';
 import type { contributions, core } from '@apache-superset/core';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import { commands } from 'src/core';
-import MenuExtension from 'src/components/MenuExtension';
+import MenuListExtension from '.';
 
 jest.mock('src/core', () => ({
   commands: {
@@ -131,9 +131,9 @@ afterEach(() => {
 
 test('renders children when primary mode with no extensions', () => {
   render(
-    <MenuExtension viewId={TEST_VIEW_ID} primary>
+    <MenuListExtension viewId={TEST_VIEW_ID} primary>
       <button type="button">Child Button</button>
-    </MenuExtension>,
+    </MenuListExtension>,
   );
 
   expect(
@@ -153,7 +153,7 @@ test('renders primary actions from extension contributions', async () => {
     },
   });
 
-  render(<MenuExtension viewId={TEST_VIEW_ID} primary />);
+  render(<MenuListExtension viewId={TEST_VIEW_ID} primary />);
 
   expect(screen.getByText('test.action Title')).toBeInTheDocument();
 });
@@ -171,9 +171,9 @@ test('renders primary actions with children', async () => {
   });
 
   render(
-    <MenuExtension viewId={TEST_VIEW_ID} primary>
+    <MenuListExtension viewId={TEST_VIEW_ID} primary>
       <button type="button">Child Button</button>
-    </MenuExtension>,
+    </MenuListExtension>,
   );
 
   expect(screen.getByText('test.action Title')).toBeInTheDocument();
@@ -194,7 +194,7 @@ test('hides title in compact mode for primary actions', async () => {
     },
   });
 
-  render(<MenuExtension viewId={TEST_VIEW_ID} primary compactMode />);
+  render(<MenuListExtension viewId={TEST_VIEW_ID} primary compactMode />);
 
   expect(screen.queryByText('test.action Title')).not.toBeInTheDocument();
   expect(screen.getByRole('button')).toBeInTheDocument();
@@ -212,7 +212,7 @@ test('executes command when primary action button is clicked', async () => {
     },
   });
 
-  render(<MenuExtension viewId={TEST_VIEW_ID} primary />);
+  render(<MenuListExtension viewId={TEST_VIEW_ID} primary />);
 
   const button = screen.getByText('test.action Title').closest('button')!;
   await userEvent.click(button);
@@ -222,7 +222,7 @@ test('executes command when primary action button is clicked', async () => {
 
 test('returns null when secondary mode with no actions and no defaultItems', () => {
   const { container } = render(
-    <MenuExtension viewId={TEST_VIEW_ID} secondary />,
+    <MenuListExtension viewId={TEST_VIEW_ID} secondary />,
   );
 
   expect(container).toBeEmptyDOMElement();
@@ -230,7 +230,7 @@ test('returns null when secondary mode with no actions and no defaultItems', () 
 
 test('renders dropdown button when secondary mode with defaultItems', () => {
   render(
-    <MenuExtension
+    <MenuListExtension
       viewId={TEST_VIEW_ID}
       secondary
       defaultItems={[{ key: 'item1', label: 'Item 1' }]}
@@ -242,7 +242,7 @@ test('renders dropdown button when secondary mode with defaultItems', () => {
 
 test('renders dropdown menu with defaultItems when clicked', async () => {
   render(
-    <MenuExtension
+    <MenuListExtension
       viewId={TEST_VIEW_ID}
       secondary
       defaultItems={[
@@ -273,7 +273,7 @@ test('renders secondary actions from extension contributions', async () => {
     },
   });
 
-  render(<MenuExtension viewId={TEST_VIEW_ID} secondary />);
+  render(<MenuListExtension viewId={TEST_VIEW_ID} secondary />);
 
   const dropdownButton = screen.getByRole('button');
   await userEvent.click(dropdownButton);
@@ -296,7 +296,7 @@ test('merges extension secondary actions with defaultItems', async () => {
   });
 
   render(
-    <MenuExtension
+    <MenuListExtension
       viewId={TEST_VIEW_ID}
       secondary
       defaultItems={[{ key: 'default-item', label: 'Default Item' }]}
@@ -324,7 +324,7 @@ test('executes command when secondary menu item is clicked', async () => {
     },
   });
 
-  render(<MenuExtension viewId={TEST_VIEW_ID} secondary />);
+  render(<MenuListExtension viewId={TEST_VIEW_ID} secondary />);
 
   const dropdownButton = screen.getByRole('button');
   await userEvent.click(dropdownButton);
@@ -357,7 +357,7 @@ test('renders multiple primary actions from multiple contributions', async () =>
     },
   });
 
-  render(<MenuExtension viewId={TEST_VIEW_ID} primary />);
+  render(<MenuListExtension viewId={TEST_VIEW_ID} primary />);
 
   expect(screen.getByText('test.action1 Title')).toBeInTheDocument();
   expect(screen.getByText('test.action2 Title')).toBeInTheDocument();
@@ -365,9 +365,9 @@ test('renders multiple primary actions from multiple contributions', async () =>
 
 test('handles viewId with no matching contributions', () => {
   render(
-    <MenuExtension viewId="nonexistent.menu" primary>
+    <MenuListExtension viewId="nonexistent.menu" primary>
       <button type="button">Fallback</button>
-    </MenuExtension>,
+    </MenuListExtension>,
   );
 
   expect(screen.getByRole('button', { name: 'Fallback' })).toBeInTheDocument();

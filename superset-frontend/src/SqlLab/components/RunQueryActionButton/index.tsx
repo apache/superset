@@ -80,12 +80,9 @@ const onClick = (
 const StyledButton = styled.span<{ compact?: boolean }>`
   button {
     line-height: 13px;
-    ${({ compact, theme }) =>
-      compact &&
-      `
     min-width: auto !important;
-    padding: 0 ${theme.sizeUnit * 3}px 0 ${theme.sizeUnit * 2}px;
-`}
+    padding: 0 ${({ theme }) => theme.sizeUnit * 3}px 0
+      ${({ theme }) => theme.sizeUnit * 2}px;
 
     span[name='caret-down'] {
       display: flex;
@@ -100,7 +97,6 @@ const RunQueryActionButton = ({
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
-  compactMode = false,
 }: RunQueryActionButtonProps) => {
   const theme = useTheme();
   const logAction = useLogAction({ queryEditorId });
@@ -137,7 +133,7 @@ const RunQueryActionButton = ({
   );
 
   return (
-    <StyledButton compact={compactMode}>
+    <StyledButton>
       <ButtonComponent
         data-test="run-query-action"
         onClick={() =>

@@ -21,7 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import type { contributions, core } from '@apache-superset/core';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
-import ViewExtension from 'src/components/ViewExtension';
+import ViewListExtension from '.';
 
 function createMockView(
   id: string,
@@ -103,7 +103,7 @@ afterEach(() => {
 
 test('renders nothing when no view contributions exist', () => {
   const { container } = renderWithExtensionsProvider(
-    <ViewExtension viewId={TEST_VIEW_ID} />,
+    <ViewListExtension viewId={TEST_VIEW_ID} />,
   );
 
   expect(container.firstChild?.childNodes.length ?? 0).toBe(0);
@@ -118,7 +118,7 @@ test('renders placeholder for unregistered view provider', async () => {
     },
   });
 
-  renderWithExtensionsProvider(<ViewExtension viewId={TEST_VIEW_ID} />);
+  renderWithExtensionsProvider(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
   expect(screen.getByText(/test-view-1/)).toBeInTheDocument();
 });
@@ -135,7 +135,7 @@ test('renders multiple view placeholders for multiple contributions', async () =
     },
   });
 
-  renderWithExtensionsProvider(<ViewExtension viewId={TEST_VIEW_ID} />);
+  renderWithExtensionsProvider(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
   expect(screen.getByText(/test-view-1/)).toBeInTheDocument();
   expect(screen.getByText(/test-view-2/)).toBeInTheDocument();
@@ -143,7 +143,7 @@ test('renders multiple view placeholders for multiple contributions', async () =
 
 test('renders nothing for viewId with no matching contributions', () => {
   const { container } = renderWithExtensionsProvider(
-    <ViewExtension viewId="nonexistent.view" />,
+    <ViewListExtension viewId="nonexistent.view" />,
   );
 
   expect(container.firstChild?.childNodes.length ?? 0).toBe(0);
@@ -166,7 +166,7 @@ test('handles multiple extensions with views for same viewId', async () => {
     },
   });
 
-  renderWithExtensionsProvider(<ViewExtension viewId={TEST_VIEW_ID} />);
+  renderWithExtensionsProvider(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
   expect(screen.getByText(/ext1-view/)).toBeInTheDocument();
   expect(screen.getByText(/ext2-view/)).toBeInTheDocument();
@@ -185,7 +185,7 @@ test('renders views for different viewIds independently', async () => {
   });
 
   const { rerender } = renderWithExtensionsProvider(
-    <ViewExtension viewId={VIEW_ID_A} />,
+    <ViewListExtension viewId={VIEW_ID_A} />,
   );
 
   expect(screen.getByText(/view-a-component/)).toBeInTheDocument();
@@ -193,7 +193,7 @@ test('renders views for different viewIds independently', async () => {
 
   rerender(
     <ExtensionsProvider>
-      <ViewExtension viewId={VIEW_ID_B} />
+      <ViewListExtension viewId={VIEW_ID_B} />
     </ExtensionsProvider>,
   );
 

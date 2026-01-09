@@ -29,7 +29,7 @@ import { Flex, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { ViewContribution } from 'src/SqlLab/contributions';
-import MenuExtension from 'src/components/MenuExtension';
+import MenuListExtension from 'src/components/MenuListExtension';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -231,8 +231,8 @@ const SouthPane = ({
                 padding: 8px;
               `}
             >
-              <MenuExtension viewId={ViewContribution.Panels} primary />
-              <MenuExtension viewId={ViewContribution.Panels} secondary />
+              <MenuListExtension viewId={ViewContribution.Panels} primary />
+              <MenuListExtension viewId={ViewContribution.Panels} secondary />
             </Flex>
           ),
         }}

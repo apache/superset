@@ -19,11 +19,11 @@
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 
-export interface ViewExtensionProps {
+export interface ViewListExtensionProps {
   viewId: string;
 }
 
-const ViewExtension = ({ viewId }: ViewExtensionProps) => {
+const ViewListExtension = ({ viewId }: ViewListExtensionProps) => {
   const contributions =
     ExtensionsManager.getInstance().getViewContributions(viewId) || [];
   const { getView } = useExtensionsContext();
@@ -31,4 +31,4 @@ const ViewExtension = ({ viewId }: ViewExtensionProps) => {
   return <>{contributions.map(contribution => getView(contribution.id))}</>;
 };
 
-export default ViewExtension;
+export default ViewListExtension;

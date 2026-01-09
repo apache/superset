@@ -87,7 +87,12 @@ const QueryLimitSelect = ({
       popupRender={() => renderQueryLimit(maxRow, setQueryLimit)}
       trigger={['click']}
     >
-      <Button size="small" showMarginRight={false} buttonStyle="secondary">
+      <Button
+        size="small"
+        color="primary"
+        variant="text"
+        showMarginRight={false}
+      >
         <span>{t('Limit')}</span>
         <span className="limitDropdown">{convertToShortNum(queryLimit)}</span>
         <Icons.DownOutlined iconSize="m" />

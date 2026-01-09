@@ -82,6 +82,7 @@ const AceEditorWrapper = ({
 
   const currentSql = queryEditor.sql ?? '';
   const [sql, setSql] = useState(currentSql);
+  const theme = useTheme();
 
   // The editor changeSelection is called multiple times in a row,
   // faster than React reconciliation process, so the selected text
@@ -126,7 +127,8 @@ const AceEditorWrapper = ({
         exec: keyConfig.func,
       });
     });
-
+    const marginSize = theme.sizeUnit * 2;
+    editor.renderer.setScrollMargin(marginSize, marginSize, 0, 0);
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
     editor.selection.on('changeSelection', () => {
       const selectedText = editor.getSelectedText();
@@ -147,10 +149,13 @@ const AceEditorWrapper = ({
       onCursorPositionChange(cursor);
     });
 
+    // setTimeout(() => {
     const { row, column } = cursorPosition;
+    console.log('moving cursor to', { row, column });
     editor.moveCursorToPosition({ row, column });
     editor.focus();
     editor.scrollToLine(row, true, true);
+    // }, 100);
   };
 
   const onChangeText = (text: string) => {
@@ -178,7 +183,6 @@ const AceEditorWrapper = ({
     },
     !autocomplete,
   );
-  const theme = useTheme();
 
   return (
     <>
@@ -186,6 +190,27 @@ const AceEditorWrapper = ({
         styles={css`
           .ace_text-layer {
             width: 100% !important;
+          }
+
+          .ace_content,
+          .SqlEditor .sql-container .ace_gutter {
+            background-color: ${theme.colorBgBase} !important;
+          }
+
+          .ace_gutter::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            right: ${theme.sizeUnit * 2}px;
+            width: 1px;
+            height: 100%;
+            background-color: ${theme.colorBorder};
+          }
+
+          .ace_gutter,
+          .ace_scroller {
+            background-color: ${theme.colorBgBase} !important;
           }
 
           .ace_autocomplete {

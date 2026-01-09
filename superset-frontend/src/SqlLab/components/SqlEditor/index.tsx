@@ -49,7 +49,13 @@ import type {
 import type { DatabaseObject } from 'src/features/databases/types';
 import { debounce, isEmpty } from 'lodash';
 import Mousetrap from 'mousetrap';
-import { Button, EmptyState, Input, Modal } from '@superset-ui/core/components';
+import {
+  Button,
+  Divider,
+  EmptyState,
+  Input,
+  Modal,
+} from '@superset-ui/core/components';
 import { Splitter } from 'src/components/Splitter';
 import { Skeleton } from '@superset-ui/core/components/Skeleton';
 import { Switch } from '@superset-ui/core/components/Switch';
@@ -159,31 +165,27 @@ const StyledSqlEditor = styled.div`
       padding: 0;
       + .ant-splitter-bar .ant-splitter-bar-dragger {
         &::before {
-          background: transparent;
+          height: 1px;
+          background-color: ${theme.colorBorder};
+          transform: translateX(-50%) !important;
         }
         &::after {
           height: ${SQL_EDITOR_GUTTER_HEIGHT}px;
           background: transparent;
           border-top: 1px solid ${theme.colorBorder};
           border-bottom: 1px solid ${theme.colorBorder};
+          transform: translate(-50%, -2px);
         }
       }
     }
 
     .north-pane {
-      padding: ${theme.sizeUnit * 2}px 0px ${theme.sizeUnit}px 0px;
+      padding: ${theme.sizeUnit * 2}px 0 0 0;
       height: 100%;
       margin: 0 ${theme.sizeUnit * 4}px;
     }
 
-    & .ant-splitter-bar-dragger {
-      background-color: ${theme.colorBorderSecondary};
-    }
-
     .SouthPane {
-      & .ant-tabs-nav {
-        background-color: ${theme.colorFillTertiary};
-      }
       & .ant-tabs-tabpane {
         margin: 0 ${theme.sizeUnit * 4}px;
         & .ant-tabs {
@@ -194,6 +196,7 @@ const StyledSqlEditor = styled.div`
         box-shadow: none !important;
         background: transparent !important;
         border-color: transparent !important;
+        margin-top: ${theme.sizeUnit * 2}px !important;
         &.ant-tabs-tab-active {
           border-bottom-color: ${theme.colorPrimary} !important;
           & .ant-tabs-tab-btn {
@@ -208,6 +211,7 @@ const StyledSqlEditor = styled.div`
     .sql-container {
       flex: 1 1 auto;
       margin: 0 ${theme.sizeUnit * -4}px;
+      box-shadow: 0 0 0 1px ${theme.colorBorder};
     }
   `}
 `;
@@ -755,7 +759,6 @@ const SqlEditor: FC<Props> = ({
           runQuery={runQuery}
           stopQuery={stopQuery}
           overlayCreateAsMenu={showMenu ? runMenuBtn : null}
-          compactMode
         />
         <span>
           <QueryLimitSelect
@@ -764,6 +767,7 @@ const SqlEditor: FC<Props> = ({
             defaultQueryLimit={defaultQueryLimit}
           />
         </span>
+        <Divider type="vertical" />
         {isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
           database?.allows_cost_estimate && (
             <span>
@@ -771,7 +775,6 @@ const SqlEditor: FC<Props> = ({
                 getEstimate={getQueryCostEstimate}
                 queryEditorId={queryEditor.id}
                 tooltip={t('Estimate the cost before running a query')}
-                compactMode
               />
             </span>
           )}

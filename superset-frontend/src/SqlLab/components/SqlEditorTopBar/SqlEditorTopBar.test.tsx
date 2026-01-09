@@ -22,7 +22,7 @@ import SqlEditorTopBar, {
   SqlEditorTopBarProps,
 } from 'src/SqlLab/components/SqlEditorTopBar';
 
-jest.mock('src/components/MenuExtension', () => ({
+jest.mock('src/components/MenuListExtension', () => ({
   __esModule: true,
   default: ({
     children,
@@ -67,7 +67,7 @@ test('renders SqlEditorTopBar component', () => {
   expect(menuExtensions).toHaveLength(2);
 });
 
-test('renders primary MenuExtension with correct props', () => {
+test('renders primary MenuListExtension with correct props', () => {
   setup();
   const menuExtensions = screen.getAllByTestId('mock-menu-extension');
   const primaryExtension = menuExtensions[0];
@@ -76,7 +76,7 @@ test('renders primary MenuExtension with correct props', () => {
   expect(primaryExtension).toHaveAttribute('data-primary', 'true');
 });
 
-test('renders secondary MenuExtension with correct props', () => {
+test('renders secondary MenuListExtension with correct props', () => {
   setup();
   const menuExtensions = screen.getAllByTestId('mock-menu-extension');
   const secondaryExtension = menuExtensions[1];
@@ -86,7 +86,7 @@ test('renders secondary MenuExtension with correct props', () => {
   expect(secondaryExtension).toHaveAttribute('data-default-items-count', '2');
 });
 
-test('renders defaultPrimaryActions as children of primary MenuExtension', () => {
+test('renders defaultPrimaryActions as children of primary MenuListExtension', () => {
   setup();
   expect(
     screen.getByRole('button', { name: 'Primary Action' }),
@@ -120,7 +120,7 @@ test('renders with empty secondary actions', () => {
   expect(secondaryExtension).toHaveAttribute('data-default-items-count', '0');
 });
 
-test('passes correct viewId (ViewContribution.Editor) to MenuExtension', () => {
+test('passes correct viewId (ViewContribution.Editor) to MenuListExtension', () => {
   setup();
   const menuExtensions = screen.getAllByTestId('mock-menu-extension');
 

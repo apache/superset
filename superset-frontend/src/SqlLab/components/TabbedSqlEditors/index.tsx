@@ -63,6 +63,8 @@ const StyledEditableTabs = styled(EditableTabs)`
   }
   & .ant-tabs-tab {
     border-radius: 2px 2px 0px 0px !important;
+    padding: ${({ theme }) => theme.sizeUnit}px
+      ${({ theme }) => theme.sizeUnit * 2}px !important;
     & + .ant-tabs-nav-add {
       margin-right: ${({ theme }) => theme.sizeUnit * 4}px;
     }
