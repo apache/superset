@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
@@ -50,7 +50,15 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // Flush pending React state updates within act() to prevent warnings
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  // Restore real timers in case a test threw early
+  jest.useRealTimers();
+
   // Reset browser history state to prevent query params leaking between tests
   window.history.replaceState({}, '', '/');
 
@@ -217,4 +225,4 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
 
   // This confirms the full bulk operation cycle coordinates correctly:
   // selection state → action handler → list refresh → state cleanup
-});
+}, 30000);

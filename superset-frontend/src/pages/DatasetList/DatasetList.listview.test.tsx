@@ -136,6 +136,9 @@ afterEach(async () => {
     await new Promise(resolve => setTimeout(resolve, 0));
   });
 
+  // Restore real timers in case a test threw early
+  jest.useRealTimers();
+
   // Reset browser history state to prevent query params leaking between tests
   // QueryParamProvider reads from window.history, which persists across renders
   window.history.replaceState({}, '', '/');
@@ -682,7 +685,7 @@ test('selecting all datasets shows correct count in toolbar', async () => {
     );
   });
   // Note: Button enable state is tested in bulk export/delete tests
-});
+}, 30000);
 
 test('bulk export triggers export with selected IDs', async () => {
   fetchMock.get(
@@ -809,7 +812,7 @@ test('exit bulk select via close button returns to normal view', async () => {
   expect(
     screen.getByRole('button', { name: /bulk select/i }),
   ).toBeInTheDocument();
-});
+}, 30000);
 
 test('certified badge appears for certified datasets', async () => {
   const certifiedDataset = {

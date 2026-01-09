@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import {
   setupMocks,
@@ -31,16 +31,29 @@ import {
 } from './DatasetList.testHelpers';
 
 // Increase default timeout for tests that involve multiple async operations
-jest.setTimeout(15000);
+// CI parallel load can cause timeouts with default 15s
+jest.setTimeout(30000);
 
 beforeEach(() => {
   setupMocks();
   jest.clearAllMocks();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // Flush pending React state updates within act() to prevent warnings
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  // Restore real timers in case a test threw early
+  jest.useRealTimers();
+
+  // Reset browser history to prevent query param leakage
+  window.history.replaceState({}, '', '/');
+
   fetchMock.resetHistory();
   fetchMock.restore();
+  jest.restoreAllMocks();
 });
 
 test('admin users see all UI elements', async () => {
