@@ -139,8 +139,12 @@ export function EditableTitle({
         textArea.scrollTop = textArea.scrollHeight;
       }
     }
-    onEditingChange?.(isEditing);
-  }, [isEditing, onEditingChange]);
+    // Don't notify parent during controlled mode sync
+    // (when editing prop is true but local state hasn't caught up yet)
+    if (!(editing && !isEditing)) {
+      onEditingChange?.(isEditing);
+    }
+  }, [isEditing, editing, onEditingChange]);
 
   function handleClick() {
     if (!canEdit || isEditing) return;
