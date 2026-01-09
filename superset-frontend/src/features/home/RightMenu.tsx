@@ -102,6 +102,7 @@ const RightMenu = ({
   navbarRight,
   isFrontendRoute,
   environmentTag,
+  menu,
   setQuery,
 }: RightMenuProps & {
   setQuery: ({
@@ -610,6 +611,64 @@ const RightMenu = ({
     handleLogout,
   ]);
 
+  // Build mobile menu items - consumption only (no create/admin actions)
+  const mobileMenuItems = useMemo(() => {
+    const items: MenuItem[] = [];
+
+    // Add Dashboards link at top (from main menu)
+    const dashboardsMenu = menu?.find(
+      item => item.label === 'Dashboards' || item.name === 'Dashboards',
+    );
+    if (dashboardsMenu) {
+      const dashboardUrl = dashboardsMenu.url || '/dashboard/list/';
+      items.push({
+        key: 'dashboards',
+        label: isFrontendRoute(dashboardUrl) ? (
+          <Link to={dashboardUrl}>{t('Dashboards')}</Link>
+        ) : (
+          <Typography.Link href={dashboardUrl}>
+            {t('Dashboards')}
+          </Typography.Link>
+        ),
+        icon: <Icons.DashboardOutlined />,
+      });
+    }
+
+    // Add theme menu (flatten children directly)
+    menuItems.forEach(item => {
+      if (!item || !('key' in item)) return;
+
+      // Only include theme-sub-menu and language picker
+      if (item.key === 'theme-sub-menu' || item.key === 'language-picker') {
+        items.push({ type: 'divider', key: `divider-before-${item.key}` });
+
+        if ('children' in item && item.children) {
+          // Theme menu already has a nested group, so just add its children directly
+          item.children.forEach(child => {
+            items.push(child);
+          });
+        } else {
+          items.push(item);
+        }
+      }
+
+      // Extract user-related items from settings
+      if (item.key === 'settings' && 'children' in item && item.children) {
+        item.children.forEach(child => {
+          if (!child || !('key' in child)) return;
+
+          // Only include user-section and about-section
+          if (child.key === 'user-section' || child.key === 'about-section') {
+            items.push({ type: 'divider', key: `divider-before-${child.key}` });
+            items.push(child);
+          }
+        });
+      }
+    });
+
+    return items;
+  }, [menu, menuItems, isFrontendRoute]);
+
   return (
     <StyledDiv align={align}>
       {canDatabase && (
@@ -681,11 +740,15 @@ const RightMenu = ({
             <Icons.MenuOutlined iconSize="l" />
           </Button>
           <Drawer
-            title={t('Menu')}
+            title={null}
             placement="right"
             onClose={() => setMobileMenuOpen(false)}
             open={mobileMenuOpen}
             width={280}
+            styles={{
+              header: { display: 'none' },
+              body: { padding: 0 },
+            }}
           >
             <Menu
               mode="inline"
@@ -694,8 +757,10 @@ const RightMenu = ({
                 handleMenuSelection(info);
                 setMobileMenuOpen(false);
               }}
-              onOpenChange={onMenuOpen}
-              items={menuItems}
+              items={mobileMenuItems}
+              css={css`
+                border-inline-end: none !important;
+              `}
             />
           </Drawer>
         </>
