@@ -283,6 +283,7 @@ class TestDatasetApi(SupersetTestCase):
             "explore_url",
             "extra",
             "id",
+            "is_template_dataset",
             "kind",
             "owners",
             "schema",

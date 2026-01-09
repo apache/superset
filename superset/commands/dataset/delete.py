@@ -24,6 +24,7 @@ from superset.commands.dataset.exceptions import (
     DatasetDeleteFailedError,
     DatasetForbiddenError,
     DatasetNotFoundError,
+    DatasetTemplateDeleteForbiddenError,
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
@@ -49,6 +50,12 @@ class DeleteDatasetCommand(BaseCommand):
         self._models = DatasetDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
             raise DatasetNotFoundError()
+
+        # Template datasets cannot be deleted
+        for model in self._models:
+            if security_manager._is_template_dataset(model):
+                raise DatasetTemplateDeleteForbiddenError()
+
         # Check ownership
         for model in self._models:
             try:

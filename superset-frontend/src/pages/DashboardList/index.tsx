@@ -25,7 +25,7 @@ import {
 import { styled } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
   createFetchRelated,
@@ -73,7 +73,6 @@ import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
@@ -147,6 +146,7 @@ function DashboardList(props: DashboardListProps) {
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const history = useHistory();
   const canReadTag = findPermission('can_read', 'Tag', roles);
 
   const {
@@ -722,7 +722,7 @@ function DashboardList(props: DashboardListProps) {
       name: t('Dashboard'),
       buttonStyle: 'primary',
       onClick: () => {
-        navigateTo('/dashboard/new', { assign: true });
+        history.push('/dashboard/templates/');
       },
     });
   }

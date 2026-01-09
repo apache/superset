@@ -124,6 +124,7 @@ type Dataset = {
   owners: Array<Owner>;
   schema: string;
   table_name: string;
+  is_template_dataset?: boolean;
 };
 
 interface VirtualDataset extends Dataset {
@@ -416,9 +417,37 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({ row: { original } }: any) => {
           // Verify owner or isAdmin
-          const allowEdit =
+          const isOwnerOrAdmin =
             original.owners.map((o: Owner) => o.id).includes(user.userId) ||
             isUserAdmin(user);
+          const isTemplate = original.is_template_dataset;
+
+          // Template datasets cannot be edited or deleted
+          const allowEdit = isOwnerOrAdmin && !isTemplate;
+          const allowDelete = !isTemplate;
+
+          const getEditTooltip = () => {
+            if (isTemplate) {
+              return t(
+                'This dataset belongs to a template dashboard and cannot be modified.',
+              );
+            }
+            if (!isOwnerOrAdmin) {
+              return t(
+                'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
+              );
+            }
+            return t('Edit');
+          };
+
+          const getDeleteTooltip = () => {
+            if (isTemplate) {
+              return t(
+                'This dataset belongs to a template dashboard and cannot be deleted.',
+              );
+            }
+            return t('Delete');
+          };
 
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
@@ -432,14 +461,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {canDelete && (
                 <Tooltip
                   id="delete-action-tooltip"
-                  title={t('Delete')}
+                  title={getDeleteTooltip()}
                   placement="bottom"
                 >
                   <span
                     role="button"
                     tabIndex={0}
-                    className="action-button"
-                    onClick={handleDelete}
+                    className={`action-button ${allowDelete ? '' : 'disabled'}`}
+                    onClick={allowDelete ? handleDelete : undefined}
                   >
                     <Icons.DeleteOutlined iconSize="l" />
                   </span>
@@ -464,13 +493,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
-                  title={
-                    allowEdit
-                      ? t('Edit')
-                      : t(
-                          'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
-                        )
-                  }
+                  title={getEditTooltip()}
                   placement="bottom"
                 >
                   <span

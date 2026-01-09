@@ -1670,6 +1670,11 @@ class ChartGetResponseSchema(Schema):
     viz_type = fields.String()
     query_context = fields.String()
     is_managed_externally = fields.Boolean()
+    is_template_chart = fields.Boolean(
+        metadata={
+            "description": "Whether this chart belongs to a template dashboard"
+        }
+    )
     tags = fields.Nested(TagSchema, many=True)
     owners = fields.List(fields.Nested(UserSchema))
     dashboards = fields.List(fields.Nested(DashboardSchema))

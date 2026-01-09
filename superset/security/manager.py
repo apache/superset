@@ -2565,10 +2565,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 or self.can_access("datasource_access", datasource.perm or "")
                 or self.is_owner(datasource)
                 or (
-                    # Grant access to the datasource only if dashboard RBAC is enabled
-                    # or the user is an embedded guest user with access to the dashboard
-                    # and said datasource is associated with the dashboard chart in
-                    # question.
+                    # Grant access to the datasource only if dashboard RBAC is enabled,
+                    # the user is an embedded guest user with access to the dashboard,
+                    # or the dashboard is a template - and said datasource is associated
+                    # with the dashboard chart in question.
                     form_data
                     and (dashboard_id := form_data.get("dashboardId"))
                     and (
@@ -2581,6 +2581,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         or (
                             is_feature_enabled("EMBEDDED_SUPERSET")
                             and self.is_guest_user()
+                        )
+                        or (
+                            # Template dashboards grant datasource access to users
+                            # with dashboard creation permission
+                            self._is_template_dashboard(dashboard_)
+                            and self.can_access("can_write", "Dashboard")
                         )
                     )
                     and (
@@ -2631,6 +2637,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.get_dashboard_access_error_object(dashboard)
                 )
 
+            # Template dashboards are accessible to users with dashboard creation
+            # permission, regardless of ownership. This allows any user who can
+            # create dashboards to view and use templates as starting points.
+            if self._is_template_dashboard(dashboard) and self.can_access(
+                "can_write", "Dashboard"
+            ):
+                return
+
             if self.is_admin() or self.is_owner(dashboard):
                 return
 
@@ -2668,6 +2682,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return
 
             if chart.datasource and self.can_access_datasource(chart.datasource):
+                return
+
+            # Allow chart access if the chart belongs to a template dashboard
+            # and user has dashboard creation permission
+            if self.can_access("can_write", "Dashboard") and any(
+                self._is_template_dashboard(dashboard) for dashboard in chart.dashboards
+            ):
                 return
 
             raise SupersetSecurityException(self.get_chart_access_error_object(chart))
@@ -3004,6 +3025,41 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return get_conf()["AUTH_ROLE_ADMIN"] in [
             role.name for role in self.get_user_roles()
         ]
+
+    @staticmethod
+    def _is_template_dashboard(dashboard: "Dashboard") -> bool:
+        """
+        Check if a dashboard is marked as a template.
+
+        Template metadata is stored in the nested "template_info" structure
+        within the dashboard's json_metadata. Template dashboards can be viewed
+        by any user with dashboard creation permission, regardless of ownership.
+
+        :param dashboard: The dashboard to check
+        :returns: True if the dashboard is a template, False otherwise
+        """
+        if not dashboard.json_metadata:
+            return False
+        try:
+            metadata = json.loads(dashboard.json_metadata)
+            template_info = metadata.get("template_info", {})
+            return template_info.get("is_template", False)
+        except (json.JSONDecodeError, TypeError):
+            return False
+
+    @staticmethod
+    def _is_template_dataset(dataset: "SqlaTable") -> bool:
+        """
+        Check if a dataset belongs to a template dashboard.
+
+        Template datasets have is_template_dataset=True, which is set when
+        importing a template dashboard. These datasets cannot be modified
+        or deleted to preserve template integrity.
+
+        :param dataset: The dataset to check
+        :returns: True if the dataset is a template dataset, False otherwise
+        """
+        return getattr(dataset, "is_template_dataset", False) is True
 
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False

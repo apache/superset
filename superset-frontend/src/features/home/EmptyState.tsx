@@ -23,7 +23,7 @@ import {
 import { TableTab } from 'src/views/CRUD/types';
 import { t } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { navigateTo } from 'src/utils/navigationUtils';
+import { useHistory } from 'react-router-dom';
 import { makeUrl } from 'src/utils/pathUtils';
 import { WelcomeTable } from './types';
 
@@ -58,7 +58,7 @@ const LABELS = {
 const REDIRECTS = {
   create: {
     [WelcomeTable.Charts]: '/chart/add',
-    [WelcomeTable.Dashboards]: '/dashboard/new',
+    [WelcomeTable.Dashboards]: '/dashboard/templates/',
     [WelcomeTable.SavedQueries]: makeUrl('/sqllab?new=true'),
   },
   viewAll: {
@@ -75,6 +75,8 @@ export interface EmptyStateProps {
 }
 
 export default function EmptyState({ tableName, tab }: EmptyStateProps) {
+  const history = useHistory();
+
   const getActionButton = () => {
     if (tableName === WelcomeTable.Recents) {
       return null;
@@ -93,7 +95,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
       <Button
         buttonStyle="secondary"
         onClick={() => {
-          navigateTo(url);
+          history.push(url);
         }}
       >
         {isFavorite

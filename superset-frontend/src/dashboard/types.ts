@@ -130,6 +130,21 @@ export type DashboardState = {
   };
   chartStates?: Record<string, any>;
 };
+/**
+ * Template metadata fields that can be stored either:
+ * 1. Nested under "template_info" key (new format after import)
+ * 2. At the top level of metadata (legacy format)
+ */
+export interface TemplateInfo {
+  is_template?: boolean;
+  is_featured_template?: boolean;
+  template_category?: string;
+  template_thumbnail_url?: string;
+  template_context?: string;
+  template_description?: string;
+  template_tags?: string[];
+}
+
 export type DashboardInfo = {
   id: number;
   common: {
@@ -150,6 +165,8 @@ export type DashboardInfo = {
     map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
     chart_customization_config?: ChartCustomizationItem[];
+    // Template metadata is stored in the nested template_info structure
+    template_info?: TemplateInfo;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;

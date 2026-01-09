@@ -144,6 +144,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "sql",
         "table_name",
         "uuid",
+        "is_template_dataset",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
@@ -227,6 +228,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "database.allow_multi_catalog",
         "columns.advanced_data_type",
         "is_managed_externally",
+        "is_template_dataset",
         "uid",
         "uuid",
         "datasource_name",

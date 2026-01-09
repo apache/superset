@@ -51,11 +51,17 @@ class DashboardModelView(DashboardMixin, SupersetModelView, DeleteMixin):  # pyl
         RouteMethod.API_READ,
         RouteMethod.API_DELETE,
         "download_dashboards",
+        "templates",
     }
 
     @has_access
     @expose("/list/")
     def list(self) -> FlaskResponse:
+        return super().render_app_template()
+
+    @has_access
+    @expose("/templates/")
+    def templates(self) -> FlaskResponse:
         return super().render_app_template()
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")

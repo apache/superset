@@ -106,6 +106,60 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
 
     @staticmethod
+    def get_templates() -> list[Dashboard]:
+        """
+        Get all dashboard templates accessible to current user.
+
+        Templates are dashboards with is_template=true in json_metadata.
+        Templates are "public" resources - any user with dashboard creation
+        permission can view and use them, regardless of ownership.
+
+        Returns templates ordered by: featured first, then by title.
+
+        Returns:
+            list[Dashboard]: List of template dashboards
+
+        Raises:
+            DashboardAccessDeniedError: If user lacks dashboard creation permission
+        """
+        from sqlalchemy.orm import joinedload
+
+        # Templates are accessible to any user with dashboard creation permission
+        # This bypasses the normal ownership-based DashboardAccessFilter
+        if not security_manager.can_access("can_write", "Dashboard"):
+            raise DashboardAccessDeniedError()
+
+        query = db.session.query(Dashboard).options(
+            joinedload(Dashboard.tags),
+            joinedload(Dashboard.owners),
+        )
+
+        # Note: We intentionally skip DashboardAccessFilter here.
+        # Templates should be visible to all users with dashboard creation permission,
+        # not just dashboard owners.
+
+        # Filter to only templates and order
+        dashboards = query.all()
+
+        # Filter in Python (metadata filtering)
+        templates = []
+        for dashboard in dashboards:
+            metadata = json.loads(dashboard.json_metadata or "{}")
+            # Template metadata is stored in the nested template_info structure
+            template_info = metadata.get("template_info", {})
+            if template_info.get("is_template", False):
+                # Add sorting metadata as attributes for sorting
+                dashboard._is_featured_template = template_info.get(
+                    "is_featured_template", False
+                )
+                templates.append(dashboard)
+
+        # Sort: featured first, then alphabetically by title
+        templates.sort(key=lambda d: (not d._is_featured_template, d.dashboard_title))
+
+        return templates
+
+    @staticmethod
     def get_dashboard_changed_on(id_or_slug_or_dashboard: str | Dashboard) -> datetime:
         """
         Get latest changed datetime for a dashboard.
@@ -296,16 +350,37 @@ class DashboardDAO(BaseDAO[Dashboard]):
         ]
 
     @classmethod
+    def _is_template_dashboard(cls, dashboard: Dashboard) -> bool:
+        """Check if a dashboard is marked as a template."""
+        if not dashboard.json_metadata:
+            return False
+        try:
+            metadata = json.loads(dashboard.json_metadata)
+            return metadata.get("is_template", False)
+        except (json.JSONDecodeError, TypeError):
+            return False
+
+    @classmethod
     def copy_dashboard(
-        cls, original_dash: Dashboard, data: dict[str, Any]
+        cls,
+        original_dash: Dashboard,
+        data: dict[str, Any],
+        owner: Any | None = None,
     ) -> Dashboard:
-        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
-            original_dash
+        # Skip RBAC check if dashboard is a template or no user context (Celery)
+        if (
+            is_feature_enabled("DASHBOARD_RBAC")
+            and hasattr(g, "user")
+            and not cls._is_template_dashboard(original_dash)
+            and not security_manager.is_owner(original_dash)
         ):
             raise DashboardForbiddenError()
 
+        # Use provided owner, fall back to g.user for request context
+        effective_owner = owner if owner is not None else getattr(g, "user", None)
+
         dash = Dashboard()
-        dash.owners = [g.user] if g.user else []
+        dash.owners = [effective_owner] if effective_owner else []
         dash.dashboard_title = data["dashboard_title"]
         dash.css = data.get("css")
 
@@ -315,7 +390,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
                 new_slice = slc.clone()
-                new_slice.owners = [g.user] if g.user else []
+                new_slice.owners = [effective_owner] if effective_owner else []
                 db.session.add(new_slice)
                 db.session.flush()
                 new_slice.dashboards.append(dash)

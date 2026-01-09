@@ -299,7 +299,8 @@ export const hydrateDashboard =
           css: dashboard.css || '',
           colorNamespace: metadata?.color_namespace || null,
           colorScheme: metadata?.color_scheme || null,
-          editMode: canEdit && editMode,
+          // Templates cannot be edited - block edit mode even if URL param is set
+          editMode: canEdit && editMode && !metadata?.is_template,
           isPublished: dashboard.published,
           hasUnsavedChanges: false,
           dashboardIsSaving: false,

@@ -205,3 +205,11 @@ class DatasetForbiddenDataURI(ImportFailedError):  # noqa: N818
 class WarmUpCacheTableNotFoundError(CommandException):
     status = 404
     message = _("The provided table was not found in the provided database")
+
+
+class DatasetTemplateUpdateForbiddenError(ForbiddenError):
+    message = _("Template datasets cannot be modified.")
+
+
+class DatasetTemplateDeleteForbiddenError(ForbiddenError):
+    message = _("Template datasets cannot be deleted.")

@@ -168,6 +168,8 @@ class DashboardJSONMetadataSchema(Schema):
     remote_id = fields.Integer()
     filter_bar_orientation = fields.Str(allow_none=True)
     native_filter_migration = fields.Dict()
+    # Template metadata is stored in the nested template_info structure
+    template_info = fields.Dict(allow_none=True)
 
     @pre_load
     def remove_show_native_filters(  # pylint: disable=unused-argument
@@ -185,6 +187,23 @@ class DashboardJSONMetadataSchema(Schema):
             del data["show_native_filters"]
 
         return data
+
+
+class DashboardTemplateSchema(Schema):
+    """Lightweight schema for dashboard template listing"""
+
+    id = fields.Integer()
+    uuid = fields.String()
+    dashboard_title = fields.String()
+    slug = fields.String()
+    # Metadata fields (extracted from json_metadata)
+    is_template = fields.Boolean()
+    is_featured_template = fields.Boolean()
+    template_category = fields.String()
+    template_description = fields.String()
+    template_thumbnail_url = fields.String()
+    template_tags = fields.List(fields.String())
+    template_context = fields.String()
 
 
 class UserSchema(Schema):

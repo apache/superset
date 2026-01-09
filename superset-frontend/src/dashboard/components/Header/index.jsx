@@ -522,10 +522,15 @@ const Header = () => {
 
   const metadataBar = useDashboardMetadataBar(dashboardInfo);
 
+  // Templates cannot be edited - block edit permission
+  const isTemplate = !!dashboardInfo.metadata?.is_template;
   const userCanEdit =
-    dashboardInfo.dash_edit_perm && !dashboardInfo.is_managed_externally;
+    dashboardInfo.dash_edit_perm &&
+    !dashboardInfo.is_managed_externally &&
+    !isTemplate;
   const userCanShare = dashboardInfo.dash_share_perm;
-  const userCanSaveAs = dashboardInfo.dash_save_perm;
+  // Templates cannot be saved as (use "Use this template" flow instead)
+  const userCanSaveAs = dashboardInfo.dash_save_perm && !isTemplate;
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
     findPermission('can_set_embedded', 'Dashboard', user.roles);

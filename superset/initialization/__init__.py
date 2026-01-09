@@ -158,9 +158,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.css_templates.api import CssTemplateRestApi
+        from superset.dashboard_generator.api import DashboardGeneratorRestApi
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
         from superset.dashboards.permalink.api import DashboardPermalinkRestApi
+        from superset.databases.analyzer_api import DatasourceAnalyzerRestApi
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
@@ -200,6 +202,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
+        from superset.views.datasource_connector import DatasourceConnectorView
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
@@ -250,11 +253,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DashboardFilterStateRestApi)
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
+        appbuilder.add_api(DashboardGeneratorRestApi)
         appbuilder.add_api(DatabaseRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
         appbuilder.add_api(DatasourceRestApi)
+        appbuilder.add_api(DatasourceAnalyzerRestApi)
         appbuilder.add_api(EmbeddedDashboardRestApi)
         appbuilder.add_api(ExploreRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
@@ -429,6 +434,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
+        appbuilder.add_view_no_menu(DatasourceConnectorView)
 
         #
         # Add links

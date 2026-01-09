@@ -27,6 +27,7 @@ from superset.commands.chart.exceptions import (
     ChartDeleteFailedReportsExistError,
     ChartForbiddenError,
     ChartNotFoundError,
+    ChartTemplateDeleteForbiddenError,
 )
 from superset.daos.chart import ChartDAO
 from superset.daos.report import ReportScheduleDAO
@@ -53,6 +54,12 @@ class DeleteChartCommand(BaseCommand):
         self._models = ChartDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
             raise ChartNotFoundError()
+
+        # Charts belonging to template dashboards cannot be deleted
+        for model in self._models:
+            if model.is_template_chart is True:
+                raise ChartTemplateDeleteForbiddenError()
+
         # Check there are no associated ReportSchedules
         if reports := ReportScheduleDAO.find_by_chart_ids(self._model_ids):
             report_names = [report.name for report in reports]
