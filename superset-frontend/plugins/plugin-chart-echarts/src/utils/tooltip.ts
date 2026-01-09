@@ -27,6 +27,8 @@ import {
 import { TOOLTIP_OVERFLOW_MARGIN, TOOLTIP_POINTER_MARGIN } from '../constants';
 import { Refs } from '../types';
 
+const TOOLTIP_Z_INDEX = 2147483647;
+
 export function getDefaultTooltip(refs: Refs) {
   return {
     appendToBody:
@@ -34,6 +36,13 @@ export function getDefaultTooltip(refs: Refs) {
     borderColor: 'transparent',
     // CSS hack applied on this class to resolve https://github.com/apache/superset/issues/30058
     className: 'echarts-tooltip',
+    // allow scrolling inside tooltip without re-triggering the chart
+    enterable: true,
+    // keep within viewport and above header; enable internal scroll
+    confine: true,
+    extraCssText: `max-height:80vh; overflow:auto; -webkit-overflow-scrolling:touch; pointer-events:auto; z-index:${TOOLTIP_Z_INDEX};`,
+    // optional: reduce flicker when moving in/out of tooltip
+    hideDelay: 50,
     position: (
       canvasMousePos: [number, number],
       params: CallbackDataParams,
