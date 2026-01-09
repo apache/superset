@@ -38,6 +38,32 @@ const StyledAlert = styled(Alert)`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
+const StyledSwitchContainer = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    margin-bottom: ${theme.sizeUnit * 4}px;
+
+    .switch-row {
+      display: flex;
+      align-items: center;
+      gap: ${theme.sizeUnit * 2}px;
+    }
+
+    .switch-label {
+      color: ${theme.colorText};
+      font-size: ${theme.fontSize}px;
+    }
+
+    .switch-helper {
+      display: block;
+      color: ${theme.colorTextTertiary};
+      font-size: ${theme.fontSizeSM}px;
+      margin-top: ${theme.sizeUnit}px;
+    }
+  `}
+`;
+
 interface Theme {
   id: number;
   theme_name: string;
@@ -171,19 +197,23 @@ const StylingSection = ({
           showWarning={hasCustomLabelsColor}
         />
       </ModalFormField>
-      <ModalFormField
-        label={t('Show chart query timestamps')}
-        testId="dashboard-show-timestamps-field"
-        helperText={t(
-          'Display the last queried timestamp on charts in the dashboard view',
-        )}
-      >
-        <Switch
-          data-test="dashboard-show-timestamps-switch"
-          checked={showChartTimestamps}
-          onChange={onShowChartTimestampsChange}
-        />
-      </ModalFormField>
+      <StyledSwitchContainer data-test="dashboard-show-timestamps-field">
+        <div className="switch-row">
+          <Switch
+            data-test="dashboard-show-timestamps-switch"
+            checked={showChartTimestamps}
+            onChange={onShowChartTimestampsChange}
+          />
+          <span className="switch-label">
+            {t('Show chart query timestamps')}
+          </span>
+        </div>
+        <span className="switch-helper">
+          {t(
+            'Display the last queried timestamp on charts in the dashboard view',
+          )}
+        </span>
+      </StyledSwitchContainer>
       {isFeatureEnabled(FeatureFlag.CssTemplates) &&
         cssTemplates.length > 0 && (
           <ModalFormField
