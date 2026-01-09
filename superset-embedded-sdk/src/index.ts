@@ -66,6 +66,8 @@ export type EmbedDashboardParams = {
   iframeTitle?: string;
   /** additional iframe sandbox attributes ex (allow-top-navigation, allow-popups-to-escape-sandbox) **/
   iframeSandboxExtras?: string[];
+  /** iframe allow attribute for Permissions Policy (e.g., ['clipboard-write', 'fullscreen']) **/
+  iframeAllowExtras?: string[];
   /** force a specific refererPolicy to be used in the iframe request **/
   referrerPolicy?: ReferrerPolicy;
   /** Callback to resolve permalink URLs. If provided, this will be called when generating permalinks
@@ -122,6 +124,7 @@ export async function embedDashboard({
   debug = false,
   iframeTitle = 'Embedded Dashboard',
   iframeSandboxExtras = [],
+  iframeAllowExtras = [],
   referrerPolicy,
   resolvePermalinkUrl,
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
@@ -229,6 +232,9 @@ export async function embedDashboard({
       });
       iframe.src = `${supersetDomain}/embedded/${id}${urlParamsString}`;
       iframe.title = iframeTitle;
+      if (iframeAllowExtras.length > 0) {
+        iframe.setAttribute('allow', iframeAllowExtras.join('; '));
+      }
       //@ts-ignore
       mountPoint.replaceChildren(iframe);
       log('placed the iframe');
@@ -253,6 +259,7 @@ export async function embedDashboard({
 
   // Register the resolvePermalinkUrl method for the iframe to call
   // Returns null if no callback provided or on error, allowing iframe to use default URL
+  ourPort.start();
   ourPort.defineMethod(
     'resolvePermalinkUrl',
     async ({ key }: { key: string }): Promise<string | null> => {
@@ -260,8 +267,7 @@ export async function embedDashboard({
         return null;
       }
       try {
-        const result = await resolvePermalinkUrl({ key });
-        return result;
+        return await resolvePermalinkUrl({ key });
       } catch (error) {
         log('Error in resolvePermalinkUrl callback:', error);
         return null;
@@ -286,7 +292,6 @@ export async function embedDashboard({
   const observeDataMask = (
     callbackFn: ObserveDataMaskCallbackFn,
   ) => {
-    ourPort.start();
     ourPort.defineMethod('observeDataMask', callbackFn);
   };
   // TODO: Add proper types once theming branch is merged

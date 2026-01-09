@@ -59,10 +59,14 @@ embedDashboard({
           // ...
       }
   },
-    // optional additional iframe sandbox attributes
+  // optional additional iframe sandbox attributes
   iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox'],
+  // optional Permissions Policy features
+  iframeAllowExtras: ['clipboard-write', 'fullscreen'],
   // optional config to enforce a particular referrerPolicy
-  referrerPolicy: "same-origin"
+  referrerPolicy: "same-origin",
+  // optional callback to customize permalink URLs
+  resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`
 });
 ```
 
@@ -158,6 +162,20 @@ To pass additional sandbox attributes you can use `iframeSandboxExtras`:
   // optional additional iframe sandbox attributes
   iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
 ```
+
+### Permissions Policy
+
+To enable specific browser features within the embedded iframe, use `iframeAllowExtras` to set the iframe's [Permissions Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Permissions_Policy) (the `allow` attribute):
+
+```js
+  // optional Permissions Policy features
+  iframeAllowExtras: ['clipboard-write', 'fullscreen']
+```
+
+Common permissions you might need:
+- `clipboard-write` - Required for "Copy permalink to clipboard" functionality
+- `fullscreen` - Required for fullscreen chart viewing
+- `camera`, `microphone` - If your dashboards include media capture features
 
 ### Enforcing a ReferrerPolicy on the request triggered by the iframe
 

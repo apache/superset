@@ -22,6 +22,7 @@ import {
   QueryFormData,
   SupersetClient,
 } from '@superset-ui/core';
+import Switchboard from '@superset-ui/switchboard';
 import rison from 'rison';
 import { isEmpty } from 'lodash';
 import {
@@ -31,6 +32,7 @@ import {
 } from '../constants';
 import { getActiveFilters } from '../dashboard/util/activeDashboardFilters';
 import serializeActiveFilterValues from '../dashboard/util/serializeActiveFilterValues';
+import getBootstrapData from './getBootstrapData';
 
 export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
 export type UrlParam = (typeof URL_PARAMS)[keyof typeof URL_PARAMS];
@@ -157,17 +159,51 @@ function getPermalink(
   }));
 }
 
-export function getChartPermalink(
+/**
+ * Resolves a permalink URL using the host app's custom callback if in embedded mode.
+ * Falls back to the default URL if not embedded or if no callback is provided.
+ */
+async function resolvePermalinkUrl(
+  result: PermalinkResult,
+): Promise<PermalinkResult> {
+  const { key, url } = result;
+
+  // In embedded mode, check if the host app has a custom resolvePermalinkUrl callback
+  const bootstrapData = getBootstrapData();
+  if (bootstrapData.embedded) {
+    try {
+      // Ask the SDK to resolve the permalink URL
+      // Returns null if no callback was provided by the host
+      const resolvedUrl = await Switchboard.get<string | null>(
+        'resolvePermalinkUrl',
+        { key },
+      );
+
+      // If callback returned a valid URL string, use it; otherwise use Superset's default URL
+      if (typeof resolvedUrl === 'string' && resolvedUrl.length > 0) {
+        return { key, url: resolvedUrl };
+      }
+    } catch (error) {
+      // Silently fall back to default URL if Switchboard call fails
+      // (e.g., if not in embedded context or callback throws)
+    }
+  }
+
+  return { key, url };
+}
+
+export async function getChartPermalink(
   formData: Pick<QueryFormData, 'datasource'>,
   excludedUrlParams?: string[],
-) {
-  return getPermalink('/api/v1/explore/permalink', {
+): Promise<PermalinkResult> {
+  const result = await getPermalink('/api/v1/explore/permalink', {
     formData,
     urlParams: getChartUrlParams(excludedUrlParams),
   });
+  return resolvePermalinkUrl(result);
 }
 
-export function getDashboardPermalink({
+export async function getDashboardPermalink({
   dashboardId,
   dataMask,
   activeTabs,
@@ -210,7 +246,11 @@ export function getDashboardPermalink({
     payload.chartStates = chartStates;
   }
 
-  return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, payload);
+  const result = await getPermalink(
+    `/api/v1/dashboard/${dashboardId}/permalink`,
+    payload,
+  );
+  return resolvePermalinkUrl(result);
 }
 
 const externalUrlRegex =
