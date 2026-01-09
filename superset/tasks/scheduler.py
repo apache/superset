@@ -26,6 +26,7 @@ from celery.signals import task_failure
 from flask import current_app
 
 from superset import is_feature_enabled
+from superset.commands.async_tasks.prune import AsyncTaskPruneCommand
 from superset.commands.exceptions import CommandException
 from superset.commands.logs.prune import LogPruneCommand
 from superset.commands.report.exceptions import ReportScheduleUnexpectedError
@@ -199,3 +200,29 @@ def prune_logs(
         LogPruneCommand(retention_period_days, max_rows_per_run).run()
     except CommandException as ex:
         logger.exception("An error occurred while pruning logs: %s", ex)
+
+
+@celery_app.task(name="prune_async_tasks", bind=True)
+def prune_async_tasks(
+    self: Task,
+    retention_period_days: int | None = None,
+    max_rows_per_run: int | None = None,
+    **kwargs: Any,
+) -> None:
+    stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    stats_logger.incr("prune_async_tasks")
+
+    # TODO: Deprecated: Remove support for passing retention period via options in 6.0
+    if retention_period_days is None:
+        retention_period_days = prune_async_tasks.request.properties.get(
+            "retention_period_days"
+        )
+        logger.warning(
+            "Your `prune_async_tasks` beat schedule uses `options` to pass the "
+            "retention period, please use `kwargs` instead."
+        )
+
+    try:
+        AsyncTaskPruneCommand(retention_period_days, max_rows_per_run).run()
+    except CommandException as ex:
+        logger.exception("An error occurred while pruning async tasks: %s", ex)
