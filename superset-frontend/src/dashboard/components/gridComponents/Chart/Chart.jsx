@@ -209,6 +209,9 @@ const Chart = props => {
       PLACEHOLDER_DATASOURCE,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
+  const showChartTimestamps = useSelector(
+    state => state.dashboardInfo?.metadata?.show_chart_timestamps ?? false,
+  );
 
   const isCached = useMemo(
     // eslint-disable-next-line camelcase
@@ -319,12 +322,19 @@ const Chart = props => {
 
   const getChartHeight = useCallback(() => {
     const headerHeight = getHeaderHeight();
-    const queriedLabelHeight = queriedDttm != null ? QUERIED_LABEL_HEIGHT : 0;
+    const queriedLabelHeight =
+      showChartTimestamps && queriedDttm != null ? QUERIED_LABEL_HEIGHT : 0;
     return Math.max(
       height - headerHeight - descriptionHeight - queriedLabelHeight,
       20,
     );
-  }, [getHeaderHeight, height, descriptionHeight, queriedDttm]);
+  }, [
+    getHeaderHeight,
+    height,
+    descriptionHeight,
+    queriedDttm,
+    showChartTimestamps,
+  ]);
 
   const handleFilterMenuOpen = useCallback(
     (chartId, column) => {
@@ -729,7 +739,7 @@ const Chart = props => {
         />
       </ChartWrapper>
 
-      {!isLoading && queriedDttm != null && (
+      {!isLoading && showChartTimestamps && queriedDttm != null && (
         <LastQueriedLabel queriedDttm={queriedDttm} />
       )}
 

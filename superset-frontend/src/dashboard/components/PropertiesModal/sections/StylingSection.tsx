@@ -24,7 +24,7 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { styled, Alert } from '@apache-superset/core/ui';
-import { CssEditor, Select } from '@superset-ui/core/components';
+import { CssEditor, Select, Switch } from '@superset-ui/core/components';
 import rison from 'rison';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import { ModalFormField } from 'src/components/Modal';
@@ -54,12 +54,14 @@ interface StylingSectionProps {
   colorScheme?: string;
   customCss: string;
   hasCustomLabelsColor: boolean;
+  showChartTimestamps: boolean;
   onThemeChange: (value: any) => void;
   onColorSchemeChange: (
     colorScheme: string,
     options?: { updateMetadata?: boolean },
   ) => void;
   onCustomCssChange: (css: string) => void;
+  onShowChartTimestampsChange: (value: boolean) => void;
   addDangerToast?: (message: string) => void;
 }
 
@@ -69,9 +71,11 @@ const StylingSection = ({
   colorScheme,
   customCss,
   hasCustomLabelsColor,
+  showChartTimestamps,
   onThemeChange,
   onColorSchemeChange,
   onCustomCssChange,
+  onShowChartTimestampsChange,
   addDangerToast,
 }: StylingSectionProps) => {
   const [cssTemplates, setCssTemplates] = useState<CssTemplate[]>([]);
@@ -165,6 +169,19 @@ const StylingSection = ({
           onChange={onColorSchemeChange}
           hasCustomLabelsColor={hasCustomLabelsColor}
           showWarning={hasCustomLabelsColor}
+        />
+      </ModalFormField>
+      <ModalFormField
+        label={t('Show chart query timestamps')}
+        testId="dashboard-show-timestamps-field"
+        helperText={t(
+          'Display the last queried timestamp on charts in the dashboard view',
+        )}
+      >
+        <Switch
+          data-test="dashboard-show-timestamps-switch"
+          checked={showChartTimestamps}
+          onChange={onShowChartTimestampsChange}
         />
       </ModalFormField>
       {isFeatureEnabled(FeatureFlag.CssTemplates) &&
