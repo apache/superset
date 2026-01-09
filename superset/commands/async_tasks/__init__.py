@@ -15,15 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset.commands.async_tasks.bulk_cancel import BulkCancelAsyncTasksCommand
-from superset.commands.async_tasks.cancel import CancelAsyncTaskCommand
+from superset.commands.async_tasks.abort import AbortAsyncTaskCommand
+from superset.commands.async_tasks.bulk_abort import BulkAbortAsyncTasksCommand
 from superset.commands.async_tasks.create import CreateAsyncTaskCommand
 from superset.commands.async_tasks.delete import DeleteOldAsyncTasksCommand
 from superset.commands.async_tasks.update import UpdateAsyncTaskCommand
 
 __all__ = [
-    "BulkCancelAsyncTasksCommand",
-    "CancelAsyncTaskCommand",
+    "AbortAsyncTaskCommand",
+    "BulkAbortAsyncTasksCommand",
     "CreateAsyncTaskCommand",
     "DeleteOldAsyncTasksCommand",
     "UpdateAsyncTaskCommand",

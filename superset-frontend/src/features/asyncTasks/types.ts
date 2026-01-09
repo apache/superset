@@ -20,10 +20,10 @@
 export interface AsyncTask {
   id: number;
   uuid: string;
-  task_id: string;
+  task_key: string;
   task_type: string;
   task_name: string | null;
-  status: 'pending' | 'in_progress' | 'success' | 'failure' | 'cancelled';
+  status: 'pending' | 'in_progress' | 'success' | 'failure' | 'aborted';
   created_on: string;
   changed_on: string;
   changed_on_delta_humanized?: string;
@@ -42,10 +42,11 @@ export interface AsyncTask {
   database_id: number | null;
   error_message: string | null;
   payload: Record<string, any>;
+  progress: number | null;
   duration_seconds: number | null;
   is_finished: boolean;
   is_successful: boolean;
-  is_cancelled: boolean;
+  is_aborted: boolean;
 }
 
 export enum TaskStatus {
@@ -53,5 +54,5 @@ export enum TaskStatus {
   InProgress = 'in_progress',
   Success = 'success',
   Failure = 'failure',
-  Cancelled = 'cancelled',
+  Aborted = 'aborted',
 }

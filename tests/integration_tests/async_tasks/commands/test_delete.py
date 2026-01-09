@@ -18,7 +18,7 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from superset_core.api.types import TaskStatus
+from superset_core.api.async_tasks import TaskStatus
 
 from superset import db
 from superset.commands.async_tasks import DeleteOldAsyncTasksCommand
@@ -36,8 +36,8 @@ def test_delete_old_tasks_success(app_context, get_user, login_as) -> None:
     tasks = []
     for i in range(3):
         task = AsyncTask(
-            task_id=f"old_task_{i}",
             task_type="test_type",
+            task_key=f"old_task_{i}",
             status=TaskStatus.SUCCESS.value,
         )
         task.created_by = admin
@@ -82,9 +82,9 @@ def test_delete_old_tasks_custom_batch_size(app_context, get_user, login_as) -> 
     tasks = []
     for i in range(5):
         task = AsyncTask(
-            task_id=f"batch_task_{i}",
             task_type="test_type",
-            status=TaskStatus.CANCELLED.value,
+            task_key=f"batch_task_{i}",
+            status=TaskStatus.ABORTED.value,
         )
         task.created_by = admin
         task.ended_at = old_date

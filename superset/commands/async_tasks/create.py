@@ -46,7 +46,7 @@ class CreateAsyncTaskCommand(BaseCommand):
         try:
             return AsyncTaskDAO.create_task(
                 task_type=self._properties["task_type"],
-                task_id=self._properties.get("task_id"),
+                task_key=self._properties.get("task_key"),
                 task_name=self._properties.get("task_name"),
                 user_id=self._properties.get("user_id"),
                 database_id=self._properties.get("database_id"),

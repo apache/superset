@@ -20,7 +20,7 @@ import logging
 import uuid
 from typing import Any
 
-from superset_core.api.types import TaskStatus
+from superset_core.api.async_tasks import TaskStatus
 
 from superset.async_tasks.filters import AsyncTaskFilter
 from superset.daos.base import BaseDAO
@@ -43,22 +43,22 @@ class AsyncTaskDAO(BaseDAO[AsyncTask]):
     base_filter = AsyncTaskFilter
 
     @classmethod
-    def find_by_task_id(cls, task_type: str, task_id: str) -> AsyncTask | None:
+    def find_by_task_key(cls, task_type: str, task_key: str) -> AsyncTask | None:
         """
         Find active task by type and deduplication ID.
 
         Only returns tasks that are pending or in progress.
-        Completed/cancelled tasks are kept for logging but not returned here.
+        Completed/aborted tasks are kept for logging but not returned here.
 
         :param task_type: Task type to filter by
-        :param task_id: Task identifier for deduplication
+        :param task_key: Task identifier for deduplication
         :returns: AsyncTask instance or None if not found or not active
         """
         return (
             db.session.query(AsyncTask)
             .filter(
                 AsyncTask.task_type == task_type,
-                AsyncTask.task_id == task_id,
+                AsyncTask.task_key == task_key,
                 AsyncTask.status.in_(
                     [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]
                 ),
@@ -69,52 +69,52 @@ class AsyncTaskDAO(BaseDAO[AsyncTask]):
     @classmethod
     @transaction()
     def create_task(
-        cls, task_type: str, task_id: str | None = None, **kwargs: Any
+        cls, task_type: str, task_key: str | None = None, **kwargs: Any
     ) -> AsyncTask:
         """
         Create a new async task.
 
         :param task_type: Type of task to create
-        :param task_id: Optional task identifier for deduplication. If not provided,
-                       a random UUID will be generated.
+        :param task_key: Optional task identifier for deduplication. If not provided,
+                         a random UUID will be generated.
         :param kwargs: Additional task attributes
         :returns: Created AsyncTask instance
-        :raises DAOCreateFailedError: If task with same task_id already exists and is
+        :raises DAOCreateFailedError: If task with same task_key already exists and is
                 active
         """
-        # Generate task_id if not provided
-        if task_id is None:
-            task_id = str(uuid.uuid4())
+        # Generate task_key if not provided
+        if task_key is None:
+            task_key = str(uuid.uuid4())
 
-        # Check if task with same task_type and task_id already exists and is active
-        if existing := cls.find_by_task_id(task_type, task_id):
+        # Check if task with same task_type and task_key already exists and is active
+        if existing := cls.find_by_task_key(task_type, task_key):
             raise DAOCreateFailedError(
-                f"Task with ID '{task_id}' already exists "
+                f"Task with key '{task_key}' already exists "
                 f"and is active (status: {existing.status})"
             )
 
         # Create new task
         task_data = {
-            "task_id": task_id,
             "task_type": task_type,
+            "task_key": task_key,
             "status": TaskStatus.PENDING.value,
             **kwargs,
         }
 
         task = cls.create(attributes=task_data)
 
-        logger.info("Created new async task: %s (type: %s)", task_id, task_type)
+        logger.info("Created new async task: %s (type: %s)", task_key, task_type)
         return task
 
     @classmethod
     @transaction()
-    def cancel_task(cls, task_uuid: str, skip_base_filter: bool = False) -> bool:
+    def abort_task(cls, task_uuid: str, skip_base_filter: bool = False) -> bool:
         """
-        Cancel a task by UUID.
+        Abort a task by UUID.
 
-        :param task_uuid: UUID of task to cancel
-        :param skip_base_filter: If True, skip base filter (for admin cancellations)
-        :returns: True if task was cancelled, False if not found or already finished
+        :param task_uuid: UUID of task to abort
+        :param skip_base_filter: If True, skip base filter (for admin abortions)
+        :returns: True if task was aborted, False if not found or already finished
         """
         task = cls.find_one_or_none(skip_base_filter=skip_base_filter, uuid=task_uuid)
         if not task:
@@ -123,24 +123,24 @@ class AsyncTaskDAO(BaseDAO[AsyncTask]):
         if task.status not in [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]:
             return False
 
-        task.set_status(TaskStatus.CANCELLED.value)
+        task.set_status(TaskStatus.ABORTED.value)
 
-        logger.info("Cancelled task: %s", task_uuid)
+        logger.info("Aborted task: %s", task_uuid)
         return True
 
     @classmethod
-    def bulk_cancel_tasks(
+    def bulk_abort_tasks(
         cls, task_uuids: list[str], skip_base_filter: bool = False
     ) -> tuple[int, int]:
         """
-        Cancel multiple tasks by UUIDs.
+        Abort multiple tasks by UUIDs.
 
         This method does NOT use @transaction() to allow partial success -
-        successfully cancelled tasks will be committed even if some fail.
+        successfully aborted tasks will be committed even if some fail.
 
-        :param task_uuids: List of task UUIDs to cancel
-        :param skip_base_filter: If True, skip base filter (for admin cancellations)
-        :returns: Tuple of (cancelled_count, total_requested)
+        :param task_uuids: List of task UUIDs to abort
+        :param skip_base_filter: If True, skip base filter (for admin abortions)
+        :returns: Tuple of (aborted_count, total_requested)
         """
         if not task_uuids:
             return 0, 0
@@ -151,27 +151,25 @@ class AsyncTaskDAO(BaseDAO[AsyncTask]):
             task_uuids, skip_base_filter=skip_base_filter, id_column="uuid"
         )
 
-        cancellable_tasks = [
+        abortable_tasks = [
             task
             for task in all_tasks
             if task.status in [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]
         ]
 
-        cancelled_count = 0
-        for task in cancellable_tasks:
+        aborted_count = 0
+        for task in abortable_tasks:
             try:
-                task.set_status(TaskStatus.CANCELLED.value)
+                task.set_status(TaskStatus.ABORTED.value)
                 db.session.commit()
-                cancelled_count += 1
+                aborted_count += 1
             except Exception as ex:
-                logger.error("Failed to cancel task %s: %s", task.uuid, str(ex))
+                logger.error("Failed to abort task %s: %s", task.uuid, str(ex))
                 db.session.rollback()
                 # Continue with other tasks
 
-        logger.info(
-            "Bulk cancelled %d out of %d tasks", cancelled_count, total_requested
-        )
-        return cancelled_count, total_requested
+        logger.info("Bulk aborted %d out of %d tasks", aborted_count, total_requested)
+        return aborted_count, total_requested
 
     @classmethod
     @transaction()
@@ -200,7 +198,7 @@ class AsyncTaskDAO(BaseDAO[AsyncTask]):
                         [
                             TaskStatus.SUCCESS.value,
                             TaskStatus.FAILURE.value,
-                            TaskStatus.CANCELLED.value,
+                            TaskStatus.ABORTED.value,
                         ]
                     ),
                 )

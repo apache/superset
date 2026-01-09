@@ -32,7 +32,7 @@ function getStatusColor(status: TaskStatus, theme: SupersetTheme): string {
       return theme.colorSuccessText;
     case TaskStatus.Failure:
       return theme.colorErrorText;
-    case TaskStatus.Cancelled:
+    case TaskStatus.Aborted:
       return theme.colorWarningText;
     default:
       return theme.colorText;
@@ -44,7 +44,7 @@ const statusIcons = {
   [TaskStatus.InProgress]: Icons.LoadingOutlined,
   [TaskStatus.Success]: Icons.CheckCircleOutlined,
   [TaskStatus.Failure]: Icons.CloseCircleOutlined,
-  [TaskStatus.Cancelled]: Icons.StopOutlined,
+  [TaskStatus.Aborted]: Icons.StopOutlined,
 };
 
 const statusLabels = {
@@ -52,22 +52,30 @@ const statusLabels = {
   [TaskStatus.InProgress]: 'In Progress',
   [TaskStatus.Success]: 'Success',
   [TaskStatus.Failure]: 'Failed',
-  [TaskStatus.Cancelled]: 'Cancelled',
+  [TaskStatus.Aborted]: 'Aborted',
 };
 
 interface AsyncTaskStatusIconProps {
   status: TaskStatus;
+  progress?: number | null;
 }
 
 export default function AsyncTaskStatusIcon({
   status,
+  progress,
 }: AsyncTaskStatusIconProps) {
   const theme = useTheme();
   const IconComponent = statusIcons[status];
   const label = statusLabels[status];
 
+  // Add progress to tooltip if available
+  const tooltipText =
+    progress !== null && progress !== undefined
+      ? `${label}: ${Math.round(progress * 100)}%`
+      : label;
+
   return (
-    <Tooltip title={label} placement="top">
+    <Tooltip title={tooltipText} placement="top">
       <span>
         <IconComponent
           iconSize="l"

@@ -35,4 +35,4 @@ class TaskOptions:
     - Retry policies and backoff strategies
     """
 
-    idempotency_key: str | None = None  # Optional override for task_id
+    task_key: str | None = None

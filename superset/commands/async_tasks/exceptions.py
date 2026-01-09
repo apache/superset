@@ -57,11 +57,11 @@ class AsyncTaskDeleteFailedError(DeleteFailedError):
     message = _("Async tasks could not be deleted.")
 
 
-class AsyncTaskCancelFailedError(CommandException):
-    """Async task cancellation failed."""
+class AsyncTaskAbortFailedError(CommandException):
+    """Async task abortion failed."""
 
     status = 422
-    message = _("Async task could not be cancelled.")
+    message = _("Async task could not be aborted.")
 
 
 class AsyncTaskForbiddenError(ForbiddenError):
