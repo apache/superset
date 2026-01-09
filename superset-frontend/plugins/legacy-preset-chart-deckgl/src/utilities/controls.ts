@@ -39,6 +39,7 @@ export function columnChoices(datasource: Dataset | QueryResponse | null) {
 }
 
 export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
+export const BLACK_COLOR = { r: 0, g: 0, b: 0, a: 1 };
 
 export default {
   default: null,

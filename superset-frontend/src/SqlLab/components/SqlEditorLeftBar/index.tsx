@@ -31,6 +31,7 @@ import {
   setDatabases,
   addDangerToast,
   resetState,
+  type Database,
 } from 'src/SqlLab/actions/sqlLab';
 import { Button, EmptyState, Icons } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
@@ -194,8 +195,8 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
   );
 
   const handleDbList = useCallback(
-    (result: DatabaseObject) => {
-      dispatch(setDatabases(result));
+    (result: DatabaseObject[]) => {
+      dispatch(setDatabases(result as unknown as Database[]));
     },
     [dispatch],
   );

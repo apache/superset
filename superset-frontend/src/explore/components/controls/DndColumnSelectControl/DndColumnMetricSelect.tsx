@@ -333,7 +333,8 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
           <MetricDefinitionValue
             key={`metric-${idx}`}
             index={idx}
-            option={item}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            option={item as any}
             onMetricEdit={(changedMetric: Metric | AdhocMetric) => {
               const newValues = [...coercedValue];
               if (changedMetric instanceof AdhocMetric) {
@@ -344,10 +345,14 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
               onChange(multi ? newValues : newValues[0]);
             }}
             onRemoveMetric={onClickClose}
-            columns={columns}
-            savedMetrics={savedMetrics}
-            savedMetricsOptions={savedMetrics}
-            datasource={datasource}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            columns={columns as any}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            savedMetrics={savedMetrics as any}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            savedMetricsOptions={savedMetrics as any}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            datasource={datasource as any}
             onMoveLabel={onShiftOptions}
             onDropLabel={() => {}}
             type={`${DndItemType.AdhocMetricOption}_${name}_${label}`}

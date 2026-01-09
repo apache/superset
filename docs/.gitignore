@@ -23,3 +23,6 @@ docs/.zshrc
 
 # Gets copied from the root of the project at build time (yarn start / yarn build)
 docs/intro.md
+
+# Generated badge images (downloaded at build time by remark-localize-badges plugin)
+static/badges/

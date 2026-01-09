@@ -344,7 +344,7 @@ function StickyWrap({
         style={{
           height: bodyHeight,
           overflow: 'auto',
-          scrollbarGutter: 'stable',
+          scrollbarGutter: hasVerticalScroll ? 'stable' : undefined,
           width: maxWidth,
           boxSizing: 'border-box',
         }}

@@ -934,6 +934,20 @@ npm run storybook
 
 When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.
 
+#### Testing Stories
+
+Superset uses [@storybook/test-runner](https://storybook.js.org/docs/writing-tests/test-runner) to validate that all stories compile and render without errors. This helps catch broken stories before they're merged.
+
+```bash
+# Run against a running Storybook server (start with `npm run storybook` first)
+npm run test-storybook
+
+# Build static Storybook and test (CI-friendly, no server needed)
+npm run test-storybook:ci
+```
+
+The `test-storybook` job runs automatically in CI on every pull request, ensuring stories remain functional.
+
 ## Tips
 
 ### Adding a new datasource
@@ -958,7 +972,12 @@ When contributing new React components to Superset, please try to add a Story al
 
 The topic of authoring new plugins, whether you'd like to contribute
 it back or not has been well documented in the
-[the documentation](https://superset.apache.org/docs/contributing/creating-viz-plugins), and in [this blog post](https://preset.io/blog/building-custom-viz-plugins-in-superset-v2).
+[documentation](https://superset.apache.org/docs/contributing/creating-viz-plugins).
+
+:::resources
+- [Blog: Building Custom Viz Plugins in Superset v2](https://preset.io/blog/building-custom-viz-plugins-in-superset-v2)
+- [Blog: Enhancing Superset Visualization Plugins](https://preset.io/blog/enhancing-superset-visualization-plugins-part-1/)
+:::
 
 To contribute a plugin to Superset, your plugin must meet the following criteria:
 

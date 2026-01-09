@@ -508,10 +508,23 @@ def parse_request(
         new_params = []
         for name, param in orig_sig.parameters.items():
             # Skip ctx parameter - FastMCP tools don't expose it to clients
-            if param.annotation is FMContext or (
-                hasattr(param.annotation, "__name__")
-                and param.annotation.__name__ == "Context"
-            ):
+            # Check for Context type, forward reference string, or parameter named 'ctx'
+            is_context = (
+                param.annotation is FMContext
+                or (
+                    hasattr(param.annotation, "__name__")
+                    and param.annotation.__name__ == "Context"
+                )
+                or (
+                    isinstance(param.annotation, str)
+                    and (
+                        param.annotation == "Context"
+                        or param.annotation.endswith(".Context")
+                    )
+                )
+                or name == "ctx"  # Fallback: skip any param named 'ctx'
+            )
+            if is_context:
                 continue
             if name == "request":
                 new_params.append(param.replace(annotation=str | request_class))
