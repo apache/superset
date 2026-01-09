@@ -69,7 +69,8 @@ class AsyncTaskPruneCommand(BaseCommand):
         # Select all IDs that need to be deleted
         # Only delete completed tasks (success, failure, or aborted)
         select_stmt = sa.select(AsyncTask.id).where(
-            AsyncTask.ended_at < datetime.now() - timedelta(days=self.retention_period_days),
+            AsyncTask.ended_at
+            < datetime.now() - timedelta(days=self.retention_period_days),
             AsyncTask.status.in_(
                 [
                     TaskStatus.SUCCESS.value,
