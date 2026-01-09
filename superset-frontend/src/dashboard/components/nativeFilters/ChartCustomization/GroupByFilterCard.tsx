@@ -441,10 +441,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
           return;
         }
 
-        if (
-          datasetId === lastFetchedDatasetIdRef.current ||
-          isFetchingRef.current
-        ) {
+        if (datasetId === lastFetchedDatasetIdRef.current) {
           return;
         }
 
