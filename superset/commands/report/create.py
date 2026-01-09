@@ -78,7 +78,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 self._properties["recipients"] = [
                     {
                         "type": ReportRecipientType.EMAIL,
-                        "recipient_config_json": json.dumps({"target": g.user.email}),
+                        "recipient_config_json": {"target": g.user.email},
                     }
                 ]
             else:
