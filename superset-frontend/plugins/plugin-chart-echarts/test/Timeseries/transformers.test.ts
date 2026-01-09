@@ -21,12 +21,16 @@ import { GenericDataType } from '@apache-superset/core/api/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import type { SeriesOption } from 'echarts';
 import { EchartsTimeseriesSeriesType } from '../../src';
+import { TIMESERIES_CONSTANTS } from '../../src/constants';
+import { LegendOrientation } from '../../src/types';
 import {
   transformSeries,
   transformNegativeLabelsPosition,
+  getPadding,
 } from '../../src/Timeseries/transformers';
 import transformProps from '../../src/Timeseries/transformProps';
 import { EchartsTimeseriesChartProps } from '../../src/types';
+import * as seriesUtils from '../../src/utils/series';
 
 // Mock the colorScale function
 const mockColorScale = jest.fn(
@@ -236,4 +240,149 @@ test('should configure time axis labels to show max label for last month visibil
       }),
     }),
   );
+
+describe('getPadding', () => {
+  let getChartPaddingSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    // Mock getChartPadding to return the padding object as-is for easier testing
+    getChartPaddingSpy = jest.spyOn(seriesUtils, 'getChartPadding');
+    getChartPaddingSpy.mockImplementation(
+      (
+        show: boolean,
+        orientation: LegendOrientation,
+        margin: string | number | null | undefined,
+        padding:
+          | {
+              bottom?: number;
+              left?: number;
+              right?: number;
+              top?: number;
+            }
+          | undefined,
+      ) => {
+        return {
+          bottom: padding?.bottom ?? 0,
+          left: padding?.left ?? 0,
+          right: padding?.right ?? 0,
+          top: padding?.top ?? 0,
+        };
+      },
+    );
+  });
+
+  afterEach(() => {
+    getChartPaddingSpy.mockRestore();
+  });
+
+  it('should only affect left margin when Y axis title position is Left', () => {
+    const result = getPadding(
+      false, // showLegend
+      LegendOrientation.Top, // legendOrientation
+      true, // addYAxisTitleOffset
+      false, // zoomable
+      null, // margin
+      false, // addXAxisTitleOffset
+      'Left', // yAxisTitlePosition
+      30, // yAxisTitleMargin
+      0, // xAxisTitleMargin
+      false, // isHorizontal
+    );
+
+    // Top should be base value, not affected by Left position
+    expect(result.top).toBe(TIMESERIES_CONSTANTS.gridOffsetTop);
+    // Left should include the margin
+    expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft + 30);
+    // Bottom should be base value
+    expect(result.bottom).toBe(TIMESERIES_CONSTANTS.gridOffsetBottom);
+    // Right should be base value
+    expect(result.right).toBe(TIMESERIES_CONSTANTS.gridOffsetRight);
+  });
+
+  it('should only affect top margin when Y axis title position is Top', () => {
+    const result = getPadding(
+      false, // showLegend
+      LegendOrientation.Top, // legendOrientation
+      true, // addYAxisTitleOffset
+      false, // zoomable
+      null, // margin
+      false, // addXAxisTitleOffset
+      'Top', // yAxisTitlePosition
+      30, // yAxisTitleMargin
+      0, // xAxisTitleMargin
+      false, // isHorizontal
+    );
+
+    // Top should include the margin
+    expect(result.top).toBe(TIMESERIES_CONSTANTS.gridOffsetTop + 30);
+    // Left should be base value, not affected by Top position
+    expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft);
+    // Bottom should be base value
+    expect(result.bottom).toBe(TIMESERIES_CONSTANTS.gridOffsetBottom);
+    // Right should be base value
+    expect(result.right).toBe(TIMESERIES_CONSTANTS.gridOffsetRight);
+  });
+
+  it('should use yAxisOffset for top when position is not specified and addYAxisTitleOffset is true', () => {
+    const result = getPadding(
+      false, // showLegend
+      LegendOrientation.Top, // legendOrientation
+      true, // addYAxisTitleOffset
+      false, // zoomable
+      null, // margin
+      false, // addXAxisTitleOffset
+      undefined, // yAxisTitlePosition (not specified)
+      0, // yAxisTitleMargin
+      0, // xAxisTitleMargin
+      false, // isHorizontal
+    );
+
+    // Top should include yAxisOffset
+    expect(result.top).toBe(
+      TIMESERIES_CONSTANTS.gridOffsetTop +
+        TIMESERIES_CONSTANTS.yAxisLabelTopOffset,
+    );
+    // Left should be base value
+    expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft);
+  });
+
+  it('should not add yAxisOffset when addYAxisTitleOffset is false', () => {
+    const result = getPadding(
+      false, // showLegend
+      LegendOrientation.Top, // legendOrientation
+      false, // addYAxisTitleOffset
+      false, // zoomable
+      null, // margin
+      false, // addXAxisTitleOffset
+      undefined, // yAxisTitlePosition
+      0, // yAxisTitleMargin
+      0, // xAxisTitleMargin
+      false, // isHorizontal
+    );
+
+    // Top should be base value only
+    expect(result.top).toBe(TIMESERIES_CONSTANTS.gridOffsetTop);
+    // Left should be base value
+    expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft);
+  });
+
+  it('should handle Left position with zero margin correctly', () => {
+    const result = getPadding(
+      false, // showLegend
+      LegendOrientation.Top, // legendOrientation
+      true, // addYAxisTitleOffset
+      false, // zoomable
+      null, // margin
+      false, // addXAxisTitleOffset
+      'Left', // yAxisTitlePosition
+      0, // yAxisTitleMargin (zero)
+      0, // xAxisTitleMargin
+      false, // isHorizontal
+    );
+
+    // Top should be base value, not affected
+    expect(result.top).toBe(TIMESERIES_CONSTANTS.gridOffsetTop);
+    // Left should be base value only (margin is 0)
+    expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft);
+  });
 });
