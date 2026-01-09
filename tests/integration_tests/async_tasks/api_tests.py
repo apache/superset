@@ -42,8 +42,8 @@ class TestAsyncTaskApi(SupersetTestCase):
         # Create tasks with different statuses
         for i in range(5):
             task = AsyncTask(
-                task_id=f"test_task_{i}",
                 task_type="test_type",
+                task_key=f"test_task_{i}",
                 task_name=f"Test Task {i}",
                 status=TaskStatus.PENDING.value
                 if i % 2 == 0
@@ -56,8 +56,8 @@ class TestAsyncTaskApi(SupersetTestCase):
 
         # Create in progress task for gamma user
         gamma_task = AsyncTask(
-            task_id="gamma_task",
             task_type="test_type",
+            task_key="gamma_task",
             task_name="Gamma Task",
             status=TaskStatus.IN_PROGRESS.value,
             payload='{"user": "gamma"}',
@@ -104,7 +104,7 @@ class TestAsyncTaskApi(SupersetTestCase):
 
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"]["id"] == task.id
-        assert data["result"]["task_id"] == task.task_id
+        assert data["result"]["task_key"] == task.task_key
         assert data["result"]["task_type"] == task.task_type
         assert data["result"]["status"] == task.status
 
@@ -249,9 +249,9 @@ class TestAsyncTaskApi(SupersetTestCase):
         # Cleanup
         self._cleanup_tasks(tasks)
 
-    def test_cancel_async_task_by_id(self):
+    def test_abort_async_task_by_id(self):
         """
-        AsyncTask API: Test cancel async task by ID
+        AsyncTask API: Test abort async task by ID
         """
         tasks = self._create_async_tasks()
         self.login(ADMIN_USERNAME)
@@ -265,24 +265,24 @@ class TestAsyncTaskApi(SupersetTestCase):
         )
         assert task is not None
 
-        uri = f"api/v1/async_task/{task.id}/cancel"
+        uri = f"api/v1/async_task/{task.id}/abort"
         rv = self.client.post(uri, json={})
         assert rv.status_code == 200
 
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["message"] == "Task cancelled successfully"
-        assert data["task"]["status"] == TaskStatus.CANCELLED.value
+        assert data["message"] == "Task aborted successfully"
+        assert data["task"]["status"] == TaskStatus.ABORTED.value
 
-        # Verify task was cancelled in database
+        # Verify task was aborted in database
         db.session.refresh(task)
-        assert task.status == TaskStatus.CANCELLED.value
+        assert task.status == TaskStatus.ABORTED.value
 
         # Cleanup
         self._cleanup_tasks(tasks)
 
-    def test_cancel_async_task_by_uuid(self):
+    def test_abort_async_task_by_uuid(self):
         """
-        AsyncTask API: Test cancel async task by UUID
+        AsyncTask API: Test abort async task by UUID
         """
         tasks = self._create_async_tasks()
         self.login(ADMIN_USERNAME)
@@ -295,58 +295,58 @@ class TestAsyncTaskApi(SupersetTestCase):
         )
         assert task is not None
 
-        uri = f"api/v1/async_task/{task.uuid}/cancel"
+        uri = f"api/v1/async_task/{task.uuid}/abort"
         rv = self.client.post(uri)
         assert rv.status_code == 200
 
         data = json.loads(rv.data.decode("utf-8"))
         assert data["task"]["uuid"] == task.uuid
-        assert data["task"]["status"] == TaskStatus.CANCELLED.value
+        assert data["task"]["status"] == TaskStatus.ABORTED.value
 
         # Cleanup
         self._cleanup_tasks(tasks)
 
-    def test_cancel_async_task_not_found(self):
+    def test_abort_async_task_not_found(self):
         """
-        AsyncTask API: Test cancel async task not found
+        AsyncTask API: Test abort async task not found
         """
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/async_task/99999/cancel"
+        uri = "api/v1/async_task/99999/abort"
         rv = self.client.post(uri)
         assert rv.status_code == 404
 
-    def test_cancel_async_task_not_owned(self):
+    def test_abort_async_task_not_owned(self):
         """
-        AsyncTask API: Test cancel async task not owned by user
+        AsyncTask API: Test abort async task not owned by user
         """
         tasks = self._create_async_tasks()
         self.login(GAMMA_USERNAME)
         admin = self.get_user("admin")
 
-        # Try to cancel admin's task as gamma user
+        # Try to abort admin's task as gamma user
         task = db.session.query(AsyncTask).filter_by(created_by_fk=admin.id).first()
         assert task is not None
 
-        uri = f"api/v1/async_task/{task.id}/cancel"
+        uri = f"api/v1/async_task/{task.id}/abort"
         rv = self.client.post(uri)
         assert rv.status_code == 404
 
         # Cleanup
         self._cleanup_tasks(tasks)
 
-    def test_cancel_async_task_admin_can_cancel_others(self):
+    def test_abort_async_task_admin_can_abort_others(self):
         """
-        AsyncTask API: Test admin can cancel other users' tasks
+        AsyncTask API: Test admin can abort other users' tasks
         """
         tasks = self._create_async_tasks()
         self.login(ADMIN_USERNAME)
         gamma = self.get_user("gamma")
 
-        # Admin cancels gamma's task
+        # Admin aborts gamma's task
         task = db.session.query(AsyncTask).filter_by(created_by_fk=gamma.id).first()
         assert task is not None
 
-        uri = f"api/v1/async_task/{task.id}/cancel"
+        uri = f"api/v1/async_task/{task.id}/abort"
         rv = self.client.post(uri)
         assert rv.status_code == 200
 
@@ -511,7 +511,7 @@ class TestAsyncTaskApi(SupersetTestCase):
         expected_fields = [
             "id",
             "uuid",
-            "task_id",
+            "task_key",
             "task_type",
             "task_name",
             "status",
@@ -527,7 +527,7 @@ class TestAsyncTaskApi(SupersetTestCase):
             "duration_seconds",
             "is_finished",
             "is_successful",
-            "is_cancelled",
+            "is_aborted",
         ]
 
         for field in expected_fields:
@@ -586,7 +586,7 @@ class TestAsyncTaskApi(SupersetTestCase):
         # Check computed properties
         assert result["is_finished"] is True
         assert result["is_successful"] is True
-        assert result["is_cancelled"] is False
+        assert result["is_aborted"] is False
 
         # Cleanup
         self._cleanup_tasks(tasks)
