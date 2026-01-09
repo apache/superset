@@ -32,6 +32,9 @@ import {
   Icons,
   Typography,
   TelemetryPixel,
+  Drawer,
+  Grid,
+  Button,
 } from '@superset-ui/core/components';
 import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
 import { ensureAppRoot, makeUrl } from 'src/utils/pathUtils';
@@ -91,6 +94,8 @@ const StyledMenuItem = styled.div<{ disabled?: boolean }>`
   `}
 `;
 
+const { useBreakpoint } = Grid;
+
 const RightMenu = ({
   align,
   settings,
@@ -108,6 +113,8 @@ const RightMenu = ({
   }) => void;
 }) => {
   const theme = useTheme();
+  const screens = useBreakpoint();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -663,48 +670,81 @@ const RightMenu = ({
             </Tag>
           );
         })()}
-      <Menu
-        css={css`
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          height: 100%;
-          border-bottom: none !important;
-
-          /* Remove the underline from menu items */
-          .ant-menu-item:after,
-          .ant-menu-submenu:after {
-            content: none !important;
-          }
-
-          .submenu-with-caret {
+      {/* Mobile: hamburger menu with drawer */}
+      {!screens.md && (
+        <>
+          <Button
+            buttonStyle="link"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label={t('Menu')}
+          >
+            <Icons.MenuOutlined iconSize="l" />
+          </Button>
+          <Drawer
+            title={t('Menu')}
+            placement="right"
+            onClose={() => setMobileMenuOpen(false)}
+            open={mobileMenuOpen}
+            width={280}
+          >
+            <Menu
+              mode="inline"
+              selectable={false}
+              onClick={info => {
+                handleMenuSelection(info);
+                setMobileMenuOpen(false);
+              }}
+              onOpenChange={onMenuOpen}
+              items={menuItems}
+            />
+          </Drawer>
+        </>
+      )}
+      {/* Desktop: horizontal menu */}
+      {screens.md && (
+        <Menu
+          css={css`
+            display: flex;
+            flex-direction: row;
+            align-items: center;
             height: 100%;
-            padding: 0;
-            .ant-menu-submenu-title {
-              align-items: center;
-              display: flex;
-              gap: ${theme.sizeUnit * 2}px;
-              flex-direction: row-reverse;
+            border-bottom: none !important;
+
+            /* Remove the underline from menu items */
+            .ant-menu-item:after,
+            .ant-menu-submenu:after {
+              content: none !important;
+            }
+
+            .submenu-with-caret {
               height: 100%;
-            }
-            &.ant-menu-submenu::after {
-              inset-inline: ${theme.sizeUnit}px;
-            }
-            &.ant-menu-submenu:hover,
-            &.ant-menu-submenu-active {
-              .ant-menu-title-content {
-                color: ${theme.colorPrimary};
+              padding: 0;
+              .ant-menu-submenu-title {
+                align-items: center;
+                display: flex;
+                gap: ${theme.sizeUnit * 2}px;
+                flex-direction: row-reverse;
+                height: 100%;
+              }
+              &.ant-menu-submenu::after {
+                inset-inline: ${theme.sizeUnit}px;
+              }
+              &.ant-menu-submenu:hover,
+              &.ant-menu-submenu-active {
+                .ant-menu-title-content {
+                  color: ${theme.colorPrimary};
+                }
               }
             }
-          }
-        `}
-        selectable={false}
-        mode="horizontal"
-        onClick={handleMenuSelection}
-        onOpenChange={onMenuOpen}
-        disabledOverflow
-        items={menuItems}
-      />
+          `}
+          selectable={false}
+          mode="horizontal"
+          onClick={handleMenuSelection}
+          onOpenChange={onMenuOpen}
+          disabledOverflow
+          items={menuItems}
+        />
+      )}
       {navbarRight.documentation_url && (
         <>
           <StyledAnchor

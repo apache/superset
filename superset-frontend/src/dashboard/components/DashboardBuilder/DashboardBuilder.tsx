@@ -23,7 +23,13 @@ import { t } from '@apache-superset/core';
 import { addAlpha, JsonObject, useElementOnScreen } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
-import { EmptyState, Grid, Loading } from '@superset-ui/core/components';
+import {
+  Button,
+  Drawer,
+  EmptyState,
+  Grid,
+  Loading,
+} from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
@@ -365,6 +371,7 @@ const DashboardBuilder = () => {
   const uiConfig = useUiConfig();
   const theme = useTheme();
   const { md: isNotMobile } = Grid.useBreakpoint();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const dashboardId = useSelector<RootState, string>(
     ({ dashboardInfo }) => `${dashboardInfo.id}`,
@@ -513,6 +520,24 @@ const DashboardBuilder = () => {
     ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
       <div>
         {!hideDashboardHeader && <DashboardHeader />}
+        {/* Mobile filter button */}
+        {!isNotMobile && !editMode && nativeFiltersEnabled && (
+          <div
+            css={css`
+              padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
+              background: ${theme.colorBgBase};
+              border-bottom: 1px solid ${theme.colorBorderSecondary};
+            `}
+          >
+            <Button
+              buttonStyle="secondary"
+              onClick={() => setMobileFiltersOpen(true)}
+            >
+              <Icons.FilterOutlined iconSize="m" />
+              {t('Filters')}
+            </Button>
+          </div>
+        )}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <FilterBar
@@ -558,6 +583,8 @@ const DashboardBuilder = () => {
       isReport,
       topLevelTabs,
       uiConfig.hideNav,
+      isNotMobile,
+      theme,
     ],
   );
 
@@ -719,6 +746,21 @@ const DashboardBuilder = () => {
             }
           `}
         />
+      )}
+      {/* Mobile filters drawer */}
+      {!isNotMobile && nativeFiltersEnabled && (
+        <Drawer
+          title={t('Filters')}
+          placement="bottom"
+          onClose={() => setMobileFiltersOpen(false)}
+          open={mobileFiltersOpen}
+          height="70vh"
+        >
+          <FilterBar
+            orientation={FilterBarOrientation.Horizontal}
+            hidden={false}
+          />
+        </Drawer>
       )}
     </DashboardWrapper>
   );
