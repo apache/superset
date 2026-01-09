@@ -91,6 +91,43 @@ export default function TabMenu({
     addDangerToast,
   ]);
 
+  const handleEmailPermalink = useCallback(async () => {
+    try {
+      const includeChartState =
+        hasStatefulCharts(sliceEntities) &&
+        chartStates &&
+        Object.keys(chartStates).length > 0;
+
+      const url = await getDashboardPermalink({
+        dashboardId,
+        dataMask,
+        activeTabs,
+        anchor: tabId,
+        chartStates: includeChartState ? chartStates : undefined,
+        includeChartState,
+      });
+
+      const emailSubject = t('Superset dashboard  ');
+      const emailBody = `${t('Check out this tab in dashboard:')} ${url}`;
+      window.location.href = `mailto:?Subject=${encodeURIComponent(emailSubject)}&Body=${encodeURIComponent(emailBody)}`;
+    } catch (error) {
+      if (error) {
+        addDangerToast(
+          (await getClientErrorObject(error)).error ||
+            t('Something went wrong.'),
+        );
+      }
+    }
+  }, [
+    dashboardId,
+    tabId,
+    dataMask,
+    activeTabs,
+    chartStates,
+    sliceEntities,
+    addDangerToast,
+  ]);
+
   const handleMenuClick: MenuProps['onClick'] = useCallback(
     ({ key, domEvent }) => {
       domEvent.stopPropagation();
@@ -100,14 +137,20 @@ export default function TabMenu({
         case 'copy-permalink':
           handleCopyPermalink();
           break;
+        case 'email-permalink':
+          handleEmailPermalink();
+          break;
         case 'edit-title':
-          onEditTitle?.();
+          // Delay to allow menu to close first
+          setTimeout(() => {
+            onEditTitle?.();
+          }, 0);
           break;
         default:
           break;
       }
     },
-    [handleCopyPermalink, onEditTitle],
+    [handleCopyPermalink, handleEmailPermalink, onEditTitle],
   );
 
   const menuItems: MenuProps['items'] = [
@@ -115,6 +158,11 @@ export default function TabMenu({
       key: 'copy-permalink',
       label: t('Copy permalink'),
       icon: <Icons.LinkOutlined iconSize="m" />,
+    },
+    {
+      key: 'email-permalink',
+      label: t('Share permalink by email'),
+      icon: <Icons.MailOutlined iconSize="m" />,
     },
     ...(canEditDashboard
       ? [
