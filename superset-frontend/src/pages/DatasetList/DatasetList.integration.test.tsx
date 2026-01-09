@@ -88,7 +88,13 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   const table = screen.getByTestId('listview-table');
   const nameHeader = within(table).getByRole('columnheader', { name: /Name/i });
 
+  const callsBeforeSort = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
   await userEvent.click(nameHeader);
+
+  // Wait for sort-triggered refetch to complete before applying filter
+  await waitFor(() => {
+    expect(fetchMock.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(callsBeforeSort);
+  });
 
   // 2. Apply a filter using selectOption helper
   const beforeFilterCallCount = fetchMock.calls(API_ENDPOINTS.DATASETS).length;

@@ -79,9 +79,9 @@ test('admin users see all UI elements', async () => {
     screen.getByRole('button', { name: /bulk select/i }),
   ).toBeInTheDocument();
 
-  // Admin should see actions column
+  // Admin should see actions column - wait for table first, then check column
+  const table = await screen.findByTestId('listview-table');
   await waitFor(() => {
-    const table = screen.getByTestId('listview-table');
     expect(
       within(table).getByRole('columnheader', { name: /Actions/i }),
     ).toBeInTheDocument();

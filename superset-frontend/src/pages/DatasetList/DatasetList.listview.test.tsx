@@ -759,6 +759,13 @@ test('bulk delete opens confirmation modal', async () => {
 
   await userEvent.click(checkboxes[1]);
 
+  // Wait for selection to register before clicking Delete
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
+  });
+
   // Find and click bulk delete button (use accessible name for specificity)
   const deleteButton = await screen.findByRole('button', { name: 'Delete' });
   await userEvent.click(deleteButton);
@@ -1517,6 +1524,9 @@ test('bulk selection clears when filter changes', async () => {
   // Record API call count before filter
   const beforeFilterCallCount = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
 
+  // Wait for filter combobox to be ready before applying filter
+  await screen.findByRole('combobox', { name: 'Type' });
+
   // Apply a filter using selectOption helper
   await selectOption('Virtual', 'Type');
 
@@ -1545,9 +1555,8 @@ test('bulk selection clears when filter changes', async () => {
   );
 
   // Verify selection was cleared - count should show "0 Selected"
-  await waitFor(() => {
-    expect(screen.getByText(/0 selected/i)).toBeInTheDocument();
-  });
+  // Use findByText for better async handling
+  await screen.findByText(/0 selected/i);
 }, 30000); // Complex test with multiple async operations
 
 test('type filter API call includes correct filter parameter', async () => {
