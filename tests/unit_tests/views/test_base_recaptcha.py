@@ -32,6 +32,7 @@ def get_base_config(**overrides: Any) -> dict[str, Any]:
         "AUTH_USER_REGISTRATION": True,
         "AUTH_USER_REGISTRATION_ROLE": "Admin",
         "RECAPTCHA_PUBLIC_KEY": "test_recaptcha_key",
+        "OAUTH_PROVIDERS": [],
         "APPLICATION_ROOT": "/",
         "STATIC_ASSETS_PREFIX": "/static/",
         "D3_FORMAT": ",",
