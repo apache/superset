@@ -17,8 +17,16 @@
  * under the License.
  */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { t } from '@superset-ui/core';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
+import {
+  t,
+  SupersetClient,
+  logging,
+  getClientErrorObject,
+} from '@superset-ui/core';
+import {
+  addWarningToast,
+  addDangerToast,
+} from 'src/components/MessageToasts/actions';
 import { TABS_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   DASHBOARD_ROOT_ID,
@@ -28,6 +36,9 @@ import {
 import dropOverflowsParent from 'src/dashboard/util/dropOverflowsParent';
 import findParentId from 'src/dashboard/util/findParentId';
 import isInDifferentFilterScopes from 'src/dashboard/util/isInDifferentFilterScopes';
+import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilterValues';
+import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import { safeStringify } from 'src/utils/safeStringify';
 import { updateLayoutComponents } from './dashboardFilters';
 import { setUnsavedChanges } from './dashboardState';
 
@@ -73,6 +84,62 @@ export const updateComponents = setUnsavedChangesAfterAction(
     },
   }),
 );
+
+// Update a slice name override and auto-save to persist the change
+export function updateSliceNameWithSave(componentId, component, nextName) {
+  return (dispatch, getState) => {
+    const { dashboardInfo, dashboardLayout } = getState();
+    const dashboardId = dashboardInfo.id;
+
+    // Update the component with the new name override
+    const updatedComponent = {
+      ...component,
+      meta: {
+        ...component.meta,
+        sliceNameOverride: nextName,
+      },
+    };
+
+    // Dispatch the update for immediate UI feedback
+    dispatch(
+      updateComponents({
+        [componentId]: updatedComponent,
+      }),
+    );
+
+    // Get the updated layout after the dispatch
+    const { dashboardLayout: updatedLayout, dashboardFilters } = getState();
+    const layout = updatedLayout.present;
+
+    // Serialize the layout for saving
+    const serializedFilters = serializeActiveFilterValues(getActiveFilters());
+
+    // Auto-save the position_json to persist the change
+    SupersetClient.put({
+      endpoint: `/api/v1/dashboard/${dashboardId}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        position_json: safeStringify(layout),
+        json_metadata: safeStringify({
+          ...dashboardInfo.metadata,
+          default_filters: safeStringify(serializedFilters),
+        }),
+      }),
+    })
+      .then(() => {
+        dispatch(setUnsavedChanges(false));
+      })
+      .catch(async response => {
+        const { error } = await getClientErrorObject(response);
+        logging.error('Error saving slice name:', error);
+        dispatch(
+          addDangerToast(
+            t('Could not save your changes. Please try again.'),
+          ),
+        );
+      });
+  };
+}
 
 export function updateDashboardTitle(text) {
   return (dispatch, getState) => {

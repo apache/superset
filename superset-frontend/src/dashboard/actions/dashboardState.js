@@ -182,7 +182,41 @@ export function savePublished(id, isPublished) {
 
 export const TOGGLE_EXPAND_SLICE = 'TOGGLE_EXPAND_SLICE';
 export function toggleExpandSlice(sliceId) {
-  return { type: TOGGLE_EXPAND_SLICE, sliceId };
+  return (dispatch, getState) => {
+    const { dashboardInfo, dashboardState } = getState();
+    const dashboardId = dashboardInfo.id;
+
+    // Toggle the expanded state
+    dispatch({ type: TOGGLE_EXPAND_SLICE, sliceId });
+
+    // Get updated state after toggle
+    const { dashboardState: updatedState } = getState();
+    const expandedSlices = updatedState.expandedSlices || {};
+
+    // Auto-save to persist the change
+    SupersetClient.put({
+      endpoint: `/api/v1/dashboard/${dashboardId}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        json_metadata: safeStringify({
+          ...dashboardInfo.metadata,
+          expanded_slices: expandedSlices,
+        }),
+      }),
+    })
+      .then(() => {
+        dispatch(setUnsavedChanges(false));
+      })
+      .catch(async response => {
+        const { error } = await getClientErrorObject(response);
+        logging.error('Error saving expanded slices:', error);
+        dispatch(
+          addDangerToast(
+            t('Could not save your preferences. Please try again.'),
+          ),
+        );
+      });
+  };
 }
 
 export const SET_EDIT_MODE = 'SET_EDIT_MODE';

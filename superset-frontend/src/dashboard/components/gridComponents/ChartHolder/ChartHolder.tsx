@@ -65,6 +65,11 @@ interface ChartHolderProps {
   // dnd
   deleteComponent: (id: string, parentId: string) => void;
   updateComponents: Function;
+  updateSliceNameWithSave: (
+    componentId: string,
+    component: LayoutItem,
+    nextName: string,
+  ) => void;
   handleComponentDrop: (...args: unknown[]) => unknown;
   setFullSizeChartId: (chartId: number | null) => void;
   isInView: boolean;
@@ -89,6 +94,7 @@ const ChartHolder = ({
   getComponentById = () => undefined,
   deleteComponent,
   updateComponents,
+  updateSliceNameWithSave,
   handleComponentDrop,
   setFullSizeChartId,
   isInView,
@@ -214,17 +220,9 @@ const ChartHolder = ({
 
   const handleUpdateSliceName = useCallback(
     (nextName: string) => {
-      updateComponents({
-        [component.id]: {
-          ...component,
-          meta: {
-            ...component.meta,
-            sliceNameOverride: nextName,
-          },
-        },
-      });
+      updateSliceNameWithSave(component.id, component, nextName);
     },
-    [component, updateComponents],
+    [component, updateSliceNameWithSave],
   );
 
   const handleToggleFullSize = useCallback(() => {

@@ -30,6 +30,7 @@ import {
   createComponent,
   deleteComponent,
   updateComponents,
+  updateSliceNameWithSave,
   handleComponentDrop,
 } from 'src/dashboard/actions/dashboardLayout';
 import {
@@ -84,6 +85,7 @@ const DashboardComponent = props => {
           createComponent,
           deleteComponent,
           updateComponents,
+          updateSliceNameWithSave,
           handleComponentDrop,
           setDirectPathToChild,
           setFullSizeChartId,
