@@ -613,6 +613,10 @@ categories:
       url: https://www.skyscanner.net/
       contributors: ["@cleslie", "@stanhoucke"]
 
+  Logistics:
+    - name: Stockarea
+      url: https://stockarea.io
+
   Others:
     - name: 10Web
       url: https://10web.io/
