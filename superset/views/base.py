@@ -479,10 +479,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     auth_type = app.config["AUTH_TYPE"]
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
-    should_show_recaptcha = (
-        auth_user_registration
-        and (auth_type != AUTH_LDAP)
-        and (auth_type != AUTH_OAUTH)
+    should_show_recaptcha = auth_user_registration and auth_type not in (
+        AUTH_LDAP,
+        AUTH_OAUTH,
     )
 
     if auth_user_registration:
