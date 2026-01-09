@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
