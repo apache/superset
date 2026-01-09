@@ -21,7 +21,6 @@ import datetime
 import logging
 import platform
 
-from fastmcp import Context
 from flask import current_app
 
 from superset.mcp_service.app import mcp
@@ -34,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool(tags=["core"])
 @mcp_auth_hook
-async def health_check(ctx: Context) -> HealthCheckResponse:
+async def health_check() -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.
 
