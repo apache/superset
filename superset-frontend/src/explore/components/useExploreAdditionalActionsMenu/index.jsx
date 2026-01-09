@@ -803,40 +803,39 @@ export const useExploreAdditionalActionsMenu = (
       },
     ];
 
-    if (isFeatureEnabled(FeatureFlag.EmbeddedSuperset)) {
-      shareChildren.push({
-        key: MENU_KEYS.EMBED_CODE,
-        label: (
-          <ModalTrigger
-            triggerNode={
-              <div data-test="embed-code-button">{t('Embed code')}</div>
-            }
-            modalTitle={t('Embed code')}
-            modalBody={
-              <EmbedCodeContent
-                formData={latestQueryFormData}
-                addDangerToast={addDangerToast}
-              />
-            }
-            maxWidth={`${theme.sizeUnit * 100}px`}
-            destroyOnHidden
-            responsive
-          />
-        ),
-        onClick: () => setIsDropdownVisible(false),
-      });
+    // Embed code is always available (simple iframe URL)
+    shareChildren.push({
+      key: MENU_KEYS.EMBED_CODE,
+      label: (
+        <ModalTrigger
+          triggerNode={
+            <div data-test="embed-code-button">{t('Embed code')}</div>
+          }
+          modalTitle={t('Embed code')}
+          modalBody={
+            <EmbedCodeContent
+              formData={latestQueryFormData}
+              addDangerToast={addDangerToast}
+            />
+          }
+          maxWidth={`${theme.sizeUnit * 100}px`}
+          destroyOnHidden
+          responsive
+        />
+      ),
+      onClick: () => setIsDropdownVisible(false),
+    });
 
-      // Add persistent embed chart option (only for saved charts)
-      if (slice?.slice_id) {
-        shareChildren.push({
-          key: MENU_KEYS.EMBED_CHART,
-          label: t('Embed chart'),
-          onClick: () => {
-            setIsEmbedModalOpen(true);
-            setIsDropdownVisible(false);
-          },
-        });
-      }
+    // Add persistent embed chart option (only for saved charts with EMBEDDED_SUPERSET enabled)
+    if (isFeatureEnabled(FeatureFlag.EmbeddedSuperset) && slice?.slice_id) {
+      shareChildren.push({
+        key: MENU_KEYS.EMBED_CHART,
+        label: t('Embed chart'),
+        onClick: () => {
+          setIsEmbedModalOpen(true);
+          setIsDropdownVisible(false);
+        },
+      });
     }
 
     menuItems.push({
