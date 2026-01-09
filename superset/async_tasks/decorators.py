@@ -21,13 +21,13 @@ import logging
 from datetime import datetime
 from typing import Callable, Generic, ParamSpec, TypeVar
 
-from superset_core.api.types import TaskStatus
+from superset_core.api.async_tasks import TaskOptions, TaskStatus
 
 from superset.async_tasks.ambient_context import use_context
 from superset.async_tasks.context import TaskContext
 from superset.async_tasks.manager import TaskManager
 from superset.async_tasks.registry import TaskRegistry
-from superset.async_tasks.types import TaskOptions
+from superset.async_tasks.utils import generate_random_task_key
 from superset.daos.async_tasks import AsyncTaskDAO
 from superset.models.async_tasks import AsyncTask
 
@@ -136,15 +136,13 @@ class AsyncTaskWrapper(Generic[P, R]):
         Returns the AsyncTask entity in SUCCESS or FAILURE state (blocking).
         """
         # Generate task_id (random UUID - no deduplication in sync mode)
-        from superset.async_tasks.utils import generate_random_task_id
-
-        task_id = generate_random_task_id()
+        task_key = generate_random_task_key()
 
         # Create task entry
         task = AsyncTaskDAO.create_task(
-            task_id=task_id,
             task_type=self.name,
-            task_name=f"{self.name}:{task_id[:50]}",
+            task_key=task_key,
+            task_name=f"{self.name}:{task_key[:50]}",
         )
 
         # Build context and execute synchronously
@@ -204,19 +202,19 @@ class AsyncTaskWrapper(Generic[P, R]):
 
         Args:
             *args, **kwargs: Business arguments for the task function
-            options: Execution options (idempotency_key for custom deduplication)
+            options: Execution options
 
         Returns:
             AsyncTask model representing the scheduled task (PENDING status)
 
         Usage:
-            # Auto-generated task_id (random UUID, no deduplication):
+            # Auto-generated task_key (random UUID, no deduplication):
             task = generate_thumbnail.schedule(chart_id)
 
-            # Custom task_id for deduplication:
+            # Custom task_key for task deduplication:
             task = generate_thumbnail.schedule(
                 chart_id,
-                options=TaskOptions(idempotency_key=f"thumb_{chart_id}")
+                options=TaskOptions(task_key=f"thumb_{chart_id}")
             )
 
         Note: Unlike direct calls (__call__), this schedules async execution via Celery.
@@ -229,10 +227,15 @@ class AsyncTaskWrapper(Generic[P, R]):
         else:
             options = options_raw  # type: ignore[assignment]
 
-        # Use idempotency_key if provided, otherwise None
-        task_id = options.idempotency_key
+        # Extract task_name and task_key from options
+        task_name = options.task_name
+        task_key = options.task_key
 
         # Create task entry in metastore and schedule execution
         return TaskManager.submit_task(
-            task_name=self.name, task_id=task_id, args=args, kwargs=kwargs
+            task_type=self.name,
+            task_name=task_name,
+            task_key=task_key,
+            args=args,
+            kwargs=kwargs,
         )

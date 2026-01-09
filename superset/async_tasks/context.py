@@ -19,7 +19,7 @@
 import logging
 from typing import Any, Callable, TypeVar
 
-from superset_core.api.types import TaskContext as CoreTaskContext, TaskStatus
+from superset_core.api.async_tasks import TaskContext as CoreTaskContext, TaskStatus
 
 from superset.daos.async_tasks import AsyncTaskDAO
 from superset.extensions import db
@@ -80,24 +80,24 @@ class TaskContext(CoreTaskContext):
         """
         db.session.merge(task)
 
-    def is_cancelled(self) -> bool:
+    def is_aborted(self) -> bool:
         """
-        Check if the task has been cancelled.
+        Check if the task has been aborted.
 
-        Returns True if the task status is CANCELLED. Fetches fresh state
+        Returns True if the task status is ABORTED. Fetches fresh state
         from the database to ensure current status.
 
-        :returns: True if task is cancelled, False otherwise
+        :returns: True if task is aborted, False otherwise
         """
         task = self.task
-        return task.status == TaskStatus.CANCELLED.value
+        return task.status == TaskStatus.ABORTED.value
 
     def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
         """
         Register a cleanup handler that runs when the task ends.
 
         Cleanup handlers are called when the task completes (success),
-        fails with an error, or is cancelled. Multiple handlers can be
+        fails with an error, or is aborted. Multiple handlers can be
         registered and will execute in LIFO order (last registered runs first).
 
         Can be used as a decorator:
@@ -135,45 +135,45 @@ class TaskContext(CoreTaskContext):
 
     def run(self, operation: Callable[[], T]) -> T | None:
         """
-        Execute an operation if the task is not cancelled.
+        Execute an operation if the task is not aborted.
 
-        Checks cancellation status before executing the operation. If the
-        task is cancelled, returns None without executing. Cannot interrupt
+        Checks abort status before executing the operation. If the
+        task is aborted, returns None without executing. Cannot interrupt
         an operation once it has started.
 
         :param operation: Callable to execute
-        :returns: Operation result if not cancelled, None if cancelled
+        :returns: Operation result if not aborted, None if aborted
 
         Example:
             response = ctx.run(lambda: requests.get(url, timeout=60))
             if response is None:
-                return  # Task was cancelled
+                return  # Task was aborted
         """
-        if self.is_cancelled():
+        if self.is_aborted():
             return None
         return operation()
 
     @transaction()
     def update_progress(self, current: int, total: int, **extra: Any) -> bool:
         """
-        Update task progress and check for cancellation.
+        Update task progress and check for abort.
 
-        Convenience method that combines progress update with cancellation check.
+        Convenience method that combines progress update with abort check.
         Updates the task payload with progress information and returns whether
         execution should continue.
 
         :param current: Current progress value
         :param total: Total expected value
         :param extra: Additional payload fields to update
-        :returns: True if should continue, False if cancelled
+        :returns: True if should continue, False if aborted
 
         Example:
             for i, item in enumerate(items):
                 if not ctx.update_progress(i + 1, len(items)):
-                    return  # Cancelled
+                    return  # Aborted
                 process(item)
         """
-        if self.is_cancelled():
+        if self.is_aborted():
             return False
 
         task = self.task

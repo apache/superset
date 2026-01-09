@@ -14,13 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Generic Celery task executor for the Global Async Task Framework (GATF)"""
+"""Generic task executor for the Global Async Task Framework (GATF)"""
 
 import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from superset_core.api.types import TaskStatus
+from superset_core.api.async_tasks import TaskStatus
 
 from superset.async_tasks.ambient_context import use_context
 from superset.async_tasks.context import TaskContext
@@ -35,24 +35,24 @@ logger = logging.getLogger(__name__)
 def execute_async_task(
     self: Any,  # Celery task instance
     task_uuid: str,
-    task_name: str,
+    task_type: str,
     args: tuple[Any, ...],
     kwargs: dict[str, Any],
 ) -> dict[str, Any]:
     """
-    Generic Celery task executor for GATF tasks.
+    Generic task executor for GATF tasks.
 
     This executor:
-    1. Checks if task was cancelled before execution starts
+    1. Checks if task was aborted before execution starts
     2. Fetches task from metastore
     3. Builds context (task + user) and sets ambient context via contextvars
     4. Executes the task function (which accesses context via get_context())
     5. Updates task status throughout lifecycle
-    6. Runs cleanup handlers on task end (success/failure/cancellation)
+    6. Runs cleanup handlers on task end (success/failure/abortion)
     7. Resets context after execution
 
     :param task_uuid: UUID of the task to execute
-    :param task_name: Name of the task (for registry lookup)
+    :param task_type: Type of the task (for registry lookup)
     :param args: Positional arguments for the task function
     :param kwargs: Keyword arguments for the task function
     :returns: Dict with status and task_uuid
@@ -65,17 +65,17 @@ def execute_async_task(
     # Build context from task (includes user who created the task)
     ctx = TaskContext(task_uuid=task_uuid)
 
-    # AUTOMATIC PRE-EXECUTION CHECK: Don't execute if already cancelled
-    if ctx.is_cancelled():
+    # AUTOMATIC PRE-EXECUTION CHECK: Don't execute if already aborted
+    if ctx.is_aborted():
         logger.info(
-            "Task %s (uuid=%s) was cancelled before execution started",
-            task_name,
+            "Task %s (uuid=%s) was aborted before execution started",
+            task_type,
             task_uuid,
         )
         task = ctx.task
         task.ended_at = datetime.utcnow()
         ctx.update_task(task)
-        return {"status": TaskStatus.CANCELLED.value, "task_uuid": task_uuid}
+        return {"status": TaskStatus.ABORTED.value, "task_uuid": task_uuid}
 
     # Update status to IN_PROGRESS
     task = ctx.task  # Fresh fetch
@@ -85,11 +85,11 @@ def execute_async_task(
 
     try:
         # Get registered executor function
-        executor_fn = TaskRegistry.get_executor(task_name)
+        executor_fn = TaskRegistry.get_executor(task_type)
 
         logger.info(
             "Executing task %s (uuid=%s) with function %s.%s",
-            task_name,
+            task_type,
             task_uuid,
             executor_fn.__module__,
             executor_fn.__name__,
@@ -105,7 +105,7 @@ def execute_async_task(
             task.status = TaskStatus.SUCCESS.value
             ctx.update_task(task)
 
-        logger.info("Task %s (uuid=%s) completed successfully", task_name, task_uuid)
+        logger.info("Task %s (uuid=%s) completed successfully", task_type, task_uuid)
 
     except Exception as ex:
         task = ctx.task
@@ -113,7 +113,7 @@ def execute_async_task(
         task.error_message = str(ex)
         logger.error(
             "Task %s (uuid=%s) failed with error: %s",
-            task_name,
+            task_type,
             task_uuid,
             str(ex),
             exc_info=True,

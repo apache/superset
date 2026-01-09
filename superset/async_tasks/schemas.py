@@ -24,7 +24,7 @@ get_delete_ids_schema = {"type": "array", "items": {"type": "string"}}
 
 # Field descriptions
 uuid_description = "The unique identifier (UUID) of the async task"
-task_id_description = "The task identifier used for deduplication"
+task_key_description = "The task identifier used for deduplication"
 task_type_description = (
     "The type of async task (e.g., 'sql_execution', 'thumbnail_generation')"
 )
@@ -39,12 +39,11 @@ user_id_description = "ID of the user context for task execution"
 database_id_description = "ID of the database associated with the task"
 error_message_description = "Error message if the task failed"
 payload_description = "Task-specific data in JSON format"
+progress_description = "Task progress as a float between 0.0 and 1.0 (null if not set)"
 duration_seconds_description = "Duration of task execution in seconds"
-is_finished_description = (
-    "Whether the task has finished (success, failure, or cancelled)"
-)
+is_finished_description = "Whether the task has finished (success, failure, or aborted)"
 is_successful_description = "Whether the task completed successfully"
-is_cancelled_description = "Whether the task was cancelled"
+is_aborted_description = "Whether the task was aborted"
 
 
 class UserSchema(Schema):
@@ -64,7 +63,7 @@ class AsyncTaskResponseSchema(Schema):
 
     id = fields.Int(metadata={"description": "Internal task ID"})
     uuid = fields.String(metadata={"description": uuid_description})
-    task_id = fields.String(metadata={"description": task_id_description})
+    task_key = fields.String(metadata={"description": task_key_description})
     task_type = fields.String(metadata={"description": task_type_description})
     task_name = fields.String(
         metadata={"description": task_name_description}, allow_none=True
@@ -92,6 +91,9 @@ class AsyncTaskResponseSchema(Schema):
         metadata={"description": error_message_description}, allow_none=True
     )
     payload = Method("get_payload_dict", metadata={"description": payload_description})
+    progress = fields.Float(
+        metadata={"description": progress_description}, allow_none=True
+    )
     duration_seconds = Method(
         "get_duration",
         metadata={"description": duration_seconds_description},
@@ -102,8 +104,8 @@ class AsyncTaskResponseSchema(Schema):
     is_successful = Method(
         "get_is_successful", metadata={"description": is_successful_description}
     )
-    is_cancelled = Method(
-        "get_is_cancelled", metadata={"description": is_cancelled_description}
+    is_aborted = Method(
+        "get_is_aborted", metadata={"description": is_aborted_description}
     )
 
     def get_payload_dict(self, obj: object) -> dict[str, object] | None:
@@ -122,9 +124,9 @@ class AsyncTaskResponseSchema(Schema):
         """Check if task is successful"""
         return obj.is_successful  # type: ignore[attr-defined]
 
-    def get_is_cancelled(self, obj: object) -> bool:
-        """Check if task is cancelled"""
-        return obj.is_cancelled  # type: ignore[attr-defined]
+    def get_is_aborted(self, obj: object) -> bool:
+        """Check if task is aborted"""
+        return obj.is_aborted  # type: ignore[attr-defined]
 
     def get_created_on_delta_humanized(self, obj: object) -> str:
         """Get humanized time since creation"""
@@ -137,22 +139,22 @@ class AsyncTaskStatusResponseSchema(Schema):
     status = fields.String(metadata={"description": status_description})
 
 
-class AsyncTaskCancelResponseSchema(Schema):
-    """Schema for async task cancellation response"""
+class AsyncTaskAbortResponseSchema(Schema):
+    """Schema for async task abortion response"""
 
     message = fields.String(metadata={"description": "Success or error message"})
     task = fields.Nested(AsyncTaskResponseSchema, allow_none=True)
 
 
-class AsyncTaskBulkCancelResponseSchema(Schema):
-    """Schema for bulk async task cancellation response"""
+class AsyncTaskBulkAbortResponseSchema(Schema):
+    """Schema for bulk async task abortion response"""
 
     message = fields.String(metadata={"description": "Status message"})
-    cancelled_count = fields.Int(
-        metadata={"description": "Number of tasks successfully cancelled"}
+    aborted_count = fields.Int(
+        metadata={"description": "Number of tasks successfully aborted"}
     )
     failed_count = fields.Int(
-        metadata={"description": "Number of tasks that could not be cancelled"}
+        metadata={"description": "Number of tasks that could not be aborted"}
     )
 
 

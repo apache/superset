@@ -42,6 +42,7 @@ def inject_dao_implementations() -> None:
     """
     import superset_core.api.daos as core_dao_module
 
+    from superset.daos.async_tasks import AsyncTaskDAO as HostAsyncTaskDAO
     from superset.daos.chart import ChartDAO as HostChartDAO
     from superset.daos.dashboard import DashboardDAO as HostDashboardDAO
     from superset.daos.database import DatabaseDAO as HostDatabaseDAO
@@ -64,6 +65,7 @@ def inject_dao_implementations() -> None:
     core_dao_module.SavedQueryDAO = HostSavedQueryDAO  # type: ignore[assignment,misc]
     core_dao_module.TagDAO = HostTagDAO  # type: ignore[assignment,misc]
     core_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore[assignment,misc]
+    core_dao_module.AsyncTaskDAO = HostAsyncTaskDAO  # type: ignore[assignment,misc]
 
     core_dao_module.__all__ = [
         "DatasetDAO",
@@ -75,6 +77,7 @@ def inject_dao_implementations() -> None:
         "SavedQueryDAO",
         "TagDAO",
         "KeyValueDAO",
+        "AsyncTaskDAO",
     ]
 
 
@@ -90,6 +93,7 @@ def inject_model_implementations() -> None:
 
     from superset.connectors.sqla.models import SqlaTable as HostDataset
     from superset.key_value.models import KeyValueEntry as HostKeyValue
+    from superset.models.async_tasks import AsyncTask as HostAsyncTask
     from superset.models.core import Database as HostDatabase
     from superset.models.dashboard import Dashboard as HostDashboard
     from superset.models.slice import Slice as HostChart
@@ -106,6 +110,7 @@ def inject_model_implementations() -> None:
     core_models_module.SavedQuery = HostSavedQuery  # type: ignore[misc]
     core_models_module.Tag = HostTag  # type: ignore[misc]
     core_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
+    core_models_module.AsyncTask = HostAsyncTask  # type: ignore[misc]
 
 
 def inject_query_implementations() -> None:
@@ -125,6 +130,38 @@ def inject_query_implementations() -> None:
 
     core_query_module.get_sqlglot_dialect = get_sqlglot_dialect
     core_query_module.__all__ = ["get_sqlglot_dialect"]
+
+
+def inject_async_task_implementations() -> None:
+    """
+    Replace abstract async task functions in superset_core.api.async_tasks with concrete
+    implementations from Superset.
+
+    Note: TaskOptions and TaskStatus are defined directly in superset-core
+    as they have no dependencies on Superset internals.
+    """
+    import superset_core.api.async_tasks as core_async_tasks_module
+
+    from superset.async_tasks.ambient_context import get_context
+    from superset.async_tasks.context import TaskContext
+    from superset.async_tasks.decorators import async_task
+
+    # Replace abstract classes and functions with concrete implementations
+    core_async_tasks_module.TaskContext = TaskContext  # type: ignore[assignment,misc]
+    core_async_tasks_module.async_task = async_task
+    core_async_tasks_module.get_context = get_context
+
+    # Note: create_async_task is not yet implemented in the concrete package,
+    # so we leave it as NotImplementedError for now
+
+    core_async_tasks_module.__all__ = [
+        "TaskStatus",
+        "TaskContext",
+        "TaskOptions",
+        "async_task",
+        "create_async_task",
+        "get_context",
+    ]
 
 
 def inject_rest_api_implementations() -> None:
@@ -177,4 +214,5 @@ def initialize_core_api_dependencies() -> None:
     inject_model_implementations()
     inject_model_session_implementation()
     inject_query_implementations()
+    inject_async_task_implementations()
     inject_rest_api_implementations()

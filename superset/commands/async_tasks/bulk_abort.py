@@ -28,8 +28,8 @@ from superset.daos.async_tasks import AsyncTaskDAO
 logger = logging.getLogger(__name__)
 
 
-class BulkCancelAsyncTasksCommand(BaseCommand):
-    """Command to cancel multiple async tasks."""
+class BulkAbortAsyncTasksCommand(BaseCommand):
+    """Command to abort multiple async tasks."""
 
     def __init__(self, task_uuids: list[str]):
         self._task_uuids = task_uuids
@@ -38,18 +38,16 @@ class BulkCancelAsyncTasksCommand(BaseCommand):
         """
         Execute the command.
 
-        :returns: Tuple of (cancelled_count, total_requested)
+        :returns: Tuple of (aborted_count, total_requested)
         """
         self.validate()
 
-        cancelled_count, total_requested = AsyncTaskDAO.bulk_cancel_tasks(
+        aborted_count, total_requested = AsyncTaskDAO.bulk_abort_tasks(
             self._task_uuids,
         )
 
-        logger.info(
-            "Bulk cancelled %d out of %d tasks", cancelled_count, total_requested
-        )
-        return cancelled_count, total_requested
+        logger.info("Bulk aborted %d out of %d tasks", aborted_count, total_requested)
+        return aborted_count, total_requested
 
     def validate(self) -> None:
         """Validate command parameters."""

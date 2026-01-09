@@ -74,69 +74,67 @@ function AsyncTaskList({
   const isAdmin = useMemo(() => isUserAdmin(user), [user]);
   const canWrite = hasPerm('can_write');
 
-  const handleTaskCancel = useCallback(
+  const handleTaskAbort = useCallback(
     (task: AsyncTask) => {
       SupersetClient.post({
-        endpoint: `/api/v1/async_task/${task.uuid}/cancel`,
+        endpoint: `/api/v1/async_task/${task.uuid}/abort`,
       }).then(
         () => {
           refreshData();
           addSuccessToast(
-            t('Task cancelled: %s', task.task_name || task.task_id),
+            t('Task aborted: %s', task.task_type || task.task_key),
           );
         },
         createErrorHandler(errMsg =>
-          addDangerToast(
-            t('There was an issue cancelling the task: %s', errMsg),
-          ),
+          addDangerToast(t('There was an issue aborting the task: %s', errMsg)),
         ),
       );
     },
     [addDangerToast, addSuccessToast, refreshData],
   );
 
-  const handleBulkCancel = useCallback(
+  const handleBulkAbort = useCallback(
     (tasks: AsyncTask[]) => {
-      const cancellableTasks = tasks.filter(
+      const abortableTasks = tasks.filter(
         task =>
           task.status === TaskStatus.Pending ||
           task.status === TaskStatus.InProgress,
       );
 
-      if (cancellableTasks.length === 0) {
+      if (abortableTasks.length === 0) {
         addDangerToast(
-          t('None of the selected tasks can be cancelled (already completed)'),
+          t('None of the selected tasks can be aborted (already completed)'),
         );
         return;
       }
 
-      const taskUuids = cancellableTasks.map(task => task.uuid);
+      const taskUuids = abortableTasks.map(task => task.uuid);
 
       SupersetClient.post({
-        endpoint: '/api/v1/async_task/bulk_cancel',
+        endpoint: '/api/v1/async_task/bulk_abort',
         jsonPayload: { task_uuids: taskUuids },
       }).then(
         ({ json }) => {
           refreshData();
           toggleBulkSelect();
-          const { cancelled_count, failed_count } = json;
+          const { aborted_count, failed_count } = json;
           if (failed_count > 0) {
             addDangerToast(
               t(
-                'Partially cancelled: %s of %s tasks cancelled successfully',
-                cancelled_count,
-                cancellableTasks.length,
+                'Partially aborted: %s of %s tasks aborted successfully',
+                aborted_count,
+                abortableTasks.length,
               ),
             );
           } else {
             addSuccessToast(
-              t('Successfully cancelled %s task(s)', cancelled_count),
+              t('Successfully aborted %s task(s)', aborted_count),
             );
           }
         },
         createErrorHandler(errMsg => {
           addDangerToast(
-            t('There was an issue cancelling the selected tasks: %s', errMsg),
+            t('There was an issue aborting the selected tasks: %s', errMsg),
           );
         }),
       );
@@ -167,13 +165,13 @@ function AsyncTaskList({
       {
         Cell: ({
           row: {
-            original: { task_id },
+            original: { task_key },
           },
         }: any) => {
           const truncated =
-            task_id.length > 20 ? `${task_id.slice(0, 20)}...` : task_id;
+            task_key.length > 20 ? `${task_key.slice(0, 20)}...` : task_key;
           return (
-            <Tooltip title={task_id} placement="top">
+            <Tooltip title={task_key} placement="top">
               <span>{truncated}</span>
             </Tooltip>
           );
@@ -186,9 +184,9 @@ function AsyncTaskList({
       {
         Cell: ({
           row: {
-            original: { status },
+            original: { status, progress },
           },
-        }: any) => <AsyncTaskStatusIcon status={status} />,
+        }: any) => <AsyncTaskStatusIcon status={status} progress={progress} />,
         accessor: 'status',
         Header: t('Status'),
         size: 'xs',
@@ -203,17 +201,17 @@ function AsyncTaskList({
       {
         Cell: ({
           row: {
-            original: { task_name, task_id },
+            original: { task_type, task_key },
           },
         }: any) => (
-          <Tooltip title={task_id} placement="top">
-            <span>{task_name || task_id}</span>
+          <Tooltip title={task_key} placement="top">
+            <span>{task_type}</span>
           </Tooltip>
         ),
-        accessor: 'task_name',
-        Header: t('Name'),
+        accessor: 'task_type',
+        Header: t('Type'),
         size: 'xxl',
-        id: 'task_name',
+        id: 'task_type',
       },
       {
         Cell: ({
@@ -274,38 +272,38 @@ function AsyncTaskList({
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const canCancel =
+          const canAbort =
             original.status === TaskStatus.Pending ||
             original.status === TaskStatus.InProgress;
 
-          if (!canCancel) {
+          if (!canAbort) {
             return null;
           }
 
-          const handleCancel = () => handleTaskCancel(original);
+          const handleAbort = () => handleTaskAbort(original);
 
           return (
             <ConfirmStatusChange
               title={t('Please confirm')}
               description={
                 <>
-                  {t('Are you sure you want to cancel')}{' '}
-                  <b>{original.task_name || original.task_id}</b>?
+                  {t('Are you sure you want to abort')}{' '}
+                  <b>{original.task_id}</b>?
                 </>
               }
-              onConfirm={handleCancel}
+              onConfirm={handleAbort}
             >
-              {confirmCancel => (
+              {confirmAbort => (
                 <Tooltip
-                  id="cancel-action-tooltip"
-                  title={t('Cancel')}
+                  id="abort-action-tooltip"
+                  title={t('Abort')}
                   placement="bottom"
                 >
                   <span
                     role="button"
                     tabIndex={0}
                     className="action-button"
-                    onClick={confirmCancel}
+                    onClick={confirmAbort}
                   >
                     <Icons.StopOutlined iconSize="l" />
                   </span>
@@ -320,7 +318,7 @@ function AsyncTaskList({
         disableSortBy: true,
       },
     ],
-    [handleTaskCancel],
+    [handleTaskAbort],
   );
 
   const filters: ListViewFilters = useMemo(() => {
@@ -337,7 +335,7 @@ function AsyncTaskList({
           { label: t('In Progress'), value: TaskStatus.InProgress },
           { label: t('Success'), value: TaskStatus.Success },
           { label: t('Failed'), value: TaskStatus.Failure },
-          { label: t('Cancelled'), value: TaskStatus.Cancelled },
+          { label: t('Aborted'), value: TaskStatus.Aborted },
         ],
       },
       {
@@ -386,11 +384,11 @@ function AsyncTaskList({
   const bulkActions: ListViewProps['bulkActions'] = canWrite
     ? [
         {
-          key: 'cancel',
-          name: t('Cancel'),
+          key: 'abort',
+          name: t('Abort'),
           type: 'secondary',
           onSelect: (tasks: AsyncTask[]) => {
-            handleBulkCancel(tasks);
+            handleBulkAbort(tasks);
           },
         },
       ]

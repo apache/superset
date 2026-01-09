@@ -24,16 +24,16 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.async_tasks.filters import AsyncTaskFilter
 from superset.async_tasks.schemas import (
-    AsyncTaskBulkCancelResponseSchema,
-    AsyncTaskCancelResponseSchema,
+    AsyncTaskAbortResponseSchema,
+    AsyncTaskBulkAbortResponseSchema,
     AsyncTaskResponseSchema,
     AsyncTaskStatusResponseSchema,
     openapi_spec_methods_override,
 )
-from superset.commands.async_tasks.bulk_cancel import BulkCancelAsyncTasksCommand
-from superset.commands.async_tasks.cancel import CancelAsyncTaskCommand
+from superset.commands.async_tasks.abort import AbortAsyncTaskCommand
+from superset.commands.async_tasks.bulk_abort import BulkAbortAsyncTasksCommand
 from superset.commands.async_tasks.exceptions import (
-    AsyncTaskCancelFailedError,
+    AsyncTaskAbortFailedError,
     AsyncTaskForbiddenError,
     AsyncTaskInvalidError,
     AsyncTaskNotFoundError,
@@ -56,25 +56,25 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
 
     class_permission_name = "AsyncTask"
 
-    # Map bulk_cancel, cancel, and status to write/read permissions
+    # Map bulk_abort, abort, and status to write/read permissions
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
-        "bulk_cancel": "write",
-        "cancel": "write",
+        "bulk_abort": "write",
+        "abort": "write",
         "status": "read",
     }
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
-        "bulk_cancel",
-        "cancel",
+        "bulk_abort",
+        "abort",
         "status",
     }
 
     list_columns = [
         "id",
         "uuid",
-        "task_id",
         "task_type",
+        "task_key",
         "task_name",
         "status",
         "created_on",
@@ -94,7 +94,7 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
         "duration_seconds",
         "is_finished",
         "is_successful",
-        "is_cancelled",
+        "is_aborted",
     ]
 
     list_select_columns = list_columns + ["created_by_fk", "changed_by_fk"]
@@ -111,8 +111,8 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
     ]
 
     search_columns = [
-        "task_id",
         "task_type",
+        "task_key",
         "task_name",
         "status",
         "created_by",
@@ -129,8 +129,8 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Async Tasks"
     openapi_spec_component_schemas = (
         AsyncTaskResponseSchema,
-        AsyncTaskBulkCancelResponseSchema,
-        AsyncTaskCancelResponseSchema,
+        AsyncTaskAbortResponseSchema,
+        AsyncTaskBulkAbortResponseSchema,
         AsyncTaskStatusResponseSchema,
     )
     openapi_spec_methods = openapi_spec_methods_override
@@ -237,32 +237,32 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
         except (ValueError, TypeError):
             return self.response_404()
 
-    @expose("/<uuid_or_id>/cancel", methods=("POST",))
+    @expose("/<uuid_or_id>/abort", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.cancel",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.abort",
         log_to_statsd=False,
     )
-    def cancel(self, uuid_or_id: str) -> Response:
-        """Cancel an async task.
+    def abort(self, uuid_or_id: str) -> Response:
+        """Abort an async task.
         ---
         post:
-          summary: Cancel an async task
+          summary: Abort an async task
           parameters:
           - in: path
             schema:
               type: string
             name: uuid_or_id
-            description: The UUID or ID of the async task to cancel
+            description: The UUID or ID of the async task to abort
           responses:
             200:
-              description: Task cancelled successfully
+              description: Task aborted successfully
               content:
                 application/json:
                   schema:
-                    $ref: '#/components/schemas/AsyncTaskCancelResponseSchema'
+                    $ref: '#/components/schemas/AsyncTaskAbortResponseSchema'
             401:
               $ref: '#/components/responses/401'
             403:
@@ -282,10 +282,10 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
                     return self.response_404()
                 task_uuid = task.uuid
 
-            # Execute cancel command
-            updated_task = CancelAsyncTaskCommand(task_uuid).run()
+            # Execute abort command
+            updated_task = AbortAsyncTaskCommand(task_uuid).run()
             result = {
-                "message": "Task cancelled successfully",
+                "message": "Task aborted successfully",
                 "task": self.show_model_schema.dump(updated_task),
             }
             return self.response(200, **result)
@@ -294,9 +294,9 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except AsyncTaskForbiddenError:
             return self.response_403()
-        except AsyncTaskCancelFailedError as ex:
+        except AsyncTaskAbortFailedError as ex:
             logger.error(
-                "Error cancelling task %s: %s",
+                "Error aborting task %s: %s",
                 uuid_or_id,
                 str(ex),
                 exc_info=True,
@@ -305,19 +305,19 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
         except (ValueError, TypeError):
             return self.response_404()
 
-    @expose("/bulk_cancel", methods=("POST",))
+    @expose("/bulk_abort", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_cancel",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_abort",
         log_to_statsd=False,
     )
-    def bulk_cancel(self) -> Response:
-        """Bulk cancel async tasks.
+    def bulk_abort(self) -> Response:
+        """Bulk abort async tasks.
         ---
         post:
-          summary: Cancel multiple async tasks
+          summary: Abort multiple async tasks
           requestBody:
             required: true
             content:
@@ -329,14 +329,14 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
                       type: array
                       items:
                         type: string
-                      description: List of task UUIDs to cancel
+                      description: List of task UUIDs to abort
           responses:
             200:
-              description: Tasks cancelled successfully (including partial success)
+              description: Tasks aborted successfully (including partial success)
               content:
                 application/json:
                   schema:
-                    $ref: '#/components/schemas/AsyncTaskBulkCancelResponseSchema'
+                    $ref: '#/components/schemas/AsyncTaskBulkAbortResponseSchema'
             400:
               $ref: '#/components/responses/400'
             401:
@@ -363,34 +363,34 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
                     message="At least one task UUID must be provided"
                 )
 
-            # Execute bulk cancel command
-            cancelled_count, total_requested = BulkCancelAsyncTasksCommand(
+            # Execute bulk abort command
+            aborted_count, total_requested = BulkAbortAsyncTasksCommand(
                 task_uuids
             ).run()
 
-            failed_count = total_requested - cancelled_count
+            failed_count = total_requested - aborted_count
 
             # Build response message
-            if cancelled_count == total_requested:
-                message = f"Successfully cancelled {cancelled_count} task(s)"
-            elif cancelled_count > 0:
+            if aborted_count == total_requested:
+                message = f"Successfully aborted {aborted_count} task(s)"
+            elif aborted_count > 0:
                 message = (
-                    f"Partially successful: cancelled {cancelled_count} "
+                    f"Partially successful: aborted {aborted_count} "
                     f"out of {total_requested} task(s)"
                 )
             else:
-                message = "No tasks were cancelled"
+                message = "No tasks were aborted"
 
             result = {
                 "message": message,
-                "cancelled_count": cancelled_count,
+                "aborted_count": aborted_count,
                 "failed_count": failed_count,
             }
             return self.response(200, **result)
 
         except AsyncTaskInvalidError as ex:
             logger.error(
-                "Invalid bulk cancel request: %s",
+                "Invalid bulk abort request: %s",
                 str(ex),
                 exc_info=True,
             )
@@ -399,7 +399,7 @@ class AsyncTaskRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except Exception as ex:
             logger.error(
-                "Error during bulk cancel: %s",
+                "Error during bulk abort: %s",
                 str(ex),
                 exc_info=True,
             )

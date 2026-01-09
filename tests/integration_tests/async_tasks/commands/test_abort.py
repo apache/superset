@@ -16,26 +16,26 @@
 # under the License.
 
 import pytest
-from superset_core.api.types import TaskStatus
+from superset_core.api.async_tasks import TaskStatus
 
 from superset import db
-from superset.commands.async_tasks import CancelAsyncTaskCommand
+from superset.commands.async_tasks import AbortAsyncTaskCommand
 from superset.commands.async_tasks.exceptions import (
-    AsyncTaskCancelFailedError,
+    AsyncTaskAbortFailedError,
     AsyncTaskNotFoundError,
 )
 from superset.models.async_tasks import AsyncTask
 
 
-def test_cancel_task_success(app_context, get_user, login_as) -> None:
-    """Test successful task cancellation"""
+def test_abort_task_success(app_context, get_user, login_as) -> None:
+    """Test successful task abortlation"""
     admin = get_user("admin")
     login_as("admin")
 
     # Create a pending task
     task = AsyncTask(
-        task_id="test_cancel_success",
         task_type="test_type",
+        task_key="test_abort_success",
         status=TaskStatus.PENDING.value,
     )
     task.created_by = admin
@@ -43,32 +43,32 @@ def test_cancel_task_success(app_context, get_user, login_as) -> None:
     db.session.commit()
 
     try:
-        # Cancel the task
-        command = CancelAsyncTaskCommand(task_uuid=task.uuid)
+        # Abort the task
+        command = AbortAsyncTaskCommand(task_uuid=task.uuid)
         result = command.run()
 
-        # Verify task was cancelled
+        # Verify task was aborted
         assert result.uuid == task.uuid
-        assert result.status == TaskStatus.CANCELLED.value
+        assert result.status == TaskStatus.ABORTED.value
 
         # Verify in database
         db.session.refresh(task)
-        assert task.status == TaskStatus.CANCELLED.value
+        assert task.status == TaskStatus.ABORTED.value
     finally:
         # Cleanup
         db.session.delete(task)
         db.session.commit()
 
 
-def test_cancel_in_progress_task(app_context, get_user, login_as) -> None:
-    """Test cancelling an in-progress task"""
+def test_abort_in_progress_task(app_context, get_user, login_as) -> None:
+    """Test aborting an in-progress task"""
     admin = get_user("admin")
     login_as("admin")
 
     # Create an in-progress task
     task = AsyncTask(
-        task_id="test_cancel_in_progress",
         task_type="test_type",
+        task_key="test_abort_in_progress",
         status=TaskStatus.IN_PROGRESS.value,
     )
     task.created_by = admin
@@ -76,42 +76,42 @@ def test_cancel_in_progress_task(app_context, get_user, login_as) -> None:
     db.session.commit()
 
     try:
-        # Cancel the task
-        command = CancelAsyncTaskCommand(task_uuid=task.uuid)
+        # abort the task
+        command = AbortAsyncTaskCommand(task_uuid=task.uuid)
         result = command.run()
 
-        # Verify task was cancelled
+        # Verify task was aborted
         assert result.uuid == task.uuid
-        assert result.status == TaskStatus.CANCELLED.value
+        assert result.status == TaskStatus.ABORTED.value
 
         # Verify in database
         db.session.refresh(task)
-        assert task.status == TaskStatus.CANCELLED.value
+        assert task.status == TaskStatus.ABORTED.value
     finally:
         # Cleanup
         db.session.delete(task)
         db.session.commit()
 
 
-def test_cancel_task_not_found(app_context, login_as) -> None:
-    """Test cancel fails when task not found"""
+def test_abort_task_not_found(app_context, login_as) -> None:
+    """Test abort fails when task not found"""
     login_as("admin")
 
     # Use a non-existent UUID
-    command = CancelAsyncTaskCommand(task_uuid="00000000-0000-0000-0000-000000000000")
+    command = AbortAsyncTaskCommand(task_uuid="00000000-0000-0000-0000-000000000000")
 
     with pytest.raises(AsyncTaskNotFoundError):
         command.run()
 
 
-def test_cancel_task_forbidden(app_context, get_user, login_as) -> None:
-    """Test cancel fails when user doesn't own task (via base filter)"""
+def test_abort_task_forbidden(app_context, get_user, login_as) -> None:
+    """Test abort fails when user doesn't own task (via base filter)"""
     admin = get_user("admin")
 
     # Create a task owned by admin
     task = AsyncTask(
-        task_id="test_cancel_forbidden",
         task_type="test_type",
+        task_key="test_abort_forbidden",
         status=TaskStatus.PENDING.value,
     )
     task.created_by = admin
@@ -122,14 +122,14 @@ def test_cancel_task_forbidden(app_context, get_user, login_as) -> None:
         # Login as gamma user (non-admin, non-owner)
         login_as("gamma")
 
-        # Try to cancel admin's task as gamma user
-        command = CancelAsyncTaskCommand(task_uuid=task.uuid)
+        # Try to abort admin's task as gamma user
+        command = AbortAsyncTaskCommand(task_uuid=task.uuid)
 
         # Should raise NotFoundError because base filter hides the task
         with pytest.raises(AsyncTaskNotFoundError):
             command.run()
 
-        # Verify task was NOT cancelled
+        # Verify task was NOT aborted
         db.session.refresh(task)
         assert task.status == TaskStatus.PENDING.value
     finally:
@@ -138,15 +138,15 @@ def test_cancel_task_forbidden(app_context, get_user, login_as) -> None:
         db.session.commit()
 
 
-def test_cancel_task_already_finished(app_context, get_user, login_as) -> None:
-    """Test cancel fails when task already finished"""
+def test_abort_task_already_finished(app_context, get_user, login_as) -> None:
+    """Test abort fails when task already finished"""
     admin = get_user("admin")
     login_as("admin")
 
     # Create a successful (finished) task
     task = AsyncTask(
-        task_id="test_cancel_finished",
         task_type="test_type",
+        task_key="test_abort_finished",
         status=TaskStatus.SUCCESS.value,
     )
     task.created_by = admin
@@ -154,10 +154,10 @@ def test_cancel_task_already_finished(app_context, get_user, login_as) -> None:
     db.session.commit()
 
     try:
-        # Try to cancel finished task
-        command = CancelAsyncTaskCommand(task_uuid=task.uuid)
+        # Try to abort finished task
+        command = AbortAsyncTaskCommand(task_uuid=task.uuid)
 
-        with pytest.raises(AsyncTaskCancelFailedError):
+        with pytest.raises(AsyncTaskAbortFailedError):
             command.run()
 
         # Verify task status unchanged
@@ -169,31 +169,31 @@ def test_cancel_task_already_finished(app_context, get_user, login_as) -> None:
         db.session.commit()
 
 
-def test_cancel_task_already_cancelled(app_context, get_user, login_as) -> None:
-    """Test cancel fails when task already cancelled"""
+def test_abort_task_already_aborted(app_context, get_user, login_as) -> None:
+    """Test abort fails when task already aborted"""
     admin = get_user("admin")
     login_as("admin")
 
-    # Create an already cancelled task
+    # Create an already aborted task
     task = AsyncTask(
-        task_id="test_cancel_already_cancelled",
         task_type="test_type",
-        status=TaskStatus.CANCELLED.value,
+        task_key="test_abort_already_aborted",
+        status=TaskStatus.ABORTED.value,
     )
     task.created_by = admin
     db.session.add(task)
     db.session.commit()
 
     try:
-        # Try to cancel already cancelled task
-        command = CancelAsyncTaskCommand(task_uuid=task.uuid)
+        # Try to abort already aborted task
+        command = AbortAsyncTaskCommand(task_uuid=task.uuid)
 
-        with pytest.raises(AsyncTaskCancelFailedError):
+        with pytest.raises(AsyncTaskAbortFailedError):
             command.run()
 
         # Verify task status unchanged
         db.session.refresh(task)
-        assert task.status == TaskStatus.CANCELLED.value
+        assert task.status == TaskStatus.ABORTED.value
     finally:
         # Cleanup
         db.session.delete(task)
