@@ -74,7 +74,7 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
   const sliceExists = !!(
     latestQueryFormData && Object.keys(latestQueryFormData).length > 0
   );
-  const isEmbedCodeEnabled = isFeatureEnabled(FeatureFlag.EmbeddedSuperset);
+  const isEmbedCodeEnabled = isFeatureEnabled(FeatureFlag.EmbeddableCharts);
 
   const { dataMask, activeTabs, chartStates, sliceEntities } = useSelector(
     (state: RootState) => ({

@@ -826,8 +826,8 @@ export const useExploreAdditionalActionsMenu = (
       onClick: () => setIsDropdownVisible(false),
     });
 
-    // Add persistent embed chart option (only for saved charts with EMBEDDED_SUPERSET enabled)
-    if (isFeatureEnabled(FeatureFlag.EmbeddedSuperset) && slice?.slice_id) {
+    // Add persistent embed chart option (only for saved charts with EMBEDDABLE_CHARTS enabled)
+    if (isFeatureEnabled(FeatureFlag.EmbeddableCharts) && slice?.slice_id) {
       shareChildren.push({
         key: MENU_KEYS.EMBED_CHART,
         label: t('Embed chart'),
