@@ -114,7 +114,7 @@ export default function TabMenu({
     {
       key: 'copy-permalink',
       label: t('Copy permalink'),
-      icon: <Icons.Link iconSize="m" />,
+      icon: <Icons.LinkOutlined iconSize="m" />,
     },
     ...(canEditDashboard
       ? [
@@ -156,7 +156,7 @@ export default function TabMenu({
         `}
         aria-label={t('Tab actions')}
       >
-        <Icons.MoreVert iconSize="m" iconColor={theme.colorTextSecondary} />
+        <Icons.MoreOutlined iconSize="m" iconColor={theme.colorTextSecondary} />
       </button>
     </Dropdown>
   );
