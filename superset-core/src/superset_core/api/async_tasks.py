@@ -20,7 +20,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable
+from typing import Any, Callable, Generic, ParamSpec, TypeVar
+
+from superset_core.api.models import AsyncTask
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class TaskStatus(Enum):
@@ -79,7 +84,7 @@ class TaskContext(ABC):
 
     @property
     @abstractmethod
-    def task(self) -> Any:  # Returns AsyncTask model
+    def task(self) -> AsyncTask:
         """
         Get the latest task entity from the metastore.
 
@@ -92,7 +97,7 @@ class TaskContext(ABC):
         ...
 
     @abstractmethod
-    def update_task(self, task: Any) -> None:  # Takes AsyncTask model
+    def update_task(self, task: TaskContext) -> None:
         """
         Update the task entity in the metastore.
 
@@ -181,7 +186,7 @@ class TaskContext(ABC):
 
 def async_task(
     name: str | None = None,
-) -> Callable[..., Any]:
+) -> Callable[[Callable[P, R]], "AsyncTaskWrapper[P]"]:
     """
     Decorator to register an async task.
 
@@ -190,7 +195,12 @@ def async_task(
 
     :param name: Optional unique task name (e.g., "superset.generate_thumbnail").
                  If not provided, uses the function name as the task name.
-    :returns: Decorated function with .schedule() method
+    :returns: AsyncTaskWrapper with .schedule() method
+
+    Note:
+        Both direct calls and .schedule() return AsyncTask, regardless of the
+        original function's return type. The decorated function's return value
+        is discarded; only side effects and context updates matter.
 
     Example:
         from superset_core.api.types import async_task, get_context
@@ -204,9 +214,28 @@ def async_task(
             # ... task implementation
 
         # Schedule async execution
-        task = generate_chart_thumbnail.schedule(chart_id=123)
+        task = generate_chart_thumbnail.schedule(chart_id=123)  # Returns AsyncTask
+
+        # Direct call (for testing)
+        task = generate_chart_thumbnail(chart_id=123)  # Also returns AsyncTask
     """
     raise NotImplementedError("Function will be replaced during initialization")
+
+
+class AsyncTaskWrapper(Generic[P]):
+    """
+    Type stub for async task wrapper returned by @async_task decorator.
+
+    Both __call__ and .schedule() return AsyncTask.
+    """
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> AsyncTask:
+        """Call the task synchronously (for testing)."""
+        ...
+
+    def schedule(self, *args: P.args, **kwargs: P.kwargs) -> AsyncTask:
+        """Schedule the task for async execution."""
+        ...
 
 
 def create_async_task(
