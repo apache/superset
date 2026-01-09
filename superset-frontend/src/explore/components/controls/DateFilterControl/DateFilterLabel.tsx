@@ -354,7 +354,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       defaultOpen={show}
       open={show}
       onOpenChange={toggleOverlay}
-      overlayStyle={{ width: '600px' }}
+      overlayStyle={{ width: '600px', zIndex: 1050 }}
       destroyTooltipOnHide
       getPopupContainer={() =>
         // Use document.body to prevent modal from being hidden by collapsed panels
