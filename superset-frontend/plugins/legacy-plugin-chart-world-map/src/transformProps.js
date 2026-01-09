@@ -60,7 +60,7 @@ export default function transformProps(chartProps) {
     columnFormats,
     yAxisFormat,
     currencyFormat,
-    undefined,
+    undefined, // key - not needed for single-metric charts
     data,
     currencyCodeColumn,
     detectedCurrency,

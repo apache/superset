@@ -122,11 +122,12 @@ class CurrencyFormatter extends ExtensibleFunction {
                 : `${formattedValue} ${symbol}`;
             }
           } catch {
-            // Invalid currency code - fall through to neutral format
+            // Invalid currency code - return value without currency symbol
+            return formattedValue;
           }
         }
       }
-      return formattedValue as string;
+      return formattedValue;
     }
 
     try {
@@ -136,7 +137,7 @@ class CurrencyFormatter extends ExtensibleFunction {
         : `${formattedValue} ${symbol}`;
     } catch {
       // Invalid currency code - return value without currency symbol
-      return formattedValue as string;
+      return formattedValue;
     }
   }
 }
