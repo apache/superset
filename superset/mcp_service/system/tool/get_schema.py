@@ -29,9 +29,6 @@ from typing import Callable, Literal
 from fastmcp import Context
 from superset_core.mcp import tool
 
-from superset.daos.chart import ChartDAO
-from superset.daos.dashboard import DashboardDAO
-from superset.daos.dataset import DatasetDAO
 from superset.mcp_service.common.schema_discovery import (
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
@@ -57,6 +54,9 @@ logger = logging.getLogger(__name__)
 
 def _get_chart_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     """Create chart schema core with dynamically extracted columns."""
+    # Lazy import to avoid circular dependency at module load time
+    from superset.daos.chart import ChartDAO
+
     return ModelGetSchemaCore(
         model_type="chart",
         dao_class=ChartDAO,
@@ -73,6 +73,9 @@ def _get_chart_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
 
 def _get_dataset_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     """Create dataset schema core with dynamically extracted columns."""
+    # Lazy import to avoid circular dependency at module load time
+    from superset.daos.dataset import DatasetDAO
+
     return ModelGetSchemaCore(
         model_type="dataset",
         dao_class=DatasetDAO,
@@ -89,6 +92,9 @@ def _get_dataset_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
 
 def _get_dashboard_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     """Create dashboard schema core with dynamically extracted columns."""
+    # Lazy import to avoid circular dependency at module load time
+    from superset.daos.dashboard import DashboardDAO
+
     return ModelGetSchemaCore(
         model_type="dashboard",
         dao_class=DashboardDAO,
