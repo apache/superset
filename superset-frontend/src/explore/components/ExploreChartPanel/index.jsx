@@ -43,6 +43,7 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
+import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
@@ -372,6 +373,19 @@ const ExploreChartPanel = ({
           rowLimit={formData?.row_limit}
         />
         {renderChart()}
+        {!chart.chartStatus || chart.chartStatus !== 'loading' ? (
+          <div
+            css={css`
+              display: flex;
+              justify-content: flex-end;
+              padding-top: ${theme.sizeUnit * 2}px;
+            `}
+          >
+            <LastQueriedLabel
+              queriedDttm={chart.queriesResponse?.[0]?.queried_dttm ?? null}
+            />
+          </div>
+        ) : null}
       </div>
     ),
     [
@@ -386,6 +400,7 @@ const ExploreChartPanel = ({
       refreshCachedQuery,
       formData?.row_limit,
       renderChart,
+      theme.sizeUnit,
     ],
   );
 

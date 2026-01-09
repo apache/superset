@@ -27,6 +27,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
@@ -79,6 +80,7 @@ const propTypes = {
 // resizing across all slices on a dashboard on every update
 const RESIZE_TIMEOUT = 500;
 const DEFAULT_HEADER_HEIGHT = 22;
+const QUERIED_LABEL_HEIGHT = 24;
 
 const ChartWrapper = styled.div`
   overflow: hidden;
@@ -161,6 +163,21 @@ const Chart = props => {
       PLACEHOLDER_DATASOURCE,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
+  const showChartTimestamps = useSelector(
+    state => state.dashboardInfo?.metadata?.show_chart_timestamps ?? false,
+  );
+
+  const { queriesResponse, chartUpdateEndTime, chartStatus, annotationQuery } =
+    chart;
+  const isLoading = chartStatus === 'loading';
+  // eslint-disable-next-line camelcase
+  const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
+  const cachedDttm =
+    // eslint-disable-next-line camelcase
+    queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
+  const queriedDttm = Array.isArray(queriesResponse)
+    ? (queriesResponse[queriesResponse.length - 1]?.queried_dttm ?? null)
+    : (queriesResponse?.queried_dttm ?? null);
 
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
@@ -224,8 +241,19 @@ const Chart = props => {
 
   const getChartHeight = useCallback(() => {
     const headerHeight = getHeaderHeight();
-    return Math.max(height - headerHeight - descriptionHeight, 20);
-  }, [getHeaderHeight, height, descriptionHeight]);
+    const queriedLabelHeight =
+      showChartTimestamps && queriedDttm != null ? QUERIED_LABEL_HEIGHT : 0;
+    return Math.max(
+      height - headerHeight - descriptionHeight - queriedLabelHeight,
+      20,
+    );
+  }, [
+    getHeaderHeight,
+    height,
+    descriptionHeight,
+    queriedDttm,
+    showChartTimestamps,
+  ]);
 
   const handleFilterMenuOpen = useCallback(
     (chartId, column) => {
@@ -419,15 +447,6 @@ const Chart = props => {
     return <MissingChart height={getChartHeight()} />;
   }
 
-  const { queriesResponse, chartUpdateEndTime, chartStatus, annotationQuery } =
-    chart;
-  const isLoading = chartStatus === 'loading';
-  // eslint-disable-next-line camelcase
-  const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
-  const cachedDttm =
-    // eslint-disable-next-line camelcase
-    queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
-
   return (
     <SliceContainer
       className="chart-slice"
@@ -442,6 +461,7 @@ const Chart = props => {
         isExpanded={isExpanded}
         isCached={isCached}
         cachedDttm={cachedDttm}
+        queriedDttm={queriedDttm}
         updatedDttm={chartUpdateEndTime}
         toggleExpandSlice={boundActionCreators.toggleExpandSlice}
         forceRefresh={forceRefresh}
@@ -531,6 +551,10 @@ const Chart = props => {
           emitCrossFilters={emitCrossFilters}
         />
       </ChartWrapper>
+
+      {!isLoading && showChartTimestamps && queriedDttm != null && (
+        <LastQueriedLabel queriedDttm={queriedDttm} />
+      )}
     </SliceContainer>
   );
 };

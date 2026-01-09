@@ -50,6 +50,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  queriedDttm?: string | null;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -141,6 +142,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       annotationQuery = {},
       annotationError = {},
       cachedDttm = null,
+      queriedDttm = null,
       updatedDttm = null,
       isCached = [],
       isExpanded = false,
@@ -271,6 +273,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   isCached={isCached}
                   isExpanded={isExpanded}
                   cachedDttm={cachedDttm}
+                  queriedDttm={queriedDttm}
                   updatedDttm={updatedDttm}
                   toggleExpandSlice={toggleExpandSlice}
                   forceRefresh={forceRefresh}

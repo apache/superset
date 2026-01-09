@@ -22,6 +22,7 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
+import { Switch } from 'src/components/Switch';
 import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
 import rison from 'rison';
 import {
@@ -65,6 +66,32 @@ const StyledFormItem = styled(FormItem)`
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+`;
+
+const StyledSwitchContainer = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    padding-left: ${theme.gridUnit * 2}px;
+
+    .switch-row {
+      display: flex;
+      align-items: center;
+      gap: ${theme.gridUnit * 2}px;
+    }
+
+    .switch-label {
+      color: ${theme.colors.text.label};
+      font-size: ${theme.typography.sizes.m}px;
+    }
+
+    .switch-helper {
+      display: block;
+      color: ${theme.colors.text.help};
+      font-size: ${theme.typography.sizes.m}px;
+      margin-top: ${theme.gridUnit}px;
+    }
+  `}
 `;
 
 type PropertiesModalProps = {
@@ -120,6 +147,7 @@ const PropertiesModal = ({
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
+  const [showChartTimestamps, setShowChartTimestamps] = useState(false);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
 
@@ -134,7 +162,11 @@ const PropertiesModal = ({
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
     let errorText = error || statusText || t('An error has occurred');
-    if (typeof message === 'object' && 'json_metadata' in message) {
+    if (
+      typeof message === 'object' &&
+      'json_metadata' in message &&
+      typeof (message as { json_metadata: unknown }).json_metadata === 'string'
+    ) {
       errorText = (message as { json_metadata: string }).json_metadata;
     } else if (typeof message === 'string') {
       errorText = message;
@@ -146,7 +178,7 @@ const PropertiesModal = ({
 
     Modal.error({
       title: t('Error'),
-      content: errorText,
+      content: String(errorText),
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
   };
@@ -209,9 +241,11 @@ const PropertiesModal = ({
         'shared_label_colors',
         'map_label_colors',
         'color_scheme_domain',
+        'show_chart_timestamps',
       ]);
 
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
+      setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
     },
     [form],
@@ -358,11 +392,13 @@ const PropertiesModal = ({
         ? resettableCustomLabels
         : false;
     const jsonMetadataObj = getJsonMetadata();
+    jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
       ...originalDashboardMetadata.current,
       label_colors: customLabelColors,
       color_scheme: updatedColorScheme,
+      show_chart_timestamps: showChartTimestamps,
     };
 
     originalDashboardMetadata.current = updatedDashboardMetadata;
@@ -378,6 +414,8 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
+    // Add show_chart_timestamps back to metadata since it was omitted from jsonMetadata state
+    metadata.show_chart_timestamps = showChartTimestamps;
     currentJsonMetadata = jsonStringify(metadata);
 
     const moreOnSubmitProps: { roles?: Roles } = {};
@@ -428,19 +466,45 @@ const PropertiesModal = ({
     }
   };
 
-  const getRowsWithoutRoles = () => {
-    const jsonMetadataObj = getJsonMetadata();
-    const hasCustomLabelsColor = !!Object.keys(
-      jsonMetadataObj?.label_colors || {},
-    ).length;
+  const getRowsWithoutRoles = () => (
+    <Row gutter={16}>
+      <Col xs={24} md={12}>
+        <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+        <StyledFormItem label={t('Owners')}>
+          <AsyncSelect
+            allowClear
+            ariaLabel={t('Owners')}
+            disabled={isLoading}
+            mode="multiple"
+            onChange={handleOnChangeOwners}
+            options={(input, page, pageSize) =>
+              loadAccessOptions('owners', input, page, pageSize)
+            }
+            value={handleOwnersSelectValue()}
+          />
+        </StyledFormItem>
+        <p className="help-block">
+          {t(
+            'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+          )}
+        </p>
+      </Col>
+    </Row>
+  );
 
-    return (
+  const getRowsWithRoles = () => (
+    <>
+      <Row>
+        <Col xs={24} md={24}>
+          <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+        </Col>
+      </Row>
       <Row gutter={16}>
         <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
           <StyledFormItem label={t('Owners')}>
             <AsyncSelect
               allowClear
+              allowNewOptions
               ariaLabel={t('Owners')}
               disabled={isLoading}
               mode="multiple"
@@ -458,85 +522,28 @@ const PropertiesModal = ({
           </p>
         </Col>
         <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
-          <ColorSchemeControlWrapper
-            hasCustomLabelsColor={hasCustomLabelsColor}
-            onChange={onColorSchemeChange}
-            colorScheme={colorScheme}
-          />
+          <StyledFormItem label={t('Roles')}>
+            <AsyncSelect
+              allowClear
+              ariaLabel={t('Roles')}
+              disabled={isLoading}
+              mode="multiple"
+              onChange={handleOnChangeRoles}
+              options={(input, page, pageSize) =>
+                loadAccessOptions('roles', input, page, pageSize)
+              }
+              value={handleRolesSelectValue()}
+            />
+          </StyledFormItem>
+          <p className="help-block">
+            {t(
+              'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.',
+            )}
+          </p>
         </Col>
       </Row>
-    );
-  };
-
-  const getRowsWithRoles = () => {
-    const jsonMetadataObj = getJsonMetadata();
-    const hasCustomLabelsColor = !!Object.keys(
-      jsonMetadataObj?.label_colors || {},
-    ).length;
-
-    return (
-      <>
-        <Row>
-          <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <StyledFormItem label={t('Owners')}>
-              <AsyncSelect
-                allowClear
-                allowNewOptions
-                ariaLabel={t('Owners')}
-                disabled={isLoading}
-                mode="multiple"
-                onChange={handleOnChangeOwners}
-                options={(input, page, pageSize) =>
-                  loadAccessOptions('owners', input, page, pageSize)
-                }
-                value={handleOwnersSelectValue()}
-              />
-            </StyledFormItem>
-            <p className="help-block">
-              {t(
-                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-              )}
-            </p>
-          </Col>
-          <Col xs={24} md={12}>
-            <StyledFormItem label={t('Roles')}>
-              <AsyncSelect
-                allowClear
-                ariaLabel={t('Roles')}
-                disabled={isLoading}
-                mode="multiple"
-                onChange={handleOnChangeRoles}
-                options={(input, page, pageSize) =>
-                  loadAccessOptions('roles', input, page, pageSize)
-                }
-                value={handleRolesSelectValue()}
-              />
-            </StyledFormItem>
-            <p className="help-block">
-              {t(
-                'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.',
-              )}
-            </p>
-          </Col>
-        </Row>
-        <Row>
-          <Col xs={24} md={12}>
-            <ColorSchemeControlWrapper
-              hasCustomLabelsColor={hasCustomLabelsColor}
-              onChange={onColorSchemeChange}
-              colorScheme={colorScheme}
-            />
-          </Col>
-        </Row>
-      </>
-    );
-  };
+    </>
+  );
 
   useEffect(() => {
     if (show) {
@@ -590,6 +597,11 @@ const PropertiesModal = ({
     }));
     setTags(parsedTags);
   };
+
+  const jsonMetadataObj = getJsonMetadata();
+  const hasCustomLabelsColor = !!Object.keys(
+    jsonMetadataObj?.label_colors || {},
+  ).length;
 
   return (
     <Modal
@@ -663,6 +675,41 @@ const PropertiesModal = ({
         {isFeatureEnabled(FeatureFlag.DashboardRbac)
           ? getRowsWithRoles()
           : getRowsWithoutRoles()}
+        <Row>
+          <Col xs={24} md={24}>
+            <h3>{t('Style')}</h3>
+          </Col>
+        </Row>
+        <Row>
+          <Col xs={24} md={12}>
+            <div css={{ paddingRight: '8px' }}>
+              <ColorSchemeControlWrapper
+                hasCustomLabelsColor={hasCustomLabelsColor}
+                onChange={onColorSchemeChange}
+                colorScheme={colorScheme}
+              />
+            </div>
+          </Col>
+          <Col xs={24} md={12}>
+            <StyledSwitchContainer data-test="dashboard-show-timestamps-field">
+              <div className="switch-row">
+                <Switch
+                  data-test="dashboard-show-timestamps-switch"
+                  checked={showChartTimestamps}
+                  onChange={setShowChartTimestamps}
+                />
+                <span className="switch-label">
+                  {t('Show chart query timestamps')}
+                </span>
+              </div>
+              <span className="switch-helper">
+                {t(
+                  'Display the last queried timestamp on charts in the dashboard view',
+                )}
+              </span>
+            </StyledSwitchContainer>
+          </Col>
+        </Row>
         <Row>
           <Col xs={24} md={24}>
             <h3>{t('Certification')}</h3>

@@ -177,7 +177,7 @@ test('should render - FeatureFlag disabled', async () => {
     screen.getByRole('heading', { name: 'Basic information' }),
   ).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: 'Colors' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Style' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Advanced' })).toBeInTheDocument();
   expect(
     screen.getByRole('heading', { name: 'Certification' }),
@@ -223,7 +223,7 @@ test('should render - FeatureFlag enabled', async () => {
   ).toBeInTheDocument();
   // Tags will be included since isFeatureFlag always returns true in this test
   expect(screen.getByRole('heading', { name: 'Tags' })).toBeInTheDocument();
-  expect(screen.getAllByRole('heading')).toHaveLength(5);
+  expect(screen.getAllByRole('heading')).toHaveLength(6);
 
   expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Advanced' })).toBeInTheDocument();
