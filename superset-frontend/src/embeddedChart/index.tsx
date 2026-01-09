@@ -18,10 +18,15 @@
  */
 import 'src/public-path';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { makeApi, t, logging, QueryFormData } from '@superset-ui/core';
-import { StatefulChart } from '@superset-ui/core';
+import {
+  makeApi,
+  t,
+  logging,
+  QueryFormData,
+  StatefulChart,
+} from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -122,7 +127,7 @@ function setupGuestClient(guestToken: string) {
 }
 
 function validateMessageEvent(event: MessageEvent) {
-  const data = event.data;
+  const { data } = event;
   if (data == null || typeof data !== 'object' || data.type !== MESSAGE_TYPE) {
     throw new Error(`Message type does not match type used for embedded comms`);
   }
@@ -136,44 +141,60 @@ function EmbeddedChartApp() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchPermalinkData = useCallback(async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const permalinkKey = urlParams.get('permalink_key');
+  useEffect(() => {
+    let isMounted = true;
 
-    if (!permalinkKey) {
-      setError(t('Missing permalink_key parameter'));
-      setLoading(false);
-      return;
-    }
+    async function fetchPermalinkData() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const permalinkKey = urlParams.get('permalink_key');
 
-    try {
-      const getPermalinkData = makeApi<void, { state: PermalinkState }>({
-        method: 'GET',
-        endpoint: `/api/v1/embedded_chart/${permalinkKey}`,
-      });
-
-      const response = await getPermalinkData();
-      const { state } = response;
-
-      if (!state?.formData) {
-        setError(t('Invalid permalink data: missing formData'));
-        setLoading(false);
+      if (!permalinkKey) {
+        if (isMounted) {
+          setError(t('Missing permalink_key parameter'));
+          setLoading(false);
+        }
         return;
       }
 
-      log('Loaded formData from permalink:', state.formData);
-      setFormData(state.formData);
-      setLoading(false);
-    } catch (err) {
-      logging.error('Failed to load permalink data:', err);
-      setError(t('Failed to load chart data. The permalink may have expired.'));
-      setLoading(false);
-    }
-  }, []);
+      try {
+        const getPermalinkData = makeApi<void, { state: PermalinkState }>({
+          method: 'GET',
+          endpoint: `/api/v1/embedded_chart/${permalinkKey}`,
+        });
 
-  useEffect(() => {
+        const response = await getPermalinkData();
+        const { state } = response;
+
+        if (!state?.formData) {
+          if (isMounted) {
+            setError(t('Invalid permalink data: missing formData'));
+            setLoading(false);
+          }
+          return;
+        }
+
+        log('Loaded formData from permalink:', state.formData);
+        if (isMounted) {
+          setFormData(state.formData);
+          setLoading(false);
+        }
+      } catch (err) {
+        logging.error('Failed to load permalink data:', err);
+        if (isMounted) {
+          setError(
+            t('Failed to load chart data. The permalink may have expired.'),
+          );
+          setLoading(false);
+        }
+      }
+    }
+
     fetchPermalinkData();
-  }, [fetchPermalinkData]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   if (loading) {
     return (

@@ -702,6 +702,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "CACHE_QUERY_BY_USER": False,
+    "DRILL_TO_DETAIL": True,  # deprecated
+    "DRILL_BY": True,
+    "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    # When you open the dashboard, the filter panel will be closed
     # Enables CSS Templates in Settings menu and dashboard forms
     # @lifecycle: stable
     # @category: runtime_config

@@ -197,8 +197,13 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [redirectSQLLab, history],
   );
 
-  const [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState] =
-    useExploreAdditionalActionsMenu(
+  const [
+    menu,
+    isDropdownVisible,
+    setIsDropdownVisible,
+    streamingExportState,
+    embedChartModal,
+  ] = useExploreAdditionalActionsMenu(
       latestQueryFormData,
       canDownload,
       slice,
@@ -394,6 +399,8 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         onDownload={streamingExportState.onDownload}
         progress={streamingExportState.progress}
       />
+
+      {embedChartModal}
     </>
   );
 };
