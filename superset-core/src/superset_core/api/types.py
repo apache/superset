@@ -158,11 +158,11 @@ class AsyncQueryHandle:
         """
         raise NotImplementedError("Method will be replaced during initialization")
 
-    def abort(self) -> bool:
+    def cancel(self) -> bool:
         """
-        Abort the async query.
+        Cancel the async query.
 
-        :returns: True if abortion was successful
+        :returns: True if cancellation was successful
         """
         raise NotImplementedError("Method will be replaced during initialization")
 
