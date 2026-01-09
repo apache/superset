@@ -94,7 +94,7 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
       chartStates &&
       Object.keys(chartStates).length > 0;
 
-    return getDashboardPermalink({
+    const result = await getDashboardPermalink({
       dashboardId,
       dataMask,
       activeTabs,
@@ -102,6 +102,10 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
       chartStates: includeChartState ? chartStates : undefined,
       includeChartState,
     });
+    if (!result?.url) {
+      throw new Error('Failed to generate permalink URL');
+    }
+    return result.url;
   }
 
   async function onCopyLink() {
