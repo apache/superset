@@ -20,14 +20,7 @@ import { useEffect, useState } from 'react';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
 import { FeatureFlag, isFeatureEnabled, logging } from '@superset-ui/core';
-import {
-  authentication,
-  core,
-  commands,
-  environment,
-  extensions,
-  sqlLab,
-} from 'src/core';
+import { authentication, core, commands, extensions, sqlLab } from 'src/core';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
 import { useExtensionsContext } from './ExtensionsContext';
@@ -39,7 +32,6 @@ declare global {
       authentication: typeof authentication;
       core: typeof core;
       commands: typeof commands;
-      environment: typeof environment;
       extensions: typeof extensions;
       sqlLab: typeof sqlLab;
     };
@@ -69,7 +61,6 @@ const ExtensionsStartup = () => {
       authentication,
       core,
       commands,
-      environment,
       extensions,
       sqlLab,
     };
