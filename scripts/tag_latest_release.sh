@@ -109,7 +109,8 @@ if [ -z "$(git_show_ref)" ]; then
 fi
 
 # check that this tag only contains a proper semantic version
-if ! [[ ${GITHUB_TAG_NAME} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+# MGDIS - Update regex for authorize tag of type 5.0-mgdis.1
+if ! [[ ${GITHUB_TAG_NAME} =~ ^[0-9]+\.[0-9a-z-]+\.[0-9]+$ ]]
 then
   echo "This tag ${GITHUB_TAG_NAME} is not a valid release version. Not tagging."
   echo "SKIP_TAG=true" >> $GITHUB_OUTPUT
@@ -150,7 +151,8 @@ do
     echo "LATEST_RELEASE_TAG: ${LATEST_RELEASE_TAG}"
 
     # check that this only contains a proper semantic version
-    if ! [[ ${LATEST_RELEASE_TAG} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+    # MGDIS - Update regex for authorize tag of type 5.0-mgdis.1
+    if ! [[ ${LATEST_RELEASE_TAG} =~ ^[0-9]+\.[0-9a-z-]+\.[0-9]+$ ]]
     then
       echo "'Latest' has been associated with tag ${LATEST_RELEASE_TAG} which is not a valid release version. Looking for another."
       continue

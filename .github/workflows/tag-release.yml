@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311"]
+        build_preset: ["lean", "websocket", "dockerize"]
       fail-fast: false
     steps:
 
@@ -72,6 +72,7 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKERHUB_REPO: mgdis/superset
         run: |
           RELEASE="${{ github.event.release.tag_name }}"
           FORCE_LATEST=""
@@ -97,38 +98,40 @@ jobs:
           # Returning to master to support closing setup-supersetbot
           git checkout master
 
-  update-prs-with-release-info:
-    needs: config
-    if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
 
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
-
-      - name: Label the PRs with the right release-related labels
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          export GITHUB_ACTOR=""
-          git fetch --all --tags
-          git checkout master
-          RELEASE="${{ github.event.release.tag_name }}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # in the case of a manually-triggered run, read release from input
-            RELEASE="${{ github.event.inputs.release }}"
-          fi
-          supersetbot release-label $RELEASE
+# MGDIS disable job for the moment because incompatible with MGDIS fork of Superset
+#  update-prs-with-release-info:
+#    needs: config
+#    if: needs.config.outputs.has-secrets
+#    runs-on: ubuntu-24.04
+#    permissions:
+#      contents: read
+#      pull-requests: write
+#    steps:
+#
+#      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+#        uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#
+#      - name: Use Node.js 20
+#        uses: actions/setup-node@v4
+#        with:
+#          node-version: 20
+#
+#      - name: Setup supersetbot
+#        uses: ./.github/actions/setup-supersetbot/
+#
+#      - name: Label the PRs with the right release-related labels
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        run: |
+#          export GITHUB_ACTOR=""
+#          git fetch --all --tags
+#          git checkout master
+#          RELEASE="${{ github.event.release.tag_name }}"
+#          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+#            # in the case of a manually-triggered run, read release from input
+#            RELEASE="${{ github.event.inputs.release }}"
+#          fi
+#          supersetbot release-label $RELEASE
