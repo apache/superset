@@ -67,7 +67,7 @@ class AsyncTask(CoreAsyncTask, AuditMixinNullable, Model):
     database = relationship("Database", foreign_keys=[database_id])
 
     def __repr__(self) -> str:
-        return f"<AsyncTask {self.task_type}:{self.task_id} [{self.status}]>"
+        return f"<AsyncTask {self.task_type}:{self.task_key} [{self.status}]>"
 
     def get_payload(self) -> dict[str, Any]:
         """
