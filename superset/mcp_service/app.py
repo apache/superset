@@ -275,7 +275,6 @@ def create_mcp_app(
 
 
 # Create default MCP instance for backward compatibility
-# Note: stateless_http should be provided when calling run(), not at creation time
 mcp = create_mcp_app()
 
 # Initialize MCP dependency injection BEFORE importing tools/prompts
