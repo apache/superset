@@ -551,17 +551,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ) -> str:
         """
         Return URI for initial OAuth2 request.
+
+        Uses standard OAuth 2.0 parameters only. Subclasses can override
+        to add provider-specific parameters (e.g., Google's prompt=consent).
         """
         uri = config["authorization_request_uri"]
         params = {
             "scope": config["scope"],
-            "access_type": "offline",
-            "include_granted_scopes": "false",
             "response_type": "code",
             "state": encode_oauth2_state(state),
             "redirect_uri": config["redirect_uri"],
             "client_id": config["id"],
-            "prompt": "consent",
         }
         return urljoin(uri, "?" + urlencode(params))
 

@@ -638,6 +638,11 @@ def test_get_oauth2_authorization_uri(
     encoded_state = query["state"][0].replace("%2E", ".")
     assert decode_oauth2_state(encoded_state) == state
 
+    # Verify Google-specific OAuth parameters are included
+    assert query["access_type"][0] == "offline"
+    assert query["include_granted_scopes"][0] == "false"
+    assert query["prompt"][0] == "consent"
+
 
 def test_get_oauth2_token(
     mocker: MockerFixture,
