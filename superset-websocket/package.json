@@ -24,7 +24,7 @@
     "lodash": "^4.17.21",
     "uuid": "^11.1.0",
     "winston": "^3.19.0",
-    "ws": "^8.18.3"
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
