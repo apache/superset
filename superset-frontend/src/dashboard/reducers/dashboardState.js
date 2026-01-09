@@ -148,7 +148,11 @@ export default function dashboardStateReducer(state = {}, action) {
       } else {
         updatedExpandedSlices[sliceId] = true;
       }
-      return { ...state, expandedSlices: updatedExpandedSlices };
+      return {
+        ...state,
+        expandedSlices: updatedExpandedSlices,
+        hasUnsavedChanges: true,
+      };
     },
     [ON_CHANGE]() {
       return { ...state, hasUnsavedChanges: true };

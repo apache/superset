@@ -127,7 +127,7 @@ export function EditableTitle({
     if (editing && !isEditing) {
       setIsEditing(true);
     }
-  }, [editing]);
+  }, [editing, isEditing]);
 
   useEffect(() => {
     if (isEditing && contentRef.current) {
