@@ -174,6 +174,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       !isEmbedded() || uiConfig.showRowLimitWarning;
     const dashboardPageId = useContext(DashboardPageIdContext);
     const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
     const headerRef = useRef<HTMLDivElement>(null);
     // TODO: change to indicator field after it will be implemented
     const crossFilterValue = useSelector<RootState, any>(
@@ -236,15 +237,21 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               <EditableTitle
                 title={
                   sliceName ||
-                  (editMode
+                  (editMode || isEditingTitle
                     ? '---' // this makes an empty title clickable
                     : '')
                 }
-                canEdit={editMode}
+                canEdit={editMode || isEditingTitle}
+                editing={isEditingTitle}
                 onSaveTitle={updateSliceName}
                 showTooltip={false}
+                onEditingChange={editing => {
+                  if (!editing) setIsEditingTitle(false);
+                }}
                 renderLink={
-                  canExplore && exploreUrl ? renderExploreLink : undefined
+                  canExplore && exploreUrl && !isEditingTitle
+                    ? renderExploreLink
+                    : undefined
                 }
               />
             </div>
@@ -347,6 +354,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
+                  onEditTitle={() => setIsEditingTitle(true)}
                 />
               )}
             </>

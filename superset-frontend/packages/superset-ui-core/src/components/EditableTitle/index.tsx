@@ -122,6 +122,13 @@ export function EditableTitle({
     }
   }, [title]);
 
+  // Support controlled editing mode - sync isEditing when editing prop changes to true
+  useEffect(() => {
+    if (editing && !isEditing) {
+      setIsEditing(true);
+    }
+  }, [editing]);
+
   useEffect(() => {
     if (isEditing && contentRef.current) {
       const textArea = contentRef.current.resizableTextArea?.textArea;

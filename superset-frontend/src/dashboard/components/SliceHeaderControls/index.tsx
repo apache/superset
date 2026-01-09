@@ -138,6 +138,7 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
 
   crossFiltersEnabled?: boolean;
+  onEditTitle?: () => void;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -168,10 +169,11 @@ const SliceHeaderControls = (
   );
   const theme = useTheme();
 
+  const canEditDashboard = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
+  );
   const canEditCrossFilters =
-    useSelector<RootState, boolean>(
-      ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
-    ) &&
+    canEditDashboard &&
     getChartMetadataRegistry()
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.InteractiveChart);
@@ -211,6 +213,10 @@ const SliceHeaderControls = (
       case MenuKeys.ToggleChartDescription:
         // eslint-disable-next-line no-unused-expressions
         props.toggleExpandSlice?.(props.slice.slice_id);
+        break;
+      case MenuKeys.EditChartTitle:
+        // eslint-disable-next-line no-unused-expressions
+        props.onEditTitle?.();
         break;
       case MenuKeys.ExploreChart:
         // eslint-disable-next-line no-unused-expressions
@@ -375,12 +381,19 @@ const SliceHeaderControls = (
     },
   ];
 
-  if (slice.description) {
+  if (slice.description && canEditDashboard) {
     newMenuItems.push({
       key: MenuKeys.ToggleChartDescription,
       label: props.isDescriptionExpanded
         ? t('Hide chart description')
         : t('Show chart description'),
+    });
+  }
+
+  if (canEditDashboard) {
+    newMenuItems.push({
+      key: MenuKeys.EditChartTitle,
+      label: t('Edit chart title'),
     });
   }
 

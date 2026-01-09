@@ -291,6 +291,7 @@ export enum MenuKeys {
   ForceRefresh = 'force_refresh',
   Fullscreen = 'fullscreen',
   ToggleChartDescription = 'toggle_chart_description',
+  EditChartTitle = 'edit_chart_title',
   ViewQuery = 'view_query',
   ViewResults = 'view_results',
   DrillToDetail = 'drill_to_detail',

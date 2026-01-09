@@ -274,7 +274,7 @@ export function saveDashboardRequest(data, id, saveType) {
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
     dispatch(saveDashboardStarted());
 
-    const { dashboardFilters, dashboardLayout } = getState();
+    const { dashboardFilters, dashboardLayout, dashboardState } = getState();
     const layout = dashboardLayout.present;
     Object.values(dashboardFilters).forEach(filter => {
       const { chartId } = filter;
@@ -327,7 +327,7 @@ export function saveDashboardRequest(data, id, saveType) {
         color_scheme_domain: colorScheme
           ? getColorSchemeDomain(colorScheme)
           : [],
-        expanded_slices: data.metadata?.expanded_slices || {},
+        expanded_slices: dashboardState.expandedSlices || {},
         label_colors: customLabelsColor,
         shared_label_colors: getFreshSharedLabels(sharedLabelsColor),
         map_label_colors: getFreshLabelsColorMapEntries(customLabelsColor),
