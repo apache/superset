@@ -51,12 +51,14 @@ const getDashboardPermalink = async ({
     activeTabs: state.dashboardState?.activeTabs,
   };
 
-  return getDashboardPermalinkUtil({
+  const { url } = await getDashboardPermalinkUtil({
     dashboardId,
     dataMask,
     activeTabs,
     anchor,
   });
+
+  return url;
 };
 
 const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];

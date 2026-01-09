@@ -139,8 +139,13 @@ export const useExploreAdditionalActionsMenu = (
   const shareByEmail = useCallback(async () => {
     try {
       const subject = t('Superset Chart');
-      const url = await getChartPermalink(latestQueryFormData);
-      const body = encodeURIComponent(t('%s%s', 'Check out this chart: ', url));
+      const result = await getChartPermalink(latestQueryFormData);
+      if (!result?.url) {
+        throw new Error('Failed to generate permalink');
+      }
+      const body = encodeURIComponent(
+        t('%s%s', 'Check out this chart: ', result.url),
+      );
       window.location.href = `mailto:?Subject=${subject}%20&Body=${body}`;
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
@@ -201,7 +206,13 @@ export const useExploreAdditionalActionsMenu = (
       if (!latestQueryFormData) {
         throw new Error();
       }
-      await copyTextToClipboard(() => getChartPermalink(latestQueryFormData));
+      await copyTextToClipboard(async () => {
+        const result = await getChartPermalink(latestQueryFormData);
+        if (!result?.url) {
+          throw new Error('Failed to generate permalink');
+        }
+        return result.url;
+      });
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));

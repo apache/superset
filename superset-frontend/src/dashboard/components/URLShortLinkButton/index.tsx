@@ -52,13 +52,15 @@ export default function URLShortLinkButton({
 
   const getCopyUrl = async () => {
     try {
-      const url = await getDashboardPermalink({
+      const result = await getDashboardPermalink({
         dashboardId,
         dataMask,
         activeTabs,
         anchor: anchorLinkId,
       });
-      setShortUrl(url);
+      if (result?.url) {
+        setShortUrl(result.url);
+      }
     } catch (error) {
       if (error) {
         addDangerToast(

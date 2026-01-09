@@ -64,12 +64,16 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   );
 
   async function generateUrl() {
-    return getDashboardPermalink({
+    const result = await getDashboardPermalink({
       dashboardId,
       dataMask,
       activeTabs,
       anchor: dashboardComponentId,
     });
+    if (!result?.url) {
+      throw new Error('Failed to generate permalink URL');
+    }
+    return result.url;
   }
 
   async function onCopyLink() {

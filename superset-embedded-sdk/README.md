@@ -29,8 +29,8 @@ Embedding is done by inserting an iframe, containing a Superset page, into the h
 
 ## Prerequisites
 
-* Activate the feature flag `EMBEDDED_SUPERSET`
-* Set a strong password in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py). Be aware that its default value must be changed in production.
+- Activate the feature flag `EMBEDDED_SUPERSET`
+- Set a strong password in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py). Be aware that its default value must be changed in production.
 
 ## Embedding a Dashboard
 
@@ -48,19 +48,27 @@ embedDashboard({
   supersetDomain: "https://superset.example.com",
   mountPoint: document.getElementById("my-superset-container"), // any html element that can contain an iframe
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
-  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional), urlParams (optional)
-      hideTitle: true,
-      filters: {
-          expanded: true,
-      },
-      urlParams: {
-          foo: 'value1',
-          bar: 'value2',
-          // ...
-      }
+  dashboardUiConfig: {
+    // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional), urlParams (optional)
+    hideTitle: true,
+    filters: {
+      expanded: true,
+    },
+    urlParams: {
+      foo: "value1",
+      bar: "value2",
+      // ...
+    },
   },
-    // optional additional iframe sandbox attributes
-  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
+  // optional additional iframe sandbox attributes
+  iframeSandboxExtras: [
+    "allow-top-navigation",
+    "allow-popups-to-escape-sandbox",
+  ],
+  // optional Permissions Policy features
+  iframeAllowExtras: ["clipboard-write", "fullscreen"],
+  // optional callback to customize permalink URLs
+  resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`,
 });
 ```
 
@@ -91,7 +99,7 @@ Guest tokens can have Row Level Security rules which filter data for the user ca
 
 The agent making the `POST` request must be authenticated with the `can_grant_guest_token` permission.
 
-Within your app, using the Guest Token will then allow authentication to your Superset instance via creating an Anonymous user object.  This guest anonymous user will default to the public role as per this setting `GUEST_ROLE_NAME = "Public"`.
+Within your app, using the Guest Token will then allow authentication to your Superset instance via creating an Anonymous user object. This guest anonymous user will default to the public role as per this setting `GUEST_ROLE_NAME = "Public"`.
 
 The user parameters in the example below are optional and are provided as a means of passing user attributes that may be accessed in jinja templates inside your charts.
 
@@ -104,18 +112,19 @@ Example `POST /security/guest_token` payload:
     "first_name": "Stan",
     "last_name": "Lee"
   },
-  "resources": [{
-    "type": "dashboard",
-    "id": "abc123"
-  }],
-  "rls": [
-    { "clause": "publisher = 'Nintendo'" }
-  ]
+  "resources": [
+    {
+      "type": "dashboard",
+      "id": "abc123"
+    }
+  ],
+  "rls": [{ "clause": "publisher = 'Nintendo'" }]
 }
 ```
 
 Alternatively, a guest token can be created directly in your app with a json like the following, and then signed
 with the secret set in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py)
+
 ```
 {
   "user": {
@@ -142,7 +151,47 @@ with the secret set in configuration variable `GUEST_TOKEN_JWT_SECRET` (see conf
 The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default
 which applies certain restrictions to the iframe's content.
 To pass additional sandbox attributes you can use `iframeSandboxExtras`:
+
 ```js
-  // optional additional iframe sandbox attributes
-  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
+// optional additional iframe sandbox attributes
+iframeSandboxExtras: ["allow-top-navigation", "allow-popups-to-escape-sandbox"];
+```
+
+### Customizing Permalink URLs
+
+When users click share buttons inside an embedded dashboard, Superset generates permalinks using Superset's domain. If you want to use your own domain and URL format for these permalinks, you can provide a `resolvePermalinkUrl` callback:
+
+```js
+embedDashboard({
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
+  fetchGuestToken: () => fetchGuestTokenFromBackend(),
+
+  // Customize permalink URLs
+  resolvePermalinkUrl: ({ key }) => {
+    // key: the permalink key (e.g., "xyz789")
+    return `https://my-app.com/analytics/share/${key}`;
+  },
+});
+```
+
+To restore the dashboard state from a permalink in your app:
+
+```js
+// In your route handler for /analytics/share/:key
+const permalinkKey = routeParams.key;
+
+embedDashboard({
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
+  fetchGuestToken: () => fetchGuestTokenFromBackend(),
+  resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`,
+  dashboardUiConfig: {
+    urlParams: {
+      permalink_key: permalinkKey, // Restores filters, tabs, chart states, and scrolls to anchor
+    },
+  },
+});
 ```

@@ -167,10 +167,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       // activeTabs is initialized with undefined so that it doesn't override
       // the currently stored value when hydrating
       let activeTabs: string[] | undefined;
+      let anchor: string | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
-        if (permalinkValue) {
-          ({ dataMask, activeTabs } = permalinkValue.state);
+        if (permalinkValue?.state) {
+          ({ dataMask, activeTabs, anchor } = permalinkValue.state);
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
@@ -192,6 +193,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             dataMask,
           }),
         );
+
+        // Scroll to anchor element if specified in permalink state
+        if (anchor) {
+          const anchorId = anchor;
+          // Use setTimeout to ensure the DOM has been updated after hydration
+          setTimeout(() => {
+            const element = document.getElementById(anchorId);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 0);
+        }
       }
       return null;
     }

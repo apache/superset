@@ -49,9 +49,11 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
   const updateUrl = useCallback(() => {
     setUrl('');
     getChartPermalink(formData)
-      .then(url => {
-        setUrl(url);
-        setErrorMessage('');
+      .then(result => {
+        if (result?.url) {
+          setUrl(result.url);
+          setErrorMessage('');
+        }
       })
       .catch(() => {
         setErrorMessage(t('Error'));
