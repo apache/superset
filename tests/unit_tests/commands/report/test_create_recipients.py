@@ -45,7 +45,7 @@ def test_populate_recipients_chart_creation_with_user_email() -> None:
             ],
         }
 
-        exceptions = []
+        exceptions: list[Exception] = []
         command._populate_recipients(exceptions)
 
         # Check that recipients were overridden
@@ -73,7 +73,7 @@ def test_populate_recipients_dashboard_creation_with_user_email() -> None:
             # No recipients provided initially
         }
 
-        exceptions = []
+        exceptions: list[Exception] = []
         command._populate_recipients(exceptions)
 
         # Check that recipients were set
@@ -104,7 +104,7 @@ def test_populate_recipients_alerts_reports_keeps_original() -> None:
         "recipients": original_recipients,
     }
 
-    exceptions = []
+    exceptions: list[Exception] = []
     command._populate_recipients(exceptions)
 
     # Check that recipients were NOT changed
@@ -125,7 +125,7 @@ def test_populate_recipients_chart_creation_no_user_email() -> None:
             "creation_method": ReportCreationMethod.CHARTS,
         }
 
-        exceptions = []
+        exceptions: list[Exception] = []
         command._populate_recipients(exceptions)
 
         # Check that validation error was added
@@ -149,7 +149,7 @@ def test_populate_recipients_dashboard_creation_no_user() -> None:
             "creation_method": ReportCreationMethod.DASHBOARDS,
         }
 
-        exceptions = []
+        exceptions: list[Exception] = []
         command._populate_recipients(exceptions)
 
         # Check that validation error was added
@@ -171,7 +171,7 @@ def test_populate_recipients_no_creation_method() -> None:
         "recipients": original_recipients,
     }
 
-    exceptions = []
+    exceptions: list[Exception] = []
     command._populate_recipients(exceptions)
 
     # Check that recipients were NOT changed
