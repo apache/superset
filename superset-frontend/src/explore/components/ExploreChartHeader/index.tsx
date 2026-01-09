@@ -204,16 +204,16 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     streamingExportState,
     embedChartModal,
   ] = useExploreAdditionalActionsMenu(
-      latestQueryFormData,
-      canDownload,
-      slice,
-      redirectToSQLLab,
-      openPropertiesModal,
-      ownState,
-      metadata?.dashboards,
-      showReportModal,
-      setCurrentReportDeleting,
-    );
+    latestQueryFormData,
+    canDownload,
+    slice,
+    redirectToSQLLab,
+    openPropertiesModal,
+    ownState,
+    metadata?.dashboards,
+    showReportModal,
+    setCurrentReportDeleting,
+  );
 
   const metadataBar = useExploreMetadataBar(metadata, slice ?? null);
   const oldSliceName = slice?.slice_name;

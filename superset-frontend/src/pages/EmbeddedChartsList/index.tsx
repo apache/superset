@@ -97,9 +97,7 @@ function EmbeddedChartsList({
         addSuccessToast(t('Embedding disabled for %s', chart.chart_name));
         fetchEmbeddedCharts();
       } catch (error) {
-        addDangerToast(
-          t('Error disabling embedding for %s', chart.chart_name),
-        );
+        addDangerToast(t('Error disabling embedding for %s', chart.chart_name));
       } finally {
         setChartToDelete(null);
       }
@@ -185,11 +183,7 @@ function EmbeddedChartsList({
         accessor: 'actions',
         Header: t('Actions'),
         disableSortBy: true,
-        Cell: ({
-          row: { original },
-        }: {
-          row: { original: EmbeddedChart };
-        }) => (
+        Cell: ({ row: { original } }: { row: { original: EmbeddedChart } }) => (
           <ActionsWrapper>
             <Tooltip title={t('Copy UUID')}>
               <ActionButton onClick={() => copyToClipboard(original.uuid)}>
