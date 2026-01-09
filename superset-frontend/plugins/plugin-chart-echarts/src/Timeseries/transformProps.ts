@@ -311,6 +311,14 @@ export default function transformProps(
 
   let patternIncrement = 0;
 
+  // For horizontal bar charts, calculate min/max from data to avoid cutting off labels
+  const shouldCalculateDataBounds =
+    isHorizontal &&
+    seriesType === EchartsTimeseriesSeriesType.Bar &&
+    truncateYAxis;
+  let dataMax: number | undefined;
+  let dataMin: number | undefined;
+
   rawSeries.forEach(entry => {
     const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
     const lineStyle: LineStyleOption = {};
@@ -323,6 +331,21 @@ export default function transformProps(
 
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
+
+    // Calculate min/max from data for horizontal bar charts
+    if (shouldCalculateDataBounds && entry.data && Array.isArray(entry.data)) {
+      (entry.data as [number, any][]).forEach((datum: [number, any]) => {
+        const value = datum[0];
+        if (typeof value === 'number' && !Number.isNaN(value)) {
+          if (dataMax === undefined || value > dataMax) {
+            dataMax = value;
+          }
+          if (dataMin === undefined || value < dataMin) {
+            dataMin = value;
+          }
+        }
+      });
+    }
 
     let colorScaleKey = getOriginalSeries(seriesName, array);
 
@@ -499,29 +522,8 @@ export default function transformProps(
     yAxisMin = calculateLowerLogTick(minPositiveValue);
   }
 
-  // For horizontal bar charts, calculate max from data to avoid cutting off labels
-  if (
-    isHorizontal &&
-    seriesType === EchartsTimeseriesSeriesType.Bar &&
-    truncateYAxis
-  ) {
-    let dataMax: number | undefined;
-    let dataMin: number | undefined;
-    rawSeries.forEach(s => {
-      if (s.data && Array.isArray(s.data)) {
-        (s.data as [number, any][]).forEach((datum: [number, any]) => {
-          const value = datum[0];
-          if (typeof value === 'number' && !Number.isNaN(value)) {
-            if (dataMax === undefined || value > dataMax) {
-              dataMax = value;
-            }
-            if (dataMin === undefined || value < dataMin) {
-              dataMin = value;
-            }
-          }
-        });
-      }
-    });
+  // For horizontal bar charts, set max/min from calculated data bounds
+  if (shouldCalculateDataBounds) {
     // Set max to actual data max to avoid gaps and ensure labels are visible
     if (dataMax !== undefined && yAxisMax === undefined) {
       yAxisMax = dataMax;
