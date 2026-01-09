@@ -11783,7 +11783,7 @@ msgstr "L'étiquette de l'en-tête de la colonne"
 
 #, fuzzy
 msgid "Show columns subtotal"
-msgstr "Pas de colonne"
+msgstr "Afficher le sous-total des colonnes"
 
 #, fuzzy
 msgid "Show columns total"
@@ -11858,7 +11858,7 @@ msgstr "Afficher les étiquettes"
 
 #, fuzzy
 msgid "Show rows subtotal"
-msgstr "Pas de colonne"
+msgstr "Afficher le sous-total des rangées"
 
 msgid "Show rows total"
 msgstr "Afficher le total des rangées"
