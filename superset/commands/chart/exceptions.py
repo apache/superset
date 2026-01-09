@@ -127,6 +127,10 @@ class ChartDeleteFailedReportsExistError(ChartDeleteFailedError):
     message = _("There are associated alerts or reports")
 
 
+class ChartDeleteEmbeddedFailedError(DeleteFailedError):
+    message = _("Embedded chart could not be deleted.")
+
+
 class ChartAccessDeniedError(ForbiddenError):
     message = _("You don't have access to this chart.")
 

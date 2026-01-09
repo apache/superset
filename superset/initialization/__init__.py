@@ -203,6 +203,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
+        from superset.views.embedded_charts import EmbeddedChartsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.groups import GroupsListView
@@ -520,6 +521,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             icon="fa-lock",
+        )
+
+        appbuilder.add_view(
+            EmbeddedChartsView,
+            "Embedded Charts",
+            label=_("Embedded Charts"),
+            category="Security",
+            category_label=_("Security"),
+            icon="fa-code",
         )
 
     def init_core_dependencies(self) -> None:

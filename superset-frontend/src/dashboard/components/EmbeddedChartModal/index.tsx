@@ -16,33 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useState } from 'react';
-import { makeApi, t } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { useCallback, useEffect, useState } from 'react';
+import { logging, makeApi, SupersetApiError, t } from '@superset-ui/core';
+import { styled, css, Alert } from '@apache-superset/core/ui';
 import {
   Button,
   FormItem,
   InfoTooltip,
   Input,
   Modal,
+  Loading,
   Form,
+  Space,
 } from '@superset-ui/core/components';
-import copyTextToClipboard from 'src/utils/copy';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 type Props = {
+  chartId: number;
   formData: Record<string, unknown>;
   show: boolean;
   onHide: () => void;
 };
 
-type EmbedResponse = {
-  iframe_url: string;
-  guest_token: string;
-  permalink_key: string;
-  expires_at: string;
+type EmbeddedChart = {
+  uuid: string;
+  allowed_domains: string[];
+  chart_id: number;
+  changed_on: string;
 };
+
+type EmbeddedApiPayload = { allowed_domains: string[] };
 
 const stringToList = (stringyList: string): string[] =>
   stringyList.split(/(?:\s|,)+/).filter(x => x);
@@ -51,99 +56,128 @@ const ButtonRow = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
-  gap: 8px;
 `;
 
-const CodeBlock = styled.pre`
-  ${({ theme }) => css`
-    background: ${theme.colors.grayscale.light4};
-    border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: 4px;
-    padding: 12px;
-    font-size: 12px;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 200px;
-  `}
-`;
-
-const Section = styled.div`
-  margin-bottom: 16px;
-`;
-
-export const EmbeddedChartControls = ({ formData, onHide }: Props) => {
+export const ChartEmbedControls = ({ chartId, onHide }: Props) => {
   const { addInfoToast, addDangerToast } = useToasts();
+  const [ready, setReady] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [embedData, setEmbedData] = useState<EmbedResponse | null>(null);
+  const [embedded, setEmbedded] = useState<EmbeddedChart | null>(null);
   const [allowedDomains, setAllowedDomains] = useState<string>('');
-  const [ttlMinutes, setTtlMinutes] = useState<number>(60);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
 
-  const generateEmbed = useCallback(async () => {
+  const endpoint = `/api/v1/chart/${chartId}/embedded`;
+  const isDirty =
+    !embedded ||
+    stringToList(allowedDomains).join() !== embedded.allowed_domains.join();
+
+  const enableEmbedded = useCallback(() => {
     setLoading(true);
-    try {
-      const response = await makeApi<
-        { form_data: Record<string, unknown>; allowed_domains: string[]; ttl_minutes: number },
-        EmbedResponse
-      >({
-        method: 'POST',
-        endpoint: '/api/v1/embedded_chart/',
-      })({
-        form_data: formData,
-        allowed_domains: stringToList(allowedDomains),
-        ttl_minutes: ttlMinutes,
+    makeApi<EmbeddedApiPayload, { result: EmbeddedChart }>({
+      method: 'POST',
+      endpoint,
+    })({
+      allowed_domains: stringToList(allowedDomains),
+    })
+      .then(
+        ({ result }) => {
+          setEmbedded(result);
+          setAllowedDomains(result.allowed_domains.join(', '));
+          addInfoToast(t('Changes saved.'));
+        },
+        err => {
+          logging.error(err);
+          addDangerToast(
+            t('Sorry, something went wrong. The changes could not be saved.'),
+          );
+        },
+      )
+      .finally(() => {
+        setLoading(false);
       });
+  }, [endpoint, allowedDomains, addInfoToast, addDangerToast]);
 
-      setEmbedData(response);
-      addInfoToast(t('Embed code generated successfully'));
-    } catch (err) {
-      console.error(err);
-      addDangerToast(t('Failed to generate embed code. Please try again.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [formData, allowedDomains, ttlMinutes, addInfoToast, addDangerToast]);
+  const disableEmbedded = useCallback(() => {
+    setShowDeactivateConfirm(true);
+  }, []);
 
-  const getIframeHtml = () => {
-    if (!embedData) return '';
-    return `<iframe
-  src="${embedData.iframe_url}"
-  width="100%"
-  height="400"
-  frameborder="0"
-  sandbox="allow-scripts allow-same-origin allow-popups"
-></iframe>
-<script>
-  (function() {
-    var iframe = document.currentScript.previousElementSibling;
-    var GUEST_TOKEN = '${embedData.guest_token}';
-    var SUPERSET_URL = '${embedData.iframe_url.split('/embedded')[0]}';
-    iframe.addEventListener('load', function() {
-      var channel = new MessageChannel();
-      iframe.contentWindow.postMessage({
-        type: '__embedded_comms__',
-        handshake: 'port transfer'
-      }, SUPERSET_URL, [channel.port2]);
-      setTimeout(function() {
-        channel.port1.postMessage({
-          switchboardAction: 'emit',
-          method: 'guestToken',
-          args: { guestToken: GUEST_TOKEN }
-        });
-      }, 100);
-    });
-  })();
-</script>`;
-  };
+  const confirmDeactivate = useCallback(() => {
+    setLoading(true);
+    makeApi<object>({ method: 'DELETE', endpoint })({})
+      .then(
+        () => {
+          setEmbedded(null);
+          setAllowedDomains('');
+          setShowDeactivateConfirm(false);
+          addInfoToast(t('Embedding deactivated.'));
+          onHide();
+        },
+        err => {
+          logging.error(err);
+          addDangerToast(
+            t(
+              'Sorry, something went wrong. Embedding could not be deactivated.',
+            ),
+          );
+        },
+      )
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [endpoint, addInfoToast, addDangerToast, onHide]);
+
+  useEffect(() => {
+    setReady(false);
+    makeApi<object, { result: EmbeddedChart }>({
+      method: 'GET',
+      endpoint,
+    })({})
+      .catch(err => {
+        if ((err as SupersetApiError).status === 404) {
+          return { result: null };
+        }
+        addDangerToast(t('Sorry, something went wrong. Please try again.'));
+        throw err;
+      })
+      .then(({ result }) => {
+        setReady(true);
+        setEmbedded(result);
+        setAllowedDomains(result ? result.allowed_domains.join(', ') : '');
+      });
+  }, [chartId, addDangerToast, endpoint]);
+
+  if (!ready) {
+    return <Loading />;
+  }
 
   return (
     <>
+      {embedded ? (
+        <p>
+          {t(
+            'This chart is ready to embed. In your application, pass the following id to the SDK:',
+          )}
+          <br />
+          <code>{embedded.uuid}</code>
+        </p>
+      ) : (
+        <p>
+          {t(
+            'Configure this chart to embed it into an external web application.',
+          )}
+        </p>
+      )}
       <p>
-        {t(
-          'Generate an embed code to display this chart in external applications. The embed includes a guest token for secure access.',
-        )}
+        {t('For further instructions, consult the')}{' '}
+        <Typography.Link
+          href="https://www.npmjs.com/package/@superset-ui/embedded-sdk"
+          target="_blank"
+          rel="noreferrer"
+        >
+          {t('Superset Embedded SDK documentation.')}
+        </Typography.Link>
       </p>
-
+      <h3>{t('Settings')}</h3>
       <Form layout="vertical">
         <FormItem
           name="allowed-domains"
@@ -162,91 +196,75 @@ export const EmbeddedChartControls = ({ formData, onHide }: Props) => {
           <Input
             id="allowed-domains"
             value={allowedDomains}
-            placeholder="example.com, app.example.com"
+            placeholder="superset.example.com"
             onChange={event => setAllowedDomains(event.target.value)}
           />
         </FormItem>
-
-        <FormItem
-          name="ttl-minutes"
-          label={
-            <span>
-              {t('Expiration (minutes)')}{' '}
-              <InfoTooltip
-                placement="top"
-                tooltip={t(
-                  'How long the embed code will be valid. After expiration, a new code must be generated.',
-                )}
-              />
-            </span>
-          }
-        >
-          <Input
-            id="ttl-minutes"
-            type="number"
-            min={1}
-            max={10080}
-            value={ttlMinutes}
-            onChange={event => setTtlMinutes(Number(event.target.value))}
-          />
-        </FormItem>
       </Form>
-
-      {!embedData ? (
-        <ButtonRow>
-          <Button onClick={onHide} buttonStyle="secondary">
-            {t('Cancel')}
-          </Button>
-          <Button onClick={generateEmbed} buttonStyle="primary" loading={loading}>
-            {t('Generate Embed Code')}
-          </Button>
-        </ButtonRow>
-      ) : (
-        <>
-          <Section>
-            <h4>{t('Embed Code')}</h4>
-            <CodeBlock>{getIframeHtml()}</CodeBlock>
-            <ButtonRow
-              css={css`
-                margin-top: 8px;
-              `}
-            >
+      {showDeactivateConfirm ? (
+        <Alert
+          closable={false}
+          type="warning"
+          message={t('Disable embedding?')}
+          description={t('This will remove your current embed configuration.')}
+          css={{
+            textAlign: 'left',
+            marginTop: '16px',
+          }}
+          action={
+            <Space>
               <Button
+                key="cancel"
                 buttonStyle="secondary"
-                onClick={() => {
-                  copyTextToClipboard(() => Promise.resolve(getIframeHtml()))
-                    .then(() => addInfoToast(t('Copied to clipboard')))
-                    .catch(() => addDangerToast(t('Failed to copy to clipboard')));
-                }}
+                onClick={() => setShowDeactivateConfirm(false)}
               >
-                {t('Copy Code')}
+                {t('Cancel')}
               </Button>
-            </ButtonRow>
-          </Section>
-
-          <Section>
-            <h4>{t('Details')}</h4>
-            <p>
-              <strong>{t('Permalink Key')}:</strong> {embedData.permalink_key}
-            </p>
-            <p>
-              <strong>{t('Expires')}:</strong>{' '}
-              {new Date(embedData.expires_at).toLocaleString()}
-            </p>
-          </Section>
-
-          <ButtonRow>
+              <Button
+                key="deactivate"
+                buttonStyle="danger"
+                onClick={confirmDeactivate}
+                loading={loading}
+              >
+                {t('Deactivate')}
+              </Button>
+            </Space>
+          }
+        />
+      ) : (
+        <ButtonRow
+          css={theme => css`
+            margin-top: ${theme.margin}px;
+          `}
+        >
+          {embedded ? (
+            <>
+              <Button
+                onClick={disableEmbedded}
+                buttonStyle="secondary"
+                loading={loading}
+              >
+                {t('Deactivate')}
+              </Button>
+              <Button
+                onClick={enableEmbedded}
+                buttonStyle="primary"
+                disabled={!isDirty}
+                loading={loading}
+              >
+                {t('Save changes')}
+              </Button>
+            </>
+          ) : (
             <Button
-              onClick={() => setEmbedData(null)}
-              buttonStyle="secondary"
+              onClick={enableEmbedded}
+              buttonStyle="primary"
+              loading={loading}
             >
-              {t('Generate New Code')}
+              {t('Enable embedding')}
             </Button>
-            <Button onClick={onHide} buttonStyle="primary">
-              {t('Done')}
-            </Button>
-          </ButtonRow>
-        </>
+          )}
+        </ButtonRow>
       )}
     </>
   );
@@ -262,9 +280,8 @@ const EmbeddedChartModal = (props: Props) => {
       onHide={onHide}
       hideFooter
       title={<ModalTitleWithIcon title={t('Embed Chart')} />}
-      width={600}
     >
-      <EmbeddedChartControls {...props} />
+      <ChartEmbedControls {...props} />
     </Modal>
   );
 };

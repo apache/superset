@@ -582,7 +582,7 @@ test('Dataset drill info API call is not made when user lacks drill permissions'
 
 test('Should show "Embed code" in Share menu when feature flag is enabled and chart has data', async () => {
   window.featureFlags = {
-    EMBEDDABLE_CHARTS: true,
+    EMBEDDED_SUPERSET: true,
   };
   const props = createProps();
   renderWrapper(props);
@@ -593,7 +593,7 @@ test('Should show "Embed code" in Share menu when feature flag is enabled and ch
 
 test('Should NOT show "Embed code" in Share menu when feature flag is disabled', async () => {
   window.featureFlags = {
-    EMBEDDABLE_CHARTS: false,
+    EMBEDDED_SUPERSET: false,
   };
   const props = createProps();
   renderWrapper(props);
@@ -607,7 +607,7 @@ test('Should NOT show "Embed code" in Share menu when feature flag is disabled',
 
 test('Should pass formData to Share menu for embed code feature', () => {
   window.featureFlags = {
-    EMBEDDABLE_CHARTS: true,
+    EMBEDDED_SUPERSET: true,
   };
   const props = createProps();
   const { container } = renderWrapper(props);

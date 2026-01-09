@@ -48,6 +48,7 @@ import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import { useStreamingExport } from 'src/components/StreamingExportModal';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
+import EmbeddedChartModal from 'src/dashboard/components/EmbeddedChartModal';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
 
 export const SEARCH_THRESHOLD = 10;
@@ -72,6 +73,7 @@ const MENU_KEYS = {
   SHARE_SUBMENU: 'share_submenu',
   COPY_PERMALINK: 'copy_permalink',
   EMBED_CODE: 'embed_code',
+  EMBED_CHART: 'embed_chart',
   SHARE_BY_EMAIL: 'share_by_email',
   REPORT_SUBMENU: 'report_submenu',
   SET_UP_REPORT: 'set_up_report',
@@ -136,6 +138,7 @@ export const useExploreAdditionalActionsMenu = (
   const dispatch = useDispatch();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
+  const [isEmbedModalOpen, setIsEmbedModalOpen] = useState(false);
   const debouncedDashboardSearchTerm = useDebounceValue(
     dashboardSearchTerm,
     300,
@@ -800,7 +803,7 @@ export const useExploreAdditionalActionsMenu = (
       },
     ];
 
-    if (isFeatureEnabled(FeatureFlag.EmbeddableCharts)) {
+    if (isFeatureEnabled(FeatureFlag.EmbeddedSuperset)) {
       shareChildren.push({
         key: MENU_KEYS.EMBED_CODE,
         label: (
@@ -822,6 +825,18 @@ export const useExploreAdditionalActionsMenu = (
         ),
         onClick: () => setIsDropdownVisible(false),
       });
+
+      // Add persistent embed chart option (only for saved charts)
+      if (slice?.slice_id) {
+        shareChildren.push({
+          key: MENU_KEYS.EMBED_CHART,
+          label: t('Embed chart'),
+          onClick: () => {
+            setIsEmbedModalOpen(true);
+            setIsDropdownVisible(false);
+          },
+        });
+      }
     }
 
     menuItems.push({
@@ -907,5 +922,21 @@ export const useExploreAdditionalActionsMenu = (
     onDownload: handleDownloadComplete,
   };
 
-  return [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState];
+  // Embed chart modal component
+  const embedChartModal = slice?.slice_id ? (
+    <EmbeddedChartModal
+      chartId={slice.slice_id}
+      formData={latestQueryFormData}
+      show={isEmbedModalOpen}
+      onHide={() => setIsEmbedModalOpen(false)}
+    />
+  ) : null;
+
+  return [
+    menu,
+    isDropdownVisible,
+    setIsDropdownVisible,
+    streamingExportState,
+    embedChartModal,
+  ];
 };

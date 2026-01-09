@@ -223,7 +223,7 @@ test('Click on "Share dashboard by email" and fail', async () => {
 
 test('Should show "Embed code" menu item when feature flag is enabled and chart has data', () => {
   window.featureFlags = {
-    EMBEDDABLE_CHARTS: true,
+    EMBEDDED_SUPERSET: true,
   };
   const props = createProps();
   const propsWithFormData = {
@@ -248,7 +248,7 @@ test('Should show "Embed code" menu item when feature flag is enabled and chart 
 
 test('Should NOT show "Embed code" when feature flag is disabled', () => {
   window.featureFlags = {
-    EMBEDDABLE_CHARTS: false,
+    EMBEDDED_SUPERSET: false,
   };
   const props = createProps();
   const propsWithFormData = {
@@ -273,7 +273,7 @@ test('Should NOT show "Embed code" when feature flag is disabled', () => {
 
 test('Should NOT show "Embed code" when chart has no data', () => {
   window.featureFlags = {
-    EMBEDDABLE_CHARTS: true,
+    EMBEDDED_SUPERSET: true,
   };
   const props = createProps();
   render(
@@ -291,7 +291,7 @@ test('Should NOT show "Embed code" when chart has no data', () => {
 
 test('Should NOT show "Embed code" when latestQueryFormData is empty object', () => {
   window.featureFlags = {
-    EMBEDDABLE_CHARTS: true,
+    EMBEDDED_SUPERSET: true,
   };
   const props = createProps();
   const propsWithEmptyFormData = {
@@ -313,7 +313,7 @@ test('Should NOT show "Embed code" when latestQueryFormData is empty object', ()
 
 test('Should render "Embed code" with data-test attribute', () => {
   window.featureFlags = {
-    EMBEDDABLE_CHARTS: true,
+    EMBEDDED_SUPERSET: true,
   };
   const props = createProps();
   const propsWithFormData = {

@@ -42,7 +42,7 @@ const chartEndpoint = 'glob:*api/v1/chart/*';
 fetchMock.get(chartEndpoint, { json: 'foo' });
 
 window.featureFlags = {
-  [FeatureFlag.EmbeddableCharts]: true,
+  [FeatureFlag.EmbeddedSuperset]: true,
 };
 
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({

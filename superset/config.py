@@ -591,8 +591,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "CACHE_IMPERSONATION": False,
     # Enable caching per user key for Superset cache (not database cache impersonation)
     "CACHE_QUERY_BY_USER": False,
-    # Enable sharing charts with embedding
-    "EMBEDDABLE_CHARTS": True,
     "DRILL_TO_DETAIL": True,  # deprecated
     "DRILL_BY": True,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
