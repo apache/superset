@@ -59,7 +59,7 @@
     "@storybook/react-webpack5": "8.6.14",
     "babel-loader": "^10.0.0",
     "fork-ts-checker-webpack-plugin": "^9.1.0",
-    "ts-loader": "^9.5.2",
+    "ts-loader": "^9.5.4",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
