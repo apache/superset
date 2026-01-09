@@ -1247,6 +1247,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_uuid>/embedded", methods=["POST", "PUT"])
     @protect()
     @safe
+    @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.set_embedded",

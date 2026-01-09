@@ -241,6 +241,12 @@ class EmbeddedChartRestApi(BaseSupersetApi):
             if not form_data:
                 return self.response_400(message="form_data is required")
 
+            # Validate required form_data structure
+            if not form_data.get("datasource"):
+                return self.response_400(
+                    message="form_data must include 'datasource' field"
+                )
+
             # Create permalink with the form_data
             state = {
                 "formData": form_data,
