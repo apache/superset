@@ -255,19 +255,6 @@ export interface QueryResult {
 export declare const getCurrentTab: () => Tab | undefined;
 
 /**
- * Event fired when the content of the SQL editor changes.
- * Provides the new content as the event payload.
- *
- * @example
- * ```typescript
- * onDidChangeEditorContent.event((newContent) => {
- *   console.log('Editor content changed:', newContent.length, 'characters');
- * });
- * ```
- */
-export declare const onDidChangeEditorContent: Event<string>;
-
-/**
  * Event fired when the database selection changes in the editor.
  * Provides the new database ID as the event payload.
  *
@@ -281,19 +268,6 @@ export declare const onDidChangeEditorContent: Event<string>;
 export declare const onDidChangeEditorDatabase: Event<number>;
 
 /**
- * Event fired when the catalog selection changes in the editor.
- * Provides the new catalog name as the event payload.
- *
- * @example
- * ```typescript
- * onDidChangeEditorCatalog.event((catalog) => {
- *   console.log('Catalog changed to:', catalog);
- * });
- * ```
- */
-export declare const onDidChangeEditorCatalog: Event<string>;
-
-/**
  * Event fired when the schema selection changes in the editor.
  * Provides the new schema name as the event payload.
  *
@@ -305,32 +279,6 @@ export declare const onDidChangeEditorCatalog: Event<string>;
  * ```
  */
 export declare const onDidChangeEditorSchema: Event<string>;
-
-/**
- * Event fired when the table selection changes in the editor.
- * Provides the new table name as the event payload.
- *
- * @example
- * ```typescript
- * onDidChangeEditorTable.event((table) => {
- *   console.log('Table changed to:', table);
- * });
- * ```
- */
-export declare const onDidChangeEditorTable: Event<string>;
-
-/**
- * Event fired when a panel is closed in the current tab.
- * Provides the closed panel object as the event payload.
- *
- * @example
- * ```typescript
- * onDidClosePanel.event((panel) => {
- *   console.log('Panel closed:', panel.id);
- * });
- * ```
- */
-export declare const onDidClosePanel: Event<Panel>;
 
 /**
  * Event fired when the active panel changes in the current tab.
@@ -482,60 +430,3 @@ export declare const onDidCloseTab: Event<Tab>;
  * ```
  */
 export declare const onDidChangeActiveTab: Event<Tab>;
-
-/**
- * Event fired when the databases list is refreshed.
- * This can happen when new databases are added or existing ones are modified.
- *
- * @example
- * ```typescript
- * onDidRefreshDatabases.event(() => {
- *   console.log('Databases refreshed, updating UI...');
- *   const updatedDatabases = getDatabases();
- *   // Update UI with new database list
- * });
- * ```
- */
-export declare const onDidRefreshDatabases: Event<void>;
-
-/**
- * Event fired when the catalogs list is refreshed for the current database.
- * This typically happens when switching databases or when catalog metadata is updated.
- *
- * @example
- * ```typescript
- * onDidRefreshCatalogs.event(() => {
- *   console.log('Catalogs refreshed');
- *   // Update catalog dropdown or related UI
- * });
- * ```
- */
-export declare const onDidRefreshCatalogs: Event<void>;
-
-/**
- * Event fired when the schemas list is refreshed for the current database/catalog.
- * This happens when switching databases/catalogs or when schema metadata is updated.
- *
- * @example
- * ```typescript
- * onDidRefreshSchemas.event(() => {
- *   console.log('Schemas refreshed');
- *   // Update schema dropdown or related UI
- * });
- * ```
- */
-export declare const onDidRefreshSchemas: Event<void>;
-
-/**
- * Event fired when the tables list is refreshed for the current database/catalog/schema.
- * This happens when switching schema contexts or when table metadata is updated.
- *
- * @example
- * ```typescript
- * onDidRefreshTables.event(() => {
- *   console.log('Tables refreshed');
- *   // Update table browser or autocomplete suggestions
- * });
- * ```
- */
-export declare const onDidRefreshTables: Event<void>;

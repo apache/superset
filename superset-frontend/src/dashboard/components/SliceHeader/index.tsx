@@ -53,6 +53,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  queriedDttm?: string | null;
   exportPivotExcel?: (arg0: string) => void;
 };
 
@@ -141,6 +142,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       annotationQuery = {},
       annotationError = {},
       cachedDttm = null,
+      queriedDttm = null,
       updatedDttm = null,
       isCached = [],
       isExpanded = false,
@@ -322,6 +324,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   isCached={isCached}
                   isExpanded={isExpanded}
                   cachedDttm={cachedDttm}
+                  queriedDttm={queriedDttm}
                   updatedDttm={updatedDttm}
                   toggleExpandSlice={toggleExpandSlice}
                   forceRefresh={forceRefresh}

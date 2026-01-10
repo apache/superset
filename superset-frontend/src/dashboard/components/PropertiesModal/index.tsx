@@ -128,6 +128,7 @@ const PropertiesModal = ({
   const [customCss, setCustomCss] = useState('');
   const [refreshFrequency, setRefreshFrequency] = useState(0);
   const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
+  const [showChartTimestamps, setShowChartTimestamps] = useState(false);
   const [themes, setThemes] = useState<
     Array<{
       id: number;
@@ -140,7 +141,11 @@ const PropertiesModal = ({
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
     let errorText = error || statusText || t('An error has occurred');
-    if (typeof message === 'object' && 'json_metadata' in message) {
+    if (
+      typeof message === 'object' &&
+      'json_metadata' in message &&
+      typeof (message as { json_metadata: unknown }).json_metadata === 'string'
+    ) {
       errorText = (message as { json_metadata: string }).json_metadata;
     } else if (typeof message === 'string') {
       errorText = message;
@@ -150,7 +155,7 @@ const PropertiesModal = ({
       }
     }
 
-    addDangerToast(errorText);
+    addDangerToast(String(errorText));
   };
 
   const handleDashboardData = useCallback(
@@ -192,10 +197,12 @@ const PropertiesModal = ({
         'shared_label_colors',
         'map_label_colors',
         'color_scheme_domain',
+        'show_chart_timestamps',
       ]);
 
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
       setRefreshFrequency(metadata?.refresh_frequency || 0);
+      setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
     },
     [form],
@@ -320,11 +327,13 @@ const PropertiesModal = ({
         : false;
     const jsonMetadataObj = getJsonMetadata();
     jsonMetadataObj.refresh_frequency = refreshFrequency;
+    jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
       ...originalDashboardMetadata.current,
       label_colors: customLabelColors,
       color_scheme: updatedColorScheme,
+      show_chart_timestamps: showChartTimestamps,
     };
 
     originalDashboardMetadata.current = updatedDashboardMetadata;
@@ -711,9 +720,11 @@ const PropertiesModal = ({
                   colorScheme={colorScheme}
                   customCss={customCss}
                   hasCustomLabelsColor={hasCustomLabelsColor}
+                  showChartTimestamps={showChartTimestamps}
                   onThemeChange={handleThemeChange}
                   onColorSchemeChange={onColorSchemeChange}
                   onCustomCssChange={setCustomCss}
+                  onShowChartTimestampsChange={setShowChartTimestamps}
                   addDangerToast={addDangerToast}
                 />
               ),

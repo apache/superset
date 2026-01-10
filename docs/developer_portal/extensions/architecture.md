@@ -138,19 +138,6 @@ The diagram shows:
 3. **The host application** implements the APIs and manages extensions
 4. **Extensions** integrate seamlessly with the host through well-defined interfaces
 
-### Extension Dependencies
-
-Extensions can depend on any combination of packages based on their needs. For example:
-
-**Frontend-only extension** (e.g., a custom chart type):
-- Depends on `@apache-superset/core` for UI components and React APIs
-
-**Full-stack extension** (e.g., a custom SQL editor with new API endpoints):
-- Depends on `@apache-superset/core` for frontend components
-- Depends on `apache-superset-core` for backend APIs and models
-
-This modular approach allows extension authors to choose exactly what they need while promoting consistency and reusability.
-
 ## Dynamic Module Loading
 
 One of the most sophisticated aspects of the extension architecture is how frontend code is dynamically loaded at runtime using Webpack's Module Federation.
@@ -215,7 +202,6 @@ import {
   authentication,
   core,
   commands,
-  environment,
   extensions,
   sqlLab,
 } from 'src/extensions';
@@ -226,7 +212,6 @@ export default function setupExtensionsAPI() {
     authentication,
     core,
     commands,
-    environment,
     extensions,
     sqlLab,
   };
@@ -248,6 +233,7 @@ This architecture provides several key benefits:
 
 Now that you understand the architecture, explore:
 
+- **[Dependencies](./dependencies)** - Managing dependencies and understanding API stability
 - **[Quick Start](./quick-start)** - Build your first extension
 - **[Contribution Types](./contribution-types)** - What kinds of extensions you can build
 - **[Development](./development)** - Project structure, APIs, and development workflow

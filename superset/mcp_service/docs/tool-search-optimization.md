@@ -32,7 +32,7 @@ Superset MCP tools are categorized with tags to help clients configure optimal l
 | Tag | Description | Tools | Recommended Strategy |
 |-----|-------------|-------|---------------------|
 | `core` | Essential discovery and health tools | `health_check`, `get_instance_info`, `list_charts`, `list_dashboards`, `list_datasets` | Always load |
-| `discovery` | Detailed resource information | `get_chart_info`, `get_chart_available_filters`, `get_dashboard_info`, `get_dashboard_available_filters`, `get_dataset_info`, `get_dataset_available_filters` | Can defer |
+| `discovery` | Detailed resource information and schema | `get_chart_info`, `get_dashboard_info`, `get_dataset_info`, `get_schema` | Can defer |
 | `data` | Data retrieval and previews | `get_chart_preview`, `get_chart_data` | Defer |
 | `mutate` | Create/modify resources | `generate_chart`, `update_chart`, `update_chart_preview`, `generate_dashboard`, `add_chart_to_existing_dashboard`, `execute_sql` | Defer |
 | `explore` | URL generation for exploration | `generate_explore_link`, `open_sql_lab_with_context` | Defer |
