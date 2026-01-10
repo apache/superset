@@ -112,9 +112,25 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
       margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
     }
 
-    /* Hide add buttons (secondary style with icons) on mobile */
-    .nav-right button.ant-btn-secondary {
+    /* Hide add buttons (secondary style) on mobile */
+    .nav-right .superset-button-secondary {
       display: none;
+    }
+
+    /* Compact horizontal tabs on mobile (segmented-control style) */
+    .menu > .ant-menu {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      padding-left: 0;
+      gap: ${({ theme }) => theme.sizeUnit}px;
+
+      .ant-menu-item {
+        padding: ${({ theme }) => theme.sizeUnit}px
+          ${({ theme }) => theme.sizeUnit * 3}px;
+        margin-right: 0;
+        font-size: ${({ theme }) => theme.fontSizeXS}px;
+      }
     }
   }
 `;
