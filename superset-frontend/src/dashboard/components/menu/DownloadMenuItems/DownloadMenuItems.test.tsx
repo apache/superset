@@ -36,11 +36,16 @@ const MenuWrapper = () => {
   return <Menu forceSubMenuRender items={menuItems} />;
 };
 
-test('Should render menu items', () => {
+test('Should render all menu items', () => {
   render(<MenuWrapper />, {
     useRedux: true,
   });
 
+  // Screenshot options
   expect(screen.getByText('Export to PDF')).toBeInTheDocument();
   expect(screen.getByText('Download as Image')).toBeInTheDocument();
+
+  // Export options
+  expect(screen.getByText('Export YAML')).toBeInTheDocument();
+  expect(screen.getByText('Export as Example')).toBeInTheDocument();
 });
