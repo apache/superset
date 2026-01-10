@@ -111,6 +111,11 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
       position: relative;
       margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
     }
+
+    /* Hide add buttons (secondary style with icons) on mobile */
+    .nav-right button.ant-btn-secondary {
+      display: none;
+    }
   }
 `;
 
