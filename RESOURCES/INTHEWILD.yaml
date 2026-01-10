@@ -617,6 +617,11 @@ categories:
     - name: Stockarea
       url: https://stockarea.io
 
+  Product Adoption:
+    - name: UserGuiding
+      url: https://userguiding.com
+      contributors: ["@tzercin"]
+
   Others:
     - name: 10Web
       url: https://10web.io/
