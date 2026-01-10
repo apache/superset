@@ -36,7 +36,6 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import type { Dataset as DatasetSelectLabelType } from 'src/features/datasets/DatasetSelectLabel';
 import { styled, useTheme, css } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { debounce, isEqual } from 'lodash';
@@ -96,7 +95,6 @@ import {
 import {
   FilterRemoval,
   NativeFiltersForm,
-  NativeFiltersFormItem,
 } from '../types';
 import { CollapsibleControl } from './CollapsibleControl';
 import { ColumnSelect } from './ColumnSelect';
@@ -151,18 +149,6 @@ const controlsOrder: ControlKey[] = [
   'searchAllOptions',
   'inverseSelection',
 ];
-
-interface DatasetApiResponse extends DatasetSelectLabelType {
-  columns: ColumnMeta[];
-  metrics: Metric[];
-  datasource_type: string;
-  filter_select_enabled: boolean;
-  is_sqllab_view?: boolean;
-  main_dttm_col?: string;
-  sql?: string;
-  type: string;
-  filter_select: boolean;
-}
 
 export const StyledFormItem = styled(FormItem)<{ expanded: boolean }>`
   width: ${({ expanded }) => (expanded ? '49%' : `${FORM_ITEM_WIDTH}px`)};
@@ -319,10 +305,12 @@ const FiltersConfigForm = (
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
-  const [undoFormValues, setUndoFormValues] =
-    useState<NativeFiltersFormItem | null>(null);
+  const [undoFormValues, setUndoFormValues] = useState<Record<
+    string,
+    any
+  > | null>(null);
   const forceUpdate = useForceUpdate(isActive);
-  const [datasetDetails, setDatasetDetails] = useState<DatasetApiResponse>();
+  const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
   const filters = form.getFieldValue('filters');
   const formValues = filters?.[filterId];
@@ -991,7 +979,15 @@ const FiltersConfigForm = (
                         initialValue={
                           datasetDetails
                             ? {
-                                label: DatasetSelectLabel(datasetDetails),
+                              label: DatasetSelectLabel({
+                                id: datasetDetails.id,
+                                table_name: datasetDetails.table_name,
+                                schema: datasetDetails.schema,
+                                database: {
+                                  database_name:
+                                  datasetDetails.database.database_name,
+                                },
+                              }),
                                 value: datasetDetails.id,
                               }
                             : undefined
