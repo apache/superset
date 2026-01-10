@@ -6,153 +6,45 @@ This document identifies gaps between the original requirements and the implemen
 
 ---
 
-## Critical Gaps
+## Critical Gaps (RESOLVED)
 
-### 1. Status Indicator Color Mismatch - Paused State
+### 1. ✅ Status Indicator Color Mismatch - Paused State
 
 **Requirement:**
 > White dot - "Paused" - "Auto-refresh paused"
 
-**Current Implementation Plan (Task 2):**
-```typescript
-case AutoRefreshStatus.Paused:
-  return theme.colorTextSecondary;  // Gray, not white
-```
-
-**Fix Required:**
-Change the paused state color to white:
-```typescript
-case AutoRefreshStatus.Paused:
-  return '#FFFFFF';  // White with border for visibility
-  // Or use: theme.colorBgContainer with a border
-```
-
-**Additional Consideration:**
-A pure white dot may not be visible on light backgrounds. Implementation should include:
-- A subtle border or shadow for visibility
-- Or use a hollow/outline style for the paused state
+**Resolution:** Fixed in Task 2. Updated `getStatusConfig` to return `#FFFFFF` for paused state with `needsBorder: true` for visibility on light backgrounds.
 
 ---
 
-### 2. Green Dot with Checkmark Icon
+### 2. ✅ Green Dot with Checkmark Icon
 
 **Requirement:**
 > Green dot (with checkmark) - "Refreshed on schedule"
 
-**Current Implementation Plan (Task 2):**
-Only shows a plain green dot without a checkmark icon.
-
-**Fix Required:**
-Update `StatusIndicatorDot` to include a checkmark icon for success state:
-```typescript
-import { CheckOutlined } from '@ant-design/icons';
-
-// In the component:
-{status === AutoRefreshStatus.Success && (
-  <CheckOutlined style={{ fontSize: size * 0.6, color: '#fff' }} />
-)}
-```
-
-Or use a combined icon approach:
-```typescript
-import { CheckCircleFilled } from '@ant-design/icons';
-
-// Use CheckCircleFilled for success state instead of a plain dot
-```
+**Resolution:** Fixed in Task 2. Added `showCheckmark: true` for success state and `CheckOutlined` icon component inside the `StatusIndicatorDot`.
 
 ---
 
-### 3. "Delayed" State Definition and Detection
+### 3. ✅ "Delayed" State Definition and Detection
 
 **Requirement:**
 > Yellow / warning dot - "Delayed" - Timestamp + delay description
 
-**Open Question from Requirements:**
-> #5: Error state thresholds: confirm logic for delayed vs error (e.g., yellow after 1 missed refresh, red after 2+)
+**Resolution:** Fixed in Task 1. Added `autoRefreshFetchStartTime` to state interface and enhanced `selectEffectiveRefreshStatus` with time-based delay detection (threshold: 50% of refresh interval).
 
-**Current Implementation Plan (Task 1):**
-Defines `AutoRefreshStatus.Delayed` but does not specify:
-- When exactly a refresh becomes "delayed"
-- How to detect/calculate delay
-- Threshold timing
-
-**Fix Required:**
-Add delay detection logic to Task 1:
-
-```typescript
-// In dashboardState.ts
-interface DashboardState {
-  // ... existing fields
-  autoRefreshExpectedTime: number | null;  // When next refresh should occur
-}
-
-// In the reducer or selector:
-const isDelayed = (state: DashboardState): boolean => {
-  if (!state.autoRefreshExpectedTime) return false;
-  const now = Date.now();
-  const threshold = state.refreshFrequency * 1000 * 0.5; // 50% over expected
-  return now > state.autoRefreshExpectedTime + threshold;
-};
-
-// Status determination logic:
-const getEffectiveStatus = (state: DashboardState): AutoRefreshStatus => {
-  if (state.autoRefreshIsPaused) return AutoRefreshStatus.Paused;
-  if (state.autoRefreshError) return AutoRefreshStatus.Error;
-  if (state.autoRefreshStatus === AutoRefreshStatus.Fetching) {
-    // Check if fetching is taking too long
-    const fetchDuration = Date.now() - state.autoRefreshFetchStartTime;
-    if (fetchDuration > state.refreshFrequency * 1000 * 0.5) {
-      return AutoRefreshStatus.Delayed;
-    }
-    return AutoRefreshStatus.Fetching;
-  }
-  return AutoRefreshStatus.Idle;
-};
-```
-
-**Suggested Thresholds (pending design confirmation):**
-- **Delayed (Yellow)**: Refresh takes > 50% of the interval (e.g., > 2.5s for 5s interval)
+**Thresholds (implemented):**
+- **Delayed (Yellow)**: Fetch takes > 50% of the interval (e.g., > 2.5s for 5s interval)
 - **Error (Red)**: After explicit error OR after missing 2+ consecutive refreshes
 
 ---
 
-### 4. Refresh Icon Behavior Not Explicitly Covered
+### 4. ✅ Refresh Icon Behavior Not Explicitly Covered
 
 **Requirement:**
 > Refresh icon - Triggers an immediate hard refresh - Retains existing auto-refresh interval settings
 
-**Current Implementation Plans:**
-The existing refresh icon functionality is assumed to work, but not explicitly verified or integrated with the new status indicator.
-
-**Fix Required:**
-Add to Task 3 (Pause/Resume) or create a sub-section:
-
-```typescript
-// Ensure forceRefresh in Header/index.jsx:
-const forceRefresh = useCallback(() => {
-  if (!isLoading) {
-    // Update status indicator to show fetching
-    setAutoRefreshStatus(AutoRefreshStatus.Fetching);
-
-    boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
-      force: true,
-      interval: 0,
-      chartCount: chartIds.length,
-    });
-
-    return boundActionCreators.onRefresh(chartIds, true, 0, dashboardInfo.id)
-      .finally(() => {
-        // Status will update based on success/failure
-        recordAutoRefreshSuccess(); // or recordAutoRefreshError()
-      });
-  }
-  return false;
-}, [/* deps */]);
-```
-
-**Verification Needed:**
-- Confirm refresh icon does NOT clear/reset the auto-refresh interval
-- Confirm status indicator updates during manual refresh
+**Resolution:** Fixed in Task 3. Added "Manual Refresh Icon Behavior" section with explicit code for updating status indicator during manual refresh and preserving auto-refresh settings.
 
 ---
 
@@ -362,40 +254,42 @@ Add note to Task 8:
 
 ## Action Items Summary
 
-| Priority | Gap | Task to Update |
-|----------|-----|----------------|
-| Critical | Paused state should be WHITE, not gray | Task 2 |
-| Critical | Green dot needs checkmark icon | Task 2 |
-| Critical | Delayed state detection logic missing | Task 1, Task 2 |
-| Critical | Refresh icon integration with status | Task 3 |
-| Medium | Delay description in tooltip | Task 2 |
-| Medium | Flicker prevention test cases | Task 10 |
-| Medium | Tab inactive status display | Task 4 |
-| Low | Auto-pause configurability | Task 4 |
-| Low | Time-series ticker mode | Future |
-| Low | Non-ECharts animations | Task 8 |
+| Priority | Gap | Task to Update | Status |
+|----------|-----|----------------|--------|
+| Critical | Paused state should be WHITE, not gray | Task 2 | ✅ Fixed |
+| Critical | Green dot needs checkmark icon | Task 2 | ✅ Fixed |
+| Critical | Delayed state detection logic missing | Task 1 | ✅ Fixed |
+| Critical | Refresh icon integration with status | Task 3 | ✅ Fixed |
+| Medium | Delay description in tooltip | Task 2 | Pending |
+| Medium | Flicker prevention test cases | Task 10 | Pending |
+| Medium | Tab inactive status display | Task 4 | Pending |
+| Low | Auto-pause configurability | Task 4 | Pending |
+| Low | Time-series ticker mode | Future | Deferred |
+| Low | Non-ECharts animations | Task 8 | Pending |
 
 ---
 
 ## Recommended Next Steps
 
-1. **Update Task 2** with:
-   - White color for paused state (with border for visibility)
-   - Checkmark icon for success state
-   - Enhanced tooltip content for delayed state
+### Completed ✅
 
-2. **Update Task 1** with:
-   - Delay detection logic
-   - `autoRefreshExpectedTime` tracking
-   - `autoRefreshFetchStartTime` for measuring fetch duration
+1. **Task 2 updated** with:
+   - White color (`#FFFFFF`) for paused state with border for visibility
+   - Checkmark icon for success state using `CheckOutlined`
 
-3. **Update Task 3** with:
-   - Explicit refresh icon behavior
+2. **Task 1 updated** with:
+   - Delay detection logic using `autoRefreshFetchStartTime`
+   - Enhanced `selectEffectiveRefreshStatus` selector
+
+3. **Task 3 updated** with:
+   - Explicit "Manual Refresh Icon Behavior" section
    - Integration with status indicator during manual refresh
+
+### Remaining (Medium/Low Priority)
 
 4. **Update Task 4** with:
    - Clarification on paused state display during tab inactivity
-   - Consider adding pause reason tracking
+   - Consider adding pause reason tracking (`'manual' | 'tab_inactive'`)
 
 5. **Update Task 10** with:
    - Explicit flicker prevention tests
