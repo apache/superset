@@ -46,6 +46,10 @@ def _get_file_handler_class() -> Any:
                 if event.is_directory:
                     return
 
+                # Only trigger on changes to files in dist/ directory
+                if "/dist/" not in event.src_path:
+                    return
+
                 logger.info(
                     "File change detected in LOCAL_EXTENSIONS: %s", event.src_path
                 )
@@ -80,7 +84,9 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
     if not handler_class:
         return
 
-    # Collect dist directories to watch
+    # Collect extension directories to watch
+    # We watch the parent extension directory instead of just dist/
+    # to avoid the observer stopping when dist/ is deleted/recreated
     watch_dirs = []
     for ext_path in local_extensions:
         if not ext_path:
@@ -91,9 +97,8 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
             logger.warning("LOCAL_EXTENSIONS path does not exist: %s", ext_path)
             continue
 
-        dist_path = ext_path / "dist"
-        watch_dirs.append(str(dist_path))
-        logger.info("Watching LOCAL_EXTENSIONS dist directory: %s", dist_path)
+        watch_dirs.append(str(ext_path))
+        logger.info("Watching LOCAL_EXTENSIONS directory: %s", ext_path)
 
     if not watch_dirs:
         return
