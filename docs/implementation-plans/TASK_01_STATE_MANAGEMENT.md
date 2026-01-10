@@ -126,6 +126,8 @@ export type DashboardState = {
   lastRefreshError: string | null;
   /** Count of consecutive refresh errors (for delayed vs error status) */
   refreshErrorCount: number;
+  /** Timestamp when current fetch operation started (for delay detection) */
+  autoRefreshFetchStartTime: number | null;
 };
 ```
 
@@ -373,10 +375,20 @@ export const selectIsRefreshing = (state: RootState): boolean =>
   state.dashboardState.autoRefreshStatus === AutoRefreshStatus.Fetching;
 
 /**
- * Derives the effective display status based on error count thresholds.
- * - 0 errors: Success/Idle
- * - 1-2 errors: Delayed (yellow warning)
- * - 3+ errors: Error (red)
+ * Derives the effective display status based on error count thresholds AND timing.
+ *
+ * Status determination logic:
+ * 1. Paused: If manually paused or auto-paused due to tab visibility
+ * 2. Fetching: If currently fetching data
+ * 3. Delayed (Yellow): If:
+ *    - Fetching is taking > 50% of the refresh interval, OR
+ *    - 1-2 consecutive refresh errors
+ * 4. Error (Red): If 3+ consecutive refresh errors
+ * 5. Success (Green): Normal state, last refresh succeeded
+ *
+ * Per requirements:
+ * - Yellow/warning dot: "Delayed" - Timestamp + delay description
+ * - Red dot: "Error" - Timestamp + error description
  */
 export const selectEffectiveRefreshStatus = (
   state: RootState,
@@ -384,12 +396,22 @@ export const selectEffectiveRefreshStatus = (
   const status = selectAutoRefreshStatus(state);
   const errorCount = selectRefreshErrorCount(state);
   const isPaused = selectIsAutoRefreshPaused(state);
+  const refreshFrequency = selectRefreshFrequency(state);
+  const fetchStartTime = state.dashboardState.autoRefreshFetchStartTime;
 
   if (isPaused) {
     return AutoRefreshStatus.Paused;
   }
 
   if (status === AutoRefreshStatus.Fetching) {
+    // Check if fetching is taking too long (> 50% of refresh interval)
+    if (fetchStartTime && refreshFrequency > 0) {
+      const fetchDuration = Date.now() - fetchStartTime;
+      const delayThreshold = refreshFrequency * 1000 * 0.5; // 50% of interval
+      if (fetchDuration > delayThreshold) {
+        return AutoRefreshStatus.Delayed;
+      }
+    }
     return AutoRefreshStatus.Fetching;
   }
 

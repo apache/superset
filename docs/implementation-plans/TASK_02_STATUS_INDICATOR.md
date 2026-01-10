@@ -188,6 +188,7 @@ export default AutoRefreshStatus;
  */
 import { FC, useMemo, useRef, useEffect, useState } from 'react';
 import { css, useTheme } from '@apache-superset/core/ui';
+import { CheckOutlined } from '@ant-design/icons';
 import { AutoRefreshStatus } from '../../types';
 
 export interface StatusIndicatorDotProps {
@@ -198,27 +199,63 @@ export interface StatusIndicatorDotProps {
 }
 
 /**
- * Get the color for a given status from theme tokens.
- * Uses Ant Design semantic color tokens for consistency.
+ * Status indicator configuration mapping.
+ *
+ * IMPORTANT: Per requirements:
+ * - Green dot (with checkmark): Refreshed on schedule
+ * - Blue dot: Fetching data
+ * - Yellow/warning dot: Delayed
+ * - Red dot: Error
+ * - WHITE dot: Paused (NOT gray)
  */
-const getStatusColor = (
+interface StatusConfig {
+  color: string;
+  showCheckmark: boolean;
+  needsBorder: boolean;  // For visibility on light backgrounds
+}
+
+const getStatusConfig = (
   theme: ReturnType<typeof useTheme>,
   status: AutoRefreshStatus,
-): string => {
+): StatusConfig => {
   switch (status) {
     case AutoRefreshStatus.Success:
     case AutoRefreshStatus.Idle:
-      return theme.colorSuccess;
+      return {
+        color: theme.colorSuccess,  // Green
+        showCheckmark: true,        // Per requirements: "Green dot (with checkmark)"
+        needsBorder: false,
+      };
     case AutoRefreshStatus.Fetching:
-      return theme.colorPrimary;
+      return {
+        color: theme.colorPrimary,  // Blue
+        showCheckmark: false,
+        needsBorder: false,
+      };
     case AutoRefreshStatus.Delayed:
-      return theme.colorWarning;
+      return {
+        color: theme.colorWarning,  // Yellow
+        showCheckmark: false,
+        needsBorder: false,
+      };
     case AutoRefreshStatus.Error:
-      return theme.colorError;
+      return {
+        color: theme.colorError,    // Red
+        showCheckmark: false,
+        needsBorder: false,
+      };
     case AutoRefreshStatus.Paused:
-      return theme.colorTextSecondary;
+      return {
+        color: '#FFFFFF',           // WHITE per requirements
+        showCheckmark: false,
+        needsBorder: true,          // Need border for visibility on light backgrounds
+      };
     default:
-      return theme.colorTextSecondary;
+      return {
+        color: theme.colorTextSecondary,
+        showCheckmark: false,
+        needsBorder: false,
+      };
   }
 };
 
@@ -262,8 +299,9 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
     };
   }, [status]);
 
-  const color = useMemo(
-    () => getStatusColor(theme, displayStatus),
+  // Get full status configuration including color, checkmark, border
+  const statusConfig = useMemo(
+    () => getStatusConfig(theme, displayStatus),
     [theme, displayStatus],
   );
 
@@ -275,11 +313,13 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
       width: ${size}px;
       height: ${size}px;
       border-radius: 50%;
-      background-color: ${color};
+      background-color: ${statusConfig.color};
       /* Smooth transition for color changes - prevents flickering */
-      transition: background-color ${theme.motionDurationMid} ease-in-out;
-      /* Subtle box shadow for better visibility */
-      box-shadow: 0 0 0 2px ${theme.colorBgContainer};
+      transition: background-color ${theme.motionDurationMid} ease-in-out,
+                  border-color ${theme.motionDurationMid} ease-in-out;
+      /* Border for visibility (especially for white paused state) */
+      border: ${statusConfig.needsBorder ? `1px solid ${theme.colorBorder}` : 'none'};
+      box-shadow: ${statusConfig.needsBorder ? 'none' : `0 0 0 2px ${theme.colorBgContainer}`};
       margin-left: ${theme.marginXS}px;
       margin-right: ${theme.marginXS}px;
       cursor: help;
@@ -299,8 +339,15 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
         }
       `}
     `,
-    [color, size, theme, displayStatus],
+    [statusConfig, size, theme, displayStatus],
   );
+
+  // Checkmark styles for success state
+  const checkmarkStyles = css`
+    font-size: ${size * 0.6}px;
+    color: #FFFFFF;
+    line-height: 1;
+  `;
 
   return (
     <span
@@ -309,7 +356,12 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
       aria-label={`Auto-refresh status: ${displayStatus}`}
       data-test="status-indicator-dot"
       data-status={displayStatus}
-    />
+    >
+      {/* Show checkmark icon for success state per requirements */}
+      {statusConfig.showCheckmark && (
+        <CheckOutlined css={checkmarkStyles} />
+      )}
+    </span>
   );
 };
 ```

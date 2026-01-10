@@ -681,8 +681,56 @@ describe('AutoRefreshControls', () => {
 - Disabled state properly communicated
 - Menu item follows Ant Design Menu patterns
 
+## Manual Refresh Icon Behavior
+
+**Requirement:**
+> Refresh icon - Triggers an immediate hard refresh - Retains existing auto-refresh interval settings
+
+The existing "Refresh dashboard" menu item and `forceRefresh` callback must:
+
+1. **Trigger immediate data fetch** without clearing the auto-refresh interval
+2. **Update status indicator** to show "Fetching" during the manual refresh
+3. **Record success/error** for the status indicator
+
+**Implementation Note:**
+The existing `forceRefresh` callback should be enhanced:
+
+```typescript
+const forceRefresh = useCallback(() => {
+  if (!isLoading) {
+    // Update status indicator to show fetching
+    boundActionCreators.setAutoRefreshStatus(AutoRefreshStatus.Fetching);
+    boundActionCreators.setAutoRefreshFetchStartTime(Date.now());
+
+    boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
+      force: true,
+      interval: 0,
+      chartCount: chartIds.length,
+    });
+
+    return boundActionCreators.onRefresh(chartIds, true, 0, dashboardInfo.id)
+      .then(() => {
+        boundActionCreators.recordAutoRefreshSuccess();
+      })
+      .catch((error) => {
+        boundActionCreators.recordAutoRefreshError(error?.message || 'Refresh failed');
+      })
+      .finally(() => {
+        boundActionCreators.setAutoRefreshFetchStartTime(null);
+      });
+  }
+  return false;
+}, [boundActionCreators, chartIds, dashboardInfo.id, isLoading]);
+```
+
+**IMPORTANT:** The manual refresh does NOT:
+- Clear the `refreshFrequency`
+- Change the `autoRefreshPaused` state
+- Reset the periodic timer (it continues on its schedule)
+
 ## Testing Strategy
 
 1. **Unit tests**: AutoRefreshControls component
 2. **Integration tests**: Header with pause handler
 3. **E2E tests**: Full pause/resume flow (in Task 10)
+4. **Manual refresh tests**: Verify refresh icon doesn't affect auto-refresh settings
