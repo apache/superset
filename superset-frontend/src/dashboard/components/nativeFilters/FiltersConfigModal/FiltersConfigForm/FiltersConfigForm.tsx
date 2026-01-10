@@ -92,10 +92,7 @@ import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
-import {
-  FilterRemoval,
-  NativeFiltersForm,
-} from '../types';
+import { FilterRemoval, NativeFiltersForm } from '../types';
 import { CollapsibleControl } from './CollapsibleControl';
 import { ColumnSelect } from './ColumnSelect';
 import DatasetSelect from './DatasetSelect';
@@ -979,15 +976,15 @@ const FiltersConfigForm = (
                         initialValue={
                           datasetDetails
                             ? {
-                              label: DatasetSelectLabel({
-                                id: datasetDetails.id,
-                                table_name: datasetDetails.table_name,
-                                schema: datasetDetails.schema,
-                                database: {
-                                  database_name:
-                                  datasetDetails.database.database_name,
-                                },
-                              }),
+                                label: DatasetSelectLabel({
+                                  id: datasetDetails.id,
+                                  table_name: datasetDetails.table_name,
+                                  schema: datasetDetails.schema,
+                                  database: {
+                                    database_name:
+                                      datasetDetails.database.database_name,
+                                  },
+                                }),
                                 value: datasetDetails.id,
                               }
                             : undefined
