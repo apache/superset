@@ -294,3 +294,84 @@ Add note to Task 8:
 5. **Update Task 10** with:
    - Explicit flicker prevention tests
    - Re-mount prevention tests
+
+---
+
+## Second Pass Analysis (All Resolved ✅)
+
+### Gap A: ✅ Delayed Tooltip Missing Delay Description
+
+**Requirement:**
+> Delayed | Yellow / warning dot | Timestamp + **delay description**
+
+**Resolution:** Fixed in Task 2. Updated `getStatusMessage` to include fetch elapsed time:
+```typescript
+'Fetching is taking longer than expected (%ss elapsed, expected within %ss)'
+```
+
+---
+
+### Gap B: ✅ Error Tooltip Should Show BOTH Timestamp AND Error
+
+**Requirement:**
+> Error | Red dot | Timestamp + error description
+
+**Resolution:** Fixed in Task 2. Updated to show both timestamp and error message:
+```typescript
+`${timestampPart}. ${t('Error: %s', lastError)}`
+```
+
+---
+
+### Gap C: ✅ Missing Action for `autoRefreshFetchStartTime`
+
+**Resolution:** Fixed in Task 1. Added:
+- `SET_AUTO_REFRESH_FETCH_START_TIME` action type
+- `setAutoRefreshFetchStartTime(timestamp)` action creator
+- Reducer handler for the action
+
+---
+
+### Gap D: ✅ Task 10 Test Expects Yellow for Paused
+
+**Resolution:** Fixed in Task 10. Updated test to expect white color with border:
+```typescript
+test('displays white dot with border when paused', () => {
+  expect(dot).toHaveStyle({ backgroundColor: '#FFFFFF' });
+  expect(dot).toHaveStyle({ border: expect.stringContaining('1px solid') });
+});
+```
+
+---
+
+### Gap E: ✅ Pause Button Header Placement
+
+**Resolution:** Fixed in Task 3. Changed "(optional alternative to menu item)" to "(REQUIRED per requirements)" with explanation that the pause icon is mandatory.
+
+---
+
+### Gap F: ✅ Test for Non-Real-Time Dashboard
+
+**Resolution:** Fixed in Task 10. Added E2E test verifying no status indicator or controls appear when auto-refresh is disabled.
+
+---
+
+## Final Action Items Summary
+
+| Priority | Gap | Task | Status |
+|----------|-----|------|--------|
+| Critical | Paused state should be WHITE, not gray | Task 2 | ✅ Fixed |
+| Critical | Green dot needs checkmark icon | Task 2 | ✅ Fixed |
+| Critical | Delayed state detection logic missing | Task 1 | ✅ Fixed |
+| Critical | Refresh icon integration with status | Task 3 | ✅ Fixed |
+| Medium | Delayed tooltip needs delay description | Task 2 | ✅ Fixed (Second Pass) |
+| Medium | Error tooltip needs timestamp + error | Task 2 | ✅ Fixed (Second Pass) |
+| Medium | Missing SET_AUTO_REFRESH_FETCH_START_TIME | Task 1 | ✅ Fixed (Second Pass) |
+| Medium | Flicker prevention test cases | Task 10 | Pending (Documented) |
+| Medium | Tab inactive status display | Task 4 | Pending (Open Question #4) |
+| Low | Task 10 test expects yellow for paused | Task 10 | ✅ Fixed (Second Pass) |
+| Low | Pause button must be in header | Task 3 | ✅ Fixed (Second Pass) |
+| Low | Test for non-real-time dashboard | Task 10 | ✅ Fixed (Second Pass) |
+| Low | Auto-pause configurability | Task 4 | Pending (Open Question #6) |
+| Low | Time-series ticker mode | Future | Deferred (Nice-to-have) |
+| Low | Non-ECharts animations | Task 8 | Documented

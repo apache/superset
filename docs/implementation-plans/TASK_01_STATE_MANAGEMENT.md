@@ -145,6 +145,7 @@ export const SET_AUTO_REFRESH_STATUS = 'SET_AUTO_REFRESH_STATUS';
 export const SET_AUTO_REFRESH_PAUSED = 'SET_AUTO_REFRESH_PAUSED';
 export const SET_AUTO_REFRESH_PAUSED_BY_TAB = 'SET_AUTO_REFRESH_PAUSED_BY_TAB';
 export const SET_LAST_SUCCESSFUL_REFRESH = 'SET_LAST_SUCCESSFUL_REFRESH';
+export const SET_AUTO_REFRESH_FETCH_START_TIME = 'SET_AUTO_REFRESH_FETCH_START_TIME';
 export const SET_REFRESH_ERROR = 'SET_REFRESH_ERROR';
 export const CLEAR_REFRESH_ERROR = 'CLEAR_REFRESH_ERROR';
 export const INCREMENT_REFRESH_ERROR_COUNT = 'INCREMENT_REFRESH_ERROR_COUNT';
@@ -165,6 +166,10 @@ export function setAutoRefreshPausedByTab(paused) {
 
 export function setLastSuccessfulRefresh(timestamp) {
   return { type: SET_LAST_SUCCESSFUL_REFRESH, timestamp };
+}
+
+export function setAutoRefreshFetchStartTime(timestamp) {
+  return { type: SET_AUTO_REFRESH_FETCH_START_TIME, timestamp };
 }
 
 export function setRefreshError(error) {
@@ -199,6 +204,7 @@ import {
   SET_AUTO_REFRESH_PAUSED,
   SET_AUTO_REFRESH_PAUSED_BY_TAB,
   SET_LAST_SUCCESSFUL_REFRESH,
+  SET_AUTO_REFRESH_FETCH_START_TIME,
   SET_REFRESH_ERROR,
   CLEAR_REFRESH_ERROR,
   INCREMENT_REFRESH_ERROR_COUNT,
@@ -231,6 +237,12 @@ Then add the action handlers inside the `actionHandlers` object (after line 335)
   return {
     ...state,
     lastSuccessfulRefresh: action.timestamp,
+  };
+},
+[SET_AUTO_REFRESH_FETCH_START_TIME]() {
+  return {
+    ...state,
+    autoRefreshFetchStartTime: action.timestamp,
   };
 },
 [SET_REFRESH_ERROR]() {

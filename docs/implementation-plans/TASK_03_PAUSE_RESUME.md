@@ -488,10 +488,14 @@ export const AutoRefreshControls: FC<AutoRefreshControlsProps> = ({
 export default AutoRefreshControls;
 ```
 
-**Integration in Header** (optional alternative to menu item):
+**Integration in Header** (REQUIRED per requirements):
+
+Per the requirements: "Pause icon - Pauses auto-refresh updates", there must be a visible
+pause icon in the header (not just in the menu). The menu item provides an alternative,
+but the icon control is mandatory for meeting the requirement.
 
 ```javascript
-// In Header component, add to titlePanelAdditionalItems or rightPanelAdditionalItems
+// In Header component, add to titlePanelAdditionalItems
 const titlePanelAdditionalItems = useMemo(
   () => [
     !editMode && (
@@ -621,7 +625,7 @@ describe('AutoRefreshControls', () => {
 
 | File | Purpose |
 |------|---------|
-| `superset-frontend/src/dashboard/components/AutoRefreshControls/index.tsx` | Pause/Resume button component (optional) |
+| `superset-frontend/src/dashboard/components/AutoRefreshControls/index.tsx` | Pause/Resume button component (REQUIRED per requirements) |
 | `superset-frontend/src/dashboard/components/AutoRefreshControls/AutoRefreshControls.test.tsx` | Unit tests |
 
 ### Files to Modify

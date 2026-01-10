@@ -404,6 +404,8 @@ export interface StatusTooltipContentProps {
   lastError: string | null;
   /** Refresh frequency in seconds */
   refreshFrequency: number;
+  /** Timestamp when current fetch started (for delay calculation) */
+  autoRefreshFetchStartTime: number | null;
 }
 
 /**
@@ -419,12 +421,16 @@ const formatTimestamp = (timestamp: number | null): string => {
 
 /**
  * Get the status-specific message for the tooltip.
+ * Per requirements:
+ * - Delayed: Timestamp + delay description
+ * - Error: Timestamp + error description
  */
 const getStatusMessage = (
   status: AutoRefreshStatus,
   lastSuccessfulRefresh: number | null,
   lastError: string | null,
   refreshFrequency: number,
+  autoRefreshFetchStartTime: number | null,
 ): string => {
   switch (status) {
     case AutoRefreshStatus.Success:
@@ -433,11 +439,24 @@ const getStatusMessage = (
     case AutoRefreshStatus.Fetching:
       return t('Fetching data...');
     case AutoRefreshStatus.Delayed:
-      return t('Refresh delayed. Last successful: %s', formatTimestamp(lastSuccessfulRefresh));
+      // Per requirements: "Timestamp + delay description"
+      const fetchElapsed = autoRefreshFetchStartTime
+        ? Math.round((Date.now() - autoRefreshFetchStartTime) / 1000)
+        : null;
+      const expectedTime = Math.round(refreshFrequency * 0.5);
+      return fetchElapsed
+        ? t(
+            'Fetching is taking longer than expected (%ss elapsed, expected within %ss)',
+            fetchElapsed,
+            expectedTime,
+          )
+        : t('Refresh delayed. Last successful: %s', formatTimestamp(lastSuccessfulRefresh));
     case AutoRefreshStatus.Error:
+      // Per requirements: "Timestamp + error description" (both, not either/or)
+      const timestampPart = t('Last successful: %s', formatTimestamp(lastSuccessfulRefresh));
       return lastError
-        ? t('Error: %s', lastError)
-        : t('Refresh failed. Last successful: %s', formatTimestamp(lastSuccessfulRefresh));
+        ? `${timestampPart}. ${t('Error: %s', lastError)}`
+        : t('Refresh failed. %s', timestampPart);
     case AutoRefreshStatus.Paused:
       return t('Auto-refresh paused');
     default:
@@ -454,6 +473,7 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   lastSuccessfulRefresh,
   lastError,
   refreshFrequency,
+  autoRefreshFetchStartTime,
 }) => {
   const theme = useTheme();
 
@@ -480,7 +500,7 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
     [AutoRefreshStatus.Paused]: t('Paused'),
   }[status] || t('Auto-refresh');
 
-  const message = getStatusMessage(status, lastSuccessfulRefresh, lastError, refreshFrequency);
+  const message = getStatusMessage(status, lastSuccessfulRefresh, lastError, refreshFrequency, autoRefreshFetchStartTime);
 
   return (
     <div css={containerStyles} data-test="status-tooltip-content">

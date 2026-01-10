@@ -166,7 +166,8 @@ test('displays blue dot when status is Fetching', () => {
   expect(dot).toHaveStyle({ backgroundColor: expect.stringContaining('blue') });
 });
 
-test('displays yellow dot when paused', () => {
+test('displays white dot with border when paused', () => {
+  // Per requirements: White dot - "Paused" - "Auto-refresh paused"
   const store = mockStore({
     dashboardState: {
       refreshFrequency: 5,
@@ -182,7 +183,9 @@ test('displays yellow dot when paused', () => {
   );
 
   const dot = screen.getByTestId('auto-refresh-status-dot');
-  expect(dot).toHaveStyle({ backgroundColor: expect.stringContaining('yellow') });
+  // White with border for visibility on light backgrounds
+  expect(dot).toHaveStyle({ backgroundColor: '#FFFFFF' });
+  expect(dot).toHaveStyle({ border: expect.stringContaining('1px solid') });
 });
 
 test('displays red dot when there is an error', () => {
@@ -635,6 +638,17 @@ test.describe('Dashboard Auto-Refresh', () => {
     await page.click('button[type="submit"]');
     await page.goto('/superset/dashboard/1/');
     await page.waitForLoadState('networkidle');
+  });
+
+  test('no status indicator when auto-refresh is disabled', async ({ page }) => {
+    // Per requirements: "Dashboards without an auto refresh interval should not
+    // show any real time dashboard changes (no status indicator, etc)"
+
+    // Verify status indicator is NOT visible when auto-refresh is not configured
+    await expect(page.locator('[data-test="auto-refresh-status-dot"]')).not.toBeVisible();
+
+    // Verify pause button is NOT visible
+    await expect(page.locator('[data-test="auto-refresh-pause-button"]')).not.toBeVisible();
   });
 
   test('can enable 5-second auto-refresh', async ({ page }) => {
