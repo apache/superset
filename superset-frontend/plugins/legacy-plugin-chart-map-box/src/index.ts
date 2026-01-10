@@ -30,8 +30,8 @@ const metadata = new ChartMetadata({
   credits: ['https://www.mapbox.com/mapbox-gl-js/api/'],
   description: '',
   exampleGallery: [
-    { url: example1, urlDark: example1Dark, description: t('Light mode') },
-    { url: example2, urlDark: example2Dark, description: t('Dark mode') },
+    { url: example1, urlDark: example1Dark },
+    { url: example2, urlDark: example2Dark },
   ],
   name: t('MapBox'),
   tags: [

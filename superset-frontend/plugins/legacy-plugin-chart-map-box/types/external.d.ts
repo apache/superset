@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,15 +17,32 @@
  * under the License.
  */
 
-export const LUMINANCE_RED_WEIGHT = 0.2126;
-export const LUMINANCE_GREEN_WEIGHT = 0.7152;
-export const LUMINANCE_BLUE_WEIGHT = 0.0722;
+declare module '*.png' {
+  const value: string;
+  export default value;
+}
 
-export default function luminanceFromRGB(r, g, b) {
-  // Formula: https://en.wikipedia.org/wiki/Relative_luminance
-  return (
-    LUMINANCE_RED_WEIGHT * r +
-    LUMINANCE_GREEN_WEIGHT * g +
-    LUMINANCE_BLUE_WEIGHT * b
-  );
+declare module '*.jpg' {
+  const value: string;
+  export default value;
+}
+
+declare module '*.jpeg' {
+  const value: string;
+  export default value;
+}
+
+declare module '*.svg' {
+  const value: string;
+  export default value;
+}
+
+declare module '*.gif' {
+  const value: string;
+  export default value;
+}
+
+declare module '*.webp' {
+  const value: string;
+  export default value;
 }
