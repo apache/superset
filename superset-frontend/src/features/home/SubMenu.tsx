@@ -119,17 +119,13 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
 
     /* Compact horizontal tabs on mobile (segmented-control style) */
     .menu > .ant-menu {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: wrap;
       padding-left: 0;
-      gap: ${({ theme }) => theme.sizeUnit}px;
 
       .ant-menu-item {
         padding: ${({ theme }) => theme.sizeUnit}px
-          ${({ theme }) => theme.sizeUnit * 3}px;
-        margin-right: 0;
-        font-size: ${({ theme }) => theme.fontSizeXS}px;
+          ${({ theme }) => theme.sizeUnit * 2}px;
+        margin-right: ${({ theme }) => theme.sizeUnit / 2}px;
+        font-size: ${({ theme }) => theme.fontSizeSM}px;
       }
     }
   }
@@ -200,8 +196,8 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
 
   useEffect(() => {
     function handleResize() {
-      if (window.innerWidth <= 767) setMenu('inline');
-      else setMenu('horizontal');
+      // Keep horizontal mode on mobile - CSS handles compact display
+      setMenu('horizontal');
 
       if (
         props.buttons &&
