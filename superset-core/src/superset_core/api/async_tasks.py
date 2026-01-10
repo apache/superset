@@ -231,11 +231,11 @@ class AsyncTaskWrapper(Generic[P]):
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> AsyncTask:
         """Call the task synchronously (for testing)."""
-        ...
+        raise NotImplementedError("Will be replaced during initialization")
 
     def schedule(self, *args: P.args, **kwargs: P.kwargs) -> AsyncTask:
         """Schedule the task for async execution."""
-        ...
+        raise NotImplementedError("Will be replaced during initialization")
 
 
 def create_async_task(
