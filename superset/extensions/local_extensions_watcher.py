@@ -46,8 +46,9 @@ def _get_file_handler_class() -> Any:
                 if event.is_directory:
                     return
 
-                # Only trigger on changes to files in dist/ directory
-                if "/dist/" not in event.src_path:
+                # Only trigger on changes to files in `dist` directory
+                src = getattr(event, "src_path", None)
+                if not isinstance(src, str) or "dist" not in Path(src).parts:
                     return
 
                 logger.info(
