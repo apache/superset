@@ -254,6 +254,7 @@ export interface ListViewProps<T extends object = any> {
   renderCard?: (row: T & { loading: boolean }) => ReactNode;
   cardSortSelectOptions?: Array<CardSortSelectOption>;
   defaultViewMode?: ViewModeType;
+  forceViewMode?: ViewModeType;
   highlightRowId?: number;
   showThumbnails?: boolean;
   emptyState?: EmptyStateProps;
@@ -281,6 +282,7 @@ export function ListView<T extends object = any>({
   showThumbnails,
   cardSortSelectOptions,
   defaultViewMode = 'card',
+  forceViewMode,
   highlightRowId,
   emptyState,
   columnsForWrapText,
@@ -316,6 +318,7 @@ export function ListView<T extends object = any>({
     initialFilters: filters,
     renderCard: Boolean(renderCard),
     defaultViewMode,
+    forceViewMode,
   });
   const allowBulkTagActions = bulkTagResourceName && enableBulkTag;
   const filterable = Boolean(filters.length);

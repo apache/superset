@@ -815,12 +815,11 @@ function DashboardList(props: DashboardListProps) {
                 }
                 renderCard={renderCard}
                 defaultViewMode={
-                  // Force card view on mobile
-                  !isNotMobile ||
                   isFeatureEnabled(FeatureFlag.ListviewsDefaultCardView)
                     ? 'card'
                     : 'table'
                 }
+                forceViewMode={!isNotMobile ? 'card' : undefined}
                 enableBulkTag={enableBulkTag}
                 bulkTagResourceName="dashboard"
               />
