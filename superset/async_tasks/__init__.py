@@ -32,10 +32,15 @@ Example:
     @async_task(name="generate_thumbnail")
     def generate_chart_thumbnail(chart_id: int) -> None:
         ctx = get_context()  # Access ambient context
-        task = ctx.task
-        task.set_payload({"chart_id": chart_id})
-        ctx.update_task(task)
+
+        # Update progress and payload atomically
+        ctx.update_task(
+            progress=0.5,
+            payload={"chart_id": chart_id}
+        )
         # ... thumbnail generation logic ...
+
+        ctx.update_task(progress=1.0)
 
     # Schedule task with automatic deduplication
     task = generate_chart_thumbnail.schedule(

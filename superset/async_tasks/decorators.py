@@ -18,7 +18,7 @@
 
 import inspect
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Callable, Generic, ParamSpec, TypeVar
 
 from superset_core.api.async_tasks import TaskOptions, TaskStatus
@@ -157,10 +157,13 @@ class AsyncTaskWrapper(Generic[P]):
         ctx = TaskContext(task_uuid=task.uuid)
 
         # Update status to IN_PROGRESS
-        task = ctx.task
+        task = ctx._task
         task.status = TaskStatus.IN_PROGRESS.value
-        task.started_at = datetime.utcnow()
-        ctx.update_task(task)
+        task.started_at = datetime.now(timezone.utc)
+        from superset.extensions import db
+
+        db.session.merge(task)
+        db.session.commit()
 
         try:
             # Execute with ambient context
@@ -168,10 +171,13 @@ class AsyncTaskWrapper(Generic[P]):
                 self.func(*args, **kwargs)
 
             # Update to SUCCESS and return completed task
-            task = ctx.task
+            task = ctx._task
             task.status = TaskStatus.SUCCESS.value
-            task.ended_at = datetime.utcnow()
-            ctx.update_task(task)
+            task.ended_at = datetime.now(timezone.utc)
+            from superset.extensions import db
+
+            db.session.merge(task)
+            db.session.commit()
 
             logger.debug(
                 "Synchronous execution of task %s (uuid=%s) completed successfully",
@@ -184,11 +190,14 @@ class AsyncTaskWrapper(Generic[P]):
 
         except Exception as ex:
             # Update to FAILURE and return failed task
-            task = ctx.task
+            task = ctx._task
             task.status = TaskStatus.FAILURE.value
             task.error_message = str(ex)
-            task.ended_at = datetime.utcnow()
-            ctx.update_task(task)
+            task.ended_at = datetime.now(timezone.utc)
+            from superset.extensions import db
+
+            db.session.merge(task)
+            db.session.commit()
 
             logger.error(
                 "Synchronous execution of task %s (uuid=%s) failed: %s",

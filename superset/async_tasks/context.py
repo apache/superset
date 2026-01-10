@@ -35,11 +35,9 @@ class TaskContext(CoreTaskContext):
     """
     Concrete implementation of TaskContext for the Global Async Task Framework.
 
-    Tasks receive a TaskContext as their first parameter, which provides access
-    to the task entity and methods to update it in the metastore.
-
-    The context fetches the latest task state from the database on each access,
-    enabling tasks to check for cancellation and other status changes.
+    Provides write-only access to task state. Tasks use this context to update
+    their progress and payload, and check for cancellation. Tasks should not
+    need to read their own state - they are the source of state, not consumers.
     """
 
     def __init__(self, task_uuid: str) -> None:
@@ -52,13 +50,12 @@ class TaskContext(CoreTaskContext):
         self._cleanup_handlers: list[Callable[[], None]] = []
 
     @property
-    def task(self) -> AsyncTask:
+    def _task(self) -> AsyncTask:
         """
-        Get the latest task entity from the metastore.
+        Internal: Get the latest task entity from the metastore.
 
-        This property refetches the task from the database each time it's accessed,
-        ensuring you always have the most current status (e.g., for cancellation
-        checks).
+        This is an internal property used by the framework. Task implementations
+        should use update_task() to modify state, not access this property directly.
 
         :returns: AsyncTask entity with latest state
         :raises ValueError: If task is not found
@@ -69,15 +66,28 @@ class TaskContext(CoreTaskContext):
         return task
 
     @transaction()
-    def update_task(self, task: AsyncTask) -> None:
+    def update_task(
+        self,
+        progress: float | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
         """
-        Update the task entity in the metastore.
+        Update task progress and/or payload atomically.
 
-        Use this to persist changes to the task, such as payload updates or status
-        changes.
+        All parameters are optional. Payload is merged with existing data.
+        All updates occur in a single database transaction.
 
-        :param task: AsyncTask entity to update
+        :param progress: Progress value (0.0-1.0), or None to leave unchanged
+        :param payload: Payload data to merge (dict), or None to leave unchanged
         """
+        task = self._task
+
+        if progress is not None:
+            task.progress = progress
+
+        if payload is not None:
+            task.set_payload(payload)
+
         db.session.merge(task)
 
     def is_aborted(self) -> bool:
@@ -89,8 +99,7 @@ class TaskContext(CoreTaskContext):
 
         :returns: True if task is aborted, False otherwise
         """
-        task = self.task
-        return task.status == TaskStatus.ABORTED.value
+        return self._task.status == TaskStatus.ABORTED.value
 
     def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
         """
@@ -152,37 +161,3 @@ class TaskContext(CoreTaskContext):
         if self.is_aborted():
             return None
         return operation()
-
-    @transaction()
-    def update_progress(self, current: int, total: int, **extra: Any) -> bool:
-        """
-        Update task progress and check for abort.
-
-        Convenience method that combines progress update with abort check.
-        Updates the task payload with progress information and returns whether
-        execution should continue.
-
-        :param current: Current progress value
-        :param total: Total expected value
-        :param extra: Additional payload fields to update
-        :returns: True if should continue, False if aborted
-
-        Example:
-            for i, item in enumerate(items):
-                if not ctx.update_progress(i + 1, len(items)):
-                    return  # Aborted
-                process(item)
-        """
-        if self.is_aborted():
-            return False
-
-        task = self.task
-        task.set_payload(
-            {
-                "progress": f"{current}/{total}",
-                "progress_pct": (current / total * 100) if total > 0 else 0,
-                **extra,
-            }
-        )
-        db.session.merge(task)
-        return True
