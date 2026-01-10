@@ -42,6 +42,13 @@ const CardContainer = styled.div<{ showThumbnails?: boolean }>`
         ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
         : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
     };
+
+    /* Full-width cards on mobile */
+    @media (max-width: 767px) {
+      grid-template-columns: 1fr;
+      padding-left: ${theme.sizeUnit * 4}px;
+      padding-right: ${theme.sizeUnit * 4}px;
+    }
   `}
 `;
 
