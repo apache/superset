@@ -462,6 +462,7 @@ const DashboardBuilder = () => {
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
+    hasFilters,
   } = useNativeFilters();
 
   const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>(
@@ -521,24 +522,14 @@ const DashboardBuilder = () => {
   const renderDraggableContent = useCallback(
     ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
       <div>
-        {!hideDashboardHeader && <DashboardHeader />}
-        {/* Mobile filter button */}
-        {!isNotMobile && !editMode && nativeFiltersEnabled && (
-          <div
-            css={css`
-              padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
-              background: ${theme.colorBgBase};
-              border-bottom: 1px solid ${theme.colorBorderSecondary};
-            `}
-          >
-            <Button
-              buttonStyle="secondary"
-              onClick={() => setMobileFiltersOpen(true)}
-            >
-              <Icons.FilterOutlined iconSize="m" />
-              {t('Filters')}
-            </Button>
-          </div>
+        {!hideDashboardHeader && (
+          <DashboardHeader
+            onOpenMobileFilters={
+              !isNotMobile && nativeFiltersEnabled && hasFilters
+                ? () => setMobileFiltersOpen(true)
+                : undefined
+            }
+          />
         )}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
@@ -577,6 +568,7 @@ const DashboardBuilder = () => {
     ),
     [
       nativeFiltersEnabled,
+      hasFilters,
       filterBarOrientation,
       editMode,
       handleChangeTab,
@@ -753,13 +745,81 @@ const DashboardBuilder = () => {
       {!isNotMobile && nativeFiltersEnabled && (
         <Drawer
           title={t('Filters')}
-          placement="bottom"
+          placement="left"
           onClose={() => setMobileFiltersOpen(false)}
           open={mobileFiltersOpen}
-          height="70vh"
+          width="85vw"
+          styles={{
+            body: {
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            },
+          }}
+          css={css`
+            /* Mobile filter drawer overrides */
+
+            /* Hide the Header component (contains Actions title, settings, collapse button) */
+            /* Target the parent div that contains the collapse button using :has() */
+            div:has([data-test='filter-bar-collapse-button']) {
+              display: none !important;
+            }
+
+            /* Hide the collapsed bar */
+            [data-test='filter-bar-collapsable'] {
+              display: none !important;
+            }
+
+            /* Action buttons: side by side, not fixed position */
+            [data-test='filterbar-action-buttons'] {
+              position: relative !important;
+              flex-direction: row !important;
+              width: 100% !important;
+              padding: ${theme.sizeUnit * 4}px !important;
+              background: ${theme.colorBgContainer} !important;
+              border-top: 1px solid ${theme.colorBorderSecondary} !important;
+              gap: ${theme.sizeUnit * 2}px !important;
+              bottom: auto !important;
+              left: auto !important;
+
+              .filter-apply-button {
+                margin-bottom: 0 !important;
+                flex: 1;
+              }
+              .filter-clear-all-button {
+                flex: 1;
+              }
+            }
+
+            /* Remove border-right and make full width */
+            [data-test='filter-bar'] {
+              position: relative;
+              width: 100% !important;
+              height: 100%;
+              border-right: none;
+
+              & > .open {
+                position: relative;
+                width: 100% !important;
+                height: 100%;
+                min-height: 100%;
+                border-right: none !important;
+                border-bottom: none !important;
+                display: flex;
+                flex-direction: column;
+              }
+            }
+          `}
         >
           <FilterBar
-            orientation={FilterBarOrientation.Horizontal}
+            orientation={FilterBarOrientation.Vertical}
+            verticalConfig={{
+              filtersOpen: true,
+              toggleFiltersBar: () => {},
+              width: 300,
+              height: '100%',
+              offset: 0,
+            }}
             hidden={false}
           />
         </Drawer>
