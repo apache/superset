@@ -80,7 +80,6 @@ class TaskManager:
             execute_async_task.delay(
                 task_uuid=task.uuid,
                 task_type=task_type,
-                task_name=task_name,
                 args=args,
                 kwargs=kwargs,
             )
