@@ -129,7 +129,7 @@ const Tab = props => {
     state => state.dashboardState.tabActivationTimes?.[props.id] || 0,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
-  
+
   // Track which refresh we've already handled to prevent duplicates
   const handledRefreshRef = useRef(null);
 
@@ -142,11 +142,11 @@ const Tab = props => {
       ) {
         // Create a unique key for this specific refresh
         const refreshKey = `${props.id}-${lastRefreshTime}`;
-        
+
         // Only proceed if we haven't already handled this refresh
         if (handledRefreshRef.current !== refreshKey) {
           handledRefreshRef.current = refreshKey;
-          
+
           const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
           if (chartIds.length > 0) {
             // Use lazy load flag to avoid updating global refresh time
