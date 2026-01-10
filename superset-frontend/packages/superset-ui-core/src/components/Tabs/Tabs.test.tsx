@@ -20,25 +20,25 @@
 import { fireEvent, render } from '@superset-ui/core/spec';
 import Tabs, { EditableTabs, LineEditableTabs } from './Tabs';
 
-describe('Tabs', () => {
-  const defaultItems = [
-    {
-      key: '1',
-      label: 'Tab 1',
-      children: <div data-testid="tab1-content">Tab 1 content</div>,
-    },
-    {
-      key: '2',
-      label: 'Tab 2',
-      children: <div data-testid="tab2-content">Tab 2 content</div>,
-    },
-    {
-      key: '3',
-      label: 'Tab 3',
-      children: <div data-testid="tab3-content">Tab 3 content</div>,
-    },
-  ];
+const defaultItems = [
+  {
+    key: '1',
+    label: 'Tab 1',
+    children: <div data-testid="tab1-content">Tab 1 content</div>,
+  },
+  {
+    key: '2',
+    label: 'Tab 2',
+    children: <div data-testid="tab2-content">Tab 2 content</div>,
+  },
+  {
+    key: '3',
+    label: 'Tab 3',
+    children: <div data-testid="tab3-content">Tab 3 content</div>,
+  },
+];
 
+describe('Tabs', () => {
   describe('Basic Tabs', () => {
     it('should render tabs with default props', () => {
       const { getByText, container } = render(<Tabs items={defaultItems} />);
@@ -284,6 +284,7 @@ describe('Tabs', () => {
   describe('Styling Integration', () => {
     it('should accept and apply custom CSS classes', () => {
       const { container } = render(
+        // eslint-disable-next-line react/forbid-component-props
         <Tabs items={defaultItems} className="custom-tabs-class" />,
       );
 
@@ -295,6 +296,7 @@ describe('Tabs', () => {
     it('should accept and apply custom styles', () => {
       const customStyle = { minHeight: '200px' };
       const { container } = render(
+        // eslint-disable-next-line react/forbid-component-props
         <Tabs items={defaultItems} style={customStyle} />,
       );
 
@@ -303,4 +305,73 @@ describe('Tabs', () => {
       expect(tabsElement?.style?.minHeight).toBe('200px');
     });
   });
+});
+
+test('fullHeight prop renders component hierarchy correctly', () => {
+  const { container } = render(<Tabs items={defaultItems} fullHeight />);
+
+  const tabsElement = container.querySelector('.ant-tabs');
+  const contentHolder = container.querySelector('.ant-tabs-content-holder');
+  const content = container.querySelector('.ant-tabs-content');
+  const tabPane = container.querySelector('.ant-tabs-tabpane');
+
+  expect(tabsElement).toBeInTheDocument();
+  expect(contentHolder).toBeInTheDocument();
+  expect(content).toBeInTheDocument();
+  expect(tabPane).toBeInTheDocument();
+  expect(tabsElement?.contains(contentHolder as Node)).toBe(true);
+  expect(contentHolder?.contains(content as Node)).toBe(true);
+  expect(content?.contains(tabPane as Node)).toBe(true);
+});
+
+test('fullHeight prop maintains structure when content updates', () => {
+  const { container, rerender } = render(
+    <Tabs items={defaultItems} fullHeight />,
+  );
+
+  const initialTabsElement = container.querySelector('.ant-tabs');
+
+  const newItems = [
+    ...defaultItems,
+    {
+      key: '4',
+      label: 'Tab 4',
+      children: <div data-testid="tab4-content">New tab content</div>,
+    },
+  ];
+
+  rerender(<Tabs items={newItems} fullHeight />);
+
+  const updatedTabsElement = container.querySelector('.ant-tabs');
+  const updatedContentHolder = container.querySelector(
+    '.ant-tabs-content-holder',
+  );
+
+  expect(updatedTabsElement).toBeInTheDocument();
+  expect(updatedContentHolder).toBeInTheDocument();
+  expect(initialTabsElement).toBe(updatedTabsElement);
+});
+
+test('fullHeight prop works with allowOverflow to handle tall content', () => {
+  const { container } = render(
+    <Tabs items={defaultItems} fullHeight allowOverflow />,
+  );
+
+  const tabsElement = container.querySelector('.ant-tabs') as HTMLElement;
+  const contentHolder = container.querySelector(
+    '.ant-tabs-content-holder',
+  ) as HTMLElement;
+
+  expect(tabsElement).toBeInTheDocument();
+  expect(contentHolder).toBeInTheDocument();
+
+  // Verify overflow handling is not restricted
+  const holderStyles = window.getComputedStyle(contentHolder);
+  expect(holderStyles.overflow).not.toBe('hidden');
+});
+
+test('fullHeight prop handles empty items array', () => {
+  const { container } = render(<Tabs items={[]} fullHeight />);
+
+  expect(container.querySelector('.ant-tabs')).toBeInTheDocument();
 });

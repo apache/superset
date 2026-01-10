@@ -154,6 +154,10 @@ const VerticalFormItem = styled(StyledFormItem)<{
       flex-direction: column;
     `}
   }
+
+  .ant-col {
+    min-height: auto;
+  }
 `;
 
 const HorizontalFormItem = styled(StyledFormItem)<{

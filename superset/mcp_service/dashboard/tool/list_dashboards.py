@@ -23,11 +23,14 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from typing import TYPE_CHECKING
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
+
 from superset.mcp_service.dashboard.schemas import (
     DashboardFilter,
     DashboardInfo,
@@ -36,17 +39,16 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_dashboard_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
+# Minimal defaults for reduced token usage - users can request more via select_columns
 DEFAULT_DASHBOARD_COLUMNS = [
     "id",
     "dashboard_title",
     "slug",
     "uuid",
-    "published",
-    "changed_on",
-    "created_on",
 ]
 
 SORTABLE_DASHBOARD_COLUMNS = [
@@ -59,24 +61,54 @@ SORTABLE_DASHBOARD_COLUMNS = [
 ]
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool(tags=["core"])
+@parse_request(ListDashboardsRequest)
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
 ) -> DashboardList:
     """List dashboards with filtering and search. Returns dashboard metadata
-    including title, slug, and charts.
+    including title, slug, and UUID. Use select_columns to request additional fields.
 
     Sortable columns for order_column: id, dashboard_title, slug, published,
     changed_on, created_on
     """
+    await ctx.info(
+        "Listing dashboards: page=%s, page_size=%s, search=%s"
+        % (
+            request.page,
+            request.page_size,
+            request.search,
+        )
+    )
+    await ctx.debug(
+        "Dashboard listing filters: filters=%s, order_column=%s, order_direction=%s"
+        % (
+            len(request.filters),
+            request.order_column,
+            request.order_direction,
+        )
+    )
 
     from superset.daos.dashboard import DashboardDAO
+    from superset.mcp_service.common.schema_discovery import (
+        DASHBOARD_SORTABLE_COLUMNS,
+        get_all_column_names,
+        get_dashboard_columns,
+    )
+
+    # Get all column names dynamically from the model
+    all_columns = get_all_column_names(get_dashboard_columns())
+
+    def _serialize_dashboard(
+        obj: "Dashboard | None", cols: list[str] | None
+    ) -> DashboardInfo | None:
+        """Serialize dashboard object (field filtering handled by model_serializer)."""
+        return serialize_dashboard_object(obj)
 
     tool = ModelListCore(
         dao_class=DashboardDAO,
         output_schema=DashboardInfo,
-        item_serializer=lambda obj, cols: serialize_dashboard_object(obj),
+        item_serializer=_serialize_dashboard,
         filter_type=DashboardFilter,
         default_columns=DEFAULT_DASHBOARD_COLUMNS,
         search_columns=[
@@ -86,9 +118,12 @@ async def list_dashboards(
         ],
         list_field_name="dashboards",
         output_list_schema=DashboardList,
+        all_columns=all_columns,
+        sortable_columns=DASHBOARD_SORTABLE_COLUMNS,
         logger=logger,
     )
-    return tool.run_tool(
+
+    result = tool.run_tool(
         filters=request.filters,
         search=request.search,
         select_columns=request.select_columns,
@@ -97,3 +132,21 @@ async def list_dashboards(
         page=max(request.page - 1, 0),
         page_size=request.page_size,
     )
+    count = len(result.dashboards) if hasattr(result, "dashboards") else 0
+    total_pages = getattr(result, "total_pages", None)
+    await ctx.info(
+        "Dashboards listed successfully: count=%s, total_pages=%s"
+        % (count, total_pages)
+    )
+
+    # Apply field filtering via serialization context
+    # Use columns_requested from result (already resolved by ModelListCore)
+    columns_to_filter = result.columns_requested
+    await ctx.debug(
+        "Applying field filtering via serialization context: select_columns=%s"
+        % (columns_to_filter,)
+    )
+    filtered = result.model_dump(
+        mode="json", context={"select_columns": columns_to_filter}
+    )
+    return DashboardList.model_validate(filtered)

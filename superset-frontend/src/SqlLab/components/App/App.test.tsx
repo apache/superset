@@ -32,9 +32,11 @@ import {
   LOG_ACTIONS_SQLLAB_MONITOR_LOCAL_STORAGE_USAGE,
 } from 'src/logger/LogUtils';
 
-jest.mock('src/SqlLab/components/TabbedSqlEditors', () => () => (
-  <div data-test="mock-tabbed-sql-editors" />
+// eslint-disable-next-line react/display-name
+jest.mock('src/SqlLab/components/PopEditorTab', () => () => (
+  <div data-test="mock-pop-editor-tab" />
 ));
+// eslint-disable-next-line react/display-name
 jest.mock('src/SqlLab/components/QueryAutoRefresh', () => () => (
   <div data-test="mock-query-auto-refresh" />
 ));
@@ -68,7 +70,7 @@ describe('SqlLab App', () => {
   test('should render', () => {
     const { getByTestId } = render(<App />, { useRedux: true, store });
     expect(getByTestId('SqlLabApp')).toBeInTheDocument();
-    expect(getByTestId('mock-tabbed-sql-editors')).toBeInTheDocument();
+    expect(getByTestId('mock-pop-editor-tab')).toBeInTheDocument();
   });
 
   test('reset hotkey events on unmount', () => {

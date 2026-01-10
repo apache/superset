@@ -145,6 +145,8 @@ export {
 } from './ListViewCard';
 export { Loading, type LoadingProps } from './Loading';
 
+export { Progress, type ProgressProps } from './Progress';
+
 export { Skeleton, type SkeletonProps } from './Skeleton';
 
 export { Switch, type SwitchProps } from './Switch';

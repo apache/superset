@@ -31,6 +31,7 @@ import {
   setDatabases,
   addDangerToast,
   resetState,
+  type Database,
 } from 'src/SqlLab/actions/sqlLab';
 import { Button, EmptyState, Icons } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
@@ -48,7 +49,6 @@ import TableElement from '../TableElement';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
-  database?: DatabaseObject;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -69,10 +69,11 @@ const LeftBarStyles = styled.div`
   `}
 `;
 
-const SqlEditorLeftBar = ({
-  database,
-  queryEditorId,
-}: SqlEditorLeftBarProps) => {
+const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
+  const databases = useSelector<
+    SqlLabRootState,
+    SqlLabRootState['sqlLab']['databases']
+  >(({ sqlLab }) => sqlLab.databases);
   const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
     ({ sqlLab }) =>
       sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
@@ -85,6 +86,10 @@ const SqlEditorLeftBar = ({
     'schema',
     'tabViewId',
   ]);
+  const database = useMemo(
+    () => (queryEditor.dbId ? databases[queryEditor.dbId] : undefined),
+    [databases, queryEditor.dbId],
+  );
 
   const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
@@ -190,8 +195,8 @@ const SqlEditorLeftBar = ({
   );
 
   const handleDbList = useCallback(
-    (result: DatabaseObject) => {
-      dispatch(setDatabases(result));
+    (result: DatabaseObject[]) => {
+      dispatch(setDatabases(result as unknown as Database[]));
     },
     [dispatch],
   );

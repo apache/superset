@@ -83,8 +83,10 @@ import {
 } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { findPermission } from 'src/utils/findPermission';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { StreamingExportModal } from 'src/components/StreamingExportModal';
+import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
+import { makeUrl } from 'src/utils/pathUtils';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -102,12 +104,14 @@ export interface ResultSetProps {
   csv?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
+  height?: number;
   queryId: string;
   search?: boolean;
   showSql?: boolean;
   showSqlInline?: boolean;
   visualize?: boolean;
   defaultQueryLimit: number;
+  useFixedHeight?: boolean;
 }
 
 const ResultContainer = styled.div`
@@ -146,7 +150,6 @@ const ReturnedRows = styled.div`
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
-  padding-left: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 const ResultSetButtons = styled.div`
@@ -176,14 +179,20 @@ const ResultSet = ({
   csv = true,
   database = {},
   displayLimit,
+  height,
   queryId,
   search = true,
   showSql = false,
   showSqlInline = false,
   visualize = true,
   defaultQueryLimit,
+  useFixedHeight = false,
 }: ResultSetProps) => {
   const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
+  const streamingThreshold = useSelector(
+    (state: SqlLabRootState) =>
+      state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD || 1000,
+  );
   const query = useSelector(
     ({ sqlLab: { queries } }: SqlLabRootState) =>
       pick(queries[queryId], [
@@ -224,11 +233,20 @@ const ResultSet = ({
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
+  const [showStreamingModal, setShowStreamingModal] = useState(false);
 
   const history = useHistory();
   const dispatch = useDispatch();
   const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
   const { showConfirm, ConfirmModal } = useConfirmModal();
+
+  const { progress, startExport, resetExport, retryExport, cancelExport } =
+    useStreamingExport({
+      onComplete: () => {},
+      onError: error => {
+        addDangerToast(t('Export failed: %s', error));
+      },
+    });
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
     if (
@@ -300,7 +318,29 @@ const ResultSet = ({
   };
 
   const getExportCsvUrl = (clientId: string) =>
-    ensureAppRoot(`/api/v1/sqllab/export/${clientId}/`);
+    makeUrl(`/api/v1/sqllab/export/${clientId}/`);
+
+  const handleCloseStreamingModal = () => {
+    cancelExport();
+    setShowStreamingModal(false);
+    resetExport();
+  };
+
+  const shouldUseStreamingExport = () => {
+    const { rows, queryLimit, limitingFactor } = query;
+    const limit = queryLimit || query.results?.query?.limit;
+    const rowsCount = Math.min(rows || 0, query.results?.data?.length || 0);
+
+    let actualRowCount = rowsCount;
+
+    if (limitingFactor === LimitingFactor.NotLimited && rows) {
+      actualRowCount = rows;
+    } else if (limit) {
+      actualRowCount = Math.max(actualRowCount, limit);
+    }
+
+    return actualRowCount >= streamingThreshold;
+  };
 
   const renderControls = () => {
     if (search || visualize || csv) {
@@ -372,9 +412,27 @@ const ResultSet = ({
               <CopyStyledButton
                 buttonSize="small"
                 buttonStyle="secondary"
-                href={getExportCsvUrl(query.id)}
+                {...(!shouldUseStreamingExport() && {
+                  href: getExportCsvUrl(query.id),
+                })}
                 data-test="export-csv-button"
-                onClick={handleDownloadCsv}
+                onClick={e => {
+                  const useStreaming = shouldUseStreamingExport();
+
+                  if (useStreaming) {
+                    e.preventDefault();
+                    setShowStreamingModal(true);
+
+                    startExport({
+                      url: '/api/v1/sqllab/export_streaming/',
+                      payload: { client_id: query.id },
+                      exportType: 'csv',
+                      expectedRows: rows,
+                    });
+                  } else {
+                    handleDownloadCsv(e);
+                  }
+                }}
               >
                 <Icons.DownloadOutlined iconSize="m" /> {t('Download to CSV')}
               </CopyStyledButton>
@@ -657,6 +715,16 @@ const ResultSet = ({
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
         true,
       );
+
+      const tableProps = {
+        data,
+        queryId: query.id,
+        orderedColumnKeys: results.columns.map(col => col.column_name),
+        filterText: searchText,
+        expandedColumns,
+        allowHTML,
+      };
+
       return (
         <>
           <ResultContainer>
@@ -667,7 +735,6 @@ const ResultSet = ({
                   css={css`
                     display: flex;
                     justify-content: space-between;
-                    padding-left: ${theme.sizeUnit * 4}px;
                     align-items: center;
                     gap: ${GAP}px;
                   `}
@@ -700,66 +767,91 @@ const ResultSet = ({
                 {sql}
               </>
             )}
-            <div
-              css={css`
-                flex: 1 1 auto;
-                padding-left: ${theme.sizeUnit * 4}px;
-              `}
-            >
-              <AutoSizer disableWidth>
-                {({ height }) => (
-                  <ResultTable
-                    data={data}
-                    queryId={query.id}
-                    orderedColumnKeys={results.columns.map(
-                      col => col.column_name,
-                    )}
-                    height={height}
-                    filterText={searchText}
-                    expandedColumns={expandedColumns}
-                    allowHTML={allowHTML}
-                  />
-                )}
-              </AutoSizer>
-            </div>
+            {useFixedHeight && height !== undefined ? (
+              <ResultTable {...tableProps} height={height} />
+            ) : (
+              <div
+                css={css`
+                  flex: 1 1 auto;
+                `}
+              >
+                <AutoSizer disableWidth>
+                  {({ height: autoHeight }) => (
+                    <ResultTable {...tableProps} height={autoHeight} />
+                  )}
+                </AutoSizer>
+              </div>
+            )}
           </ResultContainer>
+          <StreamingExportModal
+            visible={showStreamingModal}
+            onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
+            progress={progress}
+          />
           {ConfirmModal}
         </>
       );
     }
     if (data && data.length === 0) {
-      return <Alert type="warning" message={t('The query returned no data')} />;
+      return (
+        <>
+          <Alert type="warning" message={t('The query returned no data')} />
+          <StreamingExportModal
+            visible={showStreamingModal}
+            onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
+            progress={progress}
+          />
+        </>
+      );
     }
   }
 
   if (query.cached || (query.state === QueryState.Success && !query.results)) {
     if (query.isDataPreview) {
       return (
-        <Button
-          buttonSize="small"
-          buttonStyle="primary"
-          onClick={() =>
-            dispatch(
-              reFetchQueryResults({
-                ...query,
-                isDataPreview: true,
-              }),
-            )
-          }
-        >
-          {t('Fetch data preview')}
-        </Button>
+        <>
+          <Button
+            buttonSize="small"
+            buttonStyle="primary"
+            onClick={() =>
+              dispatch(
+                reFetchQueryResults({
+                  ...query,
+                  isDataPreview: true,
+                }),
+              )
+            }
+          >
+            {t('Fetch data preview')}
+          </Button>
+          <StreamingExportModal
+            visible={showStreamingModal}
+            onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
+            progress={progress}
+          />
+        </>
       );
     }
     if (query.resultsKey) {
       return (
-        <Button
-          buttonSize="small"
-          buttonStyle="primary"
-          onClick={() => fetchResults(query)}
-        >
-          {t('Refetch results')}
-        </Button>
+        <>
+          <Button
+            buttonSize="small"
+            buttonStyle="primary"
+            onClick={() => fetchResults(query)}
+          >
+            {t('Refetch results')}
+          </Button>
+          <StreamingExportModal
+            visible={showStreamingModal}
+            onCancel={handleCloseStreamingModal}
+            onRetry={retryExport}
+            progress={progress}
+          />
+        </>
       );
     }
   }
@@ -774,15 +866,24 @@ const ResultSet = ({
   const progressMsg = query?.extra?.progress ?? null;
 
   return (
-    <ResultlessStyles>
-      <div>{!progressBar && <Loading position="normal" />}</div>
-      {/* show loading bar whenever progress bar is completed but needs time to render */}
-      <div>{query.progress === 100 && <Loading position="normal" />}</div>
-      <QueryStateLabel query={query} />
-      <div>{progressMsg && <Alert type="success" message={progressMsg} />}</div>
-      <div>{query.progress !== 100 && progressBar}</div>
-      {trackingUrl && <div>{trackingUrl}</div>}
-    </ResultlessStyles>
+    <>
+      <ResultlessStyles>
+        <div>{!progressBar && <Loading position="normal" />}</div>
+        {/* show loading bar whenever progress bar is completed but needs time to render */}
+        <div>{query.progress === 100 && <Loading position="normal" />}</div>
+        <QueryStateLabel query={query} />
+        <div>
+          {progressMsg && <Alert type="success" message={progressMsg} />}
+        </div>
+        <div>{query.progress !== 100 && progressBar}</div>
+        {trackingUrl && <div>{trackingUrl}</div>}
+      </ResultlessStyles>
+      <StreamingExportModal
+        visible={showStreamingModal}
+        onCancel={handleCloseStreamingModal}
+        progress={progress}
+      />
+    </>
   );
 };
 

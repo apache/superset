@@ -31,6 +31,7 @@ const propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
       country: PropTypes.string,
+      code: PropTypes.string,
       latitude: PropTypes.number,
       longitude: PropTypes.number,
       name: PropTypes.string,
@@ -116,7 +117,7 @@ function WorldMap(element, props) {
     const selected = Object.values(filterState.selectedValues || {});
     const key = source.id || source.country;
     const country =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
 
     if (!country) {
       return undefined;
@@ -170,7 +171,7 @@ function WorldMap(element, props) {
     pointerEvent.preventDefault();
     const key = source.id || source.country;
     const val =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {

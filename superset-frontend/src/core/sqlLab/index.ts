@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sqlLab as sqlLabType } from '@apache-superset/core';
+import { sqlLab as sqlLabApi } from '@apache-superset/core';
 import {
   QUERY_FAILED,
   QUERY_SUCCESS,
   QUERY_EDITOR_SETDB,
+  QUERY_EDITOR_SET_SCHEMA,
+  QUERY_EDITOR_SET_TITLE,
+  REMOVE_QUERY_EDITOR,
+  SET_ACTIVE_QUERY_EDITOR,
+  SET_ACTIVE_SOUTHPANE_TAB,
   querySuccess,
   startQuery,
   START_QUERY,
@@ -31,7 +36,7 @@ import {
 import { RootState, store } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { Disposable } from '../models';
+import { Database, Disposable } from '../models';
 import { createActionListener } from '../utils';
 import {
   Panel,
@@ -42,7 +47,7 @@ import {
   QueryErrorResultContext,
 } from './models';
 
-const { CTASMethod } = sqlLabType;
+const { CTASMethod } = sqlLabApi;
 
 const getSqlLabState = () => {
   const { sqlLab }: { sqlLab: SqlLabRootState['sqlLab'] } = store.getState();
@@ -55,8 +60,14 @@ const activeEditorId = () => {
 };
 
 const findQueryEditor = (editorId: string) => {
-  const { queryEditors } = getSqlLabState();
-  return queryEditors.find(editor => editor.id === editorId);
+  const { queryEditors, unsavedQueryEditor } = getSqlLabState();
+  const editor = queryEditors.find(qe => qe.id === editorId);
+  if (!editor) return undefined;
+  // Merge unsaved changes
+  if (unsavedQueryEditor?.id === editorId) {
+    return { ...editor, ...unsavedQueryEditor };
+  }
+  return editor;
 };
 
 const createTab = (
@@ -73,8 +84,21 @@ const createTab = (
   return new Tab(id, name, editor, panels);
 };
 
-const notImplemented = (): never => {
-  throw new Error('Not implemented yet');
+const getTab = (id: string): Tab | undefined => {
+  const queryEditor = findQueryEditor(id);
+  if (queryEditor && queryEditor.dbId !== undefined) {
+    const { name, sql, dbId, catalog, schema } = queryEditor;
+    return createTab(
+      id,
+      name,
+      sql,
+      dbId,
+      catalog ?? undefined,
+      schema ?? undefined,
+      undefined,
+    );
+  }
+  return undefined;
 };
 
 function extractBaseData(action: any): {
@@ -127,28 +151,32 @@ function createQueryResultContext(
   action: ReturnType<typeof querySuccess>,
 ): QueryResultContext {
   const { baseParams, options } = extractBaseData(action);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, tab] = baseParams;
   const { results } = action;
+  const { query_id: queryId, columns, data, query } = results;
   const {
-    query_id: queryId,
-    columns,
-    data,
-    query: {
-      endDttm,
-      executedSql,
-      tempTable: resultTempTable,
-      limit,
-      limitingFactor,
-    },
-  } = results;
+    endDttm,
+    executedSql,
+    tempTable: resultTempTable,
+    limit,
+    limitingFactor,
+  } = query;
+
+  // Map columns to ensure required fields are present
+  const mappedColumns = columns.map(col => ({
+    ...col,
+    name: col.name || col.column_name,
+    type: col.type ?? 'STRING', // Ensure type is not null
+  }));
 
   return new QueryResultContext(
     ...baseParams,
-    queryId,
+    queryId ?? 0,
     executedSql ?? tab.editor.content,
-    columns,
+    mappedColumns,
     data,
-    endDttm,
+    endDttm ?? 0,
     {
       ...options,
       tempTable: resultTempTable || options.tempTable,
@@ -165,29 +193,40 @@ function createQueryErrorContext(
   const { msg: errorMessage, errors, query } = action;
   const { endDttm, executedSql, query_id: queryId } = query;
 
-  return new QueryErrorResultContext(...baseParams, errorMessage, errors, {
-    ...options,
-    queryId,
-    executedSql: executedSql ?? null,
-    endDttm: endDttm ?? Date.now(),
-  });
+  // Map errors to ensure 'extra' is not null (required by QueryErrorResultContext)
+  const mappedErrors = (errors ?? []).map(err => ({
+    ...err,
+    extra: err.extra ?? {},
+  }));
+
+  return new QueryErrorResultContext(
+    ...baseParams,
+    errorMessage,
+    mappedErrors,
+    {
+      ...options,
+      queryId,
+      executedSql: executedSql ?? undefined,
+      endDttm: endDttm ?? Date.now(),
+    },
+  );
 }
 
-const getCurrentTab: typeof sqlLabType.getCurrentTab = () => {
-  const queryEditor = findQueryEditor(activeEditorId());
-  if (queryEditor) {
-    const { id, name, sql, dbId, catalog, schema } = queryEditor;
-    return createTab(
-      id,
-      name,
-      sql,
-      dbId!,
-      catalog ?? undefined,
-      schema ?? undefined,
-      undefined,
-    );
-  }
-  return undefined;
+const getCurrentTab: typeof sqlLabApi.getCurrentTab = () =>
+  getTab(activeEditorId());
+
+const getTabs: typeof sqlLabApi.getTabs = () => {
+  const { queryEditors } = getSqlLabState();
+  return queryEditors
+    .map(qe => getTab(qe.id))
+    .filter((tab): tab is Tab => tab !== undefined);
+};
+
+const getDatabases: typeof sqlLabApi.getDatabases = () => {
+  const { databases } = getSqlLabState();
+  return Object.values(databases).map(
+    db => new Database(db.id, db.database_name, [], []),
+  );
 };
 
 const getActiveEditorImmutableId = () => {
@@ -225,8 +264,14 @@ const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
   };
 };
 
-const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
-  listener: (queryContext: sqlLabType.QueryContext) => void,
+// Simple predicate for global events not tied to a specific tab
+const globalPredicate =
+  (actionType: string): AnyListenerPredicate<RootState> =>
+  action =>
+    action.type === actionType;
+
+const onDidQueryRun: typeof sqlLabApi.onDidQueryRun = (
+  listener: (queryContext: sqlLabApi.QueryContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -236,8 +281,8 @@ const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
     thisArgs,
   );
 
-const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
-  listener: (queryResultContext: sqlLabType.QueryResultContext) => void,
+const onDidQuerySuccess: typeof sqlLabApi.onDidQuerySuccess = (
+  listener: (queryResultContext: sqlLabApi.QueryResultContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -248,8 +293,8 @@ const onDidQuerySuccess: typeof sqlLabType.onDidQuerySuccess = (
     thisArgs,
   );
 
-const onDidQueryStop: typeof sqlLabType.onDidQueryStop = (
-  listener: (queryContext: sqlLabType.QueryContext) => void,
+const onDidQueryStop: typeof sqlLabApi.onDidQueryStop = (
+  listener: (queryContext: sqlLabApi.QueryContext) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
@@ -259,9 +304,9 @@ const onDidQueryStop: typeof sqlLabType.onDidQueryStop = (
     thisArgs,
   );
 
-const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
+const onDidQueryFail: typeof sqlLabApi.onDidQueryFail = (
   listener: (
-    queryErrorResultContext: sqlLabType.QueryErrorResultContext,
+    queryErrorResultContext: sqlLabApi.QueryErrorResultContext,
   ) => void,
   thisArgs?: any,
 ): Disposable =>
@@ -273,7 +318,7 @@ const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
     thisArgs,
   );
 
-const onDidChangeEditorDatabase: typeof sqlLabType.onDidChangeEditorDatabase = (
+const onDidChangeEditorDatabase: typeof sqlLabApi.onDidChangeEditorDatabase = (
   listener: (e: number) => void,
   thisArgs?: any,
 ): Disposable =>
@@ -285,41 +330,68 @@ const onDidChangeEditorDatabase: typeof sqlLabType.onDidChangeEditorDatabase = (
     thisArgs,
   );
 
-const onDidChangeEditorContent: typeof sqlLabType.onDidChangeEditorContent =
-  notImplemented;
-const onDidChangeEditorCatalog: typeof sqlLabType.onDidChangeEditorCatalog =
-  notImplemented;
-const onDidChangeEditorSchema: typeof sqlLabType.onDidChangeEditorSchema =
-  notImplemented;
-const onDidChangeEditorTable: typeof sqlLabType.onDidChangeEditorTable =
-  notImplemented;
-const onDidClosePanel: typeof sqlLabType.onDidClosePanel = notImplemented;
-const onDidChangeActivePanel: typeof sqlLabType.onDidChangeActivePanel =
-  notImplemented;
-const onDidChangeTabTitle: typeof sqlLabType.onDidChangeTabTitle =
-  notImplemented;
-const getDatabases: typeof sqlLabType.getDatabases = notImplemented;
-const getTabs: typeof sqlLabType.getTabs = notImplemented;
-const onDidCloseTab: typeof sqlLabType.onDidCloseTab = notImplemented;
-const onDidChangeActiveTab: typeof sqlLabType.onDidChangeActiveTab =
-  notImplemented;
-const onDidRefreshDatabases: typeof sqlLabType.onDidRefreshDatabases =
-  notImplemented;
-const onDidRefreshCatalogs: typeof sqlLabType.onDidRefreshCatalogs =
-  notImplemented;
-const onDidRefreshSchemas: typeof sqlLabType.onDidRefreshSchemas =
-  notImplemented;
-const onDidRefreshTables: typeof sqlLabType.onDidRefreshTables = notImplemented;
+const onDidCloseTab: typeof sqlLabApi.onDidCloseTab = (
+  listener: (tab: sqlLabApi.Tab) => void,
+  thisArgs?: any,
+): Disposable =>
+  createActionListener(
+    predicate(REMOVE_QUERY_EDITOR),
+    listener,
+    (action: { type: string; queryEditor: { id: string } }) =>
+      getTab(action.queryEditor.id)!,
+    thisArgs,
+  );
 
-export const sqlLab: typeof sqlLabType = {
+const onDidChangeActiveTab: typeof sqlLabApi.onDidChangeActiveTab = (
+  listener: (tab: sqlLabApi.Tab) => void,
+  thisArgs?: any,
+): Disposable =>
+  createActionListener(
+    predicate(SET_ACTIVE_QUERY_EDITOR),
+    listener,
+    (action: { type: string; queryEditor: { id: string } }) =>
+      getTab(action.queryEditor.id)!,
+    thisArgs,
+  );
+
+const onDidChangeEditorSchema: typeof sqlLabApi.onDidChangeEditorSchema = (
+  listener: (schema: string) => void,
+  thisArgs?: any,
+): Disposable =>
+  createActionListener(
+    predicate(QUERY_EDITOR_SET_SCHEMA),
+    listener,
+    (action: { type: string; schema: string }) => action.schema,
+    thisArgs,
+  );
+
+const onDidChangeActivePanel: typeof sqlLabApi.onDidChangeActivePanel = (
+  listener: (panel: sqlLabApi.Panel) => void,
+  thisArgs?: any,
+): Disposable =>
+  createActionListener(
+    globalPredicate(SET_ACTIVE_SOUTHPANE_TAB),
+    listener,
+    (action: { type: string; tabId: string }) => new Panel(action.tabId),
+    thisArgs,
+  );
+
+const onDidChangeTabTitle: typeof sqlLabApi.onDidChangeTabTitle = (
+  listener: (title: string) => void,
+  thisArgs?: any,
+): Disposable =>
+  createActionListener(
+    predicate(QUERY_EDITOR_SET_TITLE),
+    listener,
+    (action: { type: string; name: string }) => action.name,
+    thisArgs,
+  );
+
+export const sqlLab: typeof sqlLabApi = {
   CTASMethod,
   getCurrentTab,
-  onDidChangeEditorContent,
   onDidChangeEditorDatabase,
-  onDidChangeEditorCatalog,
   onDidChangeEditorSchema,
-  onDidChangeEditorTable,
-  onDidClosePanel,
   onDidChangeActivePanel,
   onDidChangeTabTitle,
   onDidQueryRun,
@@ -330,10 +402,6 @@ export const sqlLab: typeof sqlLabType = {
   getTabs,
   onDidCloseTab,
   onDidChangeActiveTab,
-  onDidRefreshDatabases,
-  onDidRefreshCatalogs,
-  onDidRefreshSchemas,
-  onDidRefreshTables,
 };
 
 // Export all models

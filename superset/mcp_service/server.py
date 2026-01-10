@@ -82,16 +82,45 @@ def run_server(
         factory_config = get_mcp_factory_config()
         mcp_instance = create_mcp_app(**factory_config)
     else:
-        # Use default initialization
+        # Use default initialization with auth from Flask config
         logging.info("Creating MCP app with default configuration...")
-        mcp_instance = init_fastmcp_server()
+        from superset.mcp_service.caching import create_response_caching_middleware
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        flask_app = get_flask_app()
+
+        # Get auth factory from config and create auth provider
+        auth_provider = None
+        auth_factory = flask_app.config.get("MCP_AUTH_FACTORY")
+        if auth_factory:
+            try:
+                auth_provider = auth_factory(flask_app)
+                logging.info(
+                    "Auth provider created: %s",
+                    type(auth_provider).__name__ if auth_provider else "None",
+                )
+            except Exception as e:
+                logging.error("Failed to create auth provider: %s", e)
+
+        # Build middleware list
+        middleware_list = []
+        caching_middleware = create_response_caching_middleware()
+        if caching_middleware:
+            middleware_list.append(caching_middleware)
+
+        mcp_instance = init_fastmcp_server(
+            auth=auth_provider,
+            middleware=middleware_list or None,
+        )
 
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
         os.environ[env_key] = "1"
         try:
             logging.info("Starting FastMCP on %s:%s", host, port)
-            mcp_instance.run(transport="streamable-http", host=host, port=port)
+            mcp_instance.run(
+                transport="streamable-http", host=host, port=port, stateless_http=True
+            )
         except Exception as e:
             logging.error("FastMCP failed: %s", e)
             os.environ.pop(env_key, None)

@@ -28,8 +28,8 @@ from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
-from jinja2 import DebugUndefined, Environment, TemplateSyntaxError
-from jinja2.exceptions import SecurityError, UndefinedError
+from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
+from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
@@ -46,6 +46,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.sql.parse import Table
+from superset.superset_typing import Column, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
     AdhocFilterClause,
@@ -63,6 +64,13 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
+
+
+class UndefinedTemplateFunctionException(SupersetTemplateException):
+    """Raised when an undefined function-like Jinja identifier is encountered."""
+
+    pass
+
 
 NONE_TYPE = type(None).__name__
 ALLOWED_TYPES = (
@@ -767,6 +775,14 @@ class BaseTemplateProcessor:
             raise SupersetTemplateException(
                 "Infinite recursion detected in template"
             ) from ex
+        except UndefinedError as ex:
+            match = re.search(r'["\']([^"\']+)["\']\s+is undefined', str(ex))
+            undefined_name = match.group(1) if match else None
+            if undefined_name and re.search(
+                r"\{\{\s*(?:[\w\.]*\.)?" + re.escape(undefined_name) + r"\s*\(", sql
+            ):
+                raise UndefinedTemplateFunctionException(str(ex)) from ex
+            raise
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
@@ -1007,11 +1023,11 @@ def dataset_macro(
 
     columns = columns or [column.column_name for column in dataset.columns]
     metrics = [metric.metric_name for metric in dataset.metrics]
-    query_obj = {
+    query_obj: QueryObjectDict = {
         "is_timeseries": False,
         "filter": [],
         "metrics": metrics if include_metrics else None,
-        "columns": columns,
+        "columns": cast(list[Column], columns),
         "from_dttm": from_dttm,
         "to_dttm": to_dttm,
     }

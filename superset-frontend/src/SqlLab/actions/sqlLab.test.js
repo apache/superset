@@ -170,7 +170,16 @@ describe('async actions', () => {
   describe('formatQuery', () => {
     const formatQueryEndpoint = 'glob:*/api/v1/sqllab/format_sql/';
     const expectedSql = 'SELECT 1';
-    fetchMock.post(formatQueryEndpoint, { result: expectedSql });
+
+    beforeEach(() => {
+      fetchMock.post(
+        formatQueryEndpoint,
+        { result: expectedSql },
+        {
+          overwriteRoutes: true,
+        },
+      );
+    });
 
     test('posts to the correct url', async () => {
       const store = mockStore(initialState);
@@ -180,6 +189,190 @@ describe('async actions', () => {
       );
       expect(store.getActions()[0].type).toBe(actions.QUERY_EDITOR_SET_SQL);
       expect(store.getActions()[0].sql).toBe(expectedSql);
+    });
+
+    test('sends only sql in request body when no dbId or templateParams', async () => {
+      const queryEditorWithoutExtras = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM table',
+        dbId: null,
+        templateParams: null,
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [queryEditorWithoutExtras],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      store.dispatch(actions.formatQuery(queryEditorWithoutExtras));
+
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+
+      const call = fetchMock.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call[1].body);
+
+      expect(body).toEqual({ sql: 'SELECT * FROM table' });
+      expect(body.database_id).toBeUndefined();
+      expect(body.template_params).toBeUndefined();
+    });
+
+    test('includes database_id in request when dbId is provided', async () => {
+      const queryEditorWithDb = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM table',
+        dbId: 5,
+        templateParams: null,
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [queryEditorWithDb],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      store.dispatch(actions.formatQuery(queryEditorWithDb));
+
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+
+      const call = fetchMock.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call[1].body);
+
+      expect(body).toEqual({
+        sql: 'SELECT * FROM table',
+        database_id: 5,
+      });
+    });
+
+    test('includes template_params as string when provided as string', async () => {
+      const queryEditorWithTemplateString = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM table WHERE id = {{ user_id }}',
+        dbId: 5,
+        templateParams: '{"user_id": 123}',
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [queryEditorWithTemplateString],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      store.dispatch(actions.formatQuery(queryEditorWithTemplateString));
+
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+
+      const call = fetchMock.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call[1].body);
+
+      expect(body).toEqual({
+        sql: 'SELECT * FROM table WHERE id = {{ user_id }}',
+        database_id: 5,
+        template_params: '{"user_id": 123}',
+      });
+    });
+
+    test('stringifies template_params when provided as object', async () => {
+      const queryEditorWithTemplateObject = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM table WHERE id = {{ user_id }}',
+        dbId: 5,
+        templateParams: { user_id: 123, status: 'active' },
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [queryEditorWithTemplateObject],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      store.dispatch(actions.formatQuery(queryEditorWithTemplateObject));
+
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+
+      const call = fetchMock.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call[1].body);
+
+      expect(body).toEqual({
+        sql: 'SELECT * FROM table WHERE id = {{ user_id }}',
+        database_id: 5,
+        template_params: '{"user_id":123,"status":"active"}',
+      });
+    });
+
+    test('dispatches QUERY_EDITOR_SET_SQL with formatted result', async () => {
+      const formattedSql = 'SELECT\n  *\nFROM\n  table';
+      fetchMock.post(
+        formatQueryEndpoint,
+        { result: formattedSql },
+        {
+          overwriteRoutes: true,
+        },
+      );
+
+      const queryEditorToFormat = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM table',
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [queryEditorToFormat],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      await store.dispatch(actions.formatQuery(queryEditorToFormat));
+
+      const dispatchedActions = store.getActions();
+      expect(dispatchedActions).toHaveLength(1);
+      expect(dispatchedActions[0].type).toBe(actions.QUERY_EDITOR_SET_SQL);
+      expect(dispatchedActions[0].sql).toBe(formattedSql);
+    });
+
+    test('uses up-to-date query editor state from store', async () => {
+      const outdatedQueryEditor = {
+        ...defaultQueryEditor,
+        sql: 'OLD SQL',
+        dbId: 1,
+      };
+      const upToDateQueryEditor = {
+        ...defaultQueryEditor,
+        sql: 'SELECT * FROM updated_table',
+        dbId: 10,
+      };
+      const state = {
+        sqlLab: {
+          queryEditors: [upToDateQueryEditor],
+          unsavedQueryEditor: {},
+        },
+      };
+      const store = mockStore(state);
+
+      // Pass outdated query editor, but expect the function to use the up-to-date one from store
+      store.dispatch(actions.formatQuery(outdatedQueryEditor));
+
+      await waitFor(() =>
+        expect(fetchMock.calls(formatQueryEndpoint)).toHaveLength(1),
+      );
+
+      const call = fetchMock.calls(formatQueryEndpoint)[0];
+      const body = JSON.parse(call[1].body);
+
+      expect(body.sql).toBe('SELECT * FROM updated_table');
+      expect(body.database_id).toBe(10);
     });
   });
 
@@ -741,6 +934,10 @@ describe('async actions', () => {
     fetchMock.delete(updateTableSchemaEndpoint, {});
     fetchMock.post(updateTableSchemaEndpoint, JSON.stringify({ id: 1 }));
 
+    const updateTableSchemaExpandedEndpoint =
+      'glob:**/tableschemaview/*/expanded';
+    fetchMock.post(updateTableSchemaExpandedEndpoint, {});
+
     const getTableMetadataEndpoint =
       'glob:**/api/v1/database/*/table_metadata/*';
     fetchMock.get(getTableMetadataEndpoint, {});
@@ -1218,10 +1415,10 @@ describe('async actions', () => {
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('expandTable', () => {
-      test('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend when initialized', () => {
         expect.assertions(2);
 
-        const table = { id: 1 };
+        const table = { id: 1, initialized: true };
         const store = mockStore({});
         const expectedActions = [
           {
@@ -1231,17 +1428,108 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.expandTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(1);
+        });
+      });
+
+      test('does not call backend when table is not initialized', () => {
+        expect.assertions(2);
+
+        const table = { id: 'yVJPtuSackF', initialized: false };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.EXPAND_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.expandTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          // Check all POST calls to find the expanded endpoint
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+        });
+      });
+
+      test('does not call backend when initialized is undefined', () => {
+        expect.assertions(2);
+
+        const table = { id: 'yVJPtuSackF' };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.EXPAND_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.expandTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          // Check all POST calls to find the expanded endpoint
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+        });
+      });
+
+      test('does not call backend when feature flag is off', () => {
+        expect.assertions(2);
+
+        isFeatureEnabled.mockImplementation(
+          feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
+        );
+
+        const table = { id: 1, initialized: true };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.EXPAND_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.expandTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          // Check all POST calls to find the expanded endpoint
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+          isFeatureEnabled.mockRestore();
         });
       });
     });
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('collapseTable', () => {
-      test('updates the table schema state in the backend', () => {
+      test('updates the table schema state in the backend when initialized', () => {
         expect.assertions(2);
 
-        const table = { id: 1 };
+        const table = { id: 1, initialized: true };
         const store = mockStore({});
         const expectedActions = [
           {
@@ -1251,7 +1539,95 @@ describe('async actions', () => {
         ];
         return store.dispatch(actions.collapseTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(1);
+        });
+      });
+
+      test('does not call backend when table is not initialized', () => {
+        expect.assertions(2);
+
+        const table = { id: 'yVJPtuSackF', initialized: false };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.COLLAPSE_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.collapseTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+        });
+      });
+
+      test('does not call backend when initialized is undefined', () => {
+        expect.assertions(2);
+
+        const table = { id: 'yVJPtuSackF' };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.COLLAPSE_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.collapseTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+        });
+      });
+
+      test('does not call backend when feature flag is off', () => {
+        expect.assertions(2);
+
+        isFeatureEnabled.mockImplementation(
+          feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
+        );
+
+        const table = { id: 1, initialized: true };
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.COLLAPSE_TABLE,
+            table,
+          },
+        ];
+        return store.dispatch(actions.collapseTable(table)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          const expandedCalls = fetchMock
+            .calls()
+            .filter(
+              call =>
+                call[0] &&
+                call[0].includes('/tableschemaview/') &&
+                call[0].includes('/expanded'),
+            );
+          expect(expandedCalls).toHaveLength(0);
+          isFeatureEnabled.mockRestore();
         });
       });
     });

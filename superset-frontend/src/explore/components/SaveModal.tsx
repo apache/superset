@@ -46,6 +46,10 @@ import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  removeChartState,
+  updateChartState,
+} from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
 
 // Session storage key for recent dashboard
@@ -176,6 +180,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   async saveOrOverwrite(gotodash: boolean) {
     this.setState({ isLoading: true });
+    this.props.dispatch(updateChartState(this.props.form_data?.table_state));
 
     //  Create or retrieve dashboard
     type DashboardGetResponse = {
@@ -276,6 +281,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
       // Go to new dashboard url
       if (gotodash && dashboard) {
+        this.props.dispatch(removeChartState(value.id));
         this.props.history.push(dashboard.url);
         return;
       }

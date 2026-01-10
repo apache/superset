@@ -76,9 +76,11 @@ from superset.extensions import async_query_manager, cache_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
-from superset.superset_typing import FlaskResponse
+from superset.superset_typing import (
+    ExplorableData,
+    FlaskResponse,
+)
 from superset.tasks.utils import get_current_user
 from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
@@ -528,13 +530,14 @@ class Superset(BaseSupersetView):
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         force = request.args.get("force") in {"force", "1", "true"}
-        dummy_datasource_data: dict[str, Any] = {
-            "type": datasource_type,
+        dummy_datasource_data: ExplorableData = {
+            "type": datasource_type or "unknown",
             "name": datasource_name,
             "columns": [],
             "metrics": [],
             "database": {"id": 0, "backend": ""},
         }
+        datasource_data: ExplorableData
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
         except (SupersetException, SQLAlchemyError):
@@ -542,8 +545,6 @@ class Superset(BaseSupersetView):
 
         if datasource:
             datasource_data["owners"] = datasource.owners_data
-            if isinstance(datasource, Query):
-                datasource_data["columns"] = datasource.columns
 
         bootstrap_data = {
             "can_add": slice_add_perm,

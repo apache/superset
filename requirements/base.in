@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-urllib3==2.5.0
+urllib3>=2.6.0,<3.0.0
 werkzeug>=3.0.1
 numexpr>=2.9.0
 
@@ -36,3 +36,9 @@ marshmallow-sqlalchemy>=1.3.0,<1.4.1
 
 # needed for python 3.12 support
 openapi-schema-validator>=0.6.3
+
+# Pin setuptools <81 until all dependencies migrate from pkg_resources to importlib.metadata
+# pkg_resources is deprecated and will be removed in setuptools 81+ (around 2025-11-30)
+# Known affected packages: Preset's 'clients' package
+# See docs/docs/contributing/pkg-resources-migration.md for details
+setuptools<81

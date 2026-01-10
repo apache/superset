@@ -56,10 +56,10 @@ export const VizTile = ({
     setShowTooltip(
       Boolean(
         !isTransitioning &&
-          (!isActive ||
-            (chartNameRef.current &&
-              chartNameRef.current.scrollWidth >
-                chartNameRef.current.clientWidth)),
+        (!isActive ||
+          (chartNameRef.current &&
+            chartNameRef.current.scrollWidth >
+              chartNameRef.current.clientWidth)),
       ),
     );
   }, [isActive, isTransitioning]);
@@ -137,7 +137,7 @@ export const VizTile = ({
             font-size: ${theme.fontSizeSM}px;
             min-width: 0;
             padding-right: ${theme.sizeUnit}px;
-            line-height: 1;
+            line-height: 1.5;
           `}
           ref={chartNameRef}
         >

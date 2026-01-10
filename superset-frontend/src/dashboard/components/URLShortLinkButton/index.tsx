@@ -69,7 +69,7 @@ export default function URLShortLinkButton({
         chartStates &&
         Object.keys(chartStates).length > 0;
 
-      const url = await getDashboardPermalink({
+      const result = await getDashboardPermalink({
         dashboardId,
         dataMask,
         activeTabs,
@@ -77,7 +77,9 @@ export default function URLShortLinkButton({
         chartStates: includeChartState ? chartStates : undefined,
         includeChartState,
       });
-      setShortUrl(url);
+      if (result?.url) {
+        setShortUrl(result.url);
+      }
     } catch (error) {
       if (error) {
         addDangerToast(

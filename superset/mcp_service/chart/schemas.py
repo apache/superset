@@ -31,6 +31,7 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
+    model_serializer,
     model_validator,
     PositiveInt,
 )
@@ -79,8 +80,8 @@ class ChartLike(Protocol):
 class ChartInfo(BaseModel):
     """Full chart model with all possible attributes."""
 
-    id: int = Field(..., description="Chart ID")
-    slice_name: str = Field(..., description="Chart name")
+    id: int | None = Field(None, description="Chart ID")
+    slice_name: str | None = Field(None, description="Chart name")
     viz_type: str | None = Field(None, description="Visualization type")
     datasource_name: str | None = Field(None, description="Datasource name")
     datasource_type: str | None = Field(None, description="Datasource type")
@@ -109,24 +110,25 @@ class ChartInfo(BaseModel):
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
+    @model_serializer(mode="wrap", when_used="json")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Filter fields based on serialization context.
 
-class GetChartAvailableFiltersRequest(BaseModel):
-    """
-    Request schema for get_chart_available_filters tool.
+        If context contains 'select_columns', only include those fields.
+        Otherwise, include all fields (default behavior).
+        """
+        # Get full serialization
+        data = serializer(self)
 
-    Currently has no parameters but provides consistent API for future extensibility.
-    """
+        # Check if we have a context with select_columns
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                # Filter to only requested fields
+                return {k: v for k, v in data.items() if k in select_columns}
 
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-    )
-
-
-class ChartAvailableFiltersResponse(BaseModel):
-    column_operators: Dict[str, Any] = Field(
-        ..., description="Available filter operators and metadata for each column"
-    )
+        # No filtering - return all fields
+        return data
 
 
 class ChartError(BaseModel):
@@ -267,13 +269,13 @@ class ChartFilter(ColumnOperator):
         "datasource_name",
     ] = Field(
         ...,
-        description="Column to filter on. See get_chart_available_filters for "
-        "allowed values.",
+        description="Column to filter on. Use get_schema(model_type='chart') for "
+        "available filter columns.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
-        description="Operator to use. See get_chart_available_filters for "
-        "allowed values.",
+        description="Operator to use. Use get_schema(model_type='chart') for "
+        "available operators.",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
@@ -289,8 +291,22 @@ class ChartList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] | None = None
-    columns_loaded: List[str] | None = None
+    columns_requested: List[str] = Field(
+        default_factory=list,
+        description="Requested columns for the response",
+    )
+    columns_loaded: List[str] = Field(
+        default_factory=list,
+        description="Columns that were actually loaded for each chart",
+    )
+    columns_available: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
     filters_applied: List[ChartFilter] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",
@@ -589,7 +605,9 @@ class FilterConfig(BaseModel):
 
 # Actual chart types
 class TableChartConfig(BaseModel):
-    chart_type: Literal["table"] = Field("table", description="Chart type")
+    chart_type: Literal["table"] = Field(
+        ..., description="Chart type (REQUIRED: must be 'table')"
+    )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
@@ -632,7 +650,15 @@ class TableChartConfig(BaseModel):
 
 
 class XYChartConfig(BaseModel):
-    chart_type: Literal["xy"] = Field("xy", description="Chart type")
+    chart_type: Literal["xy"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'xy' for XY charts "
+            "(line, bar, area, scatter). "
+            "This field is REQUIRED and tells Superset which chart "
+            "configuration schema to use."
+        ),
+    )
     x: ColumnRef = Field(..., description="X-axis column")
     y: List[ColumnRef] = Field(
         ...,
@@ -718,22 +744,38 @@ class ListChartsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "slice_name",
-                "viz_type",
-                "datasource_name",
-                "description",
-                "changed_by_name",
-                "created_by_name",
-                "changed_on",
-                "created_on",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
         ),
     ]
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> List[ChartFilter]:
+        """
+        Parse filters from JSON string or list.
+
+        Handles Claude Code bug where objects are double-serialized as strings.
+        See: https://github.com/anthropics/claude-code/issues/5504
+        """
+        from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
+
+        return parse_json_or_model_list(v, ChartFilter, "filters")
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_select_columns(cls, v: Any) -> List[str]:
+        """
+        Parse select_columns from JSON string, list, or CSV string.
+
+        Handles Claude Code bug where arrays are double-serialized as strings.
+        See: https://github.com/anthropics/claude-code/issues/5504
+        """
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        return parse_json_or_list(v, "select_columns")
+
     search: Annotated[
         str | None,
         Field(
@@ -777,7 +819,7 @@ class GenerateChartRequest(QueryCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
     save_chart: bool = Field(
-        default=True,
+        default=False,
         description="Whether to permanently save the chart in Superset",
     )
     generate_preview: bool = Field(
@@ -801,6 +843,16 @@ class GenerateChartRequest(QueryCacheControl):
         ):
             raise ValueError(
                 "cache_timeout must be non-negative (0 or positive integer)"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_save_or_preview(self) -> "GenerateChartRequest":
+        """Ensure at least one of save_chart or generate_preview is enabled."""
+        if not self.save_chart and not self.generate_preview:
+            raise ValueError(
+                "At least one of 'save_chart' or 'generate_preview' must be True. "
+                "A request with both set to False would be a no-op."
             )
         return self
 
@@ -912,7 +964,11 @@ class GetChartDataRequest(QueryCacheControl):
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
     limit: int | None = Field(
-        default=100, description="Maximum number of data rows to return"
+        default=None,
+        description=(
+            "Maximum number of data rows to return. If not specified, uses the "
+            "chart's configured row limit."
+        ),
     )
     format: Literal["json", "csv", "excel"] = Field(
         default="json", description="Data export format"
@@ -1095,6 +1151,16 @@ class GenerateChartResponse(BaseModel):
     embed_code: str | None = Field(None, description="HTML embed snippet")
     api_endpoints: Dict[str, str] = Field(
         default_factory=dict, description="Related API endpoints for data/updates"
+    )
+
+    # Form data for rendering charts in external clients (chatbot rendering)
+    form_data: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Complete form_data configuration for rendering the chart",
+    )
+    form_data_key: str | None = Field(
+        None,
+        description="Cache key for the form_data, used in explore URLs",
     )
 
     # Performance and accessibility

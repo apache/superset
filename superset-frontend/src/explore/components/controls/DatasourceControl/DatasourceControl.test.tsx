@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import type React from 'react';
 import { Route } from 'react-router-dom';
 import fetchMock from 'fetch-mock';
 import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
@@ -28,59 +29,111 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
+import type { ColumnObject } from 'src/features/datasets/types';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
-afterEach(() => {
-  fetchMock.reset();
-  fetchMock.restore();
+let originalLocation: Location;
+
+beforeEach(() => {
+  originalLocation = window.location;
 });
 
-const mockDatasource = {
+afterEach(() => {
+  window.location = originalLocation;
+  fetchMock.reset();
+  fetchMock.restore();
+  jest.clearAllMocks(); // Clears mock history but keeps spy in place
+});
+
+interface TestDatasource {
+  id?: number;
+  name: string;
+  datasource_name?: string;
+  database: {
+    id: number;
+    database_name: string;
+    name?: string;
+    backend?: string;
+  };
+  columns?: Partial<ColumnObject>[];
+  type?: DatasourceType;
+  main_dttm_col?: string | null;
+  owners?: Array<{
+    first_name: string;
+    last_name: string;
+    id: number;
+    username?: string;
+  }>;
+  sql?: string;
+  metrics?: Array<{ id: number; metric_name: string }>;
+  [key: string]: unknown;
+}
+
+const mockDatasource: TestDatasource = {
   id: 25,
   database: {
+    id: 1,
+    database_name: 'examples',
     name: 'examples',
   },
   name: 'channels',
-  type: 'table',
+  datasource_name: 'channels',
+  type: DatasourceType.Table,
   columns: [],
   owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
   sql: 'SELECT * FROM mock_datasource_sql',
 };
-const createProps = (overrides: JsonObject = {}) => ({
-  hovered: false,
-  type: 'DatasourceControl',
-  label: 'Datasource',
-  default: null,
-  description: null,
-  value: '25__table',
-  form_data: {},
-  datasource: mockDatasource,
-  validationErrors: [],
-  name: 'datasource',
-  actions: {
-    changeDatasource: jest.fn(),
-    setControlValue: jest.fn(),
-  },
-  isEditable: true,
-  user: {
-    createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    roles: { Admin: Array(173) },
-    userId: 1,
-    username: 'admin',
-  },
-  onChange: jest.fn(),
-  onDatasourceSave: jest.fn(),
-  ...overrides,
-});
 
-async function openAndSaveChanges(datasource: any) {
+// Use type assertion for test props since the component is wrapped with withTheme
+// The withTheme HOC makes the props type complex, so we cast through unknown to bypass type check
+type DatasourceControlComponentProps = React.ComponentProps<
+  typeof DatasourceControl
+>;
+const createProps = (
+  overrides: JsonObject = {},
+): DatasourceControlComponentProps =>
+  ({
+    hovered: false,
+    type: 'DatasourceControl',
+    label: 'Datasource',
+    default: null,
+    description: null,
+    value: '25__table',
+    form_data: {},
+    datasource: mockDatasource,
+    validationErrors: [],
+    name: 'datasource',
+    actions: {
+      changeDatasource: jest.fn(),
+      setControlValue: jest.fn(),
+    },
+    isEditable: true,
+    user: {
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'admin',
+      firstName: 'admin',
+      isActive: true,
+      lastName: 'admin',
+      permissions: {},
+      roles: { Admin: Array(173) },
+      userId: 1,
+      username: 'admin',
+    },
+    onChange: jest.fn(),
+    onDatasourceSave: jest.fn(),
+    ...overrides,
+  }) as unknown as DatasourceControlComponentProps;
+
+async function openAndSaveChanges(
+  datasource: TestDatasource | Record<string, unknown>,
+) {
+  fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
   fetchMock.put(
     'glob:*/api/v1/dataset/*',
     {},
@@ -95,10 +148,10 @@ async function openAndSaveChanges(datasource: any) {
       overwriteRoutes: true,
     },
   );
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  userEvent.click(await screen.findByTestId('edit-dataset'));
-  userEvent.click(await screen.findByTestId('datasource-modal-save'));
-  userEvent.click(await screen.findByText('OK'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(await screen.findByTestId('edit-dataset'));
+  await userEvent.click(await screen.findByTestId('datasource-modal-save'));
+  await userEvent.click(await screen.findByText('OK'));
 }
 
 test('Should render', async () => {
@@ -122,7 +175,7 @@ test('Should open a menu', async () => {
   expect(screen.queryByText('Swap dataset')).not.toBeInTheDocument();
   expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
   expect(screen.getByText('Swap dataset')).toBeInTheDocument();
@@ -145,7 +198,7 @@ test('Should not show SQL Lab for non sql_lab role', async () => {
   });
   render(<DatasourceControl {...props} />, { useRouter: true });
 
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
   expect(screen.getByText('Swap dataset')).toBeInTheDocument();
@@ -168,7 +221,7 @@ test('Should show SQL Lab for sql_lab role', async () => {
   });
   render(<DatasourceControl {...props} />, { useRouter: true });
 
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
   expect(screen.getByText('Swap dataset')).toBeInTheDocument();
@@ -192,10 +245,10 @@ test('Click on Swap dataset option', async () => {
     useRedux: true,
     useRouter: true,
   });
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   await act(async () => {
-    userEvent.click(screen.getByText('Swap dataset'));
+    await userEvent.click(screen.getByText('Swap dataset'));
   });
   expect(
     screen.getByText(
@@ -209,14 +262,19 @@ test('Click on Edit dataset', async () => {
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
   );
+  fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
   render(<DatasourceControl {...props} />, {
     useRedux: true,
     useRouter: true,
   });
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   await act(async () => {
-    userEvent.click(screen.getByText('Edit dataset'));
+    await userEvent.click(screen.getByText('Edit dataset'));
   });
 
   expect(
@@ -228,7 +286,6 @@ test('Click on Edit dataset', async () => {
 
 test('Edit dataset should be disabled when user is not admin', async () => {
   const props = createProps();
-  // @ts-expect-error
   props.user.roles = {};
   props.datasource.owners = [];
   SupersetClientGet.mockImplementationOnce(
@@ -240,7 +297,7 @@ test('Edit dataset should be disabled when user is not admin', async () => {
     useRouter: true,
   });
 
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByTestId('edit-dataset')).toHaveAttribute(
     'aria-disabled',
@@ -268,12 +325,12 @@ test('Click on View in SQL Lab', async () => {
       useRouter: true,
     },
   );
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(queryByTestId('mock-sqllab-route')).not.toBeInTheDocument();
 
   await act(async () => {
-    userEvent.click(screen.getByText('View in SQL Lab'));
+    await userEvent.click(screen.getByText('View in SQL Lab'));
   });
 
   expect(getByTestId('mock-sqllab-route')).toBeInTheDocument();
@@ -302,7 +359,7 @@ test('Should open a different menu when datasource=query', async () => {
   expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
   expect(screen.queryByText('Save as dataset')).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByText('Query preview')).toBeInTheDocument();
   expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
@@ -323,7 +380,7 @@ test('Click on Save as dataset', async () => {
     useRedux: true,
     useRouter: true,
   });
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
   expect(
     screen.queryByRole('button', { name: /save/i }),
   ).not.toBeInTheDocument();
@@ -333,7 +390,7 @@ test('Click on Save as dataset', async () => {
   expect(
     screen.queryByText(/select or type dataset name/i),
   ).not.toBeInTheDocument();
-  userEvent.click(screen.getByText('Save as dataset'));
+  await userEvent.click(screen.getByText('Save as dataset'));
 
   // Renders a save dataset modal
   const saveRadioBtn = await screen.findByRole('radio', {
@@ -427,11 +484,11 @@ test('should not set the temporal column', async () => {
   const overrideProps = {
     ...props,
     form_data: {
-      granularity_sqla: null,
+      granularity_sqla: undefined,
     },
     datasource: {
       ...props.datasource,
-      main_dttm_col: null,
+      main_dttm_col: undefined,
       columns: [
         {
           column_name: 'test-col',
@@ -525,6 +582,12 @@ test('should allow creating new metrics in dataset editor', async () => {
 
   // Mock API calls for dataset editor
   fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
+
+  fetchMock.get(
     'glob:*/api/v1/dataset/*',
     { result: mockDatasourceWithMetrics },
     { overwriteRoutes: true },
@@ -551,40 +614,31 @@ test('should allow creating new metrics in dataset editor', async () => {
   });
 
   // Open datasource menu and click edit dataset
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  userEvent.click(await screen.findByTestId('edit-dataset'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Wait for modal to appear and navigate to Metrics tab
   await waitFor(() => {
     expect(screen.getByText('Metrics')).toBeInTheDocument();
   });
 
-  userEvent.click(screen.getByText('Metrics'));
+  await userEvent.click(screen.getByText('Metrics'));
 
   // Click add new metric button
-  await waitFor(() => {
-    const addButton = screen.getByTestId('crud-add-table-item');
-    expect(addButton).toBeInTheDocument();
-    userEvent.click(addButton);
-  });
+  const addButton = await screen.findByTestId('crud-add-table-item');
+  await userEvent.click(addButton);
 
   // Find and fill in the metric name
-  await waitFor(() => {
-    const nameInput = screen.getByTestId('textarea-editable-title-input');
-    expect(nameInput).toBeInTheDocument();
-    userEvent.clear(nameInput);
-    userEvent.type(nameInput, newMetricName);
-  });
+  const nameInput = await screen.findByTestId('textarea-editable-title-input');
+  await userEvent.clear(nameInput);
+  await userEvent.type(nameInput, newMetricName);
 
   // Save the modal
-  userEvent.click(screen.getByTestId('datasource-modal-save'));
+  await userEvent.click(screen.getByTestId('datasource-modal-save'));
 
   // Confirm the save
-  await waitFor(() => {
-    const okButton = screen.getByText('OK');
-    expect(okButton).toBeInTheDocument();
-    userEvent.click(okButton);
-  });
+  const okButton = await screen.findByText('OK');
+  await userEvent.click(okButton);
 
   // Verify the onDatasourceSave callback was called
   await waitFor(() => {
@@ -604,6 +658,12 @@ test('should allow deleting metrics in dataset editor', async () => {
   });
 
   // Mock API calls
+  fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
+
   fetchMock.get(
     'glob:*/api/v1/dataset/*',
     { result: mockDatasourceWithMetrics },
@@ -626,36 +686,31 @@ test('should allow deleting metrics in dataset editor', async () => {
   });
 
   // Open edit dataset modal
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  userEvent.click(await screen.findByTestId('edit-dataset'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Navigate to Metrics tab
   await waitFor(() => {
     expect(screen.getByText('Metrics')).toBeInTheDocument();
   });
-  userEvent.click(screen.getByText('Metrics'));
+  await userEvent.click(screen.getByText('Metrics'));
 
   // Find existing metric and delete it
-  await waitFor(() => {
-    const metricRow = screen.getByText(existingMetricName).closest('tr');
-    expect(metricRow).toBeInTheDocument();
+  const metricRow = (await screen.findByText(existingMetricName)).closest('tr');
+  expect(metricRow).toBeInTheDocument();
 
-    const deleteButton = metricRow?.querySelector(
-      '[data-test="crud-delete-icon"]',
-    );
-    expect(deleteButton).toBeInTheDocument();
-    userEvent.click(deleteButton!);
-  });
+  const deleteButton = metricRow?.querySelector(
+    '[data-test="crud-delete-icon"]',
+  );
+  expect(deleteButton).toBeInTheDocument();
+  await userEvent.click(deleteButton!);
 
   // Save the changes
-  userEvent.click(screen.getByTestId('datasource-modal-save'));
+  await userEvent.click(screen.getByTestId('datasource-modal-save'));
 
   // Confirm the save
-  await waitFor(() => {
-    const okButton = screen.getByText('OK');
-    expect(okButton).toBeInTheDocument();
-    userEvent.click(okButton);
-  });
+  const okButton = await screen.findByText('OK');
+  await userEvent.click(okButton);
 
   // Verify the onDatasourceSave callback was called
   await waitFor(() => {
@@ -667,6 +722,12 @@ test('should handle metric save confirmation modal', async () => {
   const props = createProps();
 
   // Mock API calls for dataset editor
+  fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
+
   fetchMock.get(
     'glob:*/api/v1/dataset/*',
     { result: mockDatasource },
@@ -689,15 +750,12 @@ test('should handle metric save confirmation modal', async () => {
   });
 
   // Open edit dataset modal
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  userEvent.click(await screen.findByTestId('edit-dataset'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Save without making changes
-  await waitFor(() => {
-    const saveButton = screen.getByTestId('datasource-modal-save');
-    expect(saveButton).toBeInTheDocument();
-    userEvent.click(saveButton);
-  });
+  const saveButton = await screen.findByTestId('datasource-modal-save');
+  await userEvent.click(saveButton);
 
   // Verify confirmation modal appears
   await waitFor(() => {
@@ -705,7 +763,7 @@ test('should handle metric save confirmation modal', async () => {
   });
 
   // Click OK to confirm
-  userEvent.click(screen.getByText('OK'));
+  await userEvent.click(screen.getByText('OK'));
 
   // Verify the save was processed
   await waitFor(() => {
@@ -724,6 +782,12 @@ test('should verify real DatasourceControl callback fires on save', async () => 
   });
 
   // Mock API calls with the same datasource (no changes needed for this test)
+  fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
+
   fetchMock.get(
     'glob:*/api/v1/dataset/*',
     { result: mockDatasource },
@@ -750,8 +814,8 @@ test('should verify real DatasourceControl callback fires on save', async () => 
   expect(screen.getByTestId('datasource-control')).toBeInTheDocument();
 
   // Open dataset editor
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  userEvent.click(await screen.findByTestId('edit-dataset'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Wait for modal to open
   await waitFor(() => {
@@ -759,12 +823,9 @@ test('should verify real DatasourceControl callback fires on save', async () => 
   });
 
   // Save without making changes (this should still trigger the callback)
-  userEvent.click(screen.getByTestId('datasource-modal-save'));
-  await waitFor(() => {
-    const okButton = screen.getByText('OK');
-    expect(okButton).toBeInTheDocument();
-    userEvent.click(okButton);
-  });
+  await userEvent.click(screen.getByTestId('datasource-modal-save'));
+  const okButton = await screen.findByText('OK');
+  await userEvent.click(okButton);
 
   // Verify the REAL component called the callback
   // This tests that the integration point works (regardless of what data is passed)

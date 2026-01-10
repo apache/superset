@@ -23,11 +23,14 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from typing import TYPE_CHECKING
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
+
 from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
     DatasetInfo,
@@ -36,21 +39,16 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
+# Minimal defaults for reduced token usage - users can request more via select_columns
 DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
     "uuid",
-    "database_name",
-    "changed_by_name",
-    "changed_on",
-    "created_by_name",
-    "created_on",
-    "metrics",
-    "columns",
 ]
 
 SORTABLE_DATASET_COLUMNS = [
@@ -62,8 +60,8 @@ SORTABLE_DATASET_COLUMNS = [
 ]
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool(tags=["core"])
+@parse_request(ListDatasetsRequest)
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 
@@ -101,17 +99,33 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
 
     try:
         from superset.daos.dataset import DatasetDAO
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
+            get_all_column_names,
+            get_dataset_columns,
+        )
+
+        # Get all column names dynamically from the model
+        all_columns = get_all_column_names(get_dataset_columns())
+
+        def _serialize_dataset(
+            obj: "SqlaTable | None", cols: list[str] | None
+        ) -> DatasetInfo | None:
+            """Serialize dataset (filtering via model_serializer)."""
+            return serialize_dataset_object(obj)
 
         # Create tool with standard serialization
         tool = ModelListCore(
             dao_class=DatasetDAO,
             output_schema=DatasetInfo,
-            item_serializer=lambda obj, cols: serialize_dataset_object(obj),
+            item_serializer=_serialize_dataset,
             filter_type=DatasetFilter,
             default_columns=DEFAULT_DATASET_COLUMNS,
             search_columns=["schema", "sql", "table_name", "uuid"],
             list_field_name="datasets",
             output_list_schema=DatasetList,
+            all_columns=all_columns,
+            sortable_columns=DATASET_SORTABLE_COLUMNS,
             logger=logger,
         )
 
@@ -134,7 +148,17 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             )
         )
 
-        return result
+        # Apply field filtering via serialization context
+        # Use columns_requested from result (already resolved by ModelListCore)
+        columns_to_filter = result.columns_requested
+        await ctx.debug(
+            "Applying field filtering via serialization context: select_columns=%s"
+            % (columns_to_filter,)
+        )
+        filtered = result.model_dump(
+            mode="json", context={"select_columns": columns_to_filter}
+        )
+        return DatasetList.model_validate(filtered)
 
     except Exception as e:
         await ctx.error(

@@ -1,6 +1,6 @@
 {
   "name": "@apache-superset/core",
-  "version": "0.0.1-rc5",
+  "version": "0.0.1-rc9",
   "description": "This package contains UI elements, APIs, and utility functions used by Superset.",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -13,14 +13,14 @@
   "devDependencies": {
     "@babel/cli": "^7.28.3",
     "@babel/core": "^7.28.3",
-    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-env": "^7.28.5",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.26.0",
     "install": "^0.13.0",
-    "npm": "^11.1.0",
+    "npm": "^11.7.0",
     "typescript": "^5.0.0",
     "@emotion/styled": "^11.14.1",
-    "@types/lodash": "^4.17.20",
+    "@types/lodash": "^4.17.21",
     "@testing-library/dom": "^8.20.1",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^12.1.5",
@@ -35,19 +35,20 @@
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.14.1",
+    "@fontsource/fira-code": "^5.2.6",
+    "@fontsource/inter": "^5.2.6",
     "nanoid": "^5.0.9",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-loadable": "^5.5.0",
     "tinycolor2": "*",
-    "@fontsource/fira-code": "^5.2.6",
-    "@fontsource/inter": "^5.2.6",
     "lodash": "^4.17.21",
     "antd": "^5.26.0"
   },
   "scripts": {
-    "build": "babel src --out-dir lib --extensions \".ts,.tsx\" && tsc --emitDeclarationOnly",
-    "type": "tsc --noEmit"
+    "clean": "rm -rf lib tsconfig.tsbuildinfo",
+    "build": "npm run clean && npx tsc --build",
+    "type": "npx tsc --noEmit"
   },
   "publishConfig": {
     "access": "public"

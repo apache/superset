@@ -35,13 +35,9 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
-from superset_core import api as core_api
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
-from superset.core.api.types.models import HostModelsApi
-from superset.core.api.types.query import HostQueryApi
-from superset.core.api.types.rest_api import HostRestApi
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
@@ -522,12 +518,32 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
-    def init_core_api(self) -> None:
-        global core_api
+    def init_core_dependencies(self) -> None:
+        """Initialize core dependency injection for direct import patterns."""
+        from superset.core.api.core_api_injection import (
+            initialize_core_api_dependencies,
+        )
+        from superset.core.mcp.core_mcp_injection import (
+            initialize_core_mcp_dependencies,
+        )
 
-        core_api.models = HostModelsApi()
-        core_api.rest_api = HostRestApi()
-        core_api.query = HostQueryApi()
+        initialize_core_api_dependencies()
+        initialize_core_mcp_dependencies()
+
+    def init_all_dependencies_and_extensions(self) -> None:
+        """
+        Initialize all core dependencies and extensions.
+
+        Core dependencies are always initialized.
+        Extensions are only initialized if the ENABLE_EXTENSIONS feature flag
+        is enabled.
+        """
+        # Always initialize core dependencies
+        self.init_core_dependencies()
+
+        # Conditionally initialize extensions based on feature flag
+        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            self.init_extensions()
 
     def init_extensions(self) -> None:
         from superset.extensions.utils import (
@@ -548,9 +564,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             if backend_files := extension.backend:
                 install_in_memory_importer(backend_files)
 
-            backend = extension.manifest.get("backend")
+            backend = extension.manifest.backend
 
-            if backend and (entrypoints := backend.get("entryPoints")):
+            if backend and (entrypoints := backend.entryPoints):
                 for entrypoint in entrypoints:
                     try:
                         eager_import(entrypoint)
@@ -581,9 +597,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.init_views()
 
-        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
-            self.init_core_api()
-            self.init_extensions()
+        self.init_all_dependencies_and_extensions()
 
     def check_secret_key(self) -> None:
         def log_default_secret_key_warning() -> None:

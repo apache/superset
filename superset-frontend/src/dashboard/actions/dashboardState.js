@@ -769,6 +769,11 @@ export function restoreChartStates(chartStates) {
   return { type: RESTORE_CHART_STATES, chartStates };
 }
 
+export const CLEAR_ALL_CHART_STATES = 'CLEAR_ALL_CHART_STATES';
+export function clearAllChartStates() {
+  return { type: CLEAR_ALL_CHART_STATES };
+}
+
 // Undo history ---------------------------------------------------------------
 export const SET_MAX_UNDO_HISTORY_EXCEEDED = 'SET_MAX_UNDO_HISTORY_EXCEEDED';
 export function setMaxUndoHistoryExceeded(maxUndoHistoryExceeded = true) {

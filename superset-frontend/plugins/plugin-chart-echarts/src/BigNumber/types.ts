@@ -47,10 +47,13 @@ export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
     b: number;
   };
   compareLag?: string | number;
+  showXAxis?: boolean;
+  showXAxisMinMaxLabels?: boolean;
+  showYAxis?: boolean;
+  showYAxisMinMaxLabels?: boolean;
 };
 
-export interface BigNumberTotalChartDataResponseResult
-  extends ChartDataResponseResult {
+export interface BigNumberTotalChartDataResponseResult extends ChartDataResponseResult {
   data: BigNumberDatum[];
 }
 

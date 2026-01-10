@@ -24,7 +24,14 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    model_serializer,
+    model_validator,
+    PositiveInt,
+)
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
@@ -34,27 +41,6 @@ from superset.mcp_service.system.schemas import (
     UserInfo,
 )
 from superset.utils import json
-
-
-class GetDatasetAvailableFiltersRequest(BaseModel):
-    """
-    Request schema for get_dataset_available_filters tool.
-
-    Currently has no parameters but provides consistent API for future extensibility.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-    )
-
-
-class DatasetAvailableFilters(BaseModel):
-    column_operators: Dict[str, List[str]] = Field(
-        ...,
-        description="Available filter operators for each column: mapping from column "
-        "name to list of supported operators",
-    )
 
 
 class DatasetFilter(ColumnOperator):
@@ -72,13 +58,13 @@ class DatasetFilter(ColumnOperator):
         "favorite",
     ] = Field(
         ...,
-        description="Column to filter on. See get_dataset_available_filters for "
-        "allowed values.",
+        description="Column to filter on. Use get_schema(model_type='dataset') for "
+        "available filter columns.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
-        description="Operator to use. See get_dataset_available_filters for "
-        "allowed values.",
+        description="Operator to use. Use get_schema(model_type='dataset') for "
+        "available operators.",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
@@ -156,6 +142,31 @@ class DatasetInfo(BaseModel):
         populate_by_name=True,  # Allow both 'schema' (alias) and 'schema_name' (field)
     )
 
+    @model_serializer(mode="wrap", when_used="json")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Filter fields based on serialization context.
+
+        If context contains 'select_columns', only include those fields.
+        Otherwise, include all fields (default behavior).
+        """
+        # Get full serialization
+        data = serializer(self)
+
+        # Check if we have a context with select_columns
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                # Handle alias: 'schema' -> 'schema_name'
+                requested_fields = set(select_columns)
+                if "schema" in requested_fields:
+                    requested_fields.add("schema_name")
+
+                # Filter to only requested fields
+                return {k: v for k, v in data.items() if k in requested_fields}
+
+        # No filtering - return all fields
+        return data
+
 
 class DatasetList(BaseModel):
     datasets: List[DatasetInfo]
@@ -166,8 +177,22 @@ class DatasetList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] | None = None
-    columns_loaded: List[str] | None = None
+    columns_requested: List[str] = Field(
+        default_factory=list,
+        description="Requested columns for the response",
+    )
+    columns_loaded: List[str] = Field(
+        default_factory=list,
+        description="Columns that were actually loaded for each dataset",
+    )
+    columns_available: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
     filters_applied: List[DatasetFilter] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",
@@ -192,19 +217,7 @@ class ListDatasetsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "table_name",
-                "schema",
-                "database_name",
-                "changed_by_name",
-                "changed_on",
-                "created_by_name",
-                "created_on",
-                "metrics",
-                "columns",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
         ),

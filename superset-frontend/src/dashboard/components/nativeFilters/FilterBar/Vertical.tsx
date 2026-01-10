@@ -177,7 +177,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   const chartCustomizationItems = useSelector<
     RootState,
     ChartCustomizationItem[]
-  >(state => selectChartCustomizationItems(state));
+  >(selectChartCustomizationItems);
 
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,

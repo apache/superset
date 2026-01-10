@@ -30,7 +30,10 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
     shallowEqual,
   );
   const queryEditorsById = useMemo(
-    () => Object.fromEntries(queryEditors.map(editor => [editor.id, editor])),
+    () =>
+      Object.fromEntries(
+        queryEditors.map((editor, index) => [editor.id, index]),
+      ),
     [queryEditors.map(({ id }) => id).join(',')],
   );
 
@@ -38,7 +41,7 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
     ({ sqlLab: { unsavedQueryEditor } }) =>
       pick(
         {
-          ...queryEditorsById[sqlEditorId],
+          ...queryEditors[queryEditorsById[sqlEditorId]],
           ...(sqlEditorId === unsavedQueryEditor?.id && unsavedQueryEditor),
         },
         ['id'].concat(attributes),

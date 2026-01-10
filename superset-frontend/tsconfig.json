@@ -9,7 +9,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
 
-    "types": ["jest", "node", "@testing-library/jest-dom"],
+    "types": ["jest", "node"],
     "typeRoots": ["src/types", "node_modules/@types"],
 
     /* Emit */

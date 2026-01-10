@@ -469,9 +469,7 @@ const ExtraOptions = ({
           ),
           children: (
             <>
-              <StyledInputContainer
-                css={!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
-              >
+              <StyledInputContainer>
                 <div className="input-container">
                   <Checkbox
                     id="per_user_caching"
@@ -490,9 +488,7 @@ const ExtraOptions = ({
                   />
                 </div>
               </StyledInputContainer>
-              <StyledInputContainer
-                css={!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
-              >
+              <StyledInputContainer>
                 <div className="input-container">
                   <Checkbox
                     id="impersonate_user"
@@ -517,9 +513,7 @@ const ExtraOptions = ({
                 </div>
               </StyledInputContainer>
               {isFileUploadSupportedByEngine && (
-                <StyledInputContainer
-                  css={!db?.allow_file_upload ? no_margin_bottom : {}}
-                >
+                <StyledInputContainer>
                   <div className="input-container">
                     <Checkbox
                       id="allow_file_upload"
@@ -534,7 +528,7 @@ const ExtraOptions = ({
                 </StyledInputContainer>
               )}
               {isFileUploadSupportedByEngine && !!db?.allow_file_upload && (
-                <StyledInputContainer css={no_margin_bottom}>
+                <StyledInputContainer className="extra-container">
                   <div className="control-label">
                     {t('Schemas allowed for File upload')}
                   </div>
@@ -613,9 +607,9 @@ const ExtraOptions = ({
           ? [
               {
                 key: extraExtension?.title,
-                collapsible: extraExtension.enabled?.()
-                  ? ('icon' as const)
-                  : ('disabled' as const),
+                ...(extraExtension.enabled?.()
+                  ? {}
+                  : { collapsible: 'disabled' as const }),
                 label: (
                   <CollapseLabelInModal
                     key={extraExtension?.title}

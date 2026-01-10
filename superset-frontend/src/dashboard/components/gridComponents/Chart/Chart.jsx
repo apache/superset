@@ -28,6 +28,11 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import LastQueriedLabel from 'src/components/LastQueriedLabel';
+import {
+  StreamingExportModal,
+  useStreamingExport,
+} from 'src/components/StreamingExportModal';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
@@ -36,7 +41,7 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import { URL_PARAMS } from 'src/constants';
+import { URL_PARAMS, DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import {
@@ -46,6 +51,7 @@ import {
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
+
 import {
   addDangerToast,
   addSuccessToast,
@@ -82,10 +88,9 @@ const propTypes = {
   isInView: PropTypes.bool,
 };
 
-// we use state + shouldComponentUpdate() logic to prevent perf-wrecking
-// resizing across all slices on a dashboard on every update
 const RESIZE_TIMEOUT = 500;
 const DEFAULT_HEADER_HEIGHT = 22;
+const QUERIED_LABEL_HEIGHT = 24;
 
 const ChartWrapper = styled.div`
   overflow: hidden;
@@ -110,6 +115,34 @@ const SliceContainer = styled.div`
 `;
 
 const EMPTY_OBJECT = {};
+const EMPTY_ARRAY = [];
+
+// Helper function to get chart state with fallback
+const getChartStateWithFallback = (chartState, formData, vizType) => {
+  if (!hasChartStateConverter(vizType)) {
+    return null;
+  }
+
+  return (
+    chartState?.state || formData.table_state || formData.pivot_table_state
+  );
+};
+
+// Helper function to create own state with chart state conversion
+const createOwnStateWithChartState = (baseOwnState, chartState, vizType) => {
+  const state = getChartStateWithFallback(chartState, {}, vizType);
+
+  if (!state) {
+    return baseOwnState;
+  }
+
+  const convertedState = convertChartStateToOwnState(vizType, state);
+  return {
+    ...baseOwnState,
+    ...convertedState,
+    chartState: state,
+  };
+};
 
 const Chart = props => {
   const dispatch = useDispatch();
@@ -163,6 +196,11 @@ const Chart = props => {
   const maxRows = useSelector(
     state => state.dashboardInfo.common.conf.SQL_MAX_ROW,
   );
+  const streamingThreshold = useSelector(
+    state =>
+      state.dashboardInfo.common.conf.CSV_STREAMING_ROW_THRESHOLD ||
+      DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
+  );
   const datasource = useSelector(
     state =>
       (chart &&
@@ -171,6 +209,9 @@ const Chart = props => {
       PLACEHOLDER_DATASOURCE,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
+  const showChartTimestamps = useSelector(
+    state => state.dashboardInfo?.metadata?.show_chart_timestamps ?? false,
+  );
 
   const isCached = useMemo(
     // eslint-disable-next-line camelcase
@@ -181,6 +222,27 @@ const Chart = props => {
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
   const [width, setWidth] = useState(props.width);
+
+  const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
+  const {
+    progress,
+    isExporting,
+    startExport,
+    cancelExport,
+    resetExport,
+    retryExport,
+  } = useStreamingExport({
+    onComplete: () => {
+      // Don't show toast here - wait for user to click Download button
+    },
+    onError: () => {
+      boundActionCreators.addDangerToast(t('Export failed - please try again'));
+    },
+  });
+
+  const handleDownloadComplete = useCallback(() => {
+    boundActionCreators.addSuccessToast(t('CSV file downloaded successfully'));
+  }, [boundActionCreators]);
   const history = useHistory();
   const resize = useCallback(
     debounce(() => {
@@ -254,10 +316,25 @@ const Chart = props => {
     return DEFAULT_HEADER_HEIGHT;
   }, [headerRef]);
 
+  const queriedDttm = Array.isArray(queriesResponse)
+    ? (queriesResponse[queriesResponse.length - 1]?.queried_dttm ?? null)
+    : (queriesResponse?.queried_dttm ?? null);
+
   const getChartHeight = useCallback(() => {
     const headerHeight = getHeaderHeight();
-    return Math.max(height - headerHeight - descriptionHeight, 20);
-  }, [getHeaderHeight, height, descriptionHeight]);
+    const queriedLabelHeight =
+      showChartTimestamps && queriedDttm != null ? QUERIED_LABEL_HEIGHT : 0;
+    return Math.max(
+      height - headerHeight - descriptionHeight - queriedLabelHeight,
+      20,
+    );
+  }, [
+    getHeaderHeight,
+    height,
+    descriptionHeight,
+    queriedDttm,
+    showChartTimestamps,
+  ]);
 
   const handleFilterMenuOpen = useCallback(
     (chartId, column) => {
@@ -284,7 +361,8 @@ const Chart = props => {
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
   const chartCustomizationItems = useSelector(
-    state => state.dashboardInfo.metadata?.chart_customization_config || [],
+    state =>
+      state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
   );
   const colorScheme = useSelector(state => state.dashboardState.colorScheme);
   const colorNamespace = useSelector(
@@ -296,8 +374,8 @@ const Chart = props => {
   const allSliceIds = useSelector(state => state.dashboardState.sliceIds);
   const nativeFilters = useSelector(state => state.nativeFilters?.filters);
   const dataMask = useSelector(state => state.dataMask);
-  const chartStates = useSelector(
-    state => state.dashboardState.chartStates || EMPTY_OBJECT,
+  const chartState = useSelector(
+    state => state.dashboardState.chartStates?.[props.id],
   );
   const labelsColor = useSelector(
     state => state.dashboardInfo?.metadata?.label_colors || EMPTY_OBJECT,
@@ -314,7 +392,7 @@ const Chart = props => {
   const formData = useMemo(
     () =>
       getFormDataWithExtraFilters({
-        chart,
+        chart: { id: chart.id, form_data: chart.form_data }, // avoid passing the whole chart object
         chartConfiguration,
         chartCustomizationItems,
         filters: getAppliedFilterValues(props.id),
@@ -331,7 +409,8 @@ const Chart = props => {
         ownColorScheme,
       }),
     [
-      chart,
+      chart.id,
+      chart.form_data,
       chartConfiguration,
       chartCustomizationItems,
       props.id,
@@ -349,6 +428,20 @@ const Chart = props => {
   );
 
   formData.dashboardId = dashboardInfo.id;
+
+  const ownState = useMemo(() => {
+    const baseOwnState = dataMask[props.id]?.ownState || EMPTY_OBJECT;
+    return createOwnStateWithChartState(
+      baseOwnState,
+      chartState,
+      slice.viz_type,
+    );
+  }, [
+    dataMask[props.id]?.ownState,
+    props.id,
+    slice.viz_type,
+    chartState?.state,
+  ]);
 
   const onExploreChart = useCallback(
     async clickEvent => {
@@ -403,29 +496,69 @@ const Chart = props => {
         is_cached: isCached,
       });
 
-      let ownState = dataMask[props.id]?.ownState || {};
+      const exportFormData = isFullCSV
+        ? { ...formData, row_limit: maxRows }
+        : formData;
+      const resultType = isPivot ? 'post_processed' : 'full';
 
-      // Convert chart-specific state to backend format using registered converter
+      let actualRowCount;
+      const isTableViz = formData?.viz_type === 'table';
+
       if (
-        hasChartStateConverter(slice.viz_type) &&
-        chartStates[props.id]?.state
+        isTableViz &&
+        queriesResponse?.length > 1 &&
+        queriesResponse[1]?.data?.[0]?.rowcount
       ) {
-        const convertedState = convertChartStateToOwnState(
-          slice.viz_type,
-          chartStates[props.id].state,
-        );
-        ownState = {
-          ...ownState,
-          ...convertedState,
-        };
+        actualRowCount = queriesResponse[1].data[0].rowcount;
+      } else if (queriesResponse?.[0]?.sql_rowcount != null) {
+        actualRowCount = queriesResponse[0].sql_rowcount;
+      } else {
+        actualRowCount = exportFormData?.row_limit;
       }
 
+      // Handle streaming CSV exports based on row threshold
+      const shouldUseStreaming =
+        format === 'csv' && !isPivot && actualRowCount >= streamingThreshold;
+      let filename;
+      if (shouldUseStreaming) {
+        const now = new Date();
+        const date = now.toISOString().slice(0, 10);
+        const time = now.toISOString().slice(11, 19).replace(/:/g, '');
+        const timestamp = `_${date}_${time}`;
+        const chartName = slice.slice_name || formData.viz_type || 'chart';
+        const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
+        filename = `${safeChartName}${timestamp}.csv`;
+      }
+      const baseOwnState = dataMask[props.id]?.ownState || {};
+      const state = getChartStateWithFallback(
+        chartState,
+        formData,
+        slice.viz_type,
+      );
+
+      const ownState = state
+        ? {
+            ...baseOwnState,
+            ...convertChartStateToOwnState(slice.viz_type, state),
+          }
+        : baseOwnState;
+
       exportChart({
-        formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
-        resultType: isPivot ? 'post_processed' : 'full',
+        formData: exportFormData,
+        resultType,
         resultFormat: format,
         force: true,
         ownState,
+        onStartStreamingExport: shouldUseStreaming
+          ? exportParams => {
+              setIsStreamingModalVisible(true);
+              startExport({
+                ...exportParams,
+                filename,
+                expectedRows: actualRowCount,
+              });
+            }
+          : null,
       });
     },
     [
@@ -435,9 +568,13 @@ const Chart = props => {
       formData,
       maxRows,
       dataMask[props.id]?.ownState,
-      chartStates,
+      chartState,
       props.id,
       boundActionCreators.logEvent,
+      queriesResponse,
+      startExport,
+      resetExport,
+      streamingThreshold,
     ],
   );
 
@@ -499,6 +636,7 @@ const Chart = props => {
         isExpanded={isExpanded}
         isCached={isCached}
         cachedDttm={cachedDttm}
+        queriedDttm={queriedDttm}
         updatedDttm={chartUpdateEndTime}
         toggleExpandSlice={boundActionCreators.toggleExpandSlice}
         forceRefresh={forceRefresh}
@@ -577,19 +715,17 @@ const Chart = props => {
           formData={formData}
           labelsColor={labelsColor}
           labelsColorMap={labelsColorMap}
-          ownState={{
-            ...dataMask[props.id]?.ownState,
-            ...(hasChartStateConverter(slice.viz_type) &&
-            chartStates[props.id]?.state
-              ? {
-                  ...convertChartStateToOwnState(
-                    slice.viz_type,
-                    chartStates[props.id].state,
-                  ),
-                  chartState: chartStates[props.id].state,
-                }
-              : {}),
-          }}
+          ownState={createOwnStateWithChartState(
+            dataMask[props.id]?.ownState || EMPTY_OBJECT,
+            {
+              state: getChartStateWithFallback(
+                chartState,
+                formData,
+                slice.viz_type,
+              ),
+            },
+            slice.viz_type,
+          )}
           filterState={dataMask[props.id]?.filterState}
           queriesResponse={chart.queriesResponse}
           timeout={timeout}
@@ -602,6 +738,23 @@ const Chart = props => {
           onChartStateChange={handleChartStateChange}
         />
       </ChartWrapper>
+
+      {!isLoading && showChartTimestamps && queriedDttm != null && (
+        <LastQueriedLabel queriedDttm={queriedDttm} />
+      )}
+
+      <StreamingExportModal
+        visible={isStreamingModalVisible}
+        onCancel={() => {
+          cancelExport();
+          setIsStreamingModalVisible(false);
+          resetExport();
+        }}
+        onRetry={retryExport}
+        onDownload={handleDownloadComplete}
+        progress={progress}
+        exportType="csv"
+      />
     </SliceContainer>
   );
 };
@@ -614,8 +767,9 @@ export default memo(Chart, (prevProps, nextProps) => {
   }
   return (
     !nextProps.isComponentVisible ||
-    (prevProps.isInView === nextProps.isInView &&
-      prevProps.componentId === nextProps.componentId &&
+    (prevProps.componentId === nextProps.componentId &&
+      prevProps.isComponentVisible &&
+      prevProps.isInView === nextProps.isInView &&
       prevProps.id === nextProps.id &&
       prevProps.dashboardId === nextProps.dashboardId &&
       prevProps.extraControls === nextProps.extraControls &&

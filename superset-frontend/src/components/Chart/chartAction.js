@@ -407,10 +407,12 @@ export function exploreJSON(
   ownState,
 ) {
   return async (dispatch, getState) => {
+    const state = getState();
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
+    const prevController = state.charts?.[key]?.queryController;
     const queryTimeout =
-      timeout || getState().common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+      timeout || state.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
 
     const requestParams = {
       signal: controller.signal,
@@ -422,6 +424,14 @@ export function exploreJSON(
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
     dispatch(chartUpdateStarted(controller, formData, key));
+    /**
+     * Abort in-flight requests after the new controller has been stored in
+     * state. Delaying ensures we do not mutate the Redux state between
+     * dispatches while still cancelling the previous request promptly.
+     */
+    if (prevController) {
+      setTimeout(() => prevController.abort(), 0);
+    }
 
     const chartDataRequest = getChartDataRequest({
       setDataMask,
@@ -466,7 +476,16 @@ export function exploreJSON(
         return dispatch(chartUpdateSucceeded(queriesResponse, key));
       })
       .catch(response => {
+        // Ignore abort errors - they're expected when filters change quickly
+        const isAbort =
+          response?.name === 'AbortError' || response?.statusText === 'abort';
+        if (isAbort) {
+          // Abort is expected: filters changed, chart unmounted, etc.
+          return dispatch(chartUpdateStopped(key));
+        }
+
         if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
+          // In async mode we just pass the raw error response through
           return dispatch(chartUpdateFailed([response], key));
         }
 
@@ -484,10 +503,7 @@ export function exploreJSON(
             }),
           );
         };
-        if (response.name === 'AbortError') {
-          appendErrorLog('abort');
-          return dispatch(chartUpdateStopped(key));
-        }
+
         return getClientErrorObject(response).then(parsedResponse => {
           if (response.statusText === 'timeout') {
             appendErrorLog('timeout');

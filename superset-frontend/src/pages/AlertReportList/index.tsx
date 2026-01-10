@@ -471,6 +471,7 @@ function AlertList({
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'alert_report_list_search',
       },
       {
         Header: t('Owner'),

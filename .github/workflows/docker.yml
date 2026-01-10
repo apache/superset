@@ -42,7 +42,7 @@ jobs:
     steps:
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -101,6 +101,23 @@ jobs:
           docker images $IMAGE_TAG
           docker history $IMAGE_TAG
 
+      # Scan for vulnerabilities in built container image after pushes to mainline branch.
+      - name: Run Trivy container image vulnerabity scan
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'lean'
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          image-ref: ${{ env.IMAGE_TAG }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          vuln-type: 'os'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'lean'
+        uses: github/codeql-action/upload-sarif@1b168cd39490f61582a9beae412bb7057a6b2c4e # v4.31.8
+        with:
+          sarif_file: 'trivy-results.sarif'
+
       - name: docker-compose sanity check
         if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'dev'
         shell: bash
@@ -117,7 +134,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Check for file changes

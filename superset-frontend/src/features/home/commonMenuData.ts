@@ -18,6 +18,11 @@
  */
 import { t } from '@superset-ui/core';
 
+/**
+ * Shared popup offset configuration for navbar menu dropdowns.
+ */
+export const NAVBAR_MENU_POPUP_OFFSET: [number, number] = [0, -8];
+
 export const commonMenuData = {
   name: t('SQL'),
   tabs: [

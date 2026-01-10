@@ -18,17 +18,32 @@
  */
 import { ensureIsArray, Filter } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
+import { useMemo } from 'react';
+import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from 'src/dashboard/types';
+
+const EMPTY_ARRAY: Filter[] = [];
+
+const makeSelectFilterDependencies = (filterDependencyIds: string[]) =>
+  createSelector(
+    (state: RootState) => state.nativeFilters.filters,
+    (filters): Filter[] => {
+      if (filterDependencyIds.length === 0) {
+        return EMPTY_ARRAY;
+      }
+      return filterDependencyIds
+        .map(id => filters[id] as Filter)
+        .filter(Boolean);
+    },
+  );
 
 export const useFilterDependencies = (filter: Filter) => {
   const filterDependencyIds = ensureIsArray(filter.cascadeParentIds);
-  return useSelector<RootState, Filter[]>(state => {
-    if (filterDependencyIds.length === 0) {
-      return [];
-    }
-    return filterDependencyIds.reduce((acc: Filter[], filterDependencyId) => {
-      acc.push(state.nativeFilters.filters[filterDependencyId] as Filter);
-      return acc;
-    }, []);
-  });
+
+  const selectFilterDependencies = useMemo(
+    () => makeSelectFilterDependencies(filterDependencyIds),
+    [filterDependencyIds.join(',')],
+  );
+
+  return useSelector(selectFilterDependencies);
 };

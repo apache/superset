@@ -39,6 +39,7 @@ import {
 import { CopyToClipboard } from 'src/components';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import { makeUrl } from 'src/utils/pathUtils';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   preloadLanguages,
@@ -137,7 +138,9 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       if (domEvent.metaKey || domEvent.ctrlKey) {
         domEvent.preventDefault();
         window.open(
-          `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
+          makeUrl(
+            `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
+          ),
           '_blank',
         );
       } else {

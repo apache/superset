@@ -54,6 +54,7 @@ are compatible with Superset.
 | [Ascend.io](/docs/configuration/databases#ascendio)                       | `pip install impyla`                                                               | `ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true`                                                        |
 | [Azure MS SQL](/docs/configuration/databases#sql-server)                | `pip install pymssql`                                                              | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`                                                       |
 | [ClickHouse](/docs/configuration/databases#clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                    |
+| [Cloudflare D1](/docs/configuration/databases#cloudflare-d1)                  | `pip install superset-engine-d1` or `pip install apache_superset[d1]`                                                  | `d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}`                                                                                    |
 | [CockroachDB](/docs/configuration/databases#cockroachdb)                | `pip install cockroachdb`                                                          | `cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable`                                                                                      |
 | [Couchbase](/docs/configuration/databases#couchbase)                | `pip install couchbase-sqlalchemy`                                                          | `couchbase://{username}:{password}@{hostname}:{port}?truststorepath={ssl certificate path}`                                                                                      |
 | [CrateDB](/docs/configuration/databases#cratedb)                        | `pip install sqlalchemy-cratedb`                                                   | `crate://{username}:{password}@{hostname}:{port}`, often useful: `?ssl=true/false` or `?schema=testdrive`.                                             |
@@ -98,8 +99,9 @@ exists, please file an issue on the
 [Superset GitHub repo](https://github.com/apache/superset/issues), so we can work on documenting and
 supporting it.
 
-If you'd like to build a database connector for Superset integration,
-read the [following tutorial](https://preset.io/blog/building-database-connector/).
+:::resources
+- [Tutorial: Building a Database Connector for Superset](https://preset.io/blog/building-database-connector/)
+:::
 
 ### Installing Drivers in Docker Images
 
@@ -217,6 +219,10 @@ Here's what the connection string looks like:
 ```
 doris://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>
 ```
+
+:::resources
+- [Apache Doris Docs: Superset Integration](https://doris.apache.org/docs/ecosystem/bi/apache-superset/)
+:::
 
 #### AWS Athena
 
@@ -359,6 +365,27 @@ uses the default user without a password (and doesn't encrypt the connection):
 clickhousedb://localhost/default
 ```
 
+:::resources
+- [ClickHouse Docs: Superset Integration](https://clickhouse.com/docs/integrations/superset)
+- [Altinity: Connect ClickHouse to Superset](https://docs.altinity.com/integrations/clickhouse-and-superset/connect-clickhouse-to-superset/)
+- [Instaclustr: Connecting to ClickHouse from Superset](https://www.instaclustr.com/support/documentation/clickhouse/using-a-clickhouse-cluster/connecting-to-clickhouse-from-apache-superset/)
+- [Blog: ClickHouse and Apache Superset](https://preset.io/blog/2021-5-26-clickhouse-superset/)
+:::
+
+#### Cloudflare D1
+
+To use Cloudflare D1 with superset, install the [superset-engine-d1](https://github.com/sqlalchemy-cf-d1/superset-engine-d1) library.
+
+```
+pip install superset-engine-d1
+```
+
+The expected connection string is formatted as follows:
+
+```
+d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}
+```
+
 #### CockroachDB
 
 The recommended connector library for CockroachDB is
@@ -416,6 +443,11 @@ Docker Compose.
 ```
 echo "sqlalchemy-cratedb" >> ./docker/requirements-local.txt
 ```
+
+:::resources
+- [CrateDB Docs: Apache Superset Integration](https://cratedb.com/docs/guide/integrate/apache-superset/index.html)
+- [Blog: Visualizing Time-Series Data with CrateDB and Superset](https://preset.io/blog/timeseries-cratedb-superset/)
+:::
 
 [CrateDB Cloud]: https://cratedb.com/product/cloud
 [CrateDB Self-Managed]: https://cratedb.com/product/self-managed
@@ -549,8 +581,10 @@ The expected connection string for Arrow Flight (Dremio 4.9.1+. Default port is 
 dremio+flight://{username}:{password}@{host}:{port}/dremio
 ```
 
-This [blog post by Dremio](https://www.dremio.com/tutorials/dremio-apache-superset/) has some
-additional helpful instructions on connecting Superset to Dremio.
+:::resources
+- [Dremio Docs: Superset Integration](https://docs.dremio.com/current/client-applications/superset/)
+- [Blog: Connecting Dremio to Apache Superset](https://www.dremio.com/tutorials/dremio-apache-superset/)
+:::
 
 #### Apache Drill
 
@@ -592,6 +626,10 @@ We recommend reading the
 [Apache Drill documentation](https://drill.apache.org/docs/installing-the-driver-on-linux/) and read
 the [GitHub README](https://github.com/JohnOmernik/sqlalchemy-drill#usage-with-odbc) to learn how to
 work with Drill through ODBC.
+
+:::resources
+- [Tutorial: Query MongoDB in Superset with Apache Drill](https://medium.com/@thoren.lederer/query-data-from-mongodb-in-apache-superset-with-the-help-of-apache-drill-full-tutorial-b34c33eac6c1)
+:::
 
 import useBaseUrl from "@docusaurus/useBaseUrl";
 
@@ -658,6 +696,10 @@ Druid supports post aggregation and this works in Superset. All you have to do i
 much like you would create an aggregation manually, but specify `postagg` as a `Metric Type`. You
 then have to provide a valid json post-aggregation definition (as specified in the Druid docs) in
 the JSON field.
+
+:::resources
+- [Blog: Real-Time Business Insights with Apache Druid and Superset](https://www.deep.bi/blog/real-time-business-insights-with-apache-druid-and-apache-superset)
+:::
 
 #### Elasticsearch
 
@@ -729,6 +771,10 @@ To disable SSL verification, add the following to the **SQLALCHEMY URI** field:
 elasticsearch+https://{user}:{password}@{host}:9200/?verify_certs=False
 ```
 
+:::resources
+- [Blog: Superset Announces Elasticsearch Support](https://preset.io/blog/2019-12-16-elasticsearch-in-superset/)
+:::
+
 #### Exasol
 
 The recommended connector library for Exasol is
@@ -776,6 +822,10 @@ firebolt://{client_id}:{client_secret}@{database}?account_name={name}
 or
 firebolt://{client_id}:{client_secret}@{database}/{engine_name}?account_name={name}
 ```
+
+:::resources
+- [Firebolt Docs: Connecting to Apache Superset](https://docs.firebolt.io/guides/integrations/connecting-to-apache-superset)
+:::
 
 #### Google BigQuery
 
@@ -863,15 +913,21 @@ To be able to upload CSV or Excel files to BigQuery in Superset, you'll need to 
 Currently, the Google BigQuery Python SDK is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
 So, when you deploy Superset with `gunicorn` server, you have to use worker type except `gevent`.
 
+:::resources
+- [Tutorial: Build A StackOverflow Dashboard — Connecting Superset to BigQuery](https://preset.io/blog/2020-08-04-google-bigquery/)
+:::
+
 #### Google Sheets
 
 Google Sheets has a very limited
 [SQL API](https://developers.google.com/chart/interactive/docs/querylanguage). The recommended
 connector library for Google Sheets is [shillelagh](https://github.com/betodealmeida/shillelagh).
 
-There are a few steps involved in connecting Superset to Google Sheets. This
-[tutorial](https://preset.io/blog/2020-06-01-connect-superset-google-sheets/) has the most up to date
-instructions on setting up this connection.
+There are a few steps involved in connecting Superset to Google Sheets.
+
+:::resources
+- [Tutorial: Connect Superset to Google Sheets](https://preset.io/blog/2020-06-01-connect-superset-google-sheets/)
+:::
 
 #### Hana
 
@@ -892,6 +948,10 @@ The expected connection string is formatted as follows:
 ```
 hive://hive@{hostname}:{port}/{database}
 ```
+
+:::resources
+- [Cloudera: Connect Apache Hive to Superset](https://docs-archive.cloudera.com/HDPDocuments/HDP3/HDP-3.0.0/integrating-hive/content/hive_connect_hive_to_apache_superset.html)
+:::
 
 #### Hologres
 
@@ -1044,6 +1104,10 @@ The connection string is formatted as follows:
 oracle://<username>:<password>@<hostname>:<port>
 ```
 
+:::resources
+- [Oracle Developers: Steps to use Apache Superset and Oracle Database](https://medium.com/oracledevs/steps-to-use-apache-superset-and-oracle-database-ae0858b4f134)
+:::
+
 #### Parseable
 
 [Parseable](https://www.parseable.io) is a distributed log analytics database that provides SQL-like query interface for log data. The recommended connector library is [sqlalchemy-parseable](https://github.com/parseablehq/sqlalchemy-parseable).
@@ -1062,7 +1126,10 @@ parseable://admin:admin@demo.parseable.com:443/ingress-nginx
 
 Note: The stream_name in the URI represents the Parseable logstream you want to query. You can use both HTTP (port 80) and HTTPS (port 443) connections.
 
->>>>>>>
+:::resources
+- [Blog: Parseable with Apache Superset](https://www.parseable.com/blog/parseable-with-apache-superset)
+:::
+
 #### Apache Pinot
 
 The recommended connector library for Apache Pinot is [pinotdb](https://pypi.org/project/pinotdb/).
@@ -1085,6 +1152,11 @@ Add below argument while creating database connection in Advanced -> Other -> EN
 ```json
 {"connect_args":{"use_multistage_engine":"true"}}
 ```
+
+:::resources
+- [Apache Pinot Docs: Superset Integration](https://docs.pinot.apache.org/integrations/superset)
+- [StarTree: Data Visualization with Apache Superset and Pinot](https://startree.ai/resources/data-visualization-with-apache-superset-and-pinot)
+:::
 
 #### Postgres
 
@@ -1121,6 +1193,28 @@ More information about PostgreSQL connection options can be found in the
 [SQLAlchemy docs](https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.psycopg2)
 and the
 [PostgreSQL docs](https://www.postgresql.org/docs/9.1/libpq-connect.html#LIBPQ-PQCONNECTDBPARAMS).
+
+:::resources
+- [Blog: Data Visualization in PostgreSQL With Apache Superset](https://www.tigerdata.com/blog/data-visualization-in-postgresql-with-apache-superset)
+:::
+
+#### QuestDB
+
+[QuestDB](https://questdb.io/) is a high-performance, open-source time-series database with SQL support.
+The recommended connector library is the PostgreSQL driver [psycopg2](https://www.psycopg.org/docs/),
+as QuestDB supports the PostgreSQL wire protocol.
+
+The connection string is formatted as follows:
+
+```
+postgresql+psycopg2://{username}:{password}@{hostname}:{port}/{database}
+```
+
+The default port for QuestDB's PostgreSQL interface is `8812`.
+
+:::resources
+- [QuestDB Docs: Apache Superset Integration](https://questdb.com/docs/third-party-tools/superset/)
+:::
 
 #### Presto
 
@@ -1163,6 +1257,10 @@ SSL Secure extra add json config to extra connection information.
   }
 }
 ```
+
+:::resources
+- [Tutorial: Presto SQL + S3 Data + Superset Data Lake](https://hackernoon.com/presto-sql-s3-data-superset-data-lake)
+:::
 
 #### RisingWave
 
@@ -1237,6 +1335,10 @@ If your private key is stored on server, you can replace "privatekey_body" with 
 }
 ```
 
+:::resources
+- [Snowflake Builders Blog: Building Real-Time Operational Dashboards with Apache Superset and Snowflake](https://medium.com/snowflake/building-real-time-operational-dashboards-with-apache-superset-and-snowflake-23f625e07d7c)
+:::
+
 #### Apache Solr
 
 The [sqlalchemy-solr](https://pypi.org/project/sqlalchemy-solr/) library provides a
@@ -1257,6 +1359,10 @@ The expected connection string is formatted as follows:
 ```
 hive://hive@{hostname}:{port}/{database}
 ```
+
+:::resources
+- [Tutorial: How to Connect Apache Superset with Apache SparkSQL](https://medium.com/free-or-open-source-software/how-to-connect-apache-superset-with-apache-sparksql-50efe48ac0e4)
+:::
 
 #### Arc
 
@@ -1341,8 +1447,8 @@ Here's what the connection string looks like:
 starrocks://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>
 ```
 
-:::note
-StarRocks maintains their Superset docuementation [here](https://docs.starrocks.io/docs/integrations/BI_integrations/Superset/).
+:::resources
+- [StarRocks Docs: Superset Integration](https://docs.starrocks.io/docs/integrations/BI_integrations/Superset/)
 :::
 
 #### TDengine
@@ -1425,6 +1531,11 @@ postgresql://{username}:{password}@{host}:{port}/{database name}?sslmode=require
 ```
 
 [Learn more about TimescaleDB!](https://docs.timescale.com/)
+
+:::resources
+- [Timescale DevRel: Visualize time series data with TimescaleDB and Apache Superset](https://attilatoth.dev/speaking/timescaledb-superset/)
+- [Tutorial: PostgreSQL with TimescaleDB — Visualizing Real-Time Data with Superset](https://www.slingacademy.com/article/postgresql-with-timescaledb-visualizing-real-time-data-with-superset/)
+:::
 
 #### Trino
 
@@ -1551,9 +1662,11 @@ or factory function (which returns an `Authentication` instance) to `auth_method
 
 All fields in `auth_params` are passed directly to your class/function.
 
-**Reference**:
-
-- [Trino-Superset-Podcast](https://trino.io/episodes/12.html)
+:::resources
+- [Starburst Docs: Superset Integration](https://docs.starburst.io/clients/superset.html)
+- [Podcast: Trino and Superset](https://trino.io/episodes/12.html)
+- [Blog: Trino and Apache Superset](https://preset.io/blog/2021-6-22-trino-superset/)
+:::
 
 #### Vertica
 
@@ -1664,6 +1777,10 @@ The connection string looks like:
 ```
 postgresql://{username}:{password}@{host}:{port}/{database}
 ```
+
+:::resources
+- [Blog: Introduction to YugabyteDB and Apache Superset](https://preset.io/blog/introduction-yugabytedb-apache-superset/)
+:::
 
 ## Connecting through the UI
 
