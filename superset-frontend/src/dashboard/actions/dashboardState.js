@@ -602,13 +602,21 @@ export function onRefresh(
   force = false,
   interval = 0,
   dashboardId,
+  isLazyLoad = false,
 ) {
   return dispatch => {
-    dispatch({ type: ON_REFRESH });
+    // Only dispatch ON_REFRESH for dashboard-level refreshes
+    // Skip it for lazy-loaded tabs to prevent infinite loops
+    if (!isLazyLoad) {
+      dispatch({ type: ON_REFRESH });
+    }
+
     refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
       () => {
         dispatch(onRefreshSuccess());
-        dispatch(onFiltersRefresh());
+        if (!isLazyLoad) {
+          dispatch(onFiltersRefresh());
+        }
       },
     );
   };
