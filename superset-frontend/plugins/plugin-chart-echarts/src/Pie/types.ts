@@ -35,7 +35,8 @@ export type EchartsPieFormData = QueryFormData &
     donut: boolean;
     defaultValue?: string[] | null;
     groupby: QueryFormColumn[];
-    half: boolean;
+    startAngle: number;
+    sweptAngle: number;
     innerRadius: number;
     labelLine: boolean;
     labelType: EchartsPieLabelType;
@@ -62,8 +63,7 @@ export enum EchartsPieLabelType {
   Template = 'template',
 }
 
-export interface EchartsPieChartProps
-  extends BaseChartProps<EchartsPieFormData> {
+export interface EchartsPieChartProps extends BaseChartProps<EchartsPieFormData> {
   formData: EchartsPieFormData;
 }
 
@@ -73,7 +73,6 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   donut: false,
   groupby: [],
   innerRadius: 30,
-  half: false,
   labelLine: false,
   labelType: EchartsPieLabelType.Key,
   legendOrientation: LegendOrientation.Top,
@@ -86,6 +85,8 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   dateFormat: 'smart_date',
   roseType: null,
   thresholdForOther: 0,
+  startAngle: 90,
+  sweptAngle: 360,
 };
 
 export type PieChartTransformedProps =

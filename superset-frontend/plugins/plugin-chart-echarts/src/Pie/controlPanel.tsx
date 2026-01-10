@@ -121,15 +121,31 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'half',
+            name: 'start_angle',
             config: {
-              type: 'CheckboxControl',
-              label: t('Half doughnut'),
+              type: 'NumberControl',
+              min: 0,
+              max: 360,
+              step: 10,
+              label: t('Start angle'),
+              description: t('Angle at which to start progress axis'),
               renderTrigger: true,
-              default: half,
-              description: t(
-                'Convert the full doughnut chart into a half doughnut.',
-              ),
+              default: DEFAULT_FORM_DATA.startAngle,
+            },
+          },
+        ],
+        [
+          {
+            name: 'swept_angle',
+            config: {
+              type: 'NumberControl',
+              min: 0,
+              max: 360,
+              step: 10,
+              label: t('Swept angle'),
+              description: t('The angle at which the axis of progress rotates'),
+              renderTrigger: true,
+              default: DEFAULT_FORM_DATA.sweptAngle,
             },
           },
         ],

@@ -155,7 +155,6 @@ export default function transformProps(
     colorScheme,
     donut,
     groupby,
-    half,
     innerRadius,
     labelsOutside,
     labelLine,
@@ -173,6 +172,8 @@ export default function transformProps(
     showLabels,
     showLegend,
     showLabelsThreshold,
+    startAngle,
+    sweptAngle,
     sliceId,
     showTotal,
     roseType,
@@ -187,6 +188,7 @@ export default function transformProps(
   const contributionLabel = getContributionLabel(metricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
+  const half = sweptAngle <= 180 && startAngle === 180;
 
   const numberFormatter = getValueFormatter(
     metric,
@@ -399,8 +401,8 @@ export default function transformProps(
       roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
       center: ['50%', half ? '70%' : '50%'],
-      startAngle: half ? 180 : 90,
-      endAngle: half ? 360 : 'auto',
+      startAngle: startAngle,
+      endAngle: startAngle - sweptAngle,
       avoidLabelOverlap: true,
       labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
       minShowLabelAngle,
