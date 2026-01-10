@@ -41,7 +41,6 @@ const {
   numberFormat,
   showLabels,
   roseType,
-  half,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -121,7 +120,7 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'start_angle',
+            name: 'startAngle',
             config: {
               type: 'NumberControl',
               min: 0,
@@ -136,7 +135,7 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'swept_angle',
+            name: 'sweptAngle',
             config: {
               type: 'NumberControl',
               min: 0,
