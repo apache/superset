@@ -44,9 +44,12 @@ def get_context() -> TaskContext:
         >>> @async_task()
         >>> def my_task(chart_id: int) -> None:
         >>>     ctx = get_context()  # Access ambient context
-        >>>     task = ctx.task
-        >>>     task.set_payload({"chart_id": chart_id})
-        >>>     ctx.update_task(task)
+        >>>
+        >>>     # Update progress and payload atomically
+        >>>     ctx.update_task(
+        >>>         progress=0.5,
+        >>>         payload={"chart_id": chart_id}
+        >>>     )
     """
     ctx = _current_context.get()
     if ctx is None:

@@ -72,16 +72,22 @@ def execute_async_task(
             task_type,
             task_uuid,
         )
-        task = ctx.task
-        task.ended_at = datetime.utcnow()
-        ctx.update_task(task)
+        task = ctx._task
+        task.ended_at = datetime.now(timezone.utc)
+        from superset.extensions import db
+
+        db.session.merge(task)
+        db.session.commit()
         return {"status": TaskStatus.ABORTED.value, "task_uuid": task_uuid}
 
     # Update status to IN_PROGRESS
-    task = ctx.task  # Fresh fetch
+    task = ctx._task
     task.status = TaskStatus.IN_PROGRESS.value
-    task.started_at = datetime.utcnow()
-    ctx.update_task(task)
+    task.started_at = datetime.now(timezone.utc)
+    from superset.extensions import db
+
+    db.session.merge(task)
+    db.session.commit()
 
     try:
         # Get registered executor function
@@ -100,15 +106,18 @@ def execute_async_task(
             executor_fn(*args, **kwargs)
 
         # Set success status if not already set by task
-        task = ctx.task
+        task = ctx._task
         if task.status == TaskStatus.IN_PROGRESS.value:
             task.status = TaskStatus.SUCCESS.value
-            ctx.update_task(task)
+            from superset.extensions import db
+
+            db.session.merge(task)
+            db.session.commit()
 
         logger.info("Task %s (uuid=%s) completed successfully", task_type, task_uuid)
 
     except Exception as ex:
-        task = ctx.task
+        task = ctx._task
         task.status = TaskStatus.FAILURE.value
         task.error_message = str(ex)
         logger.error(
@@ -118,16 +127,22 @@ def execute_async_task(
             str(ex),
             exc_info=True,
         )
-        ctx.update_task(task)
+        from superset.extensions import db
+
+        db.session.merge(task)
+        db.session.commit()
 
     finally:
         # ALWAYS run cleanup handlers
         ctx._run_cleanup()
 
         # Always set end time
-        task = ctx.task
+        task = ctx._task
         if not task.ended_at:
             task.ended_at = datetime.now(timezone.utc)
-            ctx.update_task(task)
+            from superset.extensions import db
+
+            db.session.merge(task)
+            db.session.commit()
 
     return {"status": task.status, "task_uuid": task_uuid}

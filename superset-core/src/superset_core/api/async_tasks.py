@@ -70,41 +70,43 @@ class TaskOptions:
 
 class TaskContext(ABC):
     """
-    Abstract task context for interaction with the async task framework.
+    Abstract task context for write-only task state updates.
 
-    Tasks receive a TaskContext object as their first parameter, which provides
-    access to the task entity and methods to update it in the metastore.
-
-    The context fetches the latest task state from the database on each access,
-    enabling tasks to check for cancellation and other status changes.
+    Tasks use this context to update their state (progress, payload) and
+    check for cancellation. Tasks should not need to read their own state -
+    they are the source of state, not consumers of it.
 
     Host implementations will replace this abstract class during initialization
     with a concrete implementation providing actual functionality.
     """
 
-    @property
     @abstractmethod
-    def task(self) -> AsyncTask:
+    def update_task(
+        self,
+        progress: float | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
         """
-        Get the latest task entity from the metastore.
+        Update task progress and/or payload atomically.
 
-        This property refetches the task from the database each time it's accessed,
-        ensuring you always have the most current status (e.g., for cancellation
-        checks).
+        All parameters are optional. Payload is merged with existing data,
+        not replaced. All updates occur in a single database transaction.
 
-        :returns: AsyncTask entity with latest state
-        """
-        ...
+        :param progress: Progress value (0.0-1.0), or None to leave unchanged
+        :param payload: Payload data to merge (dict), or None to leave unchanged
 
-    @abstractmethod
-    def update_task(self, task: TaskContext) -> None:
-        """
-        Update the task entity in the metastore.
+        Example:
+            # Update progress only
+            ctx.update_task(progress=0.5)
 
-        Use this to persist changes to the task, such as payload updates or
-        status changes.
+            # Update payload only
+            ctx.update_task(payload={"step": "processing"})
 
-        :param task: AsyncTask entity to update
+            # Update both atomically
+            ctx.update_task(
+                progress=0.8,
+                payload={"processed": 80, "total": 100}
+            )
         """
         ...
 
@@ -161,28 +163,6 @@ class TaskContext(ABC):
         """
         ...
 
-    @abstractmethod
-    def update_progress(self, current: int, total: int, **extra: Any) -> bool:
-        """
-        Update task progress and check for cancellation.
-
-        Convenience method that combines progress update with cancellation check.
-        Updates the task payload with progress information and returns whether
-        execution should continue.
-
-        :param current: Current progress value
-        :param total: Total expected value
-        :param extra: Additional payload fields to update
-        :returns: True if should continue, False if cancelled
-
-        Example:
-            for i, item in enumerate(items):
-                if not ctx.update_progress(i + 1, len(items)):
-                    return  # Cancelled
-                process(item)
-        """
-        ...
-
 
 def async_task(
     name: str | None = None,
@@ -208,10 +188,15 @@ def async_task(
         @async_task(name="generate_thumbnail")
         def generate_chart_thumbnail(chart_id: int) -> None:
             ctx = get_context()  # Access ambient context
-            task = ctx.task
-            task.set_payload({"chart_id": chart_id})
-            ctx.update_task(task)
+
+            # Update progress and payload atomically
+            ctx.update_task(
+                progress=0.5,
+                payload={"chart_id": chart_id, "status": "processing"}
+            )
             # ... task implementation
+
+            ctx.update_task(progress=1.0)
 
         # Schedule async execution
         task = generate_chart_thumbnail.schedule(chart_id=123)  # Returns AsyncTask
@@ -265,6 +250,15 @@ def create_async_task(
             executor=generate_chart_thumbnail,
             chart_id=123
         )
+
+        # Inside the task:
+        @async_task("thumbnail_generation")
+        def generate_chart_thumbnail(chart_id: int):
+            ctx = get_context()
+            ctx.update_task(
+                progress=0.5,
+                payload={"chart_id": chart_id}
+            )
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
@@ -287,9 +281,12 @@ def get_context() -> TaskContext:
         @async_task("thumbnail_generation")
         def generate_chart_thumbnail(chart_id: int):
             ctx = get_context()  # Access ambient context
-            task = ctx.task
-            task.set_payload({"chart_id": chart_id})
-            ctx.update_task(task)
+
+            # Update task state - no need to fetch task object
+            ctx.update_task(
+                progress=0.5,
+                payload={"chart_id": chart_id}
+            )
     """
     raise NotImplementedError("Function will be replaced during initialization")
 

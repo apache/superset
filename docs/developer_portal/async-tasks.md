@@ -109,11 +109,12 @@ Tasks access execution context via `get_context()`:
 @async_task()
 def my_task(business_arg: int) -> None:
     ctx = get_context()  # Ambient context access
-    task = ctx.task      # Task entity
-    user = ctx.user      # User who dispatched task
 
-    task.set_payload({"arg": business_arg})
-    ctx.update_task(task)
+    # Update progress and payload atomically
+    ctx.update_task(
+        progress=0.5,
+        payload={"arg": business_arg}
+    )
 ```
 
 ### Task Lifecycle
@@ -222,7 +223,7 @@ def fetch_and_process(api_url: str) -> None:
     cache.set("data", data)
 ```
 
-**`ctx.update_progress()` - Progress tracking with cancellation check:**
+**`ctx.update_task()` - Progress tracking:**
 
 ```python
 @async_task()
@@ -230,9 +231,15 @@ def process_batch(item_ids: list[int]) -> None:
     ctx = get_context()
 
     for i, item_id in enumerate(item_ids):
-        # Combined progress update + cancellation check
-        if not ctx.update_progress(i + 1, len(item_ids)):
-            return  # Cancelled
+        # Update progress
+        ctx.update_task(
+            progress=(i + 1) / len(item_ids),
+            payload={"current_item": item_id}
+        )
+
+        # Check cancellation separately if needed
+        if ctx.is_cancelled():
+            return
 
         process_single_item(item_id)
 ```
@@ -271,7 +278,7 @@ def fetch_and_cache(api_url: str, chart_id: int) -> None:
 
 ### Progressive Updates
 
-Update progress and check cancellation simultaneously:
+Update progress and payload during execution:
 
 ```python
 @async_task()
@@ -280,20 +287,20 @@ def multi_step_task(item_ids: list[int]) -> None:
 
     @ctx.on_cleanup
     def cleanup():
-        logger.info(f"Processed {ctx.task.get_payload().get('count', 0)} items")
+        logger.info("Task processing completed")
 
     for i, item_id in enumerate(item_ids):
-        # Update progress and check cancellation
-        if not ctx.update_progress(
-            i + 1,
-            len(item_ids),
-            current_item=item_id
-        ):
-            return  # Cancelled
+        # Update progress and payload atomically
+        ctx.update_task(
+            progress=(i + 1) / len(item_ids),
+            payload={"current_item": item_id, "count": i + 1}
+        )
+
+        # Check cancellation
+        if ctx.is_cancelled():
+            return
 
         process_item(item_id)
-
-    ctx.task.set_payload({"count": len(item_ids)})
 ```
 
 ### Important: Use Timeouts
@@ -405,16 +412,17 @@ Execution metadata for tasks.
 
 ```python
 class TaskContext:
-    @property
-    def task(self) -> AsyncTask:
-        """Latest task entity from metastore"""
+    def update_task(
+        self,
+        progress: float | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
+        """
+        Update task progress and/or payload atomically.
 
-    @property
-    def user(self) -> User:
-        """User who dispatched the task"""
-
-    def update_task(self, task: AsyncTask) -> None:
-        """Update task in metastore"""
+        All parameters are optional. Payload is merged with existing data.
+        Updates occur in a single database transaction.
+        """
 
     def is_cancelled(self) -> bool:
         """Check if task is cancelled"""
@@ -424,10 +432,9 @@ class TaskContext:
 
     def run(self, operation: Callable[[], T]) -> T | None:
         """Execute operation if not cancelled (optional helper)"""
-
-    def update_progress(self, current: int, total: int, **extra) -> bool:
-        """Update progress and check cancellation (optional helper)"""
 ```
+
+**Note:** The task object is no longer directly exposed. Tasks should use `update_task()` to modify state, as tasks are the source of state, not consumers of it.
 
 ## Architecture
 
