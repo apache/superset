@@ -160,6 +160,11 @@ const ViewModeContainer = styled.div`
     white-space: nowrap;
     display: inline-block;
 
+    /* Hide view mode toggle on mobile - force card view */
+    @media (max-width: 767px) {
+      display: none;
+    }
+
     .toggle-button {
       display: inline-block;
       border-radius: ${theme.borderRadius}px;
