@@ -21,7 +21,7 @@ import re
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
-from flask import current_app
+from flask import current_app, g
 from flask_babel import gettext as _
 
 from superset.common.chart_data import ChartDataResultFormat
@@ -178,6 +178,12 @@ class QueryContextProcessor:
         )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
+        warning = None
+        if getattr(g, "bq_memory_limited", False):
+            row_count = getattr(g, "bq_memory_limited_row_count", len(cache.df))
+            chart_id = (self._query_context.form_data or {}).get("slice_id", "")
+            prefix = f"Chart {chart_id}: " if chart_id else ""
+            warning = f"{prefix}Results truncated to {row_count:,} rows due to memory constraints."
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
@@ -198,6 +204,7 @@ class QueryContextProcessor:
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,
+            "warning": warning,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:

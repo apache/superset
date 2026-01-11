@@ -77,6 +77,7 @@ export interface ChartDataResponseResult {
   // TODO(hainenber): define proper type for below attributes
   rejected_filters?: any[];
   applied_filters?: any[];
+  warning?: string | null;
 }
 
 export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {

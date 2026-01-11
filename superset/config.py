@@ -529,6 +529,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
+    # Limits BigQuery fetch to BQ_FETCH_MAX_MB to prevent memory issues
+    "BQ_MEMORY_LIMIT_FETCH": False,
     # Allow for javascript controls components
     # this enables programmers to customize certain charts (like the
     # geospatial ones) by inputting javascript in controls. This exposes
@@ -1277,6 +1279,9 @@ DEFAULT_DB_ID = None
 
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = int(timedelta(seconds=30).total_seconds())
+
+# BigQuery max fetch size in MB (limits memory usage when fetching large results)
+BQ_FETCH_MAX_MB = 200
 
 # Timeout duration for SQL Lab query validation
 SQLLAB_VALIDATION_TIMEOUT = int(timedelta(seconds=10).total_seconds())
