@@ -412,6 +412,10 @@ categories:
     - name: Unvired
       url: https://unvired.com
       contributors: ["@srinisubramanian"]
+    
+    - name: UserGuiding
+      url: https://userguiding.com/
+      contributors: ["@tzercin"]
 
     - name: Virtuoso QA
       url: https://www.virtuosoqa.com
@@ -616,11 +620,6 @@ categories:
   Logistics:
     - name: Stockarea
       url: https://stockarea.io
-
-  Product Adoption:
-    - name: UserGuiding
-      url: https://userguiding.com/
-      contributors: ["@tzercin"]
 
   Others:
     - name: 10Web
