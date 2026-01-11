@@ -173,3 +173,12 @@ ul.dropdown__menu svg {
 [data-theme='dark'] .alert--resources a {
   color: var(--ifm-color-primary-light);
 }
+
+/* Fix Ant Design Collapse arrow visibility in dark mode */
+[data-theme='dark'] .ant-collapse-expand-icon {
+  color: var(--ifm-font-color-base);
+}
+
+[data-theme='dark'] .ant-collapse-header {
+  color: var(--ifm-font-color-base);
+}
