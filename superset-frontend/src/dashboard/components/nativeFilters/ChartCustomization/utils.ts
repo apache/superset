@@ -61,3 +61,31 @@ export const ensureValidCustomization = (
   column: customization.column || null,
   ...customization,
 });
+
+/**
+ * Checks if a column value is valid (non-null, non-empty).
+ * A column is considered valid if:
+ * - It's a non-empty string (after trimming)
+ * - It's a non-empty array
+ * - Other truthy values are considered valid
+ *
+ * @param column - The column value to check (string, string[], or null)
+ * @returns true if the column has a valid value, false otherwise
+ */
+export function hasValidColumn(
+  column: string | string[] | null | undefined,
+): boolean {
+  if (column === null || column === undefined) {
+    return false;
+  }
+
+  if (typeof column === 'string') {
+    return column.trim() !== '';
+  }
+
+  if (Array.isArray(column)) {
+    return column.length > 0;
+  }
+
+  return true;
+}

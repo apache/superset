@@ -50,6 +50,7 @@ import {
   clearAllChartCustomizationsFromMetadata,
 } from 'src/dashboard/actions/chartCustomizationActions';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
+import { hasValidColumn } from 'src/dashboard/components/nativeFilters/ChartCustomization/utils';
 import {
   getAffectedChartIdsFromCustomizations,
   getRelatedChartsForChartCustomization,
@@ -339,11 +340,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         const pendingColumn = customization.customization?.column || null;
         const existingColumn = existingItem?.customization?.column || null;
 
-        const columnChanged =
-          pendingColumn !== existingColumn &&
-          !isEqual(pendingColumn, existingColumn);
-
-        if (columnChanged) {
+        if (!isEqual(pendingColumn, existingColumn)) {
           const customizationFilterId = `chart_customization_${customization.id}`;
           const dataMask = {
             extraFormData: {},
@@ -375,19 +372,9 @@ const FilterBar: FC<FiltersBarProps> = ({
 
         dispatch(setChartCustomization(mergedCustomizations));
 
-        const customizationsWithColumns = mergedCustomizations.filter(item => {
-          if (item.removed) return false;
-          const column = item.customization?.column;
-          if (!column) return false;
-
-          if (typeof column === 'string') {
-            return column.trim() !== '';
-          }
-          if (Array.isArray(column)) {
-            return column.length > 0;
-          }
-          return true;
-        });
+        const customizationsWithColumns = mergedCustomizations.filter(
+          item => !item.removed && hasValidColumn(item.customization?.column),
+        );
 
         const newAffectedChartIds = getAffectedChartIdsFromCustomizations(
           customizationsWithColumns,
@@ -398,17 +385,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         const originalCustomizations = chartCustomizationItems || [];
 
         originalCustomizations.forEach(oldItem => {
-          const oldColumn = oldItem.customization?.column;
-          const hadColumnBefore =
-            oldColumn !== null &&
-            oldColumn !== undefined &&
-            (typeof oldColumn === 'string'
-              ? oldColumn.trim() !== ''
-              : Array.isArray(oldColumn)
-                ? oldColumn.length > 0
-                : false);
-
-          if (!hadColumnBefore) {
+          if (!hasValidColumn(oldItem.customization?.column)) {
             return;
           }
 
@@ -416,16 +393,7 @@ const FilterBar: FC<FiltersBarProps> = ({
             item => item.id === oldItem.id,
           );
           const wasRemoved = !newItem || newItem.removed;
-
-          const newColumn = newItem?.customization?.column;
-          const hasColumnNow =
-            newColumn !== null &&
-            newColumn !== undefined &&
-            (typeof newColumn === 'string'
-              ? newColumn.trim() !== ''
-              : Array.isArray(newColumn)
-                ? newColumn.length > 0
-                : false);
+          const hasColumnNow = hasValidColumn(newItem?.customization?.column);
 
           if (wasRemoved || !hasColumnNow) {
             const relatedCharts = getRelatedChartsForChartCustomization(
