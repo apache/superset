@@ -38,8 +38,8 @@ describe('renderNormalizedTooltip', () => {
             metricsWithCustomBounds,
             formatter,
         );
-        expect(tooltip).toContain('100.00');
-        expect(tooltip).toContain('200.00');
+        expect(tooltip).toContain(formatter(100));
+        expect(tooltip).toContain(formatter(200));
     });
 
     it('should render tooltip with raw values when formatter is not provided', () => {
