@@ -283,8 +283,6 @@ export const strokeColorPicker: CustomControlItem = {
     type: 'ColorPickerControl',
     default: PRIMARY_COLOR,
     renderTrigger: true,
-    visibility: ({ controls }) =>
-      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
   },
 };
 
