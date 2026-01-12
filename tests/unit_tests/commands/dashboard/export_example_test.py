@@ -175,9 +175,7 @@ def test_export_chart():
 
 def test_export_example_command_not_found():
     """Test ExportExampleCommand raises error for non-existent dashboard."""
-    with patch(
-        "superset.commands.dashboard.export_example.DashboardDAO"
-    ) as mock_dao:
+    with patch("superset.commands.dashboard.export_example.DashboardDAO") as mock_dao:
         mock_dao.find_by_id.return_value = None
 
         command = ExportExampleCommand(dashboard_id=9999)
@@ -238,11 +236,12 @@ def test_export_example_command_single_dataset():
     mock_dashboard.json_metadata = "{}"
     mock_dashboard.slices = [mock_chart]
 
-    with patch(
-        "superset.commands.dashboard.export_example.DashboardDAO"
-    ) as mock_dao, patch(
-        "superset.commands.dashboard.export_example.export_dataset_data"
-    ) as mock_export_data:
+    with (
+        patch("superset.commands.dashboard.export_example.DashboardDAO") as mock_dao,
+        patch(
+            "superset.commands.dashboard.export_example.export_dataset_data"
+        ) as mock_export_data,
+    ):
         mock_dao.find_by_id.return_value = mock_dashboard
         mock_export_data.return_value = b"parquet data"
 
@@ -312,9 +311,7 @@ def test_export_example_command_no_data():
     mock_dashboard.json_metadata = "{}"
     mock_dashboard.slices = [mock_chart]
 
-    with patch(
-        "superset.commands.dashboard.export_example.DashboardDAO"
-    ) as mock_dao:
+    with patch("superset.commands.dashboard.export_example.DashboardDAO") as mock_dao:
         mock_dao.find_by_id.return_value = mock_dashboard
 
         command = ExportExampleCommand(dashboard_id=1, export_data=False)
