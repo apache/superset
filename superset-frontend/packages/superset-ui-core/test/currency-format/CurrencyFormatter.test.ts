@@ -109,9 +109,7 @@ test('CurrencyFormatter:getNormalizedD3Format', () => {
     currency: { symbol: 'USD', symbolPosition: 'prefix' },
     d3Format: ',.1%',
   });
-  expect(currencyFormatter4.getNormalizedD3Format()).toEqual(
-    currencyFormatter4.d3Format,
-  );
+  expect(currencyFormatter4.getNormalizedD3Format()).toEqual(',.1%');
 });
 
 test('CurrencyFormatter:format', () => {
