@@ -32,7 +32,7 @@
     "@types/ioredis": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/lodash": "^4.17.21",
+    "@types/lodash": "^4.17.23",
     "@types/node": "^25.0.3",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
