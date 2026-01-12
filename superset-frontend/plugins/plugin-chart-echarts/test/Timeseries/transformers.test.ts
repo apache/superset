@@ -240,42 +240,39 @@ test('should configure time axis labels to show max label for last month visibil
       }),
     }),
   );
+});
 
-describe('getPadding', () => {
-  let getChartPaddingSpy: jest.SpyInstance;
+function setupGetChartPaddingMock(): jest.SpyInstance {
+  // Mock getChartPadding to return the padding object as-is for easier testing
+  const getChartPaddingSpy = jest.spyOn(seriesUtils, 'getChartPadding');
+  getChartPaddingSpy.mockImplementation(
+    (
+      show: boolean,
+      orientation: LegendOrientation,
+      margin: string | number | null | undefined,
+      padding:
+        | {
+            bottom?: number;
+            left?: number;
+            right?: number;
+            top?: number;
+          }
+        | undefined,
+    ) => {
+      return {
+        bottom: padding?.bottom ?? 0,
+        left: padding?.left ?? 0,
+        right: padding?.right ?? 0,
+        top: padding?.top ?? 0,
+      };
+    },
+  );
+  return getChartPaddingSpy;
+}
 
-  beforeEach(() => {
-    // Mock getChartPadding to return the padding object as-is for easier testing
-    getChartPaddingSpy = jest.spyOn(seriesUtils, 'getChartPadding');
-    getChartPaddingSpy.mockImplementation(
-      (
-        show: boolean,
-        orientation: LegendOrientation,
-        margin: string | number | null | undefined,
-        padding:
-          | {
-              bottom?: number;
-              left?: number;
-              right?: number;
-              top?: number;
-            }
-          | undefined,
-      ) => {
-        return {
-          bottom: padding?.bottom ?? 0,
-          left: padding?.left ?? 0,
-          right: padding?.right ?? 0,
-          top: padding?.top ?? 0,
-        };
-      },
-    );
-  });
-
-  afterEach(() => {
-    getChartPaddingSpy.mockRestore();
-  });
-
-  it('should only affect left margin when Y axis title position is Left', () => {
+test('getPadding should only affect left margin when Y axis title position is Left', () => {
+  const getChartPaddingSpy = setupGetChartPaddingMock();
+  try {
     const result = getPadding(
       false, // showLegend
       LegendOrientation.Top, // legendOrientation
@@ -297,9 +294,14 @@ describe('getPadding', () => {
     expect(result.bottom).toBe(TIMESERIES_CONSTANTS.gridOffsetBottom);
     // Right should be base value
     expect(result.right).toBe(TIMESERIES_CONSTANTS.gridOffsetRight);
-  });
+  } finally {
+    getChartPaddingSpy.mockRestore();
+  }
+});
 
-  it('should only affect top margin when Y axis title position is Top', () => {
+test('getPadding should only affect top margin when Y axis title position is Top', () => {
+  const getChartPaddingSpy = setupGetChartPaddingMock();
+  try {
     const result = getPadding(
       false, // showLegend
       LegendOrientation.Top, // legendOrientation
@@ -321,9 +323,14 @@ describe('getPadding', () => {
     expect(result.bottom).toBe(TIMESERIES_CONSTANTS.gridOffsetBottom);
     // Right should be base value
     expect(result.right).toBe(TIMESERIES_CONSTANTS.gridOffsetRight);
-  });
+  } finally {
+    getChartPaddingSpy.mockRestore();
+  }
+});
 
-  it('should use yAxisOffset for top when position is not specified and addYAxisTitleOffset is true', () => {
+test('getPadding should use yAxisOffset for top when position is not specified and addYAxisTitleOffset is true', () => {
+  const getChartPaddingSpy = setupGetChartPaddingMock();
+  try {
     const result = getPadding(
       false, // showLegend
       LegendOrientation.Top, // legendOrientation
@@ -344,9 +351,14 @@ describe('getPadding', () => {
     );
     // Left should be base value
     expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft);
-  });
+  } finally {
+    getChartPaddingSpy.mockRestore();
+  }
+});
 
-  it('should not add yAxisOffset when addYAxisTitleOffset is false', () => {
+test('getPadding should not add yAxisOffset when addYAxisTitleOffset is false', () => {
+  const getChartPaddingSpy = setupGetChartPaddingMock();
+  try {
     const result = getPadding(
       false, // showLegend
       LegendOrientation.Top, // legendOrientation
@@ -364,9 +376,14 @@ describe('getPadding', () => {
     expect(result.top).toBe(TIMESERIES_CONSTANTS.gridOffsetTop);
     // Left should be base value
     expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft);
-  });
+  } finally {
+    getChartPaddingSpy.mockRestore();
+  }
+});
 
-  it('should handle Left position with zero margin correctly', () => {
+test('getPadding should handle Left position with zero margin correctly', () => {
+  const getChartPaddingSpy = setupGetChartPaddingMock();
+  try {
     const result = getPadding(
       false, // showLegend
       LegendOrientation.Top, // legendOrientation
@@ -384,5 +401,7 @@ describe('getPadding', () => {
     expect(result.top).toBe(TIMESERIES_CONSTANTS.gridOffsetTop);
     // Left should be base value only (margin is 0)
     expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft);
-  });
+  } finally {
+    getChartPaddingSpy.mockRestore();
+  }
 });
