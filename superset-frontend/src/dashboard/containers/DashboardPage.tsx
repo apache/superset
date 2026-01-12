@@ -210,14 +210,25 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender]);
 
+  // Update document title when dashboard title changes
   useEffect(() => {
     if (dashboard_title) {
       document.title = dashboard_title;
     }
+  }, [dashboard_title]);
+
+  // Restore original title on unmount (run once)
+  useEffect(() => {
+    const originalTitle = document.title;
     return () => {
-      document.title = theme.brandAppName || theme.brandLogoAlt || 'Superset';
+      document.title =
+        originalTitle ||
+        theme?.brandAppName ||
+        theme?.brandLogoAlt ||
+        'Superset';
     };
-  }, [dashboard_title, theme.brandAppName, theme.brandLogoAlt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (typeof css === 'string') {
