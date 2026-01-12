@@ -140,7 +140,7 @@
     "@visx/xychart": "^3.5.1",
     "ag-grid-community": "34.3.1",
     "ag-grid-react": "34.3.1",
-    "antd": "^5.26.0",
+    "antd": "^6.1.4",
     "chrono-node": "^2.7.8",
     "classnames": "^2.2.5",
     "content-disposition": "^1.0.1",
