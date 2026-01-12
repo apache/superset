@@ -3214,10 +3214,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
 
         if granularity:
-            qry = qry.where(and_(*(time_filters + where_clause_and)))
-        else:
+            if time_filters or where_clause_and:
+                qry = qry.where(and_(*(time_filters + where_clause_and)))
+        elif where_clause_and:
             qry = qry.where(and_(*where_clause_and))
-        qry = qry.having(and_(*having_clause_and))
+        if having_clause_and:
+            qry = qry.having(and_(*having_clause_and))
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
