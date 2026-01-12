@@ -149,12 +149,10 @@ const AceEditorWrapper = ({
       onCursorPositionChange(cursor);
     });
 
-    setTimeout(() => {
-      const { row, column } = cursorPosition;
-      editor.moveCursorToPosition({ row, column });
-      editor.focus();
-      editor.scrollToLine(row, true, true);
-    }, 100);
+    const { row, column } = cursorPosition;
+    editor.moveCursorToPosition({ row, column });
+    editor.focus();
+    editor.scrollToLine(row, true, true);
   };
 
   const onChangeText = (text: string) => {
