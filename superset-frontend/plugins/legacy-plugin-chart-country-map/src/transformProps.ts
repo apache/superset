@@ -24,7 +24,7 @@ export default function transformProps(chartProps: ChartProps) {
     formData,
     queriesData,
     datasource,
-    hooks,
+    hooks = {},
     inContextMenu,
     filterState,
     emitCrossFilters,
