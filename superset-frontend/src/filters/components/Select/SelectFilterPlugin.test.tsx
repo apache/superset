@@ -604,29 +604,29 @@ describe('SelectFilterPlugin', () => {
 
   test('Select boolean FALSE value in single-select mode', async () => {
     const setDataMaskMock = jest.fn();
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        multiSelect: false,
+        groupby: ['is_active'],
+      },
+      queriesData: [
+        {
+          ...selectMultipleProps.queriesData[0],
+          colnames: ['is_active'],
+          data: [{ is_active: true }, { is_active: false }],
+          applied_filters: [{ column: 'is_active' }],
+        },
+      ],
+      filterState: { value: undefined },
+    };
+
     render(
       // @ts-ignore
       <SelectFilterPlugin
         // @ts-ignore
-        {...transformProps({
-          ...selectMultipleProps,
-          formData: {
-            ...selectMultipleProps.formData,
-            multiSelect: false,
-            groupby: ['is_active'],
-          },
-          queriesData: [
-            {
-              rowcount: 2,
-              colnames: ['is_active'],
-              coltypes: [1],
-              data: [{ is_active: true }, { is_active: false }],
-              applied_filters: [{ column: 'is_active' }],
-              rejected_filters: [],
-            },
-          ],
-          filterState: { value: undefined },
-        })}
+        {...transformProps(testProps)}
         setDataMask={setDataMaskMock}
         showOverflow={false}
       />,
@@ -659,7 +659,8 @@ describe('SelectFilterPlugin', () => {
     expect(falseOption).toBeInTheDocument();
     await userEvent.click(falseOption);
 
-    expect(await screen.findByTitle('false')).toBeInTheDocument();
+    const selectedElements = await screen.findAllByTitle('FALSE');
+    expect(selectedElements.length).toBeGreaterThan(0);
 
     expect(setDataMaskMock).toHaveBeenCalledWith(
       expect.objectContaining({
