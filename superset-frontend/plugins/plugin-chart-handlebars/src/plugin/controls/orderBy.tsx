@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlSetItem, Dataset } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { isEmpty } from 'lodash';
 import { isAggMode, isRawMode } from './shared';
 

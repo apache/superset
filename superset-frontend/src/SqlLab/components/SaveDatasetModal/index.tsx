@@ -30,8 +30,8 @@ import {
   Icons,
   Flex,
 } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core';
 import {
-  t,
   SupersetClient,
   JsonResponse,
   JsonObject,

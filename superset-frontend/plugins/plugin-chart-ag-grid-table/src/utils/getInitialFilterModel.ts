@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,22 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isEmpty } from 'lodash';
+import type { AgGridChartState } from '@superset-ui/core';
 
-import { LanguagePack } from '@superset-ui/core';
+const getInitialFilterModel = (
+  chartState?: Partial<AgGridChartState>,
+  serverPaginationData?: Record<string, unknown>,
+  serverPagination?: boolean,
+): Record<string, unknown> | undefined => {
+  const chartStateFilterModel =
+    chartState?.filterModel && !isEmpty(chartState.filterModel)
+      ? (chartState.filterModel as Record<string, unknown>)
+      : undefined;
 
-const languagePack: LanguagePack = {
-  domain: 'superset',
-  locale_data: {
-    superset: {
-      '': {
-        domain: 'superset',
-        plural_forms: 'nplurals=1; plural=0;',
-        lang: 'zh',
-      },
-      second: ['秒'],
-      'Copy of %s': ['%s 的副本'],
-    },
-  },
+  const serverFilterModel =
+    serverPagination &&
+    serverPaginationData?.agGridFilterModel &&
+    !isEmpty(serverPaginationData.agGridFilterModel)
+      ? (serverPaginationData.agGridFilterModel as Record<string, unknown>)
+      : undefined;
+
+  return chartStateFilterModel ?? serverFilterModel;
 };
 
-export default languagePack;
+export default getInitialFilterModel;

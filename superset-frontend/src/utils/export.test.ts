@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import contentDisposition from 'content-disposition';
 import handleResourceExport from './export';
 
@@ -25,6 +26,9 @@ jest.mock('@superset-ui/core', () => ({
   SupersetClient: {
     get: jest.fn(),
   },
+}));
+
+jest.mock('@apache-superset/core', () => ({
   logging: {
     warn: jest.fn(),
     error: jest.fn(),

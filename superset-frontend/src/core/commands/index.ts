@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { logging } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { commands as commandsApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 

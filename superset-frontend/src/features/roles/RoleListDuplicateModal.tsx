@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { RoleObject } from 'src/pages/RolesList';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { FormModal, Icons } from '@superset-ui/core/components';

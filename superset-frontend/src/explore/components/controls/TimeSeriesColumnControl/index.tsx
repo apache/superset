@@ -27,7 +27,7 @@ import {
   Row,
   Select,
 } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import BoundsControl from '../BoundsControl';

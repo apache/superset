@@ -19,7 +19,7 @@
 import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
 import { getFilterValueForDisplay } from '../nativeFilters/utils';

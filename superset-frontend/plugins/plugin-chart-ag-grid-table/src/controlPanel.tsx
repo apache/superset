@@ -40,6 +40,7 @@ import {
   isRegularMetric,
   isPercentMetric,
 } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
   FeatureFlag,
@@ -50,7 +51,6 @@ import {
   QueryFormColumn,
   QueryMode,
   SMART_DATE_ID,
-  t,
   validateMaxValue,
   validateServerPagination,
 } from '@superset-ui/core';

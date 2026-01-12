@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, styled } from '@apache-superset/core/ui';
 import { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';

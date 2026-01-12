@@ -18,7 +18,8 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { isDefined, NativeFilterScope, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { isDefined, NativeFilterScope } from '@superset-ui/core';
 import { Modal } from '@superset-ui/core/components';
 import {
   ChartConfiguration,

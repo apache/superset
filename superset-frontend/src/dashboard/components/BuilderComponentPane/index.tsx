@@ -19,7 +19,7 @@
 /* eslint-env browser */
 import tinycolor from 'tinycolor2';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, SupersetTheme } from '@apache-superset/core/ui';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';

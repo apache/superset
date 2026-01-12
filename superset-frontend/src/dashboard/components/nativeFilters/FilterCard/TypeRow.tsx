@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { getChartMetadataRegistry, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getChartMetadataRegistry } from '@superset-ui/core';
 import { Row, RowLabel, RowValue } from './Styles';
 import { FilterCardRowProps } from './types';
 

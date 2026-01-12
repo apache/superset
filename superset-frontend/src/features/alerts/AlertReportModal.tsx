@@ -26,11 +26,11 @@ import {
   ReactNode,
 } from 'react';
 
+import { t } from '@apache-superset/core';
 import {
   isFeatureEnabled,
   FeatureFlag,
   SupersetClient,
-  t,
   VizType,
   getExtensionsRegistry,
 } from '@superset-ui/core';

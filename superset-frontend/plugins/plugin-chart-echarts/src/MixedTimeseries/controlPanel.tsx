@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelsContainerProps,

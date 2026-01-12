@@ -18,6 +18,7 @@
  */
 import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import Split from 'react-split';
+import { t } from '@apache-superset/core';
 import {
   DatasourceType,
   ensureIsArray,
@@ -25,7 +26,6 @@ import {
   FeatureFlag,
   getChartMetadataRegistry,
   SupersetClient,
-  t,
   QueryFormData,
   JsonObject,
   getExtensionsRegistry,

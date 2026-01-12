@@ -17,7 +17,8 @@
  * under the License.
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
-import { logging, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import fetchMock from 'fetch-mock';
 import ExtensionsStartup from './ExtensionsStartup';
 import ExtensionsManager from './ExtensionsManager';

@@ -18,7 +18,7 @@
  */
 import { ReactNode, RefObject } from 'react';
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, styled } from '@apache-superset/core/ui';
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configure } from '@superset-ui/core';
+import { configure } from '@apache-superset/core';
 import {
   Comparator,
   getOpacity,
