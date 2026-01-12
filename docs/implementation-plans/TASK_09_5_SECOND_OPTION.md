@@ -51,6 +51,8 @@ export const REFRESH_FREQUENCY_OPTIONS = [
 
 Uses `RefreshFrequencySelect` component to display options.
 
+**Note:** This modal will also need to include the "Pause auto refresh if tab is inactive" checkbox (see Step 6 below).
+
 ### Feature Flag Consideration
 
 The backend also has a setting for auto-refresh mode:
@@ -186,7 +188,52 @@ test('MINIMUM_REFRESH_INTERVAL is 5 seconds', () => {
 });
 ```
 
-### Step 5: Documentation Update
+### Step 5: Add "Pause on Inactive Tab" Checkbox to RefreshIntervalModal
+
+**File to modify:** `superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx`
+
+Per design decision, add a checkbox for configuring tab visibility auto-pause behavior:
+
+```typescript
+import { Checkbox } from 'antd';
+import { t } from '@superset-ui/core';
+
+// In the component, add state:
+const [pauseOnInactiveTab, setPauseOnInactiveTab] = useState(
+  dashboardState.autoRefreshPauseOnInactiveTab ?? false,
+);
+
+// In the render, add below the frequency select (and below any existing content):
+<div style={{ marginTop: 16 }}>
+  <Checkbox
+    checked={pauseOnInactiveTab}
+    onChange={(e) => setPauseOnInactiveTab(e.target.checked)}
+    data-test="auto-refresh-pause-inactive-tab-checkbox"
+  >
+    {t('Pause auto refresh if tab is inactive')}
+  </Checkbox>
+</div>
+
+// In the save handler, dispatch the new setting:
+const handleSave = () => {
+  dispatch(setRefreshFrequency(selectedFrequency, shouldPersist));
+  dispatch(setAutoRefreshPauseOnInactiveTab(pauseOnInactiveTab));  // NEW
+  onClose();
+};
+```
+
+**UI Placement:**
+- Below the refresh frequency dropdown
+- Below any existing content in the modal
+- Default: **unchecked** (OFF)
+
+**Behavior:**
+- When checked: Dashboard will automatically pause auto-refresh when the browser tab becomes inactive
+- When unchecked (default): Auto-refresh continues even when tab is inactive
+
+---
+
+### Step 6: Documentation Update
 
 **File to modify:** `superset/config.py`
 

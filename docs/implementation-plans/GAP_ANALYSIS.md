@@ -356,6 +356,47 @@ test('displays white dot with border when paused', () => {
 
 ---
 
+## Design Decisions (Open Questions Resolved)
+
+The following open questions have been answered by the design team:
+
+### Question #4: Tab Inactive Status Display
+**Q:** When the tab is inactive and auto-refresh is paused, should the status indicator always show the paused (white) state?
+**A:** **YES** - Status indicator should show white/paused state when tab is inactive.
+
+**Impact:** Task 4 confirmed - no changes needed.
+
+---
+
+### Question #5: Error State Thresholds
+**Q:** Confirm logic for delayed vs error (e.g., yellow after 1 missed refresh, red after 2+)
+**A:** **YES** - Confirmed thresholds:
+- **Delayed (Yellow)**: 1-2 consecutive errors OR fetch taking > 50% of interval
+- **Error (Red)**: 3+ consecutive errors
+
+**Impact:** Task 1 confirmed - no changes needed.
+
+---
+
+### Question #6: Auto-Pause Configurability
+**Q:** Should "auto-pause on inactive tab" be user-configurable in the auto-refresh UI, or always on?
+**A:** **Configurable** - Add checkbox in RefreshIntervalModal:
+- Label: "Pause auto refresh if tab is inactive"
+- Default: **OFF** (disabled by default)
+- Location: Below the existing content in the modal
+
+**Impact:** Updates needed to Task 4 and Task 9.
+
+---
+
+### Question #7: Session Persistence
+**Q:** Should manual refresh behavior persist auto-refresh settings beyond the current session?
+**A:** **YES** - Manual refresh should NOT clear/reset auto-refresh settings. Settings should persist.
+
+**Impact:** Existing behavior confirmed - no changes needed.
+
+---
+
 ## Final Action Items Summary
 
 | Priority | Gap | Task | Status |
@@ -368,10 +409,10 @@ test('displays white dot with border when paused', () => {
 | Medium | Error tooltip needs timestamp + error | Task 2 | ✅ Fixed (Second Pass) |
 | Medium | Missing SET_AUTO_REFRESH_FETCH_START_TIME | Task 1 | ✅ Fixed (Second Pass) |
 | Medium | Flicker prevention test cases | Task 10 | Pending (Documented) |
-| Medium | Tab inactive status display | Task 4 | Pending (Open Question #4) |
+| Medium | Tab inactive status display | Task 4 | ✅ Confirmed (Question #4) |
+| Medium | Auto-pause configurability | Task 4, 9 | **Update Required** |
 | Low | Task 10 test expects yellow for paused | Task 10 | ✅ Fixed (Second Pass) |
 | Low | Pause button must be in header | Task 3 | ✅ Fixed (Second Pass) |
 | Low | Test for non-real-time dashboard | Task 10 | ✅ Fixed (Second Pass) |
-| Low | Auto-pause configurability | Task 4 | Pending (Open Question #6) |
 | Low | Time-series ticker mode | Future | Deferred (Nice-to-have) |
 | Low | Non-ECharts animations | Task 8 | Documented

@@ -217,8 +217,9 @@ export interface UseAutoRefreshTabPauseOptions {
  * - When tab becomes hidden: Stop the refresh timer, set status to paused
  * - When tab becomes visible: If not manually paused, fetch data immediately and restart timer
  *
- * This hook respects manual pause state - if the user manually paused,
- * returning to the tab won't auto-resume.
+ * This hook respects:
+ * - The `autoRefreshPauseOnInactiveTab` setting (user must opt-in, default OFF)
+ * - Manual pause state - if the user manually paused, returning to the tab won't auto-resume
  */
 export function useAutoRefreshTabPause({
   onRefresh,
@@ -233,13 +234,18 @@ export function useAutoRefreshTabPause({
     setStatus,
     recordSuccess,
     recordError,
+    autoRefreshPauseOnInactiveTab,  // NEW: User setting for auto-pause behavior
   } = useRealTimeDashboard();
 
   // Track if we need to resume on visibility change
   const shouldResumeRef = useRef(false);
 
   const handleHidden = useCallback(() => {
-    if (!isRealTimeDashboard) {
+    // Only act if:
+    // 1. Dashboard has auto-refresh enabled
+    // 2. User has enabled "pause on inactive tab" setting
+    // 3. Not already manually paused
+    if (!isRealTimeDashboard || !autoRefreshPauseOnInactiveTab) {
       return;
     }
 
@@ -252,6 +258,7 @@ export function useAutoRefreshTabPause({
     }
   }, [
     isRealTimeDashboard,
+    autoRefreshPauseOnInactiveTab,  // NEW: respect user setting
     isManuallyPaused,
     setPausedByTab,
     setStatus,
@@ -259,7 +266,8 @@ export function useAutoRefreshTabPause({
   ]);
 
   const handleVisible = useCallback(() => {
-    if (!isRealTimeDashboard) {
+    // Only act if dashboard has auto-refresh and setting is enabled
+    if (!isRealTimeDashboard || !autoRefreshPauseOnInactiveTab) {
       return;
     }
 
@@ -771,7 +779,7 @@ describe('useAutoRefreshTabPause', () => {
 
 | Question | Decision |
 |----------|----------|
-| Should auto-pause on inactive tab be configurable? | No - always on (saves server resources) |
+| Should auto-pause on inactive tab be configurable? | **Yes** - configurable via checkbox in RefreshIntervalModal, **default OFF** |
 | Show different indicator for tab pause vs manual pause? | Yes - tooltip shows "(tab inactive)" |
 | Resume if user manually paused before tab hidden? | No - respect manual pause |
 

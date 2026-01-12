@@ -128,6 +128,8 @@ export type DashboardState = {
   refreshErrorCount: number;
   /** Timestamp when current fetch operation started (for delay detection) */
   autoRefreshFetchStartTime: number | null;
+  /** Whether to auto-pause when tab becomes inactive (user preference, default OFF) */
+  autoRefreshPauseOnInactiveTab: boolean;
 };
 ```
 
@@ -146,6 +148,7 @@ export const SET_AUTO_REFRESH_PAUSED = 'SET_AUTO_REFRESH_PAUSED';
 export const SET_AUTO_REFRESH_PAUSED_BY_TAB = 'SET_AUTO_REFRESH_PAUSED_BY_TAB';
 export const SET_LAST_SUCCESSFUL_REFRESH = 'SET_LAST_SUCCESSFUL_REFRESH';
 export const SET_AUTO_REFRESH_FETCH_START_TIME = 'SET_AUTO_REFRESH_FETCH_START_TIME';
+export const SET_AUTO_REFRESH_PAUSE_ON_INACTIVE_TAB = 'SET_AUTO_REFRESH_PAUSE_ON_INACTIVE_TAB';
 export const SET_REFRESH_ERROR = 'SET_REFRESH_ERROR';
 export const CLEAR_REFRESH_ERROR = 'CLEAR_REFRESH_ERROR';
 export const INCREMENT_REFRESH_ERROR_COUNT = 'INCREMENT_REFRESH_ERROR_COUNT';
@@ -170,6 +173,10 @@ export function setLastSuccessfulRefresh(timestamp) {
 
 export function setAutoRefreshFetchStartTime(timestamp) {
   return { type: SET_AUTO_REFRESH_FETCH_START_TIME, timestamp };
+}
+
+export function setAutoRefreshPauseOnInactiveTab(enabled) {
+  return { type: SET_AUTO_REFRESH_PAUSE_ON_INACTIVE_TAB, enabled };
 }
 
 export function setRefreshError(error) {
@@ -205,6 +212,7 @@ import {
   SET_AUTO_REFRESH_PAUSED_BY_TAB,
   SET_LAST_SUCCESSFUL_REFRESH,
   SET_AUTO_REFRESH_FETCH_START_TIME,
+  SET_AUTO_REFRESH_PAUSE_ON_INACTIVE_TAB,
   SET_REFRESH_ERROR,
   CLEAR_REFRESH_ERROR,
   INCREMENT_REFRESH_ERROR_COUNT,
@@ -243,6 +251,12 @@ Then add the action handlers inside the `actionHandlers` object (after line 335)
   return {
     ...state,
     autoRefreshFetchStartTime: action.timestamp,
+  };
+},
+[SET_AUTO_REFRESH_PAUSE_ON_INACTIVE_TAB]() {
+  return {
+    ...state,
+    autoRefreshPauseOnInactiveTab: action.enabled,
   };
 },
 [SET_REFRESH_ERROR]() {
@@ -294,6 +308,7 @@ dashboardState: {
   lastSuccessfulRefresh: null,
   lastRefreshError: null,
   refreshErrorCount: 0,
+  autoRefreshPauseOnInactiveTab: false,  // Default OFF per design decision
 },
 ```
 
@@ -359,6 +374,13 @@ export const selectAutoRefreshPausedByTab = (state: RootState): boolean =>
  */
 export const selectIsAutoRefreshPaused = (state: RootState): boolean =>
   selectAutoRefreshPaused(state) || selectAutoRefreshPausedByTab(state);
+
+/**
+ * Returns whether auto-pause on inactive tab is enabled (user preference).
+ * Default is false (OFF) per design decision.
+ */
+export const selectAutoRefreshPauseOnInactiveTab = (state: RootState): boolean =>
+  state.dashboardState.autoRefreshPauseOnInactiveTab ?? false;
 
 /**
  * Returns the timestamp of the last successful refresh, or null if none.
@@ -471,6 +493,7 @@ import {
   setAutoRefreshPaused,
   setAutoRefreshPausedByTab,
   setLastSuccessfulRefresh,
+  setAutoRefreshPauseOnInactiveTab,
   setRefreshError,
   clearRefreshError,
   incrementRefreshErrorCount,
@@ -483,6 +506,7 @@ import {
   selectAutoRefreshPaused,
   selectAutoRefreshPausedByTab,
   selectIsAutoRefreshPaused,
+  selectAutoRefreshPauseOnInactiveTab,
   selectLastSuccessfulRefresh,
   selectLastRefreshError,
   selectRefreshErrorCount,
@@ -513,6 +537,8 @@ export interface UseRealTimeDashboardResult {
   errorCount: number;
   /** Whether any refresh is in progress */
   isRefreshing: boolean;
+  /** Whether auto-pause on inactive tab is enabled (user preference, default OFF) */
+  autoRefreshPauseOnInactiveTab: boolean;
 
   // Actions
   /** Set the auto-refresh status */
@@ -523,6 +549,8 @@ export interface UseRealTimeDashboardResult {
   setPaused: (paused: boolean) => void;
   /** Set tab-based pause state */
   setPausedByTab: (paused: boolean) => void;
+  /** Set auto-pause on inactive tab preference */
+  setAutoRefreshPauseOnInactiveTab: (enabled: boolean) => void;
   /** Record a successful refresh */
   recordSuccess: () => void;
   /** Record a failed refresh with error message */
@@ -550,6 +578,7 @@ export function useRealTimeDashboard(): UseRealTimeDashboardResult {
   const lastError = useSelector(selectLastRefreshError);
   const errorCount = useSelector(selectRefreshErrorCount);
   const isRefreshing = useSelector(selectIsRefreshing);
+  const autoRefreshPauseOnInactiveTab = useSelector(selectAutoRefreshPauseOnInactiveTab);
 
   // Bound action creators
   const boundActions = useMemo(
@@ -560,6 +589,7 @@ export function useRealTimeDashboard(): UseRealTimeDashboardResult {
           setAutoRefreshPaused,
           setAutoRefreshPausedByTab,
           setLastSuccessfulRefresh,
+          setAutoRefreshPauseOnInactiveTab,
           setRefreshError,
           clearRefreshError,
           incrementRefreshErrorCount,
@@ -616,6 +646,13 @@ export function useRealTimeDashboard(): UseRealTimeDashboardResult {
     boundActions.clearRefreshError();
   }, [boundActions]);
 
+  const setAutoRefreshPauseOnInactiveTabAction = useCallback(
+    (enabled: boolean) => {
+      boundActions.setAutoRefreshPauseOnInactiveTab(enabled);
+    },
+    [boundActions],
+  );
+
   return {
     isRealTimeDashboard,
     refreshFrequency,
@@ -628,10 +665,12 @@ export function useRealTimeDashboard(): UseRealTimeDashboardResult {
     lastError,
     errorCount,
     isRefreshing,
+    autoRefreshPauseOnInactiveTab,
     setStatus,
     togglePause,
     setPaused,
     setPausedByTab,
+    setAutoRefreshPauseOnInactiveTab: setAutoRefreshPauseOnInactiveTabAction,
     recordSuccess,
     recordError,
     clearError,
