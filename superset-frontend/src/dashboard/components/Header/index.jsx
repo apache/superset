@@ -95,6 +95,10 @@ import isDashboardLoading from '../../util/isDashboardLoading';
 import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
 import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
+import AutoRefreshStatus from '../AutoRefreshStatus';
+import AutoRefreshControls from '../AutoRefreshControls';
+import { useRealTimeDashboard } from '../../hooks/useRealTimeDashboard';
+import { AutoRefreshStatus as AutoRefreshStatusEnum } from '../../types/autoRefresh';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -215,6 +219,18 @@ const Header = () => {
   );
   const isLoading = useSelector(state => isDashboardLoading(state.charts));
 
+  // Real-time dashboard state and actions
+  const {
+    isRealTimeDashboard,
+    isPaused,
+    effectiveStatus,
+    setStatus,
+    setPaused,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+  } = useRealTimeDashboard();
+
   const refreshTimer = useRef(0);
   const ctrlYTimeout = useRef(0);
   const ctrlZTimeout = useRef(0);
@@ -303,13 +319,26 @@ const Header = () => {
             intervalMessage,
           ),
         );
-        if (
+
+        // Track status for real-time dashboards
+        setStatus(AutoRefreshStatusEnum.Fetching);
+        setFetchStartTime(Date.now());
+
+        const fetchPromise =
           dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_MODE === 'fetch'
-        ) {
-          // force-refresh while auto-refresh in dashboard
-          return fetchCharts(affectedCharts);
-        }
-        return fetchCharts(affectedCharts, true);
+            ? // force-refresh while auto-refresh in dashboard
+              fetchCharts(affectedCharts)
+            : fetchCharts(affectedCharts, true);
+
+        return fetchPromise
+          .then(() => {
+            recordSuccess();
+            setFetchStartTime(null);
+          })
+          .catch(error => {
+            recordError(error?.message || 'Refresh failed');
+            setFetchStartTime(null);
+          });
       };
 
       refreshTimer.current = setPeriodicRunner({
@@ -318,7 +347,15 @@ const Header = () => {
         refreshTimer: refreshTimer.current,
       });
     },
-    [boundActionCreators, chartIds, dashboardInfo],
+    [
+      boundActionCreators,
+      chartIds,
+      dashboardInfo,
+      setStatus,
+      setFetchStartTime,
+      recordSuccess,
+      recordError,
+    ],
   );
 
   useEffect(() => {
@@ -605,6 +642,44 @@ const Header = () => {
     ],
   );
 
+  // Handle pause toggle for auto-refresh
+  const handlePauseToggle = useCallback(() => {
+    if (isPaused) {
+      // Resume: fetch immediately, then restart timer
+      setPaused(false);
+      setStatus(AutoRefreshStatusEnum.Fetching);
+      setFetchStartTime(Date.now());
+
+      // Immediate refresh
+      boundActionCreators
+        .onRefresh(chartIds, true, 0, dashboardInfo.id)
+        .then(() => {
+          recordSuccess();
+          setFetchStartTime(null);
+        })
+        .catch(error => {
+          recordError(error?.message || 'Refresh failed');
+          setFetchStartTime(null);
+        });
+    } else {
+      // Pause: stop the timer
+      setPaused(true);
+      setStatus(AutoRefreshStatusEnum.Paused);
+      stopPeriodicRender(refreshTimer.current);
+      refreshTimer.current = 0;
+    }
+  }, [
+    isPaused,
+    setPaused,
+    setStatus,
+    setFetchStartTime,
+    recordSuccess,
+    recordError,
+    boundActionCreators,
+    chartIds,
+    dashboardInfo.id,
+  ]);
+
   const titlePanelAdditionalItems = useMemo(
     () => [
       !editMode && (
@@ -615,6 +690,16 @@ const Header = () => {
           userCanEdit={userCanEdit}
           userCanSave={userCanSaveAs}
           visible={!editMode}
+        />
+      ),
+      // Auto-refresh status indicator (only for real-time dashboards)
+      !editMode && <AutoRefreshStatus key="auto-refresh-status" />,
+      // Auto-refresh pause/resume controls (only for real-time dashboards)
+      !editMode && (
+        <AutoRefreshControls
+          key="auto-refresh-controls"
+          onTogglePause={handlePauseToggle}
+          isLoading={isLoading}
         />
       ),
       !editMode && !isEmbedded && metadataBar,
@@ -628,6 +713,8 @@ const Header = () => {
       isPublished,
       userCanEdit,
       userCanSaveAs,
+      handlePauseToggle,
+      isLoading,
     ],
   );
 

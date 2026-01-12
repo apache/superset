@@ -1,0 +1,177 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { FC } from 'react';
+import { t } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { AutoRefreshStatus } from '../../types/autoRefresh';
+
+export interface StatusTooltipContentProps {
+  /** Current status */
+  status: AutoRefreshStatus;
+  /** Timestamp of last successful refresh (ms since epoch) */
+  lastSuccessfulRefresh: number | null;
+  /** Error message from last failed refresh */
+  lastError: string | null;
+  /** Refresh frequency in seconds */
+  refreshFrequency: number;
+  /** Timestamp when current fetch started (for delay calculation) */
+  autoRefreshFetchStartTime: number | null;
+}
+
+/**
+ * Formats a timestamp for display in the tooltip.
+ * Shows relative time ("3 s ago").
+ */
+const formatTimestamp = (timestamp: number | null): string => {
+  if (!timestamp) {
+    return t('Never');
+  }
+  return extendedDayjs(timestamp).fromNow();
+};
+
+/**
+ * Get the status-specific message for the tooltip.
+ *
+ * Per designer screenshot, tooltip shows two lines:
+ * - Line 1: "Dashboard updated X ago"
+ * - Line 2: "Auto refresh set to X seconds"
+ */
+const getStatusMessage = (
+  status: AutoRefreshStatus,
+  lastSuccessfulRefresh: number | null,
+  lastError: string | null,
+  refreshFrequency: number,
+  autoRefreshFetchStartTime: number | null,
+): { line1: string; line2: string; line3?: string } => {
+  const intervalLine = t('Auto refresh set to %s seconds', refreshFrequency);
+
+  switch (status) {
+    case AutoRefreshStatus.Success:
+    case AutoRefreshStatus.Idle:
+      return {
+        line1: t(
+          'Dashboard updated %s',
+          formatTimestamp(lastSuccessfulRefresh),
+        ),
+        line2: intervalLine,
+      };
+    case AutoRefreshStatus.Fetching:
+      return {
+        line1: t('Fetching data...'),
+        line2: intervalLine,
+      };
+    case AutoRefreshStatus.Delayed: {
+      const fetchElapsed = autoRefreshFetchStartTime
+        ? Math.round((Date.now() - autoRefreshFetchStartTime) / 1000)
+        : null;
+      return {
+        line1: t(
+          'Dashboard updated %s',
+          formatTimestamp(lastSuccessfulRefresh),
+        ),
+        line2: intervalLine,
+        line3: fetchElapsed
+          ? t('Refresh taking longer than expected (%ss)', fetchElapsed)
+          : t('Refresh delayed'),
+      };
+    }
+    case AutoRefreshStatus.Error:
+      return {
+        line1: t(
+          'Dashboard updated %s',
+          formatTimestamp(lastSuccessfulRefresh),
+        ),
+        line2: intervalLine,
+        line3: lastError ? t('Error: %s', lastError) : t('Refresh failed'),
+      };
+    case AutoRefreshStatus.Paused:
+      return {
+        line1: t('Auto-refresh paused'),
+        line2: intervalLine,
+      };
+    default:
+      return {
+        line1: t(
+          'Dashboard updated %s',
+          formatTimestamp(lastSuccessfulRefresh),
+        ),
+        line2: intervalLine,
+      };
+  }
+};
+
+/**
+ * Tooltip content for the auto-refresh status indicator.
+ *
+ * Per designer screenshot, displays:
+ * - "Dashboard updated X ago"
+ * - "Auto refresh set to X seconds"
+ * - (Optional third line for errors/delays)
+ */
+export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
+  status,
+  lastSuccessfulRefresh,
+  lastError,
+  refreshFrequency,
+  autoRefreshFetchStartTime,
+}) => {
+  const theme = useTheme();
+
+  const containerStyles = css`
+    max-width: 250px;
+    font-size: ${theme.fontSizeSM}px;
+    line-height: 1.5;
+  `;
+
+  const lineStyles = css`
+    color: ${theme.colorText};
+  `;
+
+  const errorLineStyles = css`
+    color: ${theme.colorError};
+    margin-top: ${theme.marginXXS}px;
+  `;
+
+  const { line1, line2, line3 } = getStatusMessage(
+    status,
+    lastSuccessfulRefresh,
+    lastError,
+    refreshFrequency,
+    autoRefreshFetchStartTime,
+  );
+
+  return (
+    <div css={containerStyles} data-test="status-tooltip-content">
+      <div css={lineStyles}>{line1}</div>
+      <div css={lineStyles}>{line2}</div>
+      {line3 && (
+        <div
+          css={
+            status === AutoRefreshStatus.Error ? errorLineStyles : lineStyles
+          }
+        >
+          {line3}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default StatusTooltipContent;

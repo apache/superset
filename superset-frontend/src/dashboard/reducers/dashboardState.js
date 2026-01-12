@@ -56,6 +56,19 @@ import {
   CLEAR_ALL_CHART_STATES,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+import {
+  SET_AUTO_REFRESH_STATUS,
+  SET_AUTO_REFRESH_PAUSED,
+  SET_AUTO_REFRESH_PAUSED_BY_TAB,
+  RECORD_AUTO_REFRESH_SUCCESS,
+  RECORD_AUTO_REFRESH_ERROR,
+  SET_AUTO_REFRESH_FETCH_START_TIME,
+  SET_AUTO_REFRESH_PAUSE_ON_INACTIVE_TAB,
+} from '../actions/autoRefresh';
+import {
+  AutoRefreshStatus,
+  ERROR_THRESHOLD_COUNT,
+} from '../types/autoRefresh';
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
@@ -331,6 +344,61 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         chartStates: {},
+      };
+    },
+    // Auto-refresh status indicator handlers
+    [SET_AUTO_REFRESH_STATUS]() {
+      return {
+        ...state,
+        autoRefreshStatus: action.status,
+      };
+    },
+    [SET_AUTO_REFRESH_PAUSED]() {
+      return {
+        ...state,
+        autoRefreshPaused: action.isPaused,
+      };
+    },
+    [SET_AUTO_REFRESH_PAUSED_BY_TAB]() {
+      return {
+        ...state,
+        autoRefreshPausedByTab: action.isPausedByTab,
+      };
+    },
+    [RECORD_AUTO_REFRESH_SUCCESS]() {
+      return {
+        ...state,
+        autoRefreshStatus: AutoRefreshStatus.Success,
+        lastSuccessfulRefresh: action.timestamp,
+        lastRefreshError: null,
+        refreshErrorCount: 0,
+      };
+    },
+    [RECORD_AUTO_REFRESH_ERROR]() {
+      const newErrorCount = (state.refreshErrorCount || 0) + 1;
+      // Determine status based on error count threshold
+      // 1-2 errors = Delayed (yellow), 3+ errors = Error (red)
+      const newStatus =
+        newErrorCount >= ERROR_THRESHOLD_COUNT
+          ? AutoRefreshStatus.Error
+          : AutoRefreshStatus.Delayed;
+      return {
+        ...state,
+        autoRefreshStatus: newStatus,
+        lastRefreshError: action.error,
+        refreshErrorCount: newErrorCount,
+      };
+    },
+    [SET_AUTO_REFRESH_FETCH_START_TIME]() {
+      return {
+        ...state,
+        autoRefreshFetchStartTime: action.timestamp,
+      };
+    },
+    [SET_AUTO_REFRESH_PAUSE_ON_INACTIVE_TAB]() {
+      return {
+        ...state,
+        autoRefreshPauseOnInactiveTab: action.pauseOnInactiveTab,
       };
     },
   };

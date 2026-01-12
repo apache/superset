@@ -17,14 +17,17 @@
  * under the License.
  */
 import { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { styled, Alert } from '@apache-superset/core/ui';
-import { Form } from '@superset-ui/core/components';
+import { Form, Checkbox } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
 import {
   RefreshFrequencySelect,
   getRefreshWarningMessage,
 } from './RefreshFrequency/RefreshFrequencySelect';
+import { setPauseOnInactiveTab } from '../actions/autoRefresh';
+import { RootState } from '../types';
 
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
@@ -55,10 +58,18 @@ const RefreshIntervalModal = ({
   refreshWarning,
   addSuccessToast,
 }: RefreshIntervalModalProps) => {
+  const dispatch = useDispatch();
   const [refreshFrequency, setRefreshFrequency] = useState(initialFrequency);
+  const pauseOnInactiveTab = useSelector(
+    (state: RootState) => state.dashboardState?.autoRefreshPauseOnInactiveTab ?? true,
+  );
 
   const handleFrequencyChange = (value: number) => {
     setRefreshFrequency(value);
+  };
+
+  const handlePauseOnInactiveTabChange = (e: { target: { checked: boolean } }) => {
+    dispatch(setPauseOnInactiveTab(e.target.checked));
   };
 
   const handleSave = () => {
@@ -106,6 +117,18 @@ const RefreshIntervalModal = ({
               onChange={handleFrequencyChange}
             />
           </Form.Item>
+
+          {refreshFrequency > 0 && (
+            <Form.Item>
+              <Checkbox
+                checked={pauseOnInactiveTab}
+                onChange={handlePauseOnInactiveTabChange}
+                data-test="pause-on-inactive-tab-checkbox"
+              >
+                {t('Pause auto-refresh when tab is inactive')}
+              </Checkbox>
+            </Form.Item>
+          )}
         </Form>
 
         {warningMessage && (
