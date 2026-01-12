@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { t, SupersetClient, getColumnLabel } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, getColumnLabel } from '@superset-ui/core';
 import { Select, Space } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { optionLabel } from 'src/utils/common';

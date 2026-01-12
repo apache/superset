@@ -18,7 +18,7 @@
  */
 
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 
 const addSeparators = function (nStr, thousandsSep, decimalSep) {
   const x = String(nStr).split('.');

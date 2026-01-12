@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { TimeseriesDataRecord } from '../../chart';
 import { AnnotationData } from './AnnotationLayer';
@@ -42,6 +41,11 @@ export interface ChartDataResponseResult {
   cache_key: string | null;
   cache_timeout: number | null;
   cached_dttm: string | null;
+  /**
+   * UTC timestamp when the query was executed (ISO 8601 format).
+   * For cached queries, this is when the original query ran.
+   */
+  queried_dttm: string | null;
   /**
    * Array of data records as dictionary
    */

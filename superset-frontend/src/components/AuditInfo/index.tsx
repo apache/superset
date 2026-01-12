@@ -17,7 +17,7 @@
  * under the License.
  */
 import getOwnerName from 'src/utils/getOwnerName';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Tooltip } from '@superset-ui/core/components';
 import type { ModifiedInfoProps } from './types';
 

@@ -31,10 +31,11 @@ import {
   setDatabases,
   addDangerToast,
   resetState,
+  type Database,
 } from 'src/SqlLab/actions/sqlLab';
 import { Button, EmptyState, Icons } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, css } from '@apache-superset/core/ui';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -194,8 +195,8 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
   );
 
   const handleDbList = useCallback(
-    (result: DatabaseObject) => {
-      dispatch(setDatabases(result));
+    (result: DatabaseObject[]) => {
+      dispatch(setDatabases(result as unknown as Database[]));
     },
     [dispatch],
   );

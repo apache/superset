@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Dispatch } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { Button } from '@superset-ui/core/components';
 import { TooltipPlacement } from '@superset-ui/core/components/Tooltip/types';

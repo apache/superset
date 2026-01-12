@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core';
 import {
   CategoricalColorNamespace,
   DataRecordValue,
@@ -26,7 +27,6 @@ import {
   getTimeFormatter,
   getValueFormatter,
   NumberFormats,
-  t,
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';

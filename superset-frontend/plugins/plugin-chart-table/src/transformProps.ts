@@ -17,6 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
+import { t } from '@apache-superset/core';
 import {
   ComparisonType,
   CurrencyFormatter,
@@ -31,7 +32,6 @@ import {
   normalizeCurrency,
   NumberFormats,
   QueryMode,
-  t,
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,

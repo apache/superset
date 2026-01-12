@@ -32,10 +32,10 @@ import type AceEditor from 'react-ace';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import AutoSizer from 'react-virtualized-auto-sizer';
+import { t } from '@apache-superset/core';
 import {
   FeatureFlag,
   isFeatureEnabled,
-  t,
   getExtensionsRegistry,
   QueryResponse,
   Query,
@@ -280,7 +280,8 @@ const SqlEditor: FC<Props> = ({
 
       dispatch(
         runQueryFromSqlEditor(
-          database,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          database as any,
           queryEditor,
           defaultQueryLimit,
           ctasArg ? ctas : '',
@@ -565,8 +566,8 @@ const SqlEditor: FC<Props> = ({
   };
 
   const setQueryEditorAndSaveSql = useCallback(
-    sql => {
-      dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
+    (sql: string) => {
+      dispatch(queryEditorSetAndSaveSql(queryEditor, sql, undefined));
     },
     [dispatch, queryEditor],
   );
@@ -578,7 +579,7 @@ const SqlEditor: FC<Props> = ({
 
   const onSqlChanged = useEffectEvent((sql: string) => {
     currentSQL.current = sql;
-    dispatch(queryEditorSetSql(queryEditor, sql));
+    dispatch(queryEditorSetSql(queryEditor, sql, undefined));
   });
 
   const getQueryCostEstimate = () => {

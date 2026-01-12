@@ -19,7 +19,7 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
@@ -177,10 +177,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       // the currently stored value when hydrating
       let activeTabs: string[] | undefined;
       let chartStates: DashboardChartStates | undefined;
+      let anchor: string | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
-        if (permalinkValue) {
-          ({ dataMask, activeTabs, chartStates } = permalinkValue.state);
+        if (permalinkValue?.state) {
+          ({ dataMask, activeTabs, chartStates, anchor } =
+            permalinkValue.state);
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
@@ -203,6 +205,17 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             chartStates,
           }),
         );
+
+        // Scroll to anchor element if specified in permalink state
+        if (anchor) {
+          // Use setTimeout to ensure the DOM has been updated after hydration
+          setTimeout(() => {
+            const element = document.getElementById(anchor);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 0);
+        }
       }
       return null;
     }

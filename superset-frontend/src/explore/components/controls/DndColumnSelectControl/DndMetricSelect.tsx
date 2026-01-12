@@ -19,15 +19,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nanoid } from 'nanoid';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
   isAdhocMetricSimple,
   isSavedMetric,
   Metric,
   QueryFormMetric,
-  t,
-  tn,
 } from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
@@ -89,10 +89,15 @@ const coerceMetrics = (
         col => col.column_name === metric.column.column_name,
       );
       if (column) {
-        return new AdhocMetric({ ...metric, column });
+        // Cast entire config object to handle type mismatch between @superset-ui/core and local types
+        return new AdhocMetric({
+          ...(metric as unknown as Record<string, unknown>),
+          column,
+        } as Record<string, unknown>);
       }
     }
-    return new AdhocMetric(metric);
+    // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric
+    return new AdhocMetric(metric as unknown as Record<string, unknown>);
   });
 };
 
@@ -200,7 +205,11 @@ const DndMetricSelect = (props: any) => {
 
   const onMetricEdit = useCallback(
     (changedMetric: Metric | AdhocMetric, oldMetric: Metric | AdhocMetric) => {
-      if (oldMetric instanceof AdhocMetric && oldMetric.equals(changedMetric)) {
+      if (
+        oldMetric instanceof AdhocMetric &&
+        changedMetric instanceof AdhocMetric &&
+        oldMetric.equals(changedMetric)
+      ) {
         return;
       }
       const newValue = value.map(value => {
@@ -273,7 +282,8 @@ const DndMetricSelect = (props: any) => {
       <MetricDefinitionValue
         key={index}
         index={index}
-        option={option}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        option={option as any}
         onMetricEdit={onMetricEdit}
         onRemoveMetric={onRemoveMetric}
         columns={props.columns}
@@ -343,9 +353,10 @@ const DndMetricSelect = (props: any) => {
       droppedItem.type === DndItemType.Column
     ) {
       const itemValue = droppedItem.value as ColumnMeta;
-      const config: Partial<AdhocMetric> = {
+      // Cast config to handle ColumnMeta/ColumnType mismatch
+      const config = {
         column: itemValue,
-      };
+      } as Partial<AdhocMetric>;
       if (itemValue.type_generic === GenericDataType.Numeric) {
         config.aggregate = AGGREGATES.SUM;
       } else if (
