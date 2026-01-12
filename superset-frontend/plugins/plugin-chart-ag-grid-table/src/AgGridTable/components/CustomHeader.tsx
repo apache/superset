@@ -19,9 +19,10 @@
  * under the License.
  */
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { t } from '@apache-superset/core';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
+import { Column } from '@superset-ui/core/components/ThemedAgGridReact';
 import FilterIcon from './Filter';
 import KebabMenu from './KebabMenu';
 import {
@@ -29,6 +30,8 @@ import {
   CustomHeaderParams,
   SortState,
   UserProvidedColDef,
+  FilterInputPosition,
+  AGGridFilterInstance,
 } from '../../types';
 import CustomPopover from './CustomPopover';
 import {
@@ -39,6 +42,13 @@ import {
   MenuContainer,
   SortIconWrapper,
 } from '../../styles';
+import { GridApi } from 'ag-grid-community';
+import {
+  FILTER_POPOVER_OPEN_DELAY,
+  FILTER_INPUT_POSITIONS,
+  FILTER_CONDITION_BODY_INDEX,
+  FILTER_INPUT_SELECTOR,
+} from '../../consts';
 
 const getSortIcon = (sortState: SortState[], colId: string | null) => {
   if (!sortState?.length || !colId) return null;
@@ -53,6 +63,43 @@ const getSortIcon = (sortState: SortState[], colId: string | null) => {
   return null;
 };
 
+// Auto-opens filter popover and focuses the correct input after server-side filtering
+const autoOpenFilterAndFocus = async (
+  column: Column,
+  api: GridApi,
+  filterRef: React.RefObject<HTMLDivElement>,
+  setFilterVisible: (visible: boolean) => void,
+  lastFilteredInputPosition?: FilterInputPosition,
+) => {
+  setFilterVisible(true);
+
+  const filterInstance = (await api.getColumnFilterInstance(
+    column,
+  )) as AGGridFilterInstance | null;
+  const filterEl = filterInstance?.eGui;
+
+  if (!filterEl || !filterRef.current) return;
+
+  filterRef.current.innerHTML = '';
+  filterRef.current.appendChild(filterEl);
+
+  if (filterInstance?.eConditionBodies) {
+    const conditionBodies = filterInstance.eConditionBodies;
+    const targetIndex =
+      lastFilteredInputPosition === FILTER_INPUT_POSITIONS.SECOND
+        ? FILTER_CONDITION_BODY_INDEX.SECOND
+        : FILTER_CONDITION_BODY_INDEX.FIRST;
+    const targetBody = conditionBodies[targetIndex];
+
+    if (targetBody) {
+      const input = targetBody.querySelector(
+        FILTER_INPUT_SELECTOR,
+      ) as HTMLInputElement | null;
+      input?.focus();
+    }
+  }
+};
+
 const CustomHeader: React.FC<CustomHeaderParams> = ({
   displayName,
   enableSorting,
@@ -61,7 +108,12 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   column,
   api,
 }) => {
-  const { initialSortState, onColumnHeaderClicked } = context;
+  const {
+    initialSortState,
+    onColumnHeaderClicked,
+    lastFilteredColumn,
+    lastFilteredInputPosition,
+  } = context;
   const colId = column?.getColId();
   const colDef = column?.getColDef() as CustomColDef;
   const userColDef = column.getUserProvidedColDef() as UserProvidedColDef;
@@ -77,7 +129,6 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const isTimeComparison = !isMain && userColDef?.timeComparisonKey;
   const sortKey = isMain ? colId.replace('Main', '').trim() : colId;
 
-  // Sorting logic
   const clearSort = () => {
     onColumnHeaderClicked({ column: { colId: sortKey, sort: null } });
     setSort(null, false);
@@ -106,13 +157,34 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     e.stopPropagation();
     setFilterVisible(!isFilterVisible);
 
-    const filterInstance = await api.getColumnFilterInstance<any>(column);
+    const filterInstance = (await api.getColumnFilterInstance(
+      column,
+    )) as AGGridFilterInstance | null;
     const filterEl = filterInstance?.eGui;
     if (filterEl && filterRef.current) {
       filterRef.current.innerHTML = '';
       filterRef.current.appendChild(filterEl);
     }
   };
+
+  // Re-open filter popover after server refresh (delay allows AG Grid to finish rendering)
+  useEffect(() => {
+    if (lastFilteredColumn === colId && !isFilterVisible) {
+      const timeoutId = setTimeout(
+        () =>
+          autoOpenFilterAndFocus(
+            column,
+            api,
+            filterRef,
+            setFilterVisible,
+            lastFilteredInputPosition,
+          ),
+        FILTER_POPOVER_OPEN_DELAY,
+      );
+      return () => clearTimeout(timeoutId);
+    }
+    return undefined;
+  }, [lastFilteredColumn, colId, lastFilteredInputPosition]);
 
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
