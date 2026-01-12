@@ -415,4 +415,33 @@ The following open questions have been answered by the design team:
 | Low | Pause button must be in header | Task 3 | ✅ Fixed (Second Pass) |
 | Low | Test for non-real-time dashboard | Task 10 | ✅ Fixed (Second Pass) |
 | Low | Time-series ticker mode | Future | Deferred (Nice-to-have) |
-| Low | Non-ECharts animations | Task 8 | Documented
+| Low | Non-ECharts animations | Task 8 | Documented |
+| Medium | Tooltip format (two lines) | Task 2 | ✅ Fixed (Design Review) |
+
+---
+
+## Design Verification (Pending Designer Confirmation)
+
+Based on designer screenshots review, the following items need confirmation:
+
+### 1. Green Dot with Checkmark
+**Requirements state:** "Green dot (with checkmark)"
+**Designer screenshot shows:** Plain green dot (checkmark not visible)
+
+**Question:** Is the checkmark inside the green dot still required, or is a plain green dot acceptable?
+
+**Current implementation (Task 2):** Includes `CheckOutlined` icon inside the dot for success state.
+
+### 2. Checkbox Placement in Modal
+**Question:** Where exactly should the "Pause auto refresh if tab is inactive" checkbox appear?
+- Above or below "Set refresh frequency for current session only" text?
+- Should it only appear when a non-zero refresh interval is selected?
+
+### 3. Tooltip Format ✅
+**Designer screenshot shows:**
+```
+Dashboard updated 3 s ago
+Auto refresh set to 10 seconds
+```
+
+**Resolution:** Task 2 updated to match this two-line format.

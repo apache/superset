@@ -421,9 +421,12 @@ const formatTimestamp = (timestamp: number | null): string => {
 
 /**
  * Get the status-specific message for the tooltip.
- * Per requirements:
- * - Delayed: Timestamp + delay description
- * - Error: Timestamp + error description
+ *
+ * Per designer screenshot, tooltip shows two lines:
+ * - Line 1: "Dashboard updated X ago" (timestamp)
+ * - Line 2: "Auto refresh set to X seconds" (interval)
+ *
+ * Special cases for error/delayed states include additional info.
  */
 const getStatusMessage = (
   status: AutoRefreshStatus,
@@ -431,42 +434,60 @@ const getStatusMessage = (
   lastError: string | null,
   refreshFrequency: number,
   autoRefreshFetchStartTime: number | null,
-): string => {
+): { line1: string; line2: string; line3?: string } => {
+  const intervalLine = t('Auto refresh set to %s seconds', refreshFrequency);
+
   switch (status) {
     case AutoRefreshStatus.Success:
     case AutoRefreshStatus.Idle:
-      return t('Last refreshed: %s', formatTimestamp(lastSuccessfulRefresh));
+      return {
+        line1: t('Dashboard updated %s', formatTimestamp(lastSuccessfulRefresh)),
+        line2: intervalLine,
+      };
     case AutoRefreshStatus.Fetching:
-      return t('Fetching data...');
+      return {
+        line1: t('Fetching data...'),
+        line2: intervalLine,
+      };
     case AutoRefreshStatus.Delayed:
       // Per requirements: "Timestamp + delay description"
       const fetchElapsed = autoRefreshFetchStartTime
         ? Math.round((Date.now() - autoRefreshFetchStartTime) / 1000)
         : null;
-      const expectedTime = Math.round(refreshFrequency * 0.5);
-      return fetchElapsed
-        ? t(
-            'Fetching is taking longer than expected (%ss elapsed, expected within %ss)',
-            fetchElapsed,
-            expectedTime,
-          )
-        : t('Refresh delayed. Last successful: %s', formatTimestamp(lastSuccessfulRefresh));
+      return {
+        line1: t('Dashboard updated %s', formatTimestamp(lastSuccessfulRefresh)),
+        line2: intervalLine,
+        line3: fetchElapsed
+          ? t('Refresh taking longer than expected (%ss)', fetchElapsed)
+          : t('Refresh delayed'),
+      };
     case AutoRefreshStatus.Error:
-      // Per requirements: "Timestamp + error description" (both, not either/or)
-      const timestampPart = t('Last successful: %s', formatTimestamp(lastSuccessfulRefresh));
-      return lastError
-        ? `${timestampPart}. ${t('Error: %s', lastError)}`
-        : t('Refresh failed. %s', timestampPart);
+      // Per requirements: "Timestamp + error description"
+      return {
+        line1: t('Dashboard updated %s', formatTimestamp(lastSuccessfulRefresh)),
+        line2: intervalLine,
+        line3: lastError ? t('Error: %s', lastError) : t('Refresh failed'),
+      };
     case AutoRefreshStatus.Paused:
-      return t('Auto-refresh paused');
+      return {
+        line1: t('Auto-refresh paused'),
+        line2: intervalLine,
+      };
     default:
-      return t('Auto-refresh every %s seconds', refreshFrequency);
+      return {
+        line1: t('Dashboard updated %s', formatTimestamp(lastSuccessfulRefresh)),
+        line2: intervalLine,
+      };
   }
 };
 
 /**
  * Tooltip content for the auto-refresh status indicator.
- * Shows contextual information based on the current status.
+ *
+ * Per designer screenshot, displays:
+ * - "Dashboard updated X ago"
+ * - "Auto refresh set to X seconds"
+ * - (Optional third line for errors/delays)
  */
 export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   status,
@@ -480,35 +501,33 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   const containerStyles = css`
     max-width: 250px;
     font-size: ${theme.fontSizeSM}px;
+    line-height: 1.5;
   `;
 
-  const titleStyles = css`
-    font-weight: ${theme.fontWeightBold};
-    margin-bottom: ${theme.marginXXS}px;
+  const lineStyles = css`
+    color: ${theme.colorText};
   `;
 
-  const messageStyles = css`
-    color: ${theme.colorTextSecondary};
+  const errorLineStyles = css`
+    color: ${theme.colorError};
+    margin-top: ${theme.marginXXS}px;
   `;
 
-  const statusTitle = {
-    [AutoRefreshStatus.Idle]: t('Auto-refresh active'),
-    [AutoRefreshStatus.Success]: t('Auto-refresh active'),
-    [AutoRefreshStatus.Fetching]: t('Refreshing'),
-    [AutoRefreshStatus.Delayed]: t('Refresh delayed'),
-    [AutoRefreshStatus.Error]: t('Refresh error'),
-    [AutoRefreshStatus.Paused]: t('Paused'),
-  }[status] || t('Auto-refresh');
-
-  const message = getStatusMessage(status, lastSuccessfulRefresh, lastError, refreshFrequency, autoRefreshFetchStartTime);
+  const { line1, line2, line3 } = getStatusMessage(
+    status,
+    lastSuccessfulRefresh,
+    lastError,
+    refreshFrequency,
+    autoRefreshFetchStartTime,
+  );
 
   return (
     <div css={containerStyles} data-test="status-tooltip-content">
-      <div css={titleStyles}>{statusTitle}</div>
-      <div css={messageStyles}>{message}</div>
-      {refreshFrequency > 0 && status !== AutoRefreshStatus.Paused && (
-        <div css={messageStyles}>
-          {t('Interval: %s seconds', refreshFrequency)}
+      <div css={lineStyles}>{line1}</div>
+      <div css={lineStyles}>{line2}</div>
+      {line3 && (
+        <div css={status === AutoRefreshStatus.Error ? errorLineStyles : lineStyles}>
+          {line3}
         </div>
       )}
     </div>
