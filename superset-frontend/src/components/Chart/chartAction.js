@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint no-param-reassign: ["error", { "props": false }] */
-import rison from 'rison';
 import {
   FeatureFlag,
   isDefined,
