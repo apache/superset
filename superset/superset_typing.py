@@ -356,7 +356,7 @@ class OAuth2TokenResponse(TypedDict, total=False):
     refresh_token: str
 
 
-class OAuth2State(TypedDict):
+class OAuth2State(TypedDict, total=False):
     """
     Type for the state passed during OAuth2.
     """
@@ -365,3 +365,5 @@ class OAuth2State(TypedDict):
     user_id: int
     default_redirect_uri: str
     tab_id: str
+    # PKCE code verifier (RFC 7636) - stored in state during token exchange
+    code_verifier: str
