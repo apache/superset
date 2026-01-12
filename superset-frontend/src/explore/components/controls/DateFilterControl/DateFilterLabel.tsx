@@ -354,11 +354,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       defaultOpen={show}
       open={show}
       onOpenChange={toggleOverlay}
-      overlayStyle={{ width: '600px', zIndex: 1050 }}
+      overlayStyle={{ width: '600px' }}
       destroyTooltipOnHide
-      getPopupContainer={() =>
-        // Use document.body to prevent modal from being hidden by collapsed panels
-        document.body
+      getPopupContainer={nodeTrigger =>
+        isOverflowingFilterBar
+          ? (nodeTrigger.parentNode as HTMLElement)
+          : document.body
       }
       overlayClassName="time-range-popover"
     >
