@@ -51,7 +51,7 @@
     "@storybook/preview-api": "^8.6.11",
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
-    "antd": "^6.1.2",
+    "antd": "^6.1.4",
     "caniuse-lite": "^1.0.30001764",
     "docusaurus-plugin-less": "^2.0.2",
     "js-yaml": "^4.1.1",
