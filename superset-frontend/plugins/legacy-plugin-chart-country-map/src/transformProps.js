@@ -22,7 +22,7 @@ export default function transformProps(chartProps) {
     height,
     formData,
     queriesData,
-    hooks,
+    hooks = {},
     inContextMenu,
     filterState,
     emitCrossFilters,
