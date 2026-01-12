@@ -537,9 +537,7 @@ class TestBrandAppNameFallback:
 
     @patch("superset.views.base.get_spa_payload")
     @patch("superset.views.base.app")
-    def test_brandappname_uses_theme_value_when_set(
-        self, mock_app, mock_payload
-    ):
+    def test_brandappname_uses_theme_value_when_set(self, mock_app, mock_payload):
         """Test that explicit brandAppName in theme takes precedence"""
         from superset.views.base import get_spa_template_context
 
@@ -572,9 +570,7 @@ class TestBrandAppNameFallback:
 
     @patch("superset.views.base.get_spa_payload")
     @patch("superset.views.base.app")
-    def test_brandappname_falls_back_to_app_name_config(
-        self, mock_app, mock_payload
-    ):
+    def test_brandappname_falls_back_to_app_name_config(self, mock_app, mock_payload):
         """Test fallback to APP_NAME config when brandAppName not in theme"""
         from superset.views.base import get_spa_template_context
 
@@ -642,9 +638,7 @@ class TestBrandAppNameFallback:
 
     @patch("superset.views.base.get_spa_payload")
     @patch("superset.views.base.app")
-    def test_brandappname_empty_string_falls_back(
-        self, mock_app, mock_payload
-    ):
+    def test_brandappname_empty_string_falls_back(self, mock_app, mock_payload):
         """Test that empty string brandAppName triggers fallback"""
         from superset.views.base import get_spa_template_context
 
@@ -676,9 +670,7 @@ class TestBrandAppNameFallback:
 
     @patch("superset.views.base.get_spa_payload")
     @patch("superset.views.base.app")
-    def test_brandappname_none_falls_back(
-        self, mock_app, mock_payload
-    ):
+    def test_brandappname_none_falls_back(self, mock_app, mock_payload):
         """Test that missing brandAppName triggers fallback"""
         from superset.views.base import get_spa_template_context
 
@@ -689,11 +681,7 @@ class TestBrandAppNameFallback:
 
         # Mock payload without brandAppName
         mock_payload.return_value = {
-            "common": {
-                "theme": {
-                    "default": {"token": {"brandLogoAlt": "Logo"}}
-                }
-            }
+            "common": {"theme": {"default": {"token": {"brandLogoAlt": "Logo"}}}}
         }
 
         result = get_spa_template_context("app")
@@ -747,9 +735,7 @@ class TestBrandAppNameFallback:
 
     @patch("superset.views.base.get_spa_payload")
     @patch("superset.views.base.app")
-    def test_brandappname_does_not_mutate_cached_payload(
-        self, mock_app, mock_payload
-    ):
+    def test_brandappname_does_not_mutate_cached_payload(self, mock_app, mock_payload):
         """Test that brandAppName fallback doesn't mutate the cached payload"""
         from superset.views.base import get_spa_template_context
 
@@ -768,9 +754,7 @@ class TestBrandAppNameFallback:
             }
         }
 
-        mock_payload.return_value = {
-            "common": {"theme": original_theme_data}
-        }
+        mock_payload.return_value = {"common": {"theme": original_theme_data}}
 
         # Call get_spa_template_context
         result = get_spa_template_context("app")

@@ -82,9 +82,9 @@ def test_init_creates_extension_with_frontend_only(
 
     # Should NOT have backend directory
     backend_path = extension_path / "backend"
-    assert (
-        not backend_path.exists()
-    ), "Backend directory should not exist for frontend-only extension"
+    assert not backend_path.exists(), (
+        "Backend directory should not exist for frontend-only extension"
+    )
 
 
 @pytest.mark.cli
@@ -105,9 +105,9 @@ def test_init_creates_extension_with_backend_only(
 
     # Should NOT have frontend directory
     frontend_path = extension_path / "frontend"
-    assert (
-        not frontend_path.exists()
-    ), "Frontend directory should not exist for backend-only extension"
+    assert not frontend_path.exists(), (
+        "Frontend directory should not exist for backend-only extension"
+    )
 
 
 @pytest.mark.cli
@@ -148,9 +148,9 @@ def test_init_validates_extension_name(
     cli_input = f"{invalid_name}\n0.1.0\nApache-2.0\ny\ny\n"
     result = cli_runner.invoke(app, ["init"], input=cli_input)
 
-    assert (
-        result.exit_code == 1
-    ), f"Expected command to fail for invalid name '{invalid_name}'"
+    assert result.exit_code == 1, (
+        f"Expected command to fail for invalid name '{invalid_name}'"
+    )
     assert expected_error in result.output
 
 
@@ -174,9 +174,9 @@ def test_init_with_valid_alphanumeric_names(cli_runner, valid_id):
         cli_input = f"{valid_id}\nTest Extension\n0.1.0\nApache-2.0\ny\ny\n"
         result = cli_runner.invoke(app, ["init"], input=cli_input)
 
-        assert (
-            result.exit_code == 0
-        ), f"Valid name '{valid_id}' was rejected: {result.output}"
+        assert result.exit_code == 0, (
+            f"Valid name '{valid_id}' was rejected: {result.output}"
+        )
         assert Path(valid_id).exists(), f"Directory for '{valid_id}' was not created"
 
 
