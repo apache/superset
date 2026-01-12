@@ -652,12 +652,14 @@ describe('SelectFilterPlugin', () => {
       },
     );
 
-    const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    const filterSelect = screen.getByRole('combobox');
+    await userEvent.click(filterSelect);
 
     const falseOption = await screen.findByRole('option', { name: /false/i });
     expect(falseOption).toBeInTheDocument();
-    userEvent.click(falseOption);
+    await userEvent.click(falseOption);
+
+    expect(await screen.findByTitle('false')).toBeInTheDocument();
 
     expect(setDataMaskMock).toHaveBeenCalledWith(
       expect.objectContaining({
