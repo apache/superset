@@ -126,3 +126,41 @@ describe('chart reducers', () => {
     expect(newState[chartKey].form_data.metric.aggregate).toBe('MAX');
   });
 });
+
+test('UPDATE_CHART_FORM_DATA updates both form_data and latestQueryFormData for cross-tab sync', () => {
+  const chartKey = 1;
+  const testChart = {
+    ...chart,
+    id: chartKey,
+  };
+
+  const oldFormData = {
+    datasource: '1__table',
+    viz_type: 'big_number_total',
+    metric: { aggregate: 'MIN' },
+  };
+
+  const updatedFormData = {
+    datasource: '1__table',
+    viz_type: 'big_number_total',
+    metric: { aggregate: 'MAX' },
+  };
+
+  const chartWithOldData = {
+    ...testChart,
+    form_data: oldFormData,
+    latestQueryFormData: oldFormData,
+  };
+
+  const chartsState = { [chartKey]: chartWithOldData };
+
+  const newState = chartReducer(chartsState, {
+    type: actions.UPDATE_CHART_FORM_DATA,
+    chartId: chartKey,
+    formData: updatedFormData,
+  });
+
+  expect(newState[chartKey].form_data).toEqual(updatedFormData);
+  expect(newState[chartKey].latestQueryFormData).toEqual(updatedFormData);
+  expect(newState[chartKey].form_data.metric.aggregate).toBe('MAX');
+});

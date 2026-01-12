@@ -161,6 +161,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     };
   }, [dashboardPageId]);
 
+  // Set up cross-tab chart update listener
+  useEffect(() => {
+    const {
+      initChartUpdateChannel,
+      closeChartUpdateChannel,
+    } = require('src/dashboard/util/chartUpdateChannel');
+    initChartUpdateChannel(dispatch);
+    return () => {
+      closeChartUpdateChannel();
+    };
+  }, [dispatch]);
+
   useEffect(() => {
     dispatch(setDatasetsStatus(status));
   }, [dispatch, status]);

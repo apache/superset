@@ -364,6 +364,11 @@ export function updateQueryFormData(value, key) {
   return { type: UPDATE_QUERY_FORM_DATA, value, key };
 }
 
+export const UPDATE_CHART_FORM_DATA = 'UPDATE_CHART_FORM_DATA';
+export function updateChartFormDataAction(formData, chartId) {
+  return { type: UPDATE_CHART_FORM_DATA, formData, chartId };
+}
+
 // in the sql lab -> explore flow, user can inline edit chart title,
 // then the chart will be assigned a new slice_id
 export const UPDATE_CHART_ID = 'UPDATE_CHART_ID';
@@ -586,44 +591,14 @@ export function redirectSQLLab(formData, history) {
 }
 
 export function refreshChart(chartKey, force, dashboardId) {
-  return async (dispatch, getState) => {
+  return (dispatch, getState) => {
     const chart = (getState().charts || {})[chartKey];
     const timeout =
       getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
 
-    if (
-      !chart.latestQueryFormData ||
-      Object.keys(chart.latestQueryFormData).length === 0
-    ) {
-      return;
-    }
-
-    // Fetch the latest chart definition from the database to ensure we use
-    // the most recent configuration (e.g., if the chart was modified in another tab)
-    let formDataToUse = chart.latestQueryFormData;
-    try {
-      const queryParams = rison.encode({
-        columns: ['params'],
-      });
-      const { json } = await SupersetClient.get({
-        endpoint: `/api/v1/chart/${chart.id}?q=${queryParams}`,
-      });
-      const chartResult = Array.isArray(json.result) ? json.result[0] : json.result;
-      if (chartResult && chartResult.params) {
-        formDataToUse = JSON.parse(chartResult.params);
-      }
-    } catch (error) {
-      // If fetching fails, fall back to using the cached latestQueryFormData
-      // eslint-disable-next-line no-console
-      console.warn(
-        'Failed to fetch latest chart definition, using cached form_data:',
-        error,
-      );
-    }
-
-    return dispatch(
+    dispatch(
       postChartFormData(
-        formDataToUse,
+        chart.latestQueryFormData,
         force,
         timeout,
         chart.id,

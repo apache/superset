@@ -64,8 +64,6 @@ export default function chartReducer(
         chartAlert: null,
         queriesResponse: action.queriesResponse,
         chartUpdateEndTime: now(),
-        // Update form_data to match latestQueryFormData so dashboard charts
-        // render with the correct configuration after refresh
         form_data: state.latestQueryFormData,
       };
     },
@@ -193,6 +191,20 @@ export default function chartReducer(
       id: newId,
     };
     delete charts[key];
+    return charts;
+  }
+  if (action.type === actions.UPDATE_CHART_FORM_DATA) {
+    const { chartId, formData } = action;
+    if (charts[chartId]) {
+      return {
+        ...charts,
+        [chartId]: {
+          ...charts[chartId],
+          form_data: formData,
+          latestQueryFormData: formData,
+        },
+      };
+    }
     return charts;
   }
   if (action.type === HYDRATE_DASHBOARD || action.type === HYDRATE_EXPLORE) {

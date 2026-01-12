@@ -108,6 +108,7 @@ export const hydrateDashboard =
         ...chart,
         id: key,
         form_data: applyDefaultFormData(formData),
+        latestQueryFormData: applyDefaultFormData(formData),
       };
 
       slices[key] = {
