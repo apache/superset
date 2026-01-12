@@ -153,9 +153,12 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
 
         if (filterInScope) {
           filtersInScope.push(filter);
-        } else {
-          filtersOutOfScope.push(filter);
         }
+        // Skip adding tab-scoped filters to filtersOutOfScope if they're not in scope.
+        // Filters scoped to inactive tabs (or sub-tabs) should be completely hidden,
+        // not shown in "Filters out of scope" section.
+        // Only filters without explicit tab scope (rootPath is empty or contains ROOT_ID)
+        // should be shown in "Filters out of scope" when they're not applicable.
       });
     }
     return [filtersInScope, filtersOutOfScope];

@@ -270,10 +270,13 @@ test('useSelectFiltersInScope correctly categorizes filters with missing chartsI
 
   const { result } = renderHook(() => useSelectFiltersInScope(filters));
 
+  // Only filters in scope should be returned
   expect(result.current[0]).toContainEqual(
     expect.objectContaining({ id: 'filter_in_scope' }),
   );
-  expect(result.current[1]).toContainEqual(
+  // Filters out of scope for inactive tabs should be completely hidden (not in filtersOutOfScope)
+  expect(result.current[1]).toHaveLength(0);
+  expect(result.current[0]).not.toContainEqual(
     expect.objectContaining({ id: 'filter_out_scope' }),
   );
 });
