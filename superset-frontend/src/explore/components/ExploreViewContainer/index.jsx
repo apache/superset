@@ -291,14 +291,25 @@ function ExploreViewContainer(props) {
 
   const theme = useTheme();
 
+  // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
       document.title = props.sliceName;
     }
+  }, [props.sliceName]);
+
+  // Restore original title on unmount (run once)
+  useEffect(() => {
+    const originalTitle = document.title;
     return () => {
-      document.title = theme.brandAppName || theme.brandLogoAlt || 'Superset';
+      document.title =
+        originalTitle ||
+        theme?.brandAppName ||
+        theme?.brandLogoAlt ||
+        'Superset';
     };
-  }, [props.sliceName, theme.brandAppName, theme.brandLogoAlt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {

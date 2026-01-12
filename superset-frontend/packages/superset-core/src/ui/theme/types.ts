@@ -119,7 +119,7 @@ export interface SupersetSpecificTokens {
 
   // Brand-related
   brandIconMaxWidth: number;
-  brandAppName: string;
+  brandAppName?: string;
   brandLogoAlt: string;
   brandLogoUrl: string;
   brandLogoMargin: string;

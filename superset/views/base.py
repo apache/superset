@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import copy
 import functools
 import logging
 import os
@@ -567,8 +568,8 @@ def get_spa_template_context(
     """
     payload = get_spa_payload(extra_bootstrap_data)
 
-    # Extract theme data from payload (this is what gets sent to frontend)
-    theme_data = payload.get("common", {}).get("theme", {})
+    # Deep copy theme data to avoid mutating cached bootstrap payload
+    theme_data = copy.deepcopy(payload.get("common", {}).get("theme", {}))
     default_theme = theme_data.get("default", {})
     dark_theme = theme_data.get("dark", {})
 
@@ -578,7 +579,11 @@ def get_spa_template_context(
     for theme_config in [default_theme, dark_theme]:
         if not theme_config:
             continue
-        theme_tokens = theme_config.get("token", {})
+        # Get or create token dict
+        if "token" not in theme_config:
+            theme_config["token"] = {}
+        theme_tokens = theme_config["token"]
+
         if (
             not theme_tokens.get("brandAppName")
             or theme_tokens.get("brandAppName") == "Superset"
@@ -588,8 +593,14 @@ def get_spa_template_context(
                 # User has customized APP_NAME, use it as brandAppName
                 theme_tokens["brandAppName"] = app_name_from_config
 
+    # Write the modified theme data back to payload
+    if "common" not in payload:
+        payload["common"] = {}
+    payload["common"]["theme"] = theme_data
+
     # Extract theme tokens for template access (after fallback applied)
-    theme_tokens = default_theme.get("token", {})
+    # Use the direct reference to ensure we get the modified token dict
+    theme_tokens = default_theme.get("token", {}) if default_theme else {}
 
     # Determine spinner content with precedence: theme SVG > theme URL > default SVG
     spinner_svg = None

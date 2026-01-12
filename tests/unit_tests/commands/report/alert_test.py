@@ -98,9 +98,9 @@ def test_empty_result_prevents_false_alerts_for_all_operators(
 
     triggered, message = command.run()
 
-    assert triggered is False, (
-        f"Alert with operator '{operator}' should not trigger on empty results"
-    )
+    assert (
+        triggered is False
+    ), f"Alert with operator '{operator}' should not trigger on empty results"
     assert message == "Query returned no rows (empty result set)"
 
 
@@ -299,9 +299,9 @@ def test_value_handling_with_valid_numbers(
     )
 
     triggered, message = command.run()
-    assert command._result == expected_result, (
-        f"Value {value} should result in {expected_result}, got {command._result}"
-    )
+    assert (
+        command._result == expected_result
+    ), f"Value {value} should result in {expected_result}, got {command._result}"
     assert triggered is should_trigger, (
         f"Value {value} with {operator} {threshold} should "
         f"{'trigger' if should_trigger else 'not trigger'} alert"
