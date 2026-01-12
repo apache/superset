@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { t } from '@apache-superset/core';
 import {
-  t,
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,

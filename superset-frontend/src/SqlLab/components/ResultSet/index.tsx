@@ -44,15 +44,15 @@ import {
   ErrorMessageWithStackTrace,
 } from 'src/components';
 import { nanoid } from 'nanoid';
+import { t } from '@apache-superset/core';
 import {
   QueryState,
-  t,
-  tn,
   usePrevious,
   getNumberFormatter,
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 import {
   ISaveableDatasource,

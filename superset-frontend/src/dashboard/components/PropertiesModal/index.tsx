@@ -28,13 +28,13 @@ import {
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
 import rison from 'rison';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
   getCategoricalSchemeRegistry,
   SupersetClient,
-  t,
   getClientErrorObject,
 } from '@superset-ui/core';
 

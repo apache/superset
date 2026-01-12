@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Select, SelectValue } from '@superset-ui/core/components';
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { ControlComponentProps } from '@superset-ui/chart-controls';

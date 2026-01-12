@@ -19,8 +19,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import { isFeatureEnabled, FeatureFlag, t, VizType } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { isFeatureEnabled, FeatureFlag, VizType } from '@superset-ui/core';
+import { css, styled, useTheme, t } from '@apache-superset/core/ui';
 import {
   Icons,
   ModalTrigger,
@@ -284,11 +284,12 @@ export const useExploreAdditionalActionsMenu = (
       canDownloadCSV
         ? exportChart({
             formData: latestQueryFormData,
+            ownState,
             resultType: 'post_processed',
             resultFormat: 'csv',
           })
         : null,
-    [canDownloadCSV, latestQueryFormData],
+    [canDownloadCSV, latestQueryFormData, ownState],
   );
 
   const exportJson = useCallback(
@@ -296,11 +297,12 @@ export const useExploreAdditionalActionsMenu = (
       canDownloadCSV
         ? exportChart({
             formData: latestQueryFormData,
+            ownState,
             resultType: 'results',
             resultFormat: 'json',
           })
         : null,
-    [canDownloadCSV, latestQueryFormData],
+    [canDownloadCSV, latestQueryFormData, ownState],
   );
 
   const exportExcel = useCallback(
@@ -308,11 +310,12 @@ export const useExploreAdditionalActionsMenu = (
       canDownloadCSV
         ? exportChart({
             formData: latestQueryFormData,
+            ownState,
             resultType: 'results',
             resultFormat: 'xlsx',
           })
         : null,
-    [canDownloadCSV, latestQueryFormData],
+    [canDownloadCSV, latestQueryFormData, ownState],
   );
 
   const copyLink = useCallback(async () => {

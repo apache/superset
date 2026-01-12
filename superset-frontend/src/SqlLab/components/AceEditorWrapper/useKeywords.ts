@@ -18,7 +18,8 @@
  */
 import { useEffect, useMemo, useRef } from 'react';
 import { useSelector, useDispatch, shallowEqual, useStore } from 'react-redux';
-import { getExtensionsRegistry, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getExtensionsRegistry } from '@superset-ui/core';
 
 import type { Editor } from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';

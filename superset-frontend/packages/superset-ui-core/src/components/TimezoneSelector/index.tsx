@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useMemo } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Select } from '@superset-ui/core/components';
 import { isDST, extendedDayjs } from '../../utils/dates';
 

@@ -58,12 +58,12 @@
  */
 import type { Column, SequentialScheme } from '@superset-ui/core';
 import {
-  t,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   legacyValidateInteger,
   validateNonEmpty,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { formatSelectOptions } from 'src/explore/exploreUtils';
 import { TIME_FILTER_LABELS } from './constants';
 import { StyledColumnOption } from './components/optionRenderers';

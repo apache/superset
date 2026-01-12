@@ -20,7 +20,7 @@ import {
   DEFAULT_SORT_SERIES_DATA,
   sections,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { LegendOrientation, LegendType } from '../types';
 import {
   OrientationType,

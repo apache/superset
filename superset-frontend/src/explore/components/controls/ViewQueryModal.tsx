@@ -18,9 +18,9 @@
  */
 import { FC, Fragment, useEffect, useState } from 'react';
 
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
-  t,
   getClientErrorObject,
   QueryFormData,
 } from '@superset-ui/core';
