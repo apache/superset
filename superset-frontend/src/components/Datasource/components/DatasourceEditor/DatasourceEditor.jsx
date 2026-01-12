@@ -57,6 +57,7 @@ import {
   Col,
   Divider,
   EditableTitle,
+  Flex,
   FormLabel,
   Icons,
   InfoTooltip,
@@ -171,22 +172,6 @@ const DefaultColumnSettingsTitle = styled.h4`
     font-size: ${theme.fontSizeLG}px;
     font-weight: ${theme.fontWeightMedium};
     color: ${theme.colorText};
-  `}
-`;
-
-const DefaultColumnSettingsFields = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.sizeUnit * 3}px;
-  `}
-`;
-
-const FieldWrapper = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.sizeUnit}px;
   `}
 `;
 
@@ -1094,6 +1079,7 @@ class DatasourceEditor extends PureComponent {
 
   renderDefaultColumnSettings() {
     const { datasource, databaseColumns, calculatedColumns } = this.state;
+    const { theme } = this.props;
     const allColumns = [...databaseColumns, ...calculatedColumns];
 
     // Get datetime-compatible columns for the default datetime dropdown
@@ -1117,8 +1103,8 @@ class DatasourceEditor extends PureComponent {
         <DefaultColumnSettingsTitle>
           {t('Default Column Settings')}
         </DefaultColumnSettingsTitle>
-        <DefaultColumnSettingsFields>
-          <FieldWrapper>
+        <Flex vertical gap={theme.sizeUnit * 3}>
+          <Flex vertical gap={theme.sizeUnit}>
             <FieldLabelWithTooltip>
               <span>{t('Default datetime column')}</span>
               <InfoTooltip
@@ -1141,8 +1127,8 @@ class DatasourceEditor extends PureComponent {
               allowClear
               data-test="default-datetime-column-select"
             />
-          </FieldWrapper>
-          <FieldWrapper>
+          </Flex>
+          <Flex vertical gap={theme.sizeUnit}>
             <FieldLabelWithTooltip>
               <span>{t('Currency code column')}</span>
               <InfoTooltip
@@ -1165,8 +1151,8 @@ class DatasourceEditor extends PureComponent {
               allowClear
               data-test="currency-code-column-select"
             />
-          </FieldWrapper>
-        </DefaultColumnSettingsFields>
+          </Flex>
+        </Flex>
       </DefaultColumnSettingsContainer>
     );
   }
