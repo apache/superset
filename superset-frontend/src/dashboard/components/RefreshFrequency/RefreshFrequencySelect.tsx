@@ -168,6 +168,15 @@ export const getRefreshWarningMessage = (
   refreshLimit?: number,
   refreshWarning?: string,
 ): string | null => {
+  // Warn about aggressive refresh intervals that may impact performance
+  if (frequency > 0 && frequency <= 10) {
+    return t(
+      'Refresh intervals of %s seconds or less may impact server performance. ' +
+        'Consider using this only for dashboards with optimized queries and caching.',
+      frequency,
+    );
+  }
+
   if (
     frequency > 0 &&
     refreshLimit &&
