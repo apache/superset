@@ -199,3 +199,131 @@ def test_update_id_refs_cross_filter_handles_string_excluded():
     fixed = update_id_refs(config, chart_ids, dataset_info)
     # Should not raise and should remap key
     assert "1" in fixed["metadata"]["chart_configuration"]
+
+
+def test_update_id_refs_expanded_slices_with_missing_chart():
+    """
+    Test that missing charts in expanded_slices are gracefully skipped.
+
+    When a chart is deleted from a workspace, dashboards may still contain
+    references to the deleted chart ID in expanded_slices metadata. This test
+    verifies that the import process skips missing chart references instead of
+    raising a KeyError.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "expanded_slices": {
+                "101": True,  # This chart exists in the import
+                "102": False,  # This chart was deleted and doesn't exist
+                "103": True,  # Another deleted chart
+            },
+        },
+    }
+    chart_ids = {"uuid1": 1}  # Only uuid1 exists in the import
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    # Should only include the existing chart, missing charts are skipped
+    assert fixed["metadata"]["expanded_slices"] == {"1": True}
+    # Should not raise KeyError for missing charts 102 and 103
+
+
+def test_update_id_refs_timed_refresh_immune_slices_with_missing_chart():
+    """
+    Test that missing charts in timed_refresh_immune_slices are gracefully skipped.
+
+    When a chart is deleted from a workspace, dashboards may still contain
+    references to the deleted chart ID in timed_refresh_immune_slices metadata.
+    This test verifies that the import process skips missing chart references
+    instead of raising a KeyError.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "timed_refresh_immune_slices": [
+                101,  # This chart exists
+                102,  # This chart exists
+                103,  # This chart was deleted and doesn't exist
+                104,  # Another deleted chart
+            ],
+        },
+    }
+    chart_ids = {"uuid1": 1, "uuid2": 2}  # Only uuid1 and uuid2 exist
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    # Should only include existing charts, missing charts are skipped
+    assert fixed["metadata"]["timed_refresh_immune_slices"] == [1, 2]
+    # Should not raise KeyError for missing charts 103 and 104
+
+
+def test_update_id_refs_multiple_missing_chart_references():
+    """
+    Test that multiple metadata fields with missing charts are all handled gracefully.
+
+    This comprehensive test verifies that all metadata fields properly skip
+    missing chart references during import.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "expanded_slices": {
+                "101": True,
+                "999": False,  # Missing chart
+            },
+            "timed_refresh_immune_slices": [101, 999],  # 999 is missing
+            "filter_scopes": {
+                "101": {"region": {"immune": [999]}},  # 999 is missing
+                "999": {"region": {"immune": [101]}},  # Key 999 is missing
+            },
+            "default_filters": '{"101": {"col": "value"}, "999": {"col": "other"}}',
+            "native_filter_configuration": [
+                {"scope": {"excluded": [101, 999]}}  # 999 is missing
+            ],
+        },
+    }
+    chart_ids = {"uuid1": 1}  # Only uuid1 exists
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    # All missing chart references should be gracefully skipped
+    assert fixed["metadata"]["expanded_slices"] == {"1": True}
+    assert fixed["metadata"]["timed_refresh_immune_slices"] == [1]
+    assert fixed["metadata"]["filter_scopes"] == {"1": {"region": {"immune": []}}}
+    assert fixed["metadata"]["default_filters"] == '{"1": {"col": "value"}}'
+    assert fixed["metadata"]["native_filter_configuration"] == [
+        {"scope": {"excluded": [1]}}
+    ]

@@ -20,7 +20,7 @@ from typing import Optional
 
 from flask_babel import lazy_gettext as _
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
     ChartDeleteFailedError,
@@ -31,7 +31,9 @@ from superset.commands.chart.exceptions import (
 from superset.daos.chart import ChartDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -46,6 +48,9 @@ class DeleteChartCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
         assert self._models
+        # Clean up dashboard metadata before deleting charts
+        for chart in self._models:
+            self._cleanup_dashboard_metadata(chart.id)
         ChartDAO.delete(self._models)
 
     def validate(self) -> None:
@@ -68,3 +73,132 @@ class DeleteChartCommand(BaseCommand):
                 security_manager.raise_for_ownership(model)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
+
+    def _cleanup_dashboard_metadata(  # noqa: C901
+        self, chart_id: int
+    ) -> None:
+        """
+        Remove references to this chart from all dashboard metadata.
+
+        When a chart is deleted, dashboards may still contain references to the
+        chart ID in various metadata fields (expanded_slices, filter_scopes, etc.).
+        This method cleans up those references to prevent issues during dashboard
+        export/import.
+        """
+        # Find all dashboards that contain this chart
+        dashboards = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.slices.any(id=chart_id))  # type: ignore[attr-defined]
+            .all()
+        )
+
+        for dashboard in dashboards:
+            metadata = dashboard.params_dict
+            modified = False
+
+            # Clean up expanded_slices
+            if "expanded_slices" in metadata:
+                chart_id_str = str(chart_id)
+                if chart_id_str in metadata["expanded_slices"]:
+                    del metadata["expanded_slices"][chart_id_str]
+                    modified = True
+                    logger.info(
+                        "Removed chart %s from expanded_slices in dashboard %s",
+                        chart_id,
+                        dashboard.id,
+                    )
+
+            # Clean up timed_refresh_immune_slices
+            if "timed_refresh_immune_slices" in metadata:
+                if chart_id in metadata["timed_refresh_immune_slices"]:
+                    metadata["timed_refresh_immune_slices"].remove(chart_id)
+                    modified = True
+                    logger.info(
+                        "Removed chart %s from timed_refresh_immune_slices "
+                        "in dashboard %s",
+                        chart_id,
+                        dashboard.id,
+                    )
+
+            # Clean up filter_scopes
+            if "filter_scopes" in metadata:
+                chart_id_str = str(chart_id)
+                if chart_id_str in metadata["filter_scopes"]:
+                    del metadata["filter_scopes"][chart_id_str]
+                    modified = True
+                    logger.info(
+                        "Removed chart %s from filter_scopes in dashboard %s",
+                        chart_id,
+                        dashboard.id,
+                    )
+                # Also clean from immune lists
+                for filter_scope in metadata["filter_scopes"].values():
+                    for attributes in filter_scope.values():
+                        if chart_id in attributes.get("immune", []):
+                            attributes["immune"].remove(chart_id)
+                            modified = True
+
+            # Clean up default_filters
+            if "default_filters" in metadata:
+                default_filters = json.loads(metadata["default_filters"])
+                chart_id_str = str(chart_id)
+                if chart_id_str in default_filters:
+                    del default_filters[chart_id_str]
+                    metadata["default_filters"] = json.dumps(default_filters)
+                    modified = True
+                    logger.info(
+                        "Removed chart %s from default_filters in dashboard %s",
+                        chart_id,
+                        dashboard.id,
+                    )
+
+            # Clean up native_filter_configuration scope exclusions
+            if "native_filter_configuration" in metadata:
+                for native_filter in metadata["native_filter_configuration"]:
+                    scope_excluded = native_filter.get("scope", {}).get("excluded", [])
+                    if chart_id in scope_excluded:
+                        scope_excluded.remove(chart_id)
+                        modified = True
+                        logger.info(
+                            "Removed chart %s from native_filter_configuration "
+                            "in dashboard %s",
+                            chart_id,
+                            dashboard.id,
+                        )
+
+            # Clean up chart_configuration
+            if "chart_configuration" in metadata:
+                chart_id_str = str(chart_id)
+                if chart_id_str in metadata["chart_configuration"]:
+                    del metadata["chart_configuration"][chart_id_str]
+                    modified = True
+                    logger.info(
+                        "Removed chart %s from chart_configuration in dashboard %s",
+                        chart_id,
+                        dashboard.id,
+                    )
+
+            # Clean up global_chart_configuration scope exclusions
+            if "global_chart_configuration" in metadata:
+                scope_excluded = (
+                    metadata["global_chart_configuration"]
+                    .get("scope", {})
+                    .get("excluded", [])
+                )
+                if chart_id in scope_excluded:
+                    scope_excluded.remove(chart_id)
+                    modified = True
+                    logger.info(
+                        "Removed chart %s from global_chart_configuration "
+                        "in dashboard %s",
+                        chart_id,
+                        dashboard.id,
+                    )
+
+            if modified:
+                dashboard.json_metadata = json.dumps(metadata)
+                logger.info(
+                    "Cleaned up metadata for dashboard %s after deleting chart %s",
+                    dashboard.id,
+                    chart_id,
+                )
