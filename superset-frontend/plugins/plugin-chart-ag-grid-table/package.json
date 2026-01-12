@@ -39,6 +39,7 @@
     "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "ag-grid-community": "^34.0.0",
     "@testing-library/dom": "^8.20.1",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^12.1.5",

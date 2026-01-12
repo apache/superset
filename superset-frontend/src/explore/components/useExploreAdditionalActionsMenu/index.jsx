@@ -270,11 +270,12 @@ export const useExploreAdditionalActionsMenu = (
       canDownloadCSV
         ? exportChart({
             formData: latestQueryFormData,
+            ownState,
             resultType: 'post_processed',
             resultFormat: 'csv',
           })
         : null,
-    [canDownloadCSV, latestQueryFormData],
+    [canDownloadCSV, latestQueryFormData, ownState],
   );
 
   const exportJson = useCallback(
@@ -282,11 +283,12 @@ export const useExploreAdditionalActionsMenu = (
       canDownloadCSV
         ? exportChart({
             formData: latestQueryFormData,
+            ownState,
             resultType: 'results',
             resultFormat: 'json',
           })
         : null,
-    [canDownloadCSV, latestQueryFormData],
+    [canDownloadCSV, latestQueryFormData, ownState],
   );
 
   const exportExcel = useCallback(
@@ -294,11 +296,12 @@ export const useExploreAdditionalActionsMenu = (
       canDownloadCSV
         ? exportChart({
             formData: latestQueryFormData,
+            ownState,
             resultType: 'results',
             resultFormat: 'xlsx',
           })
         : null,
-    [canDownloadCSV, latestQueryFormData],
+    [canDownloadCSV, latestQueryFormData, ownState],
   );
 
   const copyLink = useCallback(async () => {

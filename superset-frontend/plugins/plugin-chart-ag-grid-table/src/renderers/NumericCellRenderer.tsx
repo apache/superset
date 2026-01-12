@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
-import { BasicColorFormatterType, InputColumn } from '../types';
+import { BasicColorFormatterType, InputColumn, ValueRange } from '../types';
 import { useIsDark } from '../utils/useTableTheme';
 
 const StyledTotalCell = styled.div`
@@ -53,8 +53,6 @@ const Bar = styled.div<{
   z-index: 1;
 `;
 
-type ValueRange = [number, number];
-
 /**
  * Cell background width calculation for horizontal bar chart
  */
@@ -64,7 +62,7 @@ function cellWidth({
   alignPositiveNegative,
 }: {
   value: number;
-  valueRange: ValueRange;
+  valueRange: [number, number];
   alignPositiveNegative: boolean;
 }) {
   const [minValue, maxValue] = valueRange;
@@ -89,7 +87,7 @@ function cellOffset({
   alignPositiveNegative,
 }: {
   value: number;
-  valueRange: ValueRange;
+  valueRange: [number, number];
   alignPositiveNegative: boolean;
 }) {
   if (alignPositiveNegative) {
@@ -132,7 +130,7 @@ export const NumericCellRenderer = (
     basicColorFormatters: {
       [Key: string]: BasicColorFormatterType;
     }[];
-    valueRange: any;
+    valueRange: ValueRange;
     alignPositiveNegative: boolean;
     colorPositiveNegative: boolean;
   },
