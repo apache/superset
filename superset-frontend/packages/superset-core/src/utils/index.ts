@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,9 +17,4 @@
  * under the License.
  */
 
-export * from './TranslatorSingleton';
-export * from './types';
-
-export default {};
-
-export { default as __hack_reexport_translation } from './types';
+export { default as logging } from './logging';

@@ -21,14 +21,14 @@ import PropTypes from 'prop-types';
 import { createRef, Component } from 'react';
 import {
   SuperChart,
-  logging,
   Behavior,
-  t,
   getChartMetadataRegistry,
   VizType,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
+import { t } from '@apache-superset/core/ui';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';

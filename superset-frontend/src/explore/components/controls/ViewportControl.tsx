@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Component, type ReactNode } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Popover, FormLabel, Label } from '@superset-ui/core/components';
 import { decimal2sexagesimal } from 'geolib';
 

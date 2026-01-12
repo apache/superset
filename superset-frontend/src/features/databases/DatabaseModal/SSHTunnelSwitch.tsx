@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { t, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { SupersetTheme } from '@apache-superset/core/ui';
 import { Switch } from '@superset-ui/core/components/Switch';
 import { InfoTooltip } from '@superset-ui/core/components';

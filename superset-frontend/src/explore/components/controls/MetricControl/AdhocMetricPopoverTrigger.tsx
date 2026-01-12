@@ -17,7 +17,8 @@
  * under the License.
  */
 import { PureComponent, ReactNode } from 'react';
-import { Metric, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Metric } from '@superset-ui/core';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import {

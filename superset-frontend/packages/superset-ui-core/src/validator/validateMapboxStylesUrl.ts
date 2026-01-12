@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '../translation';
+import { t } from '@apache-superset/core';
 
 const VALIDE_OSM_URLS = ['https://tile.osm', 'https://tile.openstreetmap'];
 

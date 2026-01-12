@@ -20,7 +20,7 @@
  */
 
 import { useRef, useState, useEffect } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { Column } from '@superset-ui/core/components/ThemedAgGridReact';
 import FilterIcon from './Filter';

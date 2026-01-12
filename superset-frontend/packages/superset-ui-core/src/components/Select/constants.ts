@@ -17,7 +17,7 @@
  * under the License.
  */
 import { LabeledValue as AntdLabeledValue } from 'antd/es/select';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { rankedSearchCompare } from '../../utils/rankedSearchCompare';
 import { RawValue } from './types';
 

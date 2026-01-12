@@ -24,12 +24,12 @@ import {
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
-  logging,
   rgbToHex,
   addAlpha,
   tooltipHtml,
   DataRecordValue,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import memoizeOne from 'memoize-one';
 import { maxBy, minBy } from 'lodash';

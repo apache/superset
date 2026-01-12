@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 
 function extractTypes(metadata) {
   return Object.keys(metadata).reduce((prev, key) => {

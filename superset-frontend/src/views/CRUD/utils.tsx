@@ -17,12 +17,11 @@
  * under the License.
  */
 
+import { t, logging } from '@apache-superset/core';
 import {
-  logging,
   SupersetClient,
   SupersetClientResponse,
   getClientErrorObject,
-  t,
   lruCache,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';

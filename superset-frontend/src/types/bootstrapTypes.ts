@@ -28,10 +28,10 @@ import type {
   ColorSchemeConfig,
   FeatureFlagMap,
   JsonObject,
-  LanguagePack,
-  Locale,
   SequentialSchemeConfig,
 } from '@superset-ui/core';
+
+import type { LanguagePack, Locale } from '@apache-superset/core/ui';
 
 export type User = {
   createdOn?: string;

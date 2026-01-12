@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core';
 import {
   DataRecord,
   DataRecordValue,
   getTimeFormatterForGranularity,
-  t,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { useCallback, useEffect, useState, useMemo } from 'react';

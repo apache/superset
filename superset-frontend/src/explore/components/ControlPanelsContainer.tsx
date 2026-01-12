@@ -28,9 +28,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
-  t,
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, legacyValidateInteger } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { legacyValidateInteger } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,

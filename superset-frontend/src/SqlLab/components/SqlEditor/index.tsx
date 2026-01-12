@@ -32,10 +32,10 @@ import type AceEditor from 'react-ace';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import AutoSizer from 'react-virtualized-auto-sizer';
+import { t } from '@apache-superset/core';
 import {
   FeatureFlag,
   isFeatureEnabled,
-  t,
   getExtensionsRegistry,
   QueryResponse,
   Query,
