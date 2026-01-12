@@ -530,3 +530,175 @@ class TestGetThemeBootstrapData:
         assert result["theme"]["enableUiThemeAdministration"] is False
         assert result["theme"]["default"] == {}
         assert result["theme"]["dark"] == {}
+
+
+class TestBrandAppNameFallback:
+    """Test brandAppName fallback mechanism for APP_NAME migration (issue #34865)"""
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_uses_theme_value_when_set(
+        self, mock_app, mock_payload
+    ):
+        """Test that explicit brandAppName in theme takes precedence"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "Fallback App Name",
+        }.get(k, d)
+
+        # Mock payload with theme data that has custom brandAppName
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandAppName": "My Custom App",
+                            "brandLogoAlt": "Logo Alt",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should use the theme's brandAppName
+        assert result["default_title"] == "My Custom App"
+        # Theme tokens should have brandAppName
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "My Custom App"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_falls_back_to_app_name_config(
+        self, mock_app, mock_payload
+    ):
+        """Test fallback to APP_NAME config when brandAppName not in theme"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "My Test Analytics Platform",
+        }.get(k, d)
+
+        # Mock payload with default "Superset" brandAppName
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandAppName": "Superset",  # Default value
+                            "brandLogoAlt": "Apache Superset",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should fall back to APP_NAME config
+        assert result["default_title"] == "My Test Analytics Platform"
+        # Theme tokens should be updated with APP_NAME value
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "My Test Analytics Platform"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_uses_superset_default_when_nothing_set(
+        self, mock_app, mock_payload
+    ):
+        """Test fallback to 'Superset' when neither is customized"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "Superset",  # Default value
+        }.get(k, d)
+
+        # Mock payload with default "Superset" brandAppName
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandAppName": "Superset",  # Default value
+                            "brandLogoAlt": "Apache Superset",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should use default "Superset"
+        assert result["default_title"] == "Superset"
+        # Theme tokens should keep "Superset"
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "Superset"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_empty_string_falls_back(
+        self, mock_app, mock_payload
+    ):
+        """Test that empty string brandAppName triggers fallback"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "Custom App",
+        }.get(k, d)
+
+        # Mock payload with empty brandAppName
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandAppName": "",  # Empty string
+                            "brandLogoAlt": "Logo",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should fall back to APP_NAME
+        assert result["default_title"] == "Custom App"
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "Custom App"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_none_falls_back(
+        self, mock_app, mock_payload
+    ):
+        """Test that missing brandAppName triggers fallback"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "Analytics Dashboard",
+        }.get(k, d)
+
+        # Mock payload without brandAppName
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {"token": {"brandLogoAlt": "Logo"}}
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should fall back to APP_NAME
+        assert result["default_title"] == "Analytics Dashboard"
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "Analytics Dashboard"

@@ -215,9 +215,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       document.title = dashboard_title;
     }
     return () => {
-      document.title = 'Superset';
+      document.title = theme.brandAppName || theme.brandLogoAlt || 'Superset';
     };
-  }, [dashboard_title]);
+  }, [dashboard_title, theme.brandAppName, theme.brandLogoAlt]);
 
   useEffect(() => {
     if (typeof css === 'string') {
