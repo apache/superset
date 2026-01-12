@@ -237,12 +237,26 @@ export function saveChartCustomization(
         item => !item.removed && hasValidColumn(item.customization?.column),
       );
 
-      const uniqueAffectedChartIds = getAffectedChartIdsFromCustomizations(
+      const uniqueAffectedChartIds = new Set<number>();
+
+      const affectedFromRemaining = getAffectedChartIdsFromCustomizations(
         customizationsWithColumns,
         slices,
       );
-      if (uniqueAffectedChartIds.length > 0) {
-        uniqueAffectedChartIds.forEach(chartId => {
+      affectedFromRemaining.forEach(chartId =>
+        uniqueAffectedChartIds.add(chartId),
+      );
+
+      const affectedFromRemoved = getAffectedChartIdsFromCustomizations(
+        removedItems,
+        slices,
+      );
+      affectedFromRemoved.forEach(chartId =>
+        uniqueAffectedChartIds.add(chartId),
+      );
+
+      if (uniqueAffectedChartIds.size > 0) {
+        Array.from(uniqueAffectedChartIds).forEach(chartId => {
           dispatch(triggerQuery(true, chartId));
         });
       }

@@ -224,6 +224,12 @@ class Dashboard extends PureComponent {
     );
 
     [...allKeys].forEach(filterKey => {
+      // Skip chart customization filters - they are handled separately by saveChartCustomization
+      // which triggers queries only for affected charts
+      if (filterKey.startsWith('chart_customization_')) {
+        return;
+      }
+
       if (
         !currFilterKeys.includes(filterKey) &&
         appliedFilterKeys.includes(filterKey)

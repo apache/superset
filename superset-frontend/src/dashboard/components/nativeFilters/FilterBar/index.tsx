@@ -44,7 +44,6 @@ import { updateDataMask } from 'src/dataMask/actions';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import {
   saveChartCustomization,
-  setChartCustomization,
   clearAllPendingChartCustomizations,
   ChartCustomizationSavePayload,
   clearAllChartCustomizationsFromMetadata,
@@ -198,6 +197,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   );
   const [hasClearedChartCustomizations, setHasClearedChartCustomizations] =
     useState(false);
+  const clearedChartCustomizationsRef = useRef<ChartCustomizationItem[]>([]);
 
   const dataMaskSelectedRef = useRef(dataMaskSelected);
   dataMaskSelectedRef.current = dataMaskSelected;
@@ -312,13 +312,15 @@ const FilterBar: FC<FiltersBarProps> = ({
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
     setUpdateKey(1);
 
-    // Apply filter changes
+    // Apply filter changes for regular native filters (synchronous)
+    // This must happen first and independently of chart customizations
     Object.entries(dataMaskSelected).forEach(([filterId, dataMask]) => {
-      if (dataMask) {
+      if (dataMask && !filterId.startsWith('chart_customization_')) {
         dispatch(updateDataMask(filterId, dataMask));
       }
     });
 
+    // Handle chart customizations separately (async, but shouldn't block regular filters)
     if (
       pendingChartCustomizations &&
       Object.keys(pendingChartCustomizations).length > 0
@@ -327,94 +329,22 @@ const FilterBar: FC<FiltersBarProps> = ({
         Boolean,
       ) as ChartCustomizationSavePayload[];
 
-      const existingCustomizations = chartCustomizationItems || [];
-      const existingMap = new Map(
-        existingCustomizations.map(item => [item.id, item]),
-      );
-
-      pendingItems.forEach((customization: ChartCustomizationSavePayload) => {
-        const existingItem = existingMap.get(customization.id);
-        const pendingColumn = customization.customization?.column || null;
-        const existingColumn = existingItem?.customization?.column || null;
-
-        if (!isEqual(pendingColumn, existingColumn)) {
-          const customizationFilterId = `chart_customization_${customization.id}`;
-          const dataMask = {
-            extraFormData: {},
-            filterState: {},
-            ownState: {
-              column: pendingColumn,
-            },
-          };
-          dispatch(updateDataMask(customizationFilterId, dataMask));
-        }
-      });
-
       if (pendingItems.length > 0) {
-        const newCustomizations: ChartCustomizationItem[] = pendingItems.map(
-          item => ({
-            id: item.id,
-            title: item.title,
-            removed: item.removed,
-            chartId: item.chartId,
-            customization: item.customization,
-          }),
-        );
-
-        newCustomizations.forEach(newItem => {
-          existingMap.set(newItem.id, newItem);
-        });
-
-        const mergedCustomizations = Array.from(existingMap.values());
-
-        dispatch(setChartCustomization(mergedCustomizations));
-
-        const doesCustomizationAffectCharts = (
-          item: ChartCustomizationItem | undefined,
-        ): boolean =>
-          item !== undefined &&
-          !item.removed &&
-          hasValidColumn(item.customization?.column);
-
-        const affectedChartIdsSet = new Set<number>();
-
-        mergedCustomizations
-          .filter(doesCustomizationAffectCharts)
-          .forEach(item => {
-            const relatedCharts = getRelatedChartsForChartCustomization(
-              item,
-              slices,
-            );
-            relatedCharts.forEach(chartId => affectedChartIdsSet.add(chartId));
-          });
-
-        const originalCustomizations = chartCustomizationItems || [];
-        originalCustomizations.forEach(oldItem => {
-          if (!doesCustomizationAffectCharts(oldItem)) {
-            return;
-          }
-
-          const newItem = mergedCustomizations.find(
-            item => item.id === oldItem.id,
-          );
-
-          if (!doesCustomizationAffectCharts(newItem)) {
-            const relatedCharts = getRelatedChartsForChartCustomization(
-              oldItem,
-              slices,
-            );
-            relatedCharts.forEach(chartId => affectedChartIdsSet.add(chartId));
-          }
-        });
-
-        if (affectedChartIdsSet.size > 0) {
-          Array.from(affectedChartIdsSet).forEach(chartId => {
-            dispatch(triggerQuery(true, chartId));
-          });
-        }
+        dispatch(saveChartCustomization(pendingItems));
       }
       dispatch(clearAllPendingChartCustomizations());
     } else if (hasClearedChartCustomizations) {
+      const affectedChartIdsSet = new Set<number>();
+      clearedChartCustomizationsRef.current.forEach(item => {
+        if (!item.removed && hasValidColumn(item.customization?.column)) {
+          const relatedCharts = getRelatedChartsForChartCustomization(
+            item,
+            slices,
+          );
+          relatedCharts.forEach(chartId => affectedChartIdsSet.add(chartId));
+        }
+      });
+
       const clearedChartCustomizations = chartCustomizationItems.map(item => ({
         ...item,
         customization: {
@@ -423,7 +353,17 @@ const FilterBar: FC<FiltersBarProps> = ({
         },
       }));
 
-      dispatch(saveChartCustomization(clearedChartCustomizations));
+      const savePromise = dispatch(
+        saveChartCustomization(clearedChartCustomizations),
+      ) as unknown as Promise<unknown>;
+      savePromise.then(() => {
+        if (affectedChartIdsSet.size > 0) {
+          Array.from(affectedChartIdsSet).forEach(chartId => {
+            dispatch(triggerQuery(true, chartId));
+          });
+        }
+        clearedChartCustomizationsRef.current = [];
+      });
     }
 
     setHasClearedChartCustomizations(false);
@@ -485,6 +425,29 @@ const FilterBar: FC<FiltersBarProps> = ({
     }
 
     if (hasChartCustomizationsToClear) {
+      // Store original items before clearing so we can find affected charts when applying
+      clearedChartCustomizationsRef.current = [...chartCustomizationItems];
+
+      // Clear chart customizations from selected state only (don't remove data masks yet)
+      // This follows the native filter pattern - changes are applied only when "Apply" is clicked
+      chartCustomizationItems.forEach(item => {
+        const customizationFilterId = `chart_customization_${item.id}`;
+        if (dataMaskSelected[customizationFilterId]) {
+          setDataMaskSelected(draft => {
+            if (draft[customizationFilterId]) {
+              draft[customizationFilterId] = {
+                ...draft[customizationFilterId],
+                filterState: {
+                  ...draft[customizationFilterId].filterState,
+                  value: undefined,
+                },
+                extraFormData: {},
+              };
+            }
+          });
+        }
+      });
+
       dispatch(clearAllPendingChartCustomizations());
       dispatch(clearAllChartCustomizationsFromMetadata());
       setHasClearedChartCustomizations(true);
