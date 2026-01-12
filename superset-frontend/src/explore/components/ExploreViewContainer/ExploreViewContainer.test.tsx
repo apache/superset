@@ -475,18 +475,15 @@ test('shows error indicator with function labels', async () => {
   expect(await screen.findByText(/Metric is required/)).toBeInTheDocument();
 });
 
-describe('Automatic axis title margin adjustment', () => {
-  beforeEach(() => {
-    getChartControlPanelRegistry().registerValue('table', {
-      controlPanelSections: [],
-    });
+function setupTableChartControlPanel() {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [],
   });
+}
 
-  afterEach(() => {
-    getChartControlPanelRegistry().remove('table');
-  });
-
-  test('sets X axis margin to 30 when title is added and margin is 0', async () => {
+test('automatic axis title margin adjustment sets X axis margin to 30 when title is added and margin is 0', async () => {
+  setupTableChartControlPanel();
+  try {
     const customState = {
       ...reduxState,
       explore: {
@@ -510,9 +507,14 @@ describe('Automatic axis title margin adjustment', () => {
         </MemoryRouter>,
       );
     });
-  });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
 
-  test('sets Y axis margin to 30 when title is added and margin is 0', async () => {
+test('automatic axis title margin adjustment sets Y axis margin to 30 when title is added and margin is 0', async () => {
+  setupTableChartControlPanel();
+  try {
     const customState = {
       ...reduxState,
       explore: {
@@ -533,9 +535,14 @@ describe('Automatic axis title margin adjustment', () => {
         screen.queryByTestId('query-error-tooltip-trigger'),
       ).not.toBeInTheDocument();
     });
-  });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
 
-  test('resets X axis margin to 0 when title is removed', async () => {
+test('automatic axis title margin adjustment resets X axis margin to 0 when title is removed', async () => {
+  setupTableChartControlPanel();
+  try {
     const customState = {
       ...reduxState,
       explore: {
@@ -556,9 +563,14 @@ describe('Automatic axis title margin adjustment', () => {
         screen.queryByTestId('query-error-tooltip-trigger'),
       ).not.toBeInTheDocument();
     });
-  });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
 
-  test('resets Y axis margin to 0 when title is removed', async () => {
+test('automatic axis title margin adjustment resets Y axis margin to 0 when title is removed', async () => {
+  setupTableChartControlPanel();
+  try {
     const customState = {
       ...reduxState,
       explore: {
@@ -579,9 +591,14 @@ describe('Automatic axis title margin adjustment', () => {
         screen.queryByTestId('query-error-tooltip-trigger'),
       ).not.toBeInTheDocument();
     });
-  });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
 
-  test('does not change X axis margin when title is added but margin is already non-zero', async () => {
+test('automatic axis title margin adjustment does not change X axis margin when title is added but margin is already non-zero', async () => {
+  setupTableChartControlPanel();
+  try {
     const customState = {
       ...reduxState,
       explore: {
@@ -602,9 +619,14 @@ describe('Automatic axis title margin adjustment', () => {
         screen.queryByTestId('query-error-tooltip-trigger'),
       ).not.toBeInTheDocument();
     });
-  });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
 
-  test('does not change Y axis margin when title is added but margin is already non-zero', async () => {
+test('automatic axis title margin adjustment does not change Y axis margin when title is added but margin is already non-zero', async () => {
+  setupTableChartControlPanel();
+  try {
     const customState = {
       ...reduxState,
       explore: {
@@ -625,9 +647,14 @@ describe('Automatic axis title margin adjustment', () => {
         screen.queryByTestId('query-error-tooltip-trigger'),
       ).not.toBeInTheDocument();
     });
-  });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
 
-  test('handles both X and Y axis titles being set simultaneously', async () => {
+test('automatic axis title margin adjustment handles both X and Y axis titles being set simultaneously', async () => {
+  setupTableChartControlPanel();
+  try {
     const customState = {
       ...reduxState,
       explore: {
@@ -650,5 +677,7 @@ describe('Automatic axis title margin adjustment', () => {
         screen.queryByTestId('query-error-tooltip-trigger'),
       ).not.toBeInTheDocument();
     });
-  });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
 });
