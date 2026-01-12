@@ -49,6 +49,7 @@ import {
   selectNativeIndicatorsForChart,
 } from '../nativeFilters/selectors';
 import { Chart, RootState } from '../../types';
+import { useIsAutoRefreshing } from '../../contexts/AutoRefreshContext';
 
 export interface FiltersBadgeProps {
   chartId: number;
@@ -106,6 +107,7 @@ const indicatorsInitialState: Indicator[] = [];
 
 export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const dispatch = useDispatch();
+  const isAutoRefreshing = useIsAutoRefreshing();
   const datasources = useSelector<RootState, any>(state => state.datasources);
   const dashboardFilters = useSelector<RootState, any>(
     state => state.dashboardFilters,
@@ -161,7 +163,12 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   }, [popoverVisible]);
 
   useEffect(() => {
-    if (!showIndicators && dashboardIndicators.length > 0) {
+    // During auto-refresh, don't clear indicators - preserve previous state
+    if (
+      !showIndicators &&
+      dashboardIndicators.length > 0 &&
+      !isAutoRefreshing
+    ) {
       setDashboardIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
       if (
@@ -188,6 +195,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     dashboardFilters,
     dashboardIndicators.length,
     datasources,
+    isAutoRefreshing,
     prevChart?.queriesResponse,
     prevChartStatus,
     prevDashboardFilters,
@@ -201,7 +209,8 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevChartConfig = usePrevious(chartConfiguration);
 
   useEffect(() => {
-    if (!showIndicators && nativeIndicators.length > 0) {
+    // During auto-refresh, don't clear indicators - preserve previous state
+    if (!showIndicators && nativeIndicators.length > 0 && !isAutoRefreshing) {
       setNativeIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
       if (
@@ -231,6 +240,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     chartId,
     chartConfiguration,
     dataMask,
+    isAutoRefreshing,
     nativeFilters,
     nativeIndicators.length,
     prevChart?.queriesResponse,
