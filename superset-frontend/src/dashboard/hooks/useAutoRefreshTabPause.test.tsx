@@ -21,10 +21,7 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import { ReactNode } from 'react';
 import { useAutoRefreshTabPause } from './useAutoRefreshTabPause';
-import {
-  AutoRefreshStatus,
-  AUTO_REFRESH_STATE_DEFAULTS,
-} from '../types/autoRefresh';
+import { AUTO_REFRESH_STATE_DEFAULTS } from '../types/autoRefresh';
 
 // Helper to create mock Redux store
 const createMockStore = (overrides = {}) =>
