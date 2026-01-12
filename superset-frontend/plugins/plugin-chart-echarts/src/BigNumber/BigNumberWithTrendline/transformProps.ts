@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core';
 import {
   extractTimegrain,
   getNumberFormatter,
@@ -24,7 +25,6 @@ import {
   getXAxisLabel,
   Metric,
   getValueFormatter,
-  t,
   tooltipHtml,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';

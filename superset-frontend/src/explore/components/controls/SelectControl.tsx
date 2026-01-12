@@ -18,7 +18,8 @@
  */
 import { PureComponent, type ReactNode } from 'react';
 import PropTypes from 'prop-types';
-import { isEqualArray, t } from '@superset-ui/core';
+import { isEqualArray } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css } from '@apache-superset/core/ui';
 import { Select } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';

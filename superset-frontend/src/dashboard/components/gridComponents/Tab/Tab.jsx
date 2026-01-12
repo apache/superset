@@ -20,8 +20,7 @@ import { Fragment, useCallback, memo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t, styled } from '@apache-superset/core/ui';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';

@@ -26,6 +26,7 @@ import {
   useState,
 } from 'react';
 
+import { t } from '@apache-superset/core';
 import {
   ChartDataResponseResult,
   Behavior,
@@ -36,7 +37,6 @@ import {
   JsonObject,
   QueryFormData,
   SuperChart,
-  t,
   ClientErrorObject,
   getClientErrorObject,
 } from '@superset-ui/core';

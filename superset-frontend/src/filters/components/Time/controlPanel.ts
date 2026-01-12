@@ -20,7 +20,7 @@ import {
   ControlPanelConfig,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 
 const config: ControlPanelConfig = {
   // For control input types, see: superset-frontend/src/explore/components/controls/index.js

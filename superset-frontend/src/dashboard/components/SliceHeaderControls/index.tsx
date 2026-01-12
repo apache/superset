@@ -27,12 +27,12 @@ import {
 
 import { RouteComponentProps, useHistory } from 'react-router-dom';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { t } from '@apache-superset/core';
 import {
   Behavior,
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
-  t,
   VizType,
   BinaryQueryObjectFilterClause,
   QueryFormData,

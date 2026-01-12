@@ -17,10 +17,10 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core';
 import {
   FeatureFlag,
   isFeatureEnabled,
-  t,
   validateNonEmpty,
   validateMapboxStylesUrl,
   getCategoricalSchemeRegistry,

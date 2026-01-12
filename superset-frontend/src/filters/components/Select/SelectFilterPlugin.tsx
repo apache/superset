@@ -18,6 +18,7 @@
  */
 /* eslint-disable no-param-reassign */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '@apache-superset/core';
 import {
   AppSection,
   DataMask,
@@ -26,9 +27,8 @@ import {
   getColumnLabel,
   JsonObject,
   finestTemporalGrainFormatter,
-  t,
-  tn,
 } from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { debounce, isUndefined } from 'lodash';

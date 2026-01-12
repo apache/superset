@@ -18,7 +18,7 @@
  */
 import { useEffect, useRef, useMemo } from 'react';
 import { Select } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';

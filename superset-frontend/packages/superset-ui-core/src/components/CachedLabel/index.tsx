@@ -18,7 +18,7 @@
  */
 import { useState, FC } from 'react';
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Label } from '../Label';
 import { Tooltip } from '../Tooltip';

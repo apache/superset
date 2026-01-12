@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useCallback, useMemo, ReactNode } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css } from '@apache-superset/core/ui';
 import { List } from '@superset-ui/core/components';
 

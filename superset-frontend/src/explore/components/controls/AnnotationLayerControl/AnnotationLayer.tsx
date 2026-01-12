@@ -25,7 +25,6 @@ import {
   ColorPicker,
 } from '@superset-ui/core/components';
 import {
-  t,
   SupersetClient,
   getCategoricalSchemeRegistry,
   getChartMetadataRegistry,
@@ -35,6 +34,7 @@ import {
   VizType,
   type QueryFormColumn,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   styled,
   withTheme,

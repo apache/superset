@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import rison from 'rison';
 import contentDisposition from 'content-disposition';
 import { ensureAppRoot } from './pathUtils';

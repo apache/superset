@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 import type { LabelType } from '@superset-ui/core/components';
 
 export const STATE_TYPE_MAP: Record<string, LabelType> = {

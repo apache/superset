@@ -18,6 +18,7 @@
  */
 import { useCallback, useMemo } from 'react';
 import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
+import { t } from '@apache-superset/core';
 import {
   AdhocMetric,
   BinaryQueryObjectFilterClause,
@@ -31,7 +32,6 @@ import {
   isFeatureEnabled,
   isPhysicalColumn,
   NumberFormatter,
-  t,
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';

@@ -27,7 +27,6 @@ import {
   ensureIsArray,
   FeatureFlag,
   SupersetClient,
-  t,
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
@@ -37,6 +36,7 @@ import {
   themeObject,
   Alert,
   withTheme,
+  t,
 } from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';

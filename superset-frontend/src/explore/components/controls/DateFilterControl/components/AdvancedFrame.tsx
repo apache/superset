@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SEPARATOR, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SEPARATOR } from '@superset-ui/core';
 import { Input, Icons, InfoTooltip } from '@superset-ui/core/components';
 import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';
 import DateFunctionTooltip from './DateFunctionTooltip';

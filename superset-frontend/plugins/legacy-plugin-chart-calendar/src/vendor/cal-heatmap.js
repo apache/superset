@@ -9,7 +9,8 @@
 /* eslint-disable */
 
 import d3tip from 'd3-tip';
-import { getContrastingColor, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
+import { getContrastingColor } from '@superset-ui/core';
 
 var d3 = typeof require === 'function' ? require('d3') : window.d3;
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 
 export const TOTAL_MARK = t('Total');
 export const ASSIST_MARK = t('Assist');

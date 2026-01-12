@@ -18,6 +18,7 @@
  */
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
+import { t } from '@apache-superset/core';
 import {
   AnnotationLayer,
   AxisType,
@@ -36,7 +37,6 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
-  t,
   TimeseriesChartDataResponseResult,
   NumberFormats,
 } from '@superset-ui/core';

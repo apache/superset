@@ -17,11 +17,11 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
   fetchTimeRange,
   getTimeOffset,
-  t,
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { Tooltip } from '@superset-ui/core/components';

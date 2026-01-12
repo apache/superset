@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Behavior } from '@superset-ui/core';
 import transformProps from './transformProps';
 import controlPanel from './controlPanel';
 import buildQuery from './buildQuery';

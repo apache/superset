@@ -22,7 +22,8 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { isEmpty } from 'lodash';
-import { t, SupersetClient, getExtensionsRegistry } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, getExtensionsRegistry } from '@superset-ui/core';
 import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   Tag,

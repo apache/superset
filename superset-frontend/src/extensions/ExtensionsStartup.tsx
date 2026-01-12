@@ -19,7 +19,7 @@
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
-import { FeatureFlag, isFeatureEnabled, logging } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { authentication, core, commands, extensions, sqlLab } from 'src/core';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
@@ -69,9 +69,9 @@ const ExtensionsStartup = () => {
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
       try {
         ExtensionsManager.getInstance().initializeExtensions();
-        logging.info('Extensions initialized successfully.');
+        supersetCore.logging.info('Extensions initialized successfully.');
       } catch (error) {
-        logging.error('Error setting up extensions:', error);
+        supersetCore.logging.error('Error setting up extensions:', error);
       }
     }
     setInitialized(true);
