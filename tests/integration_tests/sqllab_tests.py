@@ -878,33 +878,30 @@ class TestSqlLab(SupersetTestCase):
             handle_cursor.side_effect = SoftTimeLimitExceeded()
             data = self.run_sql("SELECT * FROM birth_names LIMIT 1", "1")
 
-        assert (
-            data
-            == {
-                "errors": [
-                    {
-                        "message": (
-                            "The query was killed after 21600 seconds. It might be too complex, "  # noqa: E501
-                            "or the database might be under heavy load."
-                        ),
-                        "error_type": SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
-                        "level": ErrorLevel.ERROR,
-                        "extra": {
-                            "issue_codes": [
-                                {
-                                    "code": 1026,
-                                    "message": "Issue 1026 - Query is too complex and takes too long to run.",  # noqa: E501
-                                },
-                                {
-                                    "code": 1027,
-                                    "message": "Issue 1027 - The database is currently running too many queries.",  # noqa: E501
-                                },
-                            ]
-                        },
-                    }
-                ]
-            }
-        )
+        assert data == {
+            "errors": [
+                {
+                    "message": (
+                        "The query was killed after 21600 seconds. It might be too complex, "  # noqa: E501
+                        "or the database might be under heavy load."
+                    ),
+                    "error_type": SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+                    "level": ErrorLevel.ERROR,
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1026,
+                                "message": "Issue 1026 - Query is too complex and takes too long to run.",  # noqa: E501
+                            },
+                            {
+                                "code": 1027,
+                                "message": "Issue 1027 - The database is currently running too many queries.",  # noqa: E501
+                            },
+                        ]
+                    },
+                }
+            ]
+        }
 
 
 @pytest.mark.parametrize("spec", [HiveEngineSpec, PrestoEngineSpec])

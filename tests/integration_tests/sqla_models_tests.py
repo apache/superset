@@ -1264,9 +1264,9 @@ def test_column_ordering_without_chart_flag(login_as_admin):
             result = table.query(query_obj)
 
             expected_order = ["metric_y", "col_b", "metric_x", "col_a"]
-            assert (
-                list(result.df.columns) == expected_order
-            ), f"Expected {expected_order}, got {list(result.df.columns)}"
+            assert list(result.df.columns) == expected_order, (
+                f"Expected {expected_order}, got {list(result.df.columns)}"
+            )
     finally:
         db.session.delete(table)
         db.session.commit()

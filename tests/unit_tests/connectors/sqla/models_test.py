@@ -187,13 +187,10 @@ def test_query_datasources_by_permissions_with_catalog_schema(
         ["[my_db].[db1].[schema1]", "[my_other_db].[schema]"],  # type: ignore
     )
     clause = db.session.query().filter_by().filter.mock_calls[0].args[0]
-    assert (
-        str(clause.compile(engine, compile_kwargs={"literal_binds": True}))
-        == (
-            "tables.perm IN ('[my_db].[table1](id:1)') OR "
-            "tables.schema_perm IN ('[my_db].[db1].[schema1]', '[my_other_db].[schema]') OR "  # noqa: E501
-            "tables.catalog_perm IN ('[my_db].[db1]')"
-        )
+    assert str(clause.compile(engine, compile_kwargs={"literal_binds": True})) == (
+        "tables.perm IN ('[my_db].[table1](id:1)') OR "
+        "tables.schema_perm IN ('[my_db].[db1].[schema1]', '[my_other_db].[schema]') OR "  # noqa: E501
+        "tables.catalog_perm IN ('[my_db].[db1]')"
     )
 
 
@@ -766,9 +763,9 @@ def test_get_sqla_table_quoting_for_cross_catalog(
     # The compiled SQL should contain each part quoted separately
     assert expected_in_sql in compiled, f"Expected {expected_in_sql} in SQL: {compiled}"
     # Should NOT have the entire identifier quoted as one string
-    assert (
-        not_expected_in_sql not in compiled
-    ), f"Should not have {not_expected_in_sql} in SQL: {compiled}"
+    assert not_expected_in_sql not in compiled, (
+        f"Should not have {not_expected_in_sql} in SQL: {compiled}"
+    )
 
 
 def test_get_sqla_table_without_cross_catalog_ignores_catalog(

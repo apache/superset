@@ -1530,9 +1530,9 @@ class TestRolePermission(SupersetTestCase):
         }
 
         unexpected_perms = public_only - allowed_public_only_perms
-        assert (
-            len(unexpected_perms) == 0
-        ), f"Public has unexpected permissions Gamma doesn't: {unexpected_perms}"
+        assert len(unexpected_perms) == 0, (
+            f"Public has unexpected permissions Gamma doesn't: {unexpected_perms}"
+        )
 
         # Public should have significantly fewer permissions than Gamma
         assert len(public_perm_set) < len(gamma_perm_set)
