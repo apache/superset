@@ -35,10 +35,11 @@ import { Styles } from './Styles';
  * @param {Array<Array>} keys - Array of key arrays (e.g., rowKeys or colKeys)
  * @param {number} depth - The depth at which to collapse (positive integer).
  *                         Must be >= 1 to apply any collapse.
- * @param {number} maxDepth - Total number of grouping levels (e.g., rows.length or cols.length).
+ * @param {number} [maxDepth] - Optional. Total number of grouping levels (e.g., rows.length or cols.length).
+ *                              If not provided, it's inferred from the longest key.
  * @returns {Object} A map of flatKey => true for all keys that should be collapsed
  */
-export function computeCollapsedMap(keys, depth, maxDepth) {
+export function computeCollapsedMap(keys, depth, maxDepth = undefined) {
   // depth must be a positive integer (>= 1) to apply collapse.
   // depth = 0 means "fully expanded" / disabled - return empty map.
   if (!Number.isInteger(depth) || depth <= 0) {
