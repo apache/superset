@@ -116,6 +116,7 @@ export function getRelatedCharts(
 export function getRelatedChartsForChartCustomization(
   customizationItem: ChartCustomizationItem,
   slices: Record<string, Slice>,
+  charts?: Record<string, { form_data?: { datasource?: string } }>,
 ): number[] {
   const { customization, chartId } = customizationItem;
   const { dataset } = customization;
@@ -135,10 +136,18 @@ export function getRelatedChartsForChartCustomization(
     targetDatasetId = String(dataset);
   }
 
-  return Object.values(slices)
+  const relatedCharts = Object.values(slices)
     .filter(slice => {
-      const sliceDataset = slice.datasource;
-      if (!sliceDataset) return false;
+      const chartFormData = charts?.[slice.slice_id]?.form_data;
+      const sliceDataset =
+        chartFormData?.datasource ||
+        slice.datasource ||
+        (slice.form_data?.datasource as string | undefined) ||
+        (slice.datasource_id ? String(slice.datasource_id) : undefined);
+
+      if (!sliceDataset) {
+        return false;
+      }
 
       const sliceDatasetParts = String(sliceDataset).split('__');
       const sliceDatasetId = sliceDatasetParts[0];
@@ -146,6 +155,8 @@ export function getRelatedChartsForChartCustomization(
       return sliceDatasetId === targetDatasetId;
     })
     .map(slice => slice.slice_id);
+
+  return relatedCharts;
 }
 
 /**
