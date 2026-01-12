@@ -60,11 +60,11 @@ class CurrencyFormatter extends ExtensibleFunction {
   }
 
   getNormalizedD3Format() {
-    return this.d3Format.replaceAll('$', '');
+    return this.d3Format.replace(/\$/g, '');
   }
 
   normalizeForCurrency(value: string) {
-    return value.replaceAll('%', '');
+    return value.replace(/%/g, '');
   }
 
   format(value: number) {
