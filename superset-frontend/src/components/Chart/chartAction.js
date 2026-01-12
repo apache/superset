@@ -595,6 +595,12 @@ export function refreshChart(chartKey, force, dashboardId) {
     const timeout =
       getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
 
+    if (
+      !chart.latestQueryFormData ||
+      Object.keys(chart.latestQueryFormData).length === 0
+    ) {
+      return;
+    }
     dispatch(
       postChartFormData(
         chart.latestQueryFormData,
