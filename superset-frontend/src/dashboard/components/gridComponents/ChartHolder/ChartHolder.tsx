@@ -38,6 +38,7 @@ import {
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
 } from 'src/dashboard/util/constants';
+import { useIsAutoRefreshing } from 'src/dashboard/contexts/AutoRefreshContext';
 
 export const CHART_MARGIN = 32;
 
@@ -113,6 +114,7 @@ const ChartHolder = ({
   const directPathLastUpdated = useSelector(
     (state: RootState) => state.dashboardState.directPathLastUpdated ?? 0,
   );
+  const isAutoRefreshing = useIsAutoRefreshing();
 
   const [extraControls, setExtraControls] = useState<Record<string, unknown>>(
     {},
@@ -299,6 +301,7 @@ const ChartHolder = ({
             setControlValue={handleExtraControl}
             extraControls={extraControls}
             isInView={isInView}
+            suppressLoadingSpinner={isAutoRefreshing}
           />
           {editMode && (
             <HoverMenu position="top">

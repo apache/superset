@@ -84,6 +84,7 @@ const propTypes = {
   isFullSize: PropTypes.bool,
   extraControls: PropTypes.object,
   isInView: PropTypes.bool,
+  suppressLoadingSpinner: PropTypes.bool,
 };
 
 const RESIZE_TIMEOUT = 500;
@@ -714,6 +715,7 @@ const Chart = props => {
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
           onChartStateChange={handleChartStateChange}
+          suppressLoadingSpinner={props.suppressLoadingSpinner}
         />
       </ChartWrapper>
 

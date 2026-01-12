@@ -99,6 +99,7 @@ import AutoRefreshStatus from '../AutoRefreshStatus';
 import AutoRefreshControls from '../AutoRefreshControls';
 import { useRealTimeDashboard } from '../../hooks/useRealTimeDashboard';
 import { useAutoRefreshTabPause } from '../../hooks/useAutoRefreshTabPause';
+import { useAutoRefreshContext } from '../../contexts/AutoRefreshContext';
 import { AutoRefreshStatus as AutoRefreshStatusEnum } from '../../types/autoRefresh';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -222,15 +223,15 @@ const Header = () => {
 
   // Real-time dashboard state and actions
   const {
-    isRealTimeDashboard,
     isPaused,
-    effectiveStatus,
     setStatus,
     setPaused,
     recordSuccess,
     recordError,
     setFetchStartTime,
   } = useRealTimeDashboard();
+
+  const { startAutoRefresh, endAutoRefresh } = useAutoRefreshContext();
 
   const refreshTimer = useRef(0);
   const ctrlYTimeout = useRef(0);
@@ -321,6 +322,8 @@ const Header = () => {
           ),
         );
 
+        // Mark auto-refresh as starting (suppress spinners)
+        startAutoRefresh();
         // Track status for real-time dashboards
         setStatus(AutoRefreshStatusEnum.Fetching);
         setFetchStartTime(Date.now());
@@ -339,6 +342,10 @@ const Header = () => {
           .catch(error => {
             recordError(error?.message || 'Refresh failed');
             setFetchStartTime(null);
+          })
+          .finally(() => {
+            // Mark auto-refresh as complete (allow spinners again)
+            endAutoRefresh();
           });
       };
 
@@ -356,6 +363,8 @@ const Header = () => {
       setFetchStartTime,
       recordSuccess,
       recordError,
+      startAutoRefresh,
+      endAutoRefresh,
     ],
   );
 

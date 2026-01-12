@@ -62,6 +62,7 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
+import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
 
 export const DashboardPageIdContext = createContext('');
 
@@ -271,12 +272,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
                   : dashboard?.theme?.id
               }
             >
-              <DashboardContainer
-                activeFilters={activeFilters}
-                ownDataCharts={relevantDataMask}
-              >
-                {DashboardBuilderComponent}
-              </DashboardContainer>
+              <AutoRefreshProvider>
+                <DashboardContainer
+                  activeFilters={activeFilters}
+                  ownDataCharts={relevantDataMask}
+                >
+                  {DashboardBuilderComponent}
+                </DashboardContainer>
+              </AutoRefreshProvider>
             </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
         </>
