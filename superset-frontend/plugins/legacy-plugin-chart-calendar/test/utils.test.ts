@@ -77,14 +77,17 @@ describe('integration', () => {
     expect(adjustedDate.getDate()).toEqual(1);
   });
 
-  it('both functions display UTC dates correctly', () => {
+  it('both functions work together to display dates correctly', () => {
     const utcTimestamp = 1704067200000;
 
-    const calHeatmapDate = new Date(convertUTCTimestampToLocal(utcTimestamp));
+    // convertUTCTimestampToLocal adjusts UTC for Cal-Heatmap (which interprets as local)
+    const localTimestamp = convertUTCTimestampToLocal(utcTimestamp);
+    const calHeatmapDate = new Date(localTimestamp);
     expect(calHeatmapDate.getMonth()).toEqual(0);
     expect(calHeatmapDate.getDate()).toEqual(1);
 
-    const formattedTime = getFormattedUTCTime(utcTimestamp, '%Y-%m-%d');
+    // getFormattedUTCTime receives LOCAL timestamp (from Cal-Heatmap) and formats it
+    const formattedTime = getFormattedUTCTime(localTimestamp, '%Y-%m-%d');
     expect(formattedTime).toContain('2024-01-01');
   });
 });
