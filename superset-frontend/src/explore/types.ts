@@ -54,6 +54,7 @@ export interface ChartState {
   chartUpdateStartTime: number;
   lastRendered: number;
   latestQueryFormData: LatestQueryFormData;
+  form_data?: LatestQueryFormData;
   sliceFormData: QueryFormData | null;
   queryController: AbortController | null;
   queriesResponse: QueryData[] | null;

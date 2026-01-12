@@ -526,7 +526,7 @@ describe('chart actions timeout', () => {
   });
 });
 
-test('refreshChart dispatches postChartFormData with chart.form_data', () => {
+test('refreshChart dispatches postChartFormData with chart.latestQueryFormData', () => {
   const chartKey = 1;
   const chartId = 123;
   const dashboardId = 456;
@@ -542,8 +542,8 @@ test('refreshChart dispatches postChartFormData with chart.form_data', () => {
     charts: {
       [chartKey]: {
         id: chartId,
-        form_data: mockFormData,
-        latestQueryFormData: {},
+        form_data: { datasource: '1__table', viz_type: 'big_number_total' },
+        latestQueryFormData: mockFormData,
       },
     },
     dashboardInfo: {
@@ -571,7 +571,7 @@ test('refreshChart dispatches postChartFormData with chart.form_data', () => {
   expect(typeof dispatchedAction).toBe('function');
 });
 
-test('refreshChart uses form_data from Redux state without fetching from API', () => {
+test('refreshChart uses latestQueryFormData from Redux state without fetching from API', () => {
   const chartKey = 1;
   const chartId = 123;
   const dashboardId = 456;
@@ -587,8 +587,8 @@ test('refreshChart uses form_data from Redux state without fetching from API', (
     charts: {
       [chartKey]: {
         id: chartId,
-        form_data: mockFormData,
-        latestQueryFormData: {},
+        form_data: { datasource: '1__table', viz_type: 'big_number_total' },
+        latestQueryFormData: mockFormData,
       },
     },
     dashboardInfo: {

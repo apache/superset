@@ -38,3 +38,44 @@ jest.mock('ace-builds/src-min-noconflict/mode-handlebars', () => ({}));
 jest.mock('ace-builds/src-min-noconflict/mode-css', () => ({}));
 jest.mock('ace-builds/src-noconflict/theme-github', () => ({}));
 jest.mock('ace-builds/src-noconflict/theme-monokai', () => ({}));
+
+// Mock BroadcastChannel for cross-tab communication tests
+class MockBroadcastChannel {
+  name: string;
+
+  onmessage: ((event: { data: any }) => void) | null = null;
+
+  static instances: MockBroadcastChannel[] = [];
+
+  constructor(name: string) {
+    this.name = name;
+    MockBroadcastChannel.instances.push(this);
+  }
+
+  postMessage(data: any) {
+    // Simulate broadcasting to all channels with the same name
+    MockBroadcastChannel.instances.forEach(instance => {
+      if (instance.name === this.name && instance.onmessage) {
+        instance.onmessage({ data });
+      }
+    });
+  }
+
+  close() {
+    const index = MockBroadcastChannel.instances.indexOf(this);
+    if (index > -1) {
+      MockBroadcastChannel.instances.splice(index, 1);
+    }
+  }
+
+  static resetInstances() {
+    MockBroadcastChannel.instances = [];
+  }
+}
+
+global.BroadcastChannel = MockBroadcastChannel as any;
+
+// Reset BroadcastChannel instances before each test
+beforeEach(() => {
+  MockBroadcastChannel.resetInstances();
+});

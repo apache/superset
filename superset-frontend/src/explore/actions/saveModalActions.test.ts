@@ -759,12 +759,25 @@ test('updateSlice broadcasts chart update for cross-tab sync', async () => {
   const dispatch = sinon.spy() as Dispatch;
   const getState = () => ({ explore: { form_data: formData } });
 
+  // Set up a listener to verify the broadcast
+  const receivedMessages: any[] = [];
+  const MockBroadcastChannel = global.BroadcastChannel as any;
+  const listener = new MockBroadcastChannel('superset_chart_updates');
+  listener.onmessage = (event: { data: any }) => {
+    receivedMessages.push(event.data);
+  };
+
   await updateSlice(slice, sliceName, dashboards)(dispatch, getState);
 
-  // Note: BroadcastChannel is created at module load time, so we can't easily
-  // verify the exact call in this test. This would require refactoring to
-  // dependency injection or using a more sophisticated mocking strategy.
-  // For now, this test documents the expected behavior.
+  // Verify the broadcast was sent
+  expect(receivedMessages.length).toBe(1);
+  expect(receivedMessages[0]).toEqual({
+    type: 'CHART_SAVED',
+    sliceId,
+    formData,
+  });
+
+  listener.close();
 });
 
 test('createSlice broadcasts chart update for cross-tab sync', async () => {
@@ -772,15 +785,31 @@ test('createSlice broadcasts chart update for cross-tab sync', async () => {
 
   fetchMock.reset();
   fetchMock.post('glob:*/api/v1/chart/', {
-    json: { id: newSliceId },
+    slice_id: newSliceId,
+    owners: [],
+    form_data: formData,
   });
 
   const dispatch = sinon.spy() as Dispatch;
   const getState = () => ({ explore: { form_data: formData } });
 
+  // Set up a listener to verify the broadcast
+  const receivedMessages: any[] = [];
+  const MockBroadcastChannel = global.BroadcastChannel as any;
+  const listener = new MockBroadcastChannel('superset_chart_updates');
+  listener.onmessage = (event: { data: any }) => {
+    receivedMessages.push(event.data);
+  };
+
   await createSlice(sliceName, dashboards)(dispatch, getState);
 
-  // Note: BroadcastChannel is created at module load time, so we can't easily
-  // verify the exact call in this test. This would require refactoring to
-  // dependency injection or using a more sophisticated mocking strategy.
+  // Verify the broadcast was sent
+  expect(receivedMessages.length).toBe(1);
+  expect(receivedMessages[0]).toEqual({
+    type: 'CHART_SAVED',
+    sliceId: newSliceId,
+    formData,
+  });
+
+  listener.close();
 });

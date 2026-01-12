@@ -66,17 +66,34 @@ export function saveSliceSuccess(data: Partial<QueryFormData>) {
 
 // Broadcast chart updates to other tabs
 let chartUpdateChannel: BroadcastChannel | null = null;
-if (typeof BroadcastChannel !== 'undefined') {
-  chartUpdateChannel = new BroadcastChannel('superset_chart_updates');
+
+function getChartUpdateChannel(): BroadcastChannel | null {
+  if (typeof BroadcastChannel === 'undefined') {
+    return null;
+  }
+
+  if (!chartUpdateChannel) {
+    chartUpdateChannel = new BroadcastChannel('superset_chart_updates');
+  }
+
+  return chartUpdateChannel;
 }
 
 export function broadcastChartUpdate(sliceId: number, formData: QueryFormData) {
-  if (chartUpdateChannel) {
-    chartUpdateChannel.postMessage({
+  const channel = getChartUpdateChannel();
+  if (channel) {
+    channel.postMessage({
       type: 'CHART_SAVED',
       sliceId,
       formData,
     });
+  }
+}
+
+export function closeChartUpdateBroadcast() {
+  if (chartUpdateChannel) {
+    chartUpdateChannel.close();
+    chartUpdateChannel = null;
   }
 }
 
@@ -309,8 +326,8 @@ export const createSlice =
       addToasts(true, sliceName, addedToDashboard).map(dispatch);
 
       // Broadcast update to other tabs
-      if (formData && response.json?.id) {
-        broadcastChartUpdate(response.json.id, formData as QueryFormData);
+      if (formData && response.json?.slice_id) {
+        broadcastChartUpdate(response.json.slice_id, formData as QueryFormData);
       }
 
       return response.json;
