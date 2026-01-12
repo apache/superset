@@ -296,9 +296,9 @@ function ExploreViewContainer(props) {
       document.title = props.sliceName;
     }
     return () => {
-      document.title = 'Superset';
+      document.title = theme.brandAppName || theme.brandLogoAlt || 'Superset';
     };
-  }, [props.sliceName]);
+  }, [props.sliceName, theme.brandAppName, theme.brandLogoAlt]);
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {

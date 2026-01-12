@@ -567,9 +567,28 @@ def get_spa_template_context(
     """
     payload = get_spa_payload(extra_bootstrap_data)
 
-    # Extract theme data for template access
-    theme_data = get_theme_bootstrap_data().get("theme", {})
+    # Extract theme data from payload (this is what gets sent to frontend)
+    theme_data = payload.get("common", {}).get("theme", {})
     default_theme = theme_data.get("default", {})
+    dark_theme = theme_data.get("dark", {})
+
+    # Apply brandAppName fallback to both default and dark themes
+    # Priority: theme brandAppName > APP_NAME config > "Superset" default
+    app_name_from_config = app.config.get("APP_NAME", "Superset")
+    for theme_config in [default_theme, dark_theme]:
+        if not theme_config:
+            continue
+        theme_tokens = theme_config.get("token", {})
+        if (
+            not theme_tokens.get("brandAppName")
+            or theme_tokens.get("brandAppName") == "Superset"
+        ):
+            # If brandAppName not set or is default, check if APP_NAME customized
+            if app_name_from_config != "Superset":
+                # User has customized APP_NAME, use it as brandAppName
+                theme_tokens["brandAppName"] = app_name_from_config
+
+    # Extract theme tokens for template access (after fallback applied)
     theme_tokens = default_theme.get("token", {})
 
     # Determine spinner content with precedence: theme SVG > theme URL > default SVG
@@ -581,6 +600,9 @@ def get_spa_template_context(
         # No custom URL either, use default SVG
         spinner_svg = get_default_spinner_svg()
 
+    # Determine default title using the (potentially updated) brandAppName
+    default_title = theme_tokens.get("brandAppName", "Superset")
+
     return {
         "entry": entry,
         "bootstrap_data": json.dumps(
@@ -588,6 +610,7 @@ def get_spa_template_context(
         ),
         "theme_tokens": theme_tokens,
         "spinner_svg": spinner_svg,
+        "default_title": default_title,
         **template_kwargs,
     }
 

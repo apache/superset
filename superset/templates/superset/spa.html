@@ -24,6 +24,8 @@
       {% block title %}
         {% if title %}
           {{ title }}
+        {% else %}
+          {{ default_title }}
         {% endif %}
       {% endblock %}
     </title>
