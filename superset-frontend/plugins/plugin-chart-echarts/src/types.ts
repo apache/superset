@@ -56,6 +56,8 @@ export interface EchartsProps {
   forceClear?: boolean;
   refs: Refs;
   vizType?: string;
+  /** Whether the chart is refreshing (disables animations during auto-refresh) */
+  isRefreshing?: boolean;
 }
 
 export interface EchartsHandler {
