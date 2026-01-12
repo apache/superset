@@ -77,7 +77,7 @@ const onClick = (
   runQuery();
 };
 
-const StyledButton = styled.span<{ compact?: boolean }>`
+const StyledButton = styled.span`
   button {
     line-height: 13px;
     min-width: auto !important;
