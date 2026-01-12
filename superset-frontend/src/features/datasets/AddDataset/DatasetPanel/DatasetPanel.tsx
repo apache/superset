@@ -49,8 +49,9 @@ interface StyledHeaderProps {
   position: EPosition;
 }
 
-const LOADER_WIDTH = 200;
-const SPINNER_WIDTH = 120;
+const LOADER_WIDTH = 120;
+const SPINNER_WIDTH = 40;
+const TEXT_WIDTH = 150;
 const HALF = 0.5;
 const MARGIN_MULTIPLIER = 3;
 
@@ -61,7 +62,7 @@ const StyledHeader = styled.div<StyledHeaderProps>`
     ${theme.sizeUnit * MARGIN_MULTIPLIER}px
     ${theme.sizeUnit * MARGIN_MULTIPLIER}px
     ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
-  font-size: ${theme.sizeUnit * 6}px;
+  font-size: ${theme.sizeUnit * 5}px;
   font-weight: ${theme.fontWeightStrong};
   padding-bottom: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
 
@@ -113,11 +114,11 @@ const StyledLoader = styled.div`
   }
 
   div {
-    width: 100%;
+    width: ${TEXT_WIDTH}px;
     margin-top: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
     text-align: center;
     font-weight: ${theme.fontWeightNormal};
-    font-size: ${theme.fontSizeLG}px;
+    font-size: ${theme.fontSize}px;
     color: ${theme.colorTextSecondary};
   }
   `}
@@ -331,7 +332,7 @@ const DatasetPanel = ({
             }
             title={tableName || ''}
           >
-            <Icons.InsertRowAboveOutlined iconSize="xxl" />
+            <Icons.InsertRowAboveOutlined iconSize="xl" />
             {tableName}
           </StyledHeader>
         </>
