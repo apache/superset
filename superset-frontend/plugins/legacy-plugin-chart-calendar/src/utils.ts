@@ -26,5 +26,11 @@ export const getFormattedUTCTime = (
 ) => {
   const date = new Date(ts);
   const offset = date.getTimezoneOffset() * 60 * 1000;
-  return getTimeFormatter(timeFormat)(date.getTime() - offset);
+  return getTimeFormatter(timeFormat)(date.getTime() + offset);
+};
+
+export const convertUTCTimestampToLocal = (utcTimestamp: number): number => {
+  const date = new Date(utcTimestamp);
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return utcTimestamp + offsetMs;
 };
