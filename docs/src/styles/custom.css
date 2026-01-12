@@ -176,9 +176,9 @@ ul.dropdown__menu svg {
 
 /* Fix Ant Design Collapse arrow visibility in dark mode */
 [data-theme='dark'] .ant-collapse-expand-icon {
-  color: var(--ifm-font-color-base);
+  color: var(--ifm-font-base-color);
 }
 
 [data-theme='dark'] .ant-collapse-header {
-  color: var(--ifm-font-color-base);
+  color: var(--ifm-font-base-color);
 }

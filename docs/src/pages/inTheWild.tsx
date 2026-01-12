@@ -102,7 +102,7 @@ export default function InTheWild() {
               return {
                 key: category,
                 label: (
-                  <Text strong style={{ fontSize: 16, lineHeight: '22px', color: 'var(--ifm-font-color-base)' }}>
+                  <Text strong style={{ fontSize: 16, lineHeight: '22px', color: 'var(--ifm-font-base-color)' }}>
                     {category} ({items.length})
                   </Text>
                 ),
