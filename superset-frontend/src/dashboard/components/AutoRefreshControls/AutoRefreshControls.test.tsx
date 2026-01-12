@@ -18,10 +18,7 @@
  */
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { AutoRefreshControls } from './index';
-import {
-  AutoRefreshStatus,
-  AUTO_REFRESH_STATE_DEFAULTS,
-} from '../../types/autoRefresh';
+import { AUTO_REFRESH_STATE_DEFAULTS } from '../../types/autoRefresh';
 
 // Helper to create mock state
 const createMockState = (overrides = {}) => ({

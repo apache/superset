@@ -78,7 +78,7 @@ interface RefreshFrequencySelectProps {
 export const RefreshFrequencySelect = ({
   value,
   onChange,
-  ariaLabel = t('Refresh frequency'),
+  ariaLabel: _ariaLabel = t('Refresh frequency'),
 }: RefreshFrequencySelectProps) => {
   // Separate radio selection state from value state
   const [radioSelection, setRadioSelection] = useState(() =>

@@ -38,7 +38,9 @@ export interface AutoRefreshStatusProps {
  * - Red (error): Refresh failed with an error
  * - White (paused): Auto-refresh is paused
  */
-export const AutoRefreshStatus: FC<AutoRefreshStatusProps> = ({ className }) => {
+export const AutoRefreshStatus: FC<AutoRefreshStatusProps> = ({
+  className,
+}) => {
   const {
     isRealTimeDashboard,
     effectiveStatus,

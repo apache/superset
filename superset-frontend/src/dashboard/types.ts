@@ -129,6 +129,16 @@ export type DashboardState = {
     data: JsonObject;
   };
   chartStates?: Record<string, any>;
+  // Auto-refresh state fields
+  autoRefreshStatus?: string;
+  autoRefreshPaused?: boolean;
+  autoRefreshPausedByTab?: boolean;
+  lastSuccessfulRefresh?: number | null;
+  lastRefreshError?: string | null;
+  refreshErrorCount?: number;
+  autoRefreshFetchStartTime?: number | null;
+  autoRefreshPauseOnInactiveTab?: boolean;
+  refreshFrequency?: number;
 };
 export type DashboardInfo = {
   id: number;

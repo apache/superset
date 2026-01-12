@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, act } from 'spec/helpers/testing-library';
 import { StatusIndicatorDot } from './StatusIndicatorDot';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 

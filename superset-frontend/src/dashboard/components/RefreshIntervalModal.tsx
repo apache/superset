@@ -26,7 +26,7 @@ import {
   RefreshFrequencySelect,
   getRefreshWarningMessage,
 } from './RefreshFrequency/RefreshFrequencySelect';
-import { setPauseOnInactiveTab } from '../actions/autoRefresh';
+import { setAutoRefreshPauseOnInactiveTab } from '../actions/autoRefresh';
 import { RootState } from '../types';
 
 const ModalContent = styled.div`
@@ -61,15 +61,18 @@ const RefreshIntervalModal = ({
   const dispatch = useDispatch();
   const [refreshFrequency, setRefreshFrequency] = useState(initialFrequency);
   const pauseOnInactiveTab = useSelector(
-    (state: RootState) => state.dashboardState?.autoRefreshPauseOnInactiveTab ?? true,
+    (state: RootState) =>
+      state.dashboardState?.autoRefreshPauseOnInactiveTab ?? true,
   );
 
   const handleFrequencyChange = (value: number) => {
     setRefreshFrequency(value);
   };
 
-  const handlePauseOnInactiveTabChange = (e: { target: { checked: boolean } }) => {
-    dispatch(setPauseOnInactiveTab(e.target.checked));
+  const handlePauseOnInactiveTabChange = (e: {
+    target: { checked: boolean };
+  }) => {
+    dispatch(setAutoRefreshPauseOnInactiveTab(e.target.checked));
   };
 
   const handleSave = () => {
