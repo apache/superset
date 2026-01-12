@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint-env browser */
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   isFeatureEnabled,
@@ -278,24 +277,6 @@ const Header = () => {
 
   const startPeriodicRender = useCallback(
     interval => {
-      let intervalMessage;
-
-      if (interval) {
-        const periodicRefreshOptions =
-          dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
-        const predefinedValue = periodicRefreshOptions.find(
-          option => Number(option[0]) === interval / 1000,
-        );
-
-        if (predefinedValue) {
-          intervalMessage = t(predefinedValue[1]);
-        } else {
-          intervalMessage = extendedDayjs
-            .duration(interval, 'millisecond')
-            .humanize();
-        }
-      }
-
       const fetchCharts = (charts, force = false) =>
         boundActionCreators.fetchCharts(
           charts,
@@ -315,12 +296,7 @@ const Header = () => {
           interval,
           chartCount: affectedCharts.length,
         });
-        boundActionCreators.addWarningToast(
-          t(
-            `This dashboard is currently auto refreshing; the next auto refresh will be in %s.`,
-            intervalMessage,
-          ),
-        );
+        // Toast notification removed - status indicator provides visual feedback
 
         // Mark auto-refresh as starting (suppress spinners)
         startAutoRefresh();
