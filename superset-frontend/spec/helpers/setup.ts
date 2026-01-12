@@ -53,9 +53,10 @@ class MockBroadcastChannel {
   }
 
   postMessage(data: any) {
-    // Simulate broadcasting to all channels with the same name
+    // Simulate broadcasting to all channels with the same name, EXCEPT the sender
+    // This matches the real BroadcastChannel API behavior
     MockBroadcastChannel.instances.forEach(instance => {
-      if (instance.name === this.name && instance.onmessage) {
+      if (instance !== this && instance.name === this.name && instance.onmessage) {
         instance.onmessage({ data });
       }
     });
