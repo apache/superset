@@ -16,13 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, ReactNode } from 'react';
+import { forwardRef } from 'react';
 
 import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
 export const FilterTitle = styled.div`
   ${({ theme }) => `
@@ -169,27 +181,54 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
       );
     };
 
-    const renderFilterGroups = () => {
-      const items: ReactNode[] = [];
-      filters.forEach((item, index) => {
-        items.push(
-          <DraggableFilter
-            key={index}
-            onRearrange={onRearrange}
-            index={index}
-            filterIds={[item]}
-          >
-            {renderComponent(item)}
-          </DraggableFilter>,
-        );
-      });
-      return items;
+    const handleDragEnd = (event: DragEndEvent) => {
+      const { active, over } = event;
+      const activeId = active.id;
+      const overId = over?.id;
+      if (activeId == null || overId == null) return;
+      const from = filters.indexOf(String(activeId));
+      const to = filters.indexOf(String(overId));
+      if (from === -1 || to === -1) return;
+      onRearrange(from, to);
     };
 
+    /*
+     * We need sensor in this case because we have other listeners in the same component
+     * and dnd-kit listeners blocks other listeners preventing actions like undo and delete.
+     * Using sensors we can set activation constraint and avoid blocking other actions.
+     */
+    const sensors = useSensors(
+      useSensor(PointerSensor, {
+        activationConstraint: {
+          distance: 5,
+        },
+      }),
+    );
+
+    const renderFilterGroups = () => (
+      <SortableContext items={filters} strategy={verticalListSortingStrategy}>
+        {filters.map(item => (
+          <DraggableFilter
+            // Need to pass key here to smoothly handle reordering of items
+            key={item}
+            filterId={item}
+          >
+            {renderComponent(item)}
+          </DraggableFilter>
+        ))}
+      </SortableContext>
+    );
+
     return (
-      <Container data-test="filter-title-container" ref={ref}>
-        {renderFilterGroups()}
-      </Container>
+      <DndContext
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+        sensors={sensors}
+      >
+        <Container data-test="filter-title-container" ref={ref}>
+          {renderFilterGroups()}
+        </Container>
+      </DndContext>
     );
   },
 );
