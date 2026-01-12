@@ -48,6 +48,7 @@ export const AutoRefreshStatus: FC<AutoRefreshStatusProps> = ({
     lastError,
     refreshFrequency,
     autoRefreshFetchStartTime,
+    isPausedByTab,
   } = useRealTimeDashboard();
 
   // Don't render if not a real-time dashboard
@@ -66,6 +67,7 @@ export const AutoRefreshStatus: FC<AutoRefreshStatusProps> = ({
           lastError={lastError}
           refreshFrequency={refreshFrequency}
           autoRefreshFetchStartTime={autoRefreshFetchStartTime}
+          isPausedByTab={isPausedByTab}
         />
       }
     >

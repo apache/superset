@@ -33,6 +33,8 @@ export interface StatusTooltipContentProps {
   refreshFrequency: number;
   /** Timestamp when current fetch started (for delay calculation) */
   autoRefreshFetchStartTime: number | null;
+  /** Whether paused due to tab visibility */
+  isPausedByTab?: boolean;
 }
 
 /**
@@ -59,6 +61,7 @@ const getStatusMessage = (
   lastError: string | null,
   refreshFrequency: number,
   autoRefreshFetchStartTime: number | null,
+  isPausedByTab: boolean,
 ): { line1: string; line2: string; line3?: string } => {
   const intervalLine = t('Auto refresh set to %s seconds', refreshFrequency);
 
@@ -103,7 +106,9 @@ const getStatusMessage = (
       };
     case AutoRefreshStatus.Paused:
       return {
-        line1: t('Auto-refresh paused'),
+        line1: isPausedByTab
+          ? t('Auto-refresh paused (tab inactive)')
+          : t('Auto-refresh paused'),
         line2: intervalLine,
       };
     default:
@@ -131,6 +136,7 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   lastError,
   refreshFrequency,
   autoRefreshFetchStartTime,
+  isPausedByTab = false,
 }) => {
   const theme = useTheme();
 
@@ -155,6 +161,7 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
     lastError,
     refreshFrequency,
     autoRefreshFetchStartTime,
+    isPausedByTab,
   );
 
   return (

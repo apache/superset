@@ -157,6 +157,10 @@ export const useRealTimeDashboard = () => {
       state.dashboardState?.autoRefreshPauseOnInactiveTab ?? false,
   );
 
+  const isPausedByTab = useSelector(
+    (state: RootState) => state.dashboardState?.autoRefreshPausedByTab ?? false,
+  );
+
   // Action dispatchers
   const setStatus = useCallback(
     (status: AutoRefreshStatus) => {
@@ -202,6 +206,7 @@ export const useRealTimeDashboard = () => {
       // State
       isRealTimeDashboard,
       isPaused,
+      isPausedByTab,
       effectiveStatus,
       lastSuccessfulRefresh,
       lastError,
@@ -219,6 +224,7 @@ export const useRealTimeDashboard = () => {
     [
       isRealTimeDashboard,
       isPaused,
+      isPausedByTab,
       effectiveStatus,
       lastSuccessfulRefresh,
       lastError,

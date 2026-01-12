@@ -98,6 +98,7 @@ import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 import AutoRefreshStatus from '../AutoRefreshStatus';
 import AutoRefreshControls from '../AutoRefreshControls';
 import { useRealTimeDashboard } from '../../hooks/useRealTimeDashboard';
+import { useAutoRefreshTabPause } from '../../hooks/useAutoRefreshTabPause';
 import { AutoRefreshStatus as AutoRefreshStatusEnum } from '../../types/autoRefresh';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -679,6 +680,40 @@ const Header = () => {
     chartIds,
     dashboardInfo.id,
   ]);
+
+  // Callback for tab visibility refresh
+  const handleTabVisibilityRefresh = useCallback(
+    () =>
+      new Promise((resolve, reject) => {
+        if (!isLoading) {
+          boundActionCreators
+            .onRefresh(chartIds, true, 0, dashboardInfo.id)
+            .then(resolve)
+            .catch(reject);
+        } else {
+          resolve();
+        }
+      }),
+    [boundActionCreators, chartIds, dashboardInfo.id, isLoading],
+  );
+
+  // Callback to restart the periodic timer
+  const handleRestartTimer = useCallback(() => {
+    startPeriodicRender(refreshFrequency * 1000);
+  }, [startPeriodicRender, refreshFrequency]);
+
+  // Callback to stop the periodic timer
+  const handleStopTimer = useCallback(() => {
+    stopPeriodicRender(refreshTimer.current);
+    refreshTimer.current = 0;
+  }, []);
+
+  // Auto-pause when browser tab is inactive
+  useAutoRefreshTabPause({
+    onRefresh: handleTabVisibilityRefresh,
+    onRestartTimer: handleRestartTimer,
+    onStopTimer: handleStopTimer,
+  });
 
   const titlePanelAdditionalItems = useMemo(
     () => [

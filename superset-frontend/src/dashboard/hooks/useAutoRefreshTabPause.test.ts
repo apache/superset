@@ -1,0 +1,253 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { renderHook, act } from '@testing-library/react-hooks';
+import { Provider } from 'react-redux';
+import { createStore } from 'redux';
+import { ReactNode } from 'react';
+import { useAutoRefreshTabPause } from './useAutoRefreshTabPause';
+import {
+  AutoRefreshStatus,
+  AUTO_REFRESH_STATE_DEFAULTS,
+} from '../types/autoRefresh';
+
+// Helper to create mock Redux store
+const createMockStore = (overrides = {}) =>
+  createStore(() => ({
+    dashboardState: {
+      ...AUTO_REFRESH_STATE_DEFAULTS,
+      refreshFrequency: 5,
+      ...overrides,
+    },
+  }));
+
+// Wrapper component for Redux
+const createWrapper =
+  (store: ReturnType<typeof createMockStore>) =>
+  ({ children }: { children: ReactNode }) => (
+    <Provider store={store}>{children}</Provider>
+  );
+
+// Helper to mock document.visibilityState
+const mockVisibilityState = (state: 'visible' | 'hidden') => {
+  Object.defineProperty(document, 'visibilityState', {
+    configurable: true,
+    get: () => state,
+  });
+};
+
+// Helper to fire visibilitychange event
+const fireVisibilityChange = () => {
+  document.dispatchEvent(new Event('visibilitychange'));
+};
+
+// Store original visibility state
+let originalVisibilityState: PropertyDescriptor | undefined;
+
+beforeEach(() => {
+  originalVisibilityState = Object.getOwnPropertyDescriptor(
+    document,
+    'visibilityState',
+  );
+  mockVisibilityState('visible');
+});
+
+afterEach(() => {
+  if (originalVisibilityState) {
+    Object.defineProperty(document, 'visibilityState', originalVisibilityState);
+  }
+});
+
+test('does nothing when not a real-time dashboard (refreshFrequency = 0)', () => {
+  const store = createMockStore({ refreshFrequency: 0 });
+  const onRefresh = jest.fn().mockResolvedValue(undefined);
+  const onRestartTimer = jest.fn();
+  const onStopTimer = jest.fn();
+
+  renderHook(
+    () =>
+      useAutoRefreshTabPause({
+        onRefresh,
+        onRestartTimer,
+        onStopTimer,
+      }),
+    { wrapper: createWrapper(store) },
+  );
+
+  // Simulate tab hidden
+  act(() => {
+    mockVisibilityState('hidden');
+    fireVisibilityChange();
+  });
+
+  expect(onStopTimer).not.toHaveBeenCalled();
+});
+
+test('does nothing when autoRefreshPauseOnInactiveTab is false', () => {
+  const store = createMockStore({
+    refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: false,
+  });
+  const onRefresh = jest.fn().mockResolvedValue(undefined);
+  const onRestartTimer = jest.fn();
+  const onStopTimer = jest.fn();
+
+  renderHook(
+    () =>
+      useAutoRefreshTabPause({
+        onRefresh,
+        onRestartTimer,
+        onStopTimer,
+      }),
+    { wrapper: createWrapper(store) },
+  );
+
+  // Simulate tab hidden
+  act(() => {
+    mockVisibilityState('hidden');
+    fireVisibilityChange();
+  });
+
+  expect(onStopTimer).not.toHaveBeenCalled();
+});
+
+test('stops timer when tab becomes hidden and setting is enabled', () => {
+  const store = createMockStore({
+    refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: true,
+  });
+  const onRefresh = jest.fn().mockResolvedValue(undefined);
+  const onRestartTimer = jest.fn();
+  const onStopTimer = jest.fn();
+
+  renderHook(
+    () =>
+      useAutoRefreshTabPause({
+        onRefresh,
+        onRestartTimer,
+        onStopTimer,
+      }),
+    { wrapper: createWrapper(store) },
+  );
+
+  // Simulate tab hidden
+  act(() => {
+    mockVisibilityState('hidden');
+    fireVisibilityChange();
+  });
+
+  expect(onStopTimer).toHaveBeenCalledTimes(1);
+});
+
+test('does not stop timer when manually paused', () => {
+  const store = createMockStore({
+    refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: true,
+    autoRefreshPaused: true,
+  });
+  const onRefresh = jest.fn().mockResolvedValue(undefined);
+  const onRestartTimer = jest.fn();
+  const onStopTimer = jest.fn();
+
+  renderHook(
+    () =>
+      useAutoRefreshTabPause({
+        onRefresh,
+        onRestartTimer,
+        onStopTimer,
+      }),
+    { wrapper: createWrapper(store) },
+  );
+
+  // Simulate tab hidden
+  act(() => {
+    mockVisibilityState('hidden');
+    fireVisibilityChange();
+  });
+
+  // Should not stop timer because already manually paused
+  expect(onStopTimer).not.toHaveBeenCalled();
+});
+
+test('refreshes and restarts timer when tab becomes visible after being paused by tab', async () => {
+  const store = createMockStore({
+    refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: true,
+    autoRefreshPausedByTab: true,
+  });
+  const onRefresh = jest.fn().mockResolvedValue(undefined);
+  const onRestartTimer = jest.fn();
+  const onStopTimer = jest.fn();
+
+  // Start with tab hidden
+  mockVisibilityState('hidden');
+
+  renderHook(
+    () =>
+      useAutoRefreshTabPause({
+        onRefresh,
+        onRestartTimer,
+        onStopTimer,
+      }),
+    { wrapper: createWrapper(store) },
+  );
+
+  // Simulate tab becoming visible
+  await act(async () => {
+    mockVisibilityState('visible');
+    fireVisibilityChange();
+    // Wait for promise to resolve
+    await Promise.resolve();
+  });
+
+  expect(onRefresh).toHaveBeenCalledTimes(1);
+});
+
+test('does not refresh when returning to visible if manually paused', () => {
+  const store = createMockStore({
+    refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: true,
+    autoRefreshPausedByTab: true,
+    autoRefreshPaused: true,
+  });
+  const onRefresh = jest.fn().mockResolvedValue(undefined);
+  const onRestartTimer = jest.fn();
+  const onStopTimer = jest.fn();
+
+  // Start with tab hidden
+  mockVisibilityState('hidden');
+
+  renderHook(
+    () =>
+      useAutoRefreshTabPause({
+        onRefresh,
+        onRestartTimer,
+        onStopTimer,
+      }),
+    { wrapper: createWrapper(store) },
+  );
+
+  // Simulate tab becoming visible
+  act(() => {
+    mockVisibilityState('visible');
+    fireVisibilityChange();
+  });
+
+  // Should not refresh because manually paused
+  expect(onRefresh).not.toHaveBeenCalled();
+});
