@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
+import { t, tn } from '@apache-superset/core';
+import { ensureIsArray, ExtraFormData } from '@superset-ui/core';
 import { useEffect, useState, useMemo } from 'react';
 import {
   FormItem,

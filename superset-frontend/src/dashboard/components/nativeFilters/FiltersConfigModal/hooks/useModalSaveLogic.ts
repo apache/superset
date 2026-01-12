@@ -18,12 +18,12 @@
  */
 import { useCallback, useMemo } from 'react';
 import { isEqual, sortBy } from 'lodash';
+import { t } from '@apache-superset/core';
 import {
   Filter,
   Divider,
   ChartCustomization,
   ChartCustomizationDivider,
-  t,
 } from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
 import { useDispatch } from 'react-redux';

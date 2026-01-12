@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, ReactNode } from 'react';
-import { NativeFilterType, ChartCustomizationType, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { Collapse, Flex } from '@superset-ui/core/components';
 import NewItemDropdown from '../NewItemDropdown';

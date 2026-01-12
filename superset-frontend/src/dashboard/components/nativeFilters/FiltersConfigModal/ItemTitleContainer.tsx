@@ -18,7 +18,7 @@
  */
 import { forwardRef, ReactNode } from 'react';
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { FilterRemoval } from './types';

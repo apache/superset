@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { t, DataMask, ExtraFormData } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { DataMask, ExtraFormData } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/ui';
 import {
   Select,
