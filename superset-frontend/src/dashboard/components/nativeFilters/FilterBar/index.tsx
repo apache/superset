@@ -51,10 +51,7 @@ import {
 } from 'src/dashboard/actions/chartCustomizationActions';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { hasValidColumn } from 'src/dashboard/components/nativeFilters/ChartCustomization/utils';
-import {
-  getAffectedChartIdsFromCustomizations,
-  getRelatedChartsForChartCustomization,
-} from 'src/dashboard/util/getRelatedCharts';
+import { getRelatedChartsForChartCustomization } from 'src/dashboard/util/getRelatedCharts';
 import { Slice } from 'src/types/Chart';
 
 import { useImmer } from 'use-immer';
@@ -372,44 +369,46 @@ const FilterBar: FC<FiltersBarProps> = ({
 
         dispatch(setChartCustomization(mergedCustomizations));
 
-        const customizationsWithColumns = mergedCustomizations.filter(
-          item => !item.removed && hasValidColumn(item.customization?.column),
-        );
+        const doesCustomizationAffectCharts = (
+          item: ChartCustomizationItem | undefined,
+        ): boolean =>
+          item !== undefined &&
+          !item.removed &&
+          hasValidColumn(item.customization?.column);
 
-        const newAffectedChartIds = getAffectedChartIdsFromCustomizations(
-          customizationsWithColumns,
-          slices,
-        );
+        const affectedChartIdsSet = new Set<number>();
 
-        const previouslyAffectedChartIds: number[] = [];
+        mergedCustomizations
+          .filter(doesCustomizationAffectCharts)
+          .forEach(item => {
+            const relatedCharts = getRelatedChartsForChartCustomization(
+              item,
+              slices,
+            );
+            relatedCharts.forEach(chartId => affectedChartIdsSet.add(chartId));
+          });
+
         const originalCustomizations = chartCustomizationItems || [];
-
         originalCustomizations.forEach(oldItem => {
-          if (!hasValidColumn(oldItem.customization?.column)) {
+          if (!doesCustomizationAffectCharts(oldItem)) {
             return;
           }
 
           const newItem = mergedCustomizations.find(
             item => item.id === oldItem.id,
           );
-          const wasRemoved = !newItem || newItem.removed;
-          const hasColumnNow = hasValidColumn(newItem?.customization?.column);
 
-          if (wasRemoved || !hasColumnNow) {
+          if (!doesCustomizationAffectCharts(newItem)) {
             const relatedCharts = getRelatedChartsForChartCustomization(
               oldItem,
               slices,
             );
-            previouslyAffectedChartIds.push(...relatedCharts);
+            relatedCharts.forEach(chartId => affectedChartIdsSet.add(chartId));
           }
         });
 
-        const uniqueAffectedChartIds = [
-          ...new Set([...newAffectedChartIds, ...previouslyAffectedChartIds]),
-        ];
-
-        if (uniqueAffectedChartIds.length > 0) {
-          uniqueAffectedChartIds.forEach(chartId => {
+        if (affectedChartIdsSet.size > 0) {
+          Array.from(affectedChartIdsSet).forEach(chartId => {
             dispatch(triggerQuery(true, chartId));
           });
         }
