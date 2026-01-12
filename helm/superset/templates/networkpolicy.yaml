@@ -34,19 +34,34 @@ spec:
     - Egress
   ingress:
     {{- if .Values.ingress.enabled }}
-    # Allow ingress from ingress controller
+    # Allow ingress from ingress controller to main Superset service
     - from:
         {{- if .Values.networkPolicy.ingress.namespaceSelector }}
-        namespaceSelector:
-          {{- toYaml .Values.networkPolicy.ingress.namespaceSelector | nindent 10 }}
+        - namespaceSelector:
+            {{- toYaml .Values.networkPolicy.ingress.namespaceSelector | nindent 12 }}
         {{- end }}
         {{- if .Values.networkPolicy.ingress.podSelector }}
-        podSelector:
-          {{- toYaml .Values.networkPolicy.ingress.podSelector | nindent 10 }}
+        - podSelector:
+            {{- toYaml .Values.networkPolicy.ingress.podSelector | nindent 12 }}
         {{- end }}
       ports:
         - protocol: TCP
           port: {{ .Values.service.port }}
+    {{- if .Values.supersetWebsockets.enabled }}
+    # Allow ingress from ingress controller to WebSocket service
+    - from:
+        {{- if .Values.networkPolicy.ingress.namespaceSelector }}
+        - namespaceSelector:
+            {{- toYaml .Values.networkPolicy.ingress.namespaceSelector | nindent 12 }}
+        {{- end }}
+        {{- if .Values.networkPolicy.ingress.podSelector }}
+        - podSelector:
+            {{- toYaml .Values.networkPolicy.ingress.podSelector | nindent 12 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.supersetWebsockets.config.port | default 8080 }}
+    {{- end }}
     {{- end }}
     # Allow internal communication between Superset components
     - from:
@@ -57,6 +72,10 @@ spec:
       ports:
         - protocol: TCP
           port: {{ .Values.service.port }}
+        {{- if .Values.supersetWebsockets.enabled }}
+        - protocol: TCP
+          port: {{ .Values.supersetWebsockets.config.port | default 8080 }}
+        {{- end }}
   egress:
     # Allow DNS resolution
     - to:
