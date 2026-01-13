@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
+import sinon, { SinonSpy, SinonStub } from 'sinon';
 import { SupersetClient } from '@superset-ui/core';
 import logger from 'src/middleware/loggerMiddleware';
 import { LOG_EVENT } from 'src/logger/actions';
@@ -24,12 +24,28 @@ import {
   LOG_ACTIONS_LOAD_CHART,
   LOG_ACTIONS_SPA_NAVIGATION,
 } from 'src/logger/LogUtils';
+import { AnyAction } from 'redux';
+
+interface MockStore {
+  getState: () => {
+    dashboardInfo: { id: number };
+    impressionId: string;
+  };
+}
+
+interface LogEventAction {
+  type: typeof LOG_EVENT;
+  payload: {
+    eventName: string;
+    eventData: Record<string, unknown>;
+  };
+}
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('logger middleware', () => {
   const dashboardId = 123;
-  const next = sinon.spy();
-  const mockStore = {
+  const next: SinonSpy = sinon.spy();
+  const mockStore: MockStore = {
     getState: () => ({
       dashboardInfo: {
         id: dashboardId,
@@ -37,7 +53,7 @@ describe('logger middleware', () => {
       impressionId: 'impression_id',
     }),
   };
-  const action = {
+  const action: LogEventAction = {
     type: LOG_EVENT,
     payload: {
       eventName: LOG_ACTIONS_LOAD_CHART,
@@ -52,7 +68,7 @@ describe('logger middleware', () => {
     useFakeTimers: true,
   });
 
-  let postStub;
+  let postStub: SinonStub;
   beforeEach(() => {
     postStub = sinon.stub(SupersetClient, 'post');
   });
@@ -63,7 +79,7 @@ describe('logger middleware', () => {
   });
 
   test('should listen to LOG_EVENT action type', () => {
-    const action1 = {
+    const action1: AnyAction = {
       type: 'ACTION_TYPE',
       payload: {
         some: 'data',
@@ -78,8 +94,8 @@ describe('logger middleware', () => {
     expect(next.callCount).toBe(0);
 
     timeSandbox.clock.tick(2000);
-    expect(SupersetClient.post.callCount).toBe(1);
-    expect(SupersetClient.post.getCall(0).args[0].endpoint).toMatch(
+    expect(postStub.callCount).toBe(1);
+    expect(postStub.getCall(0).args[0].endpoint).toMatch(
       '/superset/log/',
     );
   });
@@ -96,8 +112,8 @@ describe('logger middleware', () => {
     timeSandbox.clock.tick(2000);
     fetchLog(action);
     timeSandbox.clock.tick(2000);
-    expect(SupersetClient.post.callCount).toBe(2);
-    const { events } = SupersetClient.post.getCall(1).args[0].postPayload;
+    expect(postStub.callCount).toBe(2);
+    const { events } = postStub.getCall(1).args[0].postPayload;
     const mockEventdata = action.payload.eventData;
     const mockEventname = action.payload.eventName;
     expect(events[0]).toMatchObject({
@@ -120,9 +136,9 @@ describe('logger middleware', () => {
     logger(mockStore)(next)(action);
     timeSandbox.clock.tick(2000);
 
-    expect(SupersetClient.post.callCount).toBe(1);
+    expect(postStub.callCount).toBe(1);
     expect(
-      SupersetClient.post.getCall(0).args[0].postPayload.events,
+      postStub.getCall(0).args[0].postPayload.events,
     ).toHaveLength(3);
   });
 

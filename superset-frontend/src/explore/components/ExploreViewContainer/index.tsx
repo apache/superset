@@ -17,16 +17,18 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { memo, useCallback, useEffect, useMemo, useState, KeyboardEvent } from 'react';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
+  QueryFormData,
+  JsonObject,
 } from '@superset-ui/core';
+import { ControlStateMapping } from '@superset-ui/chart-controls';
 import { t, styled, css, useTheme } from '@apache-superset/core/ui';
 import { logging } from '@apache-superset/core';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
@@ -53,7 +55,6 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
-import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
 import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
@@ -63,36 +64,15 @@ import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { ChartState, Datasource, ExplorePageInitialData, SaveActionType } from 'src/explore/types';
+import { Slice } from 'src/types/Chart';
+import { User } from 'src/types/bootstrapTypes';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
-
-const propTypes = {
-  ...ExploreChartPanel.propTypes,
-  actions: PropTypes.object.isRequired,
-  datasource_type: PropTypes.string.isRequired,
-  dashboardId: PropTypes.number,
-  colorScheme: PropTypes.string,
-  ownColorScheme: PropTypes.string,
-  dashboardColorScheme: PropTypes.string,
-  isDatasourceMetaLoading: PropTypes.bool.isRequired,
-  chart: chartPropShape.isRequired,
-  slice: PropTypes.object,
-  sliceName: PropTypes.string,
-  controls: PropTypes.object.isRequired,
-  forcedHeight: PropTypes.string,
-  form_data: PropTypes.object.isRequired,
-  standalone: PropTypes.bool.isRequired,
-  force: PropTypes.bool,
-  timeout: PropTypes.number,
-  impressionId: PropTypes.string,
-  vizType: PropTypes.string,
-  saveAction: PropTypes.string,
-  isSaveModalVisible: PropTypes.bool,
-};
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
@@ -234,16 +214,19 @@ const updateHistory = debounce(
   1000,
 );
 
-const defaultSidebarsWidth = {
+type DefaultSidebarWidthKey = 'controls_width' | 'datasource_width';
+
+const defaultSidebarsWidth: Record<DefaultSidebarWidthKey, number> = {
   controls_width: 320,
   datasource_width: 300,
 };
 
-function getSidebarWidths(key) {
-  return getItem(key, defaultSidebarsWidth[key]);
+function getSidebarWidths(key: LocalStorageKeys): number {
+  const defaultKey = key === LocalStorageKeys.ControlsWidth ? 'controls_width' : 'datasource_width';
+  return getItem(key, defaultSidebarsWidth[defaultKey]);
 }
 
-function setSidebarWidths(key, dimension) {
+function setSidebarWidths(key: LocalStorageKeys, dimension: { width: number }) {
   const newDimension = Number(getSidebarWidths(key)) + dimension.width;
   setItem(key, newDimension);
 }
@@ -266,11 +249,96 @@ const AGGREGATED_CHART_TYPES = [
   'table',
 ];
 
-function isAggregatedChartType(vizType) {
-  return AGGREGATED_CHART_TYPES.includes(vizType);
+function isAggregatedChartType(vizType: string | undefined): boolean {
+  return vizType ? AGGREGATED_CHART_TYPES.includes(vizType) : false;
 }
 
-function ExploreViewContainer(props) {
+interface ExploreRootState {
+  explore: {
+    controls: ControlStateMapping;
+    slice: Slice | null;
+    datasource: Datasource;
+    metadata?: ExplorePageInitialData['metadata'];
+    hiddenFormData?: Partial<QueryFormData>;
+    isDatasourceMetaLoading: boolean;
+    isStarred: boolean;
+    can_add: boolean;
+    can_download: boolean;
+    can_overwrite: boolean;
+    sliceName?: string;
+    triggerRender: boolean;
+    standalone: boolean;
+    force: boolean;
+    form_data?: QueryFormData;
+    saveAction?: SaveActionType | null;
+  };
+  charts: Record<number, ChartState>;
+  common: {
+    conf: {
+      SUPERSET_WEBSERVER_TIMEOUT: number;
+    };
+  };
+  impressionId: string;
+  dataMask: Record<number, { ownState?: JsonObject }>;
+  reports: JsonObject;
+  user: User;
+  saveModal: {
+    isVisible: boolean;
+  };
+}
+
+interface OwnProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast?: (msg: string) => void;
+}
+
+interface StateProps {
+  isDatasourceMetaLoading: boolean;
+  datasource: Datasource;
+  datasource_type: string;
+  datasourceId: number;
+  dashboardId?: number;
+  colorScheme?: string;
+  ownColorScheme?: string;
+  dashboardColorScheme?: string;
+  controls: ControlStateMapping;
+  can_add: boolean;
+  can_download: boolean;
+  can_overwrite: boolean;
+  column_formats: JsonObject | null;
+  containerId: string;
+  isStarred: boolean;
+  slice: Slice | null;
+  sliceName: string | null;
+  triggerRender: boolean;
+  form_data: QueryFormData;
+  table_name?: string;
+  vizType?: string;
+  standalone: boolean;
+  force: boolean;
+  chart: ChartState;
+  timeout: number;
+  ownState?: JsonObject;
+  impressionId: string;
+  user: User;
+  exploreState: ExploreRootState['explore'];
+  reports: JsonObject;
+  metadata?: ExplorePageInitialData['metadata'];
+  saveAction?: SaveActionType | null;
+  isSaveModalVisible: boolean;
+}
+
+interface DispatchProps {
+  actions: typeof exploreActions &
+    typeof datasourcesActions &
+    typeof saveModalActions &
+    typeof chartActions &
+    typeof logActions;
+}
+
+type ExploreViewContainerProps = StateProps & DispatchProps & OwnProps;
+
+function ExploreViewContainer(props: ExploreViewContainerProps) {
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
   const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.mounting;
@@ -886,14 +954,19 @@ function ExploreViewContainer(props) {
   );
 }
 
-ExploreViewContainer.propTypes = propTypes;
-
-const retainQueryModeRequirements = hiddenFormData =>
+const retainQueryModeRequirements = (hiddenFormData: Partial<QueryFormData> | undefined): string[] =>
   Object.keys(hiddenFormData ?? {}).filter(
     key => !QUERY_MODE_REQUISITES.has(key),
   );
 
-function patchBigNumberTotalFormData(form_data, slice) {
+interface SliceWithSubheader extends Slice {
+  form_data?: QueryFormData & { subheader?: string; subheader_font_size?: number };
+}
+
+function patchBigNumberTotalFormData(
+  form_data: QueryFormData,
+  slice: SliceWithSubheader | null | undefined,
+): QueryFormData {
   if (
     form_data.viz_type === 'big_number_total' &&
     !form_data.subtitle &&
@@ -904,7 +977,7 @@ function patchBigNumberTotalFormData(form_data, slice) {
   return form_data;
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: ExploreRootState) {
   const {
     explore,
     charts,
@@ -1023,7 +1096,7 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: Dispatch) {
   const actions = {
     ...exploreActions,
     ...datasourcesActions,

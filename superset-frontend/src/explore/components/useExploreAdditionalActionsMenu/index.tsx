@@ -16,10 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useState } from 'react';
+import {
+  ReactElement,
+  useCallback,
+  useMemo,
+  useState,
+  Dispatch,
+  SetStateAction,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import { isFeatureEnabled, FeatureFlag, VizType } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  VizType,
+  JsonObject,
+  LatestQueryFormData,
+} from '@superset-ui/core';
 import { css, styled, useTheme, t } from '@apache-superset/core/ui';
 import {
   Icons,
@@ -28,7 +41,7 @@ import {
   Input,
 } from '@superset-ui/core/components';
 import { getChartMetadataRegistry } from '@superset-ui/core';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Menu, MenuProps } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
@@ -45,7 +58,13 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
 } from 'src/logger/LogUtils';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
-import { useStreamingExport } from 'src/components/StreamingExportModal';
+import {
+  useStreamingExport,
+  StreamingExportProgress,
+} from 'src/components/StreamingExportModal';
+import { Slice } from 'src/types/Chart';
+import { ChartState, ExplorePageInitialData } from 'src/explore/types';
+import { AlertObject } from 'src/features/alerts/types';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
@@ -119,18 +138,62 @@ export const MenuTrigger = styled(Button)`
   `}
 `;
 
+interface ClientViewColumn {
+  key: string;
+  label?: string;
+}
+
+interface ClientViewRow {
+  [key: string]: unknown;
+}
+
+interface OwnStateWithClientView extends JsonObject {
+  clientView?: {
+    rows?: ClientViewRow[];
+    columns?: ClientViewColumn[];
+  };
+}
+
+export interface StreamingExportState {
+  isVisible: boolean;
+  progress: StreamingExportProgress;
+  onCancel: () => void;
+  onRetry: () => void;
+  onDownload: () => void;
+}
+
+interface ExploreState {
+  charts?: Record<number, ChartState>;
+  explore?: JsonObject;
+  common?: {
+    conf?: {
+      CSV_STREAMING_ROW_THRESHOLD?: number;
+    };
+  };
+}
+
+export type UseExploreAdditionalActionsMenuReturn = [
+  ReactElement,
+  boolean,
+  Dispatch<SetStateAction<boolean>>,
+  StreamingExportState,
+];
+
 export const useExploreAdditionalActionsMenu = (
-  latestQueryFormData,
-  canDownloadCSV,
-  slice,
-  onOpenInEditor,
-  onOpenPropertiesModal,
-  ownState,
-  dashboards,
-  showReportModal,
-  setCurrentReportDeleting,
-  ...rest
-) => {
+  latestQueryFormData: LatestQueryFormData,
+  canDownloadCSV: boolean,
+  slice: Slice | null | undefined,
+  onOpenInEditor: (
+    formData: LatestQueryFormData,
+    openNewWindow?: boolean,
+  ) => void,
+  onOpenPropertiesModal: () => void,
+  ownState: OwnStateWithClientView | undefined,
+  dashboards: ExplorePageInitialData['metadata']['dashboards'] | undefined,
+  showReportModal: () => void,
+  setCurrentReportDeleting: Dispatch<SetStateAction<AlertObject | null>>,
+  ...rest: MenuProps[]
+): UseExploreAdditionalActionsMenuReturn => {
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
   const dispatch = useDispatch();
@@ -140,10 +203,10 @@ export const useExploreAdditionalActionsMenu = (
     dashboardSearchTerm,
     300,
   );
-  const chart = useSelector(
+  const chart = useSelector<ExploreState, ChartState | undefined>(
     state => state.charts?.[getChartKey(state.explore)],
   );
-  const streamingThreshold = useSelector(
+  const streamingThreshold = useSelector<ExploreState, number>(
     state =>
       state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
       DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
@@ -337,9 +400,13 @@ export const useExploreAdditionalActionsMenu = (
   }, [addDangerToast, addSuccessToast, latestQueryFormData]);
 
   // Minimal client-side CSV builder used for "Current View" when pagination is disabled
-  const downloadClientCSV = (rows, columns, filename) => {
+  const downloadClientCSV = (
+    rows: ClientViewRow[],
+    columns: ClientViewColumn[],
+    filename: string,
+  ) => {
     if (!rows?.length || !columns?.length) return;
-    const esc = v => {
+    const esc = (v: unknown): string => {
       if (v === null || v === undefined) return '';
       const s = String(v);
       const wrapped = /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -361,20 +428,29 @@ export const useExploreAdditionalActionsMenu = (
   };
 
   // Robust client-side JSON for "Current View"
-  const downloadClientJSON = (rows, columns, filename) => {
+  const downloadClientJSON = (
+    rows: ClientViewRow[],
+    columns: ClientViewColumn[],
+    filename: string,
+  ) => {
     if (!rows?.length || !columns?.length) return;
 
-    const norm = v => {
+    const norm = (v: unknown): unknown => {
       if (v instanceof Date) return v.toISOString();
       if (v && typeof v === 'object' && 'input' in v && 'formatter' in v) {
-        const dv = v.input ?? v.value ?? v.toString?.() ?? '';
+        const typedV = v as {
+          input?: unknown;
+          value?: unknown;
+          toString?: () => string;
+        };
+        const dv = typedV.input ?? typedV.value ?? typedV.toString?.() ?? '';
         return dv instanceof Date ? dv.toISOString() : dv;
       }
       return v;
     };
 
     const data = rows.map(r => {
-      const out = {};
+      const out: Record<string, unknown> = {};
       columns.forEach(c => {
         out[c.key] = norm(r[c.key]);
       });
@@ -402,8 +478,12 @@ export const useExploreAdditionalActionsMenu = (
     URL.revokeObjectURL(link.href);
   };
 
-  // NEW: Client-side XLSX for "Current View" (uses 'xlsx' already in deps)
-  const downloadClientXLSX = async (rows, columns, filename) => {
+  // Client-side XLSX for "Current View" (uses 'xlsx' already in deps)
+  const downloadClientXLSX = async (
+    rows: ClientViewRow[],
+    columns: ClientViewColumn[],
+    filename: string,
+  ) => {
     if (!rows?.length || !columns?.length) return;
     try {
       const XLSX = (await import(/* webpackChunkName: "xlsx" */ 'xlsx'))
@@ -411,17 +491,20 @@ export const useExploreAdditionalActionsMenu = (
 
       // Build a flat array of objects keyed by backend column key
       const data = rows.map(r => {
-        const o = {};
+        const o: Record<string, unknown> = {};
         columns.forEach(c => {
           const v = r[c.key];
-          o[c.label ?? c.key] =
-            v && typeof v === 'object' && 'input' in v && 'formatter' in v
-              ? v.input instanceof Date
-                ? v.input.toISOString()
-                : (v.input ?? v.value ?? '')
-              : v instanceof Date
-                ? v.toISOString()
-                : v;
+          if (v && typeof v === 'object' && 'input' in v && 'formatter' in v) {
+            const typedV = v as { input?: unknown; value?: unknown };
+            o[c.label ?? c.key] =
+              typedV.input instanceof Date
+                ? typedV.input.toISOString()
+                : (typedV.input ?? typedV.value ?? '');
+          } else if (v instanceof Date) {
+            o[c.label ?? c.key] = v.toISOString();
+          } else {
+            o[c.label ?? c.key] = v;
+          }
         });
         return o;
       });
@@ -437,8 +520,8 @@ export const useExploreAdditionalActionsMenu = (
       ws['!cols'] = colWidths;
 
       XLSX.writeFile(wb, `${filename || 'current_view'}.xlsx`);
-    } catch (e) {
-      // If xlsx isn’t available for some reason, fall back to CSV
+    } catch {
+      // If xlsx isn't available for some reason, fall back to CSV
       downloadClientCSV(rows, columns, filename || 'current_view');
       addDangerToast?.(
         t('Falling back to CSV; Excel export library not available.'),

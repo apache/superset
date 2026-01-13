@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, DependencyList } from 'react';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import {
@@ -25,7 +25,10 @@ import {
   ensureIsArray,
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
+  QueryFormData,
   SupersetClient,
+  SetDataMaskHook,
+  JsonObject,
 } from '@superset-ui/core';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -35,18 +38,80 @@ import { URL_PARAMS } from 'src/constants';
 import {
   DISABLE_INPUT_OPERATORS,
   MULTI_OPERATORS,
+  Operators,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   UNSAVED_CHART_ID,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
+import { Slice } from 'src/types/Chart';
 
-export function getChartKey(explore) {
+// Type definitions
+export type EndpointType =
+  | 'base'
+  | 'full'
+  | 'json'
+  | 'csv'
+  | 'query'
+  | 'results'
+  | 'samples'
+  | 'standalone';
+
+interface ExploreState {
+  slice?: Slice | null;
+  form_data?: Partial<QueryFormData>;
+}
+
+interface ChartDataUriParams {
+  path: string;
+  qs?: Record<string, string>;
+  allowDomainSharding?: boolean;
+}
+
+interface GetExploreUrlParams {
+  formData: QueryFormData & { label_colors?: Record<string, string> };
+  endpointType?: EndpointType | string;
+  force?: boolean;
+  curUrl?: string | null;
+  requestParams?: Record<string, string>;
+  allowDomainSharding?: boolean;
+  method?: 'GET' | 'POST';
+}
+
+interface BuildV1ChartDataPayloadParams {
+  formData: QueryFormData;
+  force?: boolean;
+  resultFormat?: string;
+  resultType?: string;
+  setDataMask?: SetDataMaskHook;
+  ownState?: JsonObject;
+}
+
+interface ExportChartParams {
+  formData: QueryFormData;
+  resultFormat?: string;
+  resultType?: string;
+  force?: boolean;
+  ownState?: JsonObject;
+  onStartStreamingExport?: ((params: {
+    url: string | null;
+    payload: QueryFormData | ReturnType<typeof buildQueryContext>;
+    exportType: string;
+  }) => void) | null;
+}
+
+interface SubjectWithColumnName {
+  column_name?: string;
+}
+
+type ComparatorValue = string | number | boolean | null;
+
+export function getChartKey(explore: ExploreState): number {
   const { slice, form_data } = explore;
   return slice?.slice_id ?? form_data?.slice_id ?? UNSAVED_CHART_ID;
 }
 
 let requestCounter = 0;
-export function getHostName(allowDomainSharding = false) {
+export function getHostName(allowDomainSharding = false): string {
   let currentIndex = 0;
   if (allowDomainSharding) {
     currentIndex = requestCounter % availableDomains.length;
@@ -63,7 +128,10 @@ export function getHostName(allowDomainSharding = false) {
   return availableDomains[currentIndex];
 }
 
-export function getAnnotationJsonUrl(slice_id, force) {
+export function getAnnotationJsonUrl(
+  slice_id: number | null | undefined,
+  force: boolean,
+): string | null {
   if (slice_id === null || slice_id === undefined) {
     return null;
   }
@@ -78,7 +146,7 @@ export function getAnnotationJsonUrl(slice_id, force) {
     .toString();
 }
 
-export function getURIDirectory(endpointType = 'base') {
+export function getURIDirectory(endpointType: EndpointType | string = 'base'): string {
   // Building the directory part of the URI
   if (
     ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
@@ -90,10 +158,14 @@ export function getURIDirectory(endpointType = 'base') {
   return ensureAppRoot('/explore/');
 }
 
-export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
+export function mountExploreUrl(
+  endpointType: EndpointType | string,
+  extraSearch: Record<string, string | number> = {},
+  force = false,
+): string {
   const uri = new URI('/');
   const directory = getURIDirectory(endpointType);
-  const search = uri.search(true);
+  const search = uri.search(true) as Record<string, string | number>;
   Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];
   });
@@ -106,7 +178,11 @@ export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
   return uri.directory(directory).search(search).toString();
 }
 
-export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
+export function getChartDataUri({
+  path,
+  qs,
+  allowDomainSharding = false,
+}: ChartDataUriParams): URI {
   // The search params from the window.location are carried through,
   // but can be specified with curUrl (used for unit tests to spoof
   // the window.location).
@@ -135,7 +211,7 @@ export function getExploreUrl({
   requestParams = {},
   allowDomainSharding = false,
   method = 'POST',
-}) {
+}: GetExploreUrlParams): string | null {
   if (!formData.datasource) {
     return null;
   }
@@ -155,10 +231,10 @@ export function getExploreUrl({
   const directory = getURIDirectory(endpointType);
 
   // Building the querystring (search) part of the URI
-  const search = uri.search(true);
+  const search = uri.search(true) as Record<string, string>;
   const { slice_id, extra_filters, adhoc_filters, viz_type } = formData;
   if (slice_id) {
-    const form_data = { slice_id };
+    const form_data: Record<string, unknown> = { slice_id };
     if (method === 'GET') {
       form_data.viz_type = viz_type;
       if (extra_filters && extra_filters.length) {
@@ -191,7 +267,7 @@ export function getExploreUrl({
   const paramNames = Object.keys(requestParams);
   if (paramNames.length) {
     paramNames.forEach(name => {
-      if (requestParams.hasOwnProperty(name)) {
+      if (Object.hasOwn(requestParams, name)) {
         search[name] = requestParams[name];
       }
     });
@@ -199,7 +275,9 @@ export function getExploreUrl({
   return uri.search(search).directory(directory).toString();
 }
 
-export const getQuerySettings = formData => {
+export const getQuerySettings = (
+  formData: Partial<QueryFormData>,
+): [boolean, string] => {
   const vizMetadata = getChartMetadataRegistry().get(formData.viz_type);
   return [
     vizMetadata?.useLegacyApi ?? false,
@@ -214,11 +292,11 @@ export const buildV1ChartDataPayload = async ({
   resultType,
   setDataMask,
   ownState,
-}) => {
+}: BuildV1ChartDataPayloadParams): Promise<ReturnType<typeof buildQueryContext>> => {
   const buildQuery =
     getChartBuildQueryRegistry().get(formData.viz_type) ??
-    (buildQueryformData =>
-      buildQueryContext(buildQueryformData, baseQueryObject => [
+    ((buildQueryFormData: QueryFormData) =>
+      buildQueryContext(buildQueryFormData, baseQueryObject => [
         {
           ...baseQueryObject,
         },
@@ -229,7 +307,7 @@ export const buildV1ChartDataPayload = async ({
       force,
       result_format: resultFormat,
       result_type: resultType,
-    },
+    } as QueryFormData,
     {
       ownState,
       hooks: {
@@ -239,8 +317,13 @@ export const buildV1ChartDataPayload = async ({
   );
 };
 
-export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
-  resultFormat === 'csv' ? resultFormat : resultType;
+export const getLegacyEndpointType = ({
+  resultType,
+  resultFormat,
+}: {
+  resultType: string;
+  resultFormat: string;
+}): string => (resultFormat === 'csv' ? resultFormat : resultType);
 
 export const exportChart = async ({
   formData,
@@ -249,10 +332,10 @@ export const exportChart = async ({
   force = false,
   ownState = {},
   onStartStreamingExport = null,
-}) => {
-  let url;
-  let payload;
-  const [useLegacyApi, parseMethod] = getQuerySettings(formData);
+}: ExportChartParams): Promise<void> => {
+  let url: string | null;
+  let payload: QueryFormData | ReturnType<typeof buildQueryContext>;
+  const [useLegacyApi] = getQuerySettings(formData);
   if (useLegacyApi) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
     url = getExploreUrl({
@@ -269,7 +352,6 @@ export const exportChart = async ({
       resultFormat,
       resultType,
       ownState,
-      parseMethod,
     });
   }
 
@@ -283,21 +365,28 @@ export const exportChart = async ({
     });
   } else {
     // Fallback to original behavior for non-streaming exports
-    SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+    SupersetClient.postForm(url as string, { form_data: safeStringify(payload) });
   }
 };
 
-export const exploreChart = (formData, requestParams) => {
+export const exploreChart = (
+  formData: QueryFormData,
+  requestParams?: Record<string, string>,
+): void => {
   const url = getExploreUrl({
     formData,
     endpointType: 'base',
     allowDomainSharding: false,
     requestParams,
   });
-  SupersetClient.postForm(url, { form_data: safeStringify(formData) });
+  SupersetClient.postForm(url as string, { form_data: safeStringify(formData) });
 };
 
-export const useDebouncedEffect = (effect, delay, deps) => {
+export const useDebouncedEffect = (
+  effect: () => void,
+  delay: number,
+  deps: DependencyList,
+): void => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const callback = useCallback(effect, deps);
 
@@ -312,17 +401,21 @@ export const useDebouncedEffect = (effect, delay, deps) => {
   }, [callback, delay]);
 };
 
-export const getSimpleSQLExpression = (subject, operator, comparator) => {
-  const isMulti =
-    [...MULTI_OPERATORS]
-      .map(op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation)
-      .indexOf(operator) >= 0;
-  const showComparator =
-    DISABLE_INPUT_OPERATORS.map(
-      op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
-    ).indexOf(operator) === -1;
+export const getSimpleSQLExpression = (
+  subject?: string | SubjectWithColumnName,
+  operator?: string,
+  comparator?: ComparatorValue | ComparatorValue[],
+): string => {
+  const multiOperatorValues = [...MULTI_OPERATORS].map(
+    (op: Operators) => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
+  );
+  const isMulti = multiOperatorValues.indexOf(operator ?? '') >= 0;
+  const disableInputOperatorValues = DISABLE_INPUT_OPERATORS.map(
+    (op: Operators) => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
+  );
+  const showComparator = disableInputOperatorValues.indexOf(operator ?? '') === -1;
   // If returned value is an object after changing dataset
-  let expression =
+  let expression: string =
     typeof subject === 'object'
       ? (subject?.column_name ?? '')
       : (subject ?? '');
@@ -348,6 +441,8 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
   return expression;
 };
 
-export function formatSelectOptions(options) {
+export function formatSelectOptions<T extends { toString(): string }>(
+  options: T[],
+): [T, string][] {
   return options.map(opt => [opt, opt.toString()]);
 }

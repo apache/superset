@@ -17,9 +17,10 @@
  * under the License.
  */
 import rison from 'rison';
-import { PureComponent, useCallback } from 'react';
-import PropTypes from 'prop-types';
-import { connect } from 'react-redux';
+import { PureComponent, useCallback, ReactNode } from 'react';
+import { connect, ConnectedProps } from 'react-redux';
+import type { SupersetTheme, JsonObject } from '@superset-ui/core';
+import type { Dispatch } from 'redux';
 import { Radio } from '@superset-ui/core/components/Radio';
 import {
   isFeatureEnabled,
@@ -84,6 +85,191 @@ import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
 
 const extensionsRegistry = getExtensionsRegistry();
+
+// Type definitions
+
+interface Owner {
+  id?: number;
+  value?: number;
+  label?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+interface Currency {
+  symbol?: string;
+  symbolPosition?: string;
+}
+
+interface Metric {
+  id?: number;
+  metric_name: string;
+  expression?: string;
+  verbose_name?: string;
+  description?: string;
+  d3format?: string;
+  currency?: Currency;
+  certified_by?: string;
+  certification_details?: string;
+  warning_markdown?: string;
+  extra?: string;
+}
+
+interface Column {
+  id?: number;
+  column_name: string;
+  verbose_name?: string;
+  description?: string;
+  expression?: string;
+  filterable?: boolean;
+  groupby?: boolean;
+  is_dttm?: boolean;
+  type?: string;
+  advanced_data_type?: string;
+  python_date_format?: string;
+  json?: string;
+  certified_by?: string;
+  certification_details?: string;
+  is_certified?: boolean;
+}
+
+interface Database {
+  id: number;
+  database_name?: string;
+  backend?: string;
+}
+
+interface DatasourceObject {
+  id?: number;
+  datasource_name?: string;
+  database?: Database;
+  catalog?: string;
+  schema?: string;
+  table_name?: string;
+  sql?: string;
+  columns: Column[];
+  metrics?: Metric[];
+  owners: Owner[];
+  main_dttm_col?: string;
+  filter_select_enabled?: boolean;
+  fetch_values_predicate?: string;
+  description?: string;
+  default_endpoint?: string;
+  extra?: string;
+  datasource_type?: string;
+  type?: string;
+  offset?: number;
+  cache_timeout?: number;
+  normalize_columns?: boolean;
+  always_filter_main_dttm?: boolean;
+  template_params?: string;
+}
+
+interface DatasourceEditorOwnProps {
+  datasource: DatasourceObject;
+  onChange?: (datasource: DatasourceObject, errors: string[]) => void;
+  addSuccessToast: (msg: string) => void;
+  addDangerToast: (msg: string) => void;
+  setIsEditing?: (isEditing: boolean) => void;
+  currencies?: string[];
+  theme?: SupersetTheme;
+}
+
+interface DatabaseState {
+  clientId?: string;
+  queryResponse?: {
+    results?: {
+      columns?: Array<{ name: string; type: string }>;
+      data?: Array<Record<string, unknown>>;
+    };
+  };
+  queryRunning?: boolean;
+}
+
+interface RootState {
+  database?: DatabaseState;
+}
+
+interface ChartUsageData {
+  id: number;
+  slice_name: string;
+  url: string;
+  certified_by?: string;
+  certification_details?: string;
+  description?: string;
+  owners?: Owner[];
+  changed_on_delta_humanized?: string;
+  changed_on?: string;
+  changed_by?: {
+    first_name?: string;
+    last_name?: string;
+    id?: number;
+  };
+  dashboards?: Array<{
+    id: number;
+    dashboard_title: string;
+    url: string;
+  }>;
+}
+
+interface DatasourceEditorState {
+  datasource: DatasourceObject;
+  errors: string[];
+  isSqla: boolean;
+  isEditMode: boolean;
+  databaseColumns: Column[];
+  calculatedColumns: Column[];
+  metadataLoading: boolean;
+  activeTabKey: string;
+  datasourceType: string;
+  usageCharts: ChartUsageData[];
+  usageChartsCount: number;
+}
+
+interface AbortControllers {
+  formatQuery: AbortController | null;
+  formatSql: AbortController | null;
+  syncMetadata: AbortController | null;
+  fetchUsageData: AbortController | null;
+}
+
+interface CurrencyOption {
+  value: string;
+  label: string;
+}
+
+// Component props interfaces
+interface CollectionTabTitleProps {
+  title: string;
+  collection?: unknown[];
+}
+
+interface ColumnCollectionTableProps {
+  columns: Column[];
+  datasource: DatasourceObject;
+  onColumnsChange: (columns: Column[]) => void;
+  onDatasourceChange: (datasource: DatasourceObject) => void;
+  editableColumnName?: boolean;
+  showExpression?: boolean;
+  allowAddItem?: boolean;
+  allowEditDataType?: boolean;
+  itemGenerator?: () => Partial<Column>;
+  columnLabelTooltips?: Record<string, string>;
+}
+
+interface StackedFieldProps {
+  label: string;
+  formElement: ReactNode;
+}
+
+interface FormContainerProps {
+  children: ReactNode;
+}
+
+interface OwnersSelectorProps {
+  datasource: DatasourceObject;
+  onChange: (owners: Owner[]) => void;
+}
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -195,9 +381,10 @@ const StyledButtonWrapper = styled.span`
   `}
 `;
 
-const checkboxGenerator = (d, onChange) => (
-  <CheckboxControl value={d} onChange={onChange} />
-);
+const checkboxGenerator = (
+  d: boolean,
+  onChange: (value: boolean) => void,
+): ReactNode => <CheckboxControl value={d} onChange={onChange} />;
 const DATA_TYPES = [
   { value: 'STRING', label: t('STRING') },
   { value: 'NUMERIC', label: t('NUMERIC') },
@@ -224,7 +411,10 @@ DATASOURCE_TYPES_ARR.forEach(o => {
   DATASOURCE_TYPES[o.key] = o;
 });
 
-function CollectionTabTitle({ title, collection }) {
+function CollectionTabTitle({
+  title,
+  collection,
+}: CollectionTabTitleProps): ReactNode {
   return (
     <div
       css={{ display: 'flex', alignItems: 'center' }}
@@ -236,23 +426,22 @@ function CollectionTabTitle({ title, collection }) {
   );
 }
 
-CollectionTabTitle.propTypes = {
-  title: PropTypes.string,
-  collection: PropTypes.array,
-};
-
 function ColumnCollectionTable({
   columns,
   datasource,
   onColumnsChange,
   onDatasourceChange,
-  editableColumnName,
-  showExpression,
-  allowAddItem,
-  allowEditDataType,
-  itemGenerator,
+  editableColumnName = false,
+  showExpression = false,
+  allowAddItem = false,
+  allowEditDataType = false,
+  itemGenerator = () => ({
+    column_name: t('<new column>'),
+    filterable: true,
+    groupby: true,
+  }),
   columnLabelTooltips,
-}) {
+}: ColumnCollectionTableProps): ReactNode {
   return (
     <CollectionTable
       tableColumns={
@@ -495,30 +684,8 @@ function ColumnCollectionTable({
     />
   );
 }
-ColumnCollectionTable.propTypes = {
-  columns: PropTypes.array.isRequired,
-  datasource: PropTypes.object.isRequired,
-  onColumnsChange: PropTypes.func.isRequired,
-  onDatasourceChange: PropTypes.func.isRequired,
-  editableColumnName: PropTypes.bool,
-  showExpression: PropTypes.bool,
-  allowAddItem: PropTypes.bool,
-  allowEditDataType: PropTypes.bool,
-  itemGenerator: PropTypes.func,
-};
-ColumnCollectionTable.defaultProps = {
-  editableColumnName: false,
-  showExpression: false,
-  allowAddItem: false,
-  allowEditDataType: false,
-  itemGenerator: () => ({
-    column_name: t('<new column>'),
-    filterable: true,
-    groupby: true,
-  }),
-};
 
-function StackedField({ label, formElement }) {
+function StackedField({ label, formElement }: StackedFieldProps): ReactNode {
   return (
     <div>
       <div>
@@ -529,12 +696,7 @@ function StackedField({ label, formElement }) {
   );
 }
 
-StackedField.propTypes = {
-  label: PropTypes.string,
-  formElement: PropTypes.node,
-};
-
-function FormContainer({ children }) {
+function FormContainer({ children }: FormContainerProps): ReactNode {
   return (
     <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
       {children}
@@ -542,38 +704,31 @@ function FormContainer({ children }) {
   );
 }
 
-FormContainer.propTypes = {
-  children: PropTypes.node,
-};
-
-const propTypes = {
-  datasource: PropTypes.object.isRequired,
-  onChange: PropTypes.func,
-  addSuccessToast: PropTypes.func.isRequired,
-  addDangerToast: PropTypes.func.isRequired,
-  setIsEditing: PropTypes.func,
-};
-
-const defaultProps = {
-  onChange: () => {},
-  setIsEditing: () => {},
-};
-
-function OwnersSelector({ datasource, onChange }) {
-  const loadOptions = useCallback((search = '', page, pageSize) => {
-    const query = rison.encode({ filter: search, page, page_size: pageSize });
-    return SupersetClient.get({
-      endpoint: `/api/v1/dataset/related/owners?q=${query}`,
-    }).then(response => ({
-      data: response.json.result
-        .filter(item => item.extra.active)
-        .map(item => ({
-          value: item.value,
-          label: item.text,
-        })),
-      totalCount: response.json.count,
-    }));
-  }, []);
+function OwnersSelector({
+  datasource,
+  onChange,
+}: OwnersSelectorProps): ReactNode {
+  const loadOptions = useCallback(
+    (
+      search = '',
+      page: number,
+      pageSize: number,
+    ): Promise<{ data: Owner[]; totalCount: number }> => {
+      const query = rison.encode({ filter: search, page, page_size: pageSize });
+      return SupersetClient.get({
+        endpoint: `/api/v1/dataset/related/owners?q=${query}`,
+      }).then(response => ({
+        data: (response.json.result as Array<JsonObject>)
+          .filter(item => item.extra.active)
+          .map(item => ({
+            value: item.value as number,
+            label: item.text as string,
+          })),
+        totalCount: response.json.count,
+      }));
+    },
+    [],
+  );
 
   return (
     <AsyncSelect
@@ -591,8 +746,64 @@ function OwnersSelector({ datasource, onChange }) {
 const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
 
-class DatasourceEditor extends PureComponent {
-  constructor(props) {
+// Redux connector types
+interface QueryPayload {
+  client_id?: string;
+  database_id: number;
+  runAsync: boolean;
+  catalog?: string;
+  schema?: string;
+  sql: string;
+  tmp_table_name: string;
+  select_as_cta: boolean;
+  ctas_method: string;
+  queryLimit: number;
+  expand_data: boolean;
+}
+
+interface FormatQueryResponse {
+  json: {
+    result: string;
+  };
+}
+
+const mapDispatchToProps = (dispatch: Dispatch) => ({
+  runQuery: (payload: QueryPayload) => dispatch(executeQuery(payload)),
+  resetQuery: () => dispatch(resetDatabaseState()),
+  formatQuery: (
+    sql: string,
+    options: { signal: AbortSignal },
+  ): Promise<FormatQueryResponse> => dispatch(formatQuery(sql, options)),
+});
+
+const mapStateToProps = (state: RootState) => ({
+  database: state?.database,
+});
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
+type PropsFromRedux = ConnectedProps<typeof connector>;
+
+type DatasourceEditorProps = DatasourceEditorOwnProps &
+  PropsFromRedux & {
+    theme?: SupersetTheme;
+  };
+
+class DatasourceEditor extends PureComponent<
+  DatasourceEditorProps,
+  DatasourceEditorState
+> {
+  private isComponentMounted: boolean;
+
+  private abortControllers: AbortControllers;
+
+  private currencies: CurrencyOption[];
+
+  static defaultProps = {
+    onChange: () => {},
+    setIsEditing: () => {},
+  };
+
+  constructor(props: DatasourceEditorProps) {
     super(props);
     this.state = {
       datasource: {
@@ -2056,7 +2267,7 @@ class DatasourceEditor extends PureComponent {
     );
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: DatasourceEditorProps): void {
     // Preserve calculated columns order when props change to prevent jumping
     if (this.props.datasource !== prevProps.datasource) {
       const newCalculatedColumns = this.props.datasource.columns.filter(
@@ -2066,8 +2277,8 @@ class DatasourceEditor extends PureComponent {
 
       if (newCalculatedColumns.length === currentCalculatedColumns.length) {
         // Try to preserve the order by matching with existing calculated columns
-        const orderedCalculatedColumns = [];
-        const usedIds = new Set();
+        const orderedCalculatedColumns: Column[] = [];
+        const usedIds = new Set<string | number>();
 
         // First, add existing columns in their current order
         currentCalculatedColumns.forEach(currentCol => {
@@ -2126,19 +2337,6 @@ class DatasourceEditor extends PureComponent {
   }
 }
 
-DatasourceEditor.defaultProps = defaultProps;
-DatasourceEditor.propTypes = propTypes;
-
 const DataSourceComponent = withTheme(DatasourceEditor);
 
-const mapDispatchToProps = dispatch => ({
-  runQuery: payload => dispatch(executeQuery(payload)),
-  resetQuery: () => dispatch(resetDatabaseState()),
-  formatQuery: (sql, options) => dispatch(formatQuery(sql, options)),
-});
-const mapStateToProps = state => ({
-  database: state?.database,
-});
-export default withToasts(
-  connect(mapStateToProps, mapDispatchToProps)(DataSourceComponent),
-);
+export default withToasts(connector(DataSourceComponent));

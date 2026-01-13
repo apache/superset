@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ChangeEvent,
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { QueryFormData } from '@superset-ui/core';
 import { css, t } from '@apache-superset/core/ui';
 import { Input, Space, Typography } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
@@ -24,13 +32,21 @@ import { URL_PARAMS } from 'src/constants';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 
-const EmbedCodeContent = ({ formData, addDangerToast }) => {
+export interface EmbedCodeContentProps {
+  formData?: QueryFormData;
+  addDangerToast?: (msg: string) => void;
+}
+
+const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
+  formData,
+  addDangerToast,
+}) => {
   const [height, setHeight] = useState('400');
   const [width, setWidth] = useState('600');
   const [url, setUrl] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleInputChange = useCallback(e => {
+  const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const { value, name } = e.currentTarget;
     if (name === 'width') {
       setWidth(value);
@@ -51,7 +67,7 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
       })
       .catch(() => {
         setErrorMessage(t('Error'));
-        addDangerToast(t('Sorry, something went wrong. Try again later.'));
+        addDangerToast?.(t('Sorry, something went wrong. Try again later.'));
       });
   }, [addDangerToast, formData]);
 
@@ -98,7 +114,7 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
           name="embedCode"
           disabled={!html}
           value={text}
-          rows="4"
+          rows={4}
           readOnly
           css={theme => css`
             resize: vertical;

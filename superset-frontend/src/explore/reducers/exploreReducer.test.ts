@@ -17,12 +17,14 @@
  * under the License.
  */
 
-import exploreReducer from './exploreReducer';
+import exploreReducer, { ExploreState } from './exploreReducer';
 import { setStashFormData } from '../actions/exploreActions';
+import { QueryFormData } from '@superset-ui/core';
 
 test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
-  const initialState = {
-    form_data: { a: 3, c: 4 },
+  const initialState: ExploreState = {
+    form_data: { a: 3, c: 4 } as unknown as QueryFormData,
+    controls: {},
   };
   const action = setStashFormData(true, ['a', 'c']);
   const newState = exploreReducer(initialState, action);
@@ -35,9 +37,10 @@ test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
 });
 
 test('skips updates when the field is already updated on SET_STASH_FORM_DATA', () => {
-  const initialState = {
-    form_data: { a: 3, c: 4 },
-    hiddenFormData: { b: 2 },
+  const initialState: ExploreState = {
+    form_data: { a: 3, c: 4 } as unknown as QueryFormData,
+    hiddenFormData: { b: 2 } as unknown as Partial<QueryFormData>,
+    controls: {},
   };
   const restoreAction = setStashFormData(false, ['c', 'd']);
   const newState = exploreReducer(initialState, restoreAction);
