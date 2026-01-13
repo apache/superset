@@ -357,7 +357,7 @@ function BigNumberVis({
             const pointerEvent = eventParams.event.event;
             const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
             drillToDetailFilters.push({
-              col: formData?.granularitySqla,
+              col: formData?.granularitySqla || formData?.xAxis,
               grain: formData?.timeGrainSqla,
               op: '==',
               val: data[0],
