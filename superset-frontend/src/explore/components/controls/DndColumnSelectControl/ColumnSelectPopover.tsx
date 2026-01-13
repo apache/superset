@@ -27,10 +27,10 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core';
 import {
   AdhocColumn,
   isAdhocColumn,
-  t,
   DatasourceType,
   Metric,
   QueryFormMetric,

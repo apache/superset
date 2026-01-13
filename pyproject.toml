@@ -42,7 +42,7 @@ dependencies = [
     "click>=8.0.3",
     "click-option-group",
     "colorama",
-    "flask-cors>=4.0.2, <7.0",
+    "flask-cors>=6.0.0, <7.0",
     "croniter>=0.3.28",
     "cron-descriptor",
     "cryptography>=42.0.4, <45.0.0",
@@ -266,6 +266,26 @@ module = "cryptography.*"
 ignore_errors = true
 follow_imports = "skip"
 
+# superset-core is installed as editable locally but CI may not expose types
+# This ensures consistent behavior between local dev and CI
+[[tool.mypy.overrides]]
+module = "superset_core.*"
+follow_imports = "skip"
+
+# Disable warn_unused_ignores for modules with dynamic type assignments
+# These type: ignore comments are needed in CI where superset-core types aren't visible
+[[tool.mypy.overrides]]
+module = [
+    "superset.core.api.core_api_injection",
+    "superset.security.manager",
+    "superset.daos.base",
+    "superset.connectors.sqla.models",
+    "superset.tags.filters",
+    "superset.commands.security.update",
+    "superset.commands.security.create",
+]
+warn_unused_ignores = false
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -334,6 +354,7 @@ select = [
 
 ignore = [
     "S101",
+    "PT004",  # Fixtures that don't return values - underscore prefix conflicts with pytest usage
     "PT006",
     "T201",
     "N999",

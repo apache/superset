@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { logging } from '@superset-ui/core';
-import type { commands as commandsType } from '@apache-superset/core';
+import { logging } from '@apache-superset/core';
+import { commands as commandsApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 
 const commandRegistry: Map<string, (...args: any[]) => any> = new Map();
 
-const registerCommand: typeof commandsType.registerCommand = (
+const registerCommand: typeof commandsApi.registerCommand = (
   command,
   callback,
   thisArg,
@@ -39,7 +39,7 @@ const registerCommand: typeof commandsType.registerCommand = (
   });
 };
 
-const executeCommand: typeof commandsType.executeCommand = async <T>(
+const executeCommand: typeof commandsApi.executeCommand = async <T>(
   command: string,
   ...args: any[]
 ): Promise<T> => {
@@ -50,14 +50,14 @@ const executeCommand: typeof commandsType.executeCommand = async <T>(
   return callback(...args) as T;
 };
 
-const getCommands: typeof commandsType.getCommands = filterInternal => {
+const getCommands: typeof commandsApi.getCommands = filterInternal => {
   const commands = Array.from(commandRegistry.keys());
   return Promise.resolve(
     filterInternal ? commands.filter(cmd => !cmd.startsWith('_')) : commands,
   );
 };
 
-export const commands: typeof commandsType = {
+export const commands: typeof commandsApi = {
   registerCommand,
   executeCommand,
   getCommands,

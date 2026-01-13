@@ -1,6 +1,6 @@
 {
   "name": "@apache-superset/core",
-  "version": "0.0.1-rc6",
+  "version": "0.0.1-rc9",
   "description": "This package contains UI elements, APIs, and utility functions used by Superset.",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -43,11 +43,13 @@
     "react-loadable": "^5.5.0",
     "tinycolor2": "*",
     "lodash": "^4.17.21",
-    "antd": "^5.26.0"
+    "antd": "^5.26.0",
+    "jed": "^1.1.1"
   },
   "scripts": {
-    "build": "babel src --out-dir lib --extensions \".ts,.tsx\" && tsc --emitDeclarationOnly",
-    "type": "tsc --noEmit"
+    "clean": "rm -rf lib tsconfig.tsbuildinfo",
+    "build": "npm run clean && npx tsc --build",
+    "type": "npx tsc --noEmit"
   },
   "publishConfig": {
     "access": "public"

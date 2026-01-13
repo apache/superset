@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { t, SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
   Select,

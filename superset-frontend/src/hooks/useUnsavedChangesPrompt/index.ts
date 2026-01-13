@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getClientErrorObject, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getClientErrorObject } from '@superset-ui/core';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';

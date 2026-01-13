@@ -18,7 +18,8 @@
  */
 import { useEffect, useState } from 'react';
 import type { FormInstance } from '@superset-ui/core/components';
-import { Filter, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Filter } from '@superset-ui/core';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { setNativeFilterFieldValues, useForceUpdate } from './utils';
 

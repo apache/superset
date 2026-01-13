@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AnnotationType, Behavior, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { AnnotationType, Behavior } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
