@@ -171,8 +171,9 @@ export default function transformProps(
     datasource,
     isRefreshing,
   } = chartProps;
-  const { data = [] } = queriesData[0];
-  const coltypeMapping = getColtypesMapping(queriesData[0]);
+  const [queryData] = queriesData;
+  const { data = [] } = queryData;
+  const coltypeMapping = getColtypesMapping(queryData);
   const {
     groupby = [],
     columns = [],

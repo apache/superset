@@ -111,7 +111,6 @@ export function useAutoRefreshTabPause({
     isPausedByTab,
     isManuallyPaused,
     setPausedByTab,
-    setStatus,
     onRefresh,
     onRestartTimer,
   ]);

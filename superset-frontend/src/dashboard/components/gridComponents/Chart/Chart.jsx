@@ -145,6 +145,20 @@ const createOwnStateWithChartState = (baseOwnState, chartState, vizType) => {
 
 const Chart = props => {
   const dispatch = useDispatch();
+  const {
+    id: chartId,
+    componentId,
+    dashboardId,
+    extraControls,
+    handleToggleFullSize,
+    height: containerHeight,
+    width: containerWidth,
+    isFullSize,
+    isInView,
+    setControlValue,
+    sliceName,
+    updateSliceName,
+  } = props;
   const descriptionRef = useRef(null);
   const headerRef = useRef(null);
 
@@ -165,17 +179,27 @@ const Chart = props => {
       ),
     [dispatch],
   );
+  const {
+    addSuccessToast: addSuccessToastAction,
+    addDangerToast: addDangerToastAction,
+    toggleExpandSlice: toggleExpandSliceAction,
+    changeFilter: changeFilterAction,
+    setFocusedFilterField: setFocusedFilterFieldAction,
+    unsetFocusedFilterField: unsetFocusedFilterFieldAction,
+    refreshChart: refreshChartAction,
+    logEvent: logEventAction,
+  } = boundActionCreators;
 
-  const chart = useSelector(state => state.charts[props.id] || EMPTY_OBJECT);
+  const chart = useSelector(state => state.charts[chartId] || EMPTY_OBJECT);
   const { queriesResponse, chartUpdateEndTime, chartStatus, annotationQuery } =
     chart;
 
   const slice = useSelector(
-    state => state.sliceEntities.slices[props.id] || EMPTY_OBJECT,
+    state => state.sliceEntities.slices[chartId] || EMPTY_OBJECT,
   );
   const editMode = useSelector(state => state.dashboardState.editMode);
   const isExpanded = useSelector(
-    state => !!state.dashboardState.expandedSlices[props.id],
+    state => !!state.dashboardState.expandedSlices[chartId],
   );
   const supersetCanExplore = useSelector(
     state => !!state.dashboardInfo.superset_can_explore,
@@ -217,13 +241,13 @@ const Chart = props => {
   );
 
   const [descriptionHeight, setDescriptionHeight] = useState(0);
-  const [height, setHeight] = useState(props.height);
-  const [width, setWidth] = useState(props.width);
+  const [height, setHeight] = useState(containerHeight);
+  const [width, setWidth] = useState(containerWidth);
 
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
   const {
     progress,
-    isExporting,
+    isExporting: _isExporting,
     startExport,
     cancelExport,
     resetExport,
@@ -233,46 +257,46 @@ const Chart = props => {
       // Don't show toast here - wait for user to click Download button
     },
     onError: () => {
-      boundActionCreators.addDangerToast(t('Export failed - please try again'));
+      addDangerToastAction(t('Export failed - please try again'));
     },
   });
 
   const handleDownloadComplete = useCallback(() => {
-    boundActionCreators.addSuccessToast(t('CSV file downloaded successfully'));
-  }, [boundActionCreators]);
+    addSuccessToastAction(t('CSV file downloaded successfully'));
+  }, [addSuccessToastAction]);
   const history = useHistory();
-  const resize = useCallback(
-    debounce(() => {
-      const { width, height } = props;
-      setHeight(height);
-      setWidth(width);
-    }, RESIZE_TIMEOUT),
-    [props.width, props.height],
+  const resize = useMemo(
+    () =>
+      debounce(() => {
+        setHeight(containerHeight);
+        setWidth(containerWidth);
+      }, RESIZE_TIMEOUT),
+    [containerHeight, containerWidth],
   );
 
   const ownColorScheme = chart.form_data?.color_scheme;
 
   const addFilter = useCallback(
     (newSelectedValues = {}) => {
-      boundActionCreators.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
+      logEventAction(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
         id: chart.id,
         columns: Object.keys(newSelectedValues).filter(
           key => newSelectedValues[key] !== null,
         ),
       });
-      boundActionCreators.changeFilter(chart.id, newSelectedValues);
+      changeFilterAction(chart.id, newSelectedValues);
     },
-    [boundActionCreators.logEvent, boundActionCreators.changeFilter, chart.id],
+    [logEventAction, changeFilterAction, chart.id],
   );
 
   // Chart state handler for stateful charts
   const handleChartStateChange = useCallback(
     chartState => {
       if (hasChartStateConverter(slice?.viz_type)) {
-        dispatch(updateChartState(props.id, slice.viz_type, chartState));
+        dispatch(updateChartState(chartId, slice.viz_type, chartState));
       }
     },
-    [dispatch, props.id, slice?.viz_type],
+    [dispatch, chartId, slice?.viz_type],
   );
 
   useEffect(() => {
@@ -296,7 +320,7 @@ const Chart = props => {
 
   useEffect(() => {
     resize();
-  }, [resize, props.isFullSize]);
+  }, [resize, isFullSize]);
 
   const getHeaderHeight = useCallback(() => {
     if (headerRef.current) {
@@ -320,24 +344,24 @@ const Chart = props => {
 
   const handleFilterMenuOpen = useCallback(
     (chartId, column) => {
-      boundActionCreators.setFocusedFilterField(chartId, column);
+      setFocusedFilterFieldAction(chartId, column);
     },
-    [boundActionCreators.setFocusedFilterField],
+    [setFocusedFilterFieldAction],
   );
 
   const handleFilterMenuClose = useCallback(
     (chartId, column) => {
-      boundActionCreators.unsetFocusedFilterField(chartId, column);
+      unsetFocusedFilterFieldAction(chartId, column);
     },
-    [boundActionCreators.unsetFocusedFilterField],
+    [unsetFocusedFilterFieldAction],
   );
 
   const logExploreChart = useCallback(() => {
-    boundActionCreators.logEvent(LOG_ACTIONS_EXPLORE_DASHBOARD_CHART, {
+    logEventAction(LOG_ACTIONS_EXPLORE_DASHBOARD_CHART, {
       slice_id: slice.slice_id,
       is_cached: isCached,
     });
-  }, [boundActionCreators.logEvent, slice.slice_id, isCached]);
+  }, [logEventAction, slice.slice_id, isCached]);
 
   const chartConfiguration = useSelector(
     state => state.dashboardInfo.metadata?.chart_configuration,
@@ -356,8 +380,10 @@ const Chart = props => {
   const allSliceIds = useSelector(state => state.dashboardState.sliceIds);
   const nativeFilters = useSelector(state => state.nativeFilters?.filters);
   const dataMask = useSelector(state => state.dataMask);
+  const ownStateFromMask = dataMask[chartId]?.ownState;
+  const filterState = dataMask[chartId]?.filterState;
   const chartState = useSelector(
-    state => state.dashboardState.chartStates?.[props.id],
+    state => state.dashboardState.chartStates?.[chartId],
   );
   const labelsColor = useSelector(
     state => state.dashboardInfo?.metadata?.label_colors || EMPTY_OBJECT,
@@ -377,14 +403,14 @@ const Chart = props => {
         chart: { id: chart.id, form_data: chart.form_data }, // avoid passing the whole chart object
         chartConfiguration,
         chartCustomizationItems,
-        filters: getAppliedFilterValues(props.id),
+        filters: getAppliedFilterValues(chartId),
         colorScheme,
         colorNamespace,
-        sliceId: props.id,
+        sliceId: chartId,
         nativeFilters,
         allSliceIds,
         dataMask,
-        extraControls: props.extraControls,
+        extraControls,
         labelsColor,
         labelsColorMap,
         sharedLabelsColors,
@@ -395,8 +421,8 @@ const Chart = props => {
       chart.form_data,
       chartConfiguration,
       chartCustomizationItems,
-      props.id,
-      props.extraControls,
+      chartId,
+      extraControls,
       colorScheme,
       colorNamespace,
       nativeFilters,
@@ -410,20 +436,6 @@ const Chart = props => {
   );
 
   formData.dashboardId = dashboardInfo.id;
-
-  const ownState = useMemo(() => {
-    const baseOwnState = dataMask[props.id]?.ownState || EMPTY_OBJECT;
-    return createOwnStateWithChartState(
-      baseOwnState,
-      chartState,
-      slice.viz_type,
-    );
-  }, [
-    dataMask[props.id]?.ownState,
-    props.id,
-    slice.viz_type,
-    chartState?.state,
-  ]);
 
   const onExploreChart = useCallback(
     async clickEvent => {
@@ -452,9 +464,7 @@ const Chart = props => {
         }
       } catch (error) {
         logging.error(error);
-        boundActionCreators.addDangerToast(
-          t('An error occurred while opening Explore'),
-        );
+        addDangerToastAction(t('An error occurred while opening Explore'));
       }
     },
     [
@@ -462,7 +472,7 @@ const Chart = props => {
       datasource.type,
       formData,
       slice.slice_id,
-      boundActionCreators.addDangerToast,
+      addDangerToastAction,
       history,
     ],
   );
@@ -473,7 +483,7 @@ const Chart = props => {
         format === 'csv'
           ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
           : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
-      boundActionCreators.logEvent(logAction, {
+      logEventAction(logAction, {
         slice_id: slice.slice_id,
         is_cached: isCached,
       });
@@ -511,7 +521,7 @@ const Chart = props => {
         const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
         filename = `${safeChartName}${timestamp}.csv`;
       }
-      const baseOwnState = dataMask[props.id]?.ownState || {};
+      const baseOwnState = ownStateFromMask || {};
       const state = getChartStateWithFallback(
         chartState,
         formData,
@@ -545,17 +555,16 @@ const Chart = props => {
     },
     [
       slice.slice_id,
+      slice.slice_name,
       slice.viz_type,
       isCached,
       formData,
       maxRows,
-      dataMask[props.id]?.ownState,
+      ownStateFromMask,
       chartState,
-      props.id,
-      boundActionCreators.logEvent,
+      logEventAction,
       queriesResponse,
       startExport,
-      resetExport,
       streamingThreshold,
     ],
   );
@@ -581,18 +590,18 @@ const Chart = props => {
   }, [exportTable]);
 
   const forceRefresh = useCallback(() => {
-    boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
+    logEventAction(LOG_ACTIONS_FORCE_REFRESH_CHART, {
       slice_id: slice.slice_id,
       is_cached: isCached,
     });
-    return boundActionCreators.refreshChart(chart.id, true, props.dashboardId);
+    return refreshChartAction(chart.id, true, dashboardId);
   }, [
-    boundActionCreators.refreshChart,
+    refreshChartAction,
     chart.id,
-    props.dashboardId,
+    dashboardId,
     slice.slice_id,
     isCached,
-    boundActionCreators.logEvent,
+    logEventAction,
   ]);
 
   if (chart === EMPTY_OBJECT || slice === EMPTY_OBJECT) {
@@ -608,7 +617,7 @@ const Chart = props => {
     <SliceContainer
       className="chart-slice"
       data-test="chart-grid-component"
-      data-test-chart-id={props.id}
+      data-test-chart-id={chartId}
       data-test-viz-type={slice.viz_type}
       data-test-chart-name={slice.slice_name}
     >
@@ -619,30 +628,30 @@ const Chart = props => {
         isCached={isCached}
         cachedDttm={cachedDttm}
         updatedDttm={chartUpdateEndTime}
-        toggleExpandSlice={boundActionCreators.toggleExpandSlice}
+        toggleExpandSlice={toggleExpandSliceAction}
         forceRefresh={forceRefresh}
         editMode={editMode}
         annotationQuery={annotationQuery}
         logExploreChart={logExploreChart}
-        logEvent={boundActionCreators.logEvent}
+        logEvent={logEventAction}
         onExploreChart={onExploreChart}
         exportCSV={exportCSV}
         exportPivotCSV={exportPivotCSV}
         exportXLSX={exportXLSX}
         exportFullCSV={exportFullCSV}
         exportFullXLSX={exportFullXLSX}
-        updateSliceName={props.updateSliceName}
-        sliceName={props.sliceName}
+        updateSliceName={updateSliceName}
+        sliceName={sliceName}
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
         supersetCanCSV={supersetCanCSV}
-        componentId={props.componentId}
-        dashboardId={props.dashboardId}
+        componentId={componentId}
+        dashboardId={dashboardId}
         filters={getActiveFilters() || EMPTY_OBJECT}
-        addSuccessToast={boundActionCreators.addSuccessToast}
-        addDangerToast={boundActionCreators.addDangerToast}
-        handleToggleFullSize={props.handleToggleFullSize}
-        isFullSize={props.isFullSize}
+        addSuccessToast={addSuccessToastAction}
+        addDangerToast={addDangerToastAction}
+        handleToggleFullSize={handleToggleFullSize}
+        isFullSize={isFullSize}
         chartStatus={chartStatus}
         formData={formData}
         width={width}
@@ -688,16 +697,16 @@ const Chart = props => {
           onFilterMenuClose={handleFilterMenuClose}
           annotationData={chart.annotationData}
           chartAlert={chart.chartAlert}
-          chartId={props.id}
+          chartId={chartId}
           chartStatus={chartStatus}
           datasource={datasource}
-          dashboardId={props.dashboardId}
+          dashboardId={dashboardId}
           initialValues={EMPTY_OBJECT}
           formData={formData}
           labelsColor={labelsColor}
           labelsColorMap={labelsColorMap}
           ownState={createOwnStateWithChartState(
-            dataMask[props.id]?.ownState || EMPTY_OBJECT,
+            ownStateFromMask || EMPTY_OBJECT,
             {
               state: getChartStateWithFallback(
                 chartState,
@@ -707,14 +716,14 @@ const Chart = props => {
             },
             slice.viz_type,
           )}
-          filterState={dataMask[props.id]?.filterState}
+          filterState={filterState}
           queriesResponse={chart.queriesResponse}
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
           vizType={slice.viz_type}
-          setControlValue={props.setControlValue}
+          setControlValue={setControlValue}
           datasetsStatus={datasetsStatus}
-          isInView={props.isInView}
+          isInView={isInView}
           emitCrossFilters={emitCrossFilters}
           onChartStateChange={handleChartStateChange}
           suppressLoadingSpinner={suppressLoadingSpinner}

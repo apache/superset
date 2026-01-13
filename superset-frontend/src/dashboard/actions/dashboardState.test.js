@@ -247,12 +247,18 @@ describe('dashboardState actions', () => {
 
   test('fetchCharts returns a Promise that resolves after all refreshes', async () => {
     refreshChart.mockClear();
-    const { getState, dispatch } = setup({
+    const { getState } = setup({
       dashboardInfo: {
         metadata: {},
         common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
       },
     });
+    const dispatch = action => {
+      if (typeof action === 'function') {
+        return action(dispatch, getState);
+      }
+      return action;
+    };
     const chartIds = [1, 2];
     const promise = fetchCharts(chartIds, false, 0, 10)(dispatch, getState);
     await promise;
@@ -263,12 +269,18 @@ describe('dashboardState actions', () => {
   test('fetchCharts resolves for staggered refreshes', async () => {
     jest.useFakeTimers();
     refreshChart.mockClear();
-    const { getState, dispatch } = setup({
+    const { getState } = setup({
       dashboardInfo: {
         metadata: { stagger_time: 1000, stagger_refresh: true },
         common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
       },
     });
+    const dispatch = action => {
+      if (typeof action === 'function') {
+        return action(dispatch, getState);
+      }
+      return action;
+    };
     const chartIds = [1, 2, 3];
     const promise = fetchCharts(chartIds, false, 1000, 10)(dispatch, getState);
 
@@ -298,7 +310,11 @@ describe('dashboardState actions', () => {
     await onRefresh([1], true, 0, 10)(dispatch);
 
     expect(dispatched.map(action => action.type)).toEqual(
-      expect.arrayContaining([ON_REFRESH, ON_REFRESH_SUCCESS, ON_FILTERS_REFRESH]),
+      expect.arrayContaining([
+        ON_REFRESH,
+        ON_REFRESH_SUCCESS,
+        ON_FILTERS_REFRESH,
+      ]),
     );
   });
 

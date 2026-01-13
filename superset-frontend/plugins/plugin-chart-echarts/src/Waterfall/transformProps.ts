@@ -171,7 +171,8 @@ export default function transformProps(
     isRefreshing,
   } = chartProps;
   const refs: Refs = {};
-  const { data = [] } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data = [] } = queryData;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {

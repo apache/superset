@@ -208,7 +208,8 @@ export default function transformProps(
   const xAxisLabel = getColumnLabel(xAxis);
   // groupby is overridden to be a single value
   const yAxisLabel = getColumnLabel(groupby as unknown as QueryFormColumn);
-  const { data, colnames, coltypes } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data, colnames, coltypes } = queryData;
   const { columnFormats = {}, currencyFormats = {} } = datasource;
   const colorColumn = normalized ? 'rank' : metricLabel;
   const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
@@ -248,8 +249,7 @@ export default function transformProps(
 
   // Extract and sort unique axis values
   // Use colnames to get the actual column names in the data
-  const xAxisColumnName = colnames[0];
-  const yAxisColumnName = colnames[1];
+  const [xAxisColumnName, yAxisColumnName] = colnames;
 
   const xAxisValues = extractUniqueValues(data, xAxisColumnName);
   const yAxisValues = extractUniqueValues(data, yAxisColumnName);

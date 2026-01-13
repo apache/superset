@@ -100,7 +100,8 @@ export default function transformProps(
     isRefreshing,
   } = chartProps;
   const refs: Refs = {};
-  const { data = [] } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data = [] } = queryData;
   const globalMax = findGlobalMax(data, Object.keys(data[0] || {}));
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 

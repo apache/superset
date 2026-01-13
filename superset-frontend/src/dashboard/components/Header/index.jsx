@@ -247,6 +247,7 @@ const Header = () => {
     lastModifiedTime,
     dashboardInfo.last_modified_time,
   );
+  const themeId = dashboardInfo.theme ? dashboardInfo.theme.id : null;
   const boundActionCreators = useMemo(
     () =>
       bindActionCreators(
@@ -571,7 +572,7 @@ const Header = () => {
       tags: (dashboardInfo.tags || []).filter(
         item => item.type === TagTypeEnum.Custom || !item.type,
       ),
-      theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
+      theme_id: themeId,
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,
@@ -622,6 +623,7 @@ const Header = () => {
     refreshFrequency,
     shouldPersistRefreshFrequency,
     slug,
+    themeId,
   ]);
 
   const {
@@ -818,6 +820,7 @@ const Header = () => {
     () => [
       !editMode && (
         <PublishedStatus
+          key="published-status"
           dashboardId={dashboardInfo.id}
           isPublished={isPublished}
           savePublished={boundActionCreators.savePublished}
@@ -956,7 +959,6 @@ const Header = () => {
       NavExtension,
       boundActionCreators.onRedo,
       boundActionCreators.onUndo,
-      boundActionCreators.clearDashboardHistory,
       editMode,
       emphasizeRedo,
       emphasizeUndo,
@@ -966,7 +968,6 @@ const Header = () => {
       hasUnsavedChanges,
       overwriteDashboard,
       redoLength,
-      toggleEditMode,
       undoLength,
       userCanEdit,
       userCanSaveAs,

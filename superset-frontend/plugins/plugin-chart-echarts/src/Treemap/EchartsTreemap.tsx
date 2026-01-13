@@ -107,7 +107,7 @@ export default function EchartsTreemap({
         setDataMask(dataMask);
       }
     },
-    [emitCrossFilters, getCrossFilterDataMask, setDataMask],
+    [emitCrossFilters, getCrossFilterDataMask, setDataMask, groupby.length],
   );
 
   const eventHandlers: EventHandlers = {

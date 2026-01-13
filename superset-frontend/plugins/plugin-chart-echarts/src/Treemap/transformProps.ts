@@ -120,7 +120,8 @@ export default function transformProps(
     datasource,
     isRefreshing,
   } = chartProps;
-  const { data = [] } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data = [] } = queryData;
   const { columnFormats = {}, currencyFormats = {} } = datasource;
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);

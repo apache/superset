@@ -101,13 +101,14 @@ export default function transformProps(chartProps: ChartProps) {
     subtitleFontSize,
     columnConfig = {},
   } = formData;
-  const { data: dataA = [] } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data: dataA = [] } = queryData;
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
   const metrics = chartProps.datasource?.metrics || [];
   const originalLabel = getOriginalLabel(metric, metrics);
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
-  const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
+  const [timeComparison] = ensureIsArray(chartProps.rawFormData?.time_compare);
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
     (adhoc_filter: SimpleAdhocFilter) =>

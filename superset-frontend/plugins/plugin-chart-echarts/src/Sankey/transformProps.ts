@@ -39,18 +39,12 @@ export default function transformProps(
   chartProps: SankeyChartProps,
 ): SankeyTransformedProps {
   const refs: Refs = {};
-  const {
-    formData,
-    height,
-    hooks,
-    queriesData,
-    width,
-    theme,
-    isRefreshing,
-  } = chartProps;
+  const { formData, height, hooks, queriesData, width, theme, isRefreshing } =
+    chartProps;
   const { onLegendStateChanged } = hooks;
   const { colorScheme, metric, source, target, sliceId } = formData;
-  const { data } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data } = queryData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
   const metricLabel = getMetricLabel(metric);
   const valueFormatter = getNumberFormatter(NumberFormats.FLOAT_2_POINT);

@@ -326,6 +326,7 @@ const ChartHolder = ({
       focusHighlightStyles,
       isFullSize,
       fullSizeStyle,
+      theme.colorPrimary,
       chartId,
       outlinedComponentId,
       outlinedColumnName,

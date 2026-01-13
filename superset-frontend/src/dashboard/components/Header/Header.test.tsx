@@ -254,6 +254,7 @@ beforeEach(() => {
   useAutoRefreshTabPauseMock.mockImplementation(() => {});
   setPeriodicRunnerMock.mockImplementation(() => 0);
   fetchCharts.mockImplementation(() => undefined);
+  onRefresh.mockResolvedValue(undefined);
 
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
@@ -587,14 +588,22 @@ test('should render the dropdown icon', () => {
 });
 
 test('should refresh the charts', async () => {
-  setup();
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      sliceIds: [1],
+    },
+    charts: {
+      1: { latestQueryFormData: { metric: 'value' } },
+    },
+  });
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(onRefresh).toHaveBeenCalledTimes(1);
 });
 
 test('auto-refresh uses fetchCharts and toggles refresh state', async () => {
-  let periodicRender: (() => Promise<unknown> | void) | null = null;
+  let periodicRender: (() => Promise<void> | void) | null = null;
   setPeriodicRunnerMock.mockImplementation(({ periodicRender: renderFn }) => {
     periodicRender = renderFn;
     return 0;
@@ -620,8 +629,11 @@ test('auto-refresh uses fetchCharts and toggles refresh state', async () => {
       },
     });
 
-    expect(periodicRender).not.toBeNull();
-    await periodicRender?.();
+    const periodicRenderFn = periodicRender;
+    if (!periodicRenderFn) {
+      throw new Error('Expected periodicRender to be defined');
+    }
+    await (periodicRenderFn as () => Promise<void> | void)();
 
     expect(fetchCharts).toHaveBeenCalledWith([1, 2], true, 2000, 1);
     expect(onRefresh).not.toHaveBeenCalled();

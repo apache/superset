@@ -65,10 +65,7 @@ import {
   SET_AUTO_REFRESH_FETCH_START_TIME,
   SET_AUTO_REFRESH_PAUSE_ON_INACTIVE_TAB,
 } from '../actions/autoRefresh';
-import {
-  AutoRefreshStatus,
-  ERROR_THRESHOLD_COUNT,
-} from '../types/autoRefresh';
+import { AutoRefreshStatus, ERROR_THRESHOLD_COUNT } from '../types/autoRefresh';
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
