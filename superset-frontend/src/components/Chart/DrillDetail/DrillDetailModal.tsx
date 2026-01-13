@@ -23,28 +23,39 @@ import { t } from '@apache-superset/core';
 import {
   BinaryQueryObjectFilterClause,
   QueryFormData,
+  SupersetClient,
 } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
-import { Button, Modal } from '@superset-ui/core/components';
+import { Button, Modal, Dropdown } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Slice } from 'src/types/Chart';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import { ensureAppRoot } from 'src/utils/pathUtils';
+import { safeStringify } from 'src/utils/safeStringify';
 import { Dataset } from '../types';
 import DrillDetailPane from './DrillDetailPane';
+import { getDrillPayload } from './utils';
 
 interface ModalFooterProps {
   canExplore: boolean;
+  canDownload: boolean;
   closeModal?: () => void;
   exploreChart: () => void;
+  onDownloadCSV: () => void;
+  onDownloadXLSX: () => void;
 }
 
 const ModalFooter = ({
   canExplore,
+  canDownload,
   closeModal,
   exploreChart,
+  onDownloadCSV,
+  onDownloadXLSX,
 }: ModalFooterProps) => {
   const theme = useTheme();
 
@@ -64,6 +75,38 @@ const ModalFooter = ({
         >
           {t('Edit chart')}
         </Button>
+      )}
+      {canDownload && (
+        <Dropdown
+          trigger={['click']}
+          menu={{
+            items: [
+              {
+                key: 'csv',
+                label: t('Export to CSV'),
+                icon: <Icons.FileOutlined />,
+                onClick: onDownloadCSV,
+              },
+              {
+                key: 'xlsx',
+                label: t('Export to Excel'),
+                icon: <Icons.FileOutlined />,
+                onClick: onDownloadXLSX,
+              },
+            ],
+          }}
+        >
+          <Button
+            buttonStyle="secondary"
+            buttonSize="small"
+            css={css`
+              margin-left: ${theme.sizeUnit * 2}px;
+            `}
+            data-test="drill-detail-download-btn"
+          >
+            {t('Download')} <Icons.DownOutlined />
+          </Button>
+        </Dropdown>
       )}
       <Button
         buttonStyle="primary"
@@ -107,6 +150,9 @@ export default function DrillDetailModal({
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
+  const canDownload = useSelector((state: RootState) =>
+    findPermission('can_csv', 'Superset', state.user?.roles),
+  );
 
   const exploreUrl = useMemo(
     () => `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${chartId}`,
@@ -116,6 +162,55 @@ export default function DrillDetailModal({
   const exploreChart = useCallback(() => {
     history.push(exploreUrl);
   }, [exploreUrl, history]);
+
+  const handleDownload = useCallback(
+    (exportType: 'csv' | 'xlsx') => {
+      const drillPayload = getDrillPayload(formData, initialFilters);
+
+      if (!drillPayload) {
+        return;
+      }
+
+      const [datasourceId, datasourceType] = formData.datasource.split('__');
+
+      // Build a QueryContext for drill detail (raw samples, not aggregated)
+      // This matches what DrillDetailPane does when fetching data
+      const payload = {
+        datasource: {
+          id: parseInt(datasourceId, 10),
+          type: datasourceType,
+        },
+        queries: [
+          {
+            ...drillPayload,
+            columns: [],
+            metrics: [],
+            orderby: [],
+            row_limit: 10000,
+            row_offset: 0,
+          },
+        ],
+        result_type: 'drill_detail',
+        result_format: exportType,
+        force: false,
+      };
+
+      // Use postForm to trigger browser download directly (no progress modal)
+      // This matches the behavior of existing chart exports
+      SupersetClient.postForm(ensureAppRoot('/api/v1/chart/data'), {
+        form_data: safeStringify(payload),
+      });
+    },
+    [formData, initialFilters],
+  );
+
+  const handleDownloadCSV = useCallback(() => {
+    handleDownload('csv');
+  }, [handleDownload]);
+
+  const handleDownloadXLSX = useCallback(() => {
+    handleDownload('xlsx');
+  }, [handleDownload]);
 
   return (
     <Modal
@@ -130,7 +225,13 @@ export default function DrillDetailModal({
       name={t('Drill to detail: %s', chartName)}
       title={t('Drill to detail: %s', chartName)}
       footer={
-        <ModalFooter exploreChart={exploreChart} canExplore={canExplore} />
+        <ModalFooter
+          exploreChart={exploreChart}
+          canExplore={canExplore}
+          canDownload={canDownload}
+          onDownloadCSV={handleDownloadCSV}
+          onDownloadXLSX={handleDownloadXLSX}
+        />
       }
       responsive
       resizable
