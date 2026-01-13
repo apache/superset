@@ -233,49 +233,25 @@ export function saveChartCustomization(
       const sliceEntities = getState().sliceEntities || {};
       const slices = sliceEntities.slices || {};
 
-      const customizationsWithColumns = simpleItems.filter(
-        item => !item.removed && hasValidColumn(item.customization?.column),
-      );
+      const changedItems: ChartCustomizationItem[] = [];
 
-      const itemsWithRemovedColumns = chartCustomizationItems
-        .filter(newItem => {
-          const existingItem = existingItemsMap.get(newItem.id);
-          if (!existingItem) return false;
-          const existingColumn = existingItem.customization?.column || null;
-          const newColumn = newItem.customization?.column || null;
-          return hasValidColumn(existingColumn) && !hasValidColumn(newColumn);
-        })
-        .map(newItem => {
-          const existingItem = existingItemsMap.get(newItem.id);
-          return existingItem as ChartCustomizationItem;
-        })
-        .filter(Boolean);
+      changedItems.push(...removedItems);
+
+      chartCustomizationItems.forEach(newItem => {
+        const existingItem = existingItemsMap.get(newItem.id);
+        if (existingItem && !newItem.removed) {
+          if (!isEqual(existingItem.customization, newItem.customization)) {
+            changedItems.push(existingItem);
+          }
+        }
+      });
 
       const uniqueAffectedChartIds = new Set<number>();
-
-      const affectedFromRemaining = getAffectedChartIdsFromCustomizations(
-        customizationsWithColumns,
+      const affectedCharts = getAffectedChartIdsFromCustomizations(
+        changedItems,
         slices,
       );
-      affectedFromRemaining.forEach(chartId =>
-        uniqueAffectedChartIds.add(chartId),
-      );
-
-      const affectedFromRemoved = getAffectedChartIdsFromCustomizations(
-        removedItems,
-        slices,
-      );
-      affectedFromRemoved.forEach(chartId =>
-        uniqueAffectedChartIds.add(chartId),
-      );
-
-      const affectedFromColumnRemovals = getAffectedChartIdsFromCustomizations(
-        itemsWithRemovedColumns,
-        slices,
-      );
-      affectedFromColumnRemovals.forEach(chartId =>
-        uniqueAffectedChartIds.add(chartId),
-      );
+      affectedCharts.forEach(chartId => uniqueAffectedChartIds.add(chartId));
 
       if (uniqueAffectedChartIds.size > 0) {
         Array.from(uniqueAffectedChartIds).forEach(chartId => {
