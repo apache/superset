@@ -145,7 +145,7 @@ const structureFetchAction = (
         resourceId: dashboardInfo.id,
       }),
     );
-  } else {
+  } else if (!isEmpty(charts)) {
     const [chartArr] = Object.keys(charts);
     dispatch(
       fetchUISpecificReport({
@@ -192,10 +192,14 @@ export const editReport =
     SupersetClient.put({
       endpoint: `/api/v1/report/${id}`,
       jsonPayload: report,
-    }).then(({ json }) => {
-      dispatch({ type: EDIT_REPORT, json } as EditReportAction);
-      dispatch(addSuccessToast(t('Report updated')));
-    });
+    })
+      .then(({ json }) => {
+        dispatch({ type: EDIT_REPORT, json } as EditReportAction);
+        dispatch(addSuccessToast(t('Report updated')));
+      })
+      .catch(() => {
+        dispatch(addDangerToast(t('Failed to update report')));
+      });
 
 export function toggleActive(report: ReportObject, isActive: boolean) {
   return function toggleActiveThunk(
