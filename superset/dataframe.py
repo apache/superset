@@ -41,6 +41,9 @@ def df_to_records(dframe: pd.DataFrame) -> list[dict[str, Any]]:
     """
     Convert a DataFrame to a set of records.
 
+    NaN values are converted to None for JSON compatibility.
+    This handles division by zero and other operations that produce NaN.
+
     :param dframe: the DataFrame to convert
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
@@ -52,6 +55,11 @@ def df_to_records(dframe: pd.DataFrame) -> list[dict[str, Any]]:
 
     for record in records:
         for key in record:
-            record[key] = _convert_big_integers(record[key])
+            val = record[key]
+            # Convert NaN/NA values to None for JSON compatibility
+            if pd.isna(val):
+                record[key] = None
+            else:
+                record[key] = _convert_big_integers(val)
 
     return records
