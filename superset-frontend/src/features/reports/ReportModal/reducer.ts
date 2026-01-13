@@ -54,7 +54,7 @@ export default function reportsReducer(
       // functionality changes.
       const reportObject = report.result?.find(
         (r: ReportObject) =>
-          (r as Record<string, number>)[filterField] === resourceId,
+          (r as unknown as Record<string, number>)[filterField] === resourceId,
       );
 
       if (reportObject) {

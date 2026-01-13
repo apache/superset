@@ -144,7 +144,7 @@ interface SetStashFormDataAction {
 
 interface SliceUpdatedAction {
   type: typeof actions.SLICE_UPDATED;
-  slice: Slice & {
+  slice: Omit<Slice, 'owners'> & {
     owners?: Array<{ value: number; label: string }>;
     slice_name?: string;
   };
@@ -175,7 +175,11 @@ type ExploreAction =
   | SetForceQueryAction
   | HydrateExplore;
 
-interface ExtendedControlState extends ControlState {
+// Extended control state for dynamic form controls - uses Record for flexibility
+// since control configs vary significantly across different control types
+interface ExtendedControlState {
+  [key: string]: unknown;
+  value?: unknown;
   valueKey?: string;
   savedMetrics?: unknown[];
   columns?: unknown[];
