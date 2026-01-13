@@ -125,7 +125,7 @@ export default function transformProps(
     ...DEFAULT_RADAR_FORM_DATA,
     ...formData,
   };
-  const { setDataMask = () => { }, onContextMenu } = hooks || {};
+  const { setDataMask = () => { }, onContextMenu } = hooks ?? {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const denormalizedSeriesValues: SeriesNormalizedMap = {};
@@ -139,7 +139,7 @@ export default function transformProps(
 
   const metricLabels = metrics.map(getMetricLabel);
 
-  const metricsWithCustomBounds = new Set(
+  const metricsWithCustomBounds = new Set<string>(
     metricLabels.filter(metricLabel => {
       const config = columnConfig?.[metricLabel];
       const hasMax = !!isDefined(config?.radarMetricMaxValue);
