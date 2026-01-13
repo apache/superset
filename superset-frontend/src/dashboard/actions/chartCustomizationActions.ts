@@ -237,6 +237,20 @@ export function saveChartCustomization(
         item => !item.removed && hasValidColumn(item.customization?.column),
       );
 
+      const itemsWithRemovedColumns = chartCustomizationItems
+        .filter(newItem => {
+          const existingItem = existingItemsMap.get(newItem.id);
+          if (!existingItem) return false;
+          const existingColumn = existingItem.customization?.column || null;
+          const newColumn = newItem.customization?.column || null;
+          return hasValidColumn(existingColumn) && !hasValidColumn(newColumn);
+        })
+        .map(newItem => {
+          const existingItem = existingItemsMap.get(newItem.id);
+          return existingItem as ChartCustomizationItem;
+        })
+        .filter(Boolean);
+
       const uniqueAffectedChartIds = new Set<number>();
 
       const affectedFromRemaining = getAffectedChartIdsFromCustomizations(
@@ -252,6 +266,14 @@ export function saveChartCustomization(
         slices,
       );
       affectedFromRemoved.forEach(chartId =>
+        uniqueAffectedChartIds.add(chartId),
+      );
+
+      const affectedFromColumnRemovals = getAffectedChartIdsFromCustomizations(
+        itemsWithRemovedColumns,
+        slices,
+      );
+      affectedFromColumnRemovals.forEach(chartId =>
         uniqueAffectedChartIds.add(chartId),
       );
 
