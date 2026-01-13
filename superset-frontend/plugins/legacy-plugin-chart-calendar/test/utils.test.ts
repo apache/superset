@@ -23,9 +23,12 @@ describe('getFormattedUTCTime', () => {
   it('formats local timestamp for display as UTC date', () => {
     const utcTimestamp = 1420070400000; // 2015-01-01 00:00:00 UTC
     const localTimestamp = convertUTCTimestampToLocal(utcTimestamp);
-    const formattedTime = getFormattedUTCTime(localTimestamp, '%Y-%m-%d');
+    const formattedTime = getFormattedUTCTime(
+      localTimestamp,
+      '%Y-%m-%d %H:%M:%S',
+    );
 
-    expect(formattedTime).toEqual('2015-01-01');
+    expect(formattedTime).toEqual('2015-01-01 00:00:00');
   });
 });
 
