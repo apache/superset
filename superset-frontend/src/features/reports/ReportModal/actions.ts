@@ -26,6 +26,7 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
 import { Dispatch, AnyAction } from 'redux';
+import { ThunkDispatch } from 'redux-thunk';
 import { ReportObject, ReportCreationMethod } from 'src/features/reports/types';
 import { DashboardInfo, ChartsState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -130,7 +131,7 @@ export function fetchUISpecificReport({
 }
 
 const structureFetchAction = (
-  dispatch: Dispatch<AnyAction>,
+  dispatch: ThunkDispatch<ReportRootState, unknown, AnyAction>,
   getState: () => ReportRootState,
 ) => {
   const state = getState();
@@ -169,10 +170,14 @@ export const addReport =
     SupersetClient.post({
       endpoint: `/api/v1/report/`,
       jsonPayload: report,
-    }).then(({ json }) => {
-      dispatch({ type: ADD_REPORT, json } as AddReportAction);
-      dispatch(addSuccessToast(t('The report has been created')));
-    });
+    })
+      .then(({ json }) => {
+        dispatch({ type: ADD_REPORT, json } as AddReportAction);
+        dispatch(addSuccessToast(t('The report has been created')));
+      })
+      .catch(() => {
+        dispatch(addDangerToast(t('Failed to create report')));
+      });
 
 export const EDIT_REPORT = 'EDIT_REPORT' as const;
 
@@ -193,7 +198,9 @@ export const editReport =
     });
 
 export function toggleActive(report: ReportObject, isActive: boolean) {
-  return function toggleActiveThunk(dispatch: Dispatch<AnyAction>) {
+  return function toggleActiveThunk(
+    dispatch: ThunkDispatch<ReportRootState, unknown, AnyAction>,
+  ) {
     return SupersetClient.put({
       endpoint: encodeURI(`/api/v1/report/${report.id}`),
       headers: { 'Content-Type': 'application/json' },

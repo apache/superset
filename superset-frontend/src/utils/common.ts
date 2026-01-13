@@ -173,5 +173,5 @@ export const detectOS = (): OSType => {
 export const isSafari = (): boolean => {
   const { userAgent } = navigator;
 
-  return userAgent && /^((?!chrome|android).)*safari/i.test(userAgent);
+  return Boolean(userAgent && /^((?!chrome|android).)*safari/i.test(userAgent));
 };
