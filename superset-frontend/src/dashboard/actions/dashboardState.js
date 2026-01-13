@@ -550,10 +550,11 @@ export function fetchCharts(
 ) {
   return (dispatch, getState) => {
     if (!interval) {
-      chartList.forEach(chartKey =>
-        dispatch(refreshChart(chartKey, force, dashboardId)),
+      return Promise.all(
+        chartList.map(chartKey =>
+          dispatch(refreshChart(chartKey, force, dashboardId)),
+        ),
       );
-      return;
     }
 
     const { metadata: meta } = getState().dashboardInfo;
@@ -565,22 +566,22 @@ export function fetchCharts(
           : meta.stagger_refresh === 'true';
     }
     const delay = meta.stagger_refresh
-      ? refreshTime / (chartList.length - 1)
+      ? refreshTime / Math.max(chartList.length - 1, 1)
       : 0;
-    chartList.forEach((chartKey, i) => {
-      setTimeout(
-        () => dispatch(refreshChart(chartKey, force, dashboardId)),
-        delay * i,
-      );
-    });
+    return Promise.all(
+      chartList.map(
+        (chartKey, i) =>
+          new Promise(resolve => {
+            setTimeout(() => {
+              dispatch(refreshChart(chartKey, force, dashboardId))
+                .then(resolve)
+                .catch(resolve);
+            }, delay * i);
+          }),
+      ),
+    );
   };
 }
-
-const refreshCharts = (chartList, force, interval, dashboardId, dispatch) =>
-  new Promise(resolve => {
-    dispatch(fetchCharts(chartList, force, interval, dashboardId));
-    resolve();
-  });
 
 export const ON_FILTERS_REFRESH = 'ON_FILTERS_REFRESH';
 export function onFiltersRefresh() {
@@ -603,13 +604,16 @@ export function onRefresh(
   force = false,
   interval = 0,
   dashboardId,
+  skipFiltersRefresh = false,
 ) {
   return dispatch => {
     dispatch({ type: ON_REFRESH });
-    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
+    return dispatch(fetchCharts(chartList, force, interval, dashboardId)).then(
       () => {
         dispatch(onRefreshSuccess());
-        dispatch(onFiltersRefresh());
+        if (!skipFiltersRefresh) {
+          dispatch(onFiltersRefresh());
+        }
       },
     );
   };

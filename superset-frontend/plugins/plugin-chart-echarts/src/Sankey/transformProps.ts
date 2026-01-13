@@ -39,7 +39,15 @@ export default function transformProps(
   chartProps: SankeyChartProps,
 ): SankeyTransformedProps {
   const refs: Refs = {};
-  const { formData, height, hooks, queriesData, width, theme } = chartProps;
+  const {
+    formData,
+    height,
+    hooks,
+    queriesData,
+    width,
+    theme,
+    isRefreshing,
+  } = chartProps;
   const { onLegendStateChanged } = hooks;
   const { colorScheme, metric, source, target, sliceId } = formData;
   const { data } = queriesData[0];
@@ -138,6 +146,7 @@ export default function transformProps(
     width,
     height,
     echartOptions,
+    isRefreshing,
     onLegendStateChanged,
   };
 }

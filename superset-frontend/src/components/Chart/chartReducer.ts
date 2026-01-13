@@ -78,11 +78,19 @@ export default function chartReducer(
       };
     },
     [actions.CHART_UPDATE_STOPPED](state) {
+      if (
+        action.queryController &&
+        state.queryController &&
+        action.queryController !== state.queryController
+      ) {
+        return state;
+      }
       return {
         ...state,
         chartStatus: 'stopped',
         chartAlert: t('Updating chart was stopped'),
         chartUpdateEndTime: now(),
+        queryController: null,
       };
     },
     [actions.CHART_RENDERING_SUCCEEDED](state) {

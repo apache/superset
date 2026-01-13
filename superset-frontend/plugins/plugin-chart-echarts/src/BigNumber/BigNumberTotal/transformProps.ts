@@ -44,6 +44,7 @@ export default function transformProps(
     hooks,
     datasource: { currencyFormats = {}, columnFormats = {} },
     theme,
+    isRefreshing,
   } = chartProps;
   const {
     metricNameFontSize,
@@ -123,5 +124,6 @@ export default function transformProps(
     metricName: originalLabel,
     showMetricName,
     metricNameFontSize,
+    isRefreshing,
   };
 }

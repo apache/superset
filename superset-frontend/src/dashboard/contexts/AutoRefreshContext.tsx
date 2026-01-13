@@ -29,8 +29,12 @@ import {
 export interface AutoRefreshContextValue {
   /** Whether an auto-refresh cycle is in progress */
   isAutoRefreshing: boolean;
+  /** Whether any refresh request is in-flight */
+  isRefreshInFlight: boolean;
   /** Set the auto-refresh state */
   setIsAutoRefreshing: (value: boolean) => void;
+  /** Set the refresh in-flight state */
+  setRefreshInFlight: (value: boolean) => void;
   /** Mark auto-refresh as started */
   startAutoRefresh: () => void;
   /** Mark auto-refresh as completed */
@@ -39,7 +43,9 @@ export interface AutoRefreshContextValue {
 
 const AutoRefreshContext = createContext<AutoRefreshContextValue>({
   isAutoRefreshing: false,
+  isRefreshInFlight: false,
   setIsAutoRefreshing: () => {},
+  setRefreshInFlight: () => {},
   startAutoRefresh: () => {},
   endAutoRefresh: () => {},
 });
@@ -56,6 +62,7 @@ export const AutoRefreshProvider: FC<AutoRefreshProviderProps> = ({
   children,
 }) => {
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
+  const [isRefreshInFlight, setRefreshInFlight] = useState(false);
 
   const startAutoRefresh = useCallback(() => {
     setIsAutoRefreshing(true);
@@ -68,11 +75,13 @@ export const AutoRefreshProvider: FC<AutoRefreshProviderProps> = ({
   const value = useMemo(
     () => ({
       isAutoRefreshing,
+      isRefreshInFlight,
       setIsAutoRefreshing,
+      setRefreshInFlight,
       startAutoRefresh,
       endAutoRefresh,
     }),
-    [isAutoRefreshing, startAutoRefresh, endAutoRefresh],
+    [isAutoRefreshing, isRefreshInFlight, startAutoRefresh, endAutoRefresh],
   );
 
   return (
@@ -96,6 +105,11 @@ export const useAutoRefreshContext = (): AutoRefreshContextValue =>
 export const useIsAutoRefreshing = (): boolean => {
   const { isAutoRefreshing } = useContext(AutoRefreshContext);
   return isAutoRefreshing;
+};
+
+export const useIsRefreshInFlight = (): boolean => {
+  const { isRefreshInFlight } = useContext(AutoRefreshContext);
+  return isRefreshInFlight;
 };
 
 export default AutoRefreshContext;

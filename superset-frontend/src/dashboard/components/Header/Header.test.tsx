@@ -29,6 +29,7 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import Header from '.';
 import { DASHBOARD_HEADER_ID } from '../../util/constants';
 import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
+import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 const initialState = {
   dashboardInfo: {
@@ -161,10 +162,45 @@ const setRefreshFrequency = jest.fn();
 const onRefresh = jest.fn();
 const dashboardInfoChanged = jest.fn();
 const dashboardTitleChanged = jest.fn();
+const startAutoRefresh = jest.fn();
+const endAutoRefresh = jest.fn();
+const setRefreshInFlight = jest.fn();
+const setStatus = jest.fn();
+const setFetchStartTime = jest.fn();
+const recordSuccess = jest.fn();
+const recordError = jest.fn();
+const setPaused = jest.fn();
 
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
   useUnsavedChangesPrompt: jest.fn(),
 }));
+jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
+  useAutoRefreshContext: jest.fn(),
+}));
+jest.mock('src/dashboard/hooks/useRealTimeDashboard', () => ({
+  useRealTimeDashboard: jest.fn(),
+}));
+jest.mock('src/dashboard/hooks/useAutoRefreshTabPause', () => ({
+  useAutoRefreshTabPause: jest.fn(),
+}));
+jest.mock('src/dashboard/util/setPeriodicRunner', () => ({
+  __esModule: true,
+  default: jest.fn(),
+  stopPeriodicRender: jest.fn(),
+}));
+
+const useAutoRefreshContextMock = jest.requireMock(
+  'src/dashboard/contexts/AutoRefreshContext',
+).useAutoRefreshContext as jest.Mock;
+const useRealTimeDashboardMock = jest.requireMock(
+  'src/dashboard/hooks/useRealTimeDashboard',
+).useRealTimeDashboard as jest.Mock;
+const useAutoRefreshTabPauseMock = jest.requireMock(
+  'src/dashboard/hooks/useAutoRefreshTabPause',
+).useAutoRefreshTabPause as jest.Mock;
+const setPeriodicRunnerMock = jest.requireMock(
+  'src/dashboard/util/setPeriodicRunner',
+).default as jest.Mock;
 
 beforeAll(() => {
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
@@ -202,6 +238,22 @@ beforeEach(() => {
     handleConfirmNavigation: jest.fn(),
     handleSaveAndCloseModal: jest.fn(),
   });
+  useAutoRefreshContextMock.mockReturnValue({
+    startAutoRefresh,
+    endAutoRefresh,
+    setRefreshInFlight,
+  });
+  useRealTimeDashboardMock.mockReturnValue({
+    isPaused: false,
+    setStatus,
+    setPaused,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+  });
+  useAutoRefreshTabPauseMock.mockImplementation(() => {});
+  setPeriodicRunnerMock.mockImplementation(() => 0);
+  fetchCharts.mockImplementation(() => undefined);
 
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
@@ -539,6 +591,48 @@ test('should refresh the charts', async () => {
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(onRefresh).toHaveBeenCalledTimes(1);
+});
+
+test('auto-refresh uses fetchCharts and toggles refresh state', async () => {
+  let periodicRender: (() => Promise<unknown> | void) | null = null;
+  setPeriodicRunnerMock.mockImplementation(({ periodicRender: renderFn }) => {
+    periodicRender = renderFn;
+    return 0;
+  });
+  fetchCharts.mockResolvedValue(undefined);
+
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+  window.requestAnimationFrame = callback => {
+    callback(0);
+    return 0;
+  };
+
+  try {
+    setup({
+      dashboardState: {
+        ...initialState.dashboardState,
+        refreshFrequency: 10,
+        sliceIds: [1, 2],
+      },
+      charts: {
+        1: { latestQueryFormData: { metric: 'a' }, chartStatus: 'success' },
+        2: { latestQueryFormData: { metric: 'b' }, chartStatus: 'success' },
+      },
+    });
+
+    expect(periodicRender).not.toBeNull();
+    await periodicRender?.();
+
+    expect(fetchCharts).toHaveBeenCalledWith([1, 2], true, 2000, 1);
+    expect(onRefresh).not.toHaveBeenCalled();
+    expect(startAutoRefresh).toHaveBeenCalled();
+    expect(setStatus).toHaveBeenCalledWith(AutoRefreshStatus.Fetching);
+    expect(setRefreshInFlight).toHaveBeenCalledWith(true);
+    expect(setRefreshInFlight).toHaveBeenCalledWith(false);
+    expect(endAutoRefresh).toHaveBeenCalled();
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
 });
 
 test('should render an extension component if one is supplied', () => {

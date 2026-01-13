@@ -22,6 +22,7 @@ import {
   AutoRefreshProvider,
   useAutoRefreshContext,
   useIsAutoRefreshing,
+  useIsRefreshInFlight,
 } from './AutoRefreshContext';
 
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -33,9 +34,19 @@ test('provides default value of false when not inside provider', () => {
   expect(result.current).toBe(false);
 });
 
+test('provides default refresh in-flight value of false when not inside provider', () => {
+  const { result } = renderHook(() => useIsRefreshInFlight());
+  expect(result.current).toBe(false);
+});
+
 test('isAutoRefreshing starts as false inside provider', () => {
   const { result } = renderHook(() => useAutoRefreshContext(), { wrapper });
   expect(result.current.isAutoRefreshing).toBe(false);
+});
+
+test('isRefreshInFlight starts as false inside provider', () => {
+  const { result } = renderHook(() => useAutoRefreshContext(), { wrapper });
+  expect(result.current.isRefreshInFlight).toBe(false);
 });
 
 test('startAutoRefresh sets isAutoRefreshing to true', () => {
@@ -76,6 +87,20 @@ test('setIsAutoRefreshing sets the value directly', () => {
   expect(result.current.isAutoRefreshing).toBe(false);
 });
 
+test('setRefreshInFlight sets the value directly', () => {
+  const { result } = renderHook(() => useAutoRefreshContext(), { wrapper });
+
+  act(() => {
+    result.current.setRefreshInFlight(true);
+  });
+  expect(result.current.isRefreshInFlight).toBe(true);
+
+  act(() => {
+    result.current.setRefreshInFlight(false);
+  });
+  expect(result.current.isRefreshInFlight).toBe(false);
+});
+
 test('useIsAutoRefreshing hook returns correct value inside provider', () => {
   const { result: contextResult } = renderHook(() => useAutoRefreshContext(), {
     wrapper,
@@ -92,4 +117,21 @@ test('useIsAutoRefreshing hook returns correct value inside provider', () => {
 
   // Note: this test may need adjustment based on how hooks share state
   // In practice, both hooks would read from the same context
+});
+
+test('useIsRefreshInFlight hook returns correct value inside provider', () => {
+  const { result: contextResult } = renderHook(() => useAutoRefreshContext(), {
+    wrapper,
+  });
+  const { result: hookResult } = renderHook(() => useIsRefreshInFlight(), {
+    wrapper,
+  });
+
+  expect(hookResult.current).toBe(false);
+
+  act(() => {
+    contextResult.current.setRefreshInFlight(true);
+  });
+
+  expect(hookResult.current).toBe(true);
 });

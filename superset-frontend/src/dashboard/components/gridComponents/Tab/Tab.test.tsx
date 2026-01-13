@@ -31,6 +31,14 @@ import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 import Tab from './Tab';
 import Markdown from '../Markdown';
 
+const mockUseIsAutoRefreshing = jest.fn(() => false);
+const mockUseIsRefreshInFlight = jest.fn(() => false);
+
+jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
+  useIsAutoRefreshing: () => mockUseIsAutoRefreshing(),
+  useIsRefreshInFlight: () => mockUseIsRefreshInFlight(),
+}));
+
 jest.mock('src/dashboard/util/getChartIdsFromComponent', () =>
   jest.fn(() => []),
 );
@@ -116,6 +124,8 @@ const createProps = () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUseIsAutoRefreshing.mockReturnValue(false);
+  mockUseIsRefreshInFlight.mockReturnValue(false);
 });
 
 test('Render tab (no content)', () => {
@@ -538,5 +548,73 @@ test('Should not refresh charts when tab becomes active if no dashboard refresh 
   // Wait a bit to ensure no refresh is triggered
   await new Promise(resolve => setTimeout(resolve, 200));
 
+  expect(onRefresh).not.toHaveBeenCalled();
+});
+
+test('Should skip tab refresh when auto-refresh is active', async () => {
+  mockUseIsAutoRefreshing.mockReturnValue(true);
+  const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
+  getChartIdsFromComponent.mockReturnValue([101, 102]);
+
+  const props = createProps();
+  props.renderType = 'RENDER_TAB_CONTENT';
+  props.isComponentVisible = false;
+
+  const initialState = {
+    dashboardState: {
+      lastRefreshTime: Date.now() - 5000,
+      tabActivationTimes: {
+        'TAB-YT6eNksV-': Date.now() - 10000,
+      },
+    },
+    dashboardInfo: {
+      id: 23,
+      dash_edit_perm: true,
+    },
+  };
+
+  const { rerender } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+  });
+
+  rerender(<Tab {...props} isComponentVisible />);
+
+  await new Promise(resolve => setTimeout(resolve, 200));
+  expect(onRefresh).not.toHaveBeenCalled();
+});
+
+test('Should skip tab refresh when refresh is in-flight', async () => {
+  mockUseIsRefreshInFlight.mockReturnValue(true);
+  const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
+  getChartIdsFromComponent.mockReturnValue([101, 102]);
+
+  const props = createProps();
+  props.renderType = 'RENDER_TAB_CONTENT';
+  props.isComponentVisible = false;
+
+  const initialState = {
+    dashboardState: {
+      lastRefreshTime: Date.now() - 5000,
+      tabActivationTimes: {
+        'TAB-YT6eNksV-': Date.now() - 10000,
+      },
+    },
+    dashboardInfo: {
+      id: 23,
+      dash_edit_perm: true,
+    },
+  };
+
+  const { rerender } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+  });
+
+  rerender(<Tab {...props} isComponentVisible />);
+
+  await new Promise(resolve => setTimeout(resolve, 200));
   expect(onRefresh).not.toHaveBeenCalled();
 });

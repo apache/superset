@@ -56,7 +56,8 @@ export function formatTooltip({
 export default function transformProps(
   chartProps: EchartsTreeChartProps,
 ): TreeTransformedProps {
-  const { width, height, formData, queriesData, theme } = chartProps;
+  const { width, height, formData, queriesData, theme, isRefreshing } =
+    chartProps;
   const refs: Refs = {};
   const data: TreeDataRecord[] = queriesData[0].data || [];
 
@@ -230,5 +231,6 @@ export default function transformProps(
     height,
     echartOptions,
     refs,
+    isRefreshing,
   };
 }

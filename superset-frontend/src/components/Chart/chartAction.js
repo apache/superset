@@ -60,8 +60,8 @@ export function chartUpdateSucceeded(queriesResponse, key) {
 }
 
 export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
-export function chartUpdateStopped(key) {
-  return { type: CHART_UPDATE_STOPPED, key };
+export function chartUpdateStopped(key, queryController) {
+  return { type: CHART_UPDATE_STOPPED, key, queryController };
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
@@ -481,7 +481,7 @@ export function exploreJSON(
           response?.name === 'AbortError' || response?.statusText === 'abort';
         if (isAbort) {
           // Abort is expected: filters changed, chart unmounted, etc.
-          return dispatch(chartUpdateStopped(key));
+          return dispatch(chartUpdateStopped(key, controller));
         }
 
         if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -594,9 +594,9 @@ export function refreshChart(chartKey, force, dashboardId) {
       !chart.latestQueryFormData ||
       Object.keys(chart.latestQueryFormData).length === 0
     ) {
-      return;
+      return Promise.resolve();
     }
-    dispatch(
+    return dispatch(
       postChartFormData(
         chart.latestQueryFormData,
         force,

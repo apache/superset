@@ -213,6 +213,7 @@ test('refreshes and restarts timer when tab becomes visible after being paused b
   });
 
   expect(onRefresh).toHaveBeenCalledTimes(1);
+  expect(onRestartTimer).toHaveBeenCalledTimes(1);
 });
 
 test('does not refresh when returning to visible if manually paused', () => {
@@ -247,4 +248,36 @@ test('does not refresh when returning to visible if manually paused', () => {
 
   // Should not refresh because manually paused
   expect(onRefresh).not.toHaveBeenCalled();
+});
+
+test('restarts timer when refresh fails after tab resumes', async () => {
+  const store = createMockStore({
+    refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: true,
+    autoRefreshPausedByTab: true,
+  });
+  const onRefresh = jest.fn().mockRejectedValue(new Error('boom'));
+  const onRestartTimer = jest.fn();
+  const onStopTimer = jest.fn();
+
+  mockVisibilityState('hidden');
+
+  renderHook(
+    () =>
+      useAutoRefreshTabPause({
+        onRefresh,
+        onRestartTimer,
+        onStopTimer,
+      }),
+    { wrapper: createWrapper(store) },
+  );
+
+  await act(async () => {
+    mockVisibilityState('visible');
+    fireVisibilityChange();
+    await Promise.resolve();
+  });
+
+  expect(onRefresh).toHaveBeenCalledTimes(1);
+  expect(onRestartTimer).toHaveBeenCalledTimes(1);
 });

@@ -261,17 +261,15 @@ function Echart(
         animationOverride,
       );
 
-      chartRef.current?.setOption(themedEchartOptions, true);
+      const notMerge = !isRefreshing;
+      chartRef.current?.setOption(themedEchartOptions, {
+        notMerge,
+        replaceMerge: notMerge ? undefined : ['series'],
+        lazyUpdate: isRefreshing,
+      });
     }
-  }, [
-    didMount,
-    echartOptions,
-    eventHandlers,
-    zrEventHandlers,
-    theme,
-    vizType,
-    isRefreshing,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isRefreshing intentionally excluded to prevent extra setOption calls
+  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 

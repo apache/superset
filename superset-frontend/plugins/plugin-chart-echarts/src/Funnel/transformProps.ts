@@ -97,6 +97,7 @@ export default function transformProps(
     theme,
     emitCrossFilters,
     datasource,
+    isRefreshing,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -312,5 +313,6 @@ export default function transformProps(
     onContextMenu,
     refs,
     coltypeMapping,
+    isRefreshing,
   };
 }

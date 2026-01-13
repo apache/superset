@@ -47,6 +47,7 @@ import {
   convertChartStateToOwnState,
   hasChartStateConverter,
 } from '../../../util/chartStateConverter';
+import { useIsAutoRefreshing } from 'src/dashboard/contexts/AutoRefreshContext';
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
@@ -207,6 +208,7 @@ const Chart = props => {
       PLACEHOLDER_DATASOURCE,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
+  const suppressLoadingSpinner = useIsAutoRefreshing();
 
   const isCached = useMemo(
     // eslint-disable-next-line camelcase
@@ -669,7 +671,7 @@ const Chart = props => {
         className={cx('dashboard-chart')}
         aria-label={slice.description}
       >
-        {isLoading && (
+        {isLoading && !suppressLoadingSpinner && (
           <ChartOverlay
             style={{
               width,
@@ -715,7 +717,7 @@ const Chart = props => {
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
           onChartStateChange={handleChartStateChange}
-          suppressLoadingSpinner={props.suppressLoadingSpinner}
+          suppressLoadingSpinner={suppressLoadingSpinner}
         />
       </ChartWrapper>
 

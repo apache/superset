@@ -27,8 +27,11 @@ import { ChartSource } from 'src/types/ChartSource';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
-  SuperChart: ({ postTransformProps = x => x, ...props }) => (
-    <div data-test="mock-super-chart">
+  SuperChart: ({ postTransformProps = x => x, isRefreshing, ...props }) => (
+    <div
+      data-test="mock-super-chart"
+      data-is-refreshing={isRefreshing ? 'true' : 'false'}
+    >
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
   ),
@@ -285,4 +288,34 @@ test('should detect nested matrixify property changes', () => {
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify(updatedProps.formData),
   );
+});
+
+test('renders chart during loading when suppressLoadingSpinner has valid data', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'loading',
+    chartAlert: null,
+    suppressLoadingSpinner: true,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toBeInTheDocument();
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'true',
+  );
+});
+
+test('does not render chart during loading when last data has errors', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'loading',
+    chartAlert: null,
+    suppressLoadingSpinner: true,
+    queriesResponse: [{ errors: [{ message: 'bad' }] }],
+  };
+
+  const { queryByTestId } = render(<ChartRenderer {...props} />);
+  expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
 });

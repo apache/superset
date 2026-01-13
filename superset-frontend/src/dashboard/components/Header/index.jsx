@@ -26,7 +26,7 @@ import {
 } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector, useStore } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
@@ -170,6 +170,7 @@ const discardChanges = () => {
 
 const Header = () => {
   const dispatch = useDispatch();
+  const store = useStore();
   const [didNotifyMaxUndoHistoryToast, setDidNotifyMaxUndoHistoryToast] =
     useState(false);
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
@@ -230,8 +231,11 @@ const Header = () => {
     setFetchStartTime,
   } = useRealTimeDashboard();
 
-  const { startAutoRefresh, endAutoRefresh } = useAutoRefreshContext();
+  const { startAutoRefresh, endAutoRefresh, setRefreshInFlight } =
+    useAutoRefreshContext();
 
+  const refreshInFlightRef = useRef(false);
+  const refreshPromiseRef = useRef(null);
   const refreshTimer = useRef(0);
   const ctrlYTimeout = useRef(0);
   const ctrlZTimeout = useRef(0);
@@ -275,16 +279,152 @@ const Header = () => {
     [dispatch],
   );
 
-  const startPeriodicRender = useCallback(
-    interval => {
-      const fetchCharts = (charts, force = false) =>
-        boundActionCreators.fetchCharts(
-          charts,
+  const executeRefresh = useCallback(
+    (
+      affectedCharts,
+      force = false,
+      suppressSpinners = false,
+      interval = 0,
+      logEventPayload = null,
+      updateLastRefreshTime = false,
+    ) => {
+      if (affectedCharts.length === 0) {
+        return Promise.resolve();
+      }
+
+      if (refreshInFlightRef.current && refreshPromiseRef.current) {
+        return refreshPromiseRef.current;
+      }
+
+      const { charts: chartsState } = store.getState();
+      const chartsToRefresh = affectedCharts.filter(chartId => {
+        const chart = chartsState[chartId];
+        return (
+          chart?.latestQueryFormData &&
+          Object.keys(chart.latestQueryFormData).length > 0
+        );
+      });
+
+      if (chartsToRefresh.length === 0) {
+        return Promise.resolve();
+      }
+
+      refreshInFlightRef.current = true;
+      setRefreshInFlight(true);
+
+      if (logEventPayload) {
+        boundActionCreators.logEvent(
+          logEventPayload.action,
+          logEventPayload.metadata,
+        );
+      }
+
+      if (suppressSpinners) {
+        startAutoRefresh();
+        setStatus(AutoRefreshStatusEnum.Fetching);
+        setFetchStartTime(Date.now());
+      }
+
+      let innerPromise;
+      if (!suppressSpinners) {
+        innerPromise = boundActionCreators.onRefresh(
+          chartsToRefresh,
+          force,
+          0,
+          dashboardInfo.id,
+        );
+      } else if (updateLastRefreshTime) {
+        innerPromise = boundActionCreators.onRefresh(
+          chartsToRefresh,
+          force,
+          0,
+          dashboardInfo.id,
+          true,
+        );
+      } else {
+        innerPromise = boundActionCreators.fetchCharts(
+          chartsToRefresh,
           force,
           interval * 0.2,
           dashboardInfo.id,
         );
+      }
 
+      const wrappedPromise = new Promise((resolve, reject) => {
+        innerPromise
+          .then(() => {
+            if (suppressSpinners) {
+              const { charts } = store.getState();
+              const anyFailed = chartsToRefresh.some(
+                chartId => charts[chartId]?.chartStatus === 'failed',
+              );
+              if (anyFailed) {
+                const failedChart = chartsToRefresh.find(
+                  chartId => charts[chartId]?.chartStatus === 'failed',
+                );
+                const errorMsg =
+                  charts[failedChart]?.chartAlert || 'Chart refresh failed';
+                recordError(errorMsg);
+              } else {
+                recordSuccess();
+              }
+              setFetchStartTime(null);
+            }
+
+            if (suppressSpinners) {
+              requestAnimationFrame(() => {
+                endAutoRefresh();
+                refreshInFlightRef.current = false;
+                refreshPromiseRef.current = null;
+                setRefreshInFlight(false);
+                resolve();
+              });
+            } else {
+              refreshInFlightRef.current = false;
+              refreshPromiseRef.current = null;
+              setRefreshInFlight(false);
+              resolve();
+            }
+          })
+          .catch(error => {
+            if (suppressSpinners) {
+              recordError(error?.message || 'Refresh failed');
+              setFetchStartTime(null);
+              requestAnimationFrame(() => {
+                endAutoRefresh();
+                refreshInFlightRef.current = false;
+                refreshPromiseRef.current = null;
+                setRefreshInFlight(false);
+                reject(error);
+              });
+            } else {
+              refreshInFlightRef.current = false;
+              refreshPromiseRef.current = null;
+              setRefreshInFlight(false);
+              reject(error);
+            }
+          });
+      });
+
+      refreshPromiseRef.current = wrappedPromise;
+      return wrappedPromise;
+    },
+    [
+      boundActionCreators,
+      dashboardInfo.id,
+      store,
+      startAutoRefresh,
+      endAutoRefresh,
+      setStatus,
+      setFetchStartTime,
+      recordSuccess,
+      recordError,
+      setRefreshInFlight,
+    ],
+  );
+
+  const startPeriodicRender = useCallback(
+    interval => {
       const periodicRender = () => {
         const { metadata } = dashboardInfo;
         const immune = metadata.timed_refresh_immune_slices || [];
@@ -292,37 +432,23 @@ const Header = () => {
           chartId => immune.indexOf(chartId) === -1,
         );
 
-        boundActionCreators.logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
+        const force =
+          dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_MODE !== 'fetch';
+
+        return executeRefresh(
+          affectedCharts,
+          force,
+          true,
           interval,
-          chartCount: affectedCharts.length,
-        });
-        // Toast notification removed - status indicator provides visual feedback
-
-        // Mark auto-refresh as starting (suppress spinners)
-        startAutoRefresh();
-        // Track status for real-time dashboards
-        setStatus(AutoRefreshStatusEnum.Fetching);
-        setFetchStartTime(Date.now());
-
-        const fetchPromise =
-          dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_MODE === 'fetch'
-            ? // force-refresh while auto-refresh in dashboard
-              fetchCharts(affectedCharts)
-            : fetchCharts(affectedCharts, true);
-
-        return fetchPromise
-          .then(() => {
-            recordSuccess();
-            setFetchStartTime(null);
-          })
-          .catch(error => {
-            recordError(error?.message || 'Refresh failed');
-            setFetchStartTime(null);
-          })
-          .finally(() => {
-            // Mark auto-refresh as complete (allow spinners again)
-            endAutoRefresh();
-          });
+          {
+            action: LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
+            metadata: {
+              interval,
+              chartCount: affectedCharts.length,
+            },
+          },
+          false,
+        );
       };
 
       refreshTimer.current = setPeriodicRunner({
@@ -331,17 +457,7 @@ const Header = () => {
         refreshTimer: refreshTimer.current,
       });
     },
-    [
-      boundActionCreators,
-      chartIds,
-      dashboardInfo,
-      setStatus,
-      setFetchStartTime,
-      recordSuccess,
-      recordError,
-      startAutoRefresh,
-      endAutoRefresh,
-    ],
+    [dashboardInfo, chartIds, executeRefresh],
   );
 
   useEffect(() => {
@@ -414,16 +530,21 @@ const Header = () => {
   }, [boundActionCreators]);
 
   const forceRefresh = useCallback(() => {
-    if (!isLoading) {
-      boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
+    if (refreshInFlightRef.current && refreshPromiseRef.current) {
+      return refreshPromiseRef.current;
+    }
+    if (isLoading) {
+      return Promise.resolve();
+    }
+    return executeRefresh(chartIds, true, false, 0, {
+      action: LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
+      metadata: {
         force: true,
         interval: 0,
         chartCount: chartIds.length,
-      });
-      return boundActionCreators.onRefresh(chartIds, true, 0, dashboardInfo.id);
-    }
-    return false;
-  }, [boundActionCreators, chartIds, dashboardInfo.id, isLoading]);
+      },
+    });
+  }, [chartIds, isLoading, executeRefresh]);
 
   const toggleEditMode = useCallback(() => {
     boundActionCreators.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
@@ -633,20 +754,14 @@ const Header = () => {
     if (isPaused) {
       // Resume: fetch immediately, then restart timer
       setPaused(false);
-      setStatus(AutoRefreshStatusEnum.Fetching);
-      setFetchStartTime(Date.now());
-
-      // Immediate refresh
-      boundActionCreators
-        .onRefresh(chartIds, true, 0, dashboardInfo.id)
-        .then(() => {
-          recordSuccess();
-          setFetchStartTime(null);
-        })
-        .catch(error => {
-          recordError(error?.message || 'Refresh failed');
-          setFetchStartTime(null);
-        });
+      const { metadata } = dashboardInfo;
+      const immune = metadata.timed_refresh_immune_slices || [];
+      const affectedCharts = chartIds.filter(
+        chartId => immune.indexOf(chartId) === -1,
+      );
+      executeRefresh(affectedCharts, true, true, 0, null, true).finally(() => {
+        startPeriodicRender(refreshFrequency * 1000);
+      });
     } else {
       // Pause: stop the timer
       setPaused(true);
@@ -658,29 +773,28 @@ const Header = () => {
     isPaused,
     setPaused,
     setStatus,
-    setFetchStartTime,
-    recordSuccess,
-    recordError,
-    boundActionCreators,
+    dashboardInfo,
     chartIds,
-    dashboardInfo.id,
+    executeRefresh,
+    startPeriodicRender,
+    refreshFrequency,
   ]);
 
   // Callback for tab visibility refresh
-  const handleTabVisibilityRefresh = useCallback(
-    () =>
-      new Promise((resolve, reject) => {
-        if (!isLoading) {
-          boundActionCreators
-            .onRefresh(chartIds, true, 0, dashboardInfo.id)
-            .then(resolve)
-            .catch(reject);
-        } else {
-          resolve();
-        }
-      }),
-    [boundActionCreators, chartIds, dashboardInfo.id, isLoading],
-  );
+  const handleTabVisibilityRefresh = useCallback(() => {
+    if (refreshInFlightRef.current && refreshPromiseRef.current) {
+      return refreshPromiseRef.current;
+    }
+    if (isLoading) {
+      return Promise.resolve();
+    }
+    const { metadata } = dashboardInfo;
+    const immune = metadata.timed_refresh_immune_slices || [];
+    const affectedCharts = chartIds.filter(
+      chartId => immune.indexOf(chartId) === -1,
+    );
+    return executeRefresh(affectedCharts, true, true, 0, null, true);
+  }, [dashboardInfo, chartIds, isLoading, executeRefresh]);
 
   // Callback to restart the periodic timer
   const handleRestartTimer = useCallback(() => {

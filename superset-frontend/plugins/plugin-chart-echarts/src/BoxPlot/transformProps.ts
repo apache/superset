@@ -55,6 +55,7 @@ export default function transformProps(
     queriesData,
     inContextMenu,
     emitCrossFilters,
+    isRefreshing,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const { setDataMask = () => {}, onContextMenu } = hooks;
@@ -320,5 +321,6 @@ export default function transformProps(
     onContextMenu,
     refs,
     coltypeMapping,
+    isRefreshing,
   };
 }

@@ -45,6 +45,7 @@ export default function transformProps(
     formData,
     height,
     hooks,
+    isRefreshing,
     legendState = {},
     queriesData,
     theme,
@@ -202,6 +203,7 @@ export default function transformProps(
     width,
     height,
     echartOptions,
+    isRefreshing,
     onFocusedSeries,
     onLegendStateChanged,
   };

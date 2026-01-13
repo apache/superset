@@ -65,6 +65,7 @@ const propTypes = {
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
   onChartStateChange: PropTypes.func,
+  suppressLoadingSpinner: PropTypes.bool,
 };
 
 const BLANK = {};
@@ -279,9 +280,20 @@ class ChartRenderer extends Component {
   render() {
     const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
 
-    // Skip chart rendering
-    if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
+    const hasAnyErrors = this.props.queriesResponse?.some(
+      item => item?.error || item?.errors?.length,
+    );
+    const hasValidPreviousData =
+      this.props.queriesResponse?.length > 0 && !hasAnyErrors;
+
+    if (!!chartAlert || chartStatus === null) {
       return null;
+    }
+
+    if (chartStatus === 'loading') {
+      if (!this.props.suppressLoadingSpinner || !hasValidPreviousData) {
+        return null;
+      }
     }
 
     this.renderStartTime = Logger.getTimestamp();
@@ -403,6 +415,7 @@ class ChartRenderer extends Component {
             legendState={this.state.legendState}
             enableNoResults={bypassNoResult}
             legendIndex={this.state.legendIndex}
+            isRefreshing={this.props.suppressLoadingSpinner}
             {...drillToDetailProps}
           />
         </div>

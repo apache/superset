@@ -29,6 +29,10 @@ import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponen
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import {
+  useIsAutoRefreshing,
+  useIsRefreshInFlight,
+} from 'src/dashboard/contexts/AutoRefreshContext';
+import {
   DragDroppable,
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
@@ -129,6 +133,8 @@ const Tab = props => {
     state => state.dashboardState.tabActivationTimes?.[props.id] || 0,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
+  const isAutoRefreshing = useIsAutoRefreshing();
+  const isRefreshInFlight = useIsRefreshInFlight();
 
   useEffect(() => {
     if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
@@ -139,6 +145,9 @@ const Tab = props => {
       ) {
         const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
         if (chartIds.length > 0) {
+          if (isAutoRefreshing || isRefreshInFlight) {
+            return;
+          }
           requestAnimationFrame(() => {
             setTimeout(() => {
               dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id));
@@ -156,6 +165,8 @@ const Tab = props => {
     dashboardLayout,
     dashboardInfo.id,
     dispatch,
+    isAutoRefreshing,
+    isRefreshInFlight,
   ]);
 
   const handleChangeTab = useCallback(

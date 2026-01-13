@@ -52,8 +52,6 @@ export function useAutoRefreshTabPause({
     isPausedByTab,
     setPausedByTab,
     setStatus,
-    recordSuccess,
-    recordError,
     autoRefreshPauseOnInactiveTab,
   } = useRealTimeDashboard();
 
@@ -94,16 +92,13 @@ export function useAutoRefreshTabPause({
     // Only resume if we paused due to tab visibility (not manual pause)
     if (isPausedByTab && shouldResumeRef.current && !isManuallyPaused) {
       setPausedByTab(false);
-      setStatus(AutoRefreshStatus.Fetching);
 
       // Immediate refresh then restart timer
       onRefresh()
         .then(() => {
-          recordSuccess();
           onRestartTimer();
         })
-        .catch(error => {
-          recordError(error?.message || 'Refresh failed');
+        .catch(() => {
           // Still restart timer even on error
           onRestartTimer();
         });
@@ -119,8 +114,6 @@ export function useAutoRefreshTabPause({
     setStatus,
     onRefresh,
     onRestartTimer,
-    recordSuccess,
-    recordError,
   ]);
 
   // Use the tab visibility hook

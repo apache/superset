@@ -118,6 +118,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     datasource,
+    isRefreshing,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const { columnFormats = {}, currencyFormats = {} } = datasource;
@@ -313,5 +314,6 @@ export default function transformProps(
     onContextMenu,
     refs,
     coltypeMapping,
+    isRefreshing,
   };
 }

@@ -24,7 +24,13 @@ import {
   SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
+  fetchCharts,
+  onRefresh,
+  ON_FILTERS_REFRESH,
+  ON_REFRESH,
+  ON_REFRESH_SUCCESS,
 } from 'src/dashboard/actions/dashboardState';
+import { refreshChart } from 'src/components/Chart/chartAction';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -43,6 +49,10 @@ import { navigateTo } from 'src/utils/navigationUtils';
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
+}));
+
+jest.mock('src/components/Chart/chartAction', () => ({
+  refreshChart: jest.fn(() => () => Promise.resolve()),
 }));
 
 jest.mock('src/utils/navigationUtils', () => ({
@@ -233,5 +243,87 @@ describe('dashboardState actions', () => {
         `/superset/dashboard/${newDashboardId}/`,
       );
     });
+  });
+
+  test('fetchCharts returns a Promise that resolves after all refreshes', async () => {
+    refreshChart.mockClear();
+    const { getState, dispatch } = setup({
+      dashboardInfo: {
+        metadata: {},
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const chartIds = [1, 2];
+    const promise = fetchCharts(chartIds, false, 0, 10)(dispatch, getState);
+    await promise;
+
+    expect(refreshChart).toHaveBeenCalledTimes(chartIds.length);
+  });
+
+  test('fetchCharts resolves for staggered refreshes', async () => {
+    jest.useFakeTimers();
+    refreshChart.mockClear();
+    const { getState, dispatch } = setup({
+      dashboardInfo: {
+        metadata: { stagger_time: 1000, stagger_refresh: true },
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const chartIds = [1, 2, 3];
+    const promise = fetchCharts(chartIds, false, 1000, 10)(dispatch, getState);
+
+    jest.runAllTimers();
+    await promise;
+    jest.useRealTimers();
+
+    expect(refreshChart).toHaveBeenCalledTimes(chartIds.length);
+  });
+
+  test('onRefresh dispatches success and filters refresh by default', async () => {
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: {},
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatched = [];
+    const dispatch = action => {
+      if (typeof action === 'function') {
+        return action(dispatch, getState);
+      }
+      dispatched.push(action);
+      return action;
+    };
+
+    await onRefresh([1], true, 0, 10)(dispatch);
+
+    expect(dispatched.map(action => action.type)).toEqual(
+      expect.arrayContaining([ON_REFRESH, ON_REFRESH_SUCCESS, ON_FILTERS_REFRESH]),
+    );
+  });
+
+  test('onRefresh skips filter refresh when requested', async () => {
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: {},
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatched = [];
+    const dispatch = action => {
+      if (typeof action === 'function') {
+        return action(dispatch, getState);
+      }
+      dispatched.push(action);
+      return action;
+    };
+
+    await onRefresh([1], true, 0, 10, true)(dispatch);
+
+    const dispatchedTypes = dispatched.map(action => action.type);
+    expect(dispatchedTypes).toEqual(
+      expect.arrayContaining([ON_REFRESH, ON_REFRESH_SUCCESS]),
+    );
+    expect(dispatchedTypes).not.toContain(ON_FILTERS_REFRESH);
   });
 });

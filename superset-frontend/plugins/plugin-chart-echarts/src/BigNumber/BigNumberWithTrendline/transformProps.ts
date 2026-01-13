@@ -84,6 +84,7 @@ export default function transformProps(
     inContextMenu,
     theme,
     datasource: { currencyFormats = {}, columnFormats = {} },
+    isRefreshing,
   } = chartProps;
   const {
     colorPicker,
@@ -394,5 +395,6 @@ export default function transformProps(
     onContextMenu,
     xValueFormatter: formatTime,
     refs,
+    isRefreshing,
   };
 }
