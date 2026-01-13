@@ -331,7 +331,9 @@ describe('ControlPanelsContainer', () => {
 
     // Matrixify tab should still be active after rerender
     await waitFor(() => {
-      const matrixifyTabAfterSave = screen.getByRole('tab', { name: /matrixify/i });
+      const matrixifyTabAfterSave = screen.getByRole('tab', {
+        name: /matrixify/i,
+      });
       expect(matrixifyTabAfterSave).toHaveAttribute('aria-selected', 'true');
     });
   });
