@@ -32,6 +32,33 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def has_auto_currency_in_column_config(form_data: dict[str, Any] | None) -> bool:
+    """
+    Check if any column in column_config has AUTO currency format.
+
+    Used by Table charts which configure currency per-column via column_config,
+    rather than using top-level currency_format like other chart types.
+
+    :param form_data: The form data containing column_config
+    :return: True if any column has AUTO currency format
+    """
+    if not form_data:
+        return False
+    column_config = form_data.get("column_config", {})
+    if not isinstance(column_config, dict):
+        return False
+    for config in column_config.values():
+        if not isinstance(config, dict):
+            continue
+        currency_format = config.get("currencyFormat", {})
+        if (
+            isinstance(currency_format, dict)
+            and currency_format.get("symbol") == "AUTO"
+        ):
+            return True
+    return False
+
+
 def detect_currency_from_df(
     df: Any,  # pd.DataFrame, but avoiding import for type checking
     currency_column: str,

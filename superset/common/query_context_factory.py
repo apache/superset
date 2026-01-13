@@ -30,6 +30,7 @@ from superset.explorables.base import Explorable
 from superset.models.slice import Slice
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
+from superset.utils.currency import has_auto_currency_in_column_config
 
 # Charts supporting per-cell currency detection
 CELL_LEVEL_CURRENCY_VIZ_TYPES = {"pivot_table_v2", "table"}
@@ -213,6 +214,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         queries (like pivot tables) to include currency codes per row,
         allowing per-cell currency formatting based on the data.
 
+        Checks both top-level currency_format (used by Pie, Timeseries, etc.)
+        and column_config (used by Table charts) for AUTO currency settings.
+
         Only applies to viz types that support cell-level detection (e.g., pivot tables)
         Other charts like pie charts use the dataset-level detected_currency instead.
         """
@@ -224,8 +228,18 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         if viz_type not in CELL_LEVEL_CURRENCY_VIZ_TYPES:
             return
 
+        # Check top-level currency_format (for Pie, Timeseries, etc.)
         currency_format = form_data.get("currency_format", {})
-        if currency_format.get("symbol") != "AUTO":
+        top_level_auto = (
+            isinstance(currency_format, dict)
+            and currency_format.get("symbol") == "AUTO"
+        )
+
+        # Check column_config (for Table charts)
+        column_config_auto = has_auto_currency_in_column_config(form_data)
+
+        # Only inject if AUTO is configured somewhere
+        if not top_level_auto and not column_config_auto:
             return
 
         currency_column = getattr(datasource, "currency_code_column", None)

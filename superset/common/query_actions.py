@@ -33,7 +33,11 @@ from superset.utils.core import (
     get_column_name,
     get_time_filter_status,
 )
-from superset.utils.currency import detect_currency, detect_currency_from_df
+from superset.utils.currency import (
+    detect_currency,
+    detect_currency_from_df,
+    has_auto_currency_in_column_config,
+)
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -105,18 +109,28 @@ def _detect_currency(
     First attempts to detect from the provided dataframe if the currency
     column is present. Falls back to a separate query only when needed.
 
+    Checks both top-level currency_format (used by Pie, Timeseries, etc.)
+    and column_config (used by Table charts) for AUTO currency settings.
+
     :param query_context: The query context with form_data containing currency_format
     :param query_obj: The original query object with filters
     :param datasource: The datasource being queried
     :param df: Optional dataframe to detect currency from (avoids extra query)
     :return: ISO 4217 currency code (e.g., "USD") or None
     """
-    # Only detect if currency_format.symbol is AUTO
     form_data = query_context.form_data or {}
+
+    # Check top-level currency_format (for Pie, Timeseries, etc.)
     currency_format = form_data.get("currency_format", {})
-    if not isinstance(currency_format, dict):
-        return None
-    if currency_format.get("symbol") != "AUTO":
+    top_level_auto = (
+        isinstance(currency_format, dict) and currency_format.get("symbol") == "AUTO"
+    )
+
+    # Check column_config (for Table charts)
+    column_config_auto = has_auto_currency_in_column_config(form_data)
+
+    # Only detect if AUTO is configured somewhere
+    if not top_level_auto and not column_config_auto:
         return None
 
     currency_column = getattr(datasource, "currency_code_column", None)

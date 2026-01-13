@@ -20,7 +20,11 @@ import pandas as pd
 import pytest
 
 from superset.common.db_query_status import QueryStatus
-from superset.utils.currency import detect_currency, detect_currency_from_df
+from superset.utils.currency import (
+    detect_currency,
+    detect_currency_from_df,
+    has_auto_currency_in_column_config,
+)
 
 
 @pytest.fixture
@@ -227,3 +231,102 @@ def test_detect_currency_returns_none_when_query_not_callable() -> None:
     result = detect_currency(datasource)
 
     assert result is None
+
+
+# Tests for has_auto_currency_in_column_config
+
+
+def test_has_auto_currency_in_column_config_returns_true_when_auto() -> None:
+    """Returns True when column_config has AUTO currency."""
+    form_data = {
+        "column_config": {
+            "cost": {"currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"}}
+        }
+    }
+
+    result = has_auto_currency_in_column_config(form_data)
+
+    assert result is True
+
+
+def test_has_auto_currency_in_column_config_returns_true_multiple_columns() -> None:
+    """Returns True when any column in column_config has AUTO currency."""
+    form_data = {
+        "column_config": {
+            "revenue": {"currencyFormat": {"symbol": "USD"}},
+            "cost": {"currencyFormat": {"symbol": "AUTO"}},
+            "profit": {"d3NumberFormat": ",.0f"},
+        }
+    }
+
+    result = has_auto_currency_in_column_config(form_data)
+
+    assert result is True
+
+
+def test_has_auto_currency_in_column_config_returns_false_for_explicit() -> None:
+    """Returns False when column_config has explicit currency symbol."""
+    form_data = {"column_config": {"cost": {"currencyFormat": {"symbol": "USD"}}}}
+
+    result = has_auto_currency_in_column_config(form_data)
+
+    assert result is False
+
+
+def test_has_auto_currency_in_column_config_returns_false_for_none() -> None:
+    """Returns False when form_data is None."""
+    result = has_auto_currency_in_column_config(None)
+
+    assert result is False
+
+
+def test_has_auto_currency_in_column_config_returns_false_for_empty() -> None:
+    """Returns False when form_data is empty."""
+    result = has_auto_currency_in_column_config({})
+
+    assert result is False
+
+
+def test_has_auto_currency_in_column_config_returns_false_no_column_config() -> None:
+    """Returns False when column_config is not present."""
+    form_data = {"other_key": "value"}
+
+    result = has_auto_currency_in_column_config(form_data)
+
+    assert result is False
+
+
+def test_has_auto_currency_in_column_config_handles_invalid_column_config() -> None:
+    """Returns False when column_config is not a dict."""
+    form_data = {"column_config": "invalid"}
+
+    result = has_auto_currency_in_column_config(form_data)
+
+    assert result is False
+
+
+def test_has_auto_currency_in_column_config_handles_invalid_config_entry() -> None:
+    """Returns False when column config entry is not a dict."""
+    form_data = {"column_config": {"cost": "invalid"}}
+
+    result = has_auto_currency_in_column_config(form_data)
+
+    assert result is False
+
+
+def test_has_auto_currency_in_column_config_handles_invalid_currency_format() -> None:
+    """Returns False when currencyFormat is not a dict."""
+    form_data = {"column_config": {"cost": {"currencyFormat": "invalid"}}}
+
+    result = has_auto_currency_in_column_config(form_data)
+
+    assert result is False
+
+
+def test_has_auto_currency_in_column_config_handles_no_currency_format() -> None:
+    """Returns False when column has no currencyFormat."""
+    form_data = {"column_config": {"cost": {"d3NumberFormat": ",.0f"}}}
+
+    result = has_auto_currency_in_column_config(form_data)
+
+    assert result is False

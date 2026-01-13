@@ -77,7 +77,11 @@ from superset.utils.core import (
     merge_extra_filters,
     simple_filter_to_adhoc,
 )
-from superset.utils.currency import detect_currency, detect_currency_from_df
+from superset.utils.currency import (
+    detect_currency,
+    detect_currency_from_df,
+    has_auto_currency_in_column_config,
+)
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import hash_from_str
 
@@ -488,15 +492,25 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         First attempts to detect from the provided dataframe if the currency
         column is present. Falls back to a separate query only when needed.
 
+        Checks both top-level currency_format (used by Pie, Timeseries, etc.)
+        and column_config (used by Table charts) for AUTO currency settings.
+
         :param query_obj: The query object with filters
         :param df: Optional dataframe to detect currency from (avoids extra query)
         :return: ISO 4217 currency code (e.g., "USD") or None
         """
-        # Only detect if currency_format.symbol is AUTO
+        # Check top-level currency_format (for Pie, Timeseries, etc.)
         currency_format = self.form_data.get("currency_format", {})
-        if not isinstance(currency_format, dict):
-            return None
-        if currency_format.get("symbol") != "AUTO":
+        top_level_auto = (
+            isinstance(currency_format, dict)
+            and currency_format.get("symbol") == "AUTO"
+        )
+
+        # Check column_config (for Table charts)
+        column_config_auto = has_auto_currency_in_column_config(self.form_data)
+
+        # Only detect if AUTO is configured somewhere
+        if not top_level_auto and not column_config_auto:
             return None
 
         currency_column = getattr(self.datasource, "currency_code_column", None)
