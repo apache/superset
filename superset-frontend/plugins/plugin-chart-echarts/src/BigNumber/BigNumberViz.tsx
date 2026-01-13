@@ -25,6 +25,7 @@ import {
   computeMaxFontSize,
   BRAND_COLOR,
   BinaryQueryObjectFilterClause,
+  DTTM_ALIAS,
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import Echart from '../components/Echart';
@@ -357,7 +358,10 @@ function BigNumberVis({
             const pointerEvent = eventParams.event.event;
             const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
             drillToDetailFilters.push({
-              col: formData?.granularitySqla || formData?.xAxis,
+              col:
+                formData?.xAxis === DTTM_ALIAS
+                  ? formData?.granularitySqla
+                  : formData?.xAxis,
               grain: formData?.timeGrainSqla,
               op: '==',
               val: data[0],
