@@ -984,3 +984,145 @@ test('Select boolean filter with null values', async () => {
     );
   });
 });
+
+test('Clear boolean FALSE value', async () => {
+  jest.useRealTimers();
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: false,
+      enableEmptyFilter: false,
+      groupby: ['is_active'],
+    },
+    queriesData: [
+      {
+        ...selectMultipleProps.queriesData[0],
+        colnames: ['is_active'],
+        data: [{ is_active: true }, { is_active: false }],
+        applied_filters: [{ column: 'is_active' }],
+      },
+    ],
+    filterState: { value: [false] },
+  };
+
+  render(
+    // @ts-ignore
+    <SelectFilterPlugin
+      // @ts-ignore
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: [false],
+            },
+          },
+        },
+      },
+    },
+  );
+
+  userEvent.click(
+    screen.getByRole('img', {
+      name: /close-circle/i,
+      hidden: true,
+    }),
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith({
+      extraFormData: {},
+      filterState: {
+        label: undefined,
+        value: null,
+        excludeFilterValues: true,
+      },
+    });
+  });
+});
+
+test('Clear boolean TRUE value', async () => {
+  jest.useRealTimers();
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: false,
+      enableEmptyFilter: false,
+      groupby: ['is_active'],
+    },
+    queriesData: [
+      {
+        ...selectMultipleProps.queriesData[0],
+        colnames: ['is_active'],
+        data: [{ is_active: true }, { is_active: false }],
+        applied_filters: [{ column: 'is_active' }],
+      },
+    ],
+    filterState: { value: [true] },
+  };
+
+  render(
+    // @ts-ignore
+    <SelectFilterPlugin
+      // @ts-ignore
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: [true],
+            },
+          },
+        },
+      },
+    },
+  );
+
+  userEvent.click(
+    screen.getByRole('img', {
+      name: /close-circle/i,
+      hidden: true,
+    }),
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith({
+      extraFormData: {},
+      filterState: {
+        label: undefined,
+        value: null,
+        excludeFilterValues: true,
+      },
+    });
+  });
+});
