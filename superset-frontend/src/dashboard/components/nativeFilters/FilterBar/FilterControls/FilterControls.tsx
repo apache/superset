@@ -26,12 +26,12 @@ import {
   useRef,
   useState,
 } from 'react';
+import { t } from '@apache-superset/core';
 import {
   DataMask,
   DataMaskStateWithId,
   Filter,
   Divider,
-  t,
   isNativeFilterWithDataMask,
 } from '@superset-ui/core';
 import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';

@@ -26,6 +26,7 @@ import fetchMock from 'fetch-mock';
 import * as ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 import PropertiesModal from '.';
 
 // Increase timeout for CI environment
@@ -453,8 +454,7 @@ describe('PropertiesModal', () => {
     const props = createProps();
     const propsWithDashboardInfo = { ...props, dashboardInfo };
 
-    const getSelect = () =>
-      screen.getByRole('combobox', { name: SupersetCore.t('Roles') });
+    const getSelect = () => screen.getByRole('combobox', { name: t('Roles') });
     const open = () => waitFor(() => userEvent.click(getSelect()));
 
     const getElementsByClassName = (className: string) =>
@@ -488,7 +488,7 @@ describe('PropertiesModal', () => {
         const comboboxes = screen.getAllByRole('combobox');
         expect(comboboxes.length).toBeGreaterThanOrEqual(3);
         expect(
-          screen.getByRole('combobox', { name: SupersetCore.t('Roles') }),
+          screen.getByRole('combobox', { name: t('Roles') }),
         ).toBeInTheDocument();
       },
       { timeout: 5000 },
@@ -512,8 +512,7 @@ describe('PropertiesModal', () => {
     const props = createProps();
     const propsWithDashboardInfo = { ...props, dashboardInfo };
 
-    const getSelect = () =>
-      screen.getByRole('combobox', { name: SupersetCore.t('Owners') });
+    const getSelect = () => screen.getByRole('combobox', { name: t('Owners') });
     const open = () => waitFor(() => userEvent.click(getSelect()));
 
     const getElementsByClassName = (className: string) =>
@@ -549,7 +548,7 @@ describe('PropertiesModal', () => {
         const comboboxes = screen.getAllByRole('combobox');
         expect(comboboxes.length).toBeGreaterThanOrEqual(3);
         expect(
-          screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
+          screen.getByRole('combobox', { name: t('Owners') }),
         ).toBeInTheDocument();
       },
       { timeout: 5000 },
@@ -569,8 +568,7 @@ describe('PropertiesModal', () => {
     const props = createProps();
     const propsWithDashboardInfo = { ...props, dashboardInfo };
 
-    const getSelect = () =>
-      screen.getByRole('combobox', { name: SupersetCore.t('Owners') });
+    const getSelect = () => screen.getByRole('combobox', { name: t('Owners') });
     const open = () => waitFor(() => userEvent.click(getSelect()));
     const getElementsByClassName = (className: string) =>
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
@@ -603,7 +601,7 @@ describe('PropertiesModal', () => {
     await waitFor(
       () => {
         expect(
-          screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
+          screen.getByRole('combobox', { name: t('Owners') }),
         ).toBeInTheDocument();
       },
       { timeout: 5000 },

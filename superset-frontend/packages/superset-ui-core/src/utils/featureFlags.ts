@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import logger from './logging';
+import { logging as logger } from '@apache-superset/core';
 
 // We can codegen the enum definition based on a list of supported flags that we
 // check into source control. We're hardcoding the supported flags for now.

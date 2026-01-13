@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useMemo } from 'react';
+import { t } from '@apache-superset/core';
 import {
   DataMaskState,
   DataMaskStateWithId,
-  t,
   isDefined,
 } from '@superset-ui/core';
 import { css, SupersetTheme, styled } from '@apache-superset/core/ui';

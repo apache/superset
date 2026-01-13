@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useState, useEffect, forwardRef } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import {
   SQLEditor,

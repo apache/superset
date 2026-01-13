@@ -23,10 +23,10 @@ import {
   FilterConfiguration,
   NativeFilterType,
   NativeFilterTarget,
-  logging,
   Filter,
   Divider,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { FilterChangesType, FilterRemoval, NativeFiltersForm } from './types';
 

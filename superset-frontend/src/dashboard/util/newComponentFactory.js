@@ -17,7 +17,7 @@
  * under the License.
  */
 import { nanoid } from 'nanoid';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 
 import {
   CHART_TYPE,

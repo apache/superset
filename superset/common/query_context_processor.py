@@ -181,6 +181,7 @@ class QueryContextProcessor:
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
+            "queried_dttm": cache.queried_dttm,
             "cache_timeout": self.get_cache_timeout(),
             "df": cache.df,
             "applied_template_filters": cache.applied_template_filters,

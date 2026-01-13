@@ -44,15 +44,15 @@ import {
   ErrorMessageWithStackTrace,
 } from 'src/components';
 import { nanoid } from 'nanoid';
+import { t } from '@apache-superset/core';
 import {
   QueryState,
-  t,
-  tn,
   usePrevious,
   getNumberFormatter,
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 import {
   ISaveableDatasource,
@@ -424,7 +424,7 @@ const ResultSet = ({
                     setShowStreamingModal(true);
 
                     startExport({
-                      url: '/api/v1/sqllab/export_streaming/',
+                      url: makeUrl('/api/v1/sqllab/export_streaming/'),
                       payload: { client_id: query.id },
                       exportType: 'csv',
                       expectedRows: rows,

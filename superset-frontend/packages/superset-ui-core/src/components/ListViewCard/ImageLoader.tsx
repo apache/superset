@@ -18,7 +18,7 @@
  */
 import { useEffect, useState, DetailedHTMLProps, HTMLAttributes } from 'react';
 
-import { logging } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 
 export type BackgroundPosition = 'top' | 'bottom';

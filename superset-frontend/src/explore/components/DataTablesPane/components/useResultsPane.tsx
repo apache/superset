@@ -18,9 +18,9 @@
  */
 import { useState, useEffect, ReactElement, useCallback } from 'react';
 
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
-  t,
   getChartMetadataRegistry,
   getClientErrorObject,
 } from '@superset-ui/core';
