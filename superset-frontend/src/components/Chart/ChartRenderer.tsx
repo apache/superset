@@ -235,7 +235,11 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
       onFilterMenuClose: this.props.onFilterMenuClose,
       onLegendStateChanged: this.handleLegendStateChanged,
       setDataMask: (dataMask: DataMask) => {
-        this.props.actions?.updateDataMask?.(this.props.chartId, dataMask);
+        if (this.props.actions?.updateDataMask) {
+          this.props.actions.updateDataMask(this.props.chartId, dataMask);
+        } else {
+          this.props.setDataMask?.(dataMask);
+        }
       },
       onLegendScroll: this.handleLegendScroll,
       onChartStateChange: this.props.onChartStateChange,
