@@ -19,7 +19,7 @@
 import * as http from 'http';
 import * as net from 'net';
 import WebSocket from 'ws';
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'crypto';
 import jwt, { Algorithm } from 'jsonwebtoken';
 import { parse } from 'cookie';
 import Redis, { RedisOptions } from 'ioredis';
