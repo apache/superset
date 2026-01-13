@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,10 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { render, screen } from 'spec/helpers/testing-library';
+import StatusBar from 'src/SqlLab/components/StatusBar';
 
-export * from './TranslatorSingleton';
-export * from './types';
+jest.mock('src/extensions/ExtensionsManager', () => {
+  const getInstance = jest.fn().mockReturnValue({
+    getViewContributions: jest
+      .fn()
+      .mockReturnValue([{ id: 'test-status-bar' }]),
+  });
+  return { getInstance };
+});
 
-export default {};
+jest.mock('src/components/ViewListExtension', () => ({
+  __esModule: true,
+  default: ({ viewId }: { viewId: string }) => (
+    <div data-test="mock-view-extension" data-view-id={viewId}>
+      ViewListExtension
+    </div>
+  ),
+}));
 
-export { default as __hack_reexport_translation } from './types';
+test('renders StatusBar component', () => {
+  render(<StatusBar />);
+  expect(screen.getByTestId('mock-view-extension')).toBeInTheDocument();
+});

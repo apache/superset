@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,19 +17,4 @@
  * under the License.
  */
 
-import { configure, t, tn } from '@superset-ui/core';
-
-describe('index', () => {
-  it('exports configure()', () => {
-    expect(configure).toBeDefined();
-    expect(configure).toBeInstanceOf(Function);
-  });
-  it('exports t()', () => {
-    expect(t).toBeDefined();
-    expect(t).toBeInstanceOf(Function);
-  });
-  it('exports tn()', () => {
-    expect(tn).toBeDefined();
-    expect(tn).toBeInstanceOf(Function);
-  });
-});
+export { default as logging } from './logging';

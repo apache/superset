@@ -20,12 +20,8 @@
 
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import {
-  DatasourceType,
-  SupersetClient,
-  t,
-  Datasource,
-} from '@superset-ui/core';
+import { DatasourceType, SupersetClient, Datasource } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   css,
   styled,

@@ -16,36 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 
 import { SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
-  queryEditorSetDb,
   addTable,
   removeTables,
   collapseTable,
   expandTable,
-  queryEditorSetCatalog,
-  queryEditorSetSchema,
-  setDatabases,
-  addDangerToast,
   resetState,
-  type Database,
 } from 'src/SqlLab/actions/sqlLab';
 import { Button, EmptyState, Icons } from '@superset-ui/core/components';
-import { type DatabaseObject } from 'src/components';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, css } from '@apache-superset/core/ui';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import {
-  getItem,
-  LocalStorageKeys,
-  setItem,
-} from 'src/utils/localStorageHelpers';
 import { noop } from 'lodash';
 import TableElement from '../TableElement';
+import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
@@ -70,10 +59,8 @@ const LeftBarStyles = styled.div`
 `;
 
 const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
-  const databases = useSelector<
-    SqlLabRootState,
-    SqlLabRootState['sqlLab']['databases']
-  >(({ sqlLab }) => sqlLab.databases);
+  const { db: userSelectedDb, ...dbSelectorProps } =
+    useDatabaseSelector(queryEditorId);
   const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
     ({ sqlLab }) =>
       sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
@@ -86,16 +73,8 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
     'schema',
     'tabViewId',
   ]);
-  const database = useMemo(
-    () => (queryEditor.dbId ? databases[queryEditor.dbId] : undefined),
-    [databases, queryEditor.dbId],
-  );
-
   const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
-  const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
-    null,
-  );
-  const { dbId, catalog, schema } = queryEditor;
+  const { dbId, schema } = queryEditor;
   const tables = useMemo(
     () =>
       allSelectedTables.filter(
@@ -106,28 +85,9 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
 
   noop(_emptyResultsWithSearch); // This is to avoid unused variable warning, can be removed if not needed
 
-  useEffect(() => {
-    const bool = new URLSearchParams(window.location.search).get('db');
-    const userSelected = getItem(
-      LocalStorageKeys.Database,
-      null,
-    ) as DatabaseObject | null;
-
-    if (bool && userSelected) {
-      setUserSelected(userSelected);
-      setItem(LocalStorageKeys.Database, null);
-    } else if (database) {
-      setUserSelected(database);
-    }
-  }, [database]);
-
   const onEmptyResults = useCallback((searchText?: string) => {
     setEmptyResultsWithSearch(!!searchText);
   }, []);
-
-  const onDbChange = ({ id: dbId }: { id: number }) => {
-    dispatch(queryEditorSetDb(queryEditor, dbId));
-  };
 
   const selectedTableNames = useMemo(
     () => tables?.map(table => table.name) || [],
@@ -176,38 +136,6 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
 
   const shouldShowReset = window.location.search === '?reset=1';
 
-  const handleCatalogChange = useCallback(
-    (catalog: string | null) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetCatalog(queryEditor, catalog));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
-  const handleSchemaChange = useCallback(
-    (schema: string) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetSchema(queryEditor, schema));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
-  const handleDbList = useCallback(
-    (result: DatabaseObject[]) => {
-      dispatch(setDatabases(result as unknown as Database[]));
-    },
-    [dispatch],
-  );
-
-  const handleError = useCallback(
-    (message: string) => {
-      dispatch(addDangerToast(message));
-    },
-    [dispatch],
-  );
-
   const handleResetState = useCallback(() => {
     dispatch(resetState());
   }, [dispatch]);
@@ -215,16 +143,10 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
   return (
     <LeftBarStyles data-test="sql-editor-left-bar">
       <TableSelectorMultiple
+        {...dbSelectorProps}
         onEmptyResults={onEmptyResults}
         emptyState={<EmptyState />}
         database={userSelectedDb}
-        getDbList={handleDbList}
-        handleError={handleError}
-        onDbChange={onDbChange}
-        onCatalogChange={handleCatalogChange}
-        catalog={catalog}
-        onSchemaChange={handleSchemaChange}
-        schema={schema}
         onTableSelectChange={onTablesChange}
         tableValue={selectedTableNames}
         sqlLabMode

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,21 +17,22 @@
  * under the License.
  */
 
-import { LanguagePack } from '@superset-ui/core';
+const console = window.console || {};
+const log = console.log || (() => {});
 
-const languagePack: LanguagePack = {
-  domain: 'superset',
-  locale_data: {
-    superset: {
-      '': {
-        domain: 'superset',
-        plural_forms: 'nplurals=2; plural=(n != 1)',
-        lang: 'en',
-      },
-      second: [''],
-      '%s copies': ['%s copy', '%s copies'],
-    },
-  },
+const logger = {
+  log,
+  debug: console.debug || log,
+  info: console.info || log,
+  warn: console.warn || log,
+  error: console.error || log,
+  trace: console.trace || log,
+  table: console.table || log,
 };
 
-export default languagePack;
+/**
+ * Superset logger, currently just an alias to console.
+ * This may be extended to support numerous console operations safely
+ * i.e.: https://developer.mozilla.org/en-US/docs/Web/API/Console
+ */
+export default logger;

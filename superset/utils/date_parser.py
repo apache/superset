@@ -251,7 +251,7 @@ def handle_nth_of(
     Args:
         ordinal: The ordinal word or number ("first", "1st")
         subunit: The smaller time unit ("week", "day", "month") or None
-        scope: Time scope ("this", "last", "next", "prior", "previous") or None
+        scope: Time scope ("this", "last", "next", "prior") or None
             (defaults to "this")
         unit: The larger time unit ("month", "year", "quarter", "week")
         relative_start: Optional user-provided base time
@@ -370,7 +370,7 @@ def handle_scope_and_unit(scope: str, delta: str, unit: str, relative_base: str)
     _delta = int(delta) if delta else 1
     if scope.lower() == "this":
         return f"DATETIME('{relative_base}')"
-    elif scope.lower() in ["last", "prior", "previous"]:
+    elif scope.lower() in ["last", "prior"]:
         return f"DATEADD(DATETIME('{relative_base}'), -{_delta}, {unit})"
     elif scope.lower() == "next":
         return f"DATEADD(DATETIME('{relative_base}'), {_delta}, {unit})"
@@ -489,10 +489,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     # return a single date, not a range. Those are handled in time_range_lookup below.
     if time_range and separator not in time_range:
         nth_subunit_pattern = (
-            r"^(first|1st)\s+"
-            r"(week|month|quarter)\s+of\s+"
-            r"(?:(this|last|next|prior|previous)\s+)?"
-            r"(?:the\s+)?"
+            r"^(first|1st)\s{1,5}"
+            r"(week|month|quarter)\s{1,5}of\s{1,5}"
+            r"(?:(this|last|next|prior)\s{1,5})?"
+            r"(?:the\s{1,5})?"
             r"(week|month|quarter|year)$"
         )
         match = re.search(nth_subunit_pattern, time_range, re.IGNORECASE)
@@ -503,10 +503,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     if time_range and separator in time_range:
         time_range_lookup = [
             (
-                r"^(start of|beginning of|end of)\s+"
-                r"(this|last|next|prior|previous)\s+"
-                r"([0-9]+)?\s*"
-                r"(day|week|month|quarter|year)s?$",  # Matches "start of next month", "end of last year"  # noqa: E501
+                r"^(start of|beginning of|end of)\s{1,5}"
+                r"(this|last|next|prior)\s{1,5}"
+                r"([0-9]+)?\s{0,5}"
+                r"(day|week|month|quarter|year)s?$",  # Matches "start of next month"  # noqa: E501
                 lambda modifier, scope, delta, unit: handle_modifier_and_unit(
                     modifier,
                     scope,
@@ -518,9 +518,9 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             (
                 # Pattern for "first of [scope] [unit]" - single date
                 # e.g., "first of this month", "first of last year"
-                r"^(first|1st)\s+"
-                r"(?:day\s+)?of\s+"
-                r"(this|last|next|prior|previous)\s+"
+                r"^(first|1st)\s{1,5}"
+                r"(?:day\s{1,5})?of\s{1,5}"
+                r"(this|last|next|prior)\s{1,5}"
                 r"(day|week|month|quarter|year)s?$",
                 lambda ordinal, scope, unit: handle_nth_of(
                     ordinal, None, scope, unit, relative_start
@@ -529,18 +529,18 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             (
                 # Pattern for "first of the [unit]" - single date with default scope
                 # e.g., "first of the month", "first day of the year"
-                r"^(first|1st)\s+"
-                r"(?:day\s+)?of\s+"
-                r"(?:the\s+)?"
+                r"^(first|1st)\s{1,5}"
+                r"(?:day\s{1,5})?of\s{1,5}"
+                r"(?:the\s{1,5})?"
                 r"(week|month|quarter|year)$",
                 lambda ordinal, unit: handle_nth_of(
                     ordinal, None, None, unit, relative_start
                 ),
             ),
             (
-                r"^(this|last|next|prior|previous)\s+"
-                r"([0-9]+)?\s*"
-                r"(second|minute|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
+                r"^(this|last|next|prior)\s{1,5}"
+                r"([0-9]+)?\s{0,5}"
+                r"(second|minute|day|week|month|quarter|year)s?$",  # Matches "next 5 days"  # noqa: E501
                 lambda scope, delta, unit: handle_scope_and_unit(
                     scope, delta, unit, get_relative_base(unit, relative_start)
                 ),

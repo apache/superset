@@ -18,7 +18,8 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
+import { ensureIsArray, usePrevious } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { isEqual } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';

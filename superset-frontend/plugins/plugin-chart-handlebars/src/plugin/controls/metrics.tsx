@@ -25,7 +25,7 @@ import {
   ColumnMeta,
   defineSavedMetrics,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { getQueryMode, isAggMode, validateAggControlValues } from './shared';
 
 const percentMetrics: typeof sharedControls.metrics = {

@@ -19,7 +19,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, useTheme, css } from '@apache-superset/core/ui';
 import { MenuProps } from '@superset-ui/core/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';

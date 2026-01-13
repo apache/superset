@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, safeHtmlSpan } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { safeHtmlSpan } from '@superset-ui/core';
 import { JsonModal } from '../JsonModal';
 import { safeJsonObjectParse } from '../JsonModal/utils';
 import { NULL_STRING, CellDataType } from './useCellContentParser';

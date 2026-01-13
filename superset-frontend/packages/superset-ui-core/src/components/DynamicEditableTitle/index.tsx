@@ -25,7 +25,7 @@ import {
   useLayoutEffect,
   useState,
 } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import { useResizeDetector } from 'react-resize-detector';
 import { Tooltip } from '../Tooltip';

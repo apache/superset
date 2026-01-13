@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
+import { normalizeTimestamp, QueryState } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { isEqual, omit } from 'lodash';
 import { shallowEqual } from 'react-redux';
 import { now } from '@superset-ui/core/utils/dates';

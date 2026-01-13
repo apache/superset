@@ -19,7 +19,8 @@
 /* eslint-disable camelcase */
 import { PureComponent, createRef } from 'react';
 import PropTypes from 'prop-types';
-import { isDefined, t, ensureIsArray, DatasourceType } from '@superset-ui/core';
+import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {

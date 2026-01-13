@@ -22,7 +22,8 @@ import PropTypes from 'prop-types';
 import type { SupersetTheme } from '@apache-superset/core/ui';
 import { Button, Icons, Select } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 
 import Tabs from '@superset-ui/core/components/Tabs';

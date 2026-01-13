@@ -24,7 +24,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { getExtensionsRegistry, QueryData, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getExtensionsRegistry, QueryData } from '@superset-ui/core';
 import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
@@ -53,6 +54,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  queriedDttm?: string | null;
   exportPivotExcel?: (arg0: string) => void;
 };
 
@@ -141,6 +143,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       annotationQuery = {},
       annotationError = {},
       cachedDttm = null,
+      queriedDttm = null,
       updatedDttm = null,
       isCached = [],
       isExpanded = false,
@@ -322,6 +325,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   isCached={isCached}
                   isExpanded={isExpanded}
                   cachedDttm={cachedDttm}
+                  queriedDttm={queriedDttm}
                   updatedDttm={updatedDttm}
                   toggleExpandSlice={toggleExpandSlice}
                   forceRefresh={forceRefresh}

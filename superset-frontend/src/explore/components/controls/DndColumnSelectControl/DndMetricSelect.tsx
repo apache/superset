@@ -19,15 +19,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nanoid } from 'nanoid';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
   isAdhocMetricSimple,
   isSavedMetric,
   Metric,
   QueryFormMetric,
-  t,
-  tn,
 } from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';

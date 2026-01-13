@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,22 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 
-import { LanguagePack } from '@superset-ui/core';
+export interface ViewListExtensionProps {
+  viewId: string;
+}
 
-const languagePack: LanguagePack = {
-  domain: 'superset',
-  locale_data: {
-    superset: {
-      '': {
-        domain: 'superset',
-        plural_forms: 'nplurals=1; plural=0;',
-        lang: 'zh',
-      },
-      second: ['秒'],
-      'Copy of %s': ['%s 的副本'],
-    },
-  },
+const ViewListExtension = ({ viewId }: ViewListExtensionProps) => {
+  const maybeContributions =
+    ExtensionsManager.getInstance().getViewContributions(viewId);
+  const contributions = Array.isArray(maybeContributions)
+    ? maybeContributions
+    : [];
+  const { getView } = useExtensionsContext();
+
+  return (
+    <>
+      {contributions
+        .filter(
+          contribution =>
+            contribution && typeof contribution.id !== 'undefined',
+        )
+        .map(contribution => getView(contribution.id))}
+    </>
+  );
 };
 
-export default languagePack;
+export default ViewListExtension;

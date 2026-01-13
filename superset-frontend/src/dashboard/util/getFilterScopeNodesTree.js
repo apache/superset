@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isEmpty } from 'lodash';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 
 import { DASHBOARD_ROOT_ID } from './constants';
 import { CHART_TYPE, DASHBOARD_ROOT_TYPE, TAB_TYPE } from './componentTypes';

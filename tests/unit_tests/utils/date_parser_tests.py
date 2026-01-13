@@ -628,9 +628,6 @@ def test_first_of_with_explicit_scope() -> None:
     result = get_since_until("first of prior month : ")
     assert result == (datetime(2016, 10, 1), None)
 
-    result = get_since_until("first of previous month : ")
-    assert result == (datetime(2016, 10, 1), None)
-
     result = get_since_until("first day of this year : ")
     assert result == (datetime(2016, 1, 1), None)
 
@@ -678,3 +675,50 @@ def test_first_subunit_of_with_default_scope() -> None:
 
     result = get_since_until("first month of the quarter")
     assert result == (datetime(2016, 10, 1), datetime(2016, 11, 1))
+
+
+# Tests for bounded whitespace regex patterns in time_range_lookup
+@pytest.mark.parametrize(
+    "time_range",
+    [
+        "last 7 days : ",
+        "this week : ",
+        "start of next month : ",
+        "prior quarter : ",
+        "last  7 days : ",
+        "last   7 days : ",
+        "last    7 days : ",
+        "last     7 days : ",
+        "start of     next     month : ",  # 5 spaces - valid
+        "last week : ",
+        "last  week : ",
+        "last     week : ",
+        "next 12 months : ",
+        "next  12  months : ",
+        "next     12     months : ",
+        "last 7days : ",  # \s{0,5} allows 0 spaces after number - valid
+    ],
+)
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_time_range_bounded_whitespace_regex_valid(time_range: str) -> None:
+    """Match expressions with 1-5 spaces between tokens."""
+    result = get_since_until(time_range)
+    assert result[0] is not None, f"Expected '{time_range}' to parse successfully"
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    [
+        "last      7 days : ",
+        "last7days : ",
+        "lastweek : ",
+        "last : ",
+        "start of : ",
+        "last 7 days extra : ",
+    ],
+)
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_time_range_bounded_whitespace_regex_invalid(time_range: str) -> None:
+    """Reject expressions with 0 or 6+ spaces (fall back to DATETIME wrapping)."""
+    result = get_since_until(time_range)
+    assert result[0] is None, f"Expected '{time_range}' to NOT match bounded regex"

@@ -17,12 +17,12 @@
  * under the License.
  */
 import { FC } from 'react';
+import { t } from '@apache-superset/core';
 import {
   Behavior,
   SetDataMaskHook,
   SuperChart,
   AppSection,
-  t,
 } from '@superset-ui/core';
 import { Loading, type FormInstance } from '@superset-ui/core/components';
 import { NativeFiltersForm } from '../types';
