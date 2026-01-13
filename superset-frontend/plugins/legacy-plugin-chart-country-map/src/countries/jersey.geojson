@@ -5,7 +5,7 @@
       "type": "Feature",
       "properties": {
         "ISO": "JE-04",
-        "NAME_1": "St Helier"
+        "NAME_1": "St. Helier"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -3011,7 +3011,7 @@
       "type": "Feature",
       "properties": {
         "ISO": "JE-11",
-        "NAME_1": "St Saviour"
+        "NAME_1": "St. Saviour"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -4631,7 +4631,7 @@
       "type": "Feature",
       "properties": {
         "ISO": "JE-03",
-        "NAME_1": "St Clement"
+        "NAME_1": "St. Clement"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -15359,7 +15359,7 @@
       "type": "Feature",
       "properties": {
         "ISO": "JE-07",
-        "NAME_1": "St Martin"
+        "NAME_1": "St. Martin"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -19727,7 +19727,7 @@
       "type": "Feature",
       "properties": {
         "ISO": "JE-09",
-        "NAME_1": "St Ouen"
+        "NAME_1": "St. Ouen"
       },
       "geometry": {
         "type": "Polygon",
@@ -23209,7 +23209,7 @@
       "type": "Feature",
       "properties": {
         "ISO": "JE-10",
-        "NAME_1": "St Peter"
+        "NAME_1": "St. Peter"
       },
       "geometry": {
         "type": "Polygon",
@@ -25859,7 +25859,7 @@
       "type": "Feature",
       "properties": {
         "ISO": "JE-08",
-        "NAME_1": "St Mary"
+        "NAME_1": "St. Mary"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -28495,7 +28495,7 @@
       "type": "Feature",
       "properties": {
         "ISO": "JE-06",
-        "NAME_1": "St Lawrence"
+        "NAME_1": "St. Lawrence"
       },
       "geometry": {
         "type": "Polygon",
@@ -30249,7 +30249,7 @@
       "type": "Feature",
       "properties": {
         "ISO": "JE-05",
-        "NAME_1": "St John"
+        "NAME_1": "St. John"
       },
       "geometry": {
         "type": "Polygon",
@@ -32841,7 +32841,7 @@
       "type": "Feature",
       "properties": {
         "ISO": "JE-02",
-        "NAME_1": "St Brelade"
+        "NAME_1": "St. Brelade"
       },
       "geometry": {
         "type": "MultiPolygon",
