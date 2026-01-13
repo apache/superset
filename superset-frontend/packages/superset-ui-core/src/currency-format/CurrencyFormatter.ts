@@ -94,7 +94,11 @@ class CurrencyFormatter extends ExtensibleFunction {
   }
 
   getNormalizedD3Format() {
-    return this.d3Format.replace(/\$|%/g, '');
+    return this.d3Format.replace(/\$/g, '');
+  }
+
+  normalizeForCurrency(value: string) {
+    return value.replace(/%/g, '');
   }
 
   format(value: number, rowData?: RowData, currencyColumn?: string): string {
@@ -108,6 +112,9 @@ class CurrencyFormatter extends ExtensibleFunction {
       return formattedValue as string;
     }
 
+    // Remove % signs from formatted value for currency display
+    const normalizedValue = this.normalizeForCurrency(formattedValue);
+
     if (isAutoMode) {
       if (rowData && currencyColumn && rowData[currencyColumn]) {
         const rawCurrency = rowData[currencyColumn];
@@ -118,12 +125,12 @@ class CurrencyFormatter extends ExtensibleFunction {
             const symbol = getCurrencySymbol({ symbol: normalizedCurrency });
             if (symbol) {
               if (this.currency.symbolPosition === 'prefix') {
-                return `${symbol} ${formattedValue}`;
+                return `${symbol} ${normalizedValue}`;
               } else if (this.currency.symbolPosition === 'suffix') {
-                return `${formattedValue} ${symbol}`;
+                return `${normalizedValue} ${symbol}`;
               }
               // Unknown symbolPosition - default to suffix
-              return `${formattedValue} ${symbol}`;
+              return `${normalizedValue} ${symbol}`;
             }
           } catch {
             // Invalid currency code - return value without currency symbol
@@ -137,12 +144,12 @@ class CurrencyFormatter extends ExtensibleFunction {
     try {
       const symbol = getCurrencySymbol(this.currency);
       if (this.currency.symbolPosition === 'prefix') {
-        return `${symbol} ${formattedValue}`;
+        return `${symbol} ${normalizedValue}`;
       } else if (this.currency.symbolPosition === 'suffix') {
-        return `${formattedValue} ${symbol}`;
+        return `${normalizedValue} ${symbol}`;
       }
       // Unknown symbolPosition - default to suffix
-      return `${formattedValue} ${symbol}`;
+      return `${normalizedValue} ${symbol}`;
     } catch {
       // Invalid currency code - return value without currency symbol
       return formattedValue;

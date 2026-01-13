@@ -20,7 +20,7 @@
     "npm": "^11.7.0",
     "typescript": "^5.0.0",
     "@emotion/styled": "^11.14.1",
-    "@types/lodash": "^4.17.21",
+    "@types/lodash": "^4.17.23",
     "@testing-library/dom": "^8.20.1",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^12.1.5",

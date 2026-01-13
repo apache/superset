@@ -32,8 +32,8 @@
     "@types/ioredis": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/lodash": "^4.17.21",
-    "@types/node": "^25.0.3",
+    "@types/lodash": "^4.17.23",
+    "@types/node": "^25.0.7",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.26.0",
@@ -48,7 +48,7 @@
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.52.0"
+    "typescript-eslint": "^8.53.0"
   },
   "engines": {
     "node": "^20.19.4",
