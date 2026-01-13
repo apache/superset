@@ -148,8 +148,13 @@ class ScatterPlotGlowOverlay extends PureComponent {
     let maxRadiusValue = -Infinity;
     if (pointRadiusUnit === 'Pixels') {
       locations.forEach(location => {
-        if (!location.properties.cluster && location.properties.radius !== null) {
-          const radiusValue = location.properties.radius;
+        // Accept both null and undefined as "no value" and coerce potential numeric strings
+        if (
+          !location.properties.cluster &&
+          location.properties.radius != null
+        ) {
+          const radiusValueRaw = location.properties.radius;
+          const radiusValue = Number(radiusValueRaw);
           if (Number.isFinite(radiusValue)) {
             minRadiusValue = Math.min(minRadiusValue, radiusValue);
             maxRadiusValue = Math.max(maxRadiusValue, radiusValue);
@@ -257,11 +262,22 @@ class ScatterPlotGlowOverlay extends PureComponent {
                   maxRadiusValue > minRadiusValue
                 ) {
                   // Normalize the value to 0-1 range, then scale to pixel range
-                  const normalizedValue =
-                    (pointRadius - minRadiusValue) / (maxRadiusValue - minRadiusValue);
-                  pointRadius =
-                    MIN_POINT_RADIUS +
-                    normalizedValue * (MAX_POINT_RADIUS - MIN_POINT_RADIUS);
+                  const numericPointRadius = Number(pointRadius);
+                  if (!Number.isFinite(numericPointRadius)) {
+                    // fallback to minimum visible size when the value is not a finite number
+                    pointRadius = MIN_POINT_RADIUS;
+                  } else {
+                    const normalizedValueRaw =
+                      (numericPointRadius - minRadiusValue) /
+                      (maxRadiusValue - minRadiusValue);
+                    const normalizedValue = Math.max(
+                      0,
+                      Math.min(1, normalizedValueRaw),
+                    );
+                    pointRadius =
+                      MIN_POINT_RADIUS +
+                      normalizedValue * (MAX_POINT_RADIUS - MIN_POINT_RADIUS);
+                  }
                   pointLabel = `${roundDecimal(radiusProperty, 2)}`;
                 } else if (
                   Number.isFinite(minRadiusValue) &&
@@ -272,7 +288,10 @@ class ScatterPlotGlowOverlay extends PureComponent {
                   pointLabel = `${roundDecimal(radiusProperty, 2)}`;
                 } else {
                   // Use raw pixel values if they're already in a reasonable range
-                  pointRadius = Math.max(MIN_POINT_RADIUS, Math.min(pointRadius, MAX_POINT_RADIUS));
+                  pointRadius = Math.max(
+                    MIN_POINT_RADIUS,
+                    Math.min(pointRadius, MAX_POINT_RADIUS),
+                  );
                   pointLabel = `${roundDecimal(radiusProperty, 2)}`;
                 }
               }
