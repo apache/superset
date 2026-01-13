@@ -256,14 +256,6 @@ export interface QuerySettings extends RequestParams {
   body?: string;
 }
 
-// Chart data response type
-export interface ChartDataResponse {
-  response: Response;
-  json: {
-    result: QueryData[];
-  };
-}
-
 // API response type for chart data request
 export interface ChartDataRequestResponse {
   response: Response;
