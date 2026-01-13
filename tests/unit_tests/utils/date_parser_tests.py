@@ -611,3 +611,70 @@ def test_date_range_migration() -> None:
 
     field = "10 years ago"
     assert not re.search(DateRangeMigration.x_dateunit, field)
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_first_of_with_explicit_scope() -> None:
+    """Test 'first of [scope] [unit]' expressions that return a single date."""
+    result = get_since_until("first of this month : ")
+    assert result == (datetime(2016, 11, 1), None)
+
+    result = get_since_until("first of last month : ")
+    assert result == (datetime(2016, 10, 1), None)
+
+    result = get_since_until("first of next month : ")
+    assert result == (datetime(2016, 12, 1), None)
+
+    result = get_since_until("first of prior month : ")
+    assert result == (datetime(2016, 10, 1), None)
+
+    result = get_since_until("first of previous month : ")
+    assert result == (datetime(2016, 10, 1), None)
+
+    result = get_since_until("first day of this year : ")
+    assert result == (datetime(2016, 1, 1), None)
+
+    result = get_since_until("first day of last year : ")
+    assert result == (datetime(2015, 1, 1), None)
+
+    result = get_since_until("first day of this week : ")
+    assert result == (datetime(2016, 11, 7), None)
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_first_of_with_default_scope() -> None:
+    """Test 'first of the [unit]' expressions that default to 'this'."""
+    result = get_since_until("first of the month : ")
+    assert result == (datetime(2016, 11, 1), None)
+
+    result = get_since_until("first of the year : ")
+    assert result == (datetime(2016, 1, 1), None)
+
+    result = get_since_until("first day of the month : ")
+    assert result == (datetime(2016, 11, 1), None)
+
+    result = get_since_until("first day of the week : ")
+    assert result == (datetime(2016, 11, 7), None)
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_first_subunit_of_with_explicit_scope() -> None:
+    """Test 'first [subunit] of [scope] [unit]' expressions that return a range."""
+    result = get_since_until("first week of this year")
+    assert result == (datetime(2016, 1, 1), datetime(2016, 1, 8))
+
+    result = get_since_until("first month of this quarter")
+    assert result == (datetime(2016, 10, 1), datetime(2016, 11, 1))
+
+    result = get_since_until("first week of last month")
+    assert result == (datetime(2016, 10, 1), datetime(2016, 10, 8))
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_first_subunit_of_with_default_scope() -> None:
+    """Test 'first [subunit] of the [unit]' expressions that default to 'this'."""
+    result = get_since_until("first week of the year")
+    assert result == (datetime(2016, 1, 1), datetime(2016, 1, 8))
+
+    result = get_since_until("first month of the quarter")
+    assert result == (datetime(2016, 10, 1), datetime(2016, 11, 1))
