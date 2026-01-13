@@ -314,6 +314,7 @@ class ImportV1DatasetSchema(Schema):
 
     table_name = fields.String(required=True)
     main_dttm_col = fields.String(allow_none=True)
+    currency_code_column = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     offset = fields.Integer()
