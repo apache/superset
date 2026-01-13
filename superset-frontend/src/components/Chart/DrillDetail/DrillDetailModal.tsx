@@ -80,18 +80,23 @@ const ModalFooter = ({
         <Dropdown
           trigger={['click']}
           menu={{
+            onClick: ({ key }) => {
+              if (key === 'csv') {
+                onDownloadCSV();
+              } else if (key === 'xlsx') {
+                onDownloadXLSX();
+              }
+            },
             items: [
               {
                 key: 'csv',
                 label: t('Export to CSV'),
                 icon: <Icons.FileOutlined />,
-                onClick: onDownloadCSV,
               },
               {
                 key: 'xlsx',
                 label: t('Export to Excel'),
                 icon: <Icons.FileOutlined />,
-                onClick: onDownloadXLSX,
               },
             ],
           }}
@@ -231,6 +236,7 @@ export default function DrillDetailModal({
           canDownload={canDownload}
           onDownloadCSV={handleDownloadCSV}
           onDownloadXLSX={handleDownloadXLSX}
+          closeModal={onHideModal}
         />
       }
       responsive
