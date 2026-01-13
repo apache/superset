@@ -541,10 +541,8 @@ class TestBrandAppNameFallback:
         """Test that explicit brandAppName in theme takes precedence"""
         from superset.views.base import get_spa_template_context
 
-        mock_app.config = MagicMock()
-        mock_app.config.get.side_effect = lambda k, d=None: {
-            "APP_NAME": "Fallback App Name",
-        }.get(k, d)
+        # Use a plain dict for config to mirror Flask's config mapping behavior
+        mock_app.config = {"APP_NAME": "Fallback App Name"}
 
         # Mock payload with theme data that has custom brandAppName
         mock_payload.return_value = {
