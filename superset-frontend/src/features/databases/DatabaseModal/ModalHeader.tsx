@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import { UploadFile } from '@superset-ui/core/components/Upload';
 import { Typography } from '@superset-ui/core/components/Typography';

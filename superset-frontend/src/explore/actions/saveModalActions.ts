@@ -18,12 +18,12 @@
  */
 import rison from 'rison';
 import { Dispatch } from 'redux';
+import { t } from '@apache-superset/core';
 import {
   DatasourceType,
   type QueryFormData,
   SimpleAdhocFilter,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';

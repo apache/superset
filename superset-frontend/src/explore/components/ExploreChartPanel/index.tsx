@@ -18,6 +18,7 @@
  */
 import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import Split from 'react-split';
+import { t } from '@apache-superset/core';
 import {
   DatasourceType,
   ensureIsArray,
@@ -25,7 +26,6 @@ import {
   FeatureFlag,
   getChartMetadataRegistry,
   SupersetClient,
-  t,
   QueryFormData,
   JsonObject,
   getExtensionsRegistry,
@@ -43,6 +43,7 @@ import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
 import type { ChartState, Datasource } from 'src/explore/types';
 import type { Slice } from 'src/types/Chart';
+import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
@@ -399,6 +400,19 @@ const ExploreChartPanel = ({
           />
         </ChartHeaderExtension>
         {renderChart()}
+        {!chart.chartStatus || chart.chartStatus !== 'loading' ? (
+          <div
+            css={css`
+              display: flex;
+              justify-content: flex-end;
+              padding-top: ${theme.sizeUnit * 2}px;
+            `}
+          >
+            <LastQueriedLabel
+              queriedDttm={chart.queriesResponse?.[0]?.queried_dttm ?? null}
+            />
+          </div>
+        ) : null}
       </div>
     ),
     [
@@ -415,6 +429,7 @@ const ExploreChartPanel = ({
       formData?.matrixify_enable_vertical_layout,
       formData?.matrixify_enable_horizontal_layout,
       renderChart,
+      theme.sizeUnit,
     ],
   );
 

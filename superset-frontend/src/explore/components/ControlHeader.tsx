@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC, ReactNode } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';

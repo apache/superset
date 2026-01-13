@@ -18,7 +18,8 @@
  */
 
 import { Component } from 'react';
-import { t, safeHtmlSpan } from '@superset-ui/core';
+import { safeHtmlSpan } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 import PropTypes from 'prop-types';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';

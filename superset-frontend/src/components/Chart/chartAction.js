@@ -21,10 +21,10 @@ import {
   FeatureFlag,
   isDefined,
   SupersetClient,
-  t,
   isFeatureEnabled,
   getClientErrorObject,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 import { getControlsState } from 'src/explore/store';
 import {
   getAnnotationJsonUrl,

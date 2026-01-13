@@ -26,7 +26,7 @@ import {
   ReactNode,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 import { DatasourcesState, ChartsState, RootState } from 'src/dashboard/types';

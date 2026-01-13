@@ -45,6 +45,7 @@ from superset.utils import json
 if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.sql.parse import Table
+    from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 _logger = logging.getLogger()
 
@@ -128,6 +129,38 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     )
     oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
     oauth2_exception = UnauthenticatedError
+
+    @classmethod
+    def get_oauth2_authorization_uri(
+        cls,
+        config: "OAuth2ClientConfig",
+        state: "OAuth2State",
+    ) -> str:
+        """
+        Return URI for initial OAuth2 request with Google-specific parameters.
+
+        Google OAuth requires additional parameters for proper token refresh:
+        - access_type=offline: Request a refresh token
+        - include_granted_scopes=false: Don't include previously granted scopes
+        - prompt=consent: Force consent screen to ensure refresh token is returned
+        """
+        from urllib.parse import urlencode, urljoin
+
+        from superset.utils.oauth2 import encode_oauth2_state
+
+        uri = config["authorization_request_uri"]
+        params = {
+            "scope": config["scope"],
+            "response_type": "code",
+            "state": encode_oauth2_state(state),
+            "redirect_uri": config["redirect_uri"],
+            "client_id": config["id"],
+            # Google-specific parameters
+            "access_type": "offline",
+            "include_granted_scopes": "false",
+            "prompt": "consent",
+        }
+        return urljoin(uri, "?" + urlencode(params))
 
     @classmethod
     def impersonate_user(

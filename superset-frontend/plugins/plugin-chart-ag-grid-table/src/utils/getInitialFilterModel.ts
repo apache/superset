@@ -16,23 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isEmpty } from 'lodash';
+import type { AgGridChartState } from '@superset-ui/core';
 
-const console = window.console || {};
-const log = console.log || (() => {});
+const getInitialFilterModel = (
+  chartState?: Partial<AgGridChartState>,
+  serverPaginationData?: Record<string, unknown>,
+  serverPagination?: boolean,
+): Record<string, unknown> | undefined => {
+  const chartStateFilterModel =
+    chartState?.filterModel && !isEmpty(chartState.filterModel)
+      ? (chartState.filterModel as Record<string, unknown>)
+      : undefined;
 
-const logger = {
-  log,
-  debug: console.debug || log,
-  info: console.info || log,
-  warn: console.warn || log,
-  error: console.error || log,
-  trace: console.trace || log,
-  table: console.table || log,
+  const serverFilterModel =
+    serverPagination &&
+    serverPaginationData?.agGridFilterModel &&
+    !isEmpty(serverPaginationData.agGridFilterModel)
+      ? (serverPaginationData.agGridFilterModel as Record<string, unknown>)
+      : undefined;
+
+  return chartStateFilterModel ?? serverFilterModel;
 };
 
-/**
- * Superset frontend logger, currently just an alias to console.
- * This may be extended to support numerous console operations safely
- * i.e.: https://developer.mozilla.org/en-US/docs/Web/API/Console
- */
-export default logger;
+export default getInitialFilterModel;

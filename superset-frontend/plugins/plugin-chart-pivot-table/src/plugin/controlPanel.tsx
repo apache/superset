@@ -23,13 +23,13 @@ import {
   getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
   isAdhocColumn,
   isPhysicalColumn,
   QueryFormMetric,
   SMART_DATE_ID,
-  t,
   validateNonEmpty,
 } from '@superset-ui/core';
 import { MetricsLayoutEnum } from '../types';

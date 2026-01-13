@@ -29,11 +29,11 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
+import { t } from '@apache-superset/core';
 import {
   DataMaskStateWithId,
   Filters,
   JsonObject,
-  t,
   usePrevious,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
