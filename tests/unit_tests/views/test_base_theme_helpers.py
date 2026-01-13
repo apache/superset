@@ -541,10 +541,8 @@ class TestBrandAppNameFallback:
         """Test that explicit brandAppName in theme takes precedence"""
         from superset.views.base import get_spa_template_context
 
-        mock_app.config = MagicMock()
-        mock_app.config.get.side_effect = lambda k, d=None: {
-            "APP_NAME": "Fallback App Name",
-        }.get(k, d)
+        # Use a plain dict for config to mirror Flask's config mapping behavior
+        mock_app.config = {"APP_NAME": "Fallback App Name"}
 
         # Mock payload with theme data that has custom brandAppName
         mock_payload.return_value = {
@@ -769,3 +767,68 @@ class TestBrandAppNameFallback:
         # Note: We can't easily test the cached payload immutability
         # without more complex mocking, but we've verified the result is correct
         assert result["default_title"] == "Test App"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_handles_empty_theme_config(self, mock_app, mock_payload):
+        """Test that empty theme configs are skipped gracefully"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {"APP_NAME": "Test App"}
+
+        # Mock payload with empty dark theme
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {"token": {"brandAppName": "Superset"}},
+                    "dark": {},  # Empty theme config
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should handle empty theme gracefully and still update default
+        assert result["default_title"] == "Test App"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_creates_token_dict_when_missing(self, mock_app, mock_payload):
+        """Test that token dict is created when missing from theme config"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {"APP_NAME": "Token Test App"}
+
+        # Mock payload with theme missing token dict
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {"algorithm": "default"},  # No token dict
+                    "dark": {"algorithm": "dark"},  # No token dict
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should create token dict and set brandAppName
+        assert result["default_title"] == "Token Test App"
+        assert result["theme_tokens"]["brandAppName"] == "Token Test App"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_handles_missing_common_in_payload(
+        self, mock_app, mock_payload
+    ):
+        """Test handling when common dict is missing from payload"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {"APP_NAME": "Superset"}
+
+        # Mock payload without common dict
+        mock_payload.return_value = {}
+
+        result = get_spa_template_context("app")
+
+        # Should handle gracefully and use default title
+        assert result["default_title"] == "Superset"

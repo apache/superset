@@ -291,6 +291,9 @@ function ExploreViewContainer(props) {
 
   const theme = useTheme();
 
+  // Capture original title before any effects run
+  const originalTitle = useMemo(() => document.title, []);
+
   // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
@@ -298,18 +301,17 @@ function ExploreViewContainer(props) {
     }
   }, [props.sliceName]);
 
-  // Restore original title on unmount (run once)
-  useEffect(() => {
-    const originalTitle = document.title;
-    return () => {
+  // Restore original title on unmount
+  useEffect(
+    () => () => {
       document.title =
         originalTitle ||
         theme?.brandAppName ||
         theme?.brandLogoAlt ||
         'Superset';
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    },
+    [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
+  );
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
