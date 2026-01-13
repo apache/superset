@@ -226,12 +226,12 @@ export function deleteActiveReport(report: ReportObject) {
     return SupersetClient.delete({
       endpoint: encodeURI(`/api/v1/report/${report.id}`),
     })
-      .catch(() => {
-        dispatch(addDangerToast(t('Your report could not be deleted')));
-      })
-      .finally(() => {
+      .then(() => {
         dispatch({ type: DELETE_REPORT, report } as DeleteReportAction);
         dispatch(addSuccessToast(t('Deleted: %s', report.name)));
+      })
+      .catch(() => {
+        dispatch(addDangerToast(t('Your report could not be deleted')));
       });
   };
 }
