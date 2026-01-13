@@ -1,6 +1,5 @@
 {"type": "FeatureCollection", 
 "name": "jersey", 
-"crs": {"type": "name", "properties": {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"}}, 
 "features": [{"type": "Feature", "properties": {"ISO": "JE", "NAME_1": "Jersey"}, 
 "geometry": {"type": "MultiPolygon", 
 "coordinates": [[[[-83.8084227, 33.7186084], [-83.8084926, 33.7179995], [-83.8085005, 33.7173877], [-83.8084464, 33.7167776], 
