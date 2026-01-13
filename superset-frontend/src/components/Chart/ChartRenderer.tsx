@@ -486,7 +486,7 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
     // Check for Behavior.DRILL_TO_DETAIL to tell if chart can receive Drill to
     // Detail props or if it'll cause side-effects (e.g. excessive re-renders).
     const drillToDetailProps = getChartMetadataRegistry()
-      .get(formData.viz_type)
+      .get(vizType)
       ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
       ? { inContextMenu: this.state.inContextMenu }
       : {};
