@@ -20,12 +20,12 @@
 import { getFormattedUTCTime, convertUTCTimestampToLocal } from '../src/utils';
 
 describe('getFormattedUTCTime', () => {
-  it('formats UTC timestamp for display', () => {
-    const ts = 1420070400000;
-    const formattedTime = getFormattedUTCTime(ts, '%Y-%m-%d');
+  it('formats local timestamp for display as UTC date', () => {
+    const utcTimestamp = 1420070400000; // 2015-01-01 00:00:00 UTC
+    const localTimestamp = convertUTCTimestampToLocal(utcTimestamp);
+    const formattedTime = getFormattedUTCTime(localTimestamp, '%Y-%m-%d');
 
-    expect(formattedTime).toBeTruthy();
-    expect(typeof formattedTime).toBe('string');
+    expect(formattedTime).toEqual('2015-01-01');
   });
 });
 
