@@ -31,6 +31,7 @@ interface MockStore {
     dashboardInfo: { id: number };
     impressionId: string;
   };
+  dispatch: () => void;
 }
 
 interface LogEventAction {
@@ -52,6 +53,7 @@ describe('logger middleware', () => {
       },
       impressionId: 'impression_id',
     }),
+    dispatch: () => {},
   };
   const action: LogEventAction = {
     type: LOG_EVENT,
