@@ -78,17 +78,19 @@ export interface DataMaskState {
   };
 }
 
-export interface ExploreState {
-  form_data: QueryFormData;
-  [key: string]: unknown;
-}
-
+// RootState uses flexible types to accommodate various state shapes
+// across dashboard and explore views
 export interface RootState {
   charts: ChartsState;
   common: CommonState;
   dashboardInfo: DashboardInfoState;
   dataMask: DataMaskState;
-  explore: ExploreState;
+  explore: {
+    form_data: QueryFormData;
+    datasource?: { type: string };
+    common?: { conf: { DEFAULT_VIZ_TYPE?: string } };
+    [key: string]: unknown;
+  };
 }
 
 // Action types
@@ -276,8 +278,13 @@ export interface GetChartDataRequestParams {
 }
 
 // runAnnotationQuery params interface
+// Extended annotation layer with optional overrides for time range
+interface AnnotationLayerWithOverrides extends AnnotationLayer {
+  overrides?: Record<string, unknown>;
+}
+
 export interface RunAnnotationQueryParams {
-  annotation: AnnotationLayer;
+  annotation: AnnotationLayerWithOverrides;
   timeout?: number;
   formData?: QueryFormData | LatestQueryFormData;
   key?: string | number;
@@ -378,10 +385,11 @@ export const dynamicPluginControlsReady =
     const controlsState = getControlsState(
       state.explore,
       state.explore.form_data,
-    );
+    ) as ControlStateMapping;
+    const sliceIdControl = controlsState.slice_id as { value?: unknown };
     dispatch({
       type: DYNAMIC_PLUGIN_CONTROLS_READY,
-      key: controlsState.slice_id.value,
+      key: sliceIdControl?.value,
       controlsState,
     });
   };
@@ -416,7 +424,7 @@ const legacyChartDataRequest = async (
     parseMethod,
   };
 
-  return SupersetClient.post(querySettings).then(
+  return SupersetClient.post(querySettings as Parameters<typeof SupersetClient.post>[0]).then(
     ({ json, response }: { json: JsonObject; response: Response }) =>
       // Make the legacy endpoint return a payload that corresponds to the
       // V1 chart data endpoint response signature.
@@ -472,7 +480,9 @@ const v1ChartDataRequest = async (
     parseMethod,
   };
 
-  return SupersetClient.post(querySettings);
+  return SupersetClient.post(
+    querySettings as Parameters<typeof SupersetClient.post>[0],
+  ) as Promise<ChartDataRequestResponse>;
 };
 
 export async function getChartDataRequest({
