@@ -359,7 +359,7 @@
     "typescript": "5.4.5",
     "vm-browserify": "^1.1.2",
     "wait-on": "^9.0.3",
-    "webpack": "^5.103.0",
+    "webpack": "^5.104.1",
     "webpack-bundle-analyzer": "^5.1.1",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.2",
