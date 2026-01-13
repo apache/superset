@@ -84,7 +84,7 @@ export default function MatrixifyDimensionControl(
   useEffect(() => {
     // Only clear values when actually switching between modes, not on initial load or re-render
     if (
-      prevSelectionMode.current !== selectionMode && 
+      prevSelectionMode.current !== selectionMode &&
       prevSelectionMode.current !== undefined &&
       value?.dimension
     ) {
