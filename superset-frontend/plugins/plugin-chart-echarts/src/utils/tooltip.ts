@@ -27,7 +27,7 @@ import {
 import { TOOLTIP_OVERFLOW_MARGIN, TOOLTIP_POINTER_MARGIN } from '../constants';
 import { Refs } from '../types';
 
-const TOOLTIP_Z_INDEX = 2147483647;
+const TOOLTIP_Z_INDEX = 2000;
 
 export function getDefaultTooltip(refs: Refs) {
   return {
