@@ -418,9 +418,9 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     if time_range and separator in time_range:
         time_range_lookup = [
             (
-                r"^(start of|beginning of|end of)\s+"
-                r"(this|last|next|prior)\s+"
-                r"([0-9]+)?\s*"
+                r"^(start of|beginning of|end of)\s{1,5}"
+                r"(this|last|next|prior)\s{1,5}"
+                r"([0-9]+)?\s{0,5}"
                 r"(day|week|month|quarter|year)s?$",  # Matches phrases like "start of next month" # noqa: E501
                 lambda modifier, scope, delta, unit: handle_modifier_and_unit(
                     modifier,
@@ -431,8 +431,8 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
                 ),
             ),
             (
-                r"^(this|last|next|prior)\s+"
-                r"([0-9]+)?\s*"
+                r"^(this|last|next|prior)\s{1,5}"
+                r"([0-9]+)?\s{0,5}"
                 r"(second|minute|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
                 lambda scope, delta, unit: handle_scope_and_unit(
                     scope, delta, unit, get_relative_base(unit, relative_start)

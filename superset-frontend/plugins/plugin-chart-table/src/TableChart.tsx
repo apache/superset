@@ -47,11 +47,16 @@ import {
   getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
-  t,
-  tn,
   extractTextFromHTML,
 } from '@superset-ui/core';
-import { styled, css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  useTheme,
+  SupersetTheme,
+  t,
+  tn,
+} from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Input,
@@ -385,7 +390,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const nums = data
         ?.map(row => row?.[key])
         .filter(value => typeof value === 'number') as number[];
-      if (data && nums.length === data.length) {
+      if (nums.length > 0) {
         return (
           alignPositiveNegative
             ? [0, d3Max(nums.map(Math.abs))]
@@ -958,6 +963,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             display: block;
             top: 0;
             ${valueRange &&
+            typeof value === 'number' &&
             `
                 width: ${`${cellWidth({
                   value: value as number,

@@ -60,7 +60,11 @@ class CurrencyFormatter extends ExtensibleFunction {
   }
 
   getNormalizedD3Format() {
-    return this.d3Format.replace(/\$|%/g, '');
+    return this.d3Format.replace(/\$/g, '');
+  }
+
+  normalizeForCurrency(value: string) {
+    return value.replace(/%/g, '');
   }
 
   format(value: number) {
@@ -71,10 +75,11 @@ class CurrencyFormatter extends ExtensibleFunction {
       return formattedValue as string;
     }
 
+    const normalizedValue = this.normalizeForCurrency(formattedValue);
     if (this.currency.symbolPosition === 'prefix') {
-      return `${getCurrencySymbol(this.currency)} ${formattedValue}`;
+      return `${getCurrencySymbol(this.currency)} ${normalizedValue}`;
     }
-    return `${formattedValue} ${getCurrencySymbol(this.currency)}`;
+    return `${normalizedValue} ${getCurrencySymbol(this.currency)}`;
   }
 }
 

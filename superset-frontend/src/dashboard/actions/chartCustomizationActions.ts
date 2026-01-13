@@ -18,7 +18,8 @@
  */
 import { AnyAction } from 'redux';
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
-import { makeApi, t, getClientErrorObject, DataMask } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { makeApi, getClientErrorObject, DataMask } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DashboardInfo, RootState } from 'src/dashboard/types';
 import {

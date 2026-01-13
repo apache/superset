@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useCallback, memo, useEffect } from 'react';
+import { Fragment, useCallback, memo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t, styled } from '@apache-superset/core/ui';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
@@ -130,6 +129,9 @@ const Tab = props => {
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
 
+  // Track which refresh we've already handled to prevent duplicates
+  const handledRefreshRef = useRef(null);
+
   useEffect(() => {
     if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
       if (
@@ -137,13 +139,20 @@ const Tab = props => {
         tabActivationTime &&
         lastRefreshTime > tabActivationTime
       ) {
-        const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
-        if (chartIds.length > 0) {
-          requestAnimationFrame(() => {
+        // Create a unique key for this specific refresh
+        const refreshKey = `${props.id}-${lastRefreshTime}`;
+
+        // Only proceed if we haven't already handled this refresh
+        if (handledRefreshRef.current !== refreshKey) {
+          handledRefreshRef.current = refreshKey;
+
+          const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
+          if (chartIds.length > 0) {
+            // Use lazy load flag to avoid updating global refresh time
             setTimeout(() => {
-              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id));
+              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id, true));
             }, CHART_MOUNT_DELAY);
-          });
+          }
         }
       }
     }

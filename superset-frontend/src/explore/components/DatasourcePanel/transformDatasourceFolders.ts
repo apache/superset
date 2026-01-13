@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Metric, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Metric } from '@superset-ui/core';
 import {
   ColumnItem,
   DatasourceFolder,

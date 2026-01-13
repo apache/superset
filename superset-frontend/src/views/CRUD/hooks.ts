@@ -18,10 +18,10 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
+import { t } from '@apache-superset/core';
 import {
   makeApi,
   SupersetClient,
-  t,
   JsonObject,
   getClientErrorObject,
 } from '@superset-ui/core';

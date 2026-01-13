@@ -18,7 +18,8 @@
  */
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { Filter, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Filter } from '@superset-ui/core';
 import { Layout, LayoutItem, RootState } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';

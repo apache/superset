@@ -19,7 +19,7 @@
  */
 import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
-import { DataRecord } from '@superset-ui/core';
+import { DataRecord, DataRecordValue } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
@@ -27,19 +27,22 @@ import {
   BasicColorFormatterType,
   CellRendererProps,
   InputColumn,
+  ValueRange,
 } from '../types';
 import getCellClass from './getCellClass';
 import filterValueGetter from './filterValueGetter';
 import dateFilterComparator from './dateFilterComparator';
+import DateWithFormatter from './DateWithFormatter';
 import { getAggFunc } from './getAggFunc';
 import { TextCellRenderer } from '../renderers/TextCellRenderer';
 import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
 import CustomHeader from '../AgGridTable/components/CustomHeader';
+import { NOOP_FILTER_COMPARATOR } from '../consts';
 import { valueFormatter, valueGetter } from './formatValue';
 import getCellStyle from './getCellStyle';
 
 interface InputData {
-  [key: string]: any;
+  [key: string]: DataRecordValue;
 }
 
 type UseColDefsProps = {
@@ -60,18 +63,27 @@ type UseColDefsProps = {
   slice_id: number;
 };
 
-type ValueRange = [number, number];
-
 function getValueRange(
   key: string,
   alignPositiveNegative: boolean,
   data: InputData[],
 ) {
-  if (typeof data?.[0]?.[key] === 'number') {
-    const nums = data.map(row => row[key]) as number[];
-    return (
-      alignPositiveNegative ? [0, d3Max(nums.map(Math.abs))] : d3Extent(nums)
-    ) as ValueRange;
+  const nums = data
+    .map(row => {
+      const raw = row[key];
+      return raw instanceof Number ? raw.valueOf() : raw;
+    })
+    .filter(
+      (value): value is number =>
+        typeof value === 'number' && Number.isFinite(value),
+    ) as number[];
+  if (nums.length > 0) {
+    const maxAbs = d3Max(nums.map(Math.abs));
+    if (alignPositiveNegative) {
+      return [0, maxAbs ?? 0] as ValueRange;
+    }
+    const extent = d3Extent(nums) as ValueRange | undefined;
+    return extent ?? [0, 0];
   }
   return null;
 }
@@ -101,6 +113,73 @@ const getFilterType = (col: InputColumn) => {
       return true;
   }
 };
+
+/**
+ * Filter value getter for temporal columns.
+ * Returns null for DateWithFormatter objects with null input,
+ * enabling AG Grid's blank filter to correctly identify null dates.
+ */
+const dateFilterValueGetter = (params: {
+  data: Record<string, unknown>;
+  colDef: { field?: string };
+}) => {
+  const value = params.data?.[params.colDef.field as string];
+  // Return null for DateWithFormatter with null input so AG Grid blank filter works
+  if (value instanceof DateWithFormatter && value.input === null) {
+    return null;
+  }
+  return value;
+};
+
+/**
+ * Custom date filter options for server-side pagination.
+ * Each option has a predicate that always returns true, allowing all rows to pass
+ * client-side filtering since the actual filtering is handled by the server.
+ */
+const SERVER_SIDE_DATE_FILTER_OPTIONS = [
+  {
+    displayKey: 'serverEquals',
+    displayName: 'Equals',
+    predicate: () => true,
+    numberOfInputs: 1,
+  },
+  {
+    displayKey: 'serverNotEqual',
+    displayName: 'Not Equal',
+    predicate: () => true,
+    numberOfInputs: 1,
+  },
+  {
+    displayKey: 'serverBefore',
+    displayName: 'Before',
+    predicate: () => true,
+    numberOfInputs: 1,
+  },
+  {
+    displayKey: 'serverAfter',
+    displayName: 'After',
+    predicate: () => true,
+    numberOfInputs: 1,
+  },
+  {
+    displayKey: 'serverInRange',
+    displayName: 'In Range',
+    predicate: () => true,
+    numberOfInputs: 2,
+  },
+  {
+    displayKey: 'serverBlank',
+    displayName: 'Blank',
+    predicate: () => true,
+    numberOfInputs: 0,
+  },
+  {
+    displayKey: 'serverNotBlank',
+    displayName: 'Not blank',
+    predicate: () => true,
+    numberOfInputs: 0,
+  },
+];
 
 function getHeaderLabel(col: InputColumn) {
   let headerLabel: string | undefined;
@@ -221,9 +300,16 @@ export const useColDefs = ({
           filterValueGetter,
         }),
         ...(dataType === GenericDataType.Temporal && {
-          filterParams: {
-            comparator: dateFilterComparator,
-          },
+          // Use dateFilterValueGetter so AG Grid correctly identifies null dates for blank filter
+          filterValueGetter: dateFilterValueGetter,
+          filterParams: serverPagination
+            ? {
+                filterOptions: SERVER_SIDE_DATE_FILTER_OPTIONS,
+                comparator: NOOP_FILTER_COMPARATOR,
+              }
+            : {
+                comparator: dateFilterComparator,
+              },
         }),
         cellDataType: getCellDataType(col),
         defaultAggFunc: getAggFunc(col),

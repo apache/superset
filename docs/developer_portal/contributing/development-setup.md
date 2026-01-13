@@ -164,6 +164,8 @@ Available commands (run from repo root):
 | `make down` | Stop all services |
 | `make ps` | Show running containers |
 | `make logs` | Follow container logs |
+| `make ports` | Show assigned URLs and ports |
+| `make open` | Open browser to dev server |
 | `make nuke` | Stop, remove volumes & local images |
 
 From a subdirectory, use: `make -C $(git rev-parse --show-toplevel) up`

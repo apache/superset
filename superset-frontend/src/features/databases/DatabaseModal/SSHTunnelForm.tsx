@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t, JsonObject } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { JsonObject } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import {
   Form,

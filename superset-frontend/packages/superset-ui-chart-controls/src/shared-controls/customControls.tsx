@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core';
 import {
   ContributionType,
   ensureIsArray,
@@ -24,7 +25,6 @@ import {
   getMetricLabel,
   QueryFormColumn,
   QueryFormMetric,
-  t,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {

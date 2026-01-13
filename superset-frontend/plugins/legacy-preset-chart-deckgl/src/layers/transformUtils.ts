@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getMetricLabel } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 import { getMapboxApiKey, DataRecord } from './spatialUtils';
+import {
+  getMetricLabelFromValue,
+  FixedOrMetricValue,
+} from './utils/metricUtils';
 
 const NOOP = () => {};
 
@@ -134,9 +138,7 @@ export function addPropertiesToFeature<T extends Record<string, unknown>>(
 }
 
 export function getMetricLabelFromFormData(
-  metric: string | { value?: string } | undefined,
+  metric: string | FixedOrMetricValue | undefined | null,
 ): string | undefined {
-  if (!metric) return undefined;
-  if (typeof metric === 'string') return getMetricLabel(metric);
-  return metric.value ? getMetricLabel(metric.value) : undefined;
+  return getMetricLabelFromValue(metric);
 }

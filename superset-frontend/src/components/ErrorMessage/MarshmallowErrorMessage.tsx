@@ -17,7 +17,7 @@
  * under the License.
  */
 import { JSONTree } from 'react-json-tree';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
 import { Collapse, List, Typography } from '@superset-ui/core/components';
 import type { ErrorMessageComponentProps } from './types';

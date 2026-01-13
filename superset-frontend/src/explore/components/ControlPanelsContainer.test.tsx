@@ -23,10 +23,10 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { t } from '@apache-superset/core';
 import {
   DatasourceType,
   getChartControlPanelRegistry,
-  t,
 } from '@superset-ui/core';
 import { defaultControls, defaultState } from 'src/explore/store';
 import { ExplorePageState } from 'src/explore/types';

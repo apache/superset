@@ -18,8 +18,8 @@
  */
 import { useCallback, useMemo, ReactNode } from 'react';
 import rison from 'rison';
+import { t } from '@apache-superset/core';
 import {
-  t,
   JsonResponse,
   ClientErrorObject,
   getClientErrorObject,

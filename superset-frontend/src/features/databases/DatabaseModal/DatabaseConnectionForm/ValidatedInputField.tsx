@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { LabeledErrorBoundInput as ValidatedInput } from '@superset-ui/core/components';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
 
