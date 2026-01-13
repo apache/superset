@@ -18,13 +18,16 @@
  */
 import URI from 'urijs';
 import fetchMock from 'fetch-mock';
-import sinon from 'sinon';
+import sinon, { SinonSpy, SinonStub } from 'sinon';
 
 import {
   FeatureFlag,
   SupersetClient,
   getChartMetadataRegistry,
   getChartBuildQueryRegistry,
+  QueryFormData,
+  JsonObject,
+  AnnotationLayer,
 } from '@superset-ui/core';
 import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
@@ -37,10 +40,27 @@ import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { initialState } from 'src/SqlLab/fixtures';
 
+interface MockState {
+  charts: {
+    [key: string]: {
+      latestQueryFormData?: {
+        time_grain_sqla?: string;
+        granularity_sqla?: string;
+      };
+      queryController?: AbortController;
+    };
+  };
+  common: {
+    conf: {
+      SUPERSET_WEBSERVER_TIMEOUT?: number;
+    };
+  };
+}
+
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
 
-const mockGetState = () => ({
+const mockGetState = (): MockState => ({
   charts: {
     chartKey: {
       latestQueryFormData: {
@@ -60,17 +80,26 @@ jest.mock('@superset-ui/core', () => ({
   getChartBuildQueryRegistry: jest.fn(),
 }));
 
+const mockedGetChartMetadataRegistry =
+  getChartMetadataRegistry as jest.MockedFunction<
+    typeof getChartMetadataRegistry
+  >;
+const mockedGetChartBuildQueryRegistry =
+  getChartBuildQueryRegistry as jest.MockedFunction<
+    typeof getChartBuildQueryRegistry
+  >;
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('chart actions', () => {
   const MOCK_URL = '/mockURL';
-  let dispatch;
-  let getExploreUrlStub;
-  let getChartDataUriStub;
-  let buildV1ChartDataPayloadStub;
-  let waitForAsyncDataStub;
-  let fakeMetadata;
+  let dispatch: SinonSpy;
+  let getExploreUrlStub: SinonStub;
+  let getChartDataUriStub: SinonStub;
+  let buildV1ChartDataPayloadStub: SinonStub;
+  let waitForAsyncDataStub: SinonStub;
+  let fakeMetadata: { useLegacyApi?: boolean; viz_type?: string };
 
-  const setupDefaultFetchMock = () => {
+  const setupDefaultFetchMock = (): void => {
     fetchMock.post(MOCK_URL, { json: {} }, { overwriteRoutes: true });
   };
 
@@ -87,7 +116,9 @@ describe('chart actions', () => {
       .callsFake(() => MOCK_URL);
     getChartDataUriStub = sinon
       .stub(exploreUtils, 'getChartDataUri')
-      .callsFake(({ qs }) => URI(MOCK_URL).query(qs));
+      .callsFake(({ qs }: { qs?: Record<string, unknown> }) =>
+        URI(MOCK_URL).query(qs || {}),
+      );
     buildV1ChartDataPayloadStub = sinon
       .stub(exploreUtils, 'buildV1ChartDataPayload')
       .resolves({
@@ -96,32 +127,38 @@ describe('chart actions', () => {
         result_format: 'json',
       });
     fakeMetadata = { useLegacyApi: true };
-    getChartMetadataRegistry.mockImplementation(() => ({
-      get: () => fakeMetadata,
-    }));
-    getChartBuildQueryRegistry.mockImplementation(() => ({
-      get: () => () => ({
-        some_param: 'fake query!',
-        result_type: 'full',
-        result_format: 'json',
-      }),
-    }));
+    mockedGetChartMetadataRegistry.mockImplementation(
+      () =>
+        ({
+          get: () => fakeMetadata,
+        }) as ReturnType<typeof getChartMetadataRegistry>,
+    );
+    mockedGetChartBuildQueryRegistry.mockImplementation(
+      () =>
+        ({
+          get: () => () => ({
+            some_param: 'fake query!',
+            result_type: 'full',
+            result_format: 'json',
+          }),
+        }) as ReturnType<typeof getChartBuildQueryRegistry>,
+    );
     waitForAsyncDataStub = sinon
       .stub(asyncEvent, 'waitForAsyncData')
-      .callsFake(data => Promise.resolve(data));
+      .callsFake((data: unknown) => Promise.resolve(data));
   });
 
   test('should defer abort of previous controller to avoid Redux state mutation', async () => {
     jest.useFakeTimers();
     const chartKey = 'defer_abort_test';
-    const formData = {
+    const formData: Partial<QueryFormData> = {
       slice_id: 123,
       datasource: 'table__1',
       viz_type: 'table',
     };
     const oldController = new AbortController();
     const abortSpy = jest.spyOn(oldController, 'abort');
-    const state = {
+    const state: MockState = {
       charts: {
         [chartKey]: {
           queryController: oldController,
@@ -138,7 +175,7 @@ describe('chart actions', () => {
     const getChartDataRequestSpy = jest
       .spyOn(actions, 'getChartDataRequest')
       .mockResolvedValue({
-        response: { status: 200 },
+        response: { status: 200 } as Response,
         json: { result: [] },
       });
     const handleChartDataResponseSpy = jest
@@ -146,14 +183,24 @@ describe('chart actions', () => {
       .mockResolvedValue([]);
     const updateDataMaskSpy = jest
       .spyOn(dataMaskActions, 'updateDataMask')
-      .mockReturnValue({ type: 'UPDATE_DATA_MASK' });
+      .mockReturnValue({ type: 'UPDATE_DATA_MASK' } as ReturnType<
+        typeof dataMaskActions.updateDataMask
+      >);
     const getQuerySettingsStub = sinon
       .stub(exploreUtils, 'getQuerySettings')
       .returns([false, () => {}]);
 
     try {
-      const thunk = actions.exploreJSON(formData, false, undefined, chartKey);
-      const promise = thunk(dispatchMock, getState);
+      const thunkAction = actions.exploreJSON(
+        formData as QueryFormData,
+        false,
+        undefined,
+        chartKey,
+      );
+      const promise = thunkAction(
+        dispatchMock as unknown as actions.ChartThunkDispatch,
+        getState as () => actions.RootState,
+      );
 
       expect(abortSpy).not.toHaveBeenCalled();
       expect(oldController.signal.aborted).toBe(false);
@@ -181,7 +228,9 @@ describe('chart actions', () => {
     fetchMock.resetHistory();
     waitForAsyncDataStub.restore();
 
-    global.featureFlags = {
+    (
+      global as unknown as { featureFlags: Record<string, boolean> }
+    ).featureFlags = {
       [FeatureFlag.GlobalAsyncQueries]: false,
     };
   });
@@ -193,11 +242,19 @@ describe('chart actions', () => {
     });
 
     test('should query with the built query', async () => {
-      const actionThunk = actions.postChartFormData({}, null);
-      await actionThunk(dispatch, mockGetState);
+      const actionThunk = actions.postChartFormData(
+        {} as QueryFormData,
+        false,
+        undefined,
+        undefined,
+      );
+      await actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as () => actions.RootState,
+      );
 
       expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
-      expect(fetchMock.calls(MOCK_URL)[0][1].body).toBe(
+      expect(fetchMock.calls(MOCK_URL)[0][1]?.body).toBe(
         JSON.stringify({
           some_param: 'fake query!',
           result_type: 'full',
@@ -219,39 +276,55 @@ describe('chart actions', () => {
         .callsFake(() => URI(mockBigIntUrl));
 
       const { json } = await actions.getChartDataRequest({
-        formData: fakeMetadata,
+        formData: fakeMetadata as QueryFormData,
       });
 
       expect(fetchMock.calls(mockBigIntUrl)).toHaveLength(1);
-      expect(json.value.toString()).toEqual(expectedBigNumber);
+      expect((json as JsonObject).value.toString()).toEqual(expectedBigNumber);
     });
 
     test('handleChartDataResponse should return result if GlobalAsyncQueries flag is disabled', async () => {
       const result = await handleChartDataResponse(
-        { status: 200 },
-        { result: [1, 2, 3] },
+        { status: 200 } as Response,
+        {
+          result: [
+            1, 2, 3,
+          ] as unknown as actions.ChartDataRequestResponse['json']['result'],
+        },
       );
       expect(result).toEqual([1, 2, 3]);
     });
 
     test('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously', async () => {
-      global.featureFlags = {
+      (
+        global as unknown as { featureFlags: Record<string, boolean> }
+      ).featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
       };
       const result = await handleChartDataResponse(
-        { status: 200 },
-        { result: [1, 2, 3] },
+        { status: 200 } as Response,
+        {
+          result: [
+            1, 2, 3,
+          ] as unknown as actions.ChartDataRequestResponse['json']['result'],
+        },
       );
       expect(result).toEqual([1, 2, 3]);
     });
 
     test('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously', async () => {
-      global.featureFlags = {
+      (
+        global as unknown as { featureFlags: Record<string, boolean> }
+      ).featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
       };
       const result = await handleChartDataResponse(
-        { status: 202 },
-        { result: [1, 2, 3] },
+        { status: 202 } as Response,
+        {
+          result: [
+            1, 2, 3,
+          ] as unknown as actions.ChartDataRequestResponse['json']['result'],
+        },
       );
       expect(result).toEqual([1, 2, 3]);
     });
@@ -264,9 +337,12 @@ describe('chart actions', () => {
     });
 
     test('should dispatch CHART_UPDATE_STARTED action before the query', () => {
-      const actionThunk = actions.postChartFormData({});
+      const actionThunk = actions.postChartFormData({} as QueryFormData);
 
-      return actionThunk(dispatch, mockGetState).then(() => {
+      return actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as () => actions.RootState,
+      ).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -275,8 +351,11 @@ describe('chart actions', () => {
     });
 
     test('should dispatch TRIGGER_QUERY action with the query', () => {
-      const actionThunk = actions.postChartFormData({});
-      return actionThunk(dispatch, mockGetState).then(() => {
+      const actionThunk = actions.postChartFormData({} as QueryFormData);
+      return actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as () => actions.RootState,
+      ).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -285,8 +364,11 @@ describe('chart actions', () => {
     });
 
     test('should dispatch UPDATE_QUERY_FORM_DATA action with the query', () => {
-      const actionThunk = actions.postChartFormData({});
-      return actionThunk(dispatch, mockGetState).then(() => {
+      const actionThunk = actions.postChartFormData({} as QueryFormData);
+      return actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as () => actions.RootState,
+      ).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -295,8 +377,11 @@ describe('chart actions', () => {
     });
 
     test('should dispatch logEvent async action', () => {
-      const actionThunk = actions.postChartFormData({});
-      return actionThunk(dispatch, mockGetState).then(() => {
+      const actionThunk = actions.postChartFormData({} as QueryFormData);
+      return actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as () => actions.RootState,
+      ).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -309,8 +394,11 @@ describe('chart actions', () => {
     });
 
     test('should dispatch CHART_UPDATE_SUCCEEDED action upon success', () => {
-      const actionThunk = actions.postChartFormData({});
-      return actionThunk(dispatch, mockGetState).then(() => {
+      const actionThunk = actions.postChartFormData({} as QueryFormData);
+      return actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as () => actions.RootState,
+      ).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -325,9 +413,16 @@ describe('chart actions', () => {
       });
 
       const timeoutInSec = 1 / 1000;
-      const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
+      const actionThunk = actions.postChartFormData(
+        {} as QueryFormData,
+        false,
+        timeoutInSec,
+      );
 
-      return actionThunk(dispatch, mockGetState).then(() => {
+      return actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as () => actions.RootState,
+      ).then(() => {
         // chart update, trigger query, update form data, fail
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
         expect(dispatch.callCount).toBe(5);
@@ -344,9 +439,16 @@ describe('chart actions', () => {
       );
 
       const timeoutInSec = 100; // Set to a time that is longer than the time this will take to fail
-      const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
+      const actionThunk = actions.postChartFormData(
+        {} as QueryFormData,
+        false,
+        timeoutInSec,
+      );
 
-      return actionThunk(dispatch, mockGetState).then(() => {
+      return actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as () => actions.RootState,
+      ).then(() => {
         // chart update, trigger query, update form data, fail
         expect(dispatch.callCount).toBe(5);
         const updateFailedAction = dispatch.args[4][0];
@@ -365,11 +467,18 @@ describe('chart actions', () => {
       );
 
       const timeoutInSec = 100;
-      const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
+      const actionThunk = actions.postChartFormData(
+        {} as QueryFormData,
+        false,
+        timeoutInSec,
+      );
 
-      return actionThunk(dispatch, mockGetState).then(() => {
+      return actionThunk(
+        dispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as () => actions.RootState,
+      ).then(() => {
         const types = dispatch.args
-          .map(call => call[0] && call[0].type)
+          .map((call: [{ type?: string }]) => call[0] && call[0].type)
           .filter(Boolean);
 
         expect(types).toContain(actions.CHART_UPDATE_STOPPED);
@@ -391,11 +500,13 @@ describe('chart actions', () => {
         .callsFake(() => mockBigIntUrl);
 
       const { json } = await actions.getChartDataRequest({
-        formData: fakeMetadata,
+        formData: fakeMetadata as QueryFormData,
       });
 
       expect(fetchMock.calls(mockBigIntUrl)).toHaveLength(1);
-      expect(json.result[0].value.toString()).toEqual(expectedBigNumber);
+      expect((json.result[0] as JsonObject).value.toString()).toEqual(
+        expectedBigNumber,
+      );
     });
   });
 
@@ -407,7 +518,7 @@ describe('chart actions', () => {
     });
 
     test('should dispatch annotationQueryStarted and annotationQuerySuccess on successful query', async () => {
-      const annotation = {
+      const annotation: AnnotationLayer = {
         name: 'Holidays',
         annotationType: 'EVENT',
         sourceType: 'NATIVE',
@@ -432,7 +543,7 @@ describe('chart actions', () => {
 
       const postSpy = jest.spyOn(SupersetClient, 'post');
       postSpy.mockImplementation(() =>
-        Promise.resolve({ json: { result: [] } }),
+        Promise.resolve({ json: { result: [] } } as { json: JsonObject }),
       );
       const buildV1ChartDataPayloadSpy = jest.spyOn(
         exploreUtils,
@@ -440,7 +551,10 @@ describe('chart actions', () => {
       );
 
       const queryFunc = actions.runAnnotationQuery({ annotation, key });
-      await queryFunc(mockDispatch, mockGetState);
+      await queryFunc(
+        mockDispatch as unknown as actions.ChartThunkDispatch,
+        mockGetState as () => actions.RootState,
+      );
 
       expect(buildV1ChartDataPayloadSpy).toHaveBeenCalledWith({
         formData: {
@@ -464,9 +578,11 @@ describe('chart actions timeout', () => {
 
   test('should use the timeout from arguments when given', async () => {
     const postSpy = jest.spyOn(SupersetClient, 'post');
-    postSpy.mockImplementation(() => Promise.resolve({ json: { result: [] } }));
+    postSpy.mockImplementation(() =>
+      Promise.resolve({ json: { result: [] } } as { json: JsonObject }),
+    );
     const timeout = 10; // Set the timeout value here
-    const formData = { datasource: 'table__1' }; // Set the formData here
+    const formData: Partial<QueryFormData> = { datasource: 'table__1' }; // Set the formData here
     const key = 'chartKey'; // Set the chart key here
 
     const store = mockStore(initialState);
@@ -476,19 +592,19 @@ describe('chart actions timeout', () => {
           value: 'annotationValue',
           sourceType: 'Event',
           overrides: {},
-        },
+        } as AnnotationLayer,
         timeout,
-        formData,
+        formData: formData as QueryFormData,
         key,
       }),
     );
 
     const expectedPayload = {
-      url: expect.any(String),
-      signal: expect.any(AbortSignal),
+      url: expect.any(String) as string,
+      signal: expect.any(AbortSignal) as AbortSignal,
       timeout: timeout * 1000,
       headers: { 'Content-Type': 'application/json' },
-      jsonPayload: expect.any(Object),
+      jsonPayload: expect.any(Object) as JsonObject,
     };
 
     expect(postSpy).toHaveBeenCalledWith(expectedPayload);
@@ -496,8 +612,10 @@ describe('chart actions timeout', () => {
 
   test('should use the timeout from common.conf when not passed as an argument', async () => {
     const postSpy = jest.spyOn(SupersetClient, 'post');
-    postSpy.mockImplementation(() => Promise.resolve({ json: { result: [] } }));
-    const formData = { datasource: 'table__1' }; // Set the formData here
+    postSpy.mockImplementation(() =>
+      Promise.resolve({ json: { result: [] } } as { json: JsonObject }),
+    );
+    const formData: Partial<QueryFormData> = { datasource: 'table__1' }; // Set the formData here
     const key = 'chartKey'; // Set the chart key here
 
     const store = mockStore(initialState);
@@ -507,19 +625,21 @@ describe('chart actions timeout', () => {
           value: 'annotationValue',
           sourceType: 'Event',
           overrides: {},
-        },
-        undefined,
-        formData,
+        } as AnnotationLayer,
+        timeout: undefined,
+        formData: formData as QueryFormData,
         key,
       }),
     );
 
     const expectedPayload = {
-      url: expect.any(String),
-      signal: expect.any(AbortSignal),
-      timeout: initialState.common.conf.SUPERSET_WEBSERVER_TIMEOUT * 1000,
+      url: expect.any(String) as string,
+      signal: expect.any(AbortSignal) as AbortSignal,
+      timeout:
+        (initialState.common.conf as { SUPERSET_WEBSERVER_TIMEOUT: number })
+          .SUPERSET_WEBSERVER_TIMEOUT * 1000,
       headers: { 'Content-Type': 'application/json' },
-      jsonPayload: expect.any(Object),
+      jsonPayload: expect.any(Object) as JsonObject,
     };
 
     expect(postSpy).toHaveBeenCalledWith(expectedPayload);

@@ -16,26 +16,94 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Children, cloneElement } from 'react';
+import {
+  Children,
+  cloneElement,
+  ReactNode,
+  ReactElement,
+  isValidElement,
+} from 'react';
 import { nanoid } from 'nanoid';
 import { SupersetClient } from '@superset-ui/core';
 import { tn } from '@apache-superset/core/ui';
 import rison from 'rison';
 
-export function recurseReactClone(children, type, propExtender) {
+// Type definitions
+
+interface ColumnMetadata {
+  id?: string | number;
+  column_name: string;
+  is_dttm?: boolean;
+  type?: string;
+  groupby?: boolean;
+  filterable?: boolean;
+  expression?: string;
+}
+
+interface ColumnChanges {
+  added: string[];
+  modified: string[];
+  removed: string[];
+  finalColumns: ColumnMetadata[];
+}
+
+interface DatasourceForSync {
+  type?: string;
+  datasource_type?: string;
+  database?: {
+    database_name?: string;
+    name?: string;
+  };
+  catalog?: string;
+  schema?: string;
+  table_name?: string;
+  normalize_columns?: boolean;
+  always_filter_main_dttm?: boolean;
+}
+
+interface SyncParams {
+  datasource_type?: string | null;
+  database_name?: string | null;
+  catalog_name?: string | null;
+  schema_name?: string | null;
+  table_name?: string | null;
+  normalize_columns?: boolean | null;
+  always_filter_main_dttm?: boolean | null;
+  [key: string]: string | boolean | null | undefined;
+}
+
+// React element type to match against in recurseReactClone
+interface ComponentType {
+  name: string;
+}
+
+export function recurseReactClone<T extends Record<string, unknown>>(
+  children: ReactNode,
+  type: ComponentType,
+  propExtender: (child: ReactElement<T>) => Partial<T>,
+): ReactNode {
   /**
    * Clones a React component's children, and injects new props
    * where the type specified is matched.
    */
   return Children.map(children, child => {
     let newChild = child;
-    if (child && child.type && child.type.name === type.name) {
-      newChild = cloneElement(child, propExtender(child));
+    if (
+      isValidElement<T>(child) &&
+      child.type &&
+      typeof child.type === 'function' &&
+      (child.type as ComponentType).name === type.name
+    ) {
+      newChild = cloneElement(child, propExtender(child as ReactElement<T>));
     }
-    if (newChild && newChild.props && newChild.props.children) {
+    if (
+      isValidElement(newChild) &&
+      newChild.props &&
+      (newChild.props as { children?: ReactNode }).children
+    ) {
       newChild = cloneElement(newChild, {
         children: recurseReactClone(
-          newChild.props.children,
+          (newChild.props as { children: ReactNode }).children,
           type,
           propExtender,
         ),
@@ -45,15 +113,22 @@ export function recurseReactClone(children, type, propExtender) {
   });
 }
 
-export function updateColumns(prevCols, newCols, addSuccessToast) {
+export function updateColumns(
+  prevCols: ColumnMetadata[],
+  newCols: ColumnMetadata[],
+  addSuccessToast: (msg: string) => void,
+): ColumnChanges {
   // cols: Array<{column_name: string; is_dttm: boolean; type: string;}>
   const databaseColumnNames = newCols.map(col => col.column_name);
-  const currentCols = prevCols.reduce((agg, col) => {
-    // eslint-disable-next-line no-param-reassign
-    agg[col.column_name] = col;
-    return agg;
-  }, {});
-  const columnChanges = {
+  const currentCols = prevCols.reduce<Record<string, ColumnMetadata>>(
+    (agg, col) => {
+      // eslint-disable-next-line no-param-reassign
+      agg[col.column_name] = col;
+      return agg;
+    },
+    {},
+  );
+  const columnChanges: ColumnChanges = {
     added: [],
     modified: [],
     removed: prevCols
@@ -137,12 +212,15 @@ export function updateColumns(prevCols, newCols, addSuccessToast) {
  * Fetches column metadata from the datasource's underlying table/view.
  * Used to sync dataset columns with the database schema.
  *
- * @param {Object} datasource - The datasource object
- * @param {AbortSignal} [signal] - Optional AbortSignal to cancel the request
- * @returns {Promise<Array>} Array of column metadata objects
+ * @param datasource - The datasource object
+ * @param signal - Optional AbortSignal to cancel the request
+ * @returns Promise Array of column metadata objects
  */
-export async function fetchSyncedColumns(datasource, signal) {
-  const params = {
+export async function fetchSyncedColumns(
+  datasource: DatasourceForSync,
+  signal?: AbortSignal,
+): Promise<ColumnMetadata[]> {
+  const params: SyncParams = {
     datasource_type: datasource.type || datasource.datasource_type,
     database_name:
       datasource.database?.database_name || datasource.database?.name,
@@ -162,5 +240,5 @@ export async function fetchSyncedColumns(datasource, signal) {
     params,
   )}`;
   const { json } = await SupersetClient.get({ endpoint, signal });
-  return json;
+  return json as ColumnMetadata[];
 }
