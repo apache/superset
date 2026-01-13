@@ -109,7 +109,6 @@ export const RENDER_TRIGGERED = 'RENDER_TRIGGERED' as const;
 export const UPDATE_QUERY_FORM_DATA = 'UPDATE_QUERY_FORM_DATA' as const;
 export const UPDATE_CHART_ID = 'UPDATE_CHART_ID' as const;
 export const ADD_CHART = 'ADD_CHART' as const;
-export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA' as const;
 
 // Action interfaces
 export interface ChartUpdateStartedAction {
