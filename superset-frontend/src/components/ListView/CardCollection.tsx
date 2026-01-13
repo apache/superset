@@ -46,6 +46,7 @@ const CardContainer = styled.div<{ showThumbnails?: boolean }>`
     /* Full-width cards on mobile */
     @media (max-width: 767px) {
       grid-template-columns: 1fr;
+      grid-gap: ${theme.sizeUnit * 4}px;
       padding-left: ${theme.sizeUnit * 4}px;
       padding-right: ${theme.sizeUnit * 4}px;
     }

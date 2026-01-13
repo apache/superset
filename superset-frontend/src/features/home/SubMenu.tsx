@@ -106,15 +106,17 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     padding: 10px 0;
   }
   @media (max-width: 767px) {
-    .header,
-    .nav-right {
+    .header {
       position: relative;
-      margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+      margin-left: 0;
+      flex: 1;
+      text-align: center;
     }
 
-    /* Hide add buttons (secondary style) on mobile */
-    .nav-right .superset-button-secondary {
-      display: none;
+    /* Hide all buttons on mobile */
+    .nav-right,
+    .nav-right-collapse {
+      display: none !important;
     }
 
     /* Compact horizontal tabs on mobile (segmented-control style) */
@@ -176,6 +178,10 @@ export interface SubMenuProps {
   color?: string;
   dropDownLinks?: Array<MenuObjectProps>;
   backgroundColor?: string;
+  /** Left icon for mobile - shown before the header */
+  leftIcon?: ReactNode;
+  /** Right icon for mobile - shown after the header */
+  rightIcon?: ReactNode;
 }
 
 const { SubMenu } = MainNav;
@@ -223,7 +229,9 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
   return (
     <StyledHeader backgroundColor={props.backgroundColor}>
       <Row className="menu" role="navigation">
+        {props.leftIcon}
         {props.name && <div className="header">{props.name}</div>}
+        {props.rightIcon}
         <Menu
           mode={showMenu}
           disabledOverflow

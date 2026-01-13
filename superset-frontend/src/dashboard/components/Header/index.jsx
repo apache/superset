@@ -816,8 +816,7 @@ const Header = ({ onOpenMobileFilters }) => {
         leftPanelItems={
           onOpenMobileFilters && (
             <Button
-              css={menuTriggerStyles}
-              buttonStyle="tertiary"
+              buttonStyle="link"
               aria-label={t('Open filters')}
               onClick={onOpenMobileFilters}
               data-test="mobile-filters-trigger"

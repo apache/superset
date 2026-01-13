@@ -396,6 +396,13 @@ export const CardStyles = styled.div`
     /* Height is calculated based on 300px width, to keep the same aspect ratio as the 800*450 thumbnails */
     height: 168px;
   }
+
+  /* Hide kebab menu on mobile - consumption mode only */
+  @media (max-width: 767px) {
+    .ant-dropdown-trigger {
+      display: none;
+    }
+  }
 `;
 
 export /* eslint-disable no-underscore-dangle */
