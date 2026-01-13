@@ -17,8 +17,7 @@
  * under the License.
  */
 import { snakeCase, isEqual, cloneDeep } from 'lodash';
-import PropTypes from 'prop-types';
-import { createRef, Component } from 'react';
+import { createRef, Component, RefObject, MouseEvent, ReactNode } from 'react';
 import {
   SuperChart,
   Behavior,
@@ -26,46 +25,145 @@ import {
   VizType,
   isFeatureEnabled,
   FeatureFlag,
+  QueryFormData,
+  AnnotationData,
+  DataMask,
+  QueryData,
+  JsonObject,
+  LatestQueryFormData,
+  AgGridChartState,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
 import { t } from '@apache-superset/core/ui';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
-import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
+import type { Datasource, ChartStatus } from 'src/explore/types';
+import type { Dispatch } from 'redux';
+import ChartContextMenu, {
+  ChartContextMenuRef,
+} from './ChartContextMenu/ChartContextMenu';
 
-const propTypes = {
-  annotationData: PropTypes.object,
-  actions: PropTypes.object,
-  chartId: PropTypes.number.isRequired,
-  datasource: PropTypes.object,
-  initialValues: PropTypes.object,
-  formData: PropTypes.object.isRequired,
-  latestQueryFormData: PropTypes.object,
-  labelsColor: PropTypes.object,
-  labelsColorMap: PropTypes.object,
-  height: PropTypes.number,
-  width: PropTypes.number,
-  setControlValue: PropTypes.func,
-  vizType: PropTypes.string.isRequired,
-  triggerRender: PropTypes.bool,
-  // state
-  chartAlert: PropTypes.string,
-  chartStatus: PropTypes.string,
-  queriesResponse: PropTypes.arrayOf(PropTypes.object),
-  triggerQuery: PropTypes.bool,
-  chartIsStale: PropTypes.bool,
-  // dashboard callbacks
-  addFilter: PropTypes.func,
-  setDataMask: PropTypes.func,
-  onFilterMenuOpen: PropTypes.func,
-  onFilterMenuClose: PropTypes.func,
-  ownState: PropTypes.object,
-  postTransformProps: PropTypes.func,
-  source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
-  emitCrossFilters: PropTypes.bool,
-  onChartStateChange: PropTypes.func,
-};
+// Types for filter values
+type FilterValue = string | number | boolean | null | undefined;
+
+// LegendState type based on ECharts
+interface LegendState {
+  [name: string]: boolean;
+}
+
+// Types for context menu filters
+interface ContextMenuFilter {
+  col: string;
+  val: FilterValue | FilterValue[];
+  op?: string;
+}
+
+// Types for chart actions
+interface ChartActions {
+  chartRenderingSucceeded: (chartId: number) => Dispatch;
+  chartRenderingFailed: (
+    error: string,
+    chartId: number,
+    componentStack: string | null,
+  ) => Dispatch;
+  logEvent: (
+    eventName: string,
+    payload: {
+      slice_id: number;
+      viz_type?: string;
+      start_offset: number;
+      ts: number;
+      duration: number;
+      has_err?: boolean;
+      error_details?: string;
+    },
+  ) => Dispatch;
+  updateDataMask?: (chartId: number, dataMask: DataMask) => Dispatch;
+}
+
+// Types for own state
+interface OwnState {
+  searchText?: string;
+  agGridFilterModel?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+// Types for filter state
+interface FilterState {
+  value?: FilterValue[];
+  [key: string]: unknown;
+}
+
+// Props interface
+export interface ChartRendererProps {
+  annotationData?: AnnotationData;
+  actions: ChartActions;
+  chartId: number;
+  datasource?: Datasource;
+  initialValues?: Record<string, FilterValue>;
+  formData: QueryFormData;
+  latestQueryFormData?: LatestQueryFormData;
+  labelsColor?: Record<string, string>;
+  labelsColorMap?: Record<string, string>;
+  height?: number;
+  width?: number;
+  setControlValue?: (name: string, value: unknown) => void;
+  vizType: string;
+  triggerRender?: boolean;
+  chartAlert?: string;
+  chartStatus?: ChartStatus | null;
+  queriesResponse?: QueryData[] | null;
+  triggerQuery?: boolean;
+  chartIsStale?: boolean;
+  addFilter?: (
+    col: string,
+    vals: FilterValue[],
+    merge?: boolean,
+    refresh?: boolean,
+  ) => void;
+  setDataMask?: (dataMask: DataMask) => void;
+  onFilterMenuOpen?: (chartId: number, column: string) => void;
+  onFilterMenuClose?: (chartId: number, column: string) => void;
+  ownState?: OwnState;
+  filterState?: FilterState;
+  postTransformProps?: (props: JsonObject) => JsonObject;
+  source?: ChartSource;
+  emitCrossFilters?: boolean;
+  cacheBusterProp?: string;
+  onChartStateChange?: (chartState: AgGridChartState) => void;
+}
+
+// State interface
+interface ChartRendererState {
+  showContextMenu: boolean;
+  inContextMenu: boolean;
+  legendState: LegendState | undefined;
+  legendIndex: number;
+}
+
+// Hooks interface
+interface ChartHooks {
+  onAddFilter: (
+    col: string,
+    vals: FilterValue[],
+    merge?: boolean,
+    refresh?: boolean,
+  ) => void;
+  onContextMenu?: (
+    offsetX: number,
+    offsetY: number,
+    filters?: ContextMenuFilter[],
+  ) => void;
+  onError: (error: Error, info: { componentStack: string } | null) => void;
+  setControlValue: (name: string, value: unknown) => void;
+  onFilterMenuOpen?: (chartId: number, column: string) => void;
+  onFilterMenuClose?: (chartId: number, column: string) => void;
+  onLegendStateChanged: (legendState: LegendState) => void;
+  setDataMask: (dataMask: DataMask) => void;
+  onLegendScroll: (legendIndex: number) => void;
+  onChartStateChange?: (chartState: AgGridChartState) => void;
+}
 
 const BLANK = {};
 
@@ -74,17 +172,29 @@ const BIG_NO_RESULT_MIN_HEIGHT = 220;
 
 const behaviors = [Behavior.InteractiveChart];
 
-const defaultProps = {
+const defaultProps: Partial<ChartRendererProps> = {
   addFilter: () => BLANK,
   onFilterMenuOpen: () => BLANK,
   onFilterMenuClose: () => BLANK,
   initialValues: BLANK,
-  setControlValue() {},
+  setControlValue: () => {},
   triggerRender: false,
 };
 
-class ChartRenderer extends Component {
-  constructor(props) {
+class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
+  static defaultProps = defaultProps;
+
+  private hasQueryResponseChange: boolean;
+
+  private contextMenuRef: RefObject<ChartContextMenuRef | null>;
+
+  private hooks: ChartHooks;
+
+  private mutableQueriesResponse: QueryData[] | null | undefined;
+
+  private renderStartTime: number;
+
+  constructor(props: ChartRendererProps) {
     super(props);
     const suppressContextMenu = getChartMetadataRegistry().get(
       props.formData.viz_type ?? props.vizType,
@@ -99,8 +209,9 @@ class ChartRenderer extends Component {
       legendIndex: 0,
     };
     this.hasQueryResponseChange = false;
+    this.renderStartTime = 0;
 
-    this.contextMenuRef = createRef();
+    this.contextMenuRef = createRef<ChartContextMenuRef | null>();
 
     this.handleAddFilter = this.handleAddFilter.bind(this);
     this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
@@ -123,8 +234,8 @@ class ChartRenderer extends Component {
       onFilterMenuOpen: this.props.onFilterMenuOpen,
       onFilterMenuClose: this.props.onFilterMenuClose,
       onLegendStateChanged: this.handleLegendStateChanged,
-      setDataMask: dataMask => {
-        this.props.actions?.updateDataMask(this.props.chartId, dataMask);
+      setDataMask: (dataMask: DataMask) => {
+        this.props.actions?.updateDataMask?.(this.props.chartId, dataMask);
       },
       onLegendScroll: this.handleLegendScroll,
       onChartStateChange: this.props.onChartStateChange,
@@ -136,10 +247,13 @@ class ChartRenderer extends Component {
     this.mutableQueriesResponse = cloneDeep(this.props.queriesResponse);
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(
+    nextProps: ChartRendererProps,
+    nextState: ChartRendererState,
+  ): boolean {
     const resultsReady =
       nextProps.queriesResponse &&
-      ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
+      ['success', 'rendered'].indexOf(nextProps.chartStatus as string) > -1 &&
       !nextProps.queriesResponse?.[0]?.error;
 
     if (resultsReady) {
@@ -154,21 +268,26 @@ class ChartRenderer extends Component {
       }
 
       // Check if any matrixify-related properties have changed
-      const hasMatrixifyChanges = () => {
+      const hasMatrixifyChanges = (): boolean => {
+        const nextFormData = nextProps.formData as JsonObject;
+        const currentFormData = this.props.formData as JsonObject;
         const isMatrixifyEnabled =
-          nextProps.formData.matrixify_enable_vertical_layout === true ||
-          nextProps.formData.matrixify_enable_horizontal_layout === true;
+          nextFormData.matrixify_enable_vertical_layout === true ||
+          nextFormData.matrixify_enable_horizontal_layout === true;
         if (!isMatrixifyEnabled) return false;
 
         // Check all matrixify-related properties
-        const matrixifyKeys = Object.keys(nextProps.formData).filter(key =>
+        const matrixifyKeys = Object.keys(nextFormData).filter(key =>
           key.startsWith('matrixify_'),
         );
 
         return matrixifyKeys.some(
-          key => !isEqual(nextProps.formData[key], this.props.formData[key]),
+          key => !isEqual(nextFormData[key], currentFormData[key]),
         );
       };
+
+      const nextFormData = nextProps.formData as JsonObject;
+      const currentFormData = this.props.formData as JsonObject;
 
       return (
         this.hasQueryResponseChange ||
@@ -178,13 +297,12 @@ class ChartRenderer extends Component {
         nextProps.filterState !== this.props.filterState ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
-        nextProps.triggerRender ||
+        nextProps.triggerRender === true ||
         nextProps.labelsColor !== this.props.labelsColor ||
         nextProps.labelsColorMap !== this.props.labelsColorMap ||
-        nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
-        nextProps.formData.stack !== this.props.formData.stack ||
-        nextProps.formData.subcategories !==
-          this.props.formData.subcategories ||
+        nextFormData.color_scheme !== currentFormData.color_scheme ||
+        nextFormData.stack !== currentFormData.stack ||
+        nextFormData.subcategories !== currentFormData.subcategories ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
         nextProps.emitCrossFilters !== this.props.emitCrossFilters ||
         nextProps.postTransformProps !== this.props.postTransformProps ||
@@ -194,13 +312,18 @@ class ChartRenderer extends Component {
     return false;
   }
 
-  handleAddFilter(col, vals, merge = true, refresh = true) {
-    this.props.addFilter(col, vals, merge, refresh);
+  handleAddFilter(
+    col: string,
+    vals: FilterValue[],
+    merge = true,
+    refresh = true,
+  ): void {
+    this.props.addFilter?.(col, vals, merge, refresh);
   }
 
-  handleRenderSuccess() {
+  handleRenderSuccess(): void {
     const { actions, chartStatus, chartId, vizType } = this.props;
-    if (['loading', 'rendered'].indexOf(chartStatus) < 0) {
+    if (['loading', 'rendered'].indexOf(chartStatus as string) < 0) {
       actions.chartRenderingSucceeded(chartId);
     }
 
@@ -217,7 +340,10 @@ class ChartRenderer extends Component {
     }
   }
 
-  handleRenderFailure(error, info) {
+  handleRenderFailure(
+    error: Error,
+    info: { componentStack: string } | null,
+  ): void {
     const { actions, chartId } = this.props;
     logging.warn(error);
     actions.chartRenderingFailed(
@@ -239,44 +365,48 @@ class ChartRenderer extends Component {
     }
   }
 
-  handleSetControlValue(...args) {
+  handleSetControlValue(name: string, value: unknown): void {
     const { setControlValue } = this.props;
     if (setControlValue) {
-      setControlValue(...args);
+      setControlValue(name, value);
     }
   }
 
-  handleOnContextMenu(offsetX, offsetY, filters) {
-    this.contextMenuRef.current.open(offsetX, offsetY, filters);
+  handleOnContextMenu(
+    offsetX: number,
+    offsetY: number,
+    filters?: ContextMenuFilter[],
+  ): void {
+    this.contextMenuRef.current?.open(offsetX, offsetY, filters);
     this.setState({ inContextMenu: true });
   }
 
-  handleContextMenuSelected() {
+  handleContextMenuSelected(): void {
     this.setState({ inContextMenu: false });
   }
 
-  handleContextMenuClosed() {
+  handleContextMenuClosed(): void {
     this.setState({ inContextMenu: false });
   }
 
-  handleLegendStateChanged(legendState) {
+  handleLegendStateChanged(legendState: LegendState): void {
     this.setState({ legendState });
   }
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
   // calls `handleOnContextMenu` with no `filters` param.
-  onContextMenuFallback(event) {
+  onContextMenuFallback(event: MouseEvent<HTMLDivElement>): void {
     if (!this.state.inContextMenu) {
       event.preventDefault();
       this.handleOnContextMenu(event.clientX, event.clientY);
     }
   }
 
-  handleLegendScroll(legendIndex) {
+  handleLegendScroll(legendIndex: number): void {
     this.setState({ legendIndex });
   }
 
-  render() {
+  render(): ReactNode {
     const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
 
     // Skip chart rendering
@@ -326,7 +456,7 @@ class ChartRenderer extends Component {
           }`
         : '';
 
-    let noResultsComponent;
+    let noResultsComponent: ReactNode;
     const noResultTitle = t('No results were returned for this query');
     const noResultDescription =
       this.props.source === ChartSource.Explore
@@ -335,7 +465,10 @@ class ChartRenderer extends Component {
           )
         : undefined;
     const noResultImage = 'chart.svg';
-    if (width > BIG_NO_RESULT_MIN_WIDTH && height > BIG_NO_RESULT_MIN_HEIGHT) {
+    if (
+      (width ?? 0) > BIG_NO_RESULT_MIN_WIDTH &&
+      (height ?? 0) > BIG_NO_RESULT_MIN_HEIGHT
+    ) {
       noResultsComponent = (
         <EmptyState
           size="large"
@@ -365,8 +498,9 @@ class ChartRenderer extends Component {
       ownState?.agGridFilterModel &&
       Object.keys(ownState.agGridFilterModel).length > 0;
 
+    const currentFormDataExtended = currentFormData as JsonObject;
     const bypassNoResult = !(
-      formData?.server_pagination &&
+      currentFormDataExtended?.server_pagination &&
       (hasSearchText || hasAgGridFilters)
     );
 
@@ -376,7 +510,7 @@ class ChartRenderer extends Component {
           <ChartContextMenu
             ref={this.contextMenuRef}
             id={chartId}
-            formData={currentFormData}
+            formData={currentFormData as QueryFormData}
             onSelection={this.handleContextMenuSelected}
             onClose={this.handleContextMenuClosed}
           />
@@ -418,8 +552,5 @@ class ChartRenderer extends Component {
     );
   }
 }
-
-ChartRenderer.propTypes = propTypes;
-ChartRenderer.defaultProps = defaultProps;
 
 export default ChartRenderer;
