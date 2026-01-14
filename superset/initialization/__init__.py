@@ -153,7 +153,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.async_events.api import AsyncEventsRestApi
-        from superset.async_tasks.api import AsyncTaskRestApi
         from superset.available_domains.api import AvailableDomainsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
@@ -187,12 +186,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
+        from superset.tasks.api import TaskRestApi
         from superset.themes.api import ThemeRestApi
         from superset.views.alerts import AlertView, ReportView
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
-        from superset.views.async_tasks import AsyncTaskModelView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -220,6 +219,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
+        from superset.views.tasks import TaskModelView
         from superset.views.themes import ThemeModelView
         from superset.views.user_info import UserInfoView
         from superset.views.user_registrations import UserRegistrationsView
@@ -240,7 +240,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(AnnotationRestApi)
         appbuilder.add_api(AnnotationLayerRestApi)
         appbuilder.add_api(AsyncEventsRestApi)
-        appbuilder.add_api(AsyncTaskRestApi)
+        appbuilder.add_api(TaskRestApi)
         appbuilder.add_api(AdvancedDataTypeRestApi)
         appbuilder.add_api(AvailableDomainsRestApi)
         appbuilder.add_api(CacheRestApi)
@@ -412,9 +412,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         appbuilder.add_view(
-            AsyncTaskModelView,
-            "Async Tasks",
-            label=_("Async Tasks"),
+            TaskModelView,
+            "Tasks",
+            label=_("Tasks"),
             icon="fa-clock-o",
             category="Manage",
             category_label=_("Manage"),

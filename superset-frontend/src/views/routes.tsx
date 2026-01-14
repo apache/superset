@@ -138,9 +138,9 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
-const AsyncTaskList = lazy(
+const TaskList = lazy(
   () =>
-    import(/* webpackChunkName: "AsyncTaskList" */ 'src/pages/AsyncTaskList'),
+    import(/* webpackChunkName: "TaskList" */ 'src/pages/TaskList'),
 );
 
 const RolesList = lazy(
@@ -295,8 +295,8 @@ export const routes: Routes = [
     Component: RowLevelSecurityList,
   },
   {
-    path: '/async_tasks/list/',
-    Component: AsyncTaskList,
+    path: '/tasks/list/',
+    Component: TaskList,
   },
   {
     path: '/sqllab/',

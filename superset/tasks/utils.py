@@ -21,6 +21,7 @@ import logging
 from http.client import HTTPResponse
 from typing import Optional, TYPE_CHECKING
 from urllib import request
+from uuid import uuid4
 
 from celery.utils.log import get_task_logger
 from flask import g
@@ -142,3 +143,15 @@ def fetch_csrf_token(
 
     logger.error("Error fetching CSRF token, status code: %s", response.status)
     return {}
+
+
+def generate_random_task_key() -> str:
+    """
+    Generate a random task key.
+
+    This is the default behavior - each task submission gets a unique UUID
+    unless an explicit task_key is provided in TaskOptions.
+
+    :returns: A random UUID string
+    """
+    return str(uuid4())
