@@ -50,11 +50,14 @@ export default function reportsReducer(
     [SET_REPORT]() {
       const { report, resourceId, creationMethod, filterField } =
         action as SetReportAction;
+      // Map filterField ('dashboard_id' or 'chart_id') to the corresponding
+      // ReportObject property ('dashboard' or 'chart')
+      const propertyName =
+        filterField === 'dashboard_id' ? 'dashboard' : 'chart';
       // For now report count should only be one, but we are checking in case
       // functionality changes.
       const reportObject = report.result?.find(
-        (r: ReportObject) =>
-          (r as unknown as Record<string, number>)[filterField] === resourceId,
+        (r: ReportObject) => r[propertyName] === resourceId,
       );
 
       if (reportObject) {
