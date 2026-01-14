@@ -48,7 +48,7 @@ export default function Field<V>({
   additionalControl,
   onChange = () => {},
   compact = false,
-  inline,
+  inline = false,
   errorMessage,
 }: FieldProps<V>) {
   const onControlChange = useCallback(

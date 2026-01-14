@@ -115,7 +115,7 @@ export default class CRUDCollection extends PureComponent<
     }
   }
 
-  onCellChange(id: number, col: string, val: boolean) {
+  onCellChange(id: number, col: string, val: unknown) {
     this.setState(prevState => {
       const updatedCollection = {
         ...prevState.collection,
