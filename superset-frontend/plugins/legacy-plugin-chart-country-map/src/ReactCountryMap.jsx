@@ -70,5 +70,10 @@ export default styled(CountryMap)`
       cursor: pointer;
       stroke: ${theme.colorSplit};
     }
+
+    .hover-popup.popup-at-bottom {
+      transform: translateY(-150%);
+    }
+
   `}
 `;
