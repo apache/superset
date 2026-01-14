@@ -82,8 +82,7 @@ def execute_task(
 
     # Update status to IN_PROGRESS
     task = ctx._task
-    task.status = TaskStatus.IN_PROGRESS.value
-    task.started_at = datetime.now(timezone.utc)
+    task.set_status(TaskStatus.IN_PROGRESS)
     from superset.extensions import db
 
     db.session.merge(task)
@@ -108,7 +107,7 @@ def execute_task(
         # Set success status if not already set by task
         task = ctx._task
         if task.status == TaskStatus.IN_PROGRESS.value:
-            task.status = TaskStatus.SUCCESS.value
+            task.set_status(TaskStatus.SUCCESS)
             from superset.extensions import db
 
             db.session.merge(task)
@@ -118,7 +117,7 @@ def execute_task(
 
     except Exception as ex:
         task = ctx._task
-        task.status = TaskStatus.FAILURE.value
+        task.set_status(TaskStatus.FAILURE)
         task.error_message = str(ex)
         logger.error(
             "Task %s (uuid=%s) failed with error: %s",

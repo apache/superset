@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
-from superset_core.api.tasks import TaskStatus
+from superset_core.api.tasks import TaskScope, TaskStatus
 
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
@@ -30,6 +30,7 @@ from superset.extensions import db
 from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
 from superset.tasks.filters import TaskFilter
+from superset.tasks.utils import get_active_dedup_key
 from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
@@ -51,14 +52,14 @@ class TaskDAO(BaseDAO[Task]):
         cls,
         task_type: str,
         task_key: str,
-        scope: str = "private",
+        scope: TaskScope = TaskScope.PRIVATE,
         user_id: int | None = None,
     ) -> Task | None:
         """
         Find active task by type, key, scope, and user.
 
-        Only returns tasks that are pending or in progress.
-        Completed/aborted tasks are kept for logging but not returned here.
+        Uses dedup_key internally for efficient querying with a unique index.
+        Only returns tasks that are active (pending or in progress).
 
         Uniqueness logic by scope:
         - private: scope + task_type + task_key + user_id
@@ -70,18 +71,16 @@ class TaskDAO(BaseDAO[Task]):
         :param user_id: User ID (required for private tasks)
         :returns: Task instance or None if not found or not active
         """
-        query = db.session.query(Task).filter(
-            Task.task_type == task_type,
-            Task.task_key == task_key,
-            Task.scope == scope,
-            Task.status.in_([TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]),
+        # Build dedup_key internally (implementation detail)
+        dedup_key = get_active_dedup_key(
+            scope=scope,
+            task_type=task_type,
+            task_key=task_key,
+            user_id=user_id if scope == TaskScope.PRIVATE else None,
         )
 
-        # For private tasks, uniqueness includes user_id
-        if scope == "private" and user_id is not None:
-            query = query.filter(Task.created_by_fk == user_id)
-
-        return query.one_or_none()
+        # Simple single-column query with unique index
+        return db.session.query(Task).filter(Task.dedup_key == dedup_key).one_or_none()
 
     @classmethod
     @transaction()
@@ -89,7 +88,7 @@ class TaskDAO(BaseDAO[Task]):
         cls,
         task_type: str,
         task_key: str | None = None,
-        scope: str = "private",
+        scope: TaskScope = TaskScope.PRIVATE,
         user_id: int | None = None,
         **kwargs: Any,
     ) -> Task:
@@ -107,15 +106,30 @@ class TaskDAO(BaseDAO[Task]):
         :returns: Created or existing Task instance
         :raises DAOCreateFailedError: If duplicate private task exists
         """
+        from superset_core.api.tasks import TaskScope
+
+        from superset.tasks.utils import get_active_dedup_key
+
         # Generate task_key if not provided
         if task_key is None:
             task_key = str(uuid.uuid4())
 
-        # Check for existing active task with scope-aware logic
+        # Build dedup_key for active task
+        dedup_key = get_active_dedup_key(
+            scope=scope,
+            task_type=task_type,
+            task_key=task_key,
+            user_id=user_id if scope == TaskScope.PRIVATE else None,
+        )
 
+        # Check for existing active task using dedup_key
         if existing := cls.find_by_task_key(task_type, task_key, scope, user_id):
             # For shared tasks, subscribe user to existing task
-            if scope == "shared" and user_id and not existing.has_subscriber(user_id):
+            if (
+                scope == TaskScope.SHARED
+                and user_id
+                and not existing.has_subscriber(user_id)
+            ):
                 cls.add_subscriber(existing.id, user_id)
                 logger.info(
                     "User %s subscribed to existing shared task: %s",
@@ -130,12 +144,13 @@ class TaskDAO(BaseDAO[Task]):
                 f"and is active (status: {existing.status})"
             )
 
-        # Create new task
+        # Create new task with dedup_key
         task_data = {
             "task_type": task_type,
             "task_key": task_key,
-            "scope": scope,
+            "scope": scope.value,
             "status": TaskStatus.PENDING.value,
+            "dedup_key": dedup_key,
             **kwargs,
         }
 
@@ -146,7 +161,7 @@ class TaskDAO(BaseDAO[Task]):
         task = cls.create(attributes=task_data)
 
         # Auto-subscribe creator for shared tasks
-        if scope == "shared" and user_id:
+        if scope == TaskScope.SHARED and user_id:
             cls.add_subscriber(task.id, user_id)
             logger.info(
                 "Creator %s auto-subscribed to shared task: %s", user_id, task_key
@@ -156,7 +171,7 @@ class TaskDAO(BaseDAO[Task]):
             "Created new async task: %s (type: %s, scope: %s)",
             task_key,
             task_type,
-            scope,
+            scope.value,
         )
         return task
 
