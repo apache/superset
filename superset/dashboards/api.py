@@ -48,6 +48,7 @@ from superset.commands.dashboard.delete import (
 )
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
+    DashboardChartCustomizationsUpdateFailedError,
     DashboardColorsConfigUpdateFailedError,
     DashboardCopyError,
     DashboardCreateFailedError,
@@ -64,6 +65,7 @@ from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCom
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
+    UpdateDashboardChartCustomizationsCommand,
     UpdateDashboardColorsConfigCommand,
     UpdateDashboardCommand,
     UpdateDashboardNativeFiltersCommand,
@@ -89,6 +91,7 @@ from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.dashboards.schemas import (
     CacheScreenshotSchema,
     DashboardCacheScreenshotResponseSchema,
+    DashboardChartCustomizationsConfigUpdateSchema,
     DashboardColorsConfigUpdateSchema,
     DashboardCopySchema,
     DashboardDatasetSchema,
@@ -237,6 +240,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "cache_dashboard_screenshot",
         "screenshot",
         "put_filters",
+        "put_chart_customizations",
         "put_colors",
     }
     resource_name = "dashboard"
@@ -373,6 +377,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     add_model_schema = DashboardPostSchema()
     edit_model_schema = DashboardPutSchema()
     update_filters_model_schema = DashboardNativeFiltersConfigUpdateSchema()
+    update_chart_customizations_model_schema = (
+        DashboardChartCustomizationsConfigUpdateSchema()
+    )
     update_colors_model_schema = DashboardColorsConfigUpdateSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
@@ -864,6 +871,90 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         except DashboardNativeFiltersUpdateFailedError as ex:
             logger.error(
                 "Error changing native filters for dashboard %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            response = self.response_422(message=str(ex))
+        return response
+
+    @expose("/<pk>/chart_customizations", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.put_chart_customizations",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def put_chart_customizations(self, pk: int) -> Response:
+        """
+        Modify chart customizations configuration for a dashboard.
+        ---
+        put:
+          summary: Update chart customizations configuration for a dashboard.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Chart customizations configuration
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: >-
+                    #/components/schemas/DashboardChartCustomizationsConfigUpdateSchema
+          responses:
+            200:
+              description: Dashboard chart customizations updated
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.update_chart_customizations_model_schema.load(
+                request.json, partial=True
+            )
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        try:
+            configuration = UpdateDashboardChartCustomizationsCommand(pk, item).run()
+            response = self.response(
+                200,
+                result=configuration,
+            )
+        except DashboardNotFoundError:
+            response = self.response_404()
+        except DashboardForbiddenError:
+            response = self.response_403()
+        except TagForbiddenError as ex:
+            response = self.response(403, message=str(ex))
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DashboardChartCustomizationsUpdateFailedError as ex:
+            logger.error(
+                "Error changing chart customizations for dashboard %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,

@@ -29,8 +29,6 @@ import { useChartsVerboseMaps, getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
 import FilterBarSettings from './FilterBarSettings';
 import crossFiltersSelector from './CrossFilters/selectors';
-import { selectChartCustomizationItems } from '../ChartCustomization/selectors';
-import { ChartCustomizationItem } from '../ChartCustomization/types';
 
 const HorizontalBar = styled.div`
   ${({ theme }) => `
@@ -69,8 +67,10 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   actions,
   dataMaskSelected,
   filterValues,
+  chartCustomizationValues,
   isInitialized,
   onSelectionChange,
+  onPendingCustomizationDataMaskChange,
   clearAllTriggers,
   onClearAllComplete,
 }) => {
@@ -92,15 +92,10 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
     [chartIds, chartLayoutItems, dataMask, verboseMaps],
   );
 
-  const chartCustomizationItems = useSelector<
-    RootState,
-    ChartCustomizationItem[]
-  >(selectChartCustomizationItems);
-
   const hasFilters =
     filterValues.length > 0 ||
     selectedCrossFilters.length > 0 ||
-    chartCustomizationItems.length > 0;
+    chartCustomizationValues.length > 0;
 
   return (
     <HorizontalBar {...getFilterBarTestId()}>
@@ -119,6 +114,10 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
               <FilterControls
                 dataMaskSelected={dataMaskSelected}
                 onFilterSelectionChange={onSelectionChange}
+                onPendingCustomizationDataMaskChange={
+                  onPendingCustomizationDataMaskChange
+                }
+                chartCustomizationValues={chartCustomizationValues}
                 clearAllTriggers={clearAllTriggers}
                 onClearAllComplete={onClearAllComplete}
               />

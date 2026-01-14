@@ -36,3 +36,14 @@ export const FILTER_SUPPORTED_TYPES = {
   ],
   filter_range: [GenericDataType.Numeric],
 };
+
+export const CHART_CUSTOMIZATION_SUPPORTED_TYPES = {
+  customization_dynamic_group_by: [
+    GenericDataType.Boolean,
+    GenericDataType.String,
+    GenericDataType.Numeric,
+    GenericDataType.Temporal,
+  ],
+  customization_timecolumn: [GenericDataType.Temporal],
+  customization_timegrain: [GenericDataType.Temporal],
+};

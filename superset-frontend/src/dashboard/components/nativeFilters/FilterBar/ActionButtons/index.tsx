@@ -18,11 +18,13 @@
  */
 import { useMemo } from 'react';
 import {
-  css,
+  t,
   DataMaskState,
   DataMaskStateWithId,
-  t,
   isDefined,
+  ChartCustomization,
+  ChartCustomizationDivider,
+  css,
   SupersetTheme,
   styled,
 } from '@superset-ui/core';
@@ -30,7 +32,6 @@ import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import tinycolor from 'tinycolor2';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { getFilterBarTestId } from '../utils';
 
 interface ActionButtonsProps {
@@ -39,7 +40,7 @@ interface ActionButtonsProps {
   onClearAll: () => void;
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
-  chartCustomizationItems?: ChartCustomizationItem[];
+  chartCustomizationItems?: (ChartCustomization | ChartCustomizationDivider)[];
   isApplyDisabled: boolean;
   filterBarOrientation?: FilterBarOrientation;
 }
@@ -127,9 +128,13 @@ const ActionButtons = ({
       },
     );
 
-    const hasChartCustomizations = chartCustomizationItems?.some(
-      item => item.customization?.column && !item.removed,
-    );
+    const hasChartCustomizations = chartCustomizationItems?.some(item => {
+      if (item.removed) return false;
+      const mask = dataMaskApplied[item.id] || dataMaskSelected[item.id];
+      const hasValue = isDefined(mask?.filterState?.value);
+      const hasGroupBy = isDefined(mask?.ownState?.column);
+      return hasValue || hasGroupBy;
+    });
 
     return hasSelectedChanges || hasAppliedChanges || hasChartCustomizations;
   }, [dataMaskSelected, dataMaskApplied, chartCustomizationItems]);

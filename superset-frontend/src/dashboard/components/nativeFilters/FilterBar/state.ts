@@ -27,28 +27,32 @@ import {
 } from '@superset-ui/core';
 import { useEffect, useMemo, useState } from 'react';
 import { ChartsState, RootState } from 'src/dashboard/types';
-import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
+import {
+  NATIVE_FILTER_PREFIX,
+  CHART_CUSTOMIZATION_PREFIX,
+  isNativeFilter,
+} from '../FiltersConfigModal/utils';
+import { useFilterConfiguration } from '../state';
 
 export const useFilters = () => {
   const preselectedNativeFilters = useSelector<any, Filters>(
     state => state.dashboardState?.preselectNativeFilters,
   );
-  const nativeFilters = useSelector<RootState, Filters>(
-    state => state.nativeFilters.filters,
-  );
+  const filterConfiguration = useFilterConfiguration();
+
   return useMemo(
     () =>
-      Object.entries(nativeFilters).reduce(
-        (acc, [filterId, filter]: [string, Filter]) => ({
+      filterConfiguration.reduce(
+        (acc, filter: Filter) => ({
           ...acc,
-          [filterId]: {
+          [filter.id]: {
             ...filter,
-            preselect: preselectedNativeFilters?.[filterId],
+            preselect: preselectedNativeFilters?.[filter.id],
           },
         }),
         {} as Filters,
       ),
-    [nativeFilters, preselectedNativeFilters],
+    [filterConfiguration, preselectedNativeFilters],
   );
 };
 
@@ -57,18 +61,43 @@ export const useNativeFiltersDataMask = () => {
     state => state.dataMask,
   );
 
-  return useMemo(
+  const filteredMask = useMemo(
     () =>
       Object.values(dataMask)
-        .filter((item: DataMaskWithId) =>
-          String(item.id).startsWith(NATIVE_FILTER_PREFIX),
-        )
+        .filter((item: DataMaskWithId) => isNativeFilter(String(item.id)))
         .reduce(
           (prev, next: DataMaskWithId) => ({ ...prev, [next.id]: next }),
           {},
         ) as DataMaskStateWithId,
     [dataMask],
   );
+
+  return filteredMask;
+};
+
+export const useAllAppliedDataMask = () => {
+  const dataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
+  );
+
+  const allAppliedMask = useMemo(
+    () =>
+      Object.values(dataMask)
+        .filter((item: DataMaskWithId) => {
+          const id = String(item.id);
+          return (
+            id.startsWith(NATIVE_FILTER_PREFIX) ||
+            id.startsWith(CHART_CUSTOMIZATION_PREFIX)
+          );
+        })
+        .reduce(
+          (prev, next: DataMaskWithId) => ({ ...prev, [next.id]: next }),
+          {},
+        ) as DataMaskStateWithId,
+    [dataMask],
+  );
+
+  return allAppliedMask;
 };
 
 export const useFilterUpdates = (
@@ -78,9 +107,11 @@ export const useFilterUpdates = (
   const filters = useFilters();
   const dataMaskApplied = useNativeFiltersDataMask();
   useEffect(() => {
-    // Remove deleted filters from local state
     Object.keys(dataMaskSelected).forEach(selectedId => {
-      if (!filters[selectedId]) {
+      const isChartCustomization = String(selectedId).startsWith(
+        CHART_CUSTOMIZATION_PREFIX,
+      );
+      if (!isChartCustomization && !filters[selectedId]) {
         setDataMaskSelected(draft => {
           delete draft[selectedId];
         });
@@ -107,7 +138,11 @@ export const useInitialization = () => {
       return;
     }
 
-    if (Object.values(filters).find(({ requiredFirst }) => requiredFirst)) {
+    if (
+      Object.values(filters).find(
+        filter => 'requiredFirst' in filter && filter.requiredFirst,
+      )
+    ) {
       setIsInitialized(true);
       return;
     }

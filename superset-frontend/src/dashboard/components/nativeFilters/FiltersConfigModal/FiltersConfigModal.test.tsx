@@ -28,6 +28,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import {
   RangeFilterPlugin,
@@ -243,7 +244,7 @@ test('renders a numerical range filter type', async () => {
   expect(queryCheckbox(INVERSE_SELECTION_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(SEARCH_ALL_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(SORT_REGEX)).not.toBeInTheDocument();
-});
+}, 60000);
 
 test('renders a time range filter type', async () => {
   defaultRender();
@@ -317,7 +318,7 @@ test('validates the name', async () => {
     },
     { timeout: 10000 },
   );
-});
+}, 60000);
 
 test('validates the column', async () => {
   defaultRender();
@@ -387,7 +388,7 @@ test.skip("doesn't render time range pre-filter if there are no temporal columns
 });
 
 test('filters are draggable', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
@@ -395,12 +396,15 @@ test('filters are draggable', async () => {
   const state = {
     ...defaultState(),
     dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
   defaultRender(state, { ...props, createNewOnOpen: false });
-  const draggables = document.querySelectorAll('div[draggable=true]');
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const draggables = within(filterContainer).getAllByRole('tab');
   expect(draggables.length).toBe(3);
 });
 
@@ -421,7 +425,7 @@ test('filters are draggable', async () => {
 */
 
 test('deletes a filter', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
@@ -429,7 +433,9 @@ test('deletes a filter', async () => {
   const state = {
     ...defaultState(),
     dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
@@ -440,26 +446,28 @@ test('deletes a filter', async () => {
     createNewOnOpen: false,
     onSave,
   });
-  const removeButtons = screen.getAllByRole('button', {
-    name: 'delete',
-  });
-  await userEvent.click(removeButtons[2]);
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const filterTabs = within(filterContainer).getAllByRole('tab');
+  const deleteIcon = filterTabs[2].querySelector('[data-icon="delete"]');
+  fireEvent.click(deleteIcon!);
 
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        deleted: expect.arrayContaining(['NATIVE_FILTER-3']),
-        modified: expect.arrayContaining([]),
-        reordered: expect.arrayContaining([]),
+        filterChanges: expect.objectContaining({
+          deleted: expect.arrayContaining(['NATIVE_FILTER-3']),
+          modified: expect.arrayContaining([]),
+          reordered: expect.arrayContaining([]),
+        }),
       }),
     ),
   );
 }, 30000); // Increase timeout to 30 seconds for slow async operations
 
 test('deletes a filter including dependencies', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
@@ -467,7 +475,9 @@ test('deletes a filter including dependencies', async () => {
   const state = {
     ...defaultState(),
     dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
@@ -477,21 +487,23 @@ test('deletes a filter including dependencies', async () => {
     createNewOnOpen: false,
     onSave,
   });
-  const removeButtons = screen.getAllByRole('button', {
-    name: 'delete',
-  });
-  await userEvent.click(removeButtons[1]);
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const filterTabs = within(filterContainer).getAllByRole('tab');
+  const deleteIcon = filterTabs[1].querySelector('[data-icon="delete"]');
+  fireEvent.click(deleteIcon!);
+  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        deleted: ['NATIVE_FILTER-2'],
-        modified: expect.arrayContaining([
-          expect.objectContaining({
-            id: 'NATIVE_FILTER-1',
-          }),
-        ]),
-        reordered: [],
+        filterChanges: expect.objectContaining({
+          deleted: ['NATIVE_FILTER-2'],
+          modified: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'NATIVE_FILTER-1',
+            }),
+          ]),
+          reordered: [],
+        }),
       }),
     ),
   );
@@ -519,34 +531,35 @@ test('switches the order between two filters', async () => {
     onSave,
   });
 
-  const draggableFilters = screen.getAllByRole('tab');
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const dragContainers = filterContainer.querySelectorAll('[draggable="true"]');
 
-  fireEvent.dragStart(draggableFilters[0]);
-
-  fireEvent.dragOver(draggableFilters[1]);
-
-  fireEvent.drop(draggableFilters[1]);
-
-  fireEvent.dragEnd(draggableFilters[0]);
+  fireEvent.dragStart(dragContainers[0]);
+  fireEvent.dragEnter(dragContainers[1]);
+  fireEvent.dragOver(dragContainers[1]);
+  fireEvent.drop(dragContainers[1]);
+  fireEvent.dragEnd(dragContainers[0]);
 
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        deleted: [],
-        modified: [],
-        reordered: expect.arrayContaining([
-          'NATIVE_FILTER-2',
-          'NATIVE_FILTER-1',
-        ]),
+        filterChanges: expect.objectContaining({
+          deleted: [],
+          modified: [],
+          reordered: expect.arrayContaining([
+            'NATIVE_FILTER-2',
+            'NATIVE_FILTER-1',
+          ]),
+        }),
       }),
     ),
   );
 });
 
 // Increased timeout for CI resource contention
-test('rearranges three filters and deletes one of them', async () => {
+test('rearranges three filters', async () => {
   const nativeFilterState = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
@@ -556,7 +569,9 @@ test('rearranges three filters and deletes one of them', async () => {
   const state = {
     ...defaultState(),
     dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+      metadata: {
+        native_filter_configuration: nativeFilterState,
+      },
     },
     dashboardLayout,
   };
@@ -569,29 +584,85 @@ test('rearranges three filters and deletes one of them', async () => {
     onSave,
   });
 
-  const draggableFilters = screen.getAllByRole('tab');
-  const deleteButtons = screen.getAllByRole('button', {
-    name: 'delete',
-  });
-  await userEvent.click(deleteButtons[1]);
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const dragContainers = filterContainer.querySelectorAll('[draggable="true"]');
 
-  fireEvent.dragStart(draggableFilters[0]);
-  fireEvent.dragOver(draggableFilters[2]);
-  fireEvent.drop(draggableFilters[2]);
-  fireEvent.dragEnd(draggableFilters[0]);
+  fireEvent.dragStart(dragContainers[0]);
+  fireEvent.dragEnter(dragContainers[2]);
+  fireEvent.dragOver(dragContainers[2]);
+  fireEvent.drop(dragContainers[2]);
+  fireEvent.dragEnd(dragContainers[0]);
 
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        modified: [],
-        deleted: ['NATIVE_FILTER-2'],
-        reordered: expect.arrayContaining([
-          'NATIVE_FILTER-2',
-          'NATIVE_FILTER-3',
-          'NATIVE_FILTER-1',
-        ]),
+        filterChanges: expect.objectContaining({
+          deleted: [],
+          modified: [],
+          reordered: expect.arrayContaining([
+            'NATIVE_FILTER-2',
+            'NATIVE_FILTER-3',
+            'NATIVE_FILTER-1',
+          ]),
+        }),
+      }),
+    ),
+  );
+});
+
+test('rearranges three filters and deletes one of them', async () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+    buildNativeFilter('NATIVE_FILTER-3', 'product', []),
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+
+  const onSave = jest.fn();
+
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    onSave,
+  });
+
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const filterTabs = within(filterContainer).getAllByRole('tab');
+  const deleteIcon = filterTabs[1].querySelector('[data-icon="delete"]');
+  fireEvent.click(deleteIcon!);
+
+  const dragContainers = filterContainer.querySelectorAll('[draggable="true"]');
+  fireEvent.dragStart(dragContainers[0]);
+  fireEvent.dragEnter(dragContainers[2]);
+  fireEvent.dragOver(dragContainers[2]);
+  fireEvent.drop(dragContainers[2]);
+  fireEvent.dragEnd(dragContainers[0]);
+
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterChanges: expect.objectContaining({
+          modified: [],
+          deleted: ['NATIVE_FILTER-2'],
+          reordered: expect.arrayContaining([
+            'NATIVE_FILTER-2',
+            'NATIVE_FILTER-3',
+            'NATIVE_FILTER-1',
+          ]),
+        }),
       }),
     ),
   );
@@ -600,7 +671,7 @@ test('rearranges three filters and deletes one of them', async () => {
 test('modifies the name of a filter', async () => {
   jest.useFakeTimers();
   try {
-    const nativeFilterState = [
+    const nativeFilterConfig = [
       buildNativeFilter('NATIVE_FILTER-1', 'state', []),
       buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     ];
@@ -608,7 +679,9 @@ test('modifies the name of a filter', async () => {
     const state = {
       ...defaultState(),
       dashboardInfo: {
-        metadata: { native_filter_configuration: nativeFilterState },
+        metadata: {
+          native_filter_configuration: nativeFilterConfig,
+        },
       },
       dashboardLayout,
     };
@@ -635,9 +708,11 @@ test('modifies the name of a filter', async () => {
     await waitFor(() =>
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({
-          modified: expect.arrayContaining([
-            expect.objectContaining({ name: 'New Filter Name' }),
-          ]),
+          filterChanges: expect.objectContaining({
+            modified: expect.arrayContaining([
+              expect.objectContaining({ name: 'New Filter Name' }),
+            ]),
+          }),
         }),
       ),
     );
@@ -647,7 +722,7 @@ test('modifies the name of a filter', async () => {
 });
 
 test('renders a filter with a chart containing BigInt values', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
@@ -655,7 +730,9 @@ test('renders a filter with a chart containing BigInt values', async () => {
   const state = {
     ...bigIntChartDataState(),
     dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };

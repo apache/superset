@@ -17,7 +17,13 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
+import {
+  isChartCustomization,
+  useTruncation,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { RootState } from 'src/dashboard/types';
@@ -46,6 +52,8 @@ export const NameRow = ({
       initialFilterId: filter.id,
     });
 
+  const isCustomization = isChartCustomization(filter);
+
   return (
     <Row
       css={(theme: SupersetTheme) => css`
@@ -54,12 +62,21 @@ export const NameRow = ({
       `}
     >
       <InternalRow>
-        <Icons.FilterOutlined
-          iconSize="s"
-          css={(theme: SupersetTheme) => css`
-            margin-right: ${theme.sizeUnit}px;
-          `}
-        />
+        {isCustomization ? (
+          <Icons.GroupOutlined
+            iconSize="s"
+            css={theme => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          />
+        ) : (
+          <Icons.FilterOutlined
+            iconSize="s"
+            css={(theme: SupersetTheme) => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          />
+        )}
         <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>
           <FilterName ref={filterNameRef}>{filter.name}</FilterName>
         </TooltipWithTruncation>

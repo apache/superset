@@ -32,8 +32,8 @@ import {
 } from 'src/features/datasets/DatasetSelectLabel';
 
 interface DatasetSelectProps {
-  onChange: (value: { label: string; value: number }) => void;
-  value?: { label: string; value: number };
+  onChange: (value: { label: string | ReactNode; value: number }) => void;
+  value?: { label: string | ReactNode; value: number };
   excludeDatasetIds?: number[];
 }
 

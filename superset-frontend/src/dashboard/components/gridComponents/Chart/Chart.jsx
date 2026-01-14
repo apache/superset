@@ -67,6 +67,7 @@ import {
   getAppliedFilterValues,
 } from '../../../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../../../util/charts/getFormDataWithExtraFilters';
+import { useChartCustomizationFromRedux } from '../../nativeFilters/state';
 import { PLACEHOLDER_DATASOURCE } from '../../../constants';
 
 const propTypes = {
@@ -111,7 +112,6 @@ const SliceContainer = styled.div`
 `;
 
 const EMPTY_OBJECT = {};
-const EMPTY_ARRAY = [];
 
 const Chart = props => {
   const dispatch = useDispatch();
@@ -307,10 +307,7 @@ const Chart = props => {
   const chartConfiguration = useSelector(
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
-  const chartCustomizationItems = useSelector(
-    state =>
-      state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
-  );
+  const chartCustomizationItems = useChartCustomizationFromRedux();
   const colorScheme = useSelector(state => state.dashboardState.colorScheme);
   const colorNamespace = useSelector(
     state => state.dashboardState.colorNamespace,
