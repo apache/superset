@@ -304,13 +304,18 @@ export default function transformProps(
       hasTimeOffset(entry, array) || array.includes(seriesName);
     const lineStyle: LineStyleOption = {};
     if (derivedSeries || isTimeCompare) {
-      // Get the time offset for this series to assign different line widths
+      // Get the time offset for this series to assign different dash patterns
       const offset = getTimeOffset(entry, array) || seriesName;
       if (!offsetLineWidths[offset]) {
         offsetLineWidths[offset] = Object.keys(offsetLineWidths).length + 1;
       }
-      lineStyle.type = 'dashed';
-      lineStyle.width = offsetLineWidths[offset];
+      // Use visible dash patterns that vary by offset index
+      // Pattern: [dash length, gap length] - scaled to be clearly visible
+      const patternIndex = offsetLineWidths[offset];
+      lineStyle.type = [
+        (patternIndex % 5) + 4, // dash: 4-8px (visible)
+        (patternIndex % 3) + 3, // gap: 3-5px (visible)
+      ];
       lineStyle.opacity = OpacityEnum.DerivedSeries;
     }
 

@@ -770,8 +770,12 @@ test('should apply dashed line style to time comparison series with single metri
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
-  expect(mainSeries.lineStyle?.type).not.toBe('dashed');
-  expect(comparisonSeries.lineStyle?.type).toBe('dashed');
+  // Main series should not have a dash pattern array
+  expect(Array.isArray(mainSeries.lineStyle?.type)).toBe(false);
+  // Comparison series should have a visible dash pattern array [dash, gap]
+  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(true);
+  expect(comparisonSeries.lineStyle?.type[0]).toBeGreaterThanOrEqual(4);
+  expect(comparisonSeries.lineStyle?.type[1]).toBeGreaterThanOrEqual(3);
 });
 
 test('should apply dashed line style to time comparison series with metric__offset pattern', () => {
@@ -812,8 +816,12 @@ test('should apply dashed line style to time comparison series with metric__offs
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
-  expect(mainSeries.lineStyle?.type).not.toBe('dashed');
-  expect(comparisonSeries.lineStyle?.type).toBe('dashed');
+  // Main series should not have a dash pattern array
+  expect(Array.isArray(mainSeries.lineStyle?.type)).toBe(false);
+  // Comparison series should have a visible dash pattern array [dash, gap]
+  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(true);
+  expect(comparisonSeries.lineStyle?.type[0]).toBeGreaterThanOrEqual(4);
+  expect(comparisonSeries.lineStyle?.type[1]).toBeGreaterThanOrEqual(3);
 });
 
 test('should apply connectNulls to time comparison series', () => {
@@ -876,6 +884,7 @@ test('should apply dashed line style for non-Values comparison types', () => {
   const comparisonSeries = series.find(s => s.name === '1 week ago');
 
   expect(comparisonSeries).toBeDefined();
-  expect(comparisonSeries.lineStyle?.type).toBe('dashed');
+  // Comparison series should have a visible dash pattern array [dash, gap]
+  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(true);
   expect(comparisonSeries.connectNulls).toBe(true);
 });
