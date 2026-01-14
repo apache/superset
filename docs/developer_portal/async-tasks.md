@@ -1,6 +1,6 @@
 ---
-title: Async Task Framework
-sidebar_label: Async Tasks
+title: Task Framework
+sidebar_label: Tasks
 sidebar_position: 5
 ---
 
@@ -24,19 +24,19 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Global Async Task Framework (GATF)
+# Global Task Framework (GTF)
 
-The Global Async Task Framework provides a unified way to manage asynchronous tasks in Apache Superset. It handles task registration, execution, status tracking, cancellation, and deduplication.
+The Global Task Framework provides a unified way to manage tasks in Apache Superset. It handles task registration, execution, status tracking, cancellation, and deduplication, and supports both synchronous and asynchronous execution.
 
 ## Overview
 
-GATF uses the **ambient context pattern** where tasks access their execution context via `get_context()` instead of receiving it as a parameter. This results in clean, business-focused function signatures without framework boilerplate.
+GTF uses the **ambient context pattern** where tasks access their execution context via `get_context()` instead of receiving it as a parameter. This results in clean, business-focused function signatures without framework boilerplate.
 
 ### Key Features
 
 - **Clean Signatures**: Task functions contain only business args
 - **Ambient Context**: Access context via `get_context()` - no parameter passing
-- **Dual Execution**: Synchronous (for testing) and asynchronous (via Celery)
+- **Dual Execution**: Synchronous and asynchronous
 - **Optional Deduplication**: Use idempotency keys to prevent duplicate execution
 - **Progressive Updates**: Update payload and check cancellation during execution
 - **Type Safety**: Full type hints with ParamSpec support
@@ -47,17 +47,17 @@ GATF uses the **ambient context pattern** where tasks access their execution con
 
 ```python
 import requests
-from superset_core.api.types import async_task, get_context
+from superset_core.api.types import task, get_context
 
-@async_task()
+@task()
 def fetch_data(api_url: str) -> None:
     """
     Example task that fetches data from an external API.
 
     Features:
-    - Automatic cancellation check before execution
+    - Automatic abort check before execution
     - Simple cleanup handler
-    - Cancellation checking during execution
+    - Abort checking during execution
     """
     ctx = get_context()
 
@@ -72,7 +72,7 @@ def fetch_data(api_url: str) -> None:
     data = response.json()
 
     # Check before next operation
-    if ctx.is_cancelled():
+    if ctx.is_aborted():
         return
 
     # Process and cache the data
@@ -81,15 +81,15 @@ def fetch_data(api_url: str) -> None:
 
 ### Execute Tasks Asynchronously or Synchronously
 
-The `@async_task` decorator enables flexible execution modes:
+The `@task` decorator enables flexible execution modes:
 
 ```python
-# Asynchronous execution via Celery (for production workloads)
+# Asynchronous execution via Celery for long running tasks
 task = long_running_task.schedule()
-# Task runs in background worker, returns immediately
+# Task is scheduled to run in background worker, returns immediately
 print(task.status)  # "pending"
 
-# Synchronous execution (for testing or when blocking is acceptable)
+# Synchronous execution
 task = long_running_task()
 # Task executes inline, blocks until complete
 print(task.status)  # "success"
@@ -106,7 +106,7 @@ print(task.status)  # "success"
 Tasks access execution context via `get_context()`:
 
 ```python
-@async_task()
+@task()
 def my_task(business_arg: int) -> None:
     ctx = get_context()  # Ambient context access
 
@@ -123,7 +123,7 @@ def my_task(business_arg: int) -> None:
 2. **IN_PROGRESS**: Currently executing
 3. **SUCCESS**: Completed successfully  
 4. **FAILURE**: Failed with error
-5. **CANCELLED**: Cancelled before/during execution
+5. **ABORTED**: Aborted before/during execution
 
 ### Deduplication
 
@@ -140,16 +140,16 @@ task2 = my_task.schedule(arg=1, options=TaskOptions(task_key="key"))
 # task2 is the same as task1 if task1 is PENDING or IN_PROGRESS
 ```
 
-## Cancellation Support
+## Abort Support
 
-The framework provides built-in cancellation support with minimal boilerplate.
+The framework provides built-in abort support with minimal boilerplate.
 
 ### Cleanup Handlers
 
-Register cleanup functions that run automatically when a task ends (success, failure, or cancellation):
+Register cleanup functions that run automatically when a task ends (success, failure, or abort):
 
 ```python
-@async_task()
+@task()
 def my_task() -> None:
     ctx = get_context()
 
@@ -173,14 +173,14 @@ def cleanup_log():
 
 ### Automatic Pre-Execution Check
 
-**The framework automatically checks if a task was cancelled before execution starts.** You don't need an initial `if ctx.is_cancelled()` check - just start working!
+**The framework automatically checks if a task was aborted before execution starts.** You don't need an initial `if ctx.is_aborted()` check - just start working!
 
 ### Checking During Execution
 
-Check for cancellation at key points during execution:
+Check for abort at key points during execution:
 
 ```python
-@async_task()
+@task()
 def process_items(items: list[int]) -> None:
     ctx = get_context()
 
@@ -192,7 +192,7 @@ def process_items(items: list[int]) -> None:
 
     for i, item in enumerate(items):
         # Check every 10 items
-        if i % 10 == 0 and ctx.is_cancelled():
+        if i % 10 == 0 and ctx.is_aborted():
             return
 
         process_single_item(item)
@@ -203,7 +203,7 @@ def process_items(items: list[int]) -> None:
 **`ctx.run()` - Pre-check wrapper (optional):**
 
 ```python
-@async_task()
+@task()
 def fetch_and_process(api_url: str) -> None:
     ctx = get_context()
 
@@ -211,10 +211,10 @@ def fetch_and_process(api_url: str) -> None:
     def cleanup():
         logger.info("Fetch completed")
 
-    # Helper checks cancellation before executing
+    # Helper checks abort before executing
     response = ctx.run(lambda: requests.get(api_url, timeout=60))
     if response is None:
-        return  # Cancelled
+        return  # Aborted
 
     data = ctx.run(lambda: response.json())
     if data is None:
@@ -226,7 +226,7 @@ def fetch_and_process(api_url: str) -> None:
 **`ctx.update_task()` - Progress tracking:**
 
 ```python
-@async_task()
+@task()
 def process_batch(item_ids: list[int]) -> None:
     ctx = get_context()
 
@@ -237,8 +237,8 @@ def process_batch(item_ids: list[int]) -> None:
             payload={"current_item": item_id}
         )
 
-        # Check cancellation separately if needed
-        if ctx.is_cancelled():
+        # Check abort separately if needed
+        if ctx.is_aborted():
             return
 
         process_single_item(item_id)
@@ -249,7 +249,7 @@ def process_batch(item_ids: list[int]) -> None:
 ### Complete Example: API Fetch with Cleanup
 
 ```python
-@async_task()
+@task()
 def fetch_and_cache(api_url: str, chart_id: int) -> None:
     """Fetch from external API and cache results."""
     ctx = get_context()
@@ -257,10 +257,10 @@ def fetch_and_cache(api_url: str, chart_id: int) -> None:
 
     @ctx.on_cleanup
     def cleanup():
-        if ctx.is_cancelled():
-            # Clear partial cache on cancellation
+        if ctx.is_aborted():
+            # Clear partial cache on abort
             cache.delete(cache_key)
-            logger.info(f"Fetch cancelled, cleared cache: {cache_key}")
+            logger.info(f"Fetch aborted, cleared cache: {cache_key}")
         else:
             logger.info(f"Fetch completed: {cache_key}")
 
@@ -269,7 +269,7 @@ def fetch_and_cache(api_url: str, chart_id: int) -> None:
     data = response.json()
 
     # Check before expensive processing
-    if ctx.is_cancelled():
+    if ctx.is_aborted():
         return
 
     processed = process_data(data)
@@ -281,7 +281,7 @@ def fetch_and_cache(api_url: str, chart_id: int) -> None:
 Update progress and payload during execution:
 
 ```python
-@async_task()
+@task()
 def multi_step_task(item_ids: list[int]) -> None:
     ctx = get_context()
 
@@ -296,8 +296,8 @@ def multi_step_task(item_ids: list[int]) -> None:
             payload={"current_item": item_id, "count": i + 1}
         )
 
-        # Check cancellation
-        if ctx.is_cancelled():
+        # Check abort
+        if ctx.is_aborted():
             return
 
         process_item(item_id)
@@ -305,7 +305,7 @@ def multi_step_task(item_ids: list[int]) -> None:
 
 ### Important: Use Timeouts
 
-Cancellation checks happen at specific points - they cannot interrupt operations mid-execution. **Always use timeouts** to prevent operations from hanging:
+Abort checks happen at specific points - they cannot interrupt operations mid-execution. **Always use timeouts** to prevent operations from hanging:
 
 **Good:**
 ```python
@@ -319,53 +319,28 @@ response = requests.get(url, timeout=30)
 response = requests.get(url)
 ```
 
-### How Cancellation Works
+### How Abort Works
 
-1. **Before execution:** Framework checks if task cancelled → skips if true
-2. **During execution:** Developer checks at key points → returns early if cancelled
+1. **Before execution:** Framework checks if task aborted → skips if true
+2. **During execution:** Developer checks at key points → returns early if aborted
 3. **Cannot interrupt:** Operations run to completion once started
 4. **Cleanup handlers:** Run automatically regardless of how task ends
 
 **Cancellation flow:**
 ```
-User cancels → AsyncTask.status = CANCELLED
+User cancels → Task.status = ABORTED
                     ↓
-Framework checks before execution → Skip if already cancelled
+Framework checks before execution → Skip if already aborted
                     ↓
-Task executes → Checks at developer-defined points → Returns early if cancelled
+Task executes → Checks at developer-defined points → Returns early if aborted
                     ↓
 Cleanup handlers run automatically
-```
-
-## Testing
-
-### Unit Tests
-
-```python
-def test_my_task():
-    # Synchronous execution
-    task = my_task(arg=123)
-
-    assert task.is_successful
-    assert task.get_payload()["result"] == expected_value
-```
-
-### Integration Tests
-
-```python
-def test_my_task_async():
-    # Async execution
-    task = my_task.schedule(arg=123)
-    assert task.status == "pending"
-
-    # Poll for completion
-    # ...
 ```
 
 ## Best Practices
 
 1. **Idempotency**: Design tasks to be safely retryable
-2. **Check Cancellation**: Before expensive operations
+2. **Check Abort**: Before expensive operations
 3. **Update Progress**: For long-running tasks
 4. **Descriptive Names**: Use globally unique task names
 5. **Test Sync First**: Direct calls are easier to debug
@@ -375,7 +350,7 @@ def test_my_task_async():
 ### Decorator
 
 ```python
-@async_task(name: str | None = None)
+@task(name: str | None = None)
 ```
 
 Registers a function as an async task.
@@ -424,14 +399,14 @@ class TaskContext:
         Updates occur in a single database transaction.
         """
 
-    def is_cancelled(self) -> bool:
-        """Check if task is cancelled"""
+    def is_aborted(self) -> bool:
+        """Check if task is aborted"""
 
     def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
         """Register cleanup handler (runs on task end)"""
 
     def run(self, operation: Callable[[], T]) -> T | None:
-        """Execute operation if not cancelled (optional helper)"""
+        """Execute operation if not aborted (optional helper)"""
 ```
 
 **Note:** The task object is no longer directly exposed. Tasks should use `update_task()` to modify state, as tasks are the source of state, not consumers of it.
@@ -443,7 +418,7 @@ class TaskContext:
 - **TaskRegistry**: Global registry of task functions
 - **TaskManager**: Creates and schedules tasks
 - **TaskContext**: Provides task/user access
-- **AsyncTaskWrapper**: Adds `.schedule()` to decorated functions
+- **TaskWrapper**: Adds `.schedule()` to decorated functions
 - **Celery Executor**: Generic executor for all task types
 
 ### Dependency Injection
@@ -454,13 +429,13 @@ Public APIs in `superset-core` are injected with concrete implementations from `
 
 ### "get_context() called outside task execution context"
 
-Only call `get_context()` from within `@async_task` decorated functions.
+Only call `get_context()` from within `@task` decorated functions.
 
 ### Task Not Executing
 
 1. Check Celery workers: `celery -A superset.tasks.celery_app:app worker`
-2. Verify registration: Check logs for "Registered async task"
-3. Check database: `SELECT * FROM async_tasks WHERE uuid = '...'`
+2. Verify registration: Check logs for "Registered task"
+3. Check database: `SELECT * FROM tasks WHERE uuid = '...'`
 
 ### Duplicate Tasks Despite Task Key
 
