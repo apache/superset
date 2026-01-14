@@ -22,9 +22,11 @@ from typing import Any, Optional, Union
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
+from superset_core.api.tasks import TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.types import Executor, ExecutorType, FixedExecutor
+from superset.tasks.utils import get_active_dedup_key, get_finished_dedup_key
 
 FIXED_USER_ID = 1234
 FIXED_USERNAME = "admin"
@@ -330,3 +332,72 @@ def test_get_executor(
         )
         assert executor_type == expected_executor_type
         assert executor == expected_executor
+
+
+@pytest.mark.parametrize(
+    "scope,task_type,task_key,user_id,expected",
+    [
+        # Private tasks include user_id
+        (
+            TaskScope.PRIVATE,
+            "sql_execution",
+            "chart_123",
+            42,
+            "private|sql_execution|chart_123|42",
+        ),
+        (
+            TaskScope.PRIVATE,
+            "thumbnail_gen",
+            "dash_456",
+            100,
+            "private|thumbnail_gen|dash_456|100",
+        ),
+        # Shared tasks don't include user_id
+        (
+            TaskScope.SHARED,
+            "report_gen",
+            "monthly_report",
+            None,
+            "shared|report_gen|monthly_report",
+        ),
+        (
+            TaskScope.SHARED,
+            "export_csv",
+            "large_export",
+            999,  # user_id should be ignored for shared
+            "shared|export_csv|large_export",
+        ),
+        # System tasks don't include user_id
+        (
+            TaskScope.SYSTEM,
+            "cleanup_task",
+            "daily_cleanup",
+            None,
+            "system|cleanup_task|daily_cleanup",
+        ),
+        (
+            TaskScope.SYSTEM,
+            "db_migration",
+            "version_123",
+            1,  # user_id should be ignored for system
+            "system|db_migration|version_123",
+        ),
+    ],
+)
+def test_get_active_dedup_key(scope, task_type, task_key, user_id, expected):
+    """Test get_active_dedup_key generates correct format for all scopes"""
+    result = get_active_dedup_key(scope, task_type, task_key, user_id)
+    assert result == expected
+
+
+def test_get_active_dedup_key_private_requires_user_id():
+    """Test that private tasks require user_id"""
+    with pytest.raises(ValueError, match="user_id required for private tasks"):
+        get_active_dedup_key(TaskScope.PRIVATE, "test_type", "test_key", None)
+
+
+def test_get_finished_dedup_key():
+    """Test that finished tasks use UUID as dedup_key"""
+    test_uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    result = get_finished_dedup_key(test_uuid)
+    assert result == test_uuid

@@ -25,6 +25,7 @@ from uuid import uuid4
 
 from celery.utils.log import get_task_logger
 from flask import g
+from superset_core.api.tasks import TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.types import ChosenExecutor, Executor, ExecutorType, FixedExecutor
@@ -155,3 +156,68 @@ def generate_random_task_key() -> str:
     :returns: A random UUID string
     """
     return str(uuid4())
+
+
+def get_active_dedup_key(
+    scope: TaskScope,
+    task_type: str,
+    task_key: str,
+    user_id: int | None = None,
+) -> str:
+    """
+    Build a deduplication key for active tasks.
+
+    The dedup_key enforces uniqueness at the database level via a unique index.
+    Active tasks use a composite key based on scope, while finished tasks use
+    their UUID to free up the slot for new tasks.
+
+    Format by scope:
+    - Private: private|task_type|task_key|user_id
+    - Shared: shared|task_type|task_key
+    - System: system|task_type|task_key
+
+    :param scope: Task scope (PRIVATE/SHARED/SYSTEM)
+    :param task_type: Type of task (e.g., 'sql_execution')
+    :param task_key: Task identifier for deduplication
+    :param user_id: User ID (required for private tasks)
+    :returns: Deduplication key string
+    :raises ValueError: If user_id is missing for private scope
+
+    Example:
+        >>> from superset_core.api.tasks import TaskScope
+        >>> get_active_dedup_key(TaskScope.PRIVATE, "sql_exec", "chart_123", 42)
+        'private|sql_exec|chart_123|42'
+        >>> get_active_dedup_key(TaskScope.SHARED, "report", "monthly", None)
+        'shared|report|monthly'
+    """
+    from superset_core.api.tasks import TaskScope
+
+    match scope:
+        case TaskScope.PRIVATE:
+            if user_id is None:
+                raise ValueError("user_id required for private tasks")
+            return f"{scope.value}|{task_type}|{task_key}|{user_id}"
+        case TaskScope.SHARED:
+            return f"{scope.value}|{task_type}|{task_key}"
+        case TaskScope.SYSTEM:
+            return f"{scope.value}|{task_type}|{task_key}"
+        case _:
+            raise ValueError(f"Invalid scope: {scope}")
+
+
+def get_finished_dedup_key(task_uuid: str) -> str:
+    """
+    Build a deduplication key for finished tasks.
+
+    When a task completes (success, failure, or abort), its dedup_key is
+    changed to its UUID. This frees up the slot so new tasks with the same
+    parameters can be created.
+
+    :param task_uuid: Task UUID
+    :returns: The task UUID as the dedup key
+
+    Example:
+        >>> get_finished_dedup_key("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+        'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+    """
+    return task_uuid
