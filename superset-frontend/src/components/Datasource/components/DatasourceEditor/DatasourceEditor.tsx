@@ -19,13 +19,13 @@
 import rison from 'rison';
 import { PureComponent, useCallback, ReactNode } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import type { SupersetTheme, JsonObject } from '@superset-ui/core';
-import type { Dispatch } from 'redux';
+import type { JsonObject } from '@superset-ui/core';
+import type { SupersetTheme } from '@apache-superset/core/ui';
+import type { AnyAction } from 'redux';
+import type { ThunkDispatch } from 'redux-thunk';
 import { Radio } from '@superset-ui/core/components/Radio';
 import {
   isFeatureEnabled,
-  getCurrencySymbol,
-  ensureIsArray,
   FeatureFlag,
   SupersetClient,
   getClientErrorObject,
@@ -136,7 +136,14 @@ interface Column {
 interface Database {
   id: number;
   database_name?: string;
+  name?: string;
   backend?: string;
+}
+
+interface SpatialConfig {
+  name: string;
+  type: string;
+  config: Record<string, unknown> | null;
 }
 
 interface DatasourceObject {
@@ -163,6 +170,8 @@ interface DatasourceObject {
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
   template_params?: string;
+  spatials?: SpatialConfig[];
+  all_cols?: string[];
 }
 
 interface DatasourceEditorOwnProps {
@@ -175,15 +184,33 @@ interface DatasourceEditorOwnProps {
   theme?: SupersetTheme;
 }
 
+interface QueryResultColumn {
+  name: string;
+  type: string;
+  is_dttm?: boolean;
+  type_generic?: number;
+  is_hidden?: boolean;
+  column_name: string;
+}
+
+interface QueryResult {
+  status?: string;
+  query_id?: string;
+  data?: Record<string, unknown>[];
+  columns?: QueryResultColumn[];
+  selected_columns?: QueryResultColumn[];
+  expanded_columns?: QueryResultColumn[];
+  query?: {
+    id?: string;
+  };
+}
+
 interface DatabaseState {
   clientId?: string;
-  queryResponse?: {
-    results?: {
-      columns?: Array<{ name: string; type: string }>;
-      data?: Array<Record<string, unknown>>;
-    };
-  };
   queryRunning?: boolean;
+  isLoading?: boolean;
+  error?: string;
+  queryResult?: QueryResult;
 }
 
 interface RootState {
@@ -233,15 +260,10 @@ interface AbortControllers {
   fetchUsageData: AbortController | null;
 }
 
-interface CurrencyOption {
-  value: string;
-  label: string;
-}
-
 // Component props interfaces
 interface CollectionTabTitleProps {
   title: string;
-  collection?: unknown[];
+  collection?: unknown[] | { length: number };
 }
 
 interface ColumnCollectionTableProps {
@@ -253,6 +275,7 @@ interface ColumnCollectionTableProps {
   showExpression?: boolean;
   allowAddItem?: boolean;
   allowEditDataType?: boolean;
+  className?: string;
   itemGenerator?: () => Partial<Column>;
   columnLabelTooltips?: Record<string, string>;
 }
@@ -406,7 +429,7 @@ const DATASOURCE_TYPES_ARR = [
   { key: 'physical', label: t('Physical (table or view)') },
   { key: 'virtual', label: t('Virtual (SQL)') },
 ];
-const DATASOURCE_TYPES = {};
+const DATASOURCE_TYPES: Record<string, { key: string; label: string }> = {};
 DATASOURCE_TYPES_ARR.forEach(o => {
   DATASOURCE_TYPES[o.key] = o;
 });
@@ -414,7 +437,7 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 function CollectionTabTitle({
   title,
   collection,
-}: CollectionTabTitleProps): ReactNode {
+}: CollectionTabTitleProps): JSX.Element {
   return (
     <div
       css={{ display: 'flex', alignItems: 'center' }}
@@ -441,7 +464,7 @@ function ColumnCollectionTable({
     groupby: true,
   }),
   columnLabelTooltips,
-}: ColumnCollectionTableProps): ReactNode {
+}: ColumnCollectionTableProps): JSX.Element {
   return (
     <CollectionTable
       tableColumns={
@@ -629,7 +652,7 @@ function ColumnCollectionTable({
                     )}
                     <EditableTitle
                       canEdit
-                      title={v}
+                      title={v as string}
                       onSaveTitle={onItemChange}
                     />
                   </StyledLabelWrapper>
@@ -645,9 +668,7 @@ function ColumnCollectionTable({
                   </StyledLabelWrapper>
                 ),
               type: d => (d ? <Label>{d}</Label> : null),
-              advanced_data_type: d => (
-                <Label onChange={onColumnsChange}>{d}</Label>
-              ),
+              advanced_data_type: d => <Label>{d as string}</Label>,
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,
@@ -662,7 +683,7 @@ function ColumnCollectionTable({
                         details={record.certification_details}
                       />
                     )}
-                    <TextControl value={v} onChange={onItemChange} />
+                    <TextControl value={v as string} onChange={onItemChange} />
                   </StyledLabelWrapper>
                 ) : (
                   <StyledLabelWrapper>
@@ -685,7 +706,7 @@ function ColumnCollectionTable({
   );
 }
 
-function StackedField({ label, formElement }: StackedFieldProps): ReactNode {
+function StackedField({ label, formElement }: StackedFieldProps): JSX.Element {
   return (
     <div>
       <div>
@@ -696,7 +717,7 @@ function StackedField({ label, formElement }: StackedFieldProps): ReactNode {
   );
 }
 
-function FormContainer({ children }: FormContainerProps): ReactNode {
+function FormContainer({ children }: FormContainerProps): JSX.Element {
   return (
     <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
       {children}
@@ -707,7 +728,7 @@ function FormContainer({ children }: FormContainerProps): ReactNode {
 function OwnersSelector({
   datasource,
   onChange,
-}: OwnersSelectorProps): ReactNode {
+}: OwnersSelectorProps): JSX.Element {
   const loadOptions = useCallback(
     (
       search = '',
@@ -735,9 +756,9 @@ function OwnersSelector({
       ariaLabel={t('Select owners')}
       mode="multiple"
       name="owners"
-      value={datasource.owners}
+      value={datasource.owners as { value: number; label: string }[]}
       options={loadOptions}
-      onChange={onChange}
+      onChange={value => onChange(value as Owner[])}
       header={<FormLabel>{t('Owners')}</FormLabel>}
       allowClear
     />
@@ -767,13 +788,19 @@ interface FormatQueryResponse {
   };
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => ({
-  runQuery: (payload: QueryPayload) => dispatch(executeQuery(payload)),
+const mapDispatchToProps = (
+  dispatch: ThunkDispatch<RootState, unknown, AnyAction>,
+) => ({
+  runQuery: (payload: QueryPayload) =>
+    dispatch(executeQuery(payload as Parameters<typeof executeQuery>[0])),
   resetQuery: () => dispatch(resetDatabaseState()),
   formatQuery: (
     sql: string,
     options: { signal: AbortSignal },
-  ): Promise<FormatQueryResponse> => dispatch(formatQuery(sql, options)),
+  ): Promise<FormatQueryResponse> =>
+    dispatch(
+      formatQuery(sql, options),
+    ) as unknown as Promise<FormatQueryResponse>,
 });
 
 const mapStateToProps = (state: RootState) => ({
@@ -796,8 +823,6 @@ class DatasourceEditor extends PureComponent<
 
   private abortControllers: AbortControllers;
 
-  private currencies: CurrencyOption[];
-
   static defaultProps = {
     onChange: () => {},
     setIsEditing: () => {},
@@ -818,7 +843,10 @@ class DatasourceEditor extends PureComponent<
             certification_details: certificationDetails,
           } = metric;
           const {
-            certification: { details, certified_by: certifiedBy } = {},
+            certification: {
+              details = undefined,
+              certified_by: certifiedBy = undefined,
+            } = {},
             warning_markdown: warningMarkdown,
           } = JSON.parse(metric.extra || '{}') || {};
           return {
@@ -867,12 +895,6 @@ class DatasourceEditor extends PureComponent<
     this.handleTabSelect = this.handleTabSelect.bind(this);
     this.formatSql = this.formatSql.bind(this);
     this.fetchUsageData = this.fetchUsageData.bind(this);
-    this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
-      value: currencyCode,
-      label: `${getCurrencySymbol({
-        symbol: currencyCode,
-      })} (${currencyCode})`,
-    }));
   }
 
   onChange() {
@@ -889,40 +911,52 @@ class DatasourceEditor extends PureComponent<
       columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
     };
 
-    this.props.onChange(newDatasource, this.state.errors);
+    this.props.onChange?.(newDatasource, this.state.errors);
   }
 
   onChangeEditMode() {
-    this.props.setIsEditing(!this.state.isEditMode);
+    this.props.setIsEditing?.(!this.state.isEditMode);
     this.setState(prevState => ({ isEditMode: !prevState.isEditMode }));
   }
 
-  onDatasourceChange(datasource, callback = this.validateAndChange) {
+  onDatasourceChange(
+    datasource: DatasourceObject,
+    callback: () => void = this.validateAndChange,
+  ) {
     this.setState({ datasource }, callback);
   }
 
-  onDatasourcePropChange(attr, value) {
+  onDatasourcePropChange(attr: string, value: unknown) {
     if (value === undefined) return; // if value is undefined do not update state
     const datasource = { ...this.state.datasource, [attr]: value };
     this.setState(
       prevState => ({
         datasource: { ...prevState.datasource, [attr]: value },
       }),
-      attr === 'table_name'
-        ? this.onDatasourceChange(datasource, this.tableChangeAndSyncMetadata)
-        : this.onDatasourceChange(datasource, this.validateAndChange),
+      () =>
+        attr === 'table_name'
+          ? this.onDatasourceChange(datasource, this.tableChangeAndSyncMetadata)
+          : this.onDatasourceChange(datasource, this.validateAndChange),
     );
   }
 
-  onDatasourceTypeChange(datasourceType) {
+  onDatasourceTypeChange(datasourceType: string) {
     // Call onChange after setting datasourceType to ensure
     // SQL is cleared when switching to a physical dataset
     this.setState({ datasourceType }, this.onChange);
   }
 
-  setColumns(obj) {
+  setColumns(
+    obj: { databaseColumns?: Column[] } | { calculatedColumns?: Column[] },
+  ) {
     // update calculatedColumns or databaseColumns
-    this.setState(obj, this.validateAndChange);
+    this.setState(
+      obj as Pick<
+        DatasourceEditorState,
+        'databaseColumns' | 'calculatedColumns'
+      >,
+      this.validateAndChange,
+    );
   }
 
   validateAndChange() {
@@ -930,13 +964,18 @@ class DatasourceEditor extends PureComponent<
   }
 
   async onQueryRun() {
+    const databaseId = this.state.datasource.database?.id;
+    const { sql } = this.state.datasource;
+    if (!databaseId || !sql) {
+      return;
+    }
     this.props.runQuery({
-      client_id: this.props.clientId,
-      database_id: this.state.datasource.database.id,
+      client_id: this.props.database?.clientId,
+      database_id: databaseId,
       runAsync: false,
       catalog: this.state.datasource.catalog,
       schema: this.state.datasource.schema,
-      sql: this.state.datasource.sql,
+      sql,
       tmp_table_name: '',
       select_as_cta: false,
       ctas_method: 'TABLE',
@@ -986,12 +1025,12 @@ class DatasourceEditor extends PureComponent<
 
   getSQLLabUrl() {
     const queryParams = new URLSearchParams({
-      dbid: this.state.datasource.database.id,
-      sql: this.state.datasource.sql,
-      name: this.state.datasource.datasource_name,
-      schema: this.state.datasource.schema,
-      autorun: true,
-      isDataset: true,
+      dbid: String(this.state.datasource.database?.id ?? ''),
+      sql: this.state.datasource.sql ?? '',
+      name: this.state.datasource.datasource_name ?? '',
+      schema: this.state.datasource.schema ?? '',
+      autorun: 'true',
+      isDataset: 'true',
     });
     return makeUrl(`/sqllab/?${queryParams.toString()}`);
   }
@@ -1080,10 +1119,12 @@ class DatasourceEditor extends PureComponent<
       this.setColumns({
         databaseColumns: columnChanges.finalColumns.filter(
           col => !col.expression, // remove calculated columns
-        ),
+        ) as Column[],
       });
 
-      clearDatasetCache(datasource.id);
+      if (datasource.id !== undefined) {
+        clearDatasetCache(datasource.id);
+      }
 
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
@@ -1176,10 +1217,12 @@ class DatasourceEditor extends PureComponent<
       const ids = json?.ids || [];
 
       // Map chart IDs to chart objects
-      const chartsWithIds = charts.map((chart, index) => ({
-        ...chart,
-        id: ids[index],
-      }));
+      const chartsWithIds = charts.map(
+        (chart: Omit<ChartUsageData, 'id'>, index: number) => ({
+          ...chart,
+          id: ids[index],
+        }),
+      );
 
       // Only update state if not aborted and component still mounted
       if (!signal.aborted && this.isComponentMounted) {
@@ -1221,10 +1264,13 @@ class DatasourceEditor extends PureComponent<
     }
   }
 
-  findDuplicates(arr, accessor) {
-    const seen = {};
-    const dups = [];
-    arr.forEach(obj => {
+  findDuplicates<T>(
+    arr: T[],
+    accessor: (obj: T) => string,
+  ): string[] {
+    const seen: Record<string, null> = {};
+    const dups: string[] = [];
+    arr.forEach((obj: T) => {
       const item = accessor(obj);
       if (item in seen) {
         dups.push(item);
@@ -1235,9 +1281,9 @@ class DatasourceEditor extends PureComponent<
     return dups;
   }
 
-  validate(callback) {
-    let errors = [];
-    let dups;
+  validate(callback: () => void) {
+    let errors: string[] = [];
+    let dups: string[];
     const { datasource } = this.state;
 
     // Looking for duplicate column_name
@@ -1247,7 +1293,7 @@ class DatasourceEditor extends PureComponent<
     );
 
     // Looking for duplicate metric_name
-    dups = this.findDuplicates(datasource.metrics, obj => obj.metric_name);
+    dups = this.findDuplicates(datasource.metrics ?? [], obj => obj.metric_name);
     errors = errors.concat(
       dups.map(name => t('Metric name [%s] is duplicated', name)),
     );
@@ -1280,12 +1326,15 @@ class DatasourceEditor extends PureComponent<
     this.setState({ errors }, callback);
   }
 
-  handleTabSelect(activeTabKey) {
+  handleTabSelect(activeTabKey: string) {
     this.setState({ activeTabKey });
   }
 
-  sortMetrics(metrics) {
-    return metrics.sort(({ id: a }, { id: b }) => b - a);
+  sortMetrics(metrics: Metric[]) {
+    return metrics.sort(
+      ({ id: a }: { id?: number }, { id: b }: { id?: number }) =>
+        (b ?? 0) - (a ?? 0),
+    );
   }
 
   renderDefaultColumnSettings() {
@@ -1501,7 +1550,7 @@ class DatasourceEditor extends PureComponent<
           description={t(
             'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
           )}
-          control={<CheckboxControl controlId="normalize_columns" />}
+          control={<CheckboxControl />}
         />
         <Field
           inline
@@ -1510,7 +1559,7 @@ class DatasourceEditor extends PureComponent<
           description={t(
             `When the secondary temporal columns are filtered, apply the same filter to the main datetime column.`,
           )}
-          control={<CheckboxControl controlId="always_filter_main_dttm" />}
+          control={<CheckboxControl />}
         />
       </Fieldset>
     );
@@ -1526,20 +1575,29 @@ class DatasourceEditor extends PureComponent<
       children: (
         <CollectionTable
           tableColumns={['name', 'config']}
+          sortColumns={['name']}
           onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
           itemGenerator={() => ({
             name: t('<new spatial>'),
             type: t('<no type>'),
             config: null,
           })}
-          collection={spatials}
+          collection={spatials ?? []}
           allowDeletes
           itemRenderers={{
             name: (d, onChange) => (
-              <EditableTitle canEdit title={d} onSaveTitle={onChange} />
+              <EditableTitle canEdit title={d as string} onSaveTitle={onChange} />
             ),
             config: (v, onChange) => (
-              <SpatialControl value={v} onChange={onChange} choices={allCols} />
+              <SpatialControl
+                value={
+                  v as {
+                    type: 'latlong' | 'delimited' | 'geohash';
+                  }
+                }
+                onChange={onChange}
+                choices={allCols?.map(col => [col, col] as [string, string])}
+              />
             ),
           }}
         />
@@ -1645,13 +1703,14 @@ class DatasourceEditor extends PureComponent<
         <div
           css={theme => css`
             margin-top: ${theme.sizeUnit * 3}px;
+            display: flex;
+            gap: ${theme.sizeUnit * 4}px;
           `}
         >
           {DATASOURCE_TYPES_ARR.map(type => (
             <Radio
               key={type.key}
               value={type.key}
-              inline
               onChange={this.onDatasourceTypeChange.bind(this, type.key)}
               checked={this.state.datasourceType === type.key}
               disabled={!this.state.isEditMode}
@@ -1673,7 +1732,18 @@ class DatasourceEditor extends PureComponent<
                       control={
                         <div css={{ marginTop: 8 }}>
                           <DatabaseSelector
-                            db={datasource?.database}
+                            db={
+                              datasource?.database
+                                ? {
+                                    id: datasource.database.id,
+                                    database_name:
+                                      datasource.database.database_name ??
+                                      datasource.database.name ??
+                                      '',
+                                    backend: datasource.database.backend,
+                                  }
+                                : null
+                            }
                             catalog={datasource.catalog}
                             schema={datasource.schema}
                             onCatalogChange={catalog =>
@@ -1828,14 +1898,18 @@ class DatasourceEditor extends PureComponent<
                         </span>
                       </div>
                       <ResultTable
-                        data={this.props.database?.queryResult.data}
-                        queryId={this.props.database?.queryResult.query.id}
-                        orderedColumnKeys={this.props.database?.queryResult.columns.map(
+                        data={this.props.database?.queryResult?.data ?? []}
+                        queryId={
+                          this.props.database?.queryResult?.query?.id ?? ''
+                        }
+                        orderedColumnKeys={
+                          this.props.database?.queryResult?.columns?.map(
+                            col => col.column_name,
+                          ) ?? []
+                        }
+                        expandedColumns={this.props.database?.queryResult?.expanded_columns?.map(
                           col => col.column_name,
                         )}
-                        expandedColumns={
-                          this.props.database?.queryResult.expandedColumns
-                        }
                         height={300}
                         allowHTML
                       />
@@ -1856,13 +1930,18 @@ class DatasourceEditor extends PureComponent<
                     <div css={{ marginTop: 8 }}>
                       <TableSelector
                         clearable={false}
-                        database={{
-                          ...datasource.database,
-                          database_name:
-                            datasource.database?.database_name ||
-                            datasource.database?.name,
-                        }}
-                        dbId={datasource.database?.id}
+                        database={
+                          datasource.database
+                            ? {
+                                id: datasource.database.id,
+                                database_name:
+                                  datasource.database.database_name ??
+                                  datasource.database.name ??
+                                  '',
+                                backend: datasource.database.backend,
+                              }
+                            : null
+                        }
                         handleError={this.props.addDangerToast}
                         catalog={datasource.catalog}
                         schema={datasource.schema}
@@ -1977,6 +2056,7 @@ class DatasourceEditor extends PureComponent<
                 label={t('Metric currency')}
                 control={
                   <CurrencyControl
+                    onChange={() => {}}
                     currencySelectOverrideProps={{
                       placeholder: t('Select or type currency symbol'),
                     }}
@@ -2055,19 +2135,19 @@ class DatasourceEditor extends PureComponent<
               )}
               <EditableTitle
                 canEdit
-                title={v}
+                title={v as string}
                 onSaveTitle={onChange}
                 maxWidth={300}
               />
             </FlexRowContainer>
           ),
           verbose_name: (v, onChange) => (
-            <TextControl canEdit value={v} onChange={onChange} />
+            <TextControl value={v as string} onChange={onChange} />
           ),
           expression: (v, onChange) => (
             <TextAreaControl
               canEdit
-              initialValue={v}
+              initialValue={v as string}
               onChange={onChange}
               extraClasses={['datasource-sql-expression']}
               language="sql"
@@ -2080,13 +2160,17 @@ class DatasourceEditor extends PureComponent<
           description: (v, onChange, label) => (
             <StackedField
               label={label}
-              formElement={<TextControl value={v} onChange={onChange} />}
+              formElement={
+                <TextControl value={v as string} onChange={onChange} />
+              }
             />
           ),
           d3format: (v, onChange, label) => (
             <StackedField
               label={label}
-              formElement={<TextControl value={v} onChange={onChange} />}
+              formElement={
+                <TextControl value={v as string} onChange={onChange} />
+              }
             />
           ),
         }}
@@ -2100,7 +2184,6 @@ class DatasourceEditor extends PureComponent<
     const { datasource, activeTabKey } = this.state;
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
-    const { theme } = this.props;
 
     return (
       <DatasourceContainer data-test="datasource-editor">
@@ -2127,7 +2210,7 @@ class DatasourceEditor extends PureComponent<
             {
               key: TABS_KEYS.SOURCE,
               label: t('Source'),
-              children: this.renderSourceFieldset(theme),
+              children: this.renderSourceFieldset(),
             },
             {
               key: TABS_KEYS.METRICS,
@@ -2234,8 +2317,12 @@ class DatasourceEditor extends PureComponent<
               children: (
                 <StyledTableTabWrapper>
                   <DatasetUsageTab
-                    datasourceId={datasource.id}
-                    charts={this.state.usageCharts}
+                    datasourceId={datasource.id ?? 0}
+                    charts={
+                      this.state.usageCharts as React.ComponentProps<
+                        typeof DatasetUsageTab
+                      >['charts']
+                    }
                     totalCount={this.state.usageChartsCount}
                     onFetchCharts={this.fetchUsageData}
                     addDangerToast={this.props.addDangerToast}
