@@ -91,7 +91,7 @@ class TestTaskDAO:
         )
 
         assert result == mock_task
-        mock_find.assert_called_once_with("test_type", "new-task")
+        mock_find.assert_called_once_with("test_type", "new-task", "private", None)
         mock_session.commit.assert_called_once()
 
     @patch("superset.daos.tasks.TaskDAO.find_by_task_key")
@@ -137,6 +137,8 @@ class TestTaskDAO:
         """Test successful task abortlation"""
         mock_task = MagicMock(spec=Task)
         mock_task.status = TaskStatus.PENDING.value
+        mock_task.is_shared = False  # Not a shared task
+        mock_task.subscriber_count = 0  # Set as int, not MagicMock
         mock_find.return_value = mock_task
 
         result = TaskDAO.abort_task("test-uuid")

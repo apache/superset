@@ -107,7 +107,7 @@ class TaskManager:
             # Lazy import to avoid circular dependency
             from superset.daos.tasks import TaskDAO
 
-            existing = TaskDAO.find_by_task_key(task_type, task_key, scope=scope.value)
+            existing = TaskDAO.find_by_task_key(task_type, task_key, scope.value)
             if existing:
                 logger.info(
                     "Task %s with key '%s' and scope '%s' already exists (uuid=%s), "

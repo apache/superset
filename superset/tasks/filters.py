@@ -41,7 +41,7 @@ class TaskFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         from flask import g, has_request_context
         from sqlalchemy import or_
 
-        from superset import security_manager
+        from superset import db, security_manager
         from superset.models.task_subscribers import TaskSubscriber
         from superset.models.tasks import Task
 
@@ -57,23 +57,25 @@ class TaskFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         # For non-admins, filter by scope and permissions
         user_id = get_user_id()
 
+        # Use subquery for shared tasks to avoid join ambiguity
+        shared_task_ids_query = (
+            db.session.query(Task.id)
+            .join(TaskSubscriber, Task.id == TaskSubscriber.task_id)
+            .filter(
+                Task.scope == "shared",
+                TaskSubscriber.user_id == user_id,
+            )
+        )
+
         # Build filter conditions:
         # 1. Private tasks created by current user
-        # 2. Shared tasks where user is subscribed
+        # 2. Shared tasks where user is subscribed (via subquery)
         # 3. System tasks are excluded (admin-only)
-
-        filters = [
-            # Own private tasks
-            ((Task.scope == "private") & (Task.created_by_fk == user_id)),
-            # Shared tasks where user is subscribed
-            (
-                (Task.scope == "shared")
-                & (Task.id == TaskSubscriber.task_id)
-                & (TaskSubscriber.user_id == user_id)
-            ),
-        ]
-
-        return query.outerjoin(
-            TaskSubscriber,
-            (Task.id == TaskSubscriber.task_id) & (TaskSubscriber.user_id == user_id),
-        ).filter(or_(*filters))
+        return query.filter(
+            or_(
+                # Own private tasks
+                (Task.scope == "private") & (Task.created_by_fk == user_id),
+                # Shared tasks where user is subscribed
+                Task.id.in_(shared_task_ids_query),
+            )
+        )

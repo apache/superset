@@ -205,7 +205,7 @@ class TaskWrapper(Generic[P]):
         Returns the Task entity in SUCCESS or FAILURE state (blocking).
         """
         # Extract and merge options (decorator defaults + call-time overrides)
-        override_options: TaskOptions | None = kwargs.pop("options", None)  # type: ignore[assignment]
+        override_options: TaskOptions | None = kwargs.pop("options", None)
         options = self._merge_options(override_options)
 
         # Extract task_name and task_key from merged options, scope from decorator
@@ -311,7 +311,7 @@ class TaskWrapper(Generic[P]):
         The function returns immediately with the Task model in PENDING status.
         """
         # Extract and merge options (decorator defaults + call-time overrides)
-        override_options: TaskOptions | None = kwargs.pop("options", None)  # type: ignore[assignment]
+        override_options: TaskOptions | None = kwargs.pop("options", None)
         options = self._merge_options(override_options)
 
         # Extract task_name and task_key from merged options, scope from decorator
