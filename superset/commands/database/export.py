@@ -104,8 +104,12 @@ class ExportDatabasesCommand(ExportModelsCommand):
 
     @staticmethod
     def _export(
-        model: Database, export_related: bool = True
+        model: Database, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Initialize seen set if not provided
+        if seen is None:
+            seen = set()
+
         yield (
             ExportDatabasesCommand._file_name(model),
             lambda: ExportDatabasesCommand._file_content(model),
