@@ -682,3 +682,135 @@ test('Should show RowCountLabel in embedded when uiConfig.showRowLimitWarning is
   mockIsEmbedded.mockRestore();
   mockUseUiConfig.mockRestore();
 });
+
+test('Should show row count badge for table chart without server pagination', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.Table,
+      row_limit: 10,
+    },
+  });
+  const tableState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        queriesResponse: [
+          {
+            sql_rowcount: 50,
+            data: [],
+          },
+        ],
+      },
+    },
+  };
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: tableState,
+  });
+
+  expect(screen.getByTestId('row-count-label')).toBeInTheDocument();
+  expect(screen.getByTestId('row-count-label')).toHaveTextContent('50 rows');
+});
+
+test('Should show row count warning for table chart with server pagination when limit is reached', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.Table,
+      row_limit: 10,
+      server_pagination: true,
+    },
+  });
+  const tableWithPaginationState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+            data: Array(10).fill({}),
+          },
+          {
+            data: [{ rowcount: 50 }],
+          },
+        ],
+      },
+    },
+  };
+
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: tableWithPaginationState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+  expect(screen.getByTestId('row-count-label')).toHaveTextContent('50 rows');
+
+  mockUseUiConfig.mockRestore();
+});
+
+test('Should NOT show row count warning for table chart with server pagination when limit is NOT reached', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.Table,
+      row_limit: 100,
+      server_pagination: true,
+    },
+  });
+  const tableWithPaginationState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+            data: Array(10).fill({}),
+          },
+          {
+            data: [{ rowcount: 30 }],
+          },
+        ],
+      },
+    },
+  };
+
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: tableWithPaginationState,
+  });
+
+  expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
+  expect(screen.getByTestId('row-count-label')).toHaveTextContent('30 rows');
+
+  mockUseUiConfig.mockRestore();
+});
