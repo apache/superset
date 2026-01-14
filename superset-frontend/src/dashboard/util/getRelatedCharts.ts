@@ -116,6 +116,7 @@ export function getRelatedCharts(
 export function getRelatedChartsForChartCustomization(
   customizationItem: ChartCustomizationItem,
   slices: Record<string, Slice>,
+  charts?: Record<string, { form_data?: { datasource?: string } }>,
 ): number[] {
   const { customization, chartId } = customizationItem;
   const { dataset } = customization;
@@ -128,12 +129,25 @@ export function getRelatedChartsForChartCustomization(
     return [];
   }
 
-  const targetDatasetId = String(dataset);
+  let targetDatasetId: string;
+  if (typeof dataset === 'object' && dataset !== null && 'value' in dataset) {
+    targetDatasetId = String(dataset.value);
+  } else {
+    targetDatasetId = String(dataset);
+  }
 
-  return Object.values(slices)
+  const relatedCharts = Object.values(slices)
     .filter(slice => {
-      const sliceDataset = slice.datasource;
-      if (!sliceDataset) return false;
+      const chartFormData = charts?.[slice.slice_id]?.form_data;
+      const sliceDataset =
+        chartFormData?.datasource ||
+        slice.datasource ||
+        (slice.form_data?.datasource as string | undefined) ||
+        (slice.datasource_id ? String(slice.datasource_id) : undefined);
+
+      if (!sliceDataset) {
+        return false;
+      }
 
       const sliceDatasetParts = String(sliceDataset).split('__');
       const sliceDatasetId = sliceDatasetParts[0];
@@ -141,4 +155,31 @@ export function getRelatedChartsForChartCustomization(
       return sliceDatasetId === targetDatasetId;
     })
     .map(slice => slice.slice_id);
+
+  return relatedCharts;
+}
+
+/**
+ * Get unique chart IDs affected by chart customizations.
+ * This function calculates which charts are affected by the given customizations
+ * and returns a deduplicated list of chart IDs.
+ *
+ * @param customizations - Array of chart customization items
+ * @param slices - Record of slice/chart entities keyed by chart ID
+ * @returns Array of unique chart IDs that are affected by the customizations
+ */
+export function getAffectedChartIdsFromCustomizations(
+  customizations: ChartCustomizationItem[],
+  slices: Record<string, Slice>,
+): number[] {
+  const affectedChartIds: number[] = [];
+  customizations.forEach(customization => {
+    const relatedCharts = getRelatedChartsForChartCustomization(
+      customization,
+      slices,
+    );
+    affectedChartIds.push(...relatedCharts);
+  });
+
+  return [...new Set(affectedChartIds)];
 }

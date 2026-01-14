@@ -20,6 +20,7 @@ import { AnyAction } from 'redux';
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import { t } from '@apache-superset/core';
 import { makeApi, getClientErrorObject, DataMask } from '@superset-ui/core';
+import { isEqual } from 'lodash';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DashboardInfo, RootState } from 'src/dashboard/types';
 import {
@@ -30,6 +31,8 @@ import {
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
 import { onSave } from './dashboardState';
+import { getAffectedChartIdsFromCustomizations } from 'src/dashboard/util/getRelatedCharts';
+import { hasValidColumn } from 'src/dashboard/components/nativeFilters/ChartCustomization/utils';
 
 const createUpdateDashboardApi = (id: number) =>
   makeApi<
@@ -100,7 +103,11 @@ export function saveChartCustomization(
     dispatch: ThunkDispatch<RootState, null, AnyAction>,
     getState: () => RootState,
   ) {
-    const { id, metadata, json_metadata } = getState().dashboardInfo;
+    const {
+      id,
+      metadata,
+      json_metadata: jsonMetadata,
+    } = getState().dashboardInfo;
 
     const currentState = getState();
     const currentChartCustomizationItems =
@@ -140,32 +147,51 @@ export function saveChartCustomization(
       dispatch(removeDataMask(customizationFilterId));
     });
 
-    simpleItems.forEach(item => {
-      const customizationFilterId = `chart_customization_${item.id}`;
+    chartCustomizationItems.forEach(newItem => {
+      const customizationFilterId = `chart_customization_${newItem.id}`;
+      const existingItem = existingItemsMap.get(newItem.id);
 
-      if (item.customization?.column) {
-        const existingDataMask = getState().dataMask[customizationFilterId];
-
-        const existingFilterState = existingDataMask?.filterState;
-
-        dispatch(removeDataMask(customizationFilterId));
-
-        const dataMask = {
-          extraFormData: {},
-          filterState: {
-            value:
-              existingFilterState?.value ||
-              item.customization?.defaultDataMask?.filterState?.value ||
-              [],
-          },
-          ownState: {
-            column: item.customization.column,
-          },
-        };
-
-        dispatch(updateDataMask(customizationFilterId, dataMask));
+      if (!existingItem) {
+        if (hasValidColumn(newItem.customization?.column)) {
+          const dataMask = {
+            extraFormData: {},
+            filterState: {
+              value:
+                newItem.customization?.defaultDataMask?.filterState?.value ||
+                [],
+            },
+            ownState: {
+              column: newItem.customization.column,
+            },
+          };
+          dispatch(updateDataMask(customizationFilterId, dataMask));
+        }
       } else {
-        dispatch(removeDataMask(customizationFilterId));
+        const existingColumn = existingItem.customization?.column || null;
+        const newColumn = newItem.customization?.column || null;
+
+        if (!isEqual(existingColumn, newColumn)) {
+          if (hasValidColumn(newColumn)) {
+            const existingDataMask = getState().dataMask[customizationFilterId];
+            const existingFilterState = existingDataMask?.filterState;
+
+            const dataMask = {
+              extraFormData: {},
+              filterState: {
+                value:
+                  existingFilterState?.value ||
+                  newItem.customization?.defaultDataMask?.filterState?.value ||
+                  [],
+              },
+              ownState: {
+                column: newColumn,
+              },
+            };
+            dispatch(updateDataMask(customizationFilterId, dataMask));
+          } else {
+            dispatch(removeDataMask(customizationFilterId));
+          }
+        }
       }
     });
 
@@ -174,9 +200,9 @@ export function saveChartCustomization(
     try {
       let parsedMetadata: any = {};
       try {
-        parsedMetadata = json_metadata ? JSON.parse(json_metadata) : metadata;
+        parsedMetadata = jsonMetadata ? JSON.parse(jsonMetadata) : metadata;
       } catch (e) {
-        console.error('Error parsing json_metadata:', e);
+        console.error('Error parsing jsonMetadata:', e);
         parsedMetadata = metadata || {};
       }
 
@@ -204,10 +230,31 @@ export function saveChartCustomization(
         dispatch(onSave(lastModifiedTime));
       }
 
-      const { dashboardState } = getState();
-      const chartIds = dashboardState.sliceIds || [];
-      if (chartIds.length > 0) {
-        chartIds.forEach(chartId => {
+      const sliceEntities = getState().sliceEntities || {};
+      const slices = sliceEntities.slices || {};
+
+      const changedItems: ChartCustomizationItem[] = [];
+
+      changedItems.push(...removedItems);
+
+      chartCustomizationItems.forEach(newItem => {
+        const existingItem = existingItemsMap.get(newItem.id);
+        if (existingItem && !newItem.removed) {
+          if (!isEqual(existingItem.customization, newItem.customization)) {
+            changedItems.push(existingItem);
+          }
+        }
+      });
+
+      const uniqueAffectedChartIds = new Set<number>();
+      const affectedCharts = getAffectedChartIdsFromCustomizations(
+        changedItems,
+        slices,
+      );
+      affectedCharts.forEach(chartId => uniqueAffectedChartIds.add(chartId));
+
+      if (uniqueAffectedChartIds.size > 0) {
+        Array.from(uniqueAffectedChartIds).forEach(chartId => {
           dispatch(triggerQuery(true, chartId));
         });
       }

@@ -76,6 +76,7 @@ const cachedFormdataByChart: Record<
   CachedFormData & {
     dataMask: DataMask;
     extraControls: Record<string, string | boolean | null>;
+    relevantCustomizations?: ChartCustomizationItem[];
   }
 > = {};
 
@@ -429,6 +430,41 @@ function processGroupByCustomizations(
   return groupByFormData;
 }
 
+/**
+ * Get only the chart customizations that affect a specific chart.
+ * This is used for cache comparison to avoid unnecessary formData recomputation
+ * when customizations change but don't affect this chart.
+ */
+function getRelevantCustomizationsForChart(
+  chartCustomizationItems: ChartCustomizationItem[] | undefined,
+  chart: ChartQueryPayload,
+): ChartCustomizationItem[] {
+  if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
+    return [];
+  }
+
+  const chartDataset = chart.form_data?.datasource;
+  if (!chartDataset) {
+    return [];
+  }
+
+  const chartDatasetParts = String(chartDataset).split('__');
+  const chartDatasetId = chartDatasetParts[0];
+
+  return chartCustomizationItems.filter(item => {
+    if (item.removed) return false;
+
+    const targetDataset = item.customization?.dataset;
+    if (!targetDataset) return false;
+
+    const targetDatasetId = String(targetDataset);
+    const datasetMatches = chartDatasetId === targetDatasetId;
+    const chartMatches = !item.chartId || item.chartId === chart.id;
+
+    return datasetMatches && chartMatches;
+  });
+}
+
 // this function merge chart's formData with dashboard filters value,
 // and generate a new formData which will be used in the new query.
 // filters param only contains those applicable to this chart.
@@ -455,6 +491,19 @@ export default function getFormDataWithExtraFilters({
   const dataMaskEqual = areObjectsEqual(cachedFormData?.dataMask, dataMask, {
     ignoreUndefined: true,
   });
+
+  const relevantCustomizations = getRelevantCustomizationsForChart(
+    chartCustomizationItems,
+    chart,
+  );
+  const cachedRelevantCustomizations =
+    cachedFormData?.relevantCustomizations || [];
+
+  const customizationsEqual = isEqual(
+    relevantCustomizations,
+    cachedRelevantCustomizations,
+  );
+
   if (
     cachedFiltersByChart[sliceId] === filters &&
     areObjectsEqual(cachedFormData?.own_color_scheme, ownColorScheme) &&
@@ -476,7 +525,8 @@ export default function getFormDataWithExtraFilters({
     }) &&
     areObjectsEqual(cachedFormData?.chart_customization, chartCustomization, {
       ignoreUndefined: true,
-    })
+    }) &&
+    customizationsEqual
   ) {
     return cachedFormData;
   }
@@ -578,6 +628,7 @@ export default function getFormDataWithExtraFilters({
     ...formData,
     dataMask,
     extraControls,
+    relevantCustomizations,
     ...(chartCustomization && { chart_customization: chartCustomization }),
   };
 
