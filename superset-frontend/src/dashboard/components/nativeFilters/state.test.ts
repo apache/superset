@@ -47,9 +47,8 @@ test('useIsFilterInScope should return true for dividers (always in scope)', () 
     description: 'Divider description',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(divider),
-  ).toBe(true);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(divider)).toBe(true);
 });
 
 test('useIsFilterInScope should return true for filters with charts in active tabs', () => {
@@ -67,9 +66,8 @@ test('useIsFilterInScope should return true for filters with charts in active ta
     description: 'Sample filter description',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(true);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
 });
 
 test('useIsFilterInScope should return false for filters with inactive rootPath', () => {
@@ -86,9 +84,8 @@ test('useIsFilterInScope should return false for filters with inactive rootPath'
     description: 'Sample filter description',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(false);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(false);
 });
 
 test('useSelectFiltersInScope should return all filters in scope when no tabs exist', () => {
@@ -148,9 +145,8 @@ test('filter without chartsInScope should fall back to rootPath check', () => {
     description: 'Filter with missing chartsInScope',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(true);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
 });
 
 test('filter with empty chartsInScope array should check rootPath', () => {
@@ -176,9 +172,8 @@ test('filter with empty chartsInScope array should check rootPath', () => {
     description: 'Filter with empty chartsInScope',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(true);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
 });
 
 test('filter without chartsInScope and inactive rootPath should be out of scope', () => {
@@ -203,9 +198,8 @@ test('filter without chartsInScope and inactive rootPath should be out of scope'
     description: 'Filter in inactive tab',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(false);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(false);
 });
 
 test('filter with ROOT_ID in rootPath should be in scope when chartsInScope is missing', () => {
@@ -230,9 +224,8 @@ test('filter with ROOT_ID in rootPath should be in scope when chartsInScope is m
     description: 'Global filter with missing chartsInScope',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(true);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
 });
 
 test('useSelectFiltersInScope correctly categorizes filters with missing chartsInScope', () => {
@@ -300,9 +293,8 @@ test('filter with chartsInScope takes precedence over rootPath', () => {
     description: 'Filter with chartsInScope should ignore rootPath',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(true);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
 });
 
 test('filter should be hidden on excluded nested tab even when parent tab is active', () => {
@@ -355,9 +347,8 @@ test('filter should be hidden on excluded nested tab even when parent tab is act
     description: 'Filter excluding P1_Child2',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(false);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(false);
 });
 
 test('filter should be visible on included nested tab', () => {
@@ -399,9 +390,8 @@ test('filter should be visible on included nested tab', () => {
     description: 'Filter including P1_Child1',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(true);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
 });
 
 test('filter should be visible on top-level tab when charts have no nested parents', () => {
@@ -441,9 +431,8 @@ test('filter should be visible on top-level tab when charts have no nested paren
     description: 'Filter including Parent2',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(true);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
 });
 
 test('filter with chartsInScope referencing non-existent chart should still work', () => {
@@ -478,9 +467,8 @@ test('filter with chartsInScope referencing non-existent chart should still work
     description: 'Filter referencing non-existent chart',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(true);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
 });
 
 test('filter with mix of existing and non-existent charts in chartsInScope', () => {
@@ -516,7 +504,6 @@ test('filter with mix of existing and non-existent charts in chartsInScope', () 
     description: 'Filter with mix of existing and non-existent charts',
   };
 
-  expect(
-    renderHook(() => useIsFilterInScope()).result.current(filter),
-  ).toBe(true);
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
 });

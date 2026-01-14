@@ -195,6 +195,10 @@ export function useIsFilterInScope() {
   const activeTabs = useActiveDashboardTabs();
   const selectChartTabParents = useSelectChartTabParents();
 
+  // Filter is in scope if any of its charts is visible.
+  // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
+  // Chart is in an active tab tree if all of its ancestors of type TAB are active
+  // Dividers are always in scope
   return useCallback(
     (filter: FilterElement | Divider) => {
       if (filter.type === NativeFilterType.Divider) return true;
