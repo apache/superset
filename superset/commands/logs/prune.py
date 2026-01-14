@@ -41,7 +41,7 @@ class LogPruneCommand(BaseCommand):
                                      Records older than this period will be deleted.
         max_rows_per_run (int | None): The maximum number of rows to delete in a single run.
                                        If provided and greater than zero, rows are selected
-                                       deterministically from the oldest first (by timestamp then id)
+                                       deterministically from the oldest first by id
                                        up to this limit in this execution.
     """  # noqa: E501
 
@@ -50,7 +50,7 @@ class LogPruneCommand(BaseCommand):
         :param retention_period_days: Number of days to keep in the logs table
         :param max_rows_per_run: The maximum number of rows to delete in a single run.
             If provided and greater than zero, rows are selected deterministically from the
-            oldest first (by timestamp then id) up to this limit in this execution.
+            oldest first by id up to this limit in this execution.
         """  # noqa: E501
         self.retention_period_days = retention_period_days
         self.max_rows_per_run = max_rows_per_run
@@ -71,7 +71,7 @@ class LogPruneCommand(BaseCommand):
         # Optionally limited by max_rows_per_run
         # order by oldest first for deterministic deletion
         if self.max_rows_per_run is not None and self.max_rows_per_run > 0:
-            select_stmt = select_stmt.order_by(Log.dttm.asc(), Log.id.asc()).limit(
+            select_stmt = select_stmt.order_by(Log.id.asc()).limit(
                 self.max_rows_per_run
             )
 
