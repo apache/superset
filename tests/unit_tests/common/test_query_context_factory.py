@@ -516,17 +516,29 @@ class TestQueryContextFactory:
 
         assert query_object.columns == ["col1", "currency_code"]
 
-    def test_add_currency_column_adds_column_for_supported_viz_types(self):
-        """Test _add_currency_column adds column for supported viz types"""
-        for viz_type in ["pivot_table_v2", "table"]:
-            query_object = Mock(spec=QueryObject)
-            query_object.columns = ["col1"]
-            form_data = {"viz_type": viz_type, "currency_format": {"symbol": "AUTO"}}
-            datasource = Mock()
-            datasource.currency_code_column = "currency_code"
+    def test_add_currency_column_adds_column_for_pivot_table(self):
+        """Test _add_currency_column adds column for pivot_table_v2 viz type"""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {
+            "viz_type": "pivot_table_v2",
+            "currency_format": {"symbol": "AUTO"},
+        }
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
 
-            self.factory._add_currency_column(query_object, form_data, datasource)
+        self.factory._add_currency_column(query_object, form_data, datasource)
 
-            assert query_object.columns == ["col1", "currency_code"], (
-                f"Failed for {viz_type}"
-            )
+        assert query_object.columns == ["col1", "currency_code"]
+
+    def test_add_currency_column_skips_table_viz_type(self):
+        """Test _add_currency_column does not add column for table viz type."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {"viz_type": "table", "currency_format": {"symbol": "AUTO"}}
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1"]
