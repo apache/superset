@@ -278,3 +278,133 @@ test('filter scoped to nested tab with exclusion should work', () => {
 
   expect(chartsInScope).toEqual([1]);
 });
+
+test('filter with selectedLayers should include charts from layer selections', () => {
+  const chartLayoutItems = createNestedTabsLayout();
+  const filterScope = {
+    rootPath: ['ROOT_ID'],
+    excluded: [],
+    selectedLayers: ['chart-1-layer-0', 'chart-2-layer-1'],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    allChartIds,
+    chartLayoutItems,
+  );
+
+  expect(chartsInScope.sort()).toEqual([1, 2, 3, 4, 5, 6]);
+});
+
+test('filter with selectedLayers should include both layer-selected charts and regular charts', () => {
+  const chartLayoutItems = createNestedTabsLayout();
+  const filterScope = {
+    rootPath: ['TAB-Parent2'],
+    excluded: [],
+    selectedLayers: ['chart-1-layer-0'],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    allChartIds,
+    chartLayoutItems,
+  );
+
+  expect(chartsInScope.sort()).toEqual([1, 5, 6]);
+});
+
+test('filter with selectedLayers should exclude charts that have layer selections from regular filtering', () => {
+  const chartLayoutItems = createNestedTabsLayout();
+  const filterScope = {
+    rootPath: ['TAB-P1_Child1'],
+    excluded: [],
+    selectedLayers: ['chart-1-layer-0'],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    allChartIds,
+    chartLayoutItems,
+  );
+
+  expect(chartsInScope.sort()).toEqual([1, 2]);
+});
+
+
+test('filter with selectedLayers should ignore invalid layer key formats', () => {
+  const chartLayoutItems = createNestedTabsLayout();
+  const filterScope = {
+    rootPath: ['ROOT_ID'],
+    excluded: [],
+    selectedLayers: [
+      'chart-1-layer-0',
+      'invalid-format',
+      'chart-2-layer-1',
+      'chart-invalid-layer-0',
+    ],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    allChartIds,
+    chartLayoutItems,
+  );
+
+  expect(chartsInScope.sort()).toEqual([1, 2, 3, 4, 5, 6]);
+});
+
+test('filter with selectedLayers should handle charts not in chartIds array', () => {
+  const chartLayoutItems = createNestedTabsLayout();
+  const filterScope = {
+    rootPath: ['ROOT_ID'],
+    excluded: [],
+    selectedLayers: ['chart-1-layer-0', 'chart-999-layer-0'],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    allChartIds,
+    chartLayoutItems,
+  );
+
+  expect(chartsInScope.sort()).toEqual([1, 2, 3, 4, 5, 6]);
+});
+
+test('filter with selectedLayers should deduplicate chart IDs', () => {
+  const chartLayoutItems = createNestedTabsLayout();
+  const filterScope = {
+    rootPath: ['ROOT_ID'],
+    excluded: [],
+    selectedLayers: [
+      'chart-1-layer-0',
+      'chart-1-layer-1',
+      'chart-2-layer-0',
+      'chart-2-layer-2',
+    ],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    allChartIds,
+    chartLayoutItems,
+  );
+
+  expect(chartsInScope.sort()).toEqual([1, 2, 3, 4, 5, 6]);
+});
+
+test('filter with selectedLayers and rootPath should combine both correctly', () => {
+  const chartLayoutItems = createNestedTabsLayout();
+  const filterScope = {
+    rootPath: ['TAB-Parent2'],
+    excluded: [],
+    selectedLayers: ['chart-1-layer-0'],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    allChartIds,
+    chartLayoutItems,
+  );
+
+  expect(chartsInScope.sort()).toEqual([1, 5, 6]);
+});
