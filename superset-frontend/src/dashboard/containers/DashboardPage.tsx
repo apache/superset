@@ -49,6 +49,10 @@ import {
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
+import {
+  initChartUpdateChannel,
+  closeChartUpdateChannel,
+} from 'src/dashboard/util/chartUpdateChannel';
 
 import { nanoid } from 'nanoid';
 import { RootState } from '../types';
@@ -163,10 +167,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   // Set up cross-tab chart update listener
   useEffect(() => {
-    const {
-      initChartUpdateChannel,
-      closeChartUpdateChannel,
-    } = require('src/dashboard/util/chartUpdateChannel');
     initChartUpdateChannel(dispatch);
     return () => {
       closeChartUpdateChannel();
