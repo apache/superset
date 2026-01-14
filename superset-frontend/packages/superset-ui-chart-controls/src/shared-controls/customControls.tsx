@@ -219,14 +219,22 @@ export const xAxisForceCategoricalControl = {
     default: false,
     description: t('Treat values as categorical.'),
     initialValue: (control: ControlState, state: ControlPanelState | null) => {
+      // Check if x-axis is numeric - only numeric columns should have
+      // their categorical behavior influenced by x_axis_sort setting
       const isNumericXAxis = checkColumnType(
         getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
         state?.controls?.datasource?.datasource,
         [GenericDataType.Numeric],
       );
+      
+      // Non-numeric columns (temporal, text) should not be forced categorical
+      // based on x_axis_sort - just use the control's existing value
       if (!isNumericXAxis) {
         return control.value;
       }
+      
+      // For numeric columns, force categorical if x_axis_sort is defined
+      // (user wants to sort) or use the control's existing value
       return state?.form_data?.x_axis_sort !== undefined || control.value;
     },
     renderTrigger: true,
