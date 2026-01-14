@@ -17,17 +17,11 @@
  * under the License.
  */
 import { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
-import { styled, Alert } from '@apache-superset/core/ui';
-import { Form, Checkbox } from '@superset-ui/core/components';
+import { styled } from '@apache-superset/core/ui';
+import { Form } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
-import {
-  RefreshFrequencySelect,
-  getRefreshWarningMessage,
-} from './RefreshFrequency/RefreshFrequencySelect';
-import { setAutoRefreshPauseOnInactiveTab } from '../actions/autoRefresh';
-import { RootState } from '../types';
+import { RefreshFrequencySelect } from './RefreshFrequency/RefreshFrequencySelect';
 
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
@@ -39,8 +33,6 @@ interface RefreshIntervalModalProps {
   refreshFrequency: number;
   onChange: (refreshLimit: number, editMode: boolean) => void;
   editMode: boolean;
-  refreshLimit?: number;
-  refreshWarning?: string;
   addSuccessToast: (msg: string) => void;
 }
 
@@ -54,25 +46,12 @@ const RefreshIntervalModal = ({
   refreshFrequency: initialFrequency,
   onChange,
   editMode,
-  refreshLimit = 0,
-  refreshWarning,
   addSuccessToast,
 }: RefreshIntervalModalProps) => {
-  const dispatch = useDispatch();
   const [refreshFrequency, setRefreshFrequency] = useState(initialFrequency);
-  const pauseOnInactiveTab = useSelector(
-    (state: RootState) =>
-      state.dashboardState?.autoRefreshPauseOnInactiveTab ?? true,
-  );
 
   const handleFrequencyChange = (value: number) => {
     setRefreshFrequency(value);
-  };
-
-  const handlePauseOnInactiveTabChange = (e: {
-    target: { checked: boolean };
-  }) => {
-    dispatch(setAutoRefreshPauseOnInactiveTab(e.target.checked));
   };
 
   const handleSave = () => {
@@ -89,12 +68,6 @@ const RefreshIntervalModal = ({
     setRefreshFrequency(initialFrequency);
     onHide();
   };
-
-  const warningMessage = getRefreshWarningMessage(
-    refreshFrequency,
-    refreshLimit,
-    refreshWarning,
-  );
 
   return (
     <StandardModal
@@ -120,28 +93,7 @@ const RefreshIntervalModal = ({
               onChange={handleFrequencyChange}
             />
           </Form.Item>
-
-          {refreshFrequency > 0 && (
-            <Form.Item>
-              <Checkbox
-                checked={pauseOnInactiveTab}
-                onChange={handlePauseOnInactiveTabChange}
-                data-test="pause-on-inactive-tab-checkbox"
-              >
-                {t('Pause auto-refresh when tab is inactive')}
-              </Checkbox>
-            </Form.Item>
-          )}
         </Form>
-
-        {warningMessage && (
-          <Alert
-            type="warning"
-            message={warningMessage}
-            description={t('Are you sure you want to proceed?')}
-            showIcon
-          />
-        )}
       </ModalContent>
     </StandardModal>
   );

@@ -18,7 +18,6 @@
  */
 import { FC, useMemo, useRef, useEffect, useState } from 'react';
 import { css, useTheme } from '@apache-superset/core/ui';
-import { Icons } from '@superset-ui/core/components/Icons';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 export interface StatusIndicatorDotProps {
@@ -31,16 +30,14 @@ export interface StatusIndicatorDotProps {
 /**
  * Status indicator configuration mapping.
  *
- * Per requirements:
- * - Green dot (with checkmark): Refreshed on schedule
+ * - Green dot: Refreshed on schedule
  * - Blue dot: Fetching data
  * - Yellow/warning dot: Delayed
  * - Red dot: Error
- * - WHITE dot: Paused (NOT gray)
+ * - White dot: Paused
  */
 interface StatusConfig {
   color: string;
-  showCheckmark: boolean;
   needsBorder: boolean;
 }
 
@@ -53,37 +50,31 @@ const getStatusConfig = (
     case AutoRefreshStatus.Idle:
       return {
         color: theme.colorSuccess,
-        showCheckmark: true,
         needsBorder: false,
       };
     case AutoRefreshStatus.Fetching:
       return {
         color: theme.colorPrimary,
-        showCheckmark: false,
         needsBorder: false,
       };
     case AutoRefreshStatus.Delayed:
       return {
         color: theme.colorWarning,
-        showCheckmark: false,
         needsBorder: false,
       };
     case AutoRefreshStatus.Error:
       return {
         color: theme.colorError,
-        showCheckmark: false,
         needsBorder: false,
       };
     case AutoRefreshStatus.Paused:
       return {
-        color: '#FFFFFF',
-        showCheckmark: false,
+        color: theme.colorBgContainer,
         needsBorder: true,
       };
     default:
       return {
         color: theme.colorTextSecondary,
-        showCheckmark: false,
         needsBorder: false,
       };
   }
@@ -173,12 +164,6 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
     [statusConfig, size, theme, displayStatus],
   );
 
-  const checkmarkStyles = css`
-    font-size: ${size * 0.6}px;
-    color: #ffffff;
-    line-height: 1;
-  `;
-
   return (
     <span
       css={dotStyles}
@@ -186,11 +171,7 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
       aria-label={`Auto-refresh status: ${displayStatus}`}
       data-test="status-indicator-dot"
       data-status={displayStatus}
-    >
-      {statusConfig.showCheckmark && (
-        <Icons.CheckOutlined css={checkmarkStyles} />
-      )}
-    </span>
+    />
   );
 };
 

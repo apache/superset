@@ -37,9 +37,8 @@ export interface UseAutoRefreshTabPauseOptions {
  * - When tab becomes hidden: Stop the refresh timer, set status to paused
  * - When tab becomes visible: If not manually paused, fetch data immediately and restart timer
  *
- * This hook respects:
- * - The `autoRefreshPauseOnInactiveTab` setting (user must opt-in, default OFF)
- * - Manual pause state - if the user manually paused, returning to the tab won't auto-resume
+ * This behavior is always enabled for real-time dashboards (dashboards with auto-refresh).
+ * Manual pause state is respected - if the user manually paused, returning to the tab won't auto-resume.
  */
 export function useAutoRefreshTabPause({
   onRefresh,
@@ -49,21 +48,16 @@ export function useAutoRefreshTabPause({
   const {
     isRealTimeDashboard,
     isPaused: isManuallyPaused,
-    isPausedByTab,
     setPausedByTab,
     setStatus,
-    autoRefreshPauseOnInactiveTab,
   } = useRealTimeDashboard();
 
   // Track if we should resume on visibility change
   const shouldResumeRef = useRef(false);
 
   const handleHidden = useCallback(() => {
-    // Only act if:
-    // 1. Dashboard has auto-refresh enabled
-    // 2. User has enabled "pause on inactive tab" setting
-    // 3. Not already manually paused
-    if (!isRealTimeDashboard || !autoRefreshPauseOnInactiveTab) {
+    // Only act if dashboard has auto-refresh enabled and not already manually paused
+    if (!isRealTimeDashboard) {
       return;
     }
 
@@ -76,7 +70,6 @@ export function useAutoRefreshTabPause({
     }
   }, [
     isRealTimeDashboard,
-    autoRefreshPauseOnInactiveTab,
     isManuallyPaused,
     setPausedByTab,
     setStatus,
@@ -84,13 +77,13 @@ export function useAutoRefreshTabPause({
   ]);
 
   const handleVisible = useCallback(() => {
-    // Only act if dashboard has auto-refresh and setting is enabled
-    if (!isRealTimeDashboard || !autoRefreshPauseOnInactiveTab) {
+    // Only act if dashboard has auto-refresh enabled
+    if (!isRealTimeDashboard) {
       return;
     }
 
     // Only resume if we paused due to tab visibility (not manual pause)
-    if (isPausedByTab && shouldResumeRef.current && !isManuallyPaused) {
+    if (shouldResumeRef.current && !isManuallyPaused) {
       setPausedByTab(false);
 
       // Immediate refresh then restart timer
@@ -107,19 +100,16 @@ export function useAutoRefreshTabPause({
     }
   }, [
     isRealTimeDashboard,
-    autoRefreshPauseOnInactiveTab,
-    isPausedByTab,
     isManuallyPaused,
     setPausedByTab,
     onRefresh,
     onRestartTimer,
   ]);
 
-  // Use the tab visibility hook
   useTabVisibility({
     onVisible: handleVisible,
     onHidden: handleHidden,
-    enabled: isRealTimeDashboard && autoRefreshPauseOnInactiveTab,
+    enabled: isRealTimeDashboard,
   });
 }
 

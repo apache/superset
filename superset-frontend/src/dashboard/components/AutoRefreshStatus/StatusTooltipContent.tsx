@@ -18,7 +18,6 @@
  */
 import { FC } from 'react';
 import { t } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
@@ -138,23 +137,6 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   autoRefreshFetchStartTime,
   isPausedByTab = false,
 }) => {
-  const theme = useTheme();
-
-  const containerStyles = css`
-    max-width: 250px;
-    font-size: ${theme.fontSizeSM}px;
-    line-height: 1.5;
-  `;
-
-  const lineStyles = css`
-    color: ${theme.colorText};
-  `;
-
-  const errorLineStyles = css`
-    color: ${theme.colorError};
-    margin-top: ${theme.marginXXS}px;
-  `;
-
   const { line1, line2, line3 } = getStatusMessage(
     status,
     lastSuccessfulRefresh,
@@ -165,18 +147,10 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   );
 
   return (
-    <div css={containerStyles} data-test="status-tooltip-content">
-      <div css={lineStyles}>{line1}</div>
-      <div css={lineStyles}>{line2}</div>
-      {line3 && (
-        <div
-          css={
-            status === AutoRefreshStatus.Error ? errorLineStyles : lineStyles
-          }
-        >
-          {line3}
-        </div>
-      )}
+    <div data-test="status-tooltip-content">
+      <div>{line1}</div>
+      <div>{line2}</div>
+      {line3 && <div>{line3}</div>}
     </div>
   );
 };

@@ -1050,13 +1050,6 @@ const Header = () => {
           refreshFrequency={refreshFrequency}
           onChange={handleRefreshChange}
           editMode={editMode}
-          refreshLimit={
-            dashboardInfo.common?.conf
-              ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT
-          }
-          refreshWarning={
-            dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_WARNING_MESSAGE
-          }
           addSuccessToast={boundActionCreators.addSuccessToast}
         />
       )}
