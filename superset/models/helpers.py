@@ -1800,6 +1800,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> tuple[pd.DataFrame, list[str]]:
         """Determine appropriate join keys and modify DataFrames if needed."""
         if time_grain and not is_date_range_offset:
+            # When there are no join keys (e.g., totals query with columns=[]),
+            # check if the first column is a datetime before attempting to use it
+            # for join column generation. If it's not a datetime (e.g., only metric
+            # columns exist), fall back to empty join keys which will trigger the
+            # __temp_join_key__ mechanism in _perform_join.
+            if not join_keys and len(df.columns) > 0:
+                first_col_dtype = df.iloc[:, 0].dtype
+                if not pd.api.types.is_datetime64_any_dtype(first_col_dtype):
+                    return offset_df, []
+
             column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
 
             # Add offset join columns for relative time offsets
