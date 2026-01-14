@@ -161,6 +161,21 @@ async def get_chart_data(  # noqa: C901
                     or form_data.get("row_limit")
                     or current_app.config["ROW_LIMIT"]
                 )
+
+                # Handle different chart types that have different form_data structures
+                # big_number charts use "metric" (singular), not "metrics" (plural)
+                # and don't have groupby columns
+                viz_type = chart.viz_type or ""
+                if viz_type.startswith("big_number"):
+                    # big_number/big_number_total use "metric" (singular)
+                    metric = form_data.get("metric")
+                    metrics = [metric] if metric else []
+                    columns: list[str] = []  # big_number charts don't group by
+                else:
+                    # Standard charts use "metrics" (plural) and "groupby"
+                    metrics = form_data.get("metrics", [])
+                    columns = form_data.get("groupby", [])
+
                 query_context = factory.create(
                     datasource={
                         "id": chart.datasource_id,
@@ -169,8 +184,8 @@ async def get_chart_data(  # noqa: C901
                     queries=[
                         {
                             "filters": form_data.get("filters", []),
-                            "columns": form_data.get("groupby", []),
-                            "metrics": form_data.get("metrics", []),
+                            "columns": columns,
+                            "metrics": metrics,
                             "row_limit": row_limit,
                             "order_desc": True,
                         }
