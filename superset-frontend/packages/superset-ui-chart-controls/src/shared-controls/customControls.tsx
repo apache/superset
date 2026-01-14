@@ -218,8 +218,17 @@ export const xAxisForceCategoricalControl = {
     label: () => t('Force categorical'),
     default: false,
     description: t('Treat values as categorical.'),
-    initialValue: (control: ControlState, state: ControlPanelState | null) =>
-      state?.form_data?.x_axis_sort !== undefined || control.value,
+    initialValue: (control: ControlState, state: ControlPanelState | null) => {
+      const isNumericXAxis = checkColumnType(
+        getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
+        state?.controls?.datasource?.datasource,
+        [GenericDataType.Numeric],
+      );
+      if (!isNumericXAxis) {
+        return control.value;
+      }
+      return state?.form_data?.x_axis_sort !== undefined || control.value;
+    },
     renderTrigger: true,
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
       checkColumnType(
