@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { Page, Locator } from '@playwright/test';
-import { AceEditor, Modal, Tabs } from '../core';
+import { Locator, Page } from '@playwright/test';
+import { Input, Modal, Tabs } from '../core';
 
 /**
  * Edit Dataset Modal component (DatasourceModal).
@@ -26,6 +26,12 @@ import { AceEditor, Modal, Tabs } from '../core';
  * Uses specific dialog name to avoid strict mode violations when multiple dialogs are open.
  */
 export class EditDatasetModal extends Modal {
+  private static readonly SELECTORS = {
+    NAME_INPUT: '[data-test="inline-name"]',
+    LOCK_ICON: '[data-test="lock"]',
+    UNLOCK_ICON: '[data-test="unlock"]',
+  };
+
   private readonly tabs: Tabs;
   private readonly specificLocator: Locator;
 
@@ -59,26 +65,31 @@ export class EditDatasetModal extends Modal {
   }
 
   /**
-   * Get the description editor (AceEditor component)
+   * Click the lock icon to enable edit mode
+   * The modal starts in read-only mode and requires clicking the lock to edit
    */
-  getDescriptionEditor(): AceEditor {
-    return new AceEditor(this.page, '#ace-editor');
+  async enableEditMode(): Promise<void> {
+    const lockButton = this.body.locator(EditDatasetModal.SELECTORS.LOCK_ICON);
+    await lockButton.click();
   }
 
   /**
-   * Fill in the description field using the Ace Editor
-   * @param description - The description text to enter
+   * Gets the dataset name input component
    */
-  async fillDescription(description: string): Promise<void> {
-    await this.getDescriptionEditor().setText(description);
+  private get nameInput(): Input {
+    return new Input(
+      this.page,
+      this.body.locator(EditDatasetModal.SELECTORS.NAME_INPUT),
+    );
   }
 
   /**
-   * Get the current description text from the Ace Editor
-   * @returns The description text
+   * Fill in the dataset name field
+   * Note: Call enableEditMode() first if the modal is in read-only mode
+   * @param name - The new dataset name
    */
-  async getDescription(): Promise<string> {
-    return this.getDescriptionEditor().getText();
+  async fillName(name: string): Promise<void> {
+    await this.nameInput.fill(name);
   }
 
   /**
