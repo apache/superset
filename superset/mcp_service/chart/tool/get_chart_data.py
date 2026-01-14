@@ -170,11 +170,11 @@ async def get_chart_data(  # noqa: C901
                     # big_number/big_number_total use "metric" (singular)
                     metric = form_data.get("metric")
                     metrics = [metric] if metric else []
-                    columns: list[str] = []  # big_number charts don't group by
+                    groupby_columns: list[str] = []  # big_number charts don't group by
                 else:
                     # Standard charts use "metrics" (plural) and "groupby"
                     metrics = form_data.get("metrics", [])
-                    columns = form_data.get("groupby", [])
+                    groupby_columns = form_data.get("groupby", [])
 
                 query_context = factory.create(
                     datasource={
@@ -184,7 +184,7 @@ async def get_chart_data(  # noqa: C901
                     queries=[
                         {
                             "filters": form_data.get("filters", []),
-                            "columns": columns,
+                            "columns": groupby_columns,
                             "metrics": metrics,
                             "row_limit": row_limit,
                             "order_desc": True,
