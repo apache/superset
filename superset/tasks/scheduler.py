@@ -26,13 +26,13 @@ from celery.signals import task_failure
 from flask import current_app
 
 from superset import is_feature_enabled
-from superset.commands.async_tasks.prune import AsyncTaskPruneCommand
 from superset.commands.exceptions import CommandException
 from superset.commands.logs.prune import LogPruneCommand
 from superset.commands.report.exceptions import ReportScheduleUnexpectedError
 from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.commands.sql_lab.query import QueryPruneCommand
+from superset.commands.tasks.prune import TaskPruneCommand
 from superset.daos.report import ReportScheduleDAO
 from superset.extensions import celery_app
 from superset.stats_logger import BaseStatsLogger
@@ -202,27 +202,27 @@ def prune_logs(
         logger.exception("An error occurred while pruning logs: %s", ex)
 
 
-@celery_app.task(name="prune_async_tasks", bind=True)
-def prune_async_tasks(
+@celery_app.task(name="prune_tasks", bind=True)
+def prune_tasks(
     self: Task,
     retention_period_days: int | None = None,
     max_rows_per_run: int | None = None,
     **kwargs: Any,
 ) -> None:
     stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
-    stats_logger.incr("prune_async_tasks")
+    stats_logger.incr("prune_tasks")
 
     # TODO: Deprecated: Remove support for passing retention period via options in 6.0
     if retention_period_days is None:
-        retention_period_days = prune_async_tasks.request.properties.get(
+        retention_period_days = prune_tasks.request.properties.get(
             "retention_period_days"
         )
         logger.warning(
-            "Your `prune_async_tasks` beat schedule uses `options` to pass the "
+            "Your `prune_tasks` beat schedule uses `options` to pass the "
             "retention period, please use `kwargs` instead."
         )
 
     try:
-        AsyncTaskPruneCommand(retention_period_days, max_rows_per_run).run()
+        TaskPruneCommand(retention_period_days, max_rows_per_run).run()
     except CommandException as ex:
         logger.exception("An error occurred while pruning async tasks: %s", ex)

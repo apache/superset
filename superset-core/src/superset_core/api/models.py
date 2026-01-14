@@ -361,14 +361,14 @@ class KeyValue(CoreModel):
     changed_by_fk: int | None
 
 
-class AsyncTask(CoreModel):
+class Task(CoreModel):
     """
-    Abstract AsyncTask model interface.
+    Abstract Task model interface.
 
     Host implementations will replace this class during initialization
     with concrete implementation providing actual functionality.
 
-    This model represents async tasks in the Global Async Task Framework (GATF).
+    This model represents async tasks in the Global Task Framework (GTF).
     """
 
     __abstract__ = True
@@ -437,7 +437,7 @@ __all__ = [
     "SavedQuery",
     "Tag",
     "KeyValue",
-    "AsyncTask",
+    "Task",
     "CoreModel",
     "get_session",
 ]
