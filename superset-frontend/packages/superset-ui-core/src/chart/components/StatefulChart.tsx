@@ -37,6 +37,24 @@ import SuperChart from './SuperChart';
 type LoadingState = 'uninitialized' | 'loading' | 'loaded' | 'error';
 
 /**
+ * Known shared controls that have renderTrigger: true.
+ * These are controls defined in sharedControls that only affect rendering,
+ * not data fetching. When these controls change, we should re-render
+ * without refetching data.
+ *
+ * This list is needed because string-based control references (e.g., ['zoomable'])
+ * cannot be introspected for their renderTrigger property without importing
+ * sharedControls, which would create a circular dependency.
+ */
+const RENDER_TRIGGER_SHARED_CONTROLS = new Set([
+  'zoomable',
+  'color_scheme',
+  'time_shift_color',
+  'y_axis_format',
+  'currency_format',
+]);
+
+/**
  * Helper function to determine if data should be refetched based on formData changes
  * @param prevFormData Previous formData
  * @param nextFormData New formData
@@ -72,7 +90,13 @@ function shouldRefetchData(
       if (section.controlSetRows) {
         section.controlSetRows.forEach((row: any) => {
           row.forEach((control: any) => {
-            if (control && typeof control === 'object') {
+            // Handle string references to shared controls with renderTrigger
+            if (
+              typeof control === 'string' &&
+              RENDER_TRIGGER_SHARED_CONTROLS.has(control)
+            ) {
+              renderTriggerControls.add(control);
+            } else if (control && typeof control === 'object') {
               const controlName = control.name || control.config?.name;
               if (controlName && control.config?.renderTrigger === true) {
                 renderTriggerControls.add(controlName);
