@@ -80,7 +80,7 @@ interface ComponentType {
 export function recurseReactClone<T extends Record<string, unknown>>(
   children: ReactNode,
   type: ComponentType,
-  propExtender: (child: ReactElement<T>) => Partial<T>,
+  propExtender: (child: ReactElement<T>) => Record<string, unknown>,
 ): ReactNode {
   /**
    * Clones a React component's children, and injects new props
@@ -94,20 +94,26 @@ export function recurseReactClone<T extends Record<string, unknown>>(
       typeof child.type === 'function' &&
       (child.type as ComponentType).name === type.name
     ) {
-      newChild = cloneElement(child, propExtender(child as ReactElement<T>));
+      newChild = cloneElement(
+        child,
+        propExtender(child as ReactElement<T>) as Partial<T>,
+      );
     }
     if (
       isValidElement(newChild) &&
       newChild.props &&
       (newChild.props as { children?: ReactNode }).children
     ) {
-      newChild = cloneElement(newChild, {
-        children: recurseReactClone(
-          (newChild.props as { children: ReactNode }).children,
-          type,
-          propExtender,
-        ),
-      });
+      newChild = cloneElement(
+        newChild as ReactElement<{ children: ReactNode }>,
+        {
+          children: recurseReactClone(
+            (newChild.props as { children: ReactNode }).children,
+            type,
+            propExtender,
+          ),
+        },
+      );
     }
     return newChild;
   });

@@ -92,11 +92,13 @@ interface ExportChartParams {
   resultType?: string;
   force?: boolean;
   ownState?: JsonObject;
-  onStartStreamingExport?: ((params: {
-    url: string | null;
-    payload: QueryFormData | ReturnType<typeof buildQueryContext>;
-    exportType: string;
-  }) => void) | null;
+  onStartStreamingExport?:
+    | ((params: {
+        url: string | null;
+        payload: QueryFormData | ReturnType<typeof buildQueryContext>;
+        exportType: string;
+      }) => void)
+    | null;
 }
 
 interface SubjectWithColumnName {
@@ -280,7 +282,9 @@ export function getExploreUrl({
 export const getQuerySettings = (
   formData: Partial<QueryFormData>,
 ): [boolean, string] => {
-  const vizMetadata = getChartMetadataRegistry().get(formData.viz_type);
+  const vizMetadata = formData.viz_type
+    ? getChartMetadataRegistry().get(formData.viz_type)
+    : undefined;
   return [
     vizMetadata?.useLegacyApi ?? false,
     vizMetadata?.parseMethod ?? 'json-bigint',
@@ -294,15 +298,20 @@ export const buildV1ChartDataPayload = async ({
   resultType,
   setDataMask,
   ownState,
-}: BuildV1ChartDataPayloadParams): Promise<ReturnType<typeof buildQueryContext>> => {
+}: BuildV1ChartDataPayloadParams): Promise<
+  ReturnType<typeof buildQueryContext>
+> => {
+  const defaultBuildQuery = (buildQueryFormData: QueryFormData) =>
+    buildQueryContext(buildQueryFormData, baseQueryObject => [
+      {
+        ...baseQueryObject,
+      },
+    ]);
+  const registryResult = formData.viz_type
+    ? getChartBuildQueryRegistry().get(formData.viz_type)
+    : undefined;
   const buildQuery =
-    getChartBuildQueryRegistry().get(formData.viz_type) ??
-    ((buildQueryFormData: QueryFormData) =>
-      buildQueryContext(buildQueryFormData, baseQueryObject => [
-        {
-          ...baseQueryObject,
-        },
-      ]));
+    (registryResult ? await registryResult : undefined) ?? defaultBuildQuery;
   return buildQuery(
     {
       ...formData,
@@ -313,7 +322,8 @@ export const buildV1ChartDataPayload = async ({
     {
       ownState,
       hooks: {
-        setDataMask,
+        setDataMask: setDataMask ?? (() => {}),
+        setCachedChanges: () => {},
       },
     },
   );
@@ -367,7 +377,9 @@ export const exportChart = async ({
     });
   } else {
     // Fallback to original behavior for non-streaming exports
-    SupersetClient.postForm(url as string, { form_data: safeStringify(payload) });
+    SupersetClient.postForm(url as string, {
+      form_data: safeStringify(payload),
+    });
   }
 };
 
@@ -381,7 +393,9 @@ export const exploreChart = (
     allowDomainSharding: false,
     requestParams,
   });
-  SupersetClient.postForm(url as string, { form_data: safeStringify(formData) });
+  SupersetClient.postForm(url as string, {
+    form_data: safeStringify(formData),
+  });
 };
 
 export const useDebouncedEffect = (
@@ -415,7 +429,8 @@ export const getSimpleSQLExpression = (
   const disableInputOperatorValues = DISABLE_INPUT_OPERATORS.map(
     (op: Operators) => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
   );
-  const showComparator = disableInputOperatorValues.indexOf(operator ?? '') === -1;
+  const showComparator =
+    disableInputOperatorValues.indexOf(operator ?? '') === -1;
   // If returned value is an object after changing dataset
   let expression: string =
     typeof subject === 'object'
