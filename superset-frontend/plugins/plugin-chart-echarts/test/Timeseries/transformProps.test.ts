@@ -21,6 +21,7 @@ import {
   AnnotationStyle,
   AnnotationType,
   ChartProps,
+  ComparisonType,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
@@ -722,4 +723,159 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+});
+
+const timeCompareFormData: SqlaFormData = {
+  colorScheme: 'bnbColors',
+  datasource: '3__table',
+  granularity_sqla: 'ds',
+  metric: 'sum__num',
+  viz_type: 'my_viz',
+};
+
+const timeCompareChartPropsConfig = {
+  formData: timeCompareFormData,
+  width: 800,
+  height: 600,
+  theme: supersetTheme,
+};
+
+test('should apply dashed line style to time comparison series with single metric', () => {
+  const queriesDataWithTimeCompare = [
+    {
+      data: [
+        { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+    },
+    queriesData: queriesDataWithTimeCompare,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const mainSeries = series.find(s => s.name === 'sum__num');
+  const comparisonSeries = series.find(s => s.name === '1 week ago');
+
+  expect(mainSeries).toBeDefined();
+  expect(comparisonSeries).toBeDefined();
+  expect(mainSeries.lineStyle?.type).not.toBe('dashed');
+  expect(comparisonSeries.lineStyle?.type).toBe('dashed');
+});
+
+test('should apply dashed line style to time comparison series with metric__offset pattern', () => {
+  const queriesDataWithTimeCompare = [
+    {
+      data: [
+        {
+          sum__num: 100,
+          'sum__num__1 week ago': 80,
+          __timestamp: 599616000000,
+        },
+        {
+          sum__num: 150,
+          'sum__num__1 week ago': 120,
+          __timestamp: 599916000000,
+        },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+    },
+    queriesData: queriesDataWithTimeCompare,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const mainSeries = series.find(s => s.name === 'sum__num');
+  const comparisonSeries = series.find(s => s.name === 'sum__num__1 week ago');
+
+  expect(mainSeries).toBeDefined();
+  expect(comparisonSeries).toBeDefined();
+  expect(mainSeries.lineStyle?.type).not.toBe('dashed');
+  expect(comparisonSeries.lineStyle?.type).toBe('dashed');
+});
+
+test('should apply connectNulls to time comparison series', () => {
+  const queriesDataWithNulls = [
+    {
+      data: [
+        { sum__num: 100, '1 week ago': null, __timestamp: 599616000000 },
+        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+        { sum__num: 200, '1 week ago': null, __timestamp: 600216000000 },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+    },
+    queriesData: queriesDataWithNulls,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const comparisonSeries = series.find(s => s.name === '1 week ago');
+
+  expect(comparisonSeries).toBeDefined();
+  expect(comparisonSeries.connectNulls).toBe(true);
+});
+
+test('should apply dashed line style for non-Values comparison types', () => {
+  const queriesDataWithTimeCompare = [
+    {
+      data: [
+        { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Difference,
+    },
+    queriesData: queriesDataWithTimeCompare,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const comparisonSeries = series.find(s => s.name === '1 week ago');
+
+  expect(comparisonSeries).toBeDefined();
+  expect(comparisonSeries.lineStyle?.type).toBe('dashed');
+  expect(comparisonSeries.connectNulls).toBe(true);
 });
