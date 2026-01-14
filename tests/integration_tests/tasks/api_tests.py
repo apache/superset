@@ -35,6 +35,8 @@ from tests.integration_tests.constants import (
 class TestTaskApi(SupersetTestCase):
     """Tests for Task REST API"""
 
+    TASK_API_BASE = "api/v1/task"
+
     @contextmanager
     def _create_tasks(self) -> Generator[list[Task], None, None]:
         """
@@ -99,7 +101,7 @@ class TestTaskApi(SupersetTestCase):
         Task API: Test info endpoint
         """
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/async_task/_info"
+        uri = f"{self.TASK_API_BASE}/_info"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -117,7 +119,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.id}"
+            uri = f"{self.TASK_API_BASE}/{task.id}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -138,7 +140,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.uuid}"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -151,7 +153,7 @@ class TestTaskApi(SupersetTestCase):
         Task API: Test get async task not found
         """
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/async_task/99999"
+        uri = f"{self.TASK_API_BASE}/99999"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -160,7 +162,7 @@ class TestTaskApi(SupersetTestCase):
         Task API: Test get async task with invalid UUID
         """
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/async_task/invalid-uuid"
+        uri = f"{self.TASK_API_BASE}/invalid-uuid"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -170,7 +172,7 @@ class TestTaskApi(SupersetTestCase):
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
-            uri = "api/v1/async_task/"
+            uri = f"{self.TASK_API_BASE}/"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -189,7 +191,7 @@ class TestTaskApi(SupersetTestCase):
                     {"col": "status", "opr": "eq", "value": TaskStatus.PENDING.value}
                 ]
             }
-            uri = f"api/v1/async_task/?q={prison.dumps(arguments)}"
+            uri = f"{self.TASK_API_BASE}/?q={prison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -206,7 +208,7 @@ class TestTaskApi(SupersetTestCase):
             arguments = {
                 "filters": [{"col": "task_type", "opr": "eq", "value": "test_type"}]
             }
-            uri = f"api/v1/async_task/?q={prison.dumps(arguments)}"
+            uri = f"{self.TASK_API_BASE}/?q={prison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -225,7 +227,7 @@ class TestTaskApi(SupersetTestCase):
                 "order_column": "created_on",
                 "order_direction": "desc",
             }
-            uri = f"api/v1/async_task/?q={prison.dumps(arguments)}"
+            uri = f"{self.TASK_API_BASE}/?q={prison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -239,7 +241,7 @@ class TestTaskApi(SupersetTestCase):
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
             arguments = {"page": 0, "page_size": 2}
-            uri = f"api/v1/async_task/?q={prison.dumps(arguments)}"
+            uri = f"{self.TASK_API_BASE}/?q={prison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -263,7 +265,7 @@ class TestTaskApi(SupersetTestCase):
             )
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.id}/abort"
+            uri = f"{self.TASK_API_BASE}/{task.id}/abort"
             rv = self.client.post(uri, json={})
             assert rv.status_code == 200
 
@@ -290,7 +292,7 @@ class TestTaskApi(SupersetTestCase):
             )
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.uuid}/abort"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}/abort"
             rv = self.client.post(uri)
             assert rv.status_code == 200
 
@@ -303,7 +305,7 @@ class TestTaskApi(SupersetTestCase):
         Task API: Test abort async task not found
         """
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/async_task/99999/abort"
+        uri = f"{self.TASK_API_BASE}/99999/abort"
         rv = self.client.post(uri)
         assert rv.status_code == 404
 
@@ -319,7 +321,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.id}/abort"
+            uri = f"{self.TASK_API_BASE}/{task.id}/abort"
             rv = self.client.post(uri)
             assert rv.status_code == 404
 
@@ -335,7 +337,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=gamma.id).first()
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.id}/abort"
+            uri = f"{self.TASK_API_BASE}/{task.id}/abort"
             rv = self.client.post(uri)
             assert rv.status_code == 200
 
@@ -350,7 +352,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.id}/status"
+            uri = f"{self.TASK_API_BASE}/{task.id}/status"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -374,7 +376,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.uuid}/status"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}/status"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -387,7 +389,7 @@ class TestTaskApi(SupersetTestCase):
         Task API: Test get async task status not found
         """
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/async_task/99999/status"
+        uri = f"{self.TASK_API_BASE}/99999/status"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -403,7 +405,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.id}/status"
+            uri = f"{self.TASK_API_BASE}/{task.id}/status"
             rv = self.client.get(uri)
             # Should be forbidden due to base filter
             assert rv.status_code == 404
@@ -420,7 +422,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=gamma.id).first()
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.id}/status"
+            uri = f"{self.TASK_API_BASE}/{task.id}/status"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -435,7 +437,7 @@ class TestTaskApi(SupersetTestCase):
             self.login(GAMMA_USERNAME)
             gamma = self.get_user("gamma")
 
-            uri = "api/v1/async_task/"
+            uri = f"{self.TASK_API_BASE}/"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -451,7 +453,7 @@ class TestTaskApi(SupersetTestCase):
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
 
-            uri = "api/v1/async_task/"
+            uri = f"{self.TASK_API_BASE}/"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -468,7 +470,7 @@ class TestTaskApi(SupersetTestCase):
             admin = self.get_user("admin")
 
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
-            uri = f"api/v1/async_task/{task.id}"
+            uri = f"{self.TASK_API_BASE}/{task.id}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -511,7 +513,7 @@ class TestTaskApi(SupersetTestCase):
             admin = self.get_user("admin")
 
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
-            uri = f"api/v1/async_task/{task.id}"
+            uri = f"{self.TASK_API_BASE}/{task.id}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -539,7 +541,7 @@ class TestTaskApi(SupersetTestCase):
             )
             assert task is not None
 
-            uri = f"api/v1/async_task/{task.id}"
+            uri = f"{self.TASK_API_BASE}/{task.id}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 

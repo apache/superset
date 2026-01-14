@@ -139,6 +139,10 @@ class TaskDAO(BaseDAO[Task]):
             **kwargs,
         }
 
+        # Add user_id if provided
+        if user_id is not None:
+            task_data["user_id"] = user_id
+
         task = cls.create(attributes=task_data)
 
         # Auto-subscribe creator for shared tasks
