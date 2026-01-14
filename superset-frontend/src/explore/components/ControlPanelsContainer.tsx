@@ -40,6 +40,7 @@ import {
   usePrevious,
   isFeatureEnabled,
   FeatureFlag,
+  VizType,
 } from '@superset-ui/core';
 import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
@@ -794,7 +795,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   ]);
 
   const showCustomizeTab = customizeSections.length > 0;
-  const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
+  // Charts that don't support matrixify feature
+  const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([VizType.TableAgGrid]);
+  const showMatrixifyTab =
+    isFeatureEnabled(FeatureFlag.Matrixify) &&
+    !MATRIXIFY_INCOMPATIBLE_CHARTS.has(form_data.viz_type as VizType);
 
   // Check if matrixify is enabled in form_data
   const matrixifyIsEnabled =
