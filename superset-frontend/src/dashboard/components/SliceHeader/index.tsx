@@ -186,14 +186,24 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
     );
 
-    const firstQueryResponse = useSelector<RootState, QueryData | undefined>(
-      state => state.charts[slice.slice_id].queriesResponse?.[0],
+    const queriesResponse = useSelector<RootState, QueryData[] | null | undefined>(
+      state => state.charts[slice.slice_id].queriesResponse,
     );
 
     const theme = useTheme();
 
-    const rowLimit = Number(formData.row_limit || -1);
-    const sqlRowCount = Number(firstQueryResponse?.sql_rowcount || 0);
+    const rowLimit = Number(formData.row_limit ?? 0);
+    
+    const isTableChart = formData.viz_type === 'table';
+    const hasCountQuery = queriesResponse && queriesResponse.length > 1;
+    const countFromSecondQuery = hasCountQuery
+      ? queriesResponse[1]?.data?.[0]?.rowcount
+      : null;
+    
+    const sqlRowCount =
+      isTableChart && countFromSecondQuery != null
+        ? countFromSecondQuery
+        : Number(queriesResponse?.[0]?.sql_rowcount ?? 0);
 
     const canExplore = !editMode && supersetCanExplore;
 
@@ -304,18 +314,20 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 <FiltersBadge chartId={slice.slice_id} />
               )}
 
-              {shouldShowRowLimitWarning && sqlRowCount === rowLimit && (
+              {!uiConfig.hideChartControls && isTableChart && sqlRowCount > 0 && (
                 <RowCountLabel
                   rowcount={sqlRowCount}
                   limit={rowLimit}
                   label={
-                    <Icons.WarningOutlined
-                      iconSize="l"
-                      iconColor={theme.colorWarning}
-                      css={theme => css`
-                        padding: ${theme.sizeUnit}px;
-                      `}
-                    />
+                    shouldShowRowLimitWarning && sqlRowCount >= rowLimit && rowLimit > 0 ? (
+                      <Icons.WarningOutlined
+                        iconSize="l"
+                        iconColor={theme.colorWarning}
+                        css={theme => css`
+                          padding: ${theme.sizeUnit}px;
+                        `}
+                      />
+                    ) : undefined
                   }
                 />
               )}
