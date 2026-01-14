@@ -11781,7 +11781,6 @@ msgstr "Afficher la description de graphique"
 msgid "Show column headers"
 msgstr "L'étiquette de l'en-tête de la colonne"
 
-#, fuzzy
 msgid "Show columns subtotal"
 msgstr "Afficher le sous-total des colonnes"
 
@@ -11856,7 +11855,6 @@ msgstr "Voir les détails de la requête"
 msgid "Show row labels"
 msgstr "Afficher les étiquettes"
 
-#, fuzzy
 msgid "Show rows subtotal"
 msgstr "Afficher le sous-total des rangées"
 
