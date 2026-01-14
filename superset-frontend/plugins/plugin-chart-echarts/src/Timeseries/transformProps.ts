@@ -44,6 +44,8 @@ import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   extractExtraMetrics,
   getOriginalSeries,
+  getTimeOffset,
+  hasTimeOffset,
   isDerivedSeries,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
@@ -289,20 +291,28 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
-  let patternIncrement = 0;
+  const offsetLineWidths: { [key: string]: number } = {};
 
   rawSeries.forEach(entry => {
     const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
-    const lineStyle: LineStyleOption = {};
-    if (derivedSeries) {
-      patternIncrement += 1;
-      // use a combination of dash and dot for the line style
-      lineStyle.type = [(patternIncrement % 5) + 1, (patternIncrement % 3) + 1];
-      lineStyle.opacity = OpacityEnum.DerivedSeries;
-    }
-
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
+    // Check if this is a time comparison series:
+    // 1. hasTimeOffset checks for patterns like "metric__1 day ago" or "1 day ago, groupby"
+    // 2. array.includes checks if the series name exactly matches a time offset value
+    const isTimeCompare =
+      hasTimeOffset(entry, array) || array.includes(seriesName);
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries || isTimeCompare) {
+      // Get the time offset for this series to assign different line widths
+      const offset = getTimeOffset(entry, array) || seriesName;
+      if (!offsetLineWidths[offset]) {
+        offsetLineWidths[offset] = Object.keys(offsetLineWidths).length + 1;
+      }
+      lineStyle.type = 'dashed';
+      lineStyle.width = offsetLineWidths[offset];
+      lineStyle.opacity = OpacityEnum.DerivedSeries;
+    }
 
     let colorScaleKey = getOriginalSeries(seriesName, array);
 
@@ -328,7 +338,7 @@ export default function transformProps(
       colorScaleKey,
       {
         area,
-        connectNulls: derivedSeries,
+        connectNulls: derivedSeries || isTimeCompare,
         filterState,
         seriesContexts,
         markerEnabled,
