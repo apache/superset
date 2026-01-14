@@ -272,16 +272,18 @@ export interface GetChartDataRequestParams {
   resultFormat?: string;
   resultType?: string;
   force?: boolean;
-  method?: string;
+  method?: 'GET' | 'POST';
   requestParams?: RequestParams;
   ownState?: JsonObject;
 }
 
 // runAnnotationQuery params interface
 // Extended annotation layer with optional overrides for time range
-interface AnnotationLayerWithOverrides extends AnnotationLayer {
+// Using type intersection instead of interface extension because
+// AnnotationLayer may have dynamic members
+type AnnotationLayerWithOverrides = AnnotationLayer & {
   overrides?: Record<string, unknown>;
-}
+};
 
 export interface RunAnnotationQueryParams {
   annotation: AnnotationLayerWithOverrides;
@@ -382,8 +384,13 @@ export const dynamicPluginControlsReady =
   (): ChartThunkAction =>
   (dispatch: Dispatch, getState: () => RootState): void => {
     const state = getState();
+    // getControlsState expects datasource to be defined, provide a default
+    const exploreState = {
+      ...state.explore,
+      datasource: state.explore.datasource || { type: 'table' },
+    };
     const controlsState = getControlsState(
-      state.explore,
+      exploreState,
       state.explore.form_data,
     ) as ControlStateMapping;
     const sliceIdControl = controlsState.slice_id as { value?: unknown };
@@ -399,27 +406,28 @@ const legacyChartDataRequest = async (
   resultFormat: string,
   resultType: string,
   force: boolean,
-  method = 'POST',
+  method: 'GET' | 'POST' = 'POST',
   requestParams: RequestParams = {},
   parseMethod?: string,
 ): Promise<ChartDataRequestResponse> => {
   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-  const allowDomainSharding =
+  const allowDomainSharding = Boolean(
     // eslint-disable-next-line camelcase
-    domainShardingEnabled && requestParams?.dashboard_id;
+    domainShardingEnabled && requestParams?.dashboard_id,
+  );
   const url = getExploreUrl({
-    formData,
+    formData: formData as QueryFormData & { label_colors?: Record<string, string> },
     endpointType,
     force,
     allowDomainSharding,
     method,
     requestParams: requestParams.dashboard_id
-      ? { dashboard_id: requestParams.dashboard_id }
+      ? { dashboard_id: String(requestParams.dashboard_id) }
       : {},
   });
   const querySettings: QuerySettings = {
     ...requestParams,
-    url,
+    url: url ?? undefined,
     postPayload: { form_data: formData },
     parseMethod,
   };
@@ -446,7 +454,7 @@ const v1ChartDataRequest = async (
   parseMethod?: string,
 ): Promise<ChartDataRequestResponse> => {
   const payload = await buildV1ChartDataPayload({
-    formData,
+    formData: formData as QueryFormData,
     resultType,
     resultFormat,
     force,
@@ -458,14 +466,15 @@ const v1ChartDataRequest = async (
   const { slice_id: sliceId } = formData;
   const { dashboard_id: dashboardId } = requestParams;
 
-  const qs: Record<string, string | number | boolean> = {};
+  const qs: Record<string, string> = {};
   if (sliceId !== undefined) qs.form_data = `{"slice_id":${sliceId}}`;
-  if (dashboardId !== undefined) qs.dashboard_id = dashboardId;
-  if (force) qs.force = force;
+  if (dashboardId !== undefined) qs.dashboard_id = String(dashboardId);
+  if (force) qs.force = String(force);
 
-  const allowDomainSharding =
+  const allowDomainSharding = Boolean(
     // eslint-disable-next-line camelcase
-    domainShardingEnabled && requestParams?.dashboard_id;
+    domainShardingEnabled && requestParams?.dashboard_id,
+  );
   const url = getChartDataUri({
     path: '/api/v1/chart/data',
     qs,
@@ -491,7 +500,7 @@ export async function getChartDataRequest({
   resultFormat = 'json',
   resultType = 'full',
   force = false,
-  method = 'POST',
+  method = 'POST' as const,
   requestParams = {},
   ownState = {},
 }: GetChartDataRequestParams): Promise<ChartDataRequestResponse> {
@@ -586,6 +595,11 @@ export function runAnnotationQuery({
     }
 
     const url = getAnnotationJsonUrl(annotation.value, force);
+    // If url is null (slice_id was null/undefined), skip the request
+    if (!url) {
+      return Promise.resolve();
+    }
+
     const controller = new AbortController();
     const { signal } = controller;
 
@@ -616,8 +630,8 @@ export function runAnnotationQuery({
         const data = json?.result?.[0]?.annotation_data?.[annotation.name];
         return dispatch(annotationQuerySuccess(annotation, { data }, sliceKey));
       })
-      .catch((response: JsonObject) =>
-        getClientErrorObject(response).then(err => {
+      .catch((response: Response | JsonObject) =>
+        getClientErrorObject(response as Response).then(err => {
           if (err.statusText === 'timeout') {
             dispatch(
               annotationQueryFailed(
@@ -687,11 +701,17 @@ export function handleChartDataResponse(
         // Query results returned synchronously, meaning query was already cached.
         return Promise.resolve(result);
       case 202:
-        // Query is running asynchronously and we must await the results
+        // Query is running asynchronously and we must await the results.
+        // When status is 202, result contains async event data (job_id, channel_id, etc.)
+        // which differs from QueryData. We cast through unknown to handle this safely.
         if (useLegacyApi) {
-          return waitForAsyncData(result[0]);
+          return waitForAsyncData(
+            result[0] as unknown as Parameters<typeof waitForAsyncData>[0],
+          ) as Promise<QueryData[]>;
         }
-        return waitForAsyncData(result);
+        return waitForAsyncData(
+          result as unknown as Parameters<typeof waitForAsyncData>[0],
+        ) as Promise<QueryData[]>;
       default:
         throw new Error(
           `Received unexpected response status (${response.status}) while fetching chart data`,
@@ -825,18 +845,18 @@ export function exploreJSON(
             );
           };
 
-          return getClientErrorObject(response).then(
-            (parsedResponse: JsonObject) => {
-              if ((response as { statusText?: string }).statusText === 'timeout') {
-                appendErrorLog('timeout');
-              } else {
-                appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
-              }
-              return dispatch(
-                chartUpdateFailed([parsedResponse], key as string | number),
-              );
-            },
-          );
+          return getClientErrorObject(
+            response as unknown as Parameters<typeof getClientErrorObject>[0],
+          ).then((parsedResponse: JsonObject) => {
+            if ((response as { statusText?: string }).statusText === 'timeout') {
+              appendErrorLog('timeout');
+            } else {
+              appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
+            }
+            return dispatch(
+              chartUpdateFailed([parsedResponse], key as string | number),
+            );
+          });
         },
       );
 
@@ -894,11 +914,9 @@ export function redirectSQLLab(
           sql: json.result[0].query,
         };
         if (history) {
-          history.push({
-            pathname: redirectUrl,
-            state: {
-              requestedQuery: payload,
-            },
+          // Use two-argument form for history.push with state
+          history.push(redirectUrl, {
+            requestedQuery: payload,
           });
         } else {
           SupersetClient.postForm(ensureAppRoot(redirectUrl), {

@@ -142,10 +142,14 @@ interface SetStashFormDataAction {
   isHidden: boolean;
 }
 
+// Owner can be either a number (user ID) or an object with value/label
+// This handles both Slice format (number[]) and select control format ({value, label}[])
+type OwnerItem = number | { value: number; label: string };
+
 interface SliceUpdatedAction {
   type: typeof actions.SLICE_UPDATED;
   slice: Omit<Slice, 'owners'> & {
-    owners?: Array<{ value: number; label: string }>;
+    owners?: OwnerItem[];
     slice_name?: string;
   };
 }
@@ -562,20 +566,25 @@ export default function exploreReducer(
     },
     [actions.SLICE_UPDATED]() {
       const typedAction = action as SliceUpdatedAction;
+      // Handle owners that can be either number[] or Array<{value, label}>
+      const getOwnerId = (owner: OwnerItem): number =>
+        typeof owner === 'number' ? owner : owner.value;
+      const getOwnerLabel = (owner: OwnerItem): string | null =>
+        typeof owner === 'number' ? null : owner.label;
       return {
         ...state,
         slice: {
           ...state.slice,
           ...typedAction.slice,
           owners: typedAction.slice.owners
-            ? typedAction.slice.owners.map(owner => owner.value)
+            ? typedAction.slice.owners.map(getOwnerId)
             : null,
         } as Slice,
         sliceName: typedAction.slice.slice_name ?? state.sliceName,
         metadata: {
           ...state.metadata,
           owners: typedAction.slice.owners
-            ? typedAction.slice.owners.map(owner => owner.label)
+            ? typedAction.slice.owners.map(getOwnerLabel).filter(Boolean)
             : null,
         },
       };
