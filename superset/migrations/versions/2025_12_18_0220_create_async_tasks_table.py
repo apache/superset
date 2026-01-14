@@ -64,8 +64,9 @@ def upgrade():
         Column("task_name", String(256), nullable=True),  # Human readable name
         Column(
             "scope", String(20), nullable=False, server_default="private"
-        ),  # NEW: private/shared/system
+        ),  # private/shared/system
         Column("status", String(50), nullable=False),  # PENDING, IN_PROGRESS, etc.
+        Column("dedup_key", String(512), nullable=False),  # Computed deduplication key
         # AuditMixinNullable columns
         Column("created_on", DateTime, nullable=True),
         Column("changed_on", DateTime, nullable=True),
@@ -82,9 +83,8 @@ def upgrade():
     )
 
     # Create indexes for optimal query performance
+    create_index(TASKS_TABLE, "idx_tasks_dedup_key", ["dedup_key"], unique=True)
     create_index(TASKS_TABLE, "idx_tasks_status", ["status"])
-    create_index(TASKS_TABLE, "idx_tasks_task_key", ["task_key"])
-    create_index(TASKS_TABLE, "idx_tasks_scope", ["scope"])
     create_index(TASKS_TABLE, "idx_tasks_created_by", ["created_by_fk"])
     create_index(TASKS_TABLE, "idx_tasks_created_on", ["created_on"])
     create_index(TASKS_TABLE, "idx_tasks_task_type", ["task_type"])
@@ -209,9 +209,8 @@ def downgrade():
     )
 
     # Drop indexes
+    drop_index(TASKS_TABLE, "idx_tasks_dedup_key")
     drop_index(TASKS_TABLE, "idx_tasks_status")
-    drop_index(TASKS_TABLE, "idx_tasks_task_key")
-    drop_index(TASKS_TABLE, "idx_tasks_scope")
     drop_index(TASKS_TABLE, "idx_tasks_created_by")
     drop_index(TASKS_TABLE, "idx_tasks_created_on")
     drop_index(TASKS_TABLE, "idx_tasks_task_type")

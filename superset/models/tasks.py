@@ -17,7 +17,7 @@
 """Task model for Global Task Framework (GTF)"""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from flask_appbuilder import Model
@@ -28,6 +28,7 @@ from superset_core.api.tasks import TaskStatus
 
 from superset.models.helpers import AuditMixinNullable
 from superset.models.task_subscribers import TaskSubscriber  # noqa: F401
+from superset.tasks.utils import get_finished_dedup_key
 from superset.utils import json
 
 
@@ -55,6 +56,9 @@ class Task(CoreTask, AuditMixinNullable, Model):
     status = Column(
         String(50), nullable=False, index=True, default=TaskStatus.PENDING.value
     )
+    dedup_key = Column(
+        String(512), nullable=False, unique=True, index=True
+    )  # Computed deduplication key
     started_at = Column(DateTime, nullable=True)
     ended_at = Column(DateTime, nullable=True)
     user_id = Column(Integer, nullable=True)  # User context for execution
@@ -103,7 +107,11 @@ class Task(CoreTask, AuditMixinNullable, Model):
 
     def set_status(self, status: TaskStatus | str) -> None:
         """
-        Update task status.
+        Update task status and dedup_key.
+
+        When a task finishes (success, failure, or abort), the dedup_key is
+        changed to the task's UUID. This frees up the slot so new tasks with
+        the same parameters can be created.
 
         :param status: New task status
         """
@@ -112,7 +120,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
         self.status = status
 
         # Update timestamps based on status
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if status == TaskStatus.IN_PROGRESS.value and not self.started_at:
             self.started_at = now
         elif status in [
@@ -122,6 +130,8 @@ class Task(CoreTask, AuditMixinNullable, Model):
         ]:
             if not self.ended_at:
                 self.ended_at = now
+            # Update dedup_key to UUID to free up the slot for new tasks
+            self.dedup_key = get_finished_dedup_key(self.uuid)
 
     @property
     def is_pending(self) -> bool:

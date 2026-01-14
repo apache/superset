@@ -42,45 +42,64 @@ class TestTaskApi(SupersetTestCase):
         """
         Context manager to create test tasks with guaranteed cleanup.
 
+        Uses TaskDAO to create tasks, testing the actual production code path.
+
         Usage:
             with self._create_tasks() as tasks:
                 # Use tasks in test
                 # Cleanup happens automatically even if test fails
         """
+        from superset_core.api.tasks import TaskScope
+
+        from superset.daos.tasks import TaskDAO
+
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
 
         tasks = []
 
         try:
-            # Create tasks with different statuses
+            # Create tasks with different statuses using TaskDAO
             for i in range(5):
-                task = Task(
+                task_key = f"test_task_{i}"
+
+                # Create task using DAO (this tests the dedup_key creation logic)
+                task = TaskDAO.create_task(
                     task_type="test_type",
-                    task_key=f"test_task_{i}",
+                    task_key=task_key,
                     task_name=f"Test Task {i}",
-                    status=TaskStatus.PENDING.value
-                    if i % 2 == 0
-                    else TaskStatus.SUCCESS.value,
+                    scope=TaskScope.PRIVATE,
+                    user_id=admin.id,
                     payload='{"test": "data"}',
                 )
+
+                # Set created_by for test purposes (DAO uses Flask-AppBuilder context)
                 task.created_by = admin
-                db.session.add(task)
+
+                # Alternate between pending and finished tasks
+                if i % 2 != 0:
+                    # Set to SUCCESS for odd-numbered tasks
+                    task.set_status(TaskStatus.SUCCESS)
+
+                db.session.commit()
                 tasks.append(task)
 
             # Create in progress task for gamma user
-            gamma_task = Task(
+            gamma_task = TaskDAO.create_task(
                 task_type="test_type",
                 task_key="gamma_task",
                 task_name="Gamma Task",
-                status=TaskStatus.IN_PROGRESS.value,
+                scope=TaskScope.PRIVATE,
+                user_id=gamma.id,
                 payload='{"user": "gamma"}',
             )
+            # Set created_by for test purposes
             gamma_task.created_by = gamma
-            db.session.add(gamma_task)
+            # Set to IN_PROGRESS
+            gamma_task.set_status(TaskStatus.IN_PROGRESS)
+            db.session.commit()
             tasks.append(gamma_task)
 
-            db.session.commit()
             yield tasks
         finally:
             # Cleanup happens here regardless of test success/failure
@@ -131,14 +150,24 @@ class TestTaskApi(SupersetTestCase):
 
     def test_get_async_task_by_uuid(self):
         """
-        Task API: Test get async task by UUID
+        Task API: Test get async task by UUID and verify dedup_key
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
             admin = self.get_user("admin")
 
-            task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
+            # Get a pending task to verify active dedup_key format
+            task = (
+                db.session.query(Task)
+                .filter_by(created_by_fk=admin.id, status=TaskStatus.PENDING.value)
+                .first()
+            )
             assert task is not None
+
+            # Verify active task has composite dedup_key with user_id
+            assert task.dedup_key.startswith("private|test_type|")
+            assert f"|{admin.id}" in task.dedup_key
+            assert task.dedup_key != task.uuid
 
             uri = f"{self.TASK_API_BASE}/{task.uuid}"
             rv = self.client.get(uri)
@@ -265,6 +294,11 @@ class TestTaskApi(SupersetTestCase):
             )
             assert task is not None
 
+            # Verify active task has composite dedup_key
+            original_dedup_key = task.dedup_key
+            assert original_dedup_key.startswith("private|test_type|")
+            assert f"|{admin.id}" in original_dedup_key
+
             uri = f"{self.TASK_API_BASE}/{task.id}/abort"
             rv = self.client.post(uri, json={})
             assert rv.status_code == 200
@@ -273,9 +307,11 @@ class TestTaskApi(SupersetTestCase):
             assert data["message"] == "Task aborted successfully"
             assert data["task"]["status"] == TaskStatus.ABORTED.value
 
-            # Verify task was aborted in database
+            # Verify task was aborted and dedup_key changed to UUID
             db.session.refresh(task)
             assert task.status == TaskStatus.ABORTED.value
+            assert task.dedup_key == task.uuid
+            assert task.dedup_key != original_dedup_key
 
     def test_abort_async_task_by_uuid(self):
         """
@@ -540,6 +576,9 @@ class TestTaskApi(SupersetTestCase):
                 .first()
             )
             assert task is not None
+
+            # Verify finished task has UUID as dedup_key
+            assert task.dedup_key == task.uuid
 
             uri = f"{self.TASK_API_BASE}/{task.id}"
             rv = self.client.get(uri)

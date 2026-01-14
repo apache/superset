@@ -18,7 +18,6 @@
 
 import inspect
 import logging
-from datetime import datetime, timezone
 from typing import Callable, Generic, ParamSpec, TYPE_CHECKING, TypeVar
 
 from superset_core.api.tasks import TaskOptions, TaskScope, TaskStatus
@@ -231,8 +230,7 @@ class TaskWrapper(Generic[P]):
 
         # Update status to IN_PROGRESS
         task = ctx._task
-        task.status = TaskStatus.IN_PROGRESS.value
-        task.started_at = datetime.now(timezone.utc)
+        task.set_status(TaskStatus.IN_PROGRESS)
         from superset.extensions import db
 
         db.session.merge(task)
@@ -245,8 +243,7 @@ class TaskWrapper(Generic[P]):
 
             # Update to SUCCESS and return completed task
             task = ctx._task
-            task.status = TaskStatus.SUCCESS.value
-            task.ended_at = datetime.now(timezone.utc)
+            task.set_status(TaskStatus.SUCCESS)
             from superset.extensions import db
 
             db.session.merge(task)
@@ -264,9 +261,8 @@ class TaskWrapper(Generic[P]):
         except Exception as ex:
             # Update to FAILURE and return failed task
             task = ctx._task
-            task.status = TaskStatus.FAILURE.value
+            task.set_status(TaskStatus.FAILURE)
             task.error_message = str(ex)
-            task.ended_at = datetime.now(timezone.utc)
             from superset.extensions import db
 
             db.session.merge(task)
