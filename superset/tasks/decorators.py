@@ -39,39 +39,46 @@ R = TypeVar("R")
 
 
 def task(
+    func: Callable[P, R] | None = None,
+    *,
     name: str | None = None,
-    options: TaskOptions | None = None,
-) -> Callable[[Callable[P, R]], "TaskWrapper[P]"]:
+    scope: TaskScope = TaskScope.PRIVATE,
+) -> Callable[[Callable[P, R]], "TaskWrapper[P]"] | "TaskWrapper[P]":
     """
-    Decorator to register a task with default options.
+    Decorator to register a task with default scope.
+
+    Can be used with or without parentheses:
+        @task
+        def my_func(): ...
+
+        @task()
+        def my_func(): ...
+
+        @task(name="custom_name", scope=TaskScope.SHARED)
+        def my_func(): ...
 
     Args:
+        func: The function to decorate (when used without parentheses).
         name: Optional unique task name (e.g., "superset.generate_thumbnail").
               If not provided, uses the function name as the task name.
-        options: Default TaskOptions for this task (scope, etc.).
-                 Callers can override these when scheduling the task.
+        scope: Task scope (TaskScope.PRIVATE, SHARED, or SYSTEM).
+               Defaults to TaskScope.PRIVATE.
 
     Usage:
-        # Private task (default scope)
-        @task(name="generate_thumbnail")
+        # Private task (default scope) - no parentheses
+        @task
         def my_async_func(chart_id: int) -> None:
             ctx = get_context()
             ...
 
-        # Shared task (multiple users can subscribe)
-        @task(
-            name="generate_report",
-            options=TaskOptions(scope=TaskScope.SHARED)
-        )
+        # Named task with shared scope
+        @task(name="generate_report", scope=TaskScope.SHARED)
         def generate_expensive_report(report_id: int) -> None:
             ctx = get_context()
             ...
 
         # System task (admin-only)
-        @task(
-            name="cleanup_old_data",
-            options=TaskOptions(scope=TaskScope.SYSTEM)
-        )
+        @task(scope=TaskScope.SYSTEM)
         def cleanup_task() -> None:
             ctx = get_context()
             ...
@@ -82,35 +89,40 @@ def task(
         is discarded; only side effects and context updates matter.
     """
 
-    def decorator(func: Callable[P, R]) -> "TaskWrapper[P]":
+    def decorator(f: Callable[P, R]) -> "TaskWrapper[P]":
         # Use function name if no name provided
-        task_name = name if name is not None else func.__name__
+        task_name = name if name is not None else f.__name__
 
-        # Use default options if not provided
-        default_options = options if options is not None else TaskOptions()
+        # Create default options with no scope (scope is now in decorator)
+        default_options = TaskOptions()
 
         # Validate function signature - must not have ctx or options params
-        sig = inspect.signature(func)
+        sig = inspect.signature(f)
         forbidden = {"ctx", "options"}
         if any(param in forbidden for param in sig.parameters):
             raise TypeError(
-                f"Task function {func.__name__} must not define 'ctx' or "
+                f"Task function {f.__name__} must not define 'ctx' or "
                 "'options' parameters. "
                 f"Use get_context() instead for ambient context access."
             )
 
         # Register task
-        TaskRegistry.register(task_name, func)
+        TaskRegistry.register(task_name, f)
 
-        # Create wrapper with schedule() method and default options
-        wrapper = TaskWrapper(task_name, func, default_options)
+        # Create wrapper with schedule() method, default options, and scope
+        wrapper = TaskWrapper(task_name, f, default_options, scope)
 
         # Preserve signature for introspection
         wrapper.__signature__ = sig  # type: ignore[attr-defined]
 
         return wrapper
 
-    return decorator
+    if func is None:
+        # Called with parentheses: @task() or @task(name="foo", scope=TaskScope.SHARED)
+        return decorator
+    else:
+        # Called without parentheses: @task
+        return decorator(func)
 
 
 class TaskWrapper(Generic[P]):
@@ -124,11 +136,16 @@ class TaskWrapper(Generic[P]):
     """
 
     def __init__(
-        self, name: str, func: Callable[P, R], default_options: TaskOptions
+        self,
+        name: str,
+        func: Callable[P, R],
+        default_options: TaskOptions,
+        scope: TaskScope = TaskScope.PRIVATE,
     ) -> None:
         self.name = name
         self.func = func
         self.default_options = default_options
+        self.scope = scope
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__module__ = func.__module__
@@ -169,9 +186,6 @@ class TaskWrapper(Generic[P]):
         return TaskOptions(
             task_key=override_options.task_key or self.default_options.task_key,
             task_name=override_options.task_name or self.default_options.task_name,
-            scope=override_options.scope
-            if override_options.scope != TaskScope.PRIVATE
-            else self.default_options.scope,
         )
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> "Task":
@@ -194,12 +208,12 @@ class TaskWrapper(Generic[P]):
         override_options: TaskOptions | None = kwargs.pop("options", None)  # type: ignore[assignment]
         options = self._merge_options(override_options)
 
-        # Extract task_name, task_key, and scope from merged options
+        # Extract task_name and task_key from merged options, scope from decorator
         task_name = (
             options.task_name or f"{self.name}:{generate_random_task_key()[:50]}"
         )
         task_key = options.task_key or generate_random_task_key()
-        scope = TaskScope(options.scope)  # Convert string to TaskScope enum
+        scope = self.scope  # Use scope from decorator
 
         # Create task entry
         # Lazy import to avoid circular dependency
@@ -300,10 +314,10 @@ class TaskWrapper(Generic[P]):
         override_options: TaskOptions | None = kwargs.pop("options", None)  # type: ignore[assignment]
         options = self._merge_options(override_options)
 
-        # Extract task_name, task_key, and scope from merged options
+        # Extract task_name and task_key from merged options, scope from decorator
         task_name = options.task_name
         task_key = options.task_key
-        scope = TaskScope(options.scope)  # Convert string to TaskScope enum
+        scope = self.scope  # Use scope from decorator
 
         # Create task entry in metastore and schedule execution
         return TaskManager.submit_task(

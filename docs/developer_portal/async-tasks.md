@@ -49,7 +49,7 @@ GTF uses the **ambient context pattern** where tasks access their execution cont
 import requests
 from superset_core.api.types import task, get_context
 
-@task()
+@task
 def fetch_data(api_url: str) -> None:
     """
     Example task that fetches data from an external API.
@@ -106,7 +106,7 @@ print(task.status)  # "success"
 Tasks access execution context via `get_context()`:
 
 ```python
-@task()
+@task
 def my_task(business_arg: int) -> None:
     ctx = get_context()  # Ambient context access
 
@@ -149,7 +149,7 @@ The framework provides built-in abort support with minimal boilerplate.
 Register cleanup functions that run automatically when a task ends (success, failure, or abort):
 
 ```python
-@task()
+@task
 def my_task() -> None:
     ctx = get_context()
 
@@ -180,7 +180,7 @@ def cleanup_log():
 Check for abort at key points during execution:
 
 ```python
-@task()
+@task
 def process_items(items: list[int]) -> None:
     ctx = get_context()
 
@@ -203,7 +203,7 @@ def process_items(items: list[int]) -> None:
 **`ctx.run()` - Pre-check wrapper (optional):**
 
 ```python
-@task()
+@task
 def fetch_and_process(api_url: str) -> None:
     ctx = get_context()
 
@@ -226,7 +226,7 @@ def fetch_and_process(api_url: str) -> None:
 **`ctx.update_task()` - Progress tracking:**
 
 ```python
-@task()
+@task
 def process_batch(item_ids: list[int]) -> None:
     ctx = get_context()
 
@@ -249,7 +249,7 @@ def process_batch(item_ids: list[int]) -> None:
 ### Complete Example: API Fetch with Cleanup
 
 ```python
-@task()
+@task
 def fetch_and_cache(api_url: str, chart_id: int) -> None:
     """Fetch from external API and cache results."""
     ctx = get_context()
@@ -281,7 +281,7 @@ def fetch_and_cache(api_url: str, chart_id: int) -> None:
 Update progress and payload during execution:
 
 ```python
-@task()
+@task
 def multi_step_task(item_ids: list[int]) -> None:
     ctx = get_context()
 
@@ -350,15 +350,52 @@ Cleanup handlers run automatically
 ### Decorator
 
 ```python
-@task(name: str | None = None)
+@task(name: str | None = None, scope: TaskScope = TaskScope.PRIVATE)
 ```
 
 Registers a function as an async task.
 
+Can be used with or without parentheses:
+
+```python
+# No parentheses (uses default name and private scope)
+@task
+def my_function(): ...
+
+# With parentheses (explicit configuration)
+@task(name="custom_name", scope=TaskScope.SHARED)
+def my_function(): ...
+```
+
 **Parameters:**
 - `name`: Optional task name (defaults to function name)
+- `scope`: Task scope (TaskScope.PRIVATE, SHARED, or SYSTEM). Defaults to TaskScope.PRIVATE.
 
 **Returns:** Wrapped function with `.schedule()` method
+
+**Examples:**
+
+```python
+from superset_core.api.types import task, TaskScope, get_context
+
+# Private task (default) - no parentheses
+@task
+def generate_thumbnail(chart_id: int) -> None:
+    ctx = get_context()
+    # ... implementation
+
+# Named shared task (multi-user subscription)
+@task(name="generate_report", scope=TaskScope.SHARED)
+def generate_expensive_report(report_id: int) -> None:
+    ctx = get_context()
+    # ... implementation
+
+# System task (admin-only)
+@task(scope=TaskScope.SYSTEM)
+def cleanup_old_data() -> None:
+    ctx = get_context()
+    # ... implementation
+```
 
 ### Context Access
 
@@ -375,13 +412,37 @@ Gets the current task execution context.
 ### Task Options
 
 ```python
-TaskOptions(task_key: str | None = None)
+TaskOptions(task_key: str | None = None, task_name: str | None = None)
 ```
 
 Execution metadata for tasks.
 
+**Note:** The `scope` field has been removed from TaskOptions. Scope is now specified in the `@task` decorator itself.
+
 **Parameters:**
 - `task_key`: Optional key for deduplication
+- `task_name`: Optional human-readable task name
+
+**Examples:**
+
+```python
+from superset_core.api.types import TaskOptions
+
+# Custom deduplication key
+task = my_task.schedule(
+    chart_id=123,
+    options=TaskOptions(task_key="chart_thumb_123")
+)
+
+# Custom task name for better identification
+task = my_task.schedule(
+    report_id=456,
+    options=TaskOptions(
+        task_key="report_456",
+        task_name="Monthly Sales Report Generation"
+    )
+)
+```
 
 ### Task Context
 

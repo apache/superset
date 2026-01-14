@@ -71,24 +71,23 @@ class TaskOptions:
         # Private task (default)
         task = my_task.schedule(arg1)
 
-        # Shared task (multi-user subscription)
+        # Custom task with deduplication
         task = my_task.schedule(
             arg1,
             options=TaskOptions(
                 task_key="custom_key",
-                scope=TaskScope.SHARED
+                task_name="Custom Task Name"
             )
         )
 
-        # System task (admin-only)
+        # Task with custom name
         task = admin_task.schedule(
-            options=TaskOptions(scope=TaskScope.SYSTEM)
+            options=TaskOptions(task_name="Admin Operation")
         )
     """
 
     task_key: str | None = None
     task_name: str | None = None
-    scope: str = TaskScope.PRIVATE
 
 
 class TaskContext(ABC):
@@ -189,6 +188,7 @@ class TaskContext(ABC):
 
 def task(
     name: str | None = None,
+    scope: TaskScope = TaskScope.PRIVATE,
 ) -> Callable[[Callable[P, R]], "TaskWrapper[P]"]:
     """
     Decorator to register a task.
@@ -198,6 +198,8 @@ def task(
 
     :param name: Optional unique task name (e.g., "superset.generate_thumbnail").
                  If not provided, uses the function name as the task name.
+    :param scope: Task scope (TaskScope.PRIVATE, SHARED, or SYSTEM).
+                  Defaults to TaskScope.PRIVATE.
     :returns: TaskWrapper with .schedule() method
 
     Note:
@@ -206,11 +208,18 @@ def task(
         is discarded; only side effects and context updates matter.
 
     Example:
-        from superset_core.api.types import task, get_context
+        from superset_core.api.types import task, get_context, TaskScope
 
-        @task(name="generate_thumbnail")
+        # Private task (default scope)
+        @task
+        def generate_thumbnail(chart_id: int) -> None:
+            ctx = get_context()
+            # ... task implementation
+
+        # Named task with shared scope
+        @task(name="generate_report", scope=TaskScope.SHARED)
         def generate_chart_thumbnail(chart_id: int) -> None:
-            ctx = get_context()  # Access ambient context
+            ctx = get_context()
 
             # Update progress and payload atomically
             ctx.update_task(
@@ -220,6 +229,12 @@ def task(
             # ... task implementation
 
             ctx.update_task(progress=1.0)
+
+        # System task (admin-only)
+        @task(scope=TaskScope.SYSTEM)
+        def cleanup_old_data() -> None:
+            ctx = get_context()
+            # ... cleanup implementation
 
         # Schedule async execution
         task = generate_chart_thumbnail.schedule(chart_id=123)  # Returns Task
