@@ -486,7 +486,7 @@ const Chart = props => {
   );
 
   const exportTable = useCallback(
-    (format, isFullCSV, isPivot = false) => {
+    async (format, isFullCSV, isPivot = false) => {
       const logAction =
         format === 'csv'
           ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
@@ -543,23 +543,42 @@ const Chart = props => {
           }
         : baseOwnState;
 
-      exportChart({
-        formData: exportFormData,
-        resultType,
-        resultFormat: format,
-        force: true,
-        ownState,
-        onStartStreamingExport: shouldUseStreaming
-          ? exportParams => {
-              setIsStreamingModalVisible(true);
-              startExport({
-                ...exportParams,
-                filename,
-                expectedRows: actualRowCount,
-              });
-            }
-          : null,
-      });
+      try {
+        await exportChart({
+          formData: exportFormData,
+          resultType,
+          resultFormat: format,
+          force: true,
+          ownState,
+          onStartStreamingExport: shouldUseStreaming
+            ? exportParams => {
+                setIsStreamingModalVisible(true);
+                startExport({
+                  ...exportParams,
+                  filename,
+                  expectedRows: actualRowCount,
+                });
+              }
+            : null,
+        });
+      } catch (error) {
+        const status = error?.status || error?.response?.status;
+        if (status === 413) {
+          boundActionCreators.addDangerToast(
+            t(
+              'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
+            ),
+          );
+        } else {
+          const errorMessage =
+            error?.message ||
+            error?.statusText ||
+            t(
+              'Failed to export chart data. Please try again or contact your administrator.',
+            );
+          boundActionCreators.addDangerToast(errorMessage);
+        }
+      }
     },
     [
       slice.slice_id,

@@ -19,8 +19,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import { isFeatureEnabled, FeatureFlag, VizType } from '@superset-ui/core';
-import { css, styled, useTheme, t } from '@apache-superset/core/ui';
+import { isFeatureEnabled, FeatureFlag, t, VizType } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import {
   Icons,
   ModalTrigger,
@@ -204,13 +204,8 @@ export const useExploreAdditionalActionsMenu = (
   const shareByEmail = useCallback(async () => {
     try {
       const subject = t('Superset Chart');
-      const result = await getChartPermalink(latestQueryFormData);
-      if (!result?.url) {
-        throw new Error('Failed to generate permalink');
-      }
-      const body = encodeURIComponent(
-        t('%s%s', 'Check out this chart: ', result.url),
-      );
+      const url = await getChartPermalink(latestQueryFormData);
+      const body = encodeURIComponent(t('%s%s', 'Check out this chart: ', url));
       window.location.href = `mailto:?Subject=${subject}%20&Body=${body}`;
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
@@ -279,57 +274,108 @@ export const useExploreAdditionalActionsMenu = (
     startExport,
   ]);
 
-  const exportCSVPivoted = useCallback(
-    () =>
-      canDownloadCSV
-        ? exportChart({
-            formData: latestQueryFormData,
-            ownState,
-            resultType: 'post_processed',
-            resultFormat: 'csv',
-          })
-        : null,
-    [canDownloadCSV, latestQueryFormData, ownState],
-  );
+  const exportCSVPivoted = useCallback(async () => {
+    if (!canDownloadCSV) {
+      return null;
+    }
+    try {
+      await exportChart({
+        formData: latestQueryFormData,
+        ownState,
+        resultType: 'post_processed',
+        resultFormat: 'csv',
+      });
+    } catch (error) {
+      const status = error?.status || error?.response?.status;
+      if (status === 413) {
+        addDangerToast(
+          t(
+            'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
+          ),
+        );
+      } else {
+        const errorMessage =
+          error?.message ||
+          error?.statusText ||
+          t(
+            'Failed to export chart data. Please try again or contact your administrator.',
+          );
+        addDangerToast(errorMessage);
+      }
+    }
+    return null;
+  }, [canDownloadCSV, latestQueryFormData, ownState, addDangerToast]);
 
-  const exportJson = useCallback(
-    () =>
-      canDownloadCSV
-        ? exportChart({
-            formData: latestQueryFormData,
-            ownState,
-            resultType: 'results',
-            resultFormat: 'json',
-          })
-        : null,
-    [canDownloadCSV, latestQueryFormData, ownState],
-  );
+  const exportJson = useCallback(async () => {
+    if (!canDownloadCSV) {
+      return null;
+    }
+    try {
+      await exportChart({
+        formData: latestQueryFormData,
+        ownState,
+        resultType: 'results',
+        resultFormat: 'json',
+      });
+    } catch (error) {
+      const status = error?.status || error?.response?.status;
+      if (status === 413) {
+        addDangerToast(
+          t(
+            'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
+          ),
+        );
+      } else {
+        const errorMessage =
+          error?.message ||
+          error?.statusText ||
+          t(
+            'Failed to export chart data. Please try again or contact your administrator.',
+          );
+        addDangerToast(errorMessage);
+      }
+    }
+    return null;
+  }, [canDownloadCSV, latestQueryFormData, ownState, addDangerToast]);
 
-  const exportExcel = useCallback(
-    () =>
-      canDownloadCSV
-        ? exportChart({
-            formData: latestQueryFormData,
-            ownState,
-            resultType: 'results',
-            resultFormat: 'xlsx',
-          })
-        : null,
-    [canDownloadCSV, latestQueryFormData, ownState],
-  );
+  const exportExcel = useCallback(async () => {
+    if (!canDownloadCSV) {
+      return null;
+    }
+    try {
+      await exportChart({
+        formData: latestQueryFormData,
+        ownState,
+        resultType: 'results',
+        resultFormat: 'xlsx',
+      });
+    } catch (error) {
+      const status = error?.status || error?.response?.status;
+      if (status === 413) {
+        addDangerToast(
+          t(
+            'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
+          ),
+        );
+      } else {
+        const errorMessage =
+          error?.message ||
+          error?.statusText ||
+          t(
+            'Failed to export chart data. Please try again or contact your administrator.',
+          );
+        addDangerToast(errorMessage);
+      }
+    }
+    return null;
+  }, [canDownloadCSV, latestQueryFormData, ownState, addDangerToast]);
 
   const copyLink = useCallback(async () => {
     try {
       if (!latestQueryFormData) {
         throw new Error();
       }
-      await copyTextToClipboard(async () => {
-        const result = await getChartPermalink(latestQueryFormData);
-        if (!result?.url) {
-          throw new Error('Failed to generate permalink');
-        }
-        return result.url;
-      });
+      await copyTextToClipboard(() => getChartPermalink(latestQueryFormData));
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));

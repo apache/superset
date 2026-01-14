@@ -152,6 +152,7 @@ export interface SupersetClientInterface extends Pick<
   | 'get'
   | 'post'
   | 'postForm'
+  | 'postBlob'
   | 'put'
   | 'request'
   | 'init'
