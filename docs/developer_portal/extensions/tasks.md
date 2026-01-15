@@ -1,7 +1,7 @@
 ---
 title: Task Framework
 sidebar_label: Tasks
-sidebar_position: 5
+sidebar_position: 9
 ---
 
 
@@ -140,6 +140,8 @@ task2 = my_task.schedule(arg=1, options=TaskOptions(task_key="key"))
 # task2 is the same as task1 if task1 is PENDING or IN_PROGRESS
 ```
 
+**Note:** Shared tasks (`scope=TaskScope.SHARED`) require an explicit `task_key` to enable proper deduplication across users.
+
 ## Abort Support
 
 The framework provides built-in abort support with minimal boilerplate.
@@ -170,6 +172,54 @@ def cleanup_cache():
 def cleanup_log():
     logger.info("Done")
 ```
+
+### Abort Handlers
+
+Register handlers that execute automatically when a task is aborted:
+
+```python
+@task
+def process_large_batch(items: list[str]) -> None:
+    """Process items with abort handling."""
+    ctx = get_context()
+
+    # Flag to signal early termination
+    aborted = False
+
+    # Handler fires automatically when abort is detected
+    @ctx.on_abort
+    def handle_abort():
+        nonlocal aborted
+        aborted = True
+        logger.warning("Task aborted, will stop at next iteration")
+
+    # Process items one by one
+    results = []
+    for i, item in enumerate(items):
+        # Check abort flag at start of each iteration
+        if aborted:
+            raise RuntimeError("Task was aborted")
+
+        # Process the item
+        result = process_item(item)
+        results.append(result)
+
+        # Update progress and payload
+        ctx.update_task(
+            progress=(i + 1) / len(items),
+            payload={"processed": i + 1, "results": results}
+        )
+
+        # Simulate work
+        time.sleep(1)
+```
+
+**Abort Handlers vs Cleanup Handlers:**
+
+| Feature | `on_cleanup` | `on_abort` |
+|---------|-------------|-----------|
+| **When runs** | Success, failure, OR abort | Only on abort |
+| **Use case** | Always-run cleanup | Abort-specific cleanup |
 
 ### Automatic Pre-Execution Check
 
@@ -420,7 +470,7 @@ Execution metadata for tasks.
 **Note:** The `scope` field has been removed from TaskOptions. Scope is now specified in the `@task` decorator itself.
 
 **Parameters:**
-- `task_key`: Optional key for deduplication
+- `task_key`: Key for deduplication (optional for private tasks, required for shared tasks)
 - `task_name`: Optional human-readable task name
 
 **Examples:**
@@ -465,6 +515,9 @@ class TaskContext:
 
     def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
         """Register cleanup handler (runs on task end)"""
+
+    def on_abort(self, handler: Callable[[], None]) -> Callable[[], None]:
+        """Register abort handler (runs when abort detected)"""
 
     def run(self, operation: Callable[[], T]) -> T | None:
         """Execute operation if not aborted (optional helper)"""

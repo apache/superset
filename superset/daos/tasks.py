@@ -52,7 +52,7 @@ class TaskDAO(BaseDAO[Task]):
         cls,
         task_type: str,
         task_key: str,
-        scope: TaskScope = TaskScope.PRIVATE,
+        scope: TaskScope | str = TaskScope.PRIVATE,
         user_id: int | None = None,
     ) -> Task | None:
         """
@@ -71,12 +71,10 @@ class TaskDAO(BaseDAO[Task]):
         :param user_id: User ID (required for private tasks)
         :returns: Task instance or None if not found or not active
         """
-        # Build dedup_key internally (implementation detail)
         dedup_key = get_active_dedup_key(
             scope=scope,
             task_type=task_type,
             task_key=task_key,
-            user_id=user_id if scope == TaskScope.PRIVATE else None,
         )
 
         # Simple single-column query with unique index
@@ -88,7 +86,7 @@ class TaskDAO(BaseDAO[Task]):
         cls,
         task_type: str,
         task_key: str | None = None,
-        scope: TaskScope = TaskScope.PRIVATE,
+        scope: TaskScope | str = TaskScope.PRIVATE,
         user_id: int | None = None,
         **kwargs: Any,
     ) -> Task:
@@ -119,7 +117,6 @@ class TaskDAO(BaseDAO[Task]):
             scope=scope,
             task_type=task_type,
             task_key=task_key,
-            user_id=user_id if scope == TaskScope.PRIVATE else None,
         )
 
         # Check for existing active task using dedup_key
@@ -145,10 +142,13 @@ class TaskDAO(BaseDAO[Task]):
             )
 
         # Create new task with dedup_key
+        # Handle both TaskScope enum and string values
+        scope_value = scope.value if isinstance(scope, TaskScope) else scope
+
         task_data = {
             "task_type": task_type,
             "task_key": task_key,
-            "scope": scope.value,
+            "scope": scope_value,
             "status": TaskStatus.PENDING.value,
             "dedup_key": dedup_key,
             **kwargs,
@@ -171,7 +171,7 @@ class TaskDAO(BaseDAO[Task]):
             "Created new async task: %s (type: %s, scope: %s)",
             task_key,
             task_type,
-            scope.value,
+            scope_value,
         )
         return task
 

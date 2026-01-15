@@ -159,10 +159,9 @@ def generate_random_task_key() -> str:
 
 
 def get_active_dedup_key(
-    scope: TaskScope,
+    scope: TaskScope | str,
     task_type: str,
     task_key: str,
-    user_id: int | None = None,
 ) -> str:
     """
     Build a deduplication key for active tasks.
@@ -176,27 +175,31 @@ def get_active_dedup_key(
     - Shared: shared|task_type|task_key
     - System: system|task_type|task_key
 
-    :param scope: Task scope (PRIVATE/SHARED/SYSTEM)
+    :param scope: Task scope (PRIVATE/SHARED/SYSTEM) as TaskScope enum or string
     :param task_type: Type of task (e.g., 'sql_execution')
     :param task_key: Task identifier for deduplication
-    :param user_id: User ID (required for private tasks)
     :returns: Deduplication key string
     :raises ValueError: If user_id is missing for private scope
 
     Example:
         >>> from superset_core.api.tasks import TaskScope
-        >>> get_active_dedup_key(TaskScope.PRIVATE, "sql_exec", "chart_123", 42)
-        'private|sql_exec|chart_123|42'
-        >>> get_active_dedup_key(TaskScope.SHARED, "report", "monthly", None)
+        >>> get_active_dedup_key(TaskScope.PRIVATE, "sql_exec", "chart_123")
+        'private|sql_exec|chart_123|gamma'
+        >>> get_active_dedup_key("private", "sql_exec", "chart_123")
+        'private|sql_exec|chart_123|gamma'
+        >>> get_active_dedup_key(TaskScope.SHARED, "report", "monthly")
         'shared|report|monthly'
     """
-    from superset_core.api.tasks import TaskScope
+    # Convert string to TaskScope if needed
+    if isinstance(scope, str):
+        scope = TaskScope(scope)
 
     match scope:
         case TaskScope.PRIVATE:
-            if user_id is None:
-                raise ValueError("user_id required for private tasks")
-            return f"{scope.value}|{task_type}|{task_key}|{user_id}"
+            username = get_current_user()
+            if username is None:
+                raise ValueError("username required for private tasks")
+            return f"{scope.value}|{task_type}|{task_key}|{username}"
         case TaskScope.SHARED:
             return f"{scope.value}|{task_type}|{task_key}"
         case TaskScope.SYSTEM:

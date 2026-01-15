@@ -167,21 +167,24 @@ class TaskContext(ABC):
         ...
 
     @abstractmethod
-    def run(self, operation: Callable[..., Any]) -> Any:
+    def on_abort(self, handler: Callable[[], None]) -> Callable[[], None]:
         """
-        Execute an operation if the task is not cancelled.
+        Register handler that runs when task is aborted.
 
-        Checks cancellation status before executing the operation. If the
-        task is cancelled, returns None without executing. Cannot interrupt
-        an operation once it has started.
+        When the first handler is registered, background polling starts
+        automatically. The handler will be called when an abort is detected.
 
-        :param operation: Callable to execute
-        :returns: Operation result if not cancelled, None if cancelled
+        The handler executes in a background thread and the task code
+        continues running unless the handler takes action to stop it.
+
+        :param handler: Callback function to execute when abort is detected
+        :returns: The handler (for decorator compatibility)
 
         Example:
-            response = ctx.run(lambda: requests.get(url, timeout=60))
-            if response is None:
-                return  # Task was cancelled
+            @ctx.on_abort
+            def handle_abort():
+                logger.info("Task was aborted!")
+                cleanup_partial_work()
         """
         ...
 
