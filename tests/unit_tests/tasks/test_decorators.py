@@ -186,7 +186,8 @@ class TestTaskWrapperSchedule:
         def schedule_task_1(arg1: int) -> None:
             pass
 
-        schedule_task_1.schedule(123)
+        # Shared tasks require explicit task_key
+        schedule_task_1.schedule(123, options=TaskOptions(task_key="test_key"))
 
         # Verify TaskManager.submit_task was called with correct scope
         mock_submit.assert_called_once()
@@ -303,7 +304,8 @@ class TestTaskWrapperCall:
         def call_task_1(arg1: int) -> None:
             pass
 
-        call_task_1(123)
+        # Shared tasks require explicit task_key
+        call_task_1(123, options=TaskOptions(task_key="test_key"))
 
         # Verify create_task was called with correct scope
         mock_create_task.assert_called_once()
