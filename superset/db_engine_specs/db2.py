@@ -20,7 +20,7 @@ from typing import Optional, Union
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.core import Database
 from superset.sql.parse import LimitMethod, Table
 
@@ -31,6 +31,29 @@ class Db2EngineSpec(BaseEngineSpec):
     engine = "db2"
     engine_aliases = {"ibm_db_sa"}
     engine_name = "IBM Db2"
+
+    metadata = {
+        "description": "IBM Db2 is a family of data management products.",
+        "logo": "ibm-db2.svg",
+        "homepage_url": "https://www.ibm.com/db2",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["ibm_db_sa"],
+        "drivers": [
+            {
+                "name": "ibm_db_sa (with LIMIT)",
+                "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+                "is_recommended": True,
+            },
+            {
+                "name": "ibm_db_sa (without LIMIT syntax)",
+                "connection_string": "ibm_db_sa://{username}:{password}@{hostname}:{port}/{database}",
+                "is_recommended": False,
+                "notes": "Use for older DB2 versions without LIMIT [n] syntax. Recommended for SQL Lab.",
+            },
+        ],
+        "docs_url": "https://github.com/ibmdb/python-ibmdbsa",
+    }
+
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30

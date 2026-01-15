@@ -20,12 +20,23 @@ from typing import Any, Optional
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class OracleEngineSpec(BaseEngineSpec):
     engine = "oracle"
     engine_name = "Oracle"
+
+    metadata = {
+        "description": "Oracle Database is a multi-model database management system.",
+        "logo": "oraclelogo.png",
+        "homepage_url": "https://www.oracle.com/database/",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["oracledb"],
+        "connection_string": "oracle://{username}:{password}@{hostname}:{port}",
+        "notes": "Previously used cx_Oracle, now uses oracledb.",
+        "docs_url": "https://cx-oracle.readthedocs.io/en/latest/user_guide/installation.html",
+    }
     force_column_alias_quotes = True
     max_column_name_length = 128
     supports_multivalues_insert = True

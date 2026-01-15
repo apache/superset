@@ -31,7 +31,11 @@ from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils import json
@@ -223,6 +227,69 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     engine = "databricks"
     drivers = {"pyhive": "Hive driver for Interactive Cluster"}
     default_driver = "pyhive"
+
+    metadata = {
+        "description": "Databricks is a unified analytics platform built on Apache Spark.",
+        "logo": "databricks.png",
+        "homepage_url": "https://www.databricks.com/",
+        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "pypi_packages": ["databricks-sql-connector", "sqlalchemy-databricks"],
+        "install_instructions": 'pip install "apache-superset[databricks]"',
+        "connection_string": (
+            "databricks+connector://token:{access_token}@{server_hostname}:{port}"
+            "/{database_name}"
+        ),
+        "parameters": {
+            "server_hostname": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
+            "port": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
+            "http_path": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
+            "access_token": "From Settings -> User Settings -> Access Tokens",
+        },
+        "engine_parameters": [
+            {
+                "name": "HTTP Path (Required)",
+                "description": "Must be specified in Engine Parameters",
+                "json": {"connect_args": {"http_path": "sql/protocolv1/o/****"}},
+            },
+        ],
+        "drivers": [
+            {
+                "name": "Native Connector (Recommended)",
+                "pypi_package": "databricks-sql-connector",
+                "connection_string": (
+                    "databricks+connector://token:{access_token}@{server_hostname}:{port}"
+                    "/{database_name}"
+                ),
+                "is_recommended": True,
+            },
+            {
+                "name": "databricks-dbapi (Legacy)",
+                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "is_recommended": False,
+                "notes": "Older connector. Try if having problems with official connector.",
+            },
+            {
+                "name": "Hive Connector",
+                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "connection_string": (
+                    "databricks+pyhive://token:{access_token}@{server_hostname}:{port}"
+                    "/{database_name}"
+                ),
+                "is_recommended": False,
+            },
+            {
+                "name": "ODBC",
+                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "connection_string": (
+                    "databricks+pyodbc://token:{access_token}@{server_hostname}:{port}"
+                    "/{database_name}"
+                ),
+                "is_recommended": False,
+                "notes": "Requires ODBC drivers. Use for SQL endpoints.",
+                "docs_url": "https://databricks.com/spark/odbc-drivers-download",
+            },
+        ],
+    }
 
     _show_functions_column = "function"
 

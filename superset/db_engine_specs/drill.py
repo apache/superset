@@ -25,7 +25,7 @@ from sqlalchemy import types
 from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
 from superset.utils.hashing import hash_from_str
 
@@ -41,6 +41,51 @@ class DrillEngineSpec(BaseEngineSpec):
     default_driver = "sadrill"
 
     supports_dynamic_schema = True
+
+    metadata = {
+        "description": (
+            "Apache Drill is a schema-free SQL query engine for Hadoop and NoSQL."
+        ),
+        "logo": "apache-drill.png",
+        "homepage_url": "https://drill.apache.org/",
+        "category": DatabaseCategory.APACHE_PROJECTS,
+        "drivers": [
+            {
+                "name": "SQLAlchemy (REST)",
+                "pypi_package": "sqlalchemy-drill",
+                "connection_string": (
+                    "drill+sadrill://{username}:{password}@{host}:{port}/"
+                    "{storage_plugin}?use_ssl=True"
+                ),
+                "is_recommended": True,
+            },
+            {
+                "name": "JDBC",
+                "pypi_package": "sqlalchemy-drill",
+                "connection_string": (
+                    "drill+jdbc://{username}:{password}@{host}:{port}"
+                ),
+                "is_recommended": False,
+                "notes": "Requires Drill JDBC Driver installation.",
+                "docs_url": "https://drill.apache.org/docs/using-the-jdbc-driver/",
+            },
+            {
+                "name": "ODBC",
+                "pypi_package": "sqlalchemy-drill",
+                "is_recommended": False,
+                "notes": "See Apache Drill documentation for ODBC setup.",
+                "docs_url": (
+                    "https://drill.apache.org/docs/installing-the-driver-on-linux/"
+                ),
+            },
+        ],
+        "connection_examples": [
+            {
+                "description": "Local embedded mode",
+                "connection_string": "drill+sadrill://localhost:8047/dfs?use_ssl=False",
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",

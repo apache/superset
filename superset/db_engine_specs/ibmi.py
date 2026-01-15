@@ -14,12 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset.db_engine_specs.base import DatabaseCategory
+
 from .db2 import Db2EngineSpec
 
 
 class IBMiEngineSpec(Db2EngineSpec):
     engine = "ibmi"
     engine_name = "IBM Db2 for i"
+
+    metadata = {
+        "description": "IBM Db2 for i (AS/400) is a database integrated with IBM i OS.",
+        "homepage_url": "https://www.ibm.com/products/db2-for-i",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["sqlalchemy-ibmi"],
+        "connection_string": "ibmi://{username}:{password}@{host}/{database}",
+        "parameters": {
+            "username": "IBM i username",
+            "password": "IBM i password",
+            "host": "IBM i system host",
+            "database": "Library/schema name",
+        },
+        "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
+    }
     max_column_name_length = 128
 
     @classmethod

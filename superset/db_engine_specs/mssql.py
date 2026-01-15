@@ -27,7 +27,7 @@ from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
 from superset.models.sql_types.mssql_sql_types import GUID
 from superset.utils.core import GenericDataType
@@ -52,6 +52,32 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 class MssqlEngineSpec(BaseEngineSpec):
     engine = "mssql"
     engine_name = "Microsoft SQL Server"
+
+    metadata = {
+        "description": "Microsoft SQL Server is a relational database management system.",
+        "logo": "msql.png",
+        "homepage_url": "https://www.microsoft.com/en-us/sql-server",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["pymssql"],
+        "default_port": 1433,
+        "drivers": [
+            {
+                "name": "pymssql",
+                "pypi_package": "pymssql",
+                "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
+                "is_recommended": True,
+            },
+            {
+                "name": "pyodbc",
+                "pypi_package": "pyodbc",
+                "connection_string": "mssql+pyodbc:///?odbc_connect=Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3BServer%3Dtcp%3A%3C{host}%3E%2C1433%3BDatabase%3D{database}%3BUid%3D{username}%3BPwd%3D{password}%3BEncrypt%3Dyes%3BConnection+Timeout%3D30",
+                "is_recommended": False,
+                "notes": "Connection string must be URL-encoded. Special characters like @ need encoding.",
+            },
+        ],
+        "docs_url": "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords",
+    }
+
     max_column_name_length = 128
     allows_cte_in_subquery = False
     supports_multivalues_insert = True

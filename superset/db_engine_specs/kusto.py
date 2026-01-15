@@ -22,7 +22,7 @@ from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
@@ -40,6 +40,44 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_joins = True
     allows_subqueries = True
     allows_sql_comments = False
+
+    metadata = {
+        "description": (
+            "Azure Data Explorer (Kusto) is a fast, fully managed data analytics service "
+            "with SQL interface."
+        ),
+        "logo": "kusto.png",
+        "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
+        "category": DatabaseCategory.CLOUD_AZURE,
+        "pypi_packages": ["sqlalchemy-kusto"],
+        "connection_string": (
+            "kustosql+https://{cluster}.kusto.windows.net/{database}"
+            "?msi=False&azure_ad_client_id={client_id}"
+            "&azure_ad_client_secret={client_secret}"
+            "&azure_ad_tenant_id={tenant_id}"
+        ),
+        "parameters": {
+            "cluster": "Azure Data Explorer cluster name",
+            "database": "Database name",
+            "client_id": "Azure AD application (client) ID",
+            "client_secret": "Azure AD application secret",
+            "tenant_id": "Azure AD tenant ID",
+        },
+        "drivers": [
+            {
+                "name": "sqlalchemy-kusto (SQL)",
+                "pypi_package": "sqlalchemy-kusto",
+                "connection_string": (
+                    "kustosql+https://{cluster}.kusto.windows.net/{database}"
+                    "?msi=False&azure_ad_client_id={client_id}"
+                    "&azure_ad_client_secret={client_secret}"
+                    "&azure_ad_tenant_id={tenant_id}"
+                ),
+                "is_recommended": True,
+                "notes": "Uses SQL interface for Azure Data Explorer.",
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -113,6 +151,44 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_subqueries = True
     allows_sql_comments = False
     run_multiple_statements_as_one = True
+
+    metadata = {
+        "description": (
+            "Azure Data Explorer (Kusto) is a fast, fully managed data analytics service "
+            "with KQL interface."
+        ),
+        "logo": "kusto.png",
+        "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
+        "category": DatabaseCategory.CLOUD_AZURE,
+        "pypi_packages": ["sqlalchemy-kusto"],
+        "connection_string": (
+            "kustokql+https://{cluster}.kusto.windows.net/{database}"
+            "?msi=False&azure_ad_client_id={client_id}"
+            "&azure_ad_client_secret={client_secret}"
+            "&azure_ad_tenant_id={tenant_id}"
+        ),
+        "parameters": {
+            "cluster": "Azure Data Explorer cluster name",
+            "database": "Database name",
+            "client_id": "Azure AD application (client) ID",
+            "client_secret": "Azure AD application secret",
+            "tenant_id": "Azure AD tenant ID",
+        },
+        "drivers": [
+            {
+                "name": "sqlalchemy-kusto (KQL)",
+                "pypi_package": "sqlalchemy-kusto",
+                "connection_string": (
+                    "kustokql+https://{cluster}.kusto.windows.net/{database}"
+                    "?msi=False&azure_ad_client_id={client_id}"
+                    "&azure_ad_client_secret={client_secret}"
+                    "&azure_ad_tenant_id={tenant_id}"
+                ),
+                "is_recommended": True,
+                "notes": "Uses native KQL query language for Azure Data Explorer.",
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",

@@ -32,7 +32,11 @@ from sqlalchemy.exc import NoSuchTableError
 from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
-from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    convert_inspector_columns,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
     SupersetDBAPIDatabaseError,
@@ -75,6 +79,34 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
+
+    metadata = {
+        "description": "Trino is a distributed SQL query engine for big data analytics.",
+        "logo": "trino.png",
+        "homepage_url": "https://trino.io/",
+        "category": DatabaseCategory.QUERY_ENGINES,
+        "pypi_packages": ["trino"],
+        "install_instructions": 'pip install "apache-superset[trino]"',
+        "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
+        "default_port": 8080,
+        "parameters": {
+            "username": "Trino username",
+            "password": "Trino password (if authentication is enabled)",
+            "hostname": "Trino coordinator hostname",
+            "port": "Trino coordinator port (default 8080)",
+            "catalog": "Catalog name",
+        },
+        "drivers": [
+            {
+                "name": "trino",
+                "pypi_package": "trino",
+                "connection_string": (
+                    "trino://{username}:{password}@{hostname}:{port}/{catalog}"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
 
     # OAuth 2.0
     supports_oauth2 = True

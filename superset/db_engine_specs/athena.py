@@ -23,7 +23,7 @@ from flask_babel import gettext as __
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
 
 SYNTAX_ERROR_REGEX = re.compile(
@@ -38,6 +38,54 @@ class AthenaEngineSpec(BaseEngineSpec):
     disable_ssh_tunneling = True
     # Athena doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True
+
+    metadata = {
+        "description": (
+            "Amazon Athena is an interactive query service for "
+            "analyzing data in S3 using SQL."
+        ),
+        "logo": "amazon-athena.jpg",
+        "homepage_url": "https://aws.amazon.com/athena/",
+        "category": DatabaseCategory.CLOUD_AWS,
+        "drivers": [
+            {
+                "name": "PyAthena (REST)",
+                "pypi_package": "pyathena[pandas]",
+                "connection_string": (
+                    "awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}"
+                    "@athena.{region_name}.amazonaws.com/{schema_name}"
+                    "?s3_staging_dir={s3_staging_dir}"
+                ),
+                "is_recommended": True,
+                "notes": (
+                    "No Java required. URL-encode special characters "
+                    "(e.g., s3:// -> s3%3A//)."
+                ),
+            },
+            {
+                "name": "PyAthenaJDBC",
+                "pypi_package": "PyAthenaJDBC",
+                "connection_string": (
+                    "awsathena+jdbc://{aws_access_key_id}:{aws_secret_access_key}"
+                    "@athena.{region_name}.amazonaws.com/{schema_name}"
+                    "?s3_staging_dir={s3_staging_dir}"
+                ),
+                "is_recommended": False,
+                "notes": "Requires Amazon Athena JDBC driver.",
+            },
+        ],
+        "engine_parameters": [
+            {
+                "name": "IAM Role Assumption",
+                "description": "Assume a specific IAM role for queries",
+                "json": {"connect_args": {"role_arn": "<role arn>"}},
+            },
+        ],
+        "notes": (
+            "URL-encode special characters in s3_staging_dir "
+            "(e.g., s3:// becomes s3%3A//)."
+        ),
+    }
 
     _time_grain_expressions = {
         None: "{col}",

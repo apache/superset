@@ -22,7 +22,7 @@ from packaging.version import Version
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
@@ -39,6 +39,32 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
+
+    metadata = {
+        "description": (
+            "Elasticsearch is a distributed search and analytics engine "
+            "with SQL support."
+        ),
+        "logo": "elasticsearch.png",
+        "homepage_url": "https://www.elastic.co/elasticsearch/",
+        "category": DatabaseCategory.SEARCH_NOSQL,
+        "pypi_packages": ["elasticsearch-dbapi"],
+        "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
+        "default_port": 9243,
+        "parameters": {
+            "user": "Elasticsearch username",
+            "password": "Elasticsearch password",
+            "host": "Elasticsearch host",
+        },
+        "drivers": [
+            {
+                "name": "Elasticsearch DBAPI",
+                "pypi_package": "elasticsearch-dbapi",
+                "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
+                "is_recommended": True,
+            },
+        ],
+    }
 
     _date_trunc_functions = {
         "DATETIME": "DATE_TRUNC",
@@ -118,6 +144,28 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     engine = "odelasticsearch"
     engine_name = "ElasticSearch (OpenDistro SQL)"
+
+    metadata = {
+        "description": (
+            "OpenDistro Elasticsearch is an open-source distribution with SQL support."
+        ),
+        "logo": "elasticsearch.png",
+        "homepage_url": "https://opendistro.github.io/for-elasticsearch/",
+        "category": DatabaseCategory.SEARCH_NOSQL,
+        "pypi_packages": ["elasticsearch-dbapi"],
+        "connection_string": "odelasticsearch+https://{user}:{password}@{host}:9200/",
+        "default_port": 9200,
+        "drivers": [
+            {
+                "name": "OpenDistro DBAPI",
+                "pypi_package": "elasticsearch-dbapi",
+                "connection_string": (
+                    "odelasticsearch+https://{user}:{password}@{host}:9200/"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
 
     @classmethod
     def convert_dttm(

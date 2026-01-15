@@ -26,6 +26,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
@@ -119,6 +120,25 @@ class DorisEngineSpec(MySQLEngineSpec):
     supports_catalog = supports_dynamic_catalog = True
     # while technically supported by Doris, this generates invalid table identifiers
     supports_cross_catalog_queries = False
+
+    metadata = {
+        "description": "Apache Doris is a high-performance real-time analytical database.",
+        "logo": "doris.png",
+        "homepage_url": "https://doris.apache.org/",
+        "category": DatabaseCategory.APACHE_PROJECTS,
+        "pypi_packages": ["pydoris"],
+        "connection_string": (
+            "doris://{username}:{password}@{host}:{port}/{catalog}.{database}"
+        ),
+        "parameters": {
+            "username": "User name",
+            "password": "Password",
+            "host": "Doris FE Host",
+            "port": "Doris FE port",
+            "catalog": "Catalog name",
+            "database": "Database name",
+        },
+    }
 
     column_type_mappings = (  # type: ignore
         (

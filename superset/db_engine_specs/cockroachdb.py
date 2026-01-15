@@ -19,12 +19,22 @@ from typing import Any, Optional
 
 from sqlalchemy import types
 
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 
 
 class CockroachDbEngineSpec(PostgresEngineSpec):
     engine = "cockroachdb"
     engine_name = "CockroachDB"
+
+    metadata = {
+        "description": "CockroachDB is a distributed SQL database built for cloud applications.",
+        "homepage_url": "https://www.cockroachlabs.com/",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["cockroachdb"],
+        "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
+        "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",
+    }
 
     @classmethod
     def convert_dttm(

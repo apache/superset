@@ -16,7 +16,7 @@
 # under the License.
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class MonetDbEngineSpec(BaseEngineSpec):
@@ -29,6 +29,24 @@ class MonetDbEngineSpec(BaseEngineSpec):
     engine = "monetdb"
     engine_name = "MonetDB"
     default_driver = "pymonetdb"
+
+    metadata = {
+        "description": "MonetDB is an open-source column-oriented relational database for high-performance analytics.",
+        "logo": "monet-db.png",
+        "homepage_url": "https://www.monetdb.org/",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["sqlalchemy-monetdb", "pymonetdb"],
+        "connection_string": "monetdb://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 50000,
+        "parameters": {
+            "username": "Database username (default: monetdb)",
+            "password": "Database password (default: monetdb)",
+            "host": "MonetDB server host",
+            "port": "Default 50000",
+            "database": "Database name",
+        },
+        "docs_url": "https://www.monetdb.org/documentation/",
+    }
 
     _time_grain_expressions = {
         None: "{col}",

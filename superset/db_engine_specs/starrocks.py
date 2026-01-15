@@ -26,6 +26,7 @@ from sqlalchemy import Float, Integer, Numeric, types
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
@@ -96,6 +97,38 @@ class StarRocksEngineSpec(MySQLEngineSpec):
     sqlalchemy_uri_placeholder = (
         "starrocks://user:password@host:port/catalog.db[?key=value&key=value...]"
     )
+
+    metadata = {
+        "description": (
+            "StarRocks is a high-performance analytical database for real-time analytics."
+        ),
+        "logo": "starrocks.png",
+        "homepage_url": "https://www.starrocks.io/",
+        "category": DatabaseCategory.ANALYTICAL_DATABASES,
+        "pypi_packages": ["starrocks"],
+        "connection_string": (
+            "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}"
+        ),
+        "default_port": 9030,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "StarRocks FE host",
+            "port": "Query port (default 9030)",
+            "catalog": "Catalog name",
+            "database": "Database name",
+        },
+        "drivers": [
+            {
+                "name": "starrocks",
+                "pypi_package": "starrocks",
+                "connection_string": (
+                    "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
 
     column_type_mappings = (  # type: ignore
         (

@@ -35,6 +35,7 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     BasicParametersType,
     BasicPropertiesType,
+    DatabaseCategory,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -160,6 +161,37 @@ class DatabendEngineSpec(DatabendBaseEngineSpec):
 
     _show_functions_column = "name"
     supports_file_upload = False
+
+    metadata = {
+        "description": (
+            "Databend is a cloud-native data warehouse with instant elasticity."
+        ),
+        "logo": "databend.png",
+        "homepage_url": "https://www.databend.com/",
+        "category": DatabaseCategory.OTHER,
+        "pypi_packages": ["databend-sqlalchemy"],
+        "connection_string": (
+            "databend://{username}:{password}@{host}:{port}/{database}?secure=true"
+        ),
+        "default_port": 443,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "Databend host",
+            "port": "Databend port (default 443 for HTTPS)",
+            "database": "Database name",
+        },
+        "drivers": [
+            {
+                "name": "databend-sqlalchemy",
+                "pypi_package": "databend-sqlalchemy",
+                "connection_string": (
+                    "databend://{username}:{password}@{host}:{port}/{database}?secure=true"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:

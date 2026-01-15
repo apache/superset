@@ -33,7 +33,7 @@ from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory, LimitMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType, get_user_agent, QuerySource
 
@@ -197,6 +197,29 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
     sqlalchemy_uri_placeholder = "duckdb:////path/to/duck.db"
     supports_multivalues_insert = True
+
+    metadata = {
+        "description": (
+            "DuckDB is an in-process OLAP database for fast analytical queries."
+        ),
+        "logo": "duckdb.png",
+        "homepage_url": "https://duckdb.org/",
+        "category": DatabaseCategory.OTHER,
+        "pypi_packages": ["duckdb-engine"],
+        "connection_string": "duckdb:////path/to/duck.db",
+        "drivers": [
+            {
+                "name": "duckdb-engine",
+                "pypi_package": "duckdb-engine",
+                "connection_string": "duckdb:////path/to/duck.db",
+                "is_recommended": True,
+            },
+        ],
+        "notes": (
+            "DuckDB supports both local file and in-memory databases. "
+            "Use `:memory:` for in-memory database."
+        ),
+    }
 
     # DuckDB-specific column type mappings to ensure float/double types are recognized
     column_type_mappings = (

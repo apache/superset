@@ -39,7 +39,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
@@ -96,6 +96,15 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     supports_dynamic_schema = True
     supports_cross_catalog_queries = False
+
+    metadata = {
+        "description": "Apache Hive is a data warehouse infrastructure built on Hadoop.",
+        "logo": "apache-hive.svg",
+        "homepage_url": "https://hive.apache.org/",
+        "category": DatabaseCategory.APACHE_PROJECTS,
+        "pypi_packages": ["pyhive"],
+        "connection_string": "hive://hive@{hostname}:{port}/{database}",
+    }
 
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?
