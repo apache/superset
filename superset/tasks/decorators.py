@@ -18,7 +18,7 @@
 
 import inspect
 import logging
-from typing import Callable, Generic, ParamSpec, TYPE_CHECKING, TypeVar
+from typing import Callable, cast, Generic, ParamSpec, TYPE_CHECKING, TypeVar
 
 from superset_core.api.tasks import TaskOptions, TaskScope, TaskStatus
 
@@ -187,6 +187,25 @@ class TaskWrapper(Generic[P]):
             task_name=override_options.task_name or self.default_options.task_name,
         )
 
+    def _validate_task(self, options: TaskOptions) -> None:
+        """
+        Validate task configuration before execution.
+
+        Args:
+            options: Merged task options to validate
+
+        Raises:
+            ValueError: If validation fails
+        """
+        # Shared tasks must have an explicit task_key for deduplication
+        if self.scope == TaskScope.SHARED and options.task_key is None:
+            raise ValueError(
+                f"Shared task '{self.name}' requires an explicit task_key in "
+                "TaskOptions for deduplication. Without a task_key, each "
+                "invocation creates a separate task with a random UUID, "
+                "defeating the purpose of shared tasks."
+            )
+
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> "Task":
         """
         Call the function synchronously.
@@ -202,10 +221,16 @@ class TaskWrapper(Generic[P]):
 
         Perfect for testing since execution is immediate and in-process.
         Returns the Task entity in SUCCESS or FAILURE state (blocking).
+
+        Raises:
+            ValueError: If task validation fails
         """
         # Extract and merge options (decorator defaults + call-time overrides)
-        override_options: TaskOptions | None = kwargs.pop("options", None)
+        override_options = cast(TaskOptions | None, kwargs.pop("options", None))
         options = self._merge_options(override_options)
+
+        # Validate task configuration
+        self._validate_task(options)
 
         # Extract task_name and task_key from merged options, scope from decorator
         task_name = (
@@ -293,6 +318,9 @@ class TaskWrapper(Generic[P]):
         Returns:
             Task model representing the scheduled task (PENDING status)
 
+        Raises:
+            ValueError: If task is SHARED scope but no task_key is provided
+
         Usage:
             # Auto-generated task_key (random UUID, no deduplication):
             task = generate_thumbnail.schedule(chart_id)
@@ -303,12 +331,21 @@ class TaskWrapper(Generic[P]):
                 options=TaskOptions(task_key=f"thumb_{chart_id}")
             )
 
+            # SHARED tasks require task_key:
+            task = shared_task.schedule(
+                data_id,
+                options=TaskOptions(task_key=f"shared_{data_id}")
+            )
+
         Note: Unlike direct calls (__call__), this schedules async execution.
         The function returns immediately with the Task model in PENDING status.
         """
         # Extract and merge options (decorator defaults + call-time overrides)
-        override_options: TaskOptions | None = kwargs.pop("options", None)
+        override_options = cast(TaskOptions | None, kwargs.pop("options", None))
         options = self._merge_options(override_options)
+
+        # Validate task configuration
+        self._validate_task(options)
 
         # Extract task_name and task_key from merged options, scope from decorator
         task_name = options.task_name
