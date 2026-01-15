@@ -452,6 +452,12 @@ class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
     reordered = fields.List(fields.String(), allow_none=False)
 
 
+class DashboardChartCustomizationsConfigUpdateSchema(BaseDashboardSchema):
+    deleted = fields.List(fields.String(), allow_none=False)
+    modified = fields.List(fields.Raw(), allow_none=False)
+    reordered = fields.List(fields.String(), allow_none=False)
+
+
 class DashboardColorsConfigUpdateSchema(BaseDashboardSchema):
     color_namespace = fields.String(allow_none=True)
     color_scheme = fields.String(allow_none=True)

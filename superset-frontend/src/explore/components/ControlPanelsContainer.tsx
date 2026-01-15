@@ -290,6 +290,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const prevChartStatus = usePrevious(props.chart.chartStatus);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState<string>(TABS_KEYS.DATA);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -795,6 +796,18 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const showCustomizeTab = customizeSections.length > 0;
   const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
 
+  // Check if matrixify is enabled in form_data
+  const matrixifyIsEnabled =
+    form_data.matrixify_enable_vertical_layout ||
+    form_data.matrixify_enable_horizontal_layout;
+
+  // Auto-switch to Matrixify tab when it's enabled
+  useEffect(() => {
+    if (showMatrixifyTab && matrixifyIsEnabled) {
+      setActiveTabKey(TABS_KEYS.MATRIXIFY);
+    }
+  }, [showMatrixifyTab, matrixifyIsEnabled]);
+
   // Check if matrixify sections have validation errors
   const matrixifyHasErrors = useMemo(() => {
     if (!showMatrixifyTab) return false;
@@ -882,6 +895,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           id="controlSections"
           data-test="control-tabs"
           allowOverflow={false}
+          activeKey={activeTabKey}
+          onChange={(key: string) => setActiveTabKey(key)}
           items={[
             {
               key: TABS_KEYS.DATA,

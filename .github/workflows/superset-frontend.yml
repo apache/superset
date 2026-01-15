@@ -174,7 +174,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: docker-image
 
