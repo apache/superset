@@ -365,5 +365,5 @@ test('renders with hovered prop', () => {
     hovered: true,
   });
 
-  expect(container.querySelector('.ControlHeader')).toBeInTheDocument();
+  expect(container.querySelector('.InfoTooltip')).toBeInTheDocument();
 });
