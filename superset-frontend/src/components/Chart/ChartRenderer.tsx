@@ -53,6 +53,11 @@ interface LegendState {
   [name: string]: boolean;
 }
 
+// Webpack globals declaration
+declare const __webpack_require__: {
+  h?: () => string;
+} | undefined;
+
 // Types for chart actions
 interface ChartActions {
   chartRenderingSucceeded: (chartId: number) => Dispatch;
@@ -95,7 +100,7 @@ export interface ChartRendererProps {
   actions: ChartActions;
   chartId: number;
   datasource?: Datasource;
-  initialValues?: Record<string, FilterValue>;
+  initialValues?: Record<string, unknown>;
   formData: QueryFormData;
   latestQueryFormData?: LatestQueryFormData;
   labelsColor?: Record<string, string>;
