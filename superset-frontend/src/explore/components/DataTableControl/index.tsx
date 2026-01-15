@@ -56,7 +56,7 @@ export const CopyToClipboardButton = ({
   data,
   columns,
 }: {
-  data?: Record<string, any>;
+  data?: Record<string, any>[];
   columns?: string[];
 }) => (
   <CopyToClipboard

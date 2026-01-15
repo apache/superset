@@ -72,7 +72,7 @@ export const useResultsPane = ({
     // it's an invalid formData when gets a errorMessage
     if (errorMessage) return;
     if (isRequest && cache.has(queryFormData)) {
-      setResultResp(ensureIsArray(cache.get(queryFormData)));
+      setResultResp(ensureIsArray(cache.get(queryFormData)) as QueryResultInterface[]);
       setResponseError('');
       if (queryForce) {
         setForceQuery?.(false);
@@ -89,7 +89,7 @@ export const useResultsPane = ({
         ownState,
       })
         .then(({ json }) => {
-          setResultResp(ensureIsArray(json.result));
+          setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
           setResponseError('');
           cache.set(queryFormData, json.result);
           if (queryForce) {
