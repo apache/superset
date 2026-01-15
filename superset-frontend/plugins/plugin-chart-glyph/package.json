@@ -1,0 +1,14 @@
+{
+  "name": "@superset-ui/plugin-chart-glyph",
+  "version": "0.0.1",
+  "description": "Glyph semantic charts for Superset",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "react": "^17 || ^18 || ^19"
+  },
+  "dependencies": {
+    "glyph": "file:../../../../glyph"
+  }
+}

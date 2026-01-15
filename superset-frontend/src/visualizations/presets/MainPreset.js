@@ -88,6 +88,7 @@ import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { ChartCustomizationPlugins, FilterPlugins } from 'src/constants';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
+import { GlyphBigNumberChartPlugin } from '@superset-ui/plugin-chart-glyph';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -211,6 +212,8 @@ export default class MainPreset extends Preset {
         }).configure({ key: VizType.Cartodiagram }),
         ...experimentalPlugins,
         ...agGridTablePlugin,
+        // Glyph semantic charts
+        new GlyphBigNumberChartPlugin().configure({ key: 'glyph_big_number' }),
       ],
     });
   }
