@@ -471,3 +471,95 @@ test('should handle chartId changes', async () => {
     expect(mockChartClient.loadFormData).toHaveBeenCalledTimes(2);
   });
 });
+
+test('should display error message when HTTP request fails with Response object', async () => {
+  const errorBody = JSON.stringify({ message: 'Error: division by zero' });
+  const mockResponse = new Response(errorBody, {
+    status: 400,
+    statusText: 'Bad Request',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  mockChartClient.client.post.mockRejectedValue(mockResponse);
+
+  const onError = jest.fn();
+  const { findByText } = render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      onError={onError}
+    />,
+  );
+
+  const errorElement = await findByText(/Error: division by zero/i);
+  expect(errorElement).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    expect(onError.mock.calls[0][0].message).toBe('Error: division by zero');
+  });
+});
+
+test('should display error message when HTTP request fails with errors array', async () => {
+  const errorBody = JSON.stringify({
+    errors: [
+      {
+        message: 'Query failed: column "invalid_col" does not exist',
+        error_type: 'COLUMN_DOES_NOT_EXIST_ERROR',
+      },
+    ],
+  });
+  const mockResponse = new Response(errorBody, {
+    status: 422,
+    statusText: 'Unprocessable Entity',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  mockChartClient.client.post.mockRejectedValue(mockResponse);
+
+  const { findByText } = render(
+    <StatefulChart formData={mockFormData} chartType="test_chart" />,
+  );
+
+  const errorElement = await findByText(
+    /Query failed: column "invalid_col" does not exist/i,
+  );
+  expect(errorElement).toBeInTheDocument();
+});
+
+test('should display generic error message for network failures', async () => {
+  const networkError = new TypeError('Failed to fetch');
+  mockChartClient.client.post.mockRejectedValue(networkError);
+
+  const { findByText } = render(
+    <StatefulChart formData={mockFormData} chartType="test_chart" />,
+  );
+
+  const errorElement = await findByText(/Network error/i);
+  expect(errorElement).toBeInTheDocument();
+});
+
+test('should pass error to custom errorComponent when provided', async () => {
+  const errorBody = JSON.stringify({ message: 'Custom error message' });
+  const mockResponse = new Response(errorBody, {
+    status: 400,
+    statusText: 'Bad Request',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  mockChartClient.client.post.mockRejectedValue(mockResponse);
+
+  const CustomErrorComponent = ({ error }: { error: Error }) => (
+    <div data-test="custom-error">Custom: {error.message}</div>
+  );
+
+  const { findByTestId } = render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      errorComponent={CustomErrorComponent}
+    />,
+  );
+
+  const customError = await findByTestId('custom-error');
+  expect(customError).toBeInTheDocument();
+  expect(customError).toHaveTextContent('Custom: Custom error message');
+});
