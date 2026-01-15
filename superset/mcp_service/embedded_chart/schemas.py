@@ -29,7 +29,13 @@ class GetEmbeddableChartRequest(BaseModel):
     )
     viz_type: str = Field(
         ...,
-        description="Visualization type (e.g., 'echarts_timeseries_line')",
+        description=(
+            "Visualization type. For CATEGORICAL data (e.g., genre, country): use "
+            "'bar', 'dist_bar', 'pie', 'table'. For TIME SERIES data (requires "
+            "datetime column): use 'echarts_timeseries_line', 'echarts_timeseries_bar', "
+            "'echarts_timeseries_area'. Common mistake: using 'echarts_timeseries_bar' "
+            "for categorical data - use 'bar' instead."
+        ),
     )
     form_data: dict[str, Any] = Field(
         ...,
