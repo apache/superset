@@ -95,6 +95,7 @@ import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
 import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 import AutoRefreshIndicator from '../AutoRefreshIndicator';
+import { RefreshButton } from '../RefreshButton';
 import { useRealTimeDashboard } from '../../hooks/useRealTimeDashboard';
 import { useAutoRefreshTabPause } from '../../hooks/useAutoRefreshTabPause';
 import { useAutoRefreshContext } from '../../contexts/AutoRefreshContext';
@@ -818,10 +819,12 @@ const Header = () => {
   const titlePanelAdditionalItems = useMemo(
     () => [
       !editMode && (
+        <RefreshButton key="refresh-button" onRefresh={forceRefresh} />
+      ),
+      !editMode && (
         <AutoRefreshIndicator
           key="auto-refresh-indicator"
           onTogglePause={handlePauseToggle}
-          onRefresh={forceRefresh}
         />
       ),
       !editMode && (

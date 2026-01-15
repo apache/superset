@@ -27,21 +27,18 @@ import { StatusTooltipContent } from '../AutoRefreshStatus/StatusTooltipContent'
 
 export interface AutoRefreshIndicatorProps {
   onTogglePause: () => void;
-  onRefresh: () => void;
 }
 
 /**
  * Unified auto-refresh indicator component that displays:
  * - Status dot (green/yellow/red/blue)
  * - Pause/Play button
- * - Refresh button
  *
  * All contained within a bordered container.
  * Only renders when the dashboard has an auto-refresh interval configured.
  */
 export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
   onTogglePause,
-  onRefresh,
 }) => {
   const theme = useTheme();
   const {
@@ -60,9 +57,9 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
       display: inline-flex;
       align-items: center;
       gap: ${theme.marginXXS}px;
-      border: 1px solid ${theme.colorBorder};
+      border: 1px solid ${theme.colorSplit};
       border-radius: ${theme.borderRadiusLG}px;
-      padding: ${theme.paddingXXS}px ${theme.paddingXS}px;
+      padding: ${theme.paddingXXS}px;
       background: ${theme.colorBgContainer};
       margin-right: ${theme.marginXS}px;
     `,
@@ -136,23 +133,6 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
     );
   }, [isPaused, onTogglePause, iconButtonStyles]);
 
-  const refreshButton = useMemo(
-    () => (
-      <Tooltip title={t('Refresh dashboard')} placement="bottom">
-        <button
-          type="button"
-          css={iconButtonStyles}
-          onClick={onRefresh}
-          aria-label={t('Refresh dashboard')}
-          data-test="auto-refresh-refresh-button"
-        >
-          <Icons.ReloadOutlined iconSize="m" />
-        </button>
-      </Tooltip>
-    ),
-    [onRefresh, iconButtonStyles],
-  );
-
   if (!isRealTimeDashboard) {
     return null;
   }
@@ -179,7 +159,6 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
       </Tooltip>
 
       {pauseButton}
-      {refreshButton}
     </div>
   );
 };
