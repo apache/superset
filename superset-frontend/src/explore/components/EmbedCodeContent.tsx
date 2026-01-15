@@ -24,7 +24,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { QueryFormData } from '@superset-ui/core';
+import { LatestQueryFormData } from '@superset-ui/core';
 import { css, t } from '@apache-superset/core/ui';
 import { Input, Space, Typography } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
@@ -33,7 +33,7 @@ import { getChartPermalink } from 'src/utils/urlUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 
 export interface EmbedCodeContentProps {
-  formData?: QueryFormData;
+  formData?: LatestQueryFormData;
   addDangerToast?: (msg: string) => void;
 }
 
@@ -58,7 +58,8 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
 
   const updateUrl = useCallback(() => {
     setUrl('');
-    getChartPermalink(formData)
+    if (!formData?.datasource) return;
+    getChartPermalink(formData as { datasource: string })
       .then(result => {
         if (result?.url) {
           setUrl(result.url);
@@ -127,7 +128,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
         />
       </div>
       <Space
-        direction="horizzontal"
+        direction="horizontal"
         css={theme => css`
           margin-top: ${theme.margin}px;
         `}
