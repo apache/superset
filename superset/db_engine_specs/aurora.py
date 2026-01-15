@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 
@@ -30,6 +31,20 @@ class AuroraMySQLDataAPI(MySQLEngineSpec):
         "region_name={region_name}"
     )
 
+    metadata = {
+        "description": "Amazon Aurora MySQL via the Data API.",
+        "logo": "aws.png",
+        "homepage_url": "https://aws.amazon.com/rds/aurora/",
+        "category": DatabaseCategory.CLOUD_AWS,
+        "pypi_packages": ["sqlalchemy-aurora-data-api"],
+        "connection_string": (
+            "mysql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+            "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+            "secret_arn={secret_arn}&region_name={region_name}"
+        ),
+        "notes": "Requires AWS credentials and Aurora cluster ARN.",
+    }
+
 
 class AuroraPostgresDataAPI(PostgresEngineSpec):
     engine = "postgresql"
@@ -42,3 +57,17 @@ class AuroraPostgresDataAPI(PostgresEngineSpec):
         "secret_arn={secret_arn}&"
         "region_name={region_name}"
     )
+
+    metadata = {
+        "description": "Amazon Aurora PostgreSQL via the Data API.",
+        "logo": "aws.png",
+        "homepage_url": "https://aws.amazon.com/rds/aurora/",
+        "category": DatabaseCategory.CLOUD_AWS,
+        "pypi_packages": ["sqlalchemy-aurora-data-api"],
+        "connection_string": (
+            "postgresql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+            "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+            "secret_arn={secret_arn}&region_name={region_name}"
+        ),
+        "notes": "Requires AWS credentials and Aurora cluster ARN.",
+    }

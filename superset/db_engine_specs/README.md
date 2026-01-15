@@ -556,6 +556,70 @@ Integration with platform features and metadata handling.
 | YDB | False | False | False | False |
 | base | False | False | True | False |
 
+## Documentation metadata
+
+When adding a new database to Superset, you should include a `metadata` class attribute in your DB engine spec. This metadata is used to generate documentation and provide connection information to users. The metadata should include:
+
+```python
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+
+class MyDatabaseEngineSpec(BaseEngineSpec):
+    engine = "mydatabase"
+    engine_name = "My Database"
+
+    metadata = {
+        # Required fields
+        "description": "A brief description of the database.",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,  # See categories below
+        "pypi_packages": ["my-database-driver"],
+        "connection_string": "mydatabase://{username}:{password}@{host}:{port}/{database}",
+
+        # Optional fields
+        "logo": "mydatabase.svg",  # Logo file in superset-frontend/src/assets/images
+        "homepage_url": "https://mydatabase.example.com/",
+        "docs_url": "https://mydatabase.example.com/docs",
+        "default_port": 5432,
+        "notes": "Any special notes about configuration or usage.",
+        "install_instructions": "pip install my-database-driver",
+        "connection_examples": [
+            {
+                "description": "Local connection",
+                "connection_string": "mydatabase://user:pass@localhost:5432/mydb",
+            },
+        ],
+        "authentication_methods": [
+            {
+                "name": "OAuth2",
+                "description": "Token-based authentication",
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "Compatible DB",
+                "description": "A database that uses the same protocol",
+            },
+        ],
+    }
+```
+
+### Database Categories
+
+Use constants from `DatabaseCategory` to categorize your database:
+
+- `DatabaseCategory.CLOUD_AWS` - AWS cloud services (Athena, Redshift, DynamoDB)
+- `DatabaseCategory.CLOUD_GCP` - Google Cloud services (BigQuery, Sheets)
+- `DatabaseCategory.CLOUD_AZURE` - Azure cloud services (Synapse, Kusto)
+- `DatabaseCategory.CLOUD_DATA_WAREHOUSES` - Cloud data warehouses (Snowflake, Databricks)
+- `DatabaseCategory.APACHE_PROJECTS` - Apache projects (Druid, Hive, Spark, Pinot)
+- `DatabaseCategory.TRADITIONAL_RDBMS` - Traditional databases (PostgreSQL, MySQL, Oracle)
+- `DatabaseCategory.ANALYTICAL_DATABASES` - Analytical/OLAP databases (ClickHouse, Presto)
+- `DatabaseCategory.SEARCH_NOSQL` - Search and NoSQL databases (Elasticsearch, Couchbase)
+- `DatabaseCategory.QUERY_ENGINES` - Query engines (Trino, Presto)
+- `DatabaseCategory.TIME_SERIES` - Time-series databases (TDengine)
+- `DatabaseCategory.OTHER` - Other databases
+
+This metadata centralizes all database documentation in one place, making it easier to add new databases with a single file change.
+
 ## Database information
 
 A DB engine spec has attributes that describe the underlying database engine, so that Superset can know how to build and run queries. For example, some databases don't support subqueries, which are needed for some of the queries produced by Superset for certain charts. When a database doesn't support subqueries the query is run in two-steps, using the results from the first query to build the second query.
