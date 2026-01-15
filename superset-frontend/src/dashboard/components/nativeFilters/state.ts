@@ -97,7 +97,7 @@ const selectDashboardChartIds = createSelector(
 const selectChartCustomizationConfiguration = createSelector(
   [
     (state: RootState) =>
-      state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
+      state.dashboardInfo?.metadata?.chart_customization_config || EMPTY_ARRAY,
     selectDashboardChartIds,
   ],
   (allCustomizations, dashboardChartIds): ChartCustomizationConfiguration => {
