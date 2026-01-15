@@ -45,12 +45,8 @@ export function useAutoRefreshTabPause({
   onRestartTimer,
   onStopTimer,
 }: UseAutoRefreshTabPauseOptions): void {
-  const {
-    isRealTimeDashboard,
-    isPaused: isManuallyPaused,
-    setPausedByTab,
-    setStatus,
-  } = useRealTimeDashboard();
+  const { isRealTimeDashboard, isManuallyPaused, setPausedByTab, setStatus } =
+    useRealTimeDashboard();
 
   // Track if we should resume on visibility change
   const shouldResumeRef = useRef(false);

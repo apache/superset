@@ -31,7 +31,6 @@ import {
   setAutoRefreshFetchStartTime,
 } from '../actions/autoRefresh';
 
-// Type for Redux state shape
 interface RootState {
   dashboardState: {
     refreshFrequency: number;
@@ -54,6 +53,13 @@ export const selectIsRealTimeDashboard = (state: RootState): boolean =>
   (state.dashboardState?.refreshFrequency ?? 0) > 0;
 
 /**
+ * Selector: Determines if auto-refresh is manually paused (by user action).
+ * Does NOT include tab visibility pause.
+ */
+export const selectIsManuallyPaused = (state: RootState): boolean =>
+  state.dashboardState?.autoRefreshPaused === true;
+
+/**
  * Selector: Determines if auto-refresh is paused.
  * Paused can be due to manual pause or tab visibility.
  */
@@ -73,7 +79,7 @@ export const selectIsPaused = (state: RootState): boolean =>
 export const selectEffectiveRefreshStatus = (
   state: RootState,
 ): AutoRefreshStatus => {
-  const dashboardState = state.dashboardState;
+  const { dashboardState } = state;
 
   // Not a real-time dashboard
   if ((dashboardState?.refreshFrequency ?? 0) <= 0) {
@@ -108,30 +114,12 @@ export const selectEffectiveRefreshStatus = (
   return currentStatus;
 };
 
-/**
- * Hook: Provides access to real-time dashboard state and actions.
- *
- * Usage:
- * ```typescript
- * const {
- *   isRealTimeDashboard,
- *   isPaused,
- *   effectiveStatus,
- *   lastSuccessfulRefresh,
- *   lastError,
- *   refreshFrequency,
- *   setPaused,
- *   setStatus,
- *   recordSuccess,
- *   recordError,
- * } = useRealTimeDashboard();
- * ```
- */
 export const useRealTimeDashboard = () => {
   const dispatch = useDispatch();
 
   // Selectors
   const isRealTimeDashboard = useSelector(selectIsRealTimeDashboard);
+  const isManuallyPaused = useSelector(selectIsManuallyPaused);
   const isPaused = useSelector(selectIsPaused);
   const effectiveStatus = useSelector(selectEffectiveRefreshStatus);
 
@@ -205,6 +193,7 @@ export const useRealTimeDashboard = () => {
     () => ({
       // State
       isRealTimeDashboard,
+      isManuallyPaused,
       isPaused,
       isPausedByTab,
       effectiveStatus,
@@ -223,6 +212,7 @@ export const useRealTimeDashboard = () => {
     }),
     [
       isRealTimeDashboard,
+      isManuallyPaused,
       isPaused,
       isPausedByTab,
       effectiveStatus,
