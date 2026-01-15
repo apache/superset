@@ -25,6 +25,7 @@ import {
   QueryFormData,
   SqlaFormData,
   ClientErrorObject,
+  DataRecordFilters,
   type JsonObject,
   type AgGridChartState,
 } from '@superset-ui/core';
@@ -51,7 +52,7 @@ export interface ChartProps {
   chartId: number;
   datasource?: Datasource;
   dashboardId?: number;
-  initialValues?: Record<string, unknown>;
+  initialValues?: DataRecordFilters;
   formData: QueryFormData;
   labelColors?: string;
   sharedLabelColors?: string;
@@ -76,7 +77,7 @@ export interface ChartProps {
   onFilterMenuOpen?: (chartId: number, column: string) => void;
   onFilterMenuClose?: (chartId: number, column: string) => void;
   ownState?: JsonObject;
-  postTransformProps?: Function;
+  postTransformProps?: (props: JsonObject) => JsonObject;
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
   emitCrossFilters?: boolean;
