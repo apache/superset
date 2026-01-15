@@ -125,13 +125,13 @@ describe('chart actions', () => {
         some_param: 'fake query!',
         result_type: 'full',
         result_format: 'json',
-      });
+      } as unknown as ReturnType<typeof exploreUtils.buildV1ChartDataPayload>);
     fakeMetadata = { useLegacyApi: true };
     mockedGetChartMetadataRegistry.mockImplementation(
       () =>
         ({
           get: () => fakeMetadata,
-        }) as ReturnType<typeof getChartMetadataRegistry>,
+        }) as unknown as ReturnType<typeof getChartMetadataRegistry>,
     );
     mockedGetChartBuildQueryRegistry.mockImplementation(
       () =>
@@ -141,7 +141,7 @@ describe('chart actions', () => {
             result_type: 'full',
             result_format: 'json',
           }),
-        }) as ReturnType<typeof getChartBuildQueryRegistry>,
+        }) as unknown as ReturnType<typeof getChartBuildQueryRegistry>,
     );
     waitForAsyncDataStub = sinon
       .stub(asyncEvent, 'waitForAsyncData')
