@@ -81,11 +81,140 @@ with app.app_context():
 }
 
 /**
+ * Extract metadata from individual engine spec files using AST parsing
+ * This is the preferred approach - reads directly from spec.metadata attributes
+ */
+function extractEngineSpecMetadata() {
+  console.log('Extracting metadata from engine spec files...');
+
+  try {
+    const pythonCode = `
+import sys
+import json
+import ast
+import os
+
+def eval_node(node):
+    """Safely evaluate an AST node as a Python literal."""
+    if isinstance(node, ast.Constant):
+        return node.value
+    elif isinstance(node, ast.Str):  # Python 3.7
+        return node.s
+    elif isinstance(node, ast.Num):  # Python 3.7
+        return node.n
+    elif isinstance(node, ast.List):
+        return [eval_node(e) for e in node.elts]
+    elif isinstance(node, ast.Dict):
+        return {eval_node(k): eval_node(v) for k, v in zip(node.keys, node.values) if k}
+    elif isinstance(node, ast.Name):
+        return node.id
+    elif isinstance(node, ast.Attribute):
+        # Handle DatabaseCategory.SOMETHING
+        return f"{eval_node(node.value)}.{node.attr}" if hasattr(node, 'value') else node.attr
+    elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left, right = eval_node(node.left), eval_node(node.right)
+        return left + right if isinstance(left, str) and isinstance(right, str) else None
+    elif isinstance(node, ast.Tuple):
+        return tuple(eval_node(e) for e in node.elts)
+    return None
+
+databases = {}
+specs_dir = 'superset/db_engine_specs'
+
+for filename in os.listdir(specs_dir):
+    if not filename.endswith('.py') or filename in ('__init__.py', 'base.py', 'lib.py', 'lint_metadata.py'):
+        continue
+
+    filepath = os.path.join(specs_dir, filename)
+    try:
+        with open(filepath) as f:
+            tree = ast.parse(f.read())
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+
+            # Check if it's an engine spec class
+            is_engine_spec = any('EngineSpec' in ast.unparse(b) for b in node.bases) if hasattr(ast, 'unparse') else True
+            if not is_engine_spec:
+                continue
+
+            # Skip base classes
+            if node.name.endswith('BaseEngineSpec') or node.name == 'BasicParametersMixin':
+                continue
+
+            engine_name = node.name
+            metadata = {}
+
+            for item in node.body:
+                if isinstance(item, ast.Assign):
+                    for target in item.targets:
+                        if isinstance(target, ast.Name):
+                            if target.id == 'engine_name' and isinstance(item.value, ast.Constant):
+                                engine_name = item.value.value
+                            elif target.id == 'metadata':
+                                try:
+                                    metadata = eval_node(item.value) or {}
+                                except:
+                                    pass
+
+            if metadata and engine_name:
+                databases[engine_name] = {
+                    'engine': engine_name.lower().replace(' ', '_'),
+                    'engine_name': engine_name,
+                    'documentation': metadata,
+                    'time_grains': {},
+                    'score': 0,
+                    'max_score': 0,
+                    'joins': True,
+                    'subqueries': True,
+                    'supports_dynamic_schema': False,
+                    'supports_catalog': False,
+                    'supports_dynamic_catalog': False,
+                    'ssh_tunneling': False,
+                    'query_cancelation': False,
+                    'supports_file_upload': False,
+                    'user_impersonation': False,
+                    'query_cost_estimation': False,
+                    'sql_validation': False,
+                }
+    except Exception as e:
+        pass  # Skip files that can't be parsed
+
+print(json.dumps(databases, default=str))
+`;
+    const result = spawnSync('python3', ['-c', pythonCode], {
+      cwd: ROOT_DIR,
+      encoding: 'utf-8',
+      timeout: 30000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(result.stderr || 'Python script failed');
+    }
+    const databases = JSON.parse(result.stdout);
+    if (Object.keys(databases).length === 0) {
+      throw new Error('No metadata found in engine specs');
+    }
+
+    console.log(`Extracted metadata from ${Object.keys(databases).length} engine specs`);
+    return databases;
+  } catch (err) {
+    console.log('Engine spec metadata extraction failed:', err.message);
+    return null;
+  }
+}
+
+/**
  * Extract DATABASE_DOCS from lib.py using pure AST parsing
- * No superset imports required - works in CI without dependencies
+ * Fallback for databases without metadata in engine specs
  */
 function extractDatabaseDocs() {
-  console.log('Extracting DATABASE_DOCS directly from lib.py...');
+  console.log('Extracting DATABASE_DOCS from lib.py (fallback)...');
 
   try {
     const pythonCode = `
@@ -413,8 +542,11 @@ See individual database pages for the specific driver packages needed.
 
 ## Contributing
 
-To add or update database documentation, edit the \`DATABASE_DOCS\` dictionary in
-\`superset/db_engine_specs/lib.py\`. Documentation pages are auto-generated from this data.
+To add or update database documentation, add a \`metadata\` attribute to your engine spec class in
+\`superset/db_engine_specs/\`. Documentation is auto-generated from these metadata attributes.
+
+See [METADATA_STATUS.md](https://github.com/apache/superset/blob/master/superset/db_engine_specs/METADATA_STATUS.md)
+for the current status of database documentation and the [README](https://github.com/apache/superset/blob/master/superset/db_engine_specs/README.md) for the metadata schema.
 `;
 }
 
@@ -558,16 +690,25 @@ async function main() {
   // Load existing data for potential merge
   const existingData = loadExistingData();
 
-  // Try to run the full script first, fall back to AST extraction
+  // Try sources in order of preference:
+  // 1. Full script with Flask context (richest data)
+  // 2. Engine spec metadata files (new approach)
+  // 3. DATABASE_DOCS in lib.py (legacy fallback)
   let databases = tryRunFullScript();
 
   if (!databases) {
+    // Try extracting from engine spec metadata (preferred for CI)
+    databases = extractEngineSpecMetadata();
+  }
+
+  if (!databases) {
+    // Fall back to DATABASE_DOCS (legacy)
     databases = extractDatabaseDocs();
   }
 
   if (!databases || Object.keys(databases).length === 0) {
     console.error('Failed to generate database documentation data.');
-    console.error('Make sure superset is properly installed or lib.py is accessible.');
+    console.error('Could not extract from Flask app, engine specs, or DATABASE_DOCS.');
     process.exit(1);
   }
 
