@@ -15,43 +15,50 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest.mock import patch
+
 import pytest
-from superset_core.api.tasks import TaskStatus
+from superset_core.api.tasks import TaskScope, TaskStatus
 
 from superset import db
 from superset.commands.tasks import BulkAbortTasksCommand
 from superset.commands.tasks.exceptions import TaskInvalidError
-from superset.models.tasks import Task
+from superset.daos.tasks import TaskDAO
 
 
-def test_bulk_abort_success(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_bulk_abort_success(mock_get_user, app_context, get_user, login_as) -> None:
     """Test successful bulk abort of multiple tasks"""
     admin = get_user("admin")
     login_as("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create multiple pending tasks
-    task1 = Task(
+    # Create multiple pending tasks using DAO
+    task1 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_bulk_abort_1",
-        status=TaskStatus.PENDING.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task1.created_by = admin
 
-    task2 = Task(
+    task2 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_bulk_abort_2",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task2.created_by = admin
+    task2.set_status(TaskStatus.IN_PROGRESS)
 
-    task3 = Task(
+    task3 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_bulk_abort_3",
-        status=TaskStatus.PENDING.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task3.created_by = admin
 
-    db.session.add_all([task1, task2, task3])
     db.session.commit()
 
     try:
@@ -88,34 +95,42 @@ def test_bulk_abort_empty_list(app_context, login_as) -> None:
         command.run()
 
 
-def test_bulk_abort_partial_success(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_bulk_abort_partial_success(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
     """Test bulk abort with partial success (some tasks already finished)"""
     admin = get_user("admin")
     login_as("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create tasks with different statuses
-    task1 = Task(
+    # Create tasks with different statuses using DAO
+    task1 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_partial_1",
-        status=TaskStatus.PENDING.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task1.created_by = admin
 
-    task2 = Task(
+    task2 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_partial_2",
-        status=TaskStatus.SUCCESS.value,  # Already finished
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task2.created_by = admin
+    task2.set_status(TaskStatus.SUCCESS)  # Already finished
 
-    task3 = Task(
+    task3 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_partial_3",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task3.created_by = admin
+    task3.set_status(TaskStatus.IN_PROGRESS)
 
-    db.session.add_all([task1, task2, task3])
     db.session.commit()
 
     try:
@@ -142,27 +157,33 @@ def test_bulk_abort_partial_success(app_context, get_user, login_as) -> None:
         db.session.commit()
 
 
-def test_bulk_abort_non_admin_own_tasks(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_bulk_abort_non_admin_own_tasks(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
     """Test non-admin can only bulk abort their own tasks"""
     gamma = get_user("gamma")
     login_as("gamma")
+    mock_get_user.return_value = gamma.username
 
-    # Create tasks owned by gamma
-    task1 = Task(
+    # Create tasks owned by gamma using DAO
+    task1 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_gamma_1",
-        status=TaskStatus.PENDING.value,
+        scope=TaskScope.PRIVATE,
+        user_id=gamma.id,
     )
     task1.created_by = gamma
 
-    task2 = Task(
+    task2 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_gamma_2",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=gamma.id,
     )
     task2.created_by = gamma
+    task2.set_status(TaskStatus.IN_PROGRESS)
 
-    db.session.add_all([task1, task2])
     db.session.commit()
 
     try:
@@ -186,26 +207,32 @@ def test_bulk_abort_non_admin_own_tasks(app_context, get_user, login_as) -> None
         db.session.commit()
 
 
-def test_bulk_abort_non_admin_forbidden(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_bulk_abort_non_admin_forbidden(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
     """Test non-admin cannot bulk abort other users' tasks"""
     admin = get_user("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create tasks owned by admin
-    task1 = Task(
+    # Create tasks owned by admin using DAO
+    task1 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_forbidden_bulk_1",
-        status=TaskStatus.PENDING.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task1.created_by = admin
 
-    task2 = Task(
+    task2 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_forbidden_bulk_2",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task2.created_by = admin
+    task2.set_status(TaskStatus.IN_PROGRESS)
 
-    db.session.add_all([task1, task2])
     db.session.commit()
 
     try:
@@ -232,35 +259,43 @@ def test_bulk_abort_non_admin_forbidden(app_context, get_user, login_as) -> None
         db.session.commit()
 
 
-def test_bulk_abort_admin_all_tasks(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_bulk_abort_admin_all_tasks(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
     """Test admin can bulk abort tasks from multiple users"""
     admin = get_user("admin")
     gamma = get_user("gamma")
     login_as("admin")
 
-    # Create tasks owned by different users
-    task1 = Task(
+    # Create tasks owned by different users using DAO
+    mock_get_user.return_value = admin.username
+    task1 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_admin_bulk_1",
-        status=TaskStatus.PENDING.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task1.created_by = admin
 
-    task2 = Task(
+    mock_get_user.return_value = gamma.username
+    task2 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_admin_bulk_2",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=gamma.id,
     )
     task2.created_by = gamma
+    task2.set_status(TaskStatus.IN_PROGRESS)
 
-    task3 = Task(
+    task3 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_admin_bulk_3",
-        status=TaskStatus.PENDING.value,
+        scope=TaskScope.PRIVATE,
+        user_id=gamma.id,
     )
     task3.created_by = gamma
 
-    db.session.add_all([task1, task2, task3])
     db.session.commit()
 
     try:
@@ -287,27 +322,34 @@ def test_bulk_abort_admin_all_tasks(app_context, get_user, login_as) -> None:
         db.session.commit()
 
 
-def test_bulk_abort_mixed_ownership(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_bulk_abort_mixed_ownership(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
     """Test non-admin can only abort their own tasks in a mixed list"""
     admin = get_user("admin")
     gamma = get_user("gamma")
 
-    # Create tasks owned by both users
-    task1 = Task(
+    # Create tasks owned by both users using DAO
+    mock_get_user.return_value = gamma.username
+    task1 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_mixed_1",
-        status=TaskStatus.PENDING.value,
+        scope=TaskScope.PRIVATE,
+        user_id=gamma.id,
     )
     task1.created_by = gamma
 
-    task2 = Task(
+    mock_get_user.return_value = admin.username
+    task2 = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_mixed_2",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
-    task2.created_by = admin  # Owned by admin
+    task2.created_by = admin
+    task2.set_status(TaskStatus.IN_PROGRESS)
 
-    db.session.add_all([task1, task2])
     db.session.commit()
 
     try:

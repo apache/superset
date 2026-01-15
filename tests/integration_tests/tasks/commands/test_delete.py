@@ -16,33 +16,40 @@
 # under the License.
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 import pytest
-from superset_core.api.tasks import TaskStatus
+from superset_core.api.tasks import TaskScope, TaskStatus
 
 from superset import db
 from superset.commands.tasks import DeleteOldTasksCommand
 from superset.commands.tasks.exceptions import TaskInvalidError
+from superset.daos.tasks import TaskDAO
 from superset.models.tasks import Task
 
 
-def test_delete_old_tasks_success(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_delete_old_tasks_success(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
     """Test successful deletion of old tasks"""
     login_as("admin")
     admin = get_user("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create old completed tasks
+    # Create old completed tasks using DAO
     old_date = datetime.now(timezone.utc) - timedelta(days=35)
     tasks = []
     for i in range(3):
-        task = Task(
+        task = TaskDAO.create_task(
             task_type="test_type",
             task_key=f"old_task_{i}",
-            status=TaskStatus.SUCCESS.value,
+            scope=TaskScope.PRIVATE,
+            user_id=admin.id,
         )
         task.created_by = admin
+        task.set_status(TaskStatus.SUCCESS)
         task.ended_at = old_date
-        db.session.add(task)
         tasks.append(task)
 
     db.session.commit()
@@ -72,23 +79,28 @@ def test_delete_old_tasks_success(app_context, get_user, login_as) -> None:
         raise
 
 
-def test_delete_old_tasks_custom_batch_size(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_delete_old_tasks_custom_batch_size(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
     """Test deletion with custom batch size"""
     login_as("admin")
     admin = get_user("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create old completed tasks
+    # Create old completed tasks using DAO
     old_date = datetime.now(timezone.utc) - timedelta(days=10)
     tasks = []
     for i in range(5):
-        task = Task(
+        task = TaskDAO.create_task(
             task_type="test_type",
             task_key=f"batch_task_{i}",
-            status=TaskStatus.ABORTED.value,
+            scope=TaskScope.PRIVATE,
+            user_id=admin.id,
         )
         task.created_by = admin
+        task.set_status(TaskStatus.ABORTED)
         task.ended_at = old_date
-        db.session.add(task)
         tasks.append(task)
 
     db.session.commit()

@@ -15,30 +15,35 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest.mock import patch
+
 import pytest
-from superset_core.api.tasks import TaskStatus
+from superset_core.api.tasks import TaskScope, TaskStatus
 
 from superset import db
 from superset.commands.tasks import UpdateTaskCommand
 from superset.commands.tasks.exceptions import (
     TaskNotFoundError,
 )
-from superset.models.tasks import Task
+from superset.daos.tasks import TaskDAO
 
 
-def test_update_task_success(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_update_task_success(mock_get_user, app_context, get_user, login_as) -> None:
     """Test successful task update"""
     admin = get_user("admin")
     login_as("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create a task
-    task = Task(
+    # Create a task using DAO
+    task = TaskDAO.create_task(
         task_type="test_type",
         task_key="update_test",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task.created_by = admin
-    db.session.add(task)
+    task.set_status(TaskStatus.IN_PROGRESS)
     db.session.commit()
 
     try:
@@ -75,18 +80,21 @@ def test_update_task_not_found(app_context, login_as) -> None:
         command.run()
 
 
-def test_update_task_forbidden(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_update_task_forbidden(mock_get_user, app_context, get_user, login_as) -> None:
     """Test update fails when user doesn't own task (via base filter)"""
     admin = get_user("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create a task owned by admin
-    task = Task(
+    # Create a task owned by admin using DAO
+    task = TaskDAO.create_task(
         task_type="test_type",
         task_key="forbidden_test",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task.created_by = admin
-    db.session.add(task)
+    task.set_status(TaskStatus.IN_PROGRESS)
     db.session.commit()
 
     try:
@@ -112,20 +120,23 @@ def test_update_task_forbidden(app_context, get_user, login_as) -> None:
         db.session.commit()
 
 
-def test_update_task_payload(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_update_task_payload(mock_get_user, app_context, get_user, login_as) -> None:
     """Test updating task payload"""
     admin = get_user("admin")
     login_as("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create a task
-    task = Task(
+    # Create a task using DAO
+    task = TaskDAO.create_task(
         task_type="test_type",
         task_key="payload_test",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
         payload='{"initial": "data"}',
     )
     task.created_by = admin
-    db.session.add(task)
+    task.set_status(TaskStatus.IN_PROGRESS)
     db.session.commit()
 
     try:
@@ -152,19 +163,22 @@ def test_update_task_payload(app_context, get_user, login_as) -> None:
         db.session.commit()
 
 
-def test_update_multiple_fields(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_update_multiple_fields(mock_get_user, app_context, get_user, login_as) -> None:
     """Test updating multiple task fields at once"""
     admin = get_user("admin")
     login_as("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create a task
-    task = Task(
+    # Create a task using DAO
+    task = TaskDAO.create_task(
         task_type="test_type",
         task_key="multiple_test",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task.created_by = admin
-    db.session.add(task)
+    task.set_status(TaskStatus.IN_PROGRESS)
     db.session.commit()
 
     try:
