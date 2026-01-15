@@ -28,6 +28,9 @@ import {
   QueryFormData,
   JsonObject,
   AnnotationLayer,
+  AnnotationType,
+  AnnotationSourceType,
+  AnnotationStyle,
 } from '@superset-ui/core';
 import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
@@ -188,7 +191,7 @@ describe('chart actions', () => {
       >);
     const getQuerySettingsStub = sinon
       .stub(exploreUtils, 'getQuerySettings')
-      .returns([false, () => {}]);
+      .returns([false, () => {}] as unknown as ReturnType<typeof exploreUtils.getQuerySettings>);
 
     try {
       const thunkAction = actions.exploreJSON(
@@ -199,7 +202,8 @@ describe('chart actions', () => {
       );
       const promise = thunkAction(
         dispatchMock as unknown as actions.ChartThunkDispatch,
-        getState as () => actions.RootState,
+        getState as unknown as () => actions.RootState,
+        undefined,
       );
 
       expect(abortSpy).not.toHaveBeenCalled();
@@ -250,7 +254,8 @@ describe('chart actions', () => {
       );
       await actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
-        mockGetState as () => actions.RootState,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
       );
 
       expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -341,7 +346,8 @@ describe('chart actions', () => {
 
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
-        mockGetState as () => actions.RootState,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
       ).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
@@ -354,7 +360,8 @@ describe('chart actions', () => {
       const actionThunk = actions.postChartFormData({} as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
-        mockGetState as () => actions.RootState,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
       ).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
@@ -367,7 +374,8 @@ describe('chart actions', () => {
       const actionThunk = actions.postChartFormData({} as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
-        mockGetState as () => actions.RootState,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
       ).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
@@ -380,7 +388,8 @@ describe('chart actions', () => {
       const actionThunk = actions.postChartFormData({} as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
-        mockGetState as () => actions.RootState,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
       ).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
@@ -397,7 +406,8 @@ describe('chart actions', () => {
       const actionThunk = actions.postChartFormData({} as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
-        mockGetState as () => actions.RootState,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
       ).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
@@ -421,7 +431,8 @@ describe('chart actions', () => {
 
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
-        mockGetState as () => actions.RootState,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
       ).then(() => {
         // chart update, trigger query, update form data, fail
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -447,7 +458,8 @@ describe('chart actions', () => {
 
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
-        mockGetState as () => actions.RootState,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
       ).then(() => {
         // chart update, trigger query, update form data, fail
         expect(dispatch.callCount).toBe(5);
@@ -475,7 +487,8 @@ describe('chart actions', () => {
 
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
-        mockGetState as () => actions.RootState,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
       ).then(() => {
         const types = dispatch.args
           .map((call: [{ type?: string }]) => call[0] && call[0].type)
@@ -518,13 +531,13 @@ describe('chart actions', () => {
     });
 
     test('should dispatch annotationQueryStarted and annotationQuerySuccess on successful query', async () => {
-      const annotation: AnnotationLayer = {
+      const annotation = {
         name: 'Holidays',
-        annotationType: 'EVENT',
-        sourceType: 'NATIVE',
+        annotationType: AnnotationType.Event,
+        sourceType: AnnotationSourceType.Native,
         color: null,
-        opacity: '',
-        style: 'solid',
+        opacity: undefined,
+        style: AnnotationStyle.Solid,
         width: 1,
         showMarkers: false,
         hideLine: false,
@@ -538,7 +551,7 @@ describe('chart actions', () => {
         descriptionColumns: [],
         timeColumn: '',
         intervalEndColumn: '',
-      };
+      } as AnnotationLayer;
       const key = undefined;
 
       const postSpy = jest.spyOn(SupersetClient, 'post');
@@ -553,7 +566,8 @@ describe('chart actions', () => {
       const queryFunc = actions.runAnnotationQuery({ annotation, key });
       await queryFunc(
         mockDispatch as unknown as actions.ChartThunkDispatch,
-        mockGetState as () => actions.RootState,
+        mockGetState as unknown as () => actions.RootState,
+        undefined,
       );
 
       expect(buildV1ChartDataPayloadSpy).toHaveBeenCalledWith({

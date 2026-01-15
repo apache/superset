@@ -300,7 +300,7 @@ class Chart extends PureComponent<ChartProps, {}> {
         isCurrentUserBot() ? (
           <ChartRenderer
             {...this.props}
-            source={this.props.dashboardId ? 'dashboard' : 'explore'}
+            source={this.props.dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
             data-test={this.props.vizType}
           />
         ) : (
