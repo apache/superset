@@ -108,8 +108,7 @@ export function migrateChartCustomization(
       },
       filterState: {
         ...defaultDataMask.filterState,
-        label:
-          defaultDataMask.filterState?.label || groupbyValue.join(', '),
+        label: defaultDataMask.filterState?.label || groupbyValue.join(', '),
         value: filterStateValue,
       },
     };
