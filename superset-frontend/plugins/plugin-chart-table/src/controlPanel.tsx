@@ -843,9 +843,6 @@ const config: ControlPanelConfig = {
       }),
       visibility: isAggMode,
     },
-    sections.matrixifyRowSection,
-    sections.matrixifyColumnSection,
-    sections.matrixifySection,
   ],
   formDataOverrides: formData => ({
     ...formData,
