@@ -128,7 +128,7 @@ describe('chart actions', () => {
         some_param: 'fake query!',
         result_type: 'full',
         result_format: 'json',
-      } as unknown as ReturnType<typeof exploreUtils.buildV1ChartDataPayload>);
+      } as unknown as Awaited<ReturnType<typeof exploreUtils.buildV1ChartDataPayload>>);
     fakeMetadata = { useLegacyApi: true };
     mockedGetChartMetadataRegistry.mockImplementation(
       () =>
@@ -555,8 +555,11 @@ describe('chart actions', () => {
       const key = undefined;
 
       const postSpy = jest.spyOn(SupersetClient, 'post');
-      postSpy.mockImplementation(() =>
-        Promise.resolve({ json: { result: [] } } as { json: JsonObject }),
+      postSpy.mockImplementation(
+        () =>
+          Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
+            typeof SupersetClient.post
+          >,
       );
       const buildV1ChartDataPayloadSpy = jest.spyOn(
         exploreUtils,
@@ -592,8 +595,11 @@ describe('chart actions timeout', () => {
 
   test('should use the timeout from arguments when given', async () => {
     const postSpy = jest.spyOn(SupersetClient, 'post');
-    postSpy.mockImplementation(() =>
-      Promise.resolve({ json: { result: [] } } as { json: JsonObject }),
+    postSpy.mockImplementation(
+      () =>
+        Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
+          typeof SupersetClient.post
+        >,
     );
     const timeout = 10; // Set the timeout value here
     const formData: Partial<QueryFormData> = { datasource: 'table__1' }; // Set the formData here
@@ -604,13 +610,13 @@ describe('chart actions timeout', () => {
       actions.runAnnotationQuery({
         annotation: {
           value: 'annotationValue',
-          sourceType: 'Event',
+          sourceType: AnnotationSourceType.Native,
           overrides: {},
         } as AnnotationLayer,
         timeout,
         formData: formData as QueryFormData,
         key,
-      }),
+      }) as unknown as actions.ChartThunkAction<Promise<void>>,
     );
 
     const expectedPayload = {
@@ -626,8 +632,11 @@ describe('chart actions timeout', () => {
 
   test('should use the timeout from common.conf when not passed as an argument', async () => {
     const postSpy = jest.spyOn(SupersetClient, 'post');
-    postSpy.mockImplementation(() =>
-      Promise.resolve({ json: { result: [] } } as { json: JsonObject }),
+    postSpy.mockImplementation(
+      () =>
+        Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
+          typeof SupersetClient.post
+        >,
     );
     const formData: Partial<QueryFormData> = { datasource: 'table__1' }; // Set the formData here
     const key = 'chartKey'; // Set the chart key here
@@ -637,13 +646,13 @@ describe('chart actions timeout', () => {
       actions.runAnnotationQuery({
         annotation: {
           value: 'annotationValue',
-          sourceType: 'Event',
+          sourceType: AnnotationSourceType.Native,
           overrides: {},
         } as AnnotationLayer,
         timeout: undefined,
         formData: formData as QueryFormData,
         key,
-      }),
+      }) as unknown as actions.ChartThunkAction<Promise<void>>,
     );
 
     const expectedPayload = {
