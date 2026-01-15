@@ -532,6 +532,10 @@ export default function transformProps(
       formatter: xAxisFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
+      ...(xAxisType === AxisType.Time && {
+        showMaxLabel: true,
+        alignMaxLabel: 'right',
+      }),
     },
     minorTick: { show: minorTicks },
     minInterval:
