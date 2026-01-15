@@ -556,9 +556,18 @@ Integration with platform features and metadata handling.
 | YDB | False | False | False | False |
 | base | False | False | True | False |
 
-## Documentation metadata
+## How to Add a New Database
 
-When adding a new database to Superset, you should include a `metadata` class attribute in your DB engine spec. This metadata is used to generate documentation and provide connection information to users. The metadata should include:
+Adding a new database to Superset involves creating a DB engine spec file with a `metadata` attribute. This metadata is used to generate documentation and provide connection information to users.
+
+### Quick Start
+
+1. **Create a new file** in `superset/db_engine_specs/` (e.g., `mydatabase.py`)
+2. **Add metadata** with required fields (description, category, pypi_packages, connection_string)
+3. **Run the linter** to verify completeness: `python superset/db_engine_specs/lint_metadata.py`
+4. **Add a logo** (optional) in `docs/static/img/databases/`
+
+### Minimal Example
 
 ```python
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
@@ -570,17 +579,49 @@ class MyDatabaseEngineSpec(BaseEngineSpec):
     metadata = {
         # Required fields
         "description": "A brief description of the database.",
-        "category": DatabaseCategory.TRADITIONAL_RDBMS,  # See categories below
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
         "pypi_packages": ["my-database-driver"],
         "connection_string": "mydatabase://{username}:{password}@{host}:{port}/{database}",
 
-        # Optional fields
-        "logo": "mydatabase.svg",  # Logo file in superset-frontend/src/assets/images
+        # Recommended fields
+        "logo": "mydatabase.svg",
         "homepage_url": "https://mydatabase.example.com/",
-        "docs_url": "https://mydatabase.example.com/docs",
         "default_port": 5432,
+    }
+```
+
+### Full Example with All Fields
+
+```python
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+
+class MyDatabaseEngineSpec(BaseEngineSpec):
+    engine = "mydatabase"
+    engine_name = "My Database"
+
+    metadata = {
+        # Required fields
+        "description": "A brief description of the database.",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["my-database-driver"],
+        "connection_string": "mydatabase://{username}:{password}@{host}:{port}/{database}",
+
+        # Recommended fields
+        "logo": "mydatabase.svg",  # Logo file in docs/static/img/databases/
+        "homepage_url": "https://mydatabase.example.com/",
+        "default_port": 5432,
+
+        # Optional fields
+        "docs_url": "https://mydatabase.example.com/docs",
         "notes": "Any special notes about configuration or usage.",
         "install_instructions": "pip install my-database-driver",
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "Hostname or IP address",
+            "port": "Port number (default: 5432)",
+            "database": "Database name",
+        },
         "connection_examples": [
             {
                 "description": "Local connection",
@@ -591,6 +632,14 @@ class MyDatabaseEngineSpec(BaseEngineSpec):
             {
                 "name": "OAuth2",
                 "description": "Token-based authentication",
+            },
+        ],
+        "drivers": [
+            {
+                "name": "Default Driver",
+                "pypi_package": "my-database-driver",
+                "connection_string": "mydatabase://...",
+                "is_recommended": True,
             },
         ],
         "compatible_databases": [
@@ -606,19 +655,60 @@ class MyDatabaseEngineSpec(BaseEngineSpec):
 
 Use constants from `DatabaseCategory` to categorize your database:
 
-- `DatabaseCategory.CLOUD_AWS` - AWS cloud services (Athena, Redshift, DynamoDB)
-- `DatabaseCategory.CLOUD_GCP` - Google Cloud services (BigQuery, Sheets)
-- `DatabaseCategory.CLOUD_AZURE` - Azure cloud services (Synapse, Kusto)
-- `DatabaseCategory.CLOUD_DATA_WAREHOUSES` - Cloud data warehouses (Snowflake, Databricks)
-- `DatabaseCategory.APACHE_PROJECTS` - Apache projects (Druid, Hive, Spark, Pinot)
-- `DatabaseCategory.TRADITIONAL_RDBMS` - Traditional databases (PostgreSQL, MySQL, Oracle)
-- `DatabaseCategory.ANALYTICAL_DATABASES` - Analytical/OLAP databases (ClickHouse, Presto)
-- `DatabaseCategory.SEARCH_NOSQL` - Search and NoSQL databases (Elasticsearch, Couchbase)
-- `DatabaseCategory.QUERY_ENGINES` - Query engines (Trino, Presto)
-- `DatabaseCategory.TIME_SERIES` - Time-series databases (TDengine)
-- `DatabaseCategory.OTHER` - Other databases
+| Category | Description | Examples |
+|----------|-------------|----------|
+| `CLOUD_AWS` | AWS cloud services | Athena, Redshift, DynamoDB |
+| `CLOUD_GCP` | Google Cloud services | BigQuery, Sheets |
+| `CLOUD_AZURE` | Azure cloud services | Synapse, Kusto |
+| `CLOUD_DATA_WAREHOUSES` | Cloud data warehouses | Snowflake, Databricks |
+| `APACHE_PROJECTS` | Apache projects | Druid, Hive, Spark, Pinot |
+| `TRADITIONAL_RDBMS` | Traditional databases | PostgreSQL, MySQL, Oracle |
+| `ANALYTICAL_DATABASES` | Analytical/OLAP databases | ClickHouse, StarRocks |
+| `SEARCH_NOSQL` | Search and NoSQL databases | Elasticsearch, Couchbase |
+| `QUERY_ENGINES` | Query engines | Trino, Presto |
+| `TIME_SERIES` | Time-series databases | TDengine, TimescaleDB |
+| `OTHER` | Other databases | - |
 
-This metadata centralizes all database documentation in one place, making it easier to add new databases with a single file change.
+### Metadata Completeness Linter
+
+A linter is available to check metadata completeness across all engine specs:
+
+```bash
+# Run the linter to see current status
+python superset/db_engine_specs/lint_metadata.py
+
+# Generate a markdown report
+python superset/db_engine_specs/lint_metadata.py --markdown
+
+# Output to a file
+python superset/db_engine_specs/lint_metadata.py --markdown -o METADATA_STATUS.md
+```
+
+The linter checks for:
+- **Required fields**: description, category, pypi_packages, connection_string
+- **Recommended fields**: logo, homepage_url, default_port
+
+See [METADATA_STATUS.md](METADATA_STATUS.md) for the current completeness report.
+
+### PostgreSQL-Compatible Databases
+
+If your database is PostgreSQL-compatible, inherit from `PostgresBaseEngineSpec`:
+
+```python
+from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+
+class MyPostgresCompatibleEngineSpec(PostgresBaseEngineSpec):
+    engine = "mydb"
+    engine_name = "My PostgreSQL-Compatible DB"
+
+    metadata = {
+        "description": "A PostgreSQL-compatible database.",
+        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "pypi_packages": ["psycopg2"],  # Uses the PostgreSQL driver
+        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+        "notes": "Uses the PostgreSQL driver. psycopg2 comes bundled with Superset.",
+    }
+```
 
 ## Database information
 
