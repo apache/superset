@@ -3051,7 +3051,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     operator=op,
                     target_generic_type=target_generic_type,
                     target_native_type=col_type,
-                    is_list_target=is_list_target,
+                    is_list_target=bool(is_list_target),
                     db_engine_spec=db_engine_spec,
                 )
 
