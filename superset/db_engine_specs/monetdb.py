@@ -31,7 +31,10 @@ class MonetDbEngineSpec(BaseEngineSpec):
     default_driver = "pymonetdb"
 
     metadata = {
-        "description": "MonetDB is an open-source column-oriented relational database for high-performance analytics.",
+        "description": (
+            "MonetDB is an open-source column-oriented relational database "
+            "for high-performance analytics."
+        ),
         "logo": "monet-db.png",
         "homepage_url": "https://www.monetdb.org/",
         "category": DatabaseCategory.TRADITIONAL_RDBMS,

@@ -271,8 +271,7 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
                 "pypi_package": "databricks-dbapi[sqlalchemy]",
                 "is_recommended": False,
                 "notes": (
-                    "Older connector. Try if having problems with "
-                    "official connector."
+                    "Older connector. Try if having problems with official connector."
                 ),
             },
             {

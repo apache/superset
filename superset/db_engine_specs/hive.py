@@ -98,7 +98,9 @@ class HiveEngineSpec(PrestoEngineSpec):
     supports_cross_catalog_queries = False
 
     metadata = {
-        "description": "Apache Hive is a data warehouse infrastructure built on Hadoop.",
+        "description": (
+            "Apache Hive is a data warehouse infrastructure built on Hadoop."
+        ),
         "logo": "apache-hive.svg",
         "homepage_url": "https://hive.apache.org/",
         "category": DatabaseCategory.APACHE_PROJECTS,

@@ -32,7 +32,8 @@ class FireboltEngineSpec(BaseEngineSpec):
 
     metadata = {
         "description": (
-            "Firebolt is a cloud data warehouse designed for high-performance analytics."
+            "Firebolt is a cloud data warehouse designed for "
+            "high-performance analytics."
         ),
         "logo": "firebolt.png",
         "homepage_url": "https://www.firebolt.io/",
