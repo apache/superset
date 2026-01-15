@@ -18,7 +18,11 @@
  */
 import { SyntheticEvent } from 'react';
 import { logging, t } from '@apache-superset/core';
-import { FeatureFlag, isFeatureEnabled, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  SupersetClient,
+} from '@superset-ui/core';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import contentDisposition from 'content-disposition';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';

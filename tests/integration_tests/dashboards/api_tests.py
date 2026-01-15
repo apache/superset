@@ -615,6 +615,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "can_read",
             "can_write",
             "can_export",
+            "can_export_as_example",
             "can_get_embedded",
             "can_delete_embedded",
             "can_set_embedded",
