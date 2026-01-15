@@ -22,6 +22,7 @@ import {
   getChartMetadataRegistry,
   VizType,
   JsonObject,
+  FeatureFlagMap,
 } from '@superset-ui/core';
 import ChartRenderer, {
   ChartRendererProps,
@@ -93,15 +94,15 @@ const requiredProps: Partial<ChartRendererProps> = {
 
 declare global {
   interface Window {
-    featureFlags: Record<string, boolean>;
+    featureFlags: FeatureFlagMap;
   }
 }
 
 beforeAll(() => {
-  window.featureFlags = { DRILL_TO_DETAIL: true };
+  window.featureFlags = { DRILL_TO_DETAIL: true } as FeatureFlagMap;
 });
 afterAll(() => {
-  window.featureFlags = {};
+  window.featureFlags = {} as FeatureFlagMap;
 });
 
 test('should render SuperChart', () => {

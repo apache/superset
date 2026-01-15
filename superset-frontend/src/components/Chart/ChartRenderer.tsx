@@ -32,6 +32,7 @@ import {
   JsonObject,
   LatestQueryFormData,
   AgGridChartState,
+  ContextMenuFilters,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
 import { t } from '@apache-superset/core/ui';
@@ -50,13 +51,6 @@ type FilterValue = string | number | boolean | null | undefined;
 // LegendState type based on ECharts
 interface LegendState {
   [name: string]: boolean;
-}
-
-// Types for context menu filters
-interface ContextMenuFilter {
-  col: string;
-  val: FilterValue | FilterValue[];
-  op?: string;
 }
 
 // Types for chart actions
@@ -153,7 +147,7 @@ interface ChartHooks {
   onContextMenu?: (
     offsetX: number,
     offsetY: number,
-    filters?: ContextMenuFilter[],
+    filters?: ContextMenuFilters,
   ) => void;
   onError: (error: Error, info: { componentStack: string } | null) => void;
   setControlValue: (name: string, value: unknown) => void;
@@ -379,7 +373,7 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
   handleOnContextMenu(
     offsetX: number,
     offsetY: number,
-    filters?: ContextMenuFilter[],
+    filters?: ContextMenuFilters,
   ): void {
     this.contextMenuRef.current?.open(offsetX, offsetY, filters);
     this.setState({ inContextMenu: true });
