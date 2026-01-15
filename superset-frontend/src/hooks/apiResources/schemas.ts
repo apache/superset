@@ -31,15 +31,25 @@ export type FetchSchemasQueryParams = {
   dbId?: string | number;
   catalog?: string;
   forceRefresh: boolean;
-  onSuccess?: (data: SchemaOption[], isRefetched: boolean) => void;
+  onSuccess?: (
+    data: SchemaOption[],
+    isRefetched: boolean,
+    defaultSchema: string | null,
+  ) => void;
   onError?: (error: ClientErrorObject) => void;
 };
 
 type Params = Omit<FetchSchemasQueryParams, 'forceRefresh'>;
 
+// Internal type for transformed API response
+type SchemasApiResponse = {
+  schemas: SchemaOption[];
+  defaultSchema: string | null;
+};
+
 const schemaApi = api.injectEndpoints({
   endpoints: builder => ({
-    schemas: builder.query<SchemaOption[], FetchSchemasQueryParams>({
+    schemas: builder.query<SchemasApiResponse, FetchSchemasQueryParams>({
       providesTags: [{ type: 'Schemas', id: 'LIST' }],
       query: ({ dbId, catalog, forceRefresh }) => ({
         endpoint: `/api/v1/database/${dbId}/schemas/`,
@@ -48,12 +58,14 @@ const schemaApi = api.injectEndpoints({
           force: forceRefresh,
           ...(catalog !== undefined && { catalog }),
         },
-        transformResponse: ({ json }: JsonResponse) =>
-          json.result.sort().map((value: string) => ({
+        transformResponse: ({ json }: JsonResponse) => ({
+          schemas: json.result.sort().map((value: string) => ({
             value,
             label: value,
             title: value,
           })),
+          defaultSchema: json.default ?? null,
+        }),
       }),
       serializeQueryArgs: ({ queryArgs: { dbId, catalog } }) => ({
         dbId,
@@ -98,7 +110,11 @@ export function useSchemas(options: Params) {
         trigger({ dbId, catalog, forceRefresh }).then(
           ({ isSuccess, isError, data }) => {
             if (isSuccess) {
-              onSuccess?.(data || EMPTY_SCHEMAS, forceRefresh);
+              onSuccess?.(
+                data?.schemas || EMPTY_SCHEMAS,
+                forceRefresh,
+                data?.defaultSchema ?? null,
+              );
             }
             if (isError) {
               onError?.(result.error as ClientErrorObject);
@@ -120,5 +136,7 @@ export function useSchemas(options: Params) {
   return {
     ...result,
     refetch,
+    data: result.currentData?.schemas,
+    defaultSchema: result.currentData?.defaultSchema ?? null,
   };
 }
