@@ -365,5 +365,7 @@ test('renders with hovered prop', () => {
     hovered: true,
   });
 
-  expect(container.querySelector('.InfoTooltip')).toBeInTheDocument();
+  expect(
+    container.querySelector('[data-test="info-tooltip-icon"]'),
+  ).toBeInTheDocument();
 });
