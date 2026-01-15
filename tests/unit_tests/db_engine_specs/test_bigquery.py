@@ -529,3 +529,61 @@ def test_get_view_names_excludes_materialized_views() -> None:
     assert "table_type = 'VIEW'" in executed_query
     # Ensure it's not querying for materialized views
     assert "MATERIALIZED VIEW" not in executed_query
+
+def test_handle_array_filter_bigquery() -> None:
+    """
+    Test handle_array_filter for BigQuery array columns and all supported operators.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.utils.core import FilterOperator
+
+    # Simulate a SQLAlchemy column with .key attribute
+    class FakeCol:
+        def __init__(self, key):
+            self.key = key
+
+    col = FakeCol("arr_col")
+
+    # CONTAINS (single value)
+    expr = BigQueryEngineSpec.handle_array_filter(col, FilterOperator.CONTAINS, [1])
+    assert str(expr) == "EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 1)"
+
+    # CONTAINS (multiple values)
+    expr = BigQueryEngineSpec.handle_array_filter(col, FilterOperator.CONTAINS, [1, 2])
+    assert str(expr) == (
+        "EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 1) "
+        "AND EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 2)"
+    )
+
+    # NOT_CONTAINS (single value)
+    expr = BigQueryEngineSpec.handle_array_filter(col, FilterOperator.NOT_CONTAINS, [1])
+    assert str(expr) == "NOT EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 1)"
+
+    # NOT_CONTAINS (multiple values)
+    expr = BigQueryEngineSpec.handle_array_filter(
+        col, FilterOperator.NOT_CONTAINS, [1, 2]
+    )
+    assert str(expr) == (
+        "NOT EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 1) "
+        "AND NOT EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 2)"
+    )
+
+    # EQUALS (exact array match)
+    expr = BigQueryEngineSpec.handle_array_filter(col, FilterOperator.EQUALS, [1, 2, 3])
+    assert str(expr) == (
+        "(ARRAY_LENGTH(`arr_col`) = 3 AND "
+        "`arr_col`[OFFSET(0)] = 1 AND "
+        "`arr_col`[OFFSET(1)] = 2 AND "
+        "`arr_col`[OFFSET(2)] = 3)"
+    )
+
+    # NOT_EQUALS (exact array mismatch)
+    expr = BigQueryEngineSpec.handle_array_filter(
+        col, FilterOperator.NOT_EQUALS, [1, 2, 3]
+    )
+    assert str(expr) == (
+        "(ARRAY_LENGTH(`arr_col`) != 3 OR "
+        "`arr_col`[OFFSET(0)] != 1 OR "
+        "`arr_col`[OFFSET(1)] != 2 OR "
+        "`arr_col`[OFFSET(2)] != 3)"
+    )

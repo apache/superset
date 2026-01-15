@@ -45,6 +45,8 @@ export enum Operators {
   IsTrue = 'IS_TRUE',
   IsFalse = 'IS_FALSE',
   TemporalRange = 'TEMPORAL_RANGE',
+  Contains = 'CONTAINS',
+  NotContains = 'NOT_CONTAINS',
 }
 
 export interface OperatorType {
@@ -88,6 +90,11 @@ export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
   [Operators.TemporalRange]: {
     display: t('TEMPORAL_RANGE'),
     operation: 'TEMPORAL_RANGE',
+  },
+  [Operators.Contains]: { display: t('Contains'), operation: 'CONTAINS' },
+  [Operators.NotContains]: {
+    display: t("Doesn't Contain"),
+    operation: 'NOT_CONTAINS',
   },
 };
 

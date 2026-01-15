@@ -3027,6 +3027,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 is_list_target = op in (
                     utils.FilterOperator.IN,
                     utils.FilterOperator.NOT_IN,
+                    utils.FilterOperator.CONTAINS,
+                    utils.FilterOperator.NOT_CONTAINS,
+                ) or (
+                    col_spec
+                    and col_spec.generic_type == GenericDataType.ARRAY
+                    and op
+                    in (
+                        utils.FilterOperator.EQUALS,
+                        utils.FilterOperator.NOT_EQUALS,
+                    )
                 )
 
                 col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
@@ -3091,6 +3101,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         cond = sqla_col.in_(eq)
                     if op == utils.FilterOperator.NOT_IN:
                         cond = ~cond
+                    elif op in {
+                        utils.FilterOperator.CONTAINS,
+                        utils.FilterOperator.NOT_CONTAINS,
+                        utils.FilterOperator.EQUALS,
+                        utils.FilterOperator.NOT_EQUALS,
+                    }:
+                        cond = db_engine_spec.handle_array_filter(sqla_col, op, eq)
                     target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IS_NULL,
