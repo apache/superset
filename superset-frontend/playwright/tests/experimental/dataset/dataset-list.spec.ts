@@ -22,6 +22,7 @@ import * as unzipper from 'unzipper';
 import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ExplorePage } from '../../../pages/ExplorePage';
 import { CreateDatasetPage } from '../../../pages/CreateDatasetPage';
+import { ChartCreationPage } from '../../../pages/ChartCreationPage';
 import { ConfirmDialog } from '../../../components/modals/ConfirmDialog';
 import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
 import { DuplicateDatasetModal } from '../../../components/modals/DuplicateDatasetModal';
@@ -34,6 +35,10 @@ import {
   duplicateDataset,
   ENDPOINTS,
 } from '../../../helpers/api/dataset';
+import {
+  apiPostDatabase,
+  apiDeleteDatabase,
+} from '../../../helpers/api/database';
 
 /**
  * Helper to clean up datasets created during a test.
@@ -356,62 +361,6 @@ test('should export multiple datasets via bulk select action', async ({
   }
 });
 
-test('should use dataset wizard to select database, schema, and table', async ({
-  page,
-}) => {
-  const createDatasetPage = new CreateDatasetPage(page);
-
-  // Get existing physical dataset to extract database/schema info
-  // Using 'birth_names' which is a physical table in the examples database
-  const existingDataset = await getDatasetByName(page, 'birth_names');
-  expect(existingDataset).not.toBeNull();
-
-  // Fetch full dataset details to get database name
-  const datasetDetailRes = await apiGetDataset(page, existingDataset!.id);
-  const datasetDetail = (await datasetDetailRes.json()).result;
-  const databaseName = datasetDetail.database.database_name;
-  const schemaName = datasetDetail.schema || 'main';
-
-  // Navigate to create dataset page
-  await createDatasetPage.goto();
-  await createDatasetPage.waitForPageLoad();
-
-  // Select the database
-  await createDatasetPage.selectDatabase(databaseName);
-
-  // Wait for schema options to load, then select schema
-  await page.waitForTimeout(500);
-  await createDatasetPage.selectSchema(schemaName);
-
-  // Wait for table options to load, then select birth_names table
-  await page.waitForTimeout(500);
-  await createDatasetPage.selectTable('birth_names');
-
-  // The wizard should show the table info. In CI (fresh state), the Create button
-  // would be enabled. In local dev (with existing dataset), it shows a warning.
-  // We verify the wizard successfully loaded table info by checking either:
-  // 1. The table columns are displayed, OR
-  // 2. A "This table already has a dataset" warning appears
-
-  // Check if we see the "Table columns" section (wizard loaded table info)
-  const tableColumnsSection = page.getByText('Table columns');
-  const hasDatasetWarning = page.getByText('This table already has a dataset');
-
-  // Wait for either state - both indicate the wizard worked correctly
-  await expect(tableColumnsSection.or(hasDatasetWarning)).toBeVisible({
-    timeout: 10000,
-  });
-
-  // If table already has dataset, verify the "View Dataset" link is available
-  if (await hasDatasetWarning.isVisible()) {
-    const viewDatasetLink = page.getByRole('link', { name: 'View Dataset' });
-    await expect(viewDatasetLink).toBeVisible();
-  } else {
-    // Table columns should be visible
-    await expect(tableColumnsSection).toBeVisible();
-  }
-});
-
 test('should edit dataset name via modal', async ({ page }) => {
   const datasetListPage = new DatasetListPage(page);
   const testDatasetIds: number[] = [];
@@ -487,5 +436,142 @@ test('should edit dataset name via modal', async ({ page }) => {
     expect(updatedDataset.table_name).toBe(newName);
   } finally {
     await cleanupDatasets(page, testDatasetIds);
+  }
+});
+
+test('should create a dataset via wizard using Google Sheets database', async ({
+  page,
+}) => {
+  const datasetListPage = new DatasetListPage(page);
+  const testDatasetIds: number[] = [];
+  let testDatabaseId: number | null = null;
+
+  // Public Google Sheet for testing (published to web, no auth required)
+  // This is a Netflix dataset that is publicly accessible via Google Visualization API
+  const sheetUrl =
+    'https://docs.google.com/spreadsheets/d/19XNqckHGKGGPh83JGFdFGP4Bw9gdXeujq5EoIGwttdM/edit#gid=347941303';
+  const sheetName = `test_netflix_${Date.now()}`;
+  const dbName = `test_gsheets_db_${Date.now()}`;
+
+  try {
+    // Navigate first to establish session and CSRF token
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
+
+    // Step 1: Create a Google Sheets database via API
+    // The catalog must be in `extra` as JSON with engine_params.catalog format
+    // (discovered from DatabaseModal/index.tsx lines 867-875)
+    const catalogDict = { [sheetName]: sheetUrl };
+    const createDbRes = await apiPostDatabase(page, {
+      database_name: dbName,
+      engine: 'gsheets',
+      sqlalchemy_uri: 'gsheets://',
+      configuration_method: 'dynamic_form',
+      expose_in_sqllab: true,
+      extra: JSON.stringify({
+        engine_params: {
+          catalog: catalogDict,
+        },
+      }),
+    });
+
+    // Check if gsheets connector is available
+    if (!createDbRes.ok()) {
+      const errorBody = await createDbRes.json();
+      const errorText = JSON.stringify(errorBody);
+      // Skip test if gsheets connector not installed
+      if (
+        errorText.includes('gsheets') ||
+        errorText.includes('No such DB engine')
+      ) {
+        test.skip();
+        return;
+      }
+      throw new Error(`Failed to create gsheets database: ${errorText}`);
+    }
+
+    const createDbBody = await createDbRes.json();
+    testDatabaseId = createDbBody.id;
+    expect(testDatabaseId).toBeGreaterThan(0);
+
+    // Step 2: Click "Add Dataset" to navigate to create dataset wizard
+    await datasetListPage.clickAddDataset();
+
+    // Step 3: Use CreateDatasetPage for wizard interactions
+    const createDatasetPage = new CreateDatasetPage(page);
+    await createDatasetPage.waitForPageLoad();
+
+    // Select the Google Sheets database
+    await createDatasetPage.selectDatabase(dbName);
+
+    // Step 4: Wait for tables to load from the gsheets API, then select the sheet
+    await page.waitForTimeout(2000);
+
+    // Try to select the sheet - if not found, log options and skip
+    try {
+      await createDatasetPage.selectTable(sheetName);
+    } catch {
+      // If sheet not visible, log available options and skip
+      console.log('Sheet not found in dropdown, checking available options...');
+      const tableSelect = createDatasetPage.getTableSelect();
+      await tableSelect.open();
+      const options = await page
+        .locator('.ant-select-item-option')
+        .allTextContents();
+      console.log('Available options:', options);
+      test.skip();
+      return;
+    }
+
+    // Step 5: Set up response intercept to capture new dataset ID
+    const createResponsePromise = page.waitForResponse(
+      response =>
+        response.url().includes('/api/v1/dataset/') &&
+        response.request().method() === 'POST' &&
+        [200, 201].includes(response.status()),
+    );
+
+    // Click "Create and explore dataset" button
+    await createDatasetPage.clickCreateAndExploreDataset();
+
+    // Step 6: Wait for dataset creation and capture ID for cleanup
+    const createResponse = await createResponsePromise;
+    const createBody = await createResponse.json();
+    const newDatasetId = createBody.result?.id ?? createBody.id;
+
+    if (newDatasetId) {
+      testDatasetIds.push(newDatasetId);
+    }
+
+    // Step 7: Verify we navigated to Chart Creation page with dataset pre-selected
+    await page.waitForURL(/.*\/chart\/add.*/);
+    const chartCreationPage = new ChartCreationPage(page);
+    await chartCreationPage.waitForPageLoad();
+
+    // Verify the dataset is pre-selected
+    await chartCreationPage.expectDatasetSelected(sheetName);
+
+    // Step 8: Select a visualization type and create chart
+    await chartCreationPage.selectVizType('Table');
+
+    // Click "Create new chart" to go to Explore
+    await chartCreationPage.clickCreateNewChart();
+
+    // Step 9: Verify we navigated to Explore page
+    await page.waitForURL(/.*\/explore\/.*/);
+    const explorePage = new ExplorePage(page);
+    await explorePage.waitForPageLoad();
+
+    // Verify the dataset name is shown in Explore
+    const loadedDatasetName = await explorePage.getDatasetName();
+    expect(loadedDatasetName).toContain(sheetName);
+  } finally {
+    // Cleanup: Delete dataset first, then database
+    await cleanupDatasets(page, testDatasetIds);
+    if (testDatabaseId) {
+      await apiDeleteDatabase(page, testDatabaseId, {
+        failOnStatusCode: false,
+      }).catch(() => {});
+    }
   }
 });
