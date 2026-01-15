@@ -29,6 +29,7 @@ import {
   recordAutoRefreshSuccess,
   recordAutoRefreshError,
   setAutoRefreshFetchStartTime,
+  setAutoRefreshPauseOnInactiveTab,
 } from '../actions/autoRefresh';
 
 interface RootState {
@@ -189,6 +190,13 @@ export const useRealTimeDashboard = () => {
     [dispatch],
   );
 
+  const setPauseOnInactiveTab = useCallback(
+    (pauseOnInactiveTab: boolean) => {
+      dispatch(setAutoRefreshPauseOnInactiveTab(pauseOnInactiveTab));
+    },
+    [dispatch],
+  );
+
   return useMemo(
     () => ({
       // State
@@ -209,6 +217,7 @@ export const useRealTimeDashboard = () => {
       recordSuccess,
       recordError,
       setFetchStartTime,
+      setPauseOnInactiveTab,
     }),
     [
       isRealTimeDashboard,
@@ -227,6 +236,7 @@ export const useRealTimeDashboard = () => {
       recordSuccess,
       recordError,
       setFetchStartTime,
+      setPauseOnInactiveTab,
     ],
   );
 };

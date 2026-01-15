@@ -19,12 +19,16 @@
 import { useState } from 'react';
 import { t } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { Form } from '@superset-ui/core/components';
+import { Form, Checkbox } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
 import { RefreshFrequencySelect } from './RefreshFrequency/RefreshFrequencySelect';
 
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
+`;
+
+const CheckboxFormItem = styled(Form.Item)`
+  padding-top: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 interface RefreshIntervalModalProps {
@@ -34,6 +38,8 @@ interface RefreshIntervalModalProps {
   onChange: (refreshLimit: number, editMode: boolean) => void;
   editMode: boolean;
   addSuccessToast: (msg: string) => void;
+  pauseOnInactiveTab: boolean;
+  onPauseOnInactiveTabChange: (checked: boolean) => void;
 }
 
 /**
@@ -47,8 +53,12 @@ const RefreshIntervalModal = ({
   onChange,
   editMode,
   addSuccessToast,
+  pauseOnInactiveTab,
+  onPauseOnInactiveTabChange,
 }: RefreshIntervalModalProps) => {
   const [refreshFrequency, setRefreshFrequency] = useState(initialFrequency);
+  const [localPauseOnInactiveTab, setLocalPauseOnInactiveTab] =
+    useState(pauseOnInactiveTab);
 
   const handleFrequencyChange = (value: number) => {
     setRefreshFrequency(value);
@@ -56,6 +66,7 @@ const RefreshIntervalModal = ({
 
   const handleSave = () => {
     onChange(refreshFrequency, editMode);
+    onPauseOnInactiveTabChange(localPauseOnInactiveTab);
     onHide();
     addSuccessToast(
       editMode
@@ -66,6 +77,7 @@ const RefreshIntervalModal = ({
 
   const handleCancel = () => {
     setRefreshFrequency(initialFrequency);
+    setLocalPauseOnInactiveTab(pauseOnInactiveTab);
     onHide();
   };
 
@@ -93,6 +105,14 @@ const RefreshIntervalModal = ({
               onChange={handleFrequencyChange}
             />
           </Form.Item>
+          <CheckboxFormItem>
+            <Checkbox
+              checked={localPauseOnInactiveTab}
+              onChange={e => setLocalPauseOnInactiveTab(e.target.checked)}
+            >
+              {t('Pause auto refresh if tab is inactive')}
+            </Checkbox>
+          </CheckboxFormItem>
         </Form>
       </ModalContent>
     </StandardModal>

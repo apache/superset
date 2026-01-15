@@ -229,6 +229,8 @@ const Header = () => {
     recordSuccess,
     recordError,
     setFetchStartTime,
+    autoRefreshPauseOnInactiveTab,
+    setPauseOnInactiveTab,
   } = useRealTimeDashboard();
 
   const { startAutoRefresh, endAutoRefresh, setRefreshInFlight } =
@@ -1050,6 +1052,8 @@ const Header = () => {
           onChange={handleRefreshChange}
           editMode={editMode}
           addSuccessToast={boundActionCreators.addSuccessToast}
+          pauseOnInactiveTab={autoRefreshPauseOnInactiveTab}
+          onPauseOnInactiveTabChange={setPauseOnInactiveTab}
         />
       )}
 

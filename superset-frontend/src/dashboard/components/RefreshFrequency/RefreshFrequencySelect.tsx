@@ -33,7 +33,7 @@ const StyledRadioGroup = styled(Radio.Group)`
     margin-bottom: ${({ theme }) => theme.sizeUnit * 0.5}px;
 
     &:last-child {
-      margin-bottom: 0;
+      margin-bottom: ${({ theme }) => theme.sizeUnit}px;
     }
   }
 `;
