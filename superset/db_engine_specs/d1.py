@@ -17,10 +17,11 @@
 
 from __future__ import annotations
 
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.db_engine_specs.base import DatabaseCategory
+from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
 
-class CloudflareD1EngineSpec(BaseEngineSpec):
+class CloudflareD1EngineSpec(SqliteEngineSpec):
     """Engine spec for Cloudflare D1 serverless SQLite database."""
 
     engine = "d1"

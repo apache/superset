@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
@@ -26,6 +27,18 @@ class ArcEngineSpec(BaseEngineSpec):
     engine = "arc"
     engine_name = "Arc"
     default_driver = "arrow"
+
+    _time_grain_expressions = {
+        None: "{col}",
+        TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
+        TimeGrain.MINUTE: "DATE_TRUNC('minute', {col})",
+        TimeGrain.HOUR: "DATE_TRUNC('hour', {col})",
+        TimeGrain.DAY: "DATE_TRUNC('day', {col})",
+        TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
+        TimeGrain.MONTH: "DATE_TRUNC('month', {col})",
+        TimeGrain.QUARTER: "DATE_TRUNC('quarter', {col})",
+        TimeGrain.YEAR: "DATE_TRUNC('year', {col})",
+    }
 
     metadata = {
         "description": "Arc is a data platform with multiple connection options.",
