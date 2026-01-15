@@ -282,6 +282,8 @@ function start() {
   );
 }
 
+let started = false;
+
 window.addEventListener('message', function embeddedChartInitializer(event) {
   try {
     validateMessageEvent(event);
@@ -290,6 +292,21 @@ window.addEventListener('message', function embeddedChartInitializer(event) {
     return;
   }
 
+  // Simple direct guestToken message (no Switchboard required)
+  if (event.data.guestToken && !event.data.handshake) {
+    log('received direct guestToken message');
+    setupGuestClient(event.data.guestToken);
+    if (!started) {
+      started = true;
+      start().catch(err => {
+        logging.error('Failed to start after receiving guestToken', err);
+        started = false;
+      });
+    }
+    return;
+  }
+
+  // Switchboard-based communication (with MessagePort)
   const port = event.ports?.[0];
   if (event.data.handshake === 'port transfer' && port) {
     log('message port received', event);
@@ -299,8 +316,6 @@ window.addEventListener('message', function embeddedChartInitializer(event) {
       name: 'superset-embedded-chart',
       debug: debugMode,
     });
-
-    let started = false;
 
     Switchboard.defineMethod(
       'guestToken',
