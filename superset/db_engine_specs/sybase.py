@@ -33,7 +33,9 @@ class SybaseEngineSpec(MssqlEngineSpec):
     default_driver = "pyodbc"
 
     metadata = {
-        "description": "SAP ASE (formerly Sybase) is an enterprise relational database.",
+        "description": (
+            "SAP ASE (formerly Sybase) is an enterprise relational database."
+        ),
         "logo": "sybase.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
         "category": DatabaseCategory.OTHER,

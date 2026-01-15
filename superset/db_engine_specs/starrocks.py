@@ -100,7 +100,8 @@ class StarRocksEngineSpec(MySQLEngineSpec):
 
     metadata = {
         "description": (
-            "StarRocks is a high-performance analytical database for real-time analytics."
+            "StarRocks is a high-performance analytical database "
+            "for real-time analytics."
         ),
         "logo": "starrocks.png",
         "homepage_url": "https://www.starrocks.io/",

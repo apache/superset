@@ -135,7 +135,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         ],
         "notes": (
             "Schema is not required in connection string. "
-            "Ensure user has privileges for all databases/schemas/tables/views/warehouses."
+            "Ensure user has privileges for all "
+            "databases/schemas/tables/views/warehouses."
         ),
         "docs_url": "https://docs.snowflake.com/en/user-guide/key-pair-auth.html",
     }
