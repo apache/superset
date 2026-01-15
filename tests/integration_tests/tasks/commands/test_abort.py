@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest.mock import patch
+
 import pytest
-from superset_core.api.tasks import TaskStatus
+from superset_core.api.tasks import TaskScope, TaskStatus
 
 from superset import db
 from superset.commands.tasks import AbortTaskCommand
@@ -24,22 +26,24 @@ from superset.commands.tasks.exceptions import (
     TaskAbortFailedError,
     TaskNotFoundError,
 )
-from superset.models.tasks import Task
+from superset.daos.tasks import TaskDAO
 
 
-def test_abort_task_success(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_abort_task_success(mock_get_user, app_context, get_user, login_as) -> None:
     """Test successful task abortlation"""
     admin = get_user("admin")
     login_as("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create a pending task
-    task = Task(
+    # Create a pending task using DAO
+    task = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_abort_success",
-        status=TaskStatus.PENDING.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task.created_by = admin
-    db.session.add(task)
     db.session.commit()
 
     try:
@@ -60,19 +64,22 @@ def test_abort_task_success(app_context, get_user, login_as) -> None:
         db.session.commit()
 
 
-def test_abort_in_progress_task(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_abort_in_progress_task(mock_get_user, app_context, get_user, login_as) -> None:
     """Test aborting an in-progress task"""
     admin = get_user("admin")
     login_as("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create an in-progress task
-    task = Task(
+    # Create an in-progress task using DAO
+    task = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_abort_in_progress",
-        status=TaskStatus.IN_PROGRESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task.created_by = admin
-    db.session.add(task)
+    task.set_status(TaskStatus.IN_PROGRESS)
     db.session.commit()
 
     try:
@@ -104,18 +111,20 @@ def test_abort_task_not_found(app_context, login_as) -> None:
         command.run()
 
 
-def test_abort_task_forbidden(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_abort_task_forbidden(mock_get_user, app_context, get_user, login_as) -> None:
     """Test abort fails when user doesn't own task (via base filter)"""
     admin = get_user("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create a task owned by admin
-    task = Task(
+    # Create a task owned by admin using DAO
+    task = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_abort_forbidden",
-        status=TaskStatus.PENDING.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task.created_by = admin
-    db.session.add(task)
     db.session.commit()
 
     try:
@@ -138,19 +147,24 @@ def test_abort_task_forbidden(app_context, get_user, login_as) -> None:
         db.session.commit()
 
 
-def test_abort_task_already_finished(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_abort_task_already_finished(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
     """Test abort fails when task already finished"""
     admin = get_user("admin")
     login_as("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create a successful (finished) task
-    task = Task(
+    # Create a successful (finished) task using DAO
+    task = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_abort_finished",
-        status=TaskStatus.SUCCESS.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task.created_by = admin
-    db.session.add(task)
+    task.set_status(TaskStatus.SUCCESS)
     db.session.commit()
 
     try:
@@ -169,19 +183,24 @@ def test_abort_task_already_finished(app_context, get_user, login_as) -> None:
         db.session.commit()
 
 
-def test_abort_task_already_aborted(app_context, get_user, login_as) -> None:
+@patch("superset.tasks.utils.get_current_user")
+def test_abort_task_already_aborted(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
     """Test abort fails when task already aborted"""
     admin = get_user("admin")
     login_as("admin")
+    mock_get_user.return_value = admin.username
 
-    # Create an already aborted task
-    task = Task(
+    # Create an already aborted task using DAO
+    task = TaskDAO.create_task(
         task_type="test_type",
         task_key="test_abort_already_aborted",
-        status=TaskStatus.ABORTED.value,
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
     )
     task.created_by = admin
-    db.session.add(task)
+    task.set_status(TaskStatus.ABORTED)
     db.session.commit()
 
     try:
