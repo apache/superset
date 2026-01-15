@@ -15,7 +15,7 @@
     "serve": "yarn run _init && docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
-    "typecheck": "yarn run generate:extension-components && tsc",
+    "typecheck": "yarn run generate:extension-components && yarn run generate:database-docs && tsc",
     "generate:extension-components": "node scripts/generate-extension-components.mjs",
     "generate:database-docs": "node scripts/generate-database-docs.mjs",
     "lint:db-metadata": "python3 ../superset/db_engine_specs/lint_metadata.py",
