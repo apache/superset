@@ -856,7 +856,7 @@ test('should apply connectNulls to time comparison series', () => {
   expect(comparisonSeries.connectNulls).toBe(true);
 });
 
-test('should apply dashed line style for non-Values comparison types', () => {
+test('should not apply dashed line style for non-Values comparison types', () => {
   const queriesDataWithTimeCompare = [
     {
       data: [
@@ -884,7 +884,7 @@ test('should apply dashed line style for non-Values comparison types', () => {
   const comparisonSeries = series.find(s => s.name === '1 week ago');
 
   expect(comparisonSeries).toBeDefined();
-  // Comparison series should have a visible dash pattern array [dash, gap]
-  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(true);
-  expect(comparisonSeries.connectNulls).toBe(true);
+  // Non-Values comparison types don't get dashed styling (isDerivedSeries returns false)
+  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(false);
+  expect(comparisonSeries.connectNulls).toBeFalsy();
 });
