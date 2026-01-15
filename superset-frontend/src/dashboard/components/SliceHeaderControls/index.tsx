@@ -564,12 +564,8 @@ const SliceHeaderControls = (
           <Icons.EllipsisOutlined
             css={css`
               transform: rotate(90deg);
-              &:hover {
-                cursor: pointer;
-              }
             `}
             iconSize="xl"
-            iconColor={theme.colorTextLabel}
             className="dot"
           />
         </Button>

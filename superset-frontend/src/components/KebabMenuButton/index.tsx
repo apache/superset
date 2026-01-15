@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/ui';
 import { Dropdown, Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { MenuItem } from '@superset-ui/core/components/Menu';
@@ -60,7 +60,7 @@ export interface KebabMenuButtonProps {
    */
   overlayStyle?: React.CSSProperties;
   /**
-   * Optional: Dropdown placement
+   * Optional: Dropdown placement (defaults to Ant Design's 'bottomLeft' if not specified)
    */
   placement?:
     | 'bottomLeft'
@@ -94,33 +94,19 @@ export function KebabMenuButton({
   buttonStyle,
   buttonCss,
   overlayStyle,
-  placement = 'bottomRight',
+  placement,
   iconOrientation = 'horizontal',
 }: KebabMenuButtonProps) {
-  const theme = useTheme();
-
   const defaultIcon =
     iconOrientation === 'vertical' ? (
       <Icons.EllipsisOutlined
         css={css`
           transform: rotate(90deg);
-          &:hover {
-            cursor: pointer;
-          }
         `}
         iconSize="xl"
-        iconColor={theme.colorTextLabel}
       />
     ) : (
-      <Icons.MoreOutlined
-        iconSize="xl"
-        iconColor={theme.colorTextLabel}
-        css={css`
-          &:hover {
-            cursor: pointer;
-          }
-        `}
-      />
+      <Icons.MoreOutlined iconSize="xl" />
     );
 
   return (
