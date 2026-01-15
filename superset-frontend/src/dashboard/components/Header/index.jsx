@@ -94,8 +94,7 @@ import isDashboardLoading from '../../util/isDashboardLoading';
 import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
 import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
-import AutoRefreshStatus from '../AutoRefreshStatus';
-import AutoRefreshControls from '../AutoRefreshControls';
+import AutoRefreshIndicator from '../AutoRefreshIndicator';
 import { useRealTimeDashboard } from '../../hooks/useRealTimeDashboard';
 import { useAutoRefreshTabPause } from '../../hooks/useAutoRefreshTabPause';
 import { useAutoRefreshContext } from '../../contexts/AutoRefreshContext';
@@ -819,6 +818,13 @@ const Header = () => {
   const titlePanelAdditionalItems = useMemo(
     () => [
       !editMode && (
+        <AutoRefreshIndicator
+          key="auto-refresh-indicator"
+          onTogglePause={handlePauseToggle}
+          onRefresh={forceRefresh}
+        />
+      ),
+      !editMode && (
         <PublishedStatus
           key="published-status"
           dashboardId={dashboardInfo.id}
@@ -827,16 +833,6 @@ const Header = () => {
           userCanEdit={userCanEdit}
           userCanSave={userCanSaveAs}
           visible={!editMode}
-        />
-      ),
-      // Auto-refresh status indicator (only for real-time dashboards)
-      !editMode && <AutoRefreshStatus key="auto-refresh-status" />,
-      // Auto-refresh pause/resume controls (only for real-time dashboards)
-      !editMode && (
-        <AutoRefreshControls
-          key="auto-refresh-controls"
-          onTogglePause={handlePauseToggle}
-          isLoading={isLoading}
         />
       ),
       !editMode && !isEmbedded && metadataBar,
@@ -851,7 +847,7 @@ const Header = () => {
       userCanEdit,
       userCanSaveAs,
       handlePauseToggle,
-      isLoading,
+      forceRefresh,
     ],
   );
 
