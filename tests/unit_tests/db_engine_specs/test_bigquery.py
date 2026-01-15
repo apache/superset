@@ -546,31 +546,46 @@ def test_handle_array_filter_bigquery() -> None:
 
     # CONTAINS (single value)
     expr = BigQueryEngineSpec.handle_array_filter(col, FilterOperator.CONTAINS, [1])
-    assert str(expr) == "EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 1)"
+    compiled = str(
+        expr.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
+    )
+    assert compiled == "EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 1)"
 
     # CONTAINS (multiple values)
     expr = BigQueryEngineSpec.handle_array_filter(col, FilterOperator.CONTAINS, [1, 2])
-    assert str(expr) == (
+    compiled = str(
+        expr.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
+    )
+    assert compiled == (
         "EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 1) "
         "AND EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 2)"
     )
 
     # NOT_CONTAINS (single value)
     expr = BigQueryEngineSpec.handle_array_filter(col, FilterOperator.NOT_CONTAINS, [1])
-    assert str(expr) == "NOT EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 1)"
+    compiled = str(
+        expr.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
+    )
+    assert compiled == "NOT EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 1)"
 
     # NOT_CONTAINS (multiple values)
     expr = BigQueryEngineSpec.handle_array_filter(
         col, FilterOperator.NOT_CONTAINS, [1, 2]
     )
-    assert str(expr) == (
+    compiled = str(
+        expr.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
+    )
+    assert compiled == (
         "NOT EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 1) "
         "AND NOT EXISTS (SELECT 1 FROM UNNEST(`arr_col`) AS x WHERE x = 2)"
     )
 
     # EQUALS (exact array match)
     expr = BigQueryEngineSpec.handle_array_filter(col, FilterOperator.EQUALS, [1, 2, 3])
-    assert str(expr) == (
+    compiled = str(
+        expr.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
+    )
+    assert compiled == (
         "(ARRAY_LENGTH(`arr_col`) = 3 AND "
         "`arr_col`[OFFSET(0)] = 1 AND "
         "`arr_col`[OFFSET(1)] = 2 AND "
@@ -581,7 +596,10 @@ def test_handle_array_filter_bigquery() -> None:
     expr = BigQueryEngineSpec.handle_array_filter(
         col, FilterOperator.NOT_EQUALS, [1, 2, 3]
     )
-    assert str(expr) == (
+    compiled = str(
+        expr.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
+    )
+    assert compiled == (
         "(ARRAY_LENGTH(`arr_col`) != 3 OR "
         "`arr_col`[OFFSET(0)] != 1 OR "
         "`arr_col`[OFFSET(1)] != 2 OR "
