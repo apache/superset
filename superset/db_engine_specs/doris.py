@@ -122,7 +122,9 @@ class DorisEngineSpec(MySQLEngineSpec):
     supports_cross_catalog_queries = False
 
     metadata = {
-        "description": "Apache Doris is a high-performance real-time analytical database.",
+        "description": (
+            "Apache Doris is a high-performance real-time analytical database."
+        ),
         "logo": "doris.png",
         "homepage_url": "https://doris.apache.org/",
         "category": DatabaseCategory.APACHE_PROJECTS,

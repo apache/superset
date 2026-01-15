@@ -31,7 +31,10 @@ class GreenplumEngineSpec(PostgresEngineSpec):
     default_driver = "psycopg2"
 
     metadata = {
-        "description": "VMware Greenplum is a massively parallel processing (MPP) database built on PostgreSQL.",
+        "description": (
+            "VMware Greenplum is a massively parallel processing (MPP) "
+            "database built on PostgreSQL."
+        ),
         "logo": "greenplum.png",
         "homepage_url": "https://greenplum.org/",
         "category": DatabaseCategory.TRADITIONAL_RDBMS,

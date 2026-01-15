@@ -81,7 +81,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     allows_alias_to_source_column = False
 
     metadata = {
-        "description": "Trino is a distributed SQL query engine for big data analytics.",
+        "description": (
+            "Trino is a distributed SQL query engine for big data analytics."
+        ),
         "logo": "trino.png",
         "homepage_url": "https://trino.io/",
         "category": DatabaseCategory.QUERY_ENGINES,

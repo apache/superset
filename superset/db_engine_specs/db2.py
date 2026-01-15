@@ -48,7 +48,10 @@ class Db2EngineSpec(BaseEngineSpec):
                 "name": "ibm_db_sa (without LIMIT syntax)",
                 "connection_string": "ibm_db_sa://{username}:{password}@{hostname}:{port}/{database}",
                 "is_recommended": False,
-                "notes": "Use for older DB2 versions without LIMIT [n] syntax. Recommended for SQL Lab.",
+                "notes": (
+                    "Use for older DB2 versions without LIMIT [n] syntax. "
+                    "Recommended for SQL Lab."
+                ),
             },
         ],
         "docs_url": "https://github.com/ibmdb/python-ibmdbsa",

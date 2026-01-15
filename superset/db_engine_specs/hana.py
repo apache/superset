@@ -30,7 +30,10 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
     engine_name = "SAP HANA"
 
     metadata = {
-        "description": "SAP HANA is an in-memory relational database and application platform.",
+        "description": (
+            "SAP HANA is an in-memory relational database "
+            "and application platform."
+        ),
         "logo": "sap-hana.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/hana.html",
         "category": DatabaseCategory.OTHER,

@@ -130,7 +130,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     sqlalchemy_uri_placeholder = "bigquery://{project_id}"
 
     metadata = {
-        "description": "Google BigQuery is a serverless, highly scalable data warehouse.",
+        "description": (
+            "Google BigQuery is a serverless, highly scalable data warehouse."
+        ),
         "logo": "google-big-query.svg",
         "homepage_url": "https://cloud.google.com/bigquery/",
         "category": "Cloud - Google",
@@ -160,8 +162,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             },
         ],
         "notes": (
-            "Create a Service Account via GCP console with access to BigQuery datasets. "
-            "For CSV/Excel uploads, also install pandas_gbq."
+            "Create a Service Account via GCP console with access to "
+            "BigQuery datasets. For CSV/Excel uploads, also install pandas_gbq."
         ),
         "warnings": [
             "Google BigQuery Python SDK is not compatible with gevent. "
