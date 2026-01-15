@@ -5,10 +5,10 @@ It tracks which database engine specs have complete metadata.
 
 ## Summary
 
-- **Total engine specs:** 74
-- **With metadata:** 59 (79%)
-- **All required fields:** 54 (72%)
-- **Average completeness:** 64.3%
+- **Total engine specs:** 79
+- **With metadata:** 64 (81%)
+- **All required fields:** 59 (74%)
+- **Average completeness:** 65.4%
 
 ## Required Fields
 
@@ -43,11 +43,13 @@ These fields should be in every engine spec's `metadata` attribute:
 | Ascend | ascend.py | 60% | ✓ | default_port, homepage_url, logo |
 | Ocient | ocient.py | 61% | ✓ | default_port, homepage_url, logo |
 | RisingWave | risingwave.py | 61% | ✓ | default_port, homepage_url, logo |
+| Arc | arc.py | 62% | ✓ | default_port, homepage_url, logo |
 | Parseable | parseable.py | 62% | ✓ | default_port, homepage_url, logo |
 | IBM Db2 | db2.py | 66% | connection_string | default_port |
 | Apache Solr | solr.py | 70% | ✓ | default_port, logo |
 | Apache Spark SQL | spark.py | 70% | ✓ | default_port, logo |
 | CockroachDB | cockroachdb.py | 71% | ✓ | default_port, logo |
+| Cloudflare D1 | d1.py | 71% | ✓ | default_port, logo |
 | IBM Db2 for i | ibmi.py | 71% | ✓ | default_port, logo |
 | Amazon DynamoDB | dynamodb.py | 72% | ✓ | default_port, logo |
 | Microsoft SQL Server | mssql.py | 76% | connection_string | ✓ |
@@ -92,6 +94,7 @@ These specs have all required and recommended fields:
 - ElasticSearch (OpenDistro SQL) (91%)
 - ElasticSearch (SQL API) (91%)
 - Greenplum (91%)
+- Hologres (91%)
 - MariaDB (91%)
 - MonetDB (91%)
 - MySQL (92%)
@@ -100,8 +103,10 @@ These specs have all required and recommended fields:
 - SingleStore (91%)
 - StarRocks (91%)
 - TDengine (91%)
+- TimescaleDB (92%)
 - Trino (92%)
 - Vertica (92%)
+- YugabyteDB (91%)
 
 ## How to Fix
 
