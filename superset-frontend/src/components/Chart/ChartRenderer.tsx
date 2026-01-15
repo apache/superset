@@ -538,9 +538,10 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
             formData={currentFormData}
             ownState={ownState}
             filterState={filterState}
-            hooks={this.hooks}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            hooks={this.hooks as any}
             behaviors={behaviors}
-            queriesData={this.mutableQueriesResponse}
+            queriesData={this.mutableQueriesResponse ?? undefined}
             onRenderSuccess={this.handleRenderSuccess}
             onRenderFailure={this.handleRenderFailure}
             noResults={noResultsComponent}
