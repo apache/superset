@@ -612,7 +612,7 @@ describe('chart actions timeout', () => {
           value: 'annotationValue',
           sourceType: AnnotationSourceType.Native,
           overrides: {},
-        } as AnnotationLayer,
+        } as unknown as AnnotationLayer,
         timeout,
         formData: formData as QueryFormData,
         key,
@@ -649,7 +649,7 @@ describe('chart actions timeout', () => {
           value: 'annotationValue',
           sourceType: AnnotationSourceType.Native,
           overrides: {},
-        } as AnnotationLayer,
+        } as unknown as AnnotationLayer,
         timeout: undefined,
         formData: formData as QueryFormData,
         key,
@@ -661,8 +661,11 @@ describe('chart actions timeout', () => {
       url: expect.any(String) as string,
       signal: expect.any(AbortSignal) as AbortSignal,
       timeout:
-        (initialState.common.conf as { SUPERSET_WEBSERVER_TIMEOUT: number })
-          .SUPERSET_WEBSERVER_TIMEOUT * 1000,
+        (
+          initialState.common.conf as unknown as {
+            SUPERSET_WEBSERVER_TIMEOUT: number;
+          }
+        ).SUPERSET_WEBSERVER_TIMEOUT * 1000,
       headers: { 'Content-Type': 'application/json' },
       jsonPayload: expect.any(Object) as JsonObject,
     };
