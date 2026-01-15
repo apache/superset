@@ -77,11 +77,6 @@ from superset.utils.core import (
     merge_extra_filters,
     simple_filter_to_adhoc,
 )
-from superset.utils.currency import (
-    detect_currency,
-    detect_currency_from_df,
-    has_auto_currency_in_column_config,
-)
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import hash_from_str
 
@@ -481,56 +476,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return hash_from_str(json_data)
 
     @deprecated(deprecated_in="3.0")
-    def _detect_currency(
-        self,
-        query_obj: QueryObjectDict | None = None,
-        df: pd.DataFrame | None = None,
-    ) -> str | None:
-        """
-        Detect currency from filtered data for AUTO mode currency formatting.
-
-        First attempts to detect from the provided dataframe if the currency
-        column is present. Falls back to a separate query only when needed.
-
-        Checks both top-level currency_format (used by Pie, Timeseries, etc.)
-        and column_config (used by Table charts) for AUTO currency settings.
-
-        :param query_obj: The query object with filters
-        :param df: Optional dataframe to detect currency from (avoids extra query)
-        :return: ISO 4217 currency code (e.g., "USD") or None
-        """
-        # Check top-level currency_format (for Pie, Timeseries, etc.)
-        currency_format = self.form_data.get("currency_format", {})
-        top_level_auto = (
-            isinstance(currency_format, dict)
-            and currency_format.get("symbol") == "AUTO"
-        )
-
-        # Check column_config (for Table charts)
-        column_config_auto = has_auto_currency_in_column_config(self.form_data)
-
-        # Only detect if AUTO is configured somewhere
-        if not top_level_auto and not column_config_auto:
-            return None
-
-        currency_column = getattr(self.datasource, "currency_code_column", None)
-        if not currency_column:
-            return None
-
-        if df is not None and currency_column in df.columns:
-            return detect_currency_from_df(df, currency_column)
-
-        base_query_obj = query_obj or self.query_obj()
-        return detect_currency(
-            datasource=self.datasource,
-            filters=base_query_obj.get("filter"),
-            granularity=base_query_obj.get("granularity"),
-            from_dttm=base_query_obj.get("from_dttm"),
-            to_dttm=base_query_obj.get("to_dttm"),
-            extras=base_query_obj.get("extras"),
-        )
-
-    @deprecated(deprecated_in="3.0")
     def get_payload(self, query_obj: QueryObjectDict | None = None) -> VizPayload:
         """Returns a payload of metadata and data"""
 
@@ -587,7 +532,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         df = None
         cache_timeout = self.cache_timeout
         force = self.force or cache_timeout == CACHE_DISABLED_TIMEOUT
-        detected_currency: str | None = None
         if cache_key and cache_manager.data_cache and not force:
             cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:
@@ -601,7 +545,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                     self.rejected_filter_columns = cache_value.get(
                         "rejected_filter_columns", []
                     )
-                    detected_currency = cache_value.get("detected_currency")
                     self.status = QueryStatus.SUCCESS
                     is_loaded = True
                     current_app.config["STATS_LOGGER"].incr("loaded_from_cache")
@@ -673,15 +616,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 stacktrace = utils.get_stacktrace()
 
             if is_loaded and cache_key and self.status != QueryStatus.FAILED:
-                detected_currency = self._detect_currency(query_obj, df)
                 set_and_log_cache(
                     cache_instance=cache_manager.data_cache,
                     cache_key=cache_key,
-                    cache_value={
-                        "df": df,
-                        "query": self.query,
-                        "detected_currency": detected_currency,
-                    },
+                    cache_value={"df": df, "query": self.query},
                     cache_timeout=cache_timeout,
                     datasource_uid=self.datasource.uid,
                 )
@@ -705,7 +643,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 if df is not None
                 else None
             ),
-            "detected_currency": detected_currency,
         }
 
     @staticmethod

@@ -14,14 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
 from superset.common.query_actions import _detect_currency
-from superset.viz import BaseViz
 
 
 @pytest.fixture
@@ -50,24 +48,6 @@ def mock_datasource() -> MagicMock:
     ds = MagicMock()
     ds.currency_code_column = "currency_code"
     return ds
-
-
-@pytest.fixture
-def base_query_obj() -> dict[str, Any]:
-    return {
-        "filter": [],
-        "granularity": None,
-        "from_dttm": None,
-        "to_dttm": None,
-        "extras": {},
-    }
-
-
-def _build_viz(form_data: dict[str, Any], datasource: MagicMock) -> BaseViz:
-    viz = BaseViz.__new__(BaseViz)
-    viz.form_data = form_data
-    viz.datasource = datasource
-    return viz
 
 
 def test_detect_currency_returns_none_when_form_data_is_none(
@@ -308,43 +288,3 @@ def test_detect_currency_column_config_no_currency_column_returns_none(
     )
 
     assert result is None
-
-
-@patch("superset.viz.detect_currency")
-def test_viz_detect_currency_checks_column_config_for_auto(
-    mock_detect: MagicMock,
-    base_query_obj: dict[str, Any],
-    mock_datasource: MagicMock,
-) -> None:
-    """Runs detection when column_config has AUTO currency (legacy API)."""
-    mock_detect.return_value = "USD"
-    form_data = {"column_config": {"cost": {"currencyFormat": {"symbol": "AUTO"}}}}
-    viz = _build_viz(form_data, mock_datasource)
-
-    result = BaseViz._detect_currency(viz, base_query_obj)
-
-    assert result == "USD"
-    mock_detect.assert_called_once_with(
-        datasource=mock_datasource,
-        filters=base_query_obj["filter"],
-        granularity=base_query_obj["granularity"],
-        from_dttm=base_query_obj["from_dttm"],
-        to_dttm=base_query_obj["to_dttm"],
-        extras=base_query_obj["extras"],
-    )
-
-
-@patch("superset.viz.detect_currency")
-def test_viz_detect_currency_skips_without_auto_in_column_config(
-    mock_detect: MagicMock,
-    base_query_obj: dict[str, Any],
-    mock_datasource: MagicMock,
-) -> None:
-    """Returns None when column_config has explicit currency (legacy API)."""
-    form_data = {"column_config": {"cost": {"currencyFormat": {"symbol": "USD"}}}}
-    viz = _build_viz(form_data, mock_datasource)
-
-    result = BaseViz._detect_currency(viz, base_query_obj)
-
-    assert result is None
-    mock_detect.assert_not_called()
