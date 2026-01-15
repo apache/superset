@@ -22,11 +22,11 @@ import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import {
   makeApi,
-  t,
-  logging,
   QueryFormData,
   StatefulChart,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
+import { t } from '@apache-superset/core/ui';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';

@@ -19,8 +19,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { t, SupersetClient } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, css, t } from '@apache-superset/core/ui';
 import { DeleteModal, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
