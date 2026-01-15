@@ -84,6 +84,7 @@ governing permissions and limitations under the License. #}
     <div id="app" data-bootstrap="{{ bootstrap_data }}">
       <img
         src="{{ assets_prefix }}/static/assets/images/loading.gif"
+        alt="Loading..."
         style="
           width: 50px;
           position: absolute;
@@ -114,7 +115,7 @@ governing permissions and limitations under the License. #}
             >
               <span aria-hidden="true">&times;</span>
             </button>
-            <h4 data-test="modal-title" class="modal-title"></h4>
+            <h4 id="myModalLabel" data-test="modal-title" class="modal-title"></h4>
           </div>
           <div data-test="modal-body" class="modal-body"></div>
           <div data-test="modal-footer" class="modal-footer">
