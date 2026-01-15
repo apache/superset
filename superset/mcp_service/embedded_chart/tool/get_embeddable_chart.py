@@ -44,9 +44,9 @@ TIMESERIES_VIZ_TYPES = {
 }
 
 # Categorical viz types for bar/pie charts (use these for non-time data)
+# Note: dist_bar is deprecated, use 'bar' instead
 CATEGORICAL_VIZ_TYPES = {
     "bar",
-    "dist_bar",
     "pie",
     "big_number",
     "big_number_total",
