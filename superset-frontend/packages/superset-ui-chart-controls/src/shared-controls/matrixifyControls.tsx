@@ -69,12 +69,13 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     label: t(`Metrics / Dimensions`),
     default: axis === 'columns' ? 'metrics' : 'dimensions',
     options: [
-      ['metrics', t('Metrics')],
-      ['dimensions', t('Dimension members')],
+      { value: 'metrics', label: t('Metrics') },
+      { value: 'dimensions', label: t('Dimension members') },
     ],
     renderTrigger: true,
     tabOverride: 'matrixify',
-    description: 'Metrics can\'t be used for both rows and columns at the same time',
+    description:
+      "Metrics can't be used for both rows and columns at the same time",
     visibility: ({ controls }) => isMatrixifyVisible(controls, axis),
     shouldMapStateToProps: (prevState, state) => {
       const otherAxisControlName = `matrixify_mode_${otherAxis}`;
@@ -89,7 +90,11 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
 
       return {
         options: [
-          { value: 'metrics', label: t('Metrics'), disabled: isMetricsDisabled },
+          {
+            value: 'metrics',
+            label: t('Metrics'),
+            disabled: isMetricsDisabled,
+          },
           { value: 'dimensions', label: t('Dimension members') },
         ],
       };
