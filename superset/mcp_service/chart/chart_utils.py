@@ -24,6 +24,7 @@ generation that can be used by both generate_chart and generate_explore_link too
 
 from typing import Any, Dict
 
+from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
@@ -33,6 +34,116 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
+
+# =============================================================================
+# Visualization Type Constants
+# =============================================================================
+
+# Time series viz types that require a datetime column on the x-axis
+TIMESERIES_VIZ_TYPES = {
+    "echarts_timeseries",
+    "echarts_timeseries_line",
+    "echarts_timeseries_bar",
+    "echarts_timeseries_area",
+    "echarts_timeseries_scatter",
+    "echarts_timeseries_smooth",
+    "echarts_timeseries_step",
+    "mixed_timeseries",
+    "line",
+    "area",
+}
+
+# Categorical viz types for bar/pie charts (use these for non-time data)
+# Note: dist_bar is deprecated, use 'bar' instead
+CATEGORICAL_VIZ_TYPES = {
+    "bar",
+    "pie",
+    "big_number",
+    "big_number_total",
+    "table",
+    "pivot_table_v2",
+}
+
+
+# =============================================================================
+# Dataset Resolution
+# =============================================================================
+
+
+def resolve_dataset(
+    dataset_id: int | str, check_access: bool = True
+) -> tuple[Any | None, str | None]:
+    """
+    Resolve a dataset by ID (numeric) or UUID with optional access checking.
+
+    Args:
+        dataset_id: Numeric dataset ID or UUID string
+        check_access: Whether to check user has access to the dataset
+
+    Returns:
+        Tuple of (dataset, error_message). If successful, error_message is None.
+        If failed, dataset is None and error_message contains the reason.
+    """
+    from superset.daos.dataset import DatasetDAO
+
+    dataset = None
+
+    if isinstance(dataset_id, int) or (
+        isinstance(dataset_id, str) and dataset_id.isdigit()
+    ):
+        numeric_id = int(dataset_id) if isinstance(dataset_id, str) else dataset_id
+        dataset = DatasetDAO.find_by_id(numeric_id)
+    else:
+        # Try UUID lookup
+        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+    if not dataset:
+        return None, f"Dataset not found: {dataset_id}"
+
+    if check_access and not has_dataset_access(dataset):
+        return None, "Access denied to dataset"
+
+    return dataset, None
+
+
+def validate_timeseries_config(
+    viz_type: str, form_data: Dict[str, Any], dataset: Any
+) -> str | None:
+    """
+    Validate that timeseries chart types have required datetime configuration.
+
+    Args:
+        viz_type: The visualization type
+        form_data: Chart form_data configuration
+        dataset: The dataset object
+
+    Returns:
+        Error message if validation fails, None if valid.
+    """
+    if viz_type not in TIMESERIES_VIZ_TYPES:
+        return None
+
+    has_x_axis = form_data.get("x_axis")
+    has_granularity = form_data.get("granularity_sqla")
+    has_time_column = form_data.get("time_column")
+
+    if has_x_axis or has_granularity or has_time_column:
+        return None
+
+    # Check if dataset has a main temporal column configured
+    main_dttm_col = getattr(dataset, "main_dttm_col", None)
+    if main_dttm_col:
+        return None
+
+    # Suggest appropriate categorical chart type
+    categorical_alternative = "bar" if "bar" in viz_type else "pie"
+
+    return (
+        f"Time series chart type '{viz_type}' requires a datetime column on the "
+        f"x-axis. For categorical data like 'genre', use "
+        f"viz_type='{categorical_alternative}' instead. Alternatively, add 'x_axis' "
+        f"or 'granularity_sqla' to form_data with a datetime column name."
+    )
 
 
 def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
