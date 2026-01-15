@@ -54,7 +54,9 @@ class MssqlEngineSpec(BaseEngineSpec):
     engine_name = "Microsoft SQL Server"
 
     metadata = {
-        "description": "Microsoft SQL Server is a relational database management system.",
+        "description": (
+            "Microsoft SQL Server is a relational database management system."
+        ),
         "logo": "msql.png",
         "homepage_url": "https://www.microsoft.com/en-us/sql-server",
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
@@ -72,7 +74,10 @@ class MssqlEngineSpec(BaseEngineSpec):
                 "pypi_package": "pyodbc",
                 "connection_string": "mssql+pyodbc:///?odbc_connect=Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3BServer%3Dtcp%3A%3C{host}%3E%2C1433%3BDatabase%3D{database}%3BUid%3D{username}%3BPwd%3D{password}%3BEncrypt%3Dyes%3BConnection+Timeout%3D30",
                 "is_recommended": False,
-                "notes": "Connection string must be URL-encoded. Special characters like @ need encoding.",
+                "notes": (
+                    "Connection string must be URL-encoded. "
+                    "Special characters like @ need encoding."
+                ),
             },
         ],
         "docs_url": "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords",

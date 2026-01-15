@@ -43,8 +43,8 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     metadata = {
         "description": (
-            "Azure Data Explorer (Kusto) is a fast, fully managed data analytics service "
-            "with SQL interface."
+            "Azure Data Explorer (Kusto) is a fast, fully managed "
+            "data analytics service with SQL interface."
         ),
         "logo": "kusto.png",
         "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
@@ -154,8 +154,8 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     metadata = {
         "description": (
-            "Azure Data Explorer (Kusto) is a fast, fully managed data analytics service "
-            "with KQL interface."
+            "Azure Data Explorer (Kusto) is a fast, fully managed "
+            "data analytics service with KQL interface."
         ),
         "logo": "kusto.png",
         "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",

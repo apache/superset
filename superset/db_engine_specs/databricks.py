@@ -229,7 +229,9 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     default_driver = "pyhive"
 
     metadata = {
-        "description": "Databricks is a unified analytics platform built on Apache Spark.",
+        "description": (
+            "Databricks is a unified analytics platform built on Apache Spark."
+        ),
         "logo": "databricks.png",
         "homepage_url": "https://www.databricks.com/",
         "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
@@ -240,7 +242,9 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
             "/{database_name}"
         ),
         "parameters": {
-            "server_hostname": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
+            "server_hostname": (
+                "Found in Configuration -> Advanced Options -> JDBC/ODBC"
+            ),
             "port": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
             "http_path": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
             "access_token": "From Settings -> User Settings -> Access Tokens",
@@ -266,7 +270,10 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
                 "name": "databricks-dbapi (Legacy)",
                 "pypi_package": "databricks-dbapi[sqlalchemy]",
                 "is_recommended": False,
-                "notes": "Older connector. Try if having problems with official connector.",
+                "notes": (
+                    "Older connector. Try if having problems with "
+                    "official connector."
+                ),
             },
             {
                 "name": "Hive Connector",

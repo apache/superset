@@ -28,7 +28,10 @@ class CockroachDbEngineSpec(PostgresEngineSpec):
     engine_name = "CockroachDB"
 
     metadata = {
-        "description": "CockroachDB is a distributed SQL database built for cloud applications.",
+        "description": (
+            "CockroachDB is a distributed SQL database "
+            "built for cloud applications."
+        ),
         "homepage_url": "https://www.cockroachlabs.com/",
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
         "pypi_packages": ["cockroachdb"],

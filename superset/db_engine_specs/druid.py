@@ -47,7 +47,9 @@ class DruidEngineSpec(BaseEngineSpec):
     allows_subqueries = True
 
     metadata = {
-        "description": "Apache Druid is a high performance real-time analytics database.",
+        "description": (
+            "Apache Druid is a high performance real-time analytics database."
+        ),
         "logo": "druid.png",
         "homepage_url": "https://druid.apache.org/",
         "category": DatabaseCategory.APACHE_PROJECTS,
