@@ -28,6 +28,7 @@ const createProps = () => ({
   dashboardId: 123,
   title: 'Download',
   submenuKey: 'download',
+  userCanExport: true,
 });
 
 const MenuWrapper = () => {
