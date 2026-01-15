@@ -33,6 +33,7 @@ import {
   LatestQueryFormData,
   AgGridChartState,
   ContextMenuFilters,
+  DataRecordFilters,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
 import { t } from '@apache-superset/core/ui';
@@ -100,7 +101,7 @@ export interface ChartRendererProps {
   actions: ChartActions;
   chartId: number;
   datasource?: Datasource;
-  initialValues?: Record<string, unknown>;
+  initialValues?: DataRecordFilters;
   formData: QueryFormData;
   latestQueryFormData?: LatestQueryFormData;
   labelsColor?: Record<string, string>;
@@ -185,7 +186,7 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
 
   private hasQueryResponseChange: boolean;
 
-  private contextMenuRef: RefObject<ChartContextMenuRef | null>;
+  private contextMenuRef: RefObject<ChartContextMenuRef>;
 
   private hooks: ChartHooks;
 
@@ -210,7 +211,7 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
     this.hasQueryResponseChange = false;
     this.renderStartTime = 0;
 
-    this.contextMenuRef = createRef<ChartContextMenuRef | null>();
+    this.contextMenuRef = createRef<ChartContextMenuRef>();
 
     this.handleAddFilter = this.handleAddFilter.bind(this);
     this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
