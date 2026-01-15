@@ -204,7 +204,7 @@ export const useExploreAdditionalActionsMenu = (
   const shareByEmail = useCallback(async () => {
     try {
       const subject = t('Superset Chart');
-      const url = await getChartPermalink(latestQueryFormData);
+      const { url } = await getChartPermalink(latestQueryFormData);
       const body = encodeURIComponent(t('%s%s', 'Check out this chart: ', url));
       window.location.href = `mailto:?Subject=${subject}%20&Body=${body}`;
     } catch (error) {
