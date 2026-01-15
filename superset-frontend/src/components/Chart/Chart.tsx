@@ -100,6 +100,7 @@ export type Actions = {
     chartId: number,
     arg2: string | null,
   ): Dispatch;
+  chartRenderingSucceeded(chartId: number): Dispatch;
   postChartFormData(
     formData: SqlaFormData,
     arg1: boolean,
