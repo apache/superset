@@ -84,6 +84,15 @@ const TABS_KEYS = {
   MATRIXIFY: 'MATRIXIFY',
 };
 
+// Table charts don't support matrixify feature
+const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
+  VizType.Table,
+  VizType.TableAgGrid,
+  VizType.PivotTable,
+  VizType.TimeTable,
+  VizType.TimePivot,
+]);
+
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
   actions: ExploreActions;
@@ -795,14 +804,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   ]);
 
   const showCustomizeTab = customizeSections.length > 0;
-  // Table charts don't support matrixify feature
-  const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
-    VizType.Table,
-    VizType.TableAgGrid,
-    VizType.PivotTable,
-    VizType.TimeTable,
-    VizType.TimePivot,
-  ]);
   const showMatrixifyTab =
     isFeatureEnabled(FeatureFlag.Matrixify) &&
     !MATRIXIFY_INCOMPATIBLE_CHARTS.has(form_data.viz_type as VizType);
