@@ -37,6 +37,7 @@ class TaskStatus(str, Enum):
     IN_PROGRESS = "in_progress"
     SUCCESS = "success"
     FAILURE = "failure"
+    ABORTING = "aborting"  # Abort requested, handlers running
     ABORTED = "aborted"
 
 

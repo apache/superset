@@ -79,3 +79,34 @@ class TaskFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 Task.id.in_(shared_task_ids_query),
             )
         )
+
+
+class TaskSubscriberFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Filter tasks by subscriber user ID.
+
+    This filter allows finding tasks where a specific user is subscribed.
+    Used by the frontend for the subscribers filter dropdown.
+    """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        """Apply the filter to the query."""
+        from superset import db
+        from superset.models.task_subscribers import TaskSubscriber
+        from superset.models.tasks import Task
+
+        if not value:
+            return query
+
+        # Handle both single ID and list of IDs
+        if isinstance(value, (list, tuple)):
+            user_ids = [int(v) for v in value]
+        else:
+            user_ids = [int(value)]
+
+        # Find tasks where any of these users are subscribers
+        subscribed_task_ids = db.session.query(TaskSubscriber.task_id).filter(
+            TaskSubscriber.user_id.in_(user_ids)
+        )
+
+        return query.filter(Task.id.in_(subscribed_task_ids))

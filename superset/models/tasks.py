@@ -21,7 +21,16 @@ from datetime import datetime, timezone
 from typing import Any
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import relationship
 from superset_core.api.models import Task as CoreTask
 from superset_core.api.tasks import TaskStatus
@@ -70,6 +79,9 @@ class Task(CoreTask, AuditMixinNullable, Model):
         Text, nullable=True, default="{}"
     )  # JSON serialized task-specific data
     progress = Column(Float, nullable=True)  # Progress 0.0-1.0, null by default
+    # Abort handling: null=pending/finished, false=in_progress no handler,
+    # true=has abort handler
+    is_abortable = Column(Boolean, nullable=True)
 
     # Relationships
     database = relationship("Database", foreign_keys=[database_id])
@@ -119,10 +131,14 @@ class Task(CoreTask, AuditMixinNullable, Model):
             status = status.value
         self.status = status
 
-        # Update timestamps based on status
+        # Update timestamps and is_abortable based on status
         now = datetime.now(timezone.utc)
         if status == TaskStatus.IN_PROGRESS.value and not self.started_at:
             self.started_at = now
+            # Set is_abortable to False when task starts executing
+            # (will be set to True if/when an abort handler is registered)
+            if self.is_abortable is None:
+                self.is_abortable = False
         elif status in [
             TaskStatus.SUCCESS.value,
             TaskStatus.FAILURE.value,
@@ -132,6 +148,8 @@ class Task(CoreTask, AuditMixinNullable, Model):
                 self.ended_at = now
             # Update dedup_key to UUID to free up the slot for new tasks
             self.dedup_key = get_finished_dedup_key(self.uuid)
+        # Note: ABORTING status doesn't set ended_at yet - that happens when
+        # the task transitions to ABORTED after handlers complete
 
     @property
     def is_pending(self) -> bool:
@@ -163,10 +181,64 @@ class Task(CoreTask, AuditMixinNullable, Model):
         return self.status == TaskStatus.ABORTED.value
 
     @property
+    def is_aborting(self) -> bool:
+        """Check if task is in the process of being aborted."""
+        return self.status == TaskStatus.ABORTING.value
+
+    @property
+    def can_be_aborted(self) -> bool:
+        """
+        Check if task can be aborted based on status and is_abortable flag.
+
+        - Pending tasks: Always abortable
+        - In-progress tasks: Only if is_abortable=True (has abort handler)
+        - Aborting tasks: Already aborting (idempotent)
+        - Finished tasks: Cannot be aborted
+        """
+        if self.is_pending:
+            return True
+        if self.is_running:
+            return self.is_abortable is True
+        if self.is_aborting:
+            return True  # Already aborting (idempotent)
+        return False
+
+    @property
     def duration_seconds(self) -> float | None:
-        """Get task duration in seconds if both start and end times are set."""
+        """
+        Get task duration in seconds.
+
+        - Finished tasks: Time from started_at to ended_at
+        - Running/aborting tasks: Time from started_at to now
+        - Pending tasks: Time from created_on to now (queue time)
+
+        Note: started_at/ended_at are stored in UTC, but created_on from
+        AuditMixinNullable is stored as naive local time. We handle both cases.
+        """
         if self.started_at and self.ended_at:
+            # Finished task - both timestamps use the same timezone (UTC)
+            # Just compute the difference directly
             return (self.ended_at - self.started_at).total_seconds()
+        elif self.started_at:
+            # Running or aborting - started_at is UTC (set by set_status)
+            # Use UTC now for comparison
+            now = datetime.now(timezone.utc)
+            started = (
+                self.started_at.replace(tzinfo=timezone.utc)
+                if self.started_at.tzinfo is None
+                else self.started_at
+            )
+            return (now - started).total_seconds()
+        elif self.created_on:
+            # Pending - created_on is naive LOCAL time (from AuditMixinNullable)
+            # Use naive local time for comparison
+            now = datetime.now()  # Local time, no timezone
+            created = (
+                self.created_on.replace(tzinfo=None)
+                if self.created_on.tzinfo is not None
+                else self.created_on
+            )
+            return (now - created).total_seconds()
         return None
 
     # Scope-related properties
@@ -238,4 +310,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
             "is_aborted": self.is_aborted,
             "subscriber_count": self.subscriber_count,
             "subscriber_ids": self.get_subscriber_ids(),
+            "is_abortable": self.is_abortable,
+            "is_aborting": self.is_aborting,
+            "can_be_aborted": self.can_be_aborted,
         }

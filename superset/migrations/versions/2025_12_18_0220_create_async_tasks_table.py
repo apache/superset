@@ -22,7 +22,16 @@ Create Date: 2025-12-18 02:20:00.000000
 
 """
 
-from sqlalchemy import Column, DateTime, Float, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 
 from superset.migrations.shared.utils import (
     create_fks_for_table,
@@ -80,6 +89,9 @@ def upgrade():
         Column("error_message", Text, nullable=True),
         Column("payload", Text, nullable=True),  # JSON serialized task-specific data
         Column("progress", Float, nullable=True),  # Progress 0.0-1.0, null by default
+        # Abort handling: null=pending/finished, false=in_progress no handler,
+        # true=has abort handler
+        Column("is_abortable", Boolean, nullable=True),
     )
 
     # Create indexes for optimal query performance

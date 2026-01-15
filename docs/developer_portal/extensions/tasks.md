@@ -119,11 +119,14 @@ def my_task(business_arg: int) -> None:
 
 ### Task Lifecycle
 
-1. **PENDING**: Task created, awaiting execution
+1. **PENDING**: Task created, awaiting execution (always abortable)
 2. **IN_PROGRESS**: Currently executing
-3. **SUCCESS**: Completed successfully  
-4. **FAILURE**: Failed with error
-5. **ABORTED**: Aborted before/during execution
+   - `is_abortable=false` initially
+   - `is_abortable=true` after first `on_abort` handler is registered
+3. **ABORTING**: Abort requested, handlers running (only for in-progress abortable tasks)
+4. **SUCCESS**: Completed successfully
+5. **FAILURE**: Failed with error (including abort handler failures)
+6. **ABORTED**: Aborted before/during execution
 
 ### Deduplication
 
@@ -145,6 +148,48 @@ task2 = my_task.schedule(arg=1, options=TaskOptions(task_key="key"))
 ## Abort Support
 
 The framework provides built-in abort support with minimal boilerplate.
+
+### Abortability Rules
+
+- **Pending tasks**: Always abortable - they simply don't start if aborted before execution
+- **In-progress tasks**: Only abortable if they have registered an `on_abort` handler
+  - When a task starts executing, `is_abortable` is set to `false`
+  - When the first `on_abort` handler is registered, `is_abortable` becomes `true`
+  - Attempting to abort an in-progress task without an abort handler raises an error
+- **Aborting tasks**: Already in the process of being aborted
+- **Finished tasks**: Cannot be aborted (success, failure, or already aborted)
+
+### UI Action Permissions
+
+The Task List UI shows different actions based on task scope and user role:
+
+| Task Scope | User Role | Available Actions |
+|------------|-----------|-------------------|
+| **Private** | Owner | Abort |
+| **Private** | Admin (not owner) | Abort |
+| **Shared** | Subscriber (non-admin) | Unsubscribe only |
+| **Shared** | Admin (not subscribed) | Abort |
+| **Shared** | Admin (subscribed) | Abort + Unsubscribe |
+| **System** | Admin | Abort |
+| **System** | Non-admin | *(not visible)* |
+
+**Key behaviors:**
+- **Admins can abort any task** regardless of scope
+- **For shared tasks**, non-admin users can only unsubscribe (not directly abort)
+  - If the last subscriber unsubscribes, the task is automatically aborted
+  - Admins who are also subscribed will see both Abort and Unsubscribe actions
+- **For private tasks**, only the owner can see and abort the task (admins can also abort)
+- **For system tasks**, only admins can see and abort the task
+
+### Abort Flow
+
+When an abort is requested for an in-progress abortable task:
+
+1. Task status changes from `IN_PROGRESS` → `ABORTING`
+2. Background polling detects the status change
+3. Registered abort handlers execute in LIFO order
+4. If all handlers succeed, task transitions to `ABORTED` when execution finishes
+5. If any handler fails, task transitions to `FAILURE` instead
 
 ### Cleanup Handlers
 
@@ -371,20 +416,47 @@ response = requests.get(url)
 
 ### How Abort Works
 
-1. **Before execution:** Framework checks if task aborted → skips if true
+1. **Before execution:** Framework checks if task aborted/aborting → skips if true
 2. **During execution:** Developer checks at key points → returns early if aborted
 3. **Cannot interrupt:** Operations run to completion once started
 4. **Cleanup handlers:** Run automatically regardless of how task ends
+5. **Abort handlers:** Run when abort is detected, before cleanup
 
-**Cancellation flow:**
+**Abort flow for pending tasks:**
 ```
-User cancels → Task.status = ABORTED
+User aborts → Task.status = ABORTED (immediate)
                     ↓
-Framework checks before execution → Skip if already aborted
+Framework checks before execution → Skip execution
                     ↓
-Task executes → Checks at developer-defined points → Returns early if aborted
+Task never starts
+```
+
+**Abort flow for in-progress abortable tasks:**
+```
+User aborts → Task.status = ABORTING
                     ↓
-Cleanup handlers run automatically
+Background polling detects ABORTING status
+                    ↓
+Abort handlers execute (LIFO order)
+                    ↓
+Task continues until developer-defined check points
+                    ↓
+Task returns early when is_aborted() returns true
+                    ↓
+Cleanup handlers run → Task.status = ABORTED
+```
+
+**Abort handler failure flow:**
+```
+Abort handler throws exception
+                    ↓
+Task.status = FAILURE (not ABORTED)
+                    ↓
+Error message set to handler exception
+                    ↓
+Remaining abort handlers skipped
+                    ↓
+Cleanup handlers still run
 ```
 
 ## Best Practices

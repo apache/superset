@@ -72,6 +72,7 @@ class TaskManager:
 
         try:
             # Create task entry in metastore
+            # DAO automatically extracts current user for subscription
             # Lazy import to avoid circular dependency
             from superset.daos.tasks import TaskDAO
 

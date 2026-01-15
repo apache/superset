@@ -64,6 +64,21 @@ class TaskAbortFailedError(CommandException):
     message = _("Task could not be aborted.")
 
 
+class TaskNotAbortableError(CommandException):
+    """
+    Task cannot be aborted.
+
+    Raised when attempting to abort an in-progress task that has not
+    registered an abort handler (is_abortable is not True).
+    """
+
+    status = 400
+    message = _(
+        "Task is not abortable. The task is in progress but has not "
+        "registered an abort handler."
+    )
+
+
 class TaskForbiddenError(ForbiddenError):
     """Task operation forbidden."""
 

@@ -36,7 +36,13 @@ export interface Task {
   task_key: string;
   task_type: string;
   task_name: string | null;
-  status: 'pending' | 'in_progress' | 'success' | 'failure' | 'aborted';
+  status:
+    | 'pending'
+    | 'in_progress'
+    | 'success'
+    | 'failure'
+    | 'aborting'
+    | 'aborted';
   scope: TaskScope;
   created_on: string;
   changed_on: string;
@@ -61,6 +67,9 @@ export interface Task {
   is_finished: boolean;
   is_successful: boolean;
   is_aborted: boolean;
+  is_aborting: boolean;
+  is_abortable: boolean | null;
+  can_be_aborted: boolean;
   subscriber_count: number;
   subscribers: TaskSubscriber[];
 }
@@ -70,5 +79,6 @@ export enum TaskStatus {
   InProgress = 'in_progress',
   Success = 'success',
   Failure = 'failure',
+  Aborting = 'aborting',
   Aborted = 'aborted',
 }
