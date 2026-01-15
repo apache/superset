@@ -183,6 +183,11 @@ export default function transformProps(
       }
     });
   }
+  // Disable animation during refresh to prevent expand/collapse layout animation
+  const seriesAnimation = isRefreshing
+    ? false
+    : DEFAULT_TREE_SERIES_OPTION.animation;
+
   const series: TreeSeriesOption[] = [
     {
       type: 'tree',
@@ -193,7 +198,7 @@ export default function transformProps(
         color: theme.colorText,
       },
       emphasis: { focus: emphasis },
-      animation: DEFAULT_TREE_SERIES_OPTION.animation,
+      animation: seriesAnimation,
       layout,
       orient,
       symbol,

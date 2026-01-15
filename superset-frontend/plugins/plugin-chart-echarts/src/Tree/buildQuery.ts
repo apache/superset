@@ -16,14 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import { buildQueryContext, QueryFormOrderBy } from '@superset-ui/core';
+import { EchartsTreeFormData } from './types';
 
-export default function buildQuery(formData: QueryFormData) {
+export default function buildQuery(formData: EchartsTreeFormData) {
+  const { id, parent, name, row_limit } = formData;
+  const orderby: QueryFormOrderBy[] = [];
+  const shouldApplyOrderBy =
+    row_limit !== undefined && row_limit !== null && row_limit !== 0;
+  const orderbyColumns: string[] = [];
+
+  [parent, id, name].forEach(column => {
+    if (column) {
+      orderbyColumns.push(column);
+    }
+  });
+  orderbyColumns.forEach(column => {
+    orderby.push([column, true]);
+  });
+
   return buildQueryContext(formData, {
     queryFields: {
       id: 'columns',
       parent: 'columns',
       name: 'columns',
     },
+    buildQuery: baseQueryObject => [
+      {
+        ...baseQueryObject,
+        ...(shouldApplyOrderBy && orderby.length > 0 && { orderby }),
+      },
+    ],
   });
 }
