@@ -1864,9 +1864,7 @@ def infer_category(name: str) -> str:
     return DatabaseCategory.OTHER
 
 
-def get_documentation_metadata(
-    spec: type[BaseEngineSpec], name: str
-) -> dict[str, Any]:
+def get_documentation_metadata(spec: type[BaseEngineSpec], name: str) -> dict[str, Any]:
     """
     Get documentation metadata for a database engine spec.
 
@@ -1878,8 +1876,7 @@ def get_documentation_metadata(
     This allows gradual migration from DATABASE_DOCS to engine spec metadata.
     """
     # First, check if the spec has metadata attribute with content
-    spec_metadata = getattr(spec, "metadata", {})
-    if spec_metadata:
+    if spec_metadata := getattr(spec, "metadata", {}):
         result = dict(spec_metadata)
         # Ensure category is present
         if "category" not in result:

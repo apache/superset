@@ -106,12 +106,11 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
     metadata = {
         "description": (
-            "Google Sheets allows querying spreadsheets as SQL tables "
-            "via shillelagh."
+            "Google Sheets allows querying spreadsheets as SQL tables via shillelagh."
         ),
         "logo": "gsheets.png",
         "homepage_url": "https://www.google.com/sheets/about/",
-        "category": DatabaseCategory.CLOUD_GOOGLE,
+        "category": DatabaseCategory.CLOUD_GCP,
         "pypi_packages": ["shillelagh[gsheetsapi]"],
         "install_instructions": 'pip install "apache-superset[gsheets]"',
         "connection_string": "gsheets://",

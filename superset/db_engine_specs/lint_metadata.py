@@ -48,7 +48,7 @@ Example output:
 from __future__ import annotations
 
 import argparse
-import json
+import json  # noqa: TID251 - standalone script, don't depend on superset.utils
 import sys
 from dataclasses import dataclass
 from typing import Any
@@ -156,7 +156,7 @@ def analyze_spec(spec_data: dict[str, Any]) -> MetadataReport:
     )
 
 
-def get_all_engine_specs_ast() -> list[dict[str, Any]]:
+def get_all_engine_specs_ast() -> list[dict[str, Any]]:  # noqa: C901
     """
     Discover all DB engine specs using AST parsing.
 
@@ -165,7 +165,6 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:
     """
     import ast
     import os
-    import re
 
     specs = []
     db_engine_specs_dir = os.path.dirname(__file__)
@@ -190,7 +189,9 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:
 
                 # Check if it looks like an engine spec class
                 is_engine_spec = any(
-                    "EngineSpec" in ast.unparse(base) if hasattr(ast, "unparse") else True
+                    "EngineSpec" in ast.unparse(base)
+                    if hasattr(ast, "unparse")
+                    else True
                     for base in node.bases
                 )
 
@@ -212,15 +213,17 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:
                                     try:
                                         metadata = _eval_ast_dict(item.value)
                                     except Exception:
-                                        # If we can't parse metadata, just note it exists
+                                        # Mark as unparseable
                                         metadata = {"_unparseable": True}
 
-                specs.append({
-                    "class_name": node.name,
-                    "engine_name": engine_name,
-                    "module": filename[:-3],  # Remove .py
-                    "metadata": metadata,
-                })
+                specs.append(
+                    {
+                        "class_name": node.name,
+                        "engine_name": engine_name,
+                        "module": filename[:-3],  # Remove .py
+                        "metadata": metadata,
+                    }
+                )
 
         except Exception as e:
             print(f"Warning: Could not parse {filename}: {e}", file=sys.stderr)
@@ -234,7 +237,7 @@ def _eval_ast_dict(node: Any) -> dict[str, Any]:
 
     if isinstance(node, ast.Dict):
         result = {}
-        for k, v in zip(node.keys, node.values):
+        for k, v in zip(node.keys, node.values, strict=False):
             if k is None:
                 continue
             key = _eval_ast_value(k)
@@ -245,7 +248,7 @@ def _eval_ast_dict(node: Any) -> dict[str, Any]:
     return {}
 
 
-def _eval_ast_value(node: Any) -> Any:
+def _eval_ast_value(node: Any) -> Any:  # noqa: C901
     """Safely evaluate an AST node as a value."""
     import ast
 
@@ -297,7 +300,7 @@ def get_all_engine_specs() -> list[type]:
     return sorted(specs, key=lambda s: getattr(s, "engine_name", s.__name__))
 
 
-def print_report(reports: list[MetadataReport], verbose: bool = False) -> None:
+def print_report(reports: list[MetadataReport], verbose: bool = False) -> None:  # noqa: C901
     """Print a human-readable report."""
     print("\n" + "=" * 60)
     print("METADATA COMPLETENESS REPORT")
@@ -311,12 +314,16 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None:
 
     print(f"Total engine specs:     {total}")
     print(f"With metadata:          {with_metadata} ({with_metadata * 100 // total}%)")
-    print(f"All required fields:    {fully_complete} ({fully_complete * 100 // total}%)")
+    print(
+        f"All required fields:    {fully_complete} ({fully_complete * 100 // total}%)"
+    )
     print(f"Average completeness:   {avg_score:.1f}%")
     print()
 
     # Group by completeness
-    complete = [r for r in reports if not r.missing_required and not r.missing_recommended]
+    complete = [
+        r for r in reports if not r.missing_required and not r.missing_recommended
+    ]
     needs_work = [r for r in reports if r.missing_required or r.missing_recommended]
     no_metadata = [r for r in reports if not r.has_metadata]
 
@@ -332,7 +339,9 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None:
         for r in sorted(needs_work, key=lambda x: -x.completeness_score):
             status = []
             if r.missing_required:
-                status.append(f"missing required: {', '.join(sorted(r.missing_required))}")
+                status.append(
+                    f"missing required: {', '.join(sorted(r.missing_required))}"
+                )
             if r.missing_recommended:
                 status.append(
                     f"missing recommended: {', '.join(sorted(r.missing_recommended))}"
@@ -361,14 +370,14 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None:
                 field_counts[field] += 1
 
     print("\nRequired fields:")
-    for field, desc in REQUIRED_FIELDS.items():
+    for field, _desc in REQUIRED_FIELDS.items():
         count = field_counts[field]
         pct = count * 100 // total
         bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
         print(f"  {field:25} {bar} {count:3}/{total} ({pct}%)")
 
     print("\nRecommended fields:")
-    for field, desc in RECOMMENDED_FIELDS.items():
+    for field, _desc in RECOMMENDED_FIELDS.items():
         count = field_counts[field]
         pct = count * 100 // total
         bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
@@ -376,7 +385,7 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None:
 
     if verbose:
         print("\nOptional fields:")
-        for field, desc in OPTIONAL_FIELDS.items():
+        for field, _desc in OPTIONAL_FIELDS.items():
             count = field_counts[field]
             pct = count * 100 // total
             bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
@@ -388,8 +397,9 @@ def generate_markdown_report(reports: list[MetadataReport]) -> str:
     lines = [
         "# Database Metadata Completeness Report",
         "",
-        "This report is auto-generated by `python superset/db_engine_specs/lint_metadata.py --markdown`.",
-        "It tracks which database engine specs have complete metadata for documentation.",
+        "This report is auto-generated by "
+        "`python superset/db_engine_specs/lint_metadata.py --markdown`.",
+        "It tracks which database engine specs have complete metadata.",
         "",
         "## Summary",
         "",
@@ -400,74 +410,90 @@ def generate_markdown_report(reports: list[MetadataReport]) -> str:
     all_required = sum(1 for r in reports if not r.missing_required)
     avg_score = sum(r.completeness_score for r in reports) / total if total else 0
 
-    lines.extend([
-        f"- **Total engine specs:** {total}",
-        f"- **With metadata:** {with_metadata} ({with_metadata * 100 // total}%)",
-        f"- **All required fields:** {all_required} ({all_required * 100 // total}%)",
-        f"- **Average completeness:** {avg_score:.1f}%",
-        "",
-        "## Required Fields",
-        "",
-        "These fields should be present in every engine spec's `metadata` attribute:",
-        "",
-    ])
+    pct_meta = with_metadata * 100 // total
+    pct_req = all_required * 100 // total
+    lines.extend(
+        [
+            f"- **Total engine specs:** {total}",
+            f"- **With metadata:** {with_metadata} ({pct_meta}%)",
+            f"- **All required fields:** {all_required} ({pct_req}%)",
+            f"- **Average completeness:** {avg_score:.1f}%",
+            "",
+            "## Required Fields",
+            "",
+            "These fields should be in every engine spec's `metadata` attribute:",
+            "",
+        ]
+    )
 
     for field, desc in REQUIRED_FIELDS.items():
         lines.append(f"- `{field}` - {desc}")
 
-    lines.extend([
-        "",
-        "## Specs Needing Work",
-        "",
-        "| Engine | Module | Score | Missing Required | Missing Recommended |",
-        "|--------|--------|-------|------------------|---------------------|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Specs Needing Work",
+            "",
+            "| Engine | Module | Score | Missing Required | Missing Recommended |",
+            "|--------|--------|-------|------------------|---------------------|",
+        ]
+    )
 
     # Sort by score ascending (worst first)
     needs_work = [r for r in reports if r.missing_required or r.missing_recommended]
     for r in sorted(needs_work, key=lambda x: x.completeness_score):
         missing_req = ", ".join(sorted(r.missing_required)) or "✓"
         missing_rec = ", ".join(sorted(r.missing_recommended)) or "✓"
-        lines.append(f"| {r.engine_name} | {r.module}.py | {r.completeness_score:.0f}% | {missing_req} | {missing_rec} |")
+        score = f"{r.completeness_score:.0f}%"
+        row = f"| {r.engine_name} | {r.module}.py | {score} | {missing_req} | {missing_rec} |"  # noqa: E501
+        lines.append(row)
 
-    lines.extend([
-        "",
-        "## Complete Specs",
-        "",
-        "These specs have all required and recommended fields:",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Complete Specs",
+            "",
+            "These specs have all required and recommended fields:",
+            "",
+        ]
+    )
 
-    complete = [r for r in reports if not r.missing_required and not r.missing_recommended]
+    complete = [
+        r for r in reports if not r.missing_required and not r.missing_recommended
+    ]
     for r in sorted(complete, key=lambda x: x.engine_name):
         lines.append(f"- {r.engine_name} ({r.completeness_score:.0f}%)")
 
-    lines.extend([
-        "",
-        "## How to Fix",
-        "",
-        "Add a `metadata` attribute to your engine spec class:",
-        "",
-        "```python",
-        "from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory",
-        "",
-        "class MyEngineSpec(BaseEngineSpec):",
-        '    engine_name = "My Database"',
-        "",
-        "    metadata = {",
-        '        "description": "Brief description of the database.",',
-        "        \"category\": DatabaseCategory.TRADITIONAL_RDBMS,",
-        '        "pypi_packages": ["my-driver"],',
-        '        "connection_string": "mydb://{username}:{password}@{host}:{port}/{database}",',
-        '        "logo": "mydb.svg",',
-        '        "homepage_url": "https://mydb.example.com/",',
-        "        \"default_port\": 5432,",
-        "    }",
-        "```",
-        "",
-        "See `superset/db_engine_specs/README.md` for full documentation.",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## How to Fix",
+            "",
+            "Add a `metadata` attribute to your engine spec class:",
+            "",
+            "```python",
+            "from superset.db_engine_specs.base import (",  # noqa: E501
+            "    BaseEngineSpec, DatabaseCategory",
+            ")",
+            "",
+            "class MyEngineSpec(BaseEngineSpec):",
+            '    engine_name = "My Database"',
+            "",
+            "    metadata = {",
+            '        "description": "Brief description of the database.",',
+            '        "category": DatabaseCategory.TRADITIONAL_RDBMS,',
+            '        "pypi_packages": ["my-driver"],',
+            '        "connection_string": "mydb://{username}:{password}@{host}:{port}/{database}",',
+            '        "logo": "mydb.svg",',
+            '        "homepage_url": "https://mydb.example.com/",',
+            '        "default_port": 5432,',
+            "    }",
+            "```",
+            "",
+            "See `superset/db_engine_specs/README.md` for full documentation.",
+            "",
+        ]
+    )
 
     return "\n".join(lines)
 
@@ -488,9 +514,7 @@ def main() -> int:
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Show optional field coverage"
     )
-    parser.add_argument(
-        "--output", "-o", type=str, help="Write output to file"
-    )
+    parser.add_argument("--output", "-o", type=str, help="Write output to file")
     args = parser.parse_args()
 
     # Use AST parsing to avoid Flask app dependency

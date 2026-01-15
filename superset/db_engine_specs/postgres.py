@@ -303,9 +303,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             },
             {
                 "name": "YugabyteDB",
-                "description": (
-                    "Distributed SQL database built on top of PostgreSQL."
-                ),
+                "description": ("Distributed SQL database built on top of PostgreSQL."),
                 "logo": "yugabyte.png",
                 "homepage_url": "https://www.yugabyte.com/",
                 "pypi_packages": ["psycopg2"],
