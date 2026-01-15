@@ -416,7 +416,9 @@ const legacyChartDataRequest = async (
     domainShardingEnabled && requestParams?.dashboard_id,
   );
   const url = getExploreUrl({
-    formData: formData as QueryFormData & { label_colors?: Record<string, string> },
+    formData: formData as QueryFormData & {
+      label_colors?: Record<string, string>;
+    },
     endpointType,
     force,
     allowDomainSharding,
@@ -432,14 +434,15 @@ const legacyChartDataRequest = async (
     parseMethod,
   };
 
-  return SupersetClient.post(querySettings as Parameters<typeof SupersetClient.post>[0]).then(
-    ({ json, response }: { json: JsonObject; response: Response }) =>
-      // Make the legacy endpoint return a payload that corresponds to the
-      // V1 chart data endpoint response signature.
-      ({
-        response,
-        json: { result: [json] },
-      }),
+  return SupersetClient.post(
+    querySettings as Parameters<typeof SupersetClient.post>[0],
+  ).then(({ json, response }: { json: JsonObject; response: Response }) =>
+    // Make the legacy endpoint return a payload that corresponds to the
+    // V1 chart data endpoint response signature.
+    ({
+      response,
+      json: { result: [json] },
+    }),
   );
 };
 
@@ -813,8 +816,7 @@ export function exploreJSON(
         ) => {
           // Ignore abort errors - they're expected when filters change quickly
           const isAbort =
-            response?.name === 'AbortError' ||
-            response?.statusText === 'abort';
+            response?.name === 'AbortError' || response?.statusText === 'abort';
           if (isAbort) {
             // Abort is expected: filters changed, chart unmounted, etc.
             return dispatch(chartUpdateStopped(key as string | number));
@@ -823,7 +825,10 @@ export function exploreJSON(
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
             // In async mode we just pass the raw error response through
             return dispatch(
-              chartUpdateFailed([response as JsonObject], key as string | number),
+              chartUpdateFailed(
+                [response as JsonObject],
+                key as string | number,
+              ),
             );
           }
 
@@ -848,7 +853,9 @@ export function exploreJSON(
           return getClientErrorObject(
             response as unknown as Parameters<typeof getClientErrorObject>[0],
           ).then((parsedResponse: JsonObject) => {
-            if ((response as { statusText?: string }).statusText === 'timeout') {
+            if (
+              (response as { statusText?: string }).statusText === 'timeout'
+            ) {
               appendErrorLog('timeout');
             } else {
               appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
@@ -908,6 +915,10 @@ export function redirectSQLLab(
       resultType: 'query',
     })
       .then(({ json }) => {
+        if (!json.result || json.result.length === 0) {
+          dispatch(addDangerToast(t('No SQL query found')));
+          return;
+        }
         const redirectUrl = '/sqllab/';
         const payload = {
           datasourceKey: formData.datasource,

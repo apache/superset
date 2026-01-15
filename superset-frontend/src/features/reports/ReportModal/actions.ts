@@ -121,9 +121,7 @@ export function fetchUISpecificReport({
       .catch(() =>
         dispatch(
           addDangerToast(
-            t(
-              'There was an issue fetching reports attached to this dashboard.',
-            ),
+            t('There was an issue fetching reports.'),
           ),
         ),
       );
@@ -215,7 +213,7 @@ export function toggleActive(report: ReportObject, isActive: boolean) {
       .catch(() => {
         dispatch(
           addDangerToast(
-            t('We were unable to active or deactivate this report.'),
+            t('We were unable to activate or deactivate this report.'),
           ),
         );
       })
