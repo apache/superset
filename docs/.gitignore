@@ -26,3 +26,8 @@ docs/intro.md
 
 # Generated badge images (downloaded at build time by remark-localize-badges plugin)
 static/badges/
+
+# Generated database documentation (regenerated at build time by generate-database-docs.mjs)
+# Source of truth is in superset/db_engine_specs/*.py metadata attributes
+docs/databases/
+src/data/databases.json
