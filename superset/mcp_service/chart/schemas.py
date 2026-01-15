@@ -670,6 +670,32 @@ class XYChartConfig(BaseModel):
     kind: Literal["line", "bar", "area", "scatter"] = Field(
         "line", description="Chart visualization type"
     )
+    time_grain: (
+        Literal[
+            "PT1S",
+            "PT1M",
+            "PT5M",
+            "PT10M",
+            "PT15M",
+            "PT30M",
+            "PT1H",
+            "PT6H",
+            "P1D",
+            "P1W",
+            "P1M",
+            "P3M",
+            "P1Y",
+        ]
+        | None
+    ) = Field(
+        None,
+        description=(
+            "Time granularity for the x-axis when it's a temporal column. "
+            "Common values: PT1S (second), PT1M (minute), PT1H (hour), "
+            "P1D (day), P1W (week), P1M (month), P3M (quarter), P1Y (year). "
+            "If not specified, Superset will use its default behavior."
+        ),
+    )
     group_by: ColumnRef | None = Field(None, description="Column to group by")
     x_axis: AxisConfig | None = Field(None, description="X-axis configuration")
     y_axis: AxisConfig | None = Field(None, description="Y-axis configuration")
