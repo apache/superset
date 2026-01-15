@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type Response } from '@playwright/test';
 import * as unzipper from 'unzipper';
 import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ExplorePage } from '../../../pages/ExplorePage';
@@ -49,6 +49,40 @@ async function cleanupDatasets(page: Page, datasetIds: number[]) {
     apiDeleteDataset(page, id, { failOnStatusCode: false }).catch(() => {}),
   );
   await Promise.all(promises);
+}
+
+/**
+ * Helper to validate an export zip response.
+ * Verifies headers, parses zip contents, and validates expected structure.
+ */
+async function expectValidExportZip(
+  response: Response,
+  options: { minDatasetCount?: number; checkContentDisposition?: boolean } = {},
+): Promise<void> {
+  const { minDatasetCount = 1, checkContentDisposition = false } = options;
+
+  // Verify headers
+  expect(response.headers()['content-type']).toContain('application/zip');
+  if (checkContentDisposition) {
+    expect(response.headers()['content-disposition']).toMatch(
+      /filename=.*dataset_export.*\.zip/,
+    );
+  }
+
+  // Parse and validate zip contents
+  const body = await response.body();
+  expect(body.length).toBeGreaterThan(0);
+
+  const entries: string[] = [];
+  const directory = await unzipper.Open.buffer(body);
+  directory.files.forEach(file => entries.push(file.path));
+
+  // Validate structure
+  const datasetYamlFiles = entries.filter(
+    entry => entry.includes('datasets/') && entry.endsWith('.yaml'),
+  );
+  expect(datasetYamlFiles.length).toBeGreaterThanOrEqual(minDatasetCount);
+  expect(entries.some(entry => entry.endsWith('metadata.yaml'))).toBe(true);
 }
 
 test('should navigate to Explore when dataset name is clicked', async ({
@@ -252,37 +286,9 @@ test('should export a dataset as a zip file', async ({ page }) => {
   // Click export action button
   await datasetListPage.clickExportAction(datasetName);
 
-  // Wait for export API response
+  // Wait for export API response and validate zip contents
   const exportResponse = await exportResponsePromise;
-
-  // Verify response headers indicate zip file
-  const contentType = exportResponse.headers()['content-type'];
-  expect(contentType).toContain('application/zip');
-
-  const contentDisposition = exportResponse.headers()['content-disposition'];
-  expect(contentDisposition).toMatch(/filename=.*dataset_export.*\.zip/);
-
-  // Verify the response body is a valid zip with expected structure
-  const responseBody = await exportResponse.body();
-  expect(responseBody.length).toBeGreaterThan(0);
-
-  // Parse zip contents from response buffer
-  const entries: string[] = [];
-  const directory = await unzipper.Open.buffer(responseBody);
-  directory.files.forEach(file => entries.push(file.path));
-
-  // Export should contain at least one dataset YAML file and metadata
-  expect(entries.length).toBeGreaterThan(0);
-
-  // Check for dataset directory and YAML file
-  const hasDatasetYaml = entries.some(
-    entry => entry.includes('datasets/') && entry.endsWith('.yaml'),
-  );
-  expect(hasDatasetYaml).toBe(true);
-
-  // Check for metadata.yaml (export manifest)
-  const hasMetadata = entries.some(entry => entry.endsWith('metadata.yaml'));
-  expect(hasMetadata).toBe(true);
+  await expectValidExportZip(exportResponse, { checkContentDisposition: true });
 });
 
 test('should export multiple datasets via bulk select action', async ({
@@ -331,31 +337,9 @@ test('should export multiple datasets via bulk select action', async ({
     // Click bulk export action
     await datasetListPage.clickBulkAction('Export');
 
-    // Wait for export API response
+    // Wait for export API response and validate zip contains multiple datasets
     const exportResponse = await exportResponsePromise;
-
-    // Verify response headers indicate zip file
-    const contentType = exportResponse.headers()['content-type'];
-    expect(contentType).toContain('application/zip');
-
-    // Verify the response body is a valid zip with expected structure
-    const responseBody = await exportResponse.body();
-    expect(responseBody.length).toBeGreaterThan(0);
-
-    // Parse zip contents from response buffer
-    const entries: string[] = [];
-    const directory = await unzipper.Open.buffer(responseBody);
-    directory.files.forEach(file => entries.push(file.path));
-
-    // Export should contain multiple dataset YAML files (one per exported dataset)
-    const datasetYamlFiles = entries.filter(
-      entry => entry.includes('datasets/') && entry.endsWith('.yaml'),
-    );
-    expect(datasetYamlFiles.length).toBeGreaterThanOrEqual(2);
-
-    // Check for metadata.yaml (export manifest)
-    const hasMetadata = entries.some(entry => entry.endsWith('metadata.yaml'));
-    expect(hasMetadata).toBe(true);
+    await expectValidExportZip(exportResponse, { minDatasetCount: 2 });
   } finally {
     await cleanupDatasets(page, testDatasetIds);
   }

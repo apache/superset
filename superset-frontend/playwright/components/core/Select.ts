@@ -141,7 +141,14 @@ export class Select {
   async type(text: string): Promise<void> {
     // Find the actual search input inside the select component
     const searchInput = this.locator.locator(SELECT_SELECTORS.SEARCH_INPUT);
-    await searchInput.fill(text);
+    try {
+      // Wait for search input in case dropdown is still rendering
+      await searchInput.first().waitFor({ state: 'attached', timeout: 1000 });
+      await searchInput.first().fill(text);
+    } catch {
+      // Fallback: locator might be the input itself (e.g., from getByRole('combobox'))
+      await this.locator.fill(text);
+    }
   }
 
   /**
