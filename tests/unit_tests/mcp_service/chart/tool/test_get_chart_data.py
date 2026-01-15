@@ -106,19 +106,50 @@ class TestBigNumberChartFallback:
         assert len(metrics) == 2
         assert len(groupby_columns) == 2
 
-    def test_viz_type_detection_for_big_number_variants(self):
-        """Test viz_type detection handles all big_number variants."""
+    def test_viz_type_detection_for_single_metric_charts(self):
+        """Test viz_type detection handles all single-metric chart types."""
+        # Chart types that use "metric" (singular) instead of "metrics" (plural)
+        single_metric_types = ("big_number", "pop_kpi")
+
+        # big_number variants match via startswith
         big_number_types = ["big_number", "big_number_total"]
-
         for viz_type in big_number_types:
-            is_big_number = viz_type.startswith("big_number")
-            assert is_big_number is True
+            is_single_metric = (
+                viz_type.startswith("big_number") or viz_type in single_metric_types
+            )
+            assert is_single_metric is True
 
-        # Verify non-big_number types don't match
+        # pop_kpi (BigNumberPeriodOverPeriod) matches via exact match
+        assert "pop_kpi" in single_metric_types
+
+        # Verify standard chart types don't match
         other_types = ["table", "line", "bar", "pie", "echarts_timeseries"]
         for viz_type in other_types:
-            is_big_number = viz_type.startswith("big_number")
-            assert is_big_number is False
+            is_single_metric = (
+                viz_type.startswith("big_number") or viz_type in single_metric_types
+            )
+            assert is_single_metric is False
+
+    def test_pop_kpi_uses_singular_metric(self):
+        """Test that pop_kpi (BigNumberPeriodOverPeriod) uses singular metric."""
+        form_data = {
+            "metric": {"label": "Period Comparison", "expressionType": "SQL"},
+            "viz_type": "pop_kpi",
+        }
+
+        viz_type = form_data.get("viz_type", "")
+        single_metric_types = ("big_number", "pop_kpi")
+        if viz_type.startswith("big_number") or viz_type in single_metric_types:
+            metric = form_data.get("metric")
+            metrics = [metric] if metric else []
+            groupby_columns: list[str] = []
+        else:
+            metrics = form_data.get("metrics", [])
+            groupby_columns = form_data.get("groupby", [])
+
+        assert len(metrics) == 1
+        assert metrics[0]["label"] == "Period Comparison"
+        assert groupby_columns == []
 
 
 class TestGetChartDataRequestSchema:

@@ -163,14 +163,17 @@ async def get_chart_data(  # noqa: C901
                 )
 
                 # Handle different chart types that have different form_data structures
-                # big_number charts use "metric" (singular), not "metrics" (plural)
-                # and don't have groupby columns
+                # Some charts use "metric" (singular), not "metrics" (plural):
+                # - big_number, big_number_total
+                # - pop_kpi (BigNumberPeriodOverPeriod)
+                # These charts also don't have groupby columns
                 viz_type = chart.viz_type or ""
-                if viz_type.startswith("big_number"):
-                    # big_number/big_number_total use "metric" (singular)
+                single_metric_types = ("big_number", "pop_kpi")
+                if viz_type.startswith("big_number") or viz_type in single_metric_types:
+                    # These chart types use "metric" (singular)
                     metric = form_data.get("metric")
                     metrics = [metric] if metric else []
-                    groupby_columns: list[str] = []  # big_number charts don't group by
+                    groupby_columns: list[str] = []  # These charts don't group by
                 else:
                     # Standard charts use "metrics" (plural) and "groupby"
                     metrics = form_data.get("metrics", [])
