@@ -810,6 +810,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isMetric,
         isPercentMetric,
         config = {},
+        description,
       } = column;
       const label = config.customColumnName || originalLabel;
       let displayLabel = label;
@@ -1094,7 +1095,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
             id={`header-${headerId}`}
-            title={t('Shift + Click to sort by multiple columns')}
+            title={
+              description
+                ? description
+                : t('Shift + Click to sort by multiple columns')
+            }
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
               ...sharedStyle,
