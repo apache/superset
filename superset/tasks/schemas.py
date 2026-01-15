@@ -40,10 +40,21 @@ database_id_description = "ID of the database associated with the task"
 error_message_description = "Error message if the task failed"
 payload_description = "Task-specific data in JSON format"
 progress_description = "Task progress as a float between 0.0 and 1.0 (null if not set)"
-duration_seconds_description = "Duration of task execution in seconds"
+duration_seconds_description = (
+    "Duration in seconds - for finished tasks: execution time, "
+    "for running tasks: time since start, for pending: queue time"
+)
 is_finished_description = "Whether the task has finished (success, failure, or aborted)"
 is_successful_description = "Whether the task completed successfully"
 is_aborted_description = "Whether the task was aborted"
+is_aborting_description = "Whether the task is in the process of being aborted"
+is_abortable_description = (
+    "Whether the task can be aborted. null for pending tasks (always abortable), "
+    "false when in progress without abort handler, true when in progress with handler"
+)
+can_be_aborted_description = (
+    "Whether the task can be aborted based on current status and is_abortable flag"
+)
 scope_description = (
     "Task scope: 'private' (user-specific), 'shared' (multi-user), "
     "or 'system' (admin-only)"
@@ -115,6 +126,15 @@ class TaskResponseSchema(Schema):
     is_aborted = Method(
         "get_is_aborted", metadata={"description": is_aborted_description}
     )
+    is_aborting = Method(
+        "get_is_aborting", metadata={"description": is_aborting_description}
+    )
+    is_abortable = fields.Boolean(
+        metadata={"description": is_abortable_description}, allow_none=True
+    )
+    can_be_aborted = Method(
+        "get_can_be_aborted", metadata={"description": can_be_aborted_description}
+    )
     scope = fields.String(metadata={"description": scope_description})
     subscriber_count = Method(
         "get_subscriber_count", metadata={"description": subscriber_count_description}
@@ -142,6 +162,14 @@ class TaskResponseSchema(Schema):
     def get_is_aborted(self, obj: object) -> bool:
         """Check if task is aborted"""
         return obj.is_aborted  # type: ignore[attr-defined]
+
+    def get_is_aborting(self, obj: object) -> bool:
+        """Check if task is aborting"""
+        return obj.is_aborting  # type: ignore[attr-defined]
+
+    def get_can_be_aborted(self, obj: object) -> bool:
+        """Check if task can be aborted"""
+        return obj.can_be_aborted  # type: ignore[attr-defined]
 
     def get_created_on_delta_humanized(self, obj: object) -> str:
         """Get humanized time since creation"""

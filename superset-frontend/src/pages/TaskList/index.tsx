@@ -20,13 +20,18 @@
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core';
 import { useMemo, useCallback } from 'react';
-import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
+import {
+  ConfirmStatusChange,
+  Tooltip,
+  Label,
+} from '@superset-ui/core/components';
 import {
   ModifiedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
   type ListViewProps,
+  FacePile,
 } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -37,6 +42,7 @@ import TaskStatusIcon from 'src/features/tasks/TaskStatusIcon';
 import TaskPayloadPopover from 'src/features/tasks/TaskPayloadPopover';
 import { Task, TaskStatus, TaskScope } from 'src/features/tasks/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const PAGE_SIZE = 25;
 
@@ -64,8 +70,12 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
     toggleBulkSelect,
   } = useListViewResource<Task>('task', t('task'), addDangerToast);
 
-  const isAdmin = useMemo(() => isUserAdmin(user), [user]);
   const canWrite = hasPerm('can_write');
+
+  // Get full user with roles to check admin status
+  const bootstrapData = getBootstrapData();
+  const fullUser = bootstrapData?.user;
+  const isAdmin = useMemo(() => isUserAdmin(fullUser), [fullUser]);
 
   const handleTaskAbort = useCallback(
     (task: Task) => {
@@ -109,15 +119,14 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
 
   const handleBulkAbort = useCallback(
     (tasks: Task[]) => {
-      const abortableTasks = tasks.filter(
-        task =>
-          task.status === TaskStatus.Pending ||
-          task.status === TaskStatus.InProgress,
-      );
+      // Filter tasks that can be aborted using the can_be_aborted field
+      const abortableTasks = tasks.filter(task => task.can_be_aborted);
 
       if (abortableTasks.length === 0) {
         addDangerToast(
-          t('None of the selected tasks can be aborted (already completed)'),
+          t(
+            'None of the selected tasks can be aborted (already completed or not abortable)',
+          ),
         );
         return;
       }
@@ -161,39 +170,38 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { uuid },
+            original: { task_name, task_key, uuid },
           },
         }: any) => {
-          const truncated = `${uuid.slice(0, 8)}...`;
-          return (
-            <Tooltip title={uuid} placement="top">
-              <span>{truncated}</span>
-            </Tooltip>
-          );
-        },
-        accessor: 'uuid',
-        Header: t('UUID'),
-        size: 'md',
-        id: 'uuid',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { task_key },
-          },
-        }: any) => {
+          // Display preference: task_name > task_key
+          const displayText = task_name || task_key;
           const truncated =
-            task_key.length > 20 ? `${task_key.slice(0, 20)}...` : task_key;
+            displayText.length > 30
+              ? `${displayText.slice(0, 30)}...`
+              : displayText;
+
+          // Build tooltip with all identifiers
+          const tooltipLines = [];
+          if (task_name) tooltipLines.push(`Name: ${task_name}`);
+          tooltipLines.push(`Key: ${task_key}`);
+          tooltipLines.push(`UUID: ${uuid}`);
+          const tooltipText = tooltipLines.join('\n');
+
           return (
-            <Tooltip title={task_key} placement="top">
+            <Tooltip
+              title={
+                <span style={{ whiteSpace: 'pre-line' }}>{tooltipText}</span>
+              }
+              placement="top"
+            >
               <span>{truncated}</span>
             </Tooltip>
           );
         },
-        accessor: 'task_id',
-        Header: t('Task ID'),
-        size: 'lg',
-        id: 'task_id',
+        accessor: 'task_name',
+        Header: t('Task'),
+        size: 'xl',
+        id: 'task',
       },
       {
         Cell: ({
@@ -218,40 +226,21 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             original: { scope },
           },
         }: any) => {
-          const scopeLabels: Record<TaskScope, string> = {
-            [TaskScope.Private]: t('Private'),
-            [TaskScope.Shared]: t('Shared'),
-            [TaskScope.System]: t('System'),
+          const scopeConfig: Record<
+            TaskScope,
+            { label: string; type: 'default' | 'info' | 'warning' }
+          > = {
+            [TaskScope.Private]: { label: t('Private'), type: 'default' },
+            [TaskScope.Shared]: { label: t('Shared'), type: 'info' },
+            [TaskScope.System]: { label: t('System'), type: 'warning' },
           };
 
-          const backgroundColors: Record<TaskScope, string> = {
-            [TaskScope.Private]: 'rgb(245, 245, 245)',
-            [TaskScope.Shared]: 'rgb(230, 244, 255)',
-            [TaskScope.System]: 'rgb(255, 247, 230)',
+          const config = scopeConfig[scope as TaskScope] || {
+            label: scope,
+            type: 'default' as const,
           };
 
-          const textColors: Record<TaskScope, string> = {
-            [TaskScope.Private]: 'rgb(140, 140, 140)',
-            [TaskScope.Shared]: 'rgb(22, 119, 255)',
-            [TaskScope.System]: 'rgb(212, 107, 8)',
-          };
-
-          const scopeLabel = scopeLabels[scope as TaskScope] || scope;
-
-          return (
-            <span
-              style={{
-                padding: '2px 8px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                backgroundColor:
-                  backgroundColors[scope as TaskScope] || 'rgb(245, 245, 245)',
-                color: textColors[scope as TaskScope] || 'rgb(140, 140, 140)',
-              }}
-            >
-              {scopeLabel}
-            </span>
-          );
+          return <Label type={config.type}>{config.label}</Label>;
         },
         accessor: 'scope',
         Header: t('Scope'),
@@ -261,44 +250,26 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { scope, subscriber_count, subscribers },
+            original: { subscriber_count, subscribers },
           },
         }: any) => {
-          if (scope !== TaskScope.Shared || subscriber_count === 0) {
+          if (!subscribers || subscriber_count === 0) {
             return '-';
           }
 
-          const subscriberNames = subscribers
-            .map((sub: any) => `${sub.first_name} ${sub.last_name}`)
-            .join(', ');
+          // Convert subscribers to FacePile format
+          const users = subscribers.map((sub: any) => ({
+            id: sub.user_id,
+            first_name: sub.first_name,
+            last_name: sub.last_name,
+          }));
 
-          return (
-            <Tooltip title={subscriberNames} placement="top">
-              <span>
-                {subscriber_count} subscriber{subscriber_count !== 1 ? 's' : ''}
-              </span>
-            </Tooltip>
-          );
+          return <FacePile users={users} maxCount={3} />;
         },
         accessor: 'subscriber_count',
         Header: t('Subscribers'),
         size: 'md',
         id: 'subscribers',
-        disableSortBy: true,
-      },
-      {
-        Cell: ({
-          row: {
-            original: { created_by },
-          },
-        }: any) =>
-          created_by
-            ? `${created_by.first_name} ${created_by.last_name}`
-            : t('System'),
-        accessor: 'created_by',
-        Header: t('User'),
-        size: 'lg',
-        id: 'created_by',
         disableSortBy: true,
       },
       {
@@ -314,6 +285,12 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         accessor: 'created_on',
         size: 'xl',
         id: 'created_on',
+      },
+      {
+        // Hidden column for filtering by created_by
+        accessor: 'created_by',
+        id: 'created_by',
+        hidden: true,
       },
       {
         Cell: ({
@@ -345,23 +322,62 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const canAbort =
-            original.status === TaskStatus.Pending ||
-            original.status === TaskStatus.InProgress;
+          // Action button logic based on user role and task scope:
+          //
+          // For SHARED tasks:
+          //   - Admins: Can abort any abortable task AND unsubscribe (if subscribed)
+          //   - Non-admins: Can only unsubscribe (abort happens automatically if last subscriber)
+          //
+          // For PRIVATE/SYSTEM tasks:
+          //   - Admins: Can abort any abortable task
+          //   - Non-admins: Can abort their own private tasks (system tasks are admin-only)
+          const isRunning = original.status === TaskStatus.InProgress;
+          const isRunningButNotAbortable =
+            isRunning && original.is_abortable === false;
+          const taskIsAbortable =
+            original.can_be_aborted && !original.is_aborting;
 
-          const canUnsubscribe =
-            original.scope === TaskScope.Shared &&
-            original.subscribers.some(
-              (sub: any) => sub.user_id === user.userId,
-            );
+          const isSharedTask = original.scope === TaskScope.Shared;
+          const userIsSubscribed = original.subscribers?.some(
+            (sub: any) => sub.user_id === user.userId,
+          );
 
-          if (!canAbort && !canUnsubscribe) {
+          // Determine if abort button should be shown:
+          // - Admins: Always show abort for abortable tasks (any scope)
+          // - Non-admins on shared tasks: Never show abort (use unsubscribe instead)
+          // - Non-admins on private tasks: Show abort if abortable (base filter ensures ownership)
+          const showAbort = taskIsAbortable && (isAdmin || !isSharedTask);
+
+          // Determine if unsubscribe button should be shown:
+          // - Only for shared tasks where user is subscribed
+          const showUnsubscribe = isSharedTask && userIsSubscribed;
+
+          // Show disabled button for running tasks without abort handler
+          // (only if abort would otherwise be shown)
+          const showDisabledAbort =
+            isRunningButNotAbortable && (isAdmin || !isSharedTask);
+
+          if (!showAbort && !showUnsubscribe && !showDisabledAbort) {
             return null;
           }
 
           return (
             <div style={{ display: 'flex', gap: '8px' }}>
-              {canAbort && (
+              {showDisabledAbort && (
+                <Tooltip
+                  id="abort-disabled-tooltip"
+                  title={t('This task does not support aborting')}
+                  placement="bottom"
+                >
+                  <span
+                    className="action-button"
+                    style={{ opacity: 0.4, cursor: 'not-allowed' }}
+                  >
+                    <Icons.StopOutlined iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
+              {showAbort && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
                   description={
@@ -390,7 +406,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   )}
                 </ConfirmStatusChange>
               )}
-              {canUnsubscribe && (
+              {showUnsubscribe && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
                   description={
@@ -428,11 +444,11 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         disableSortBy: true,
       },
     ],
-    [handleTaskAbort],
+    [handleTaskAbort, handleTaskUnsubscribe, isAdmin, user.userId],
   );
 
-  const filters: ListViewFilters = useMemo(() => {
-    const baseFilters: ListViewFilters = [
+  const filters: ListViewFilters = useMemo(
+    () => [
       {
         Header: t('Status'),
         key: 'status',
@@ -445,8 +461,16 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           { label: t('In Progress'), value: TaskStatus.InProgress },
           { label: t('Success'), value: TaskStatus.Success },
           { label: t('Failed'), value: TaskStatus.Failure },
+          { label: t('Aborting'), value: TaskStatus.Aborting },
           { label: t('Aborted'), value: TaskStatus.Aborted },
         ],
+      },
+      {
+        Header: t('Type'),
+        key: 'task_type',
+        id: 'task_type',
+        input: 'search',
+        operator: FilterOperator.Contains,
       },
       {
         Header: t('Scope'),
@@ -462,18 +486,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         ],
       },
       {
-        Header: t('Task Type'),
-        key: 'task_type',
-        id: 'task_type',
-        input: 'search',
-        operator: FilterOperator.Contains,
-      },
-    ];
-
-    // Only show user filter for admins
-    if (isAdmin) {
-      baseFilters.push({
-        Header: t('User'),
+        Header: t('Created by'),
         key: 'created_by',
         id: 'created_by',
         input: 'select',
@@ -483,16 +496,18 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           'task',
           'created_by',
           createErrorHandler(errMsg =>
-            t('An error occurred while fetching creators: %s', errMsg),
+            addDangerToast(
+              t(
+                'An error occurred while fetching created by values: %s',
+                errMsg,
+              ),
+            ),
           ),
-          user,
         ),
-        paginate: true,
-      });
-    }
-
-    return baseFilters;
-  }, [isAdmin, user]);
+      },
+    ],
+    [addDangerToast],
+  );
 
   const initialSort = [{ id: 'created_on', desc: true }];
 
