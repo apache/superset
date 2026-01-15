@@ -238,10 +238,10 @@ const FilterValue: FC<FilterValueProps> = ({
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
             if (response.status === 200) {
-              setState([result]);
+              setState([result as ChartDataResponseResult]);
               handleFilterLoadFinish();
             } else if (response.status === 202) {
-              waitForAsyncData(result)
+              waitForAsyncData(result as ChartDataResponseResult)
                 .then((asyncResult: ChartDataResponseResult[]) => {
                   setState(asyncResult);
                   handleFilterLoadFinish();
@@ -258,7 +258,7 @@ const FilterValue: FC<FilterValueProps> = ({
               );
             }
           } else {
-            setState(json.result);
+            setState(json.result as ChartDataResponseResult[]);
             setError(undefined);
             handleFilterLoadFinish();
           }
