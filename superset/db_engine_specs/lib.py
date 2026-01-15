@@ -1817,6 +1817,91 @@ def generate_table() -> list[list[Any]]:
     return rows
 
 
+def infer_category(name: str) -> str:
+    """
+    Infer database category from name for unmigrated specs.
+
+    This is used as a fallback when a spec doesn't have category in metadata.
+    Once all specs are migrated to use metadata.category, this can be removed.
+    """
+    from superset.db_engine_specs.base import DatabaseCategory
+
+    name_lower = name.lower()
+
+    if "aws" in name_lower or "amazon" in name_lower:
+        return DatabaseCategory.CLOUD_AWS
+    if "google" in name_lower or "bigquery" in name_lower:
+        return DatabaseCategory.CLOUD_GCP
+    if "azure" in name_lower or "microsoft" in name_lower:
+        return DatabaseCategory.CLOUD_AZURE
+    if "snowflake" in name_lower or "databricks" in name_lower:
+        return DatabaseCategory.CLOUD_DATA_WAREHOUSES
+    if (
+        "apache" in name_lower
+        or "druid" in name_lower
+        or "hive" in name_lower
+        or "spark" in name_lower
+    ):
+        return DatabaseCategory.APACHE_PROJECTS
+    if (
+        "postgres" in name_lower
+        or "mysql" in name_lower
+        or "sqlite" in name_lower
+        or "mariadb" in name_lower
+    ):
+        return DatabaseCategory.TRADITIONAL_RDBMS
+    if (
+        "clickhouse" in name_lower
+        or "vertica" in name_lower
+        or "starrocks" in name_lower
+    ):
+        return DatabaseCategory.ANALYTICAL_DATABASES
+    if "elastic" in name_lower or "solr" in name_lower or "couchbase" in name_lower:
+        return DatabaseCategory.SEARCH_NOSQL
+    if "trino" in name_lower or "presto" in name_lower:
+        return DatabaseCategory.QUERY_ENGINES
+
+    return DatabaseCategory.OTHER
+
+
+def get_documentation_metadata(
+    spec: type[BaseEngineSpec], name: str
+) -> dict[str, Any]:
+    """
+    Get documentation metadata for a database engine spec.
+
+    Priority:
+    1. metadata attribute on the engine spec class (new approach)
+    2. DATABASE_DOCS dict (legacy approach, for backward compatibility)
+    3. Minimal fallback with just connection string
+
+    This allows gradual migration from DATABASE_DOCS to engine spec metadata.
+    """
+    # First, check if the spec has metadata attribute with content
+    spec_metadata = getattr(spec, "metadata", {})
+    if spec_metadata:
+        result = dict(spec_metadata)
+        # Ensure category is present
+        if "category" not in result:
+            result["category"] = infer_category(name)
+        return result
+
+    # Fall back to DATABASE_DOCS for unmigrated specs
+    if name in DATABASE_DOCS:
+        result = dict(DATABASE_DOCS[name])
+        # Add inferred category for legacy entries
+        if "category" not in result:
+            result["category"] = infer_category(name)
+        return result
+
+    # Minimal fallback
+    return {
+        "pypi_packages": [],
+        "connection_string": getattr(spec, "sqlalchemy_uri_placeholder", ""),
+        "category": infer_category(name),
+    }
+
+
 def generate_yaml_docs(output_dir: str | None = None) -> dict[str, dict[str, Any]]:
     """
     Generate YAML documentation files for all database engine specs.
@@ -1837,15 +1922,8 @@ def generate_yaml_docs(output_dir: str | None = None) -> dict[str, dict[str, Any
         name = get_name(spec)
         doc_data = diagnose(spec)
 
-        # Add documentation metadata if available
-        if name in DATABASE_DOCS:
-            doc_data["documentation"] = DATABASE_DOCS[name]
-        else:
-            # Create minimal documentation entry
-            doc_data["documentation"] = {
-                "pypi_packages": [],
-                "connection_string": getattr(spec, "sqlalchemy_uri_placeholder", ""),
-            }
+        # Get documentation metadata (prefers spec.metadata over DATABASE_DOCS)
+        doc_data["documentation"] = get_documentation_metadata(spec, name)
 
         # Add engine spec metadata
         doc_data["engine"] = spec.engine

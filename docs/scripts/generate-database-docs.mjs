@@ -254,8 +254,9 @@ function buildStatistics(databases) {
     totalScore += db.score || 0;
     if (db.max_score > stats.maxScore) stats.maxScore = db.max_score;
 
-    // Categorize databases
-    const category = categorizeDatabase(name);
+    // Use category from documentation metadata (computed by Python)
+    // This eliminates the need for duplicate categorization logic in JS
+    const category = docs.category || 'Other Databases';
     if (!stats.byCategory[category]) {
       stats.byCategory[category] = [];
     }
@@ -265,52 +266,6 @@ function buildStatistics(databases) {
   stats.averageScore = Math.round(totalScore / stats.totalDatabases);
 
   return stats;
-}
-
-/**
- * Categorize a database by its type
- */
-function categorizeDatabase(name) {
-  const nameLower = name.toLowerCase();
-
-  if (nameLower.includes('aws') || nameLower.includes('amazon'))
-    return 'Cloud - AWS';
-  if (nameLower.includes('google') || nameLower.includes('bigquery'))
-    return 'Cloud - Google';
-  if (nameLower.includes('azure') || nameLower.includes('microsoft'))
-    return 'Cloud - Azure';
-  if (nameLower.includes('snowflake') || nameLower.includes('databricks'))
-    return 'Cloud Data Warehouses';
-  if (
-    nameLower.includes('apache') ||
-    nameLower.includes('druid') ||
-    nameLower.includes('hive') ||
-    nameLower.includes('spark')
-  )
-    return 'Apache Projects';
-  if (
-    nameLower.includes('postgres') ||
-    nameLower.includes('mysql') ||
-    nameLower.includes('sqlite') ||
-    nameLower.includes('mariadb')
-  )
-    return 'Traditional RDBMS';
-  if (
-    nameLower.includes('clickhouse') ||
-    nameLower.includes('vertica') ||
-    nameLower.includes('starrocks')
-  )
-    return 'Analytical Databases';
-  if (
-    nameLower.includes('elastic') ||
-    nameLower.includes('solr') ||
-    nameLower.includes('couchbase')
-  )
-    return 'Search & NoSQL';
-  if (nameLower.includes('trino') || nameLower.includes('presto'))
-    return 'Query Engines';
-
-  return 'Other Databases';
 }
 
 /**

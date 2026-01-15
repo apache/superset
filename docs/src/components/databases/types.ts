@@ -77,6 +77,7 @@ export interface CompatibleDatabase {
   description?: string;
   logo?: string;
   homepage_url?: string;
+  category?: string;  // Category classification (e.g., "Traditional RDBMS")
   pypi_packages?: string[];
   connection_string?: string;
   parameters?: Record<string, string>;
@@ -89,6 +90,7 @@ export interface DatabaseDocumentation {
   description?: string;
   logo?: string;
   homepage_url?: string;
+  category?: string;  // Category classification (e.g., "Traditional RDBMS")
   pypi_packages?: string[];
   connection_string?: string;
   default_port?: number;

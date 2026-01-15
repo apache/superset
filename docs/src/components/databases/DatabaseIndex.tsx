@@ -69,8 +69,18 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Other Databases': 'default',
 };
 
-// Get category for a database
-function getCategory(name: string): string {
+// Get category for a database - uses category from metadata when available
+// Falls back to name-based inference for compatible databases without category
+function getCategory(
+  name: string,
+  documentationCategory?: string
+): string {
+  // Prefer category from documentation metadata (computed by Python)
+  if (documentationCategory) {
+    return documentationCategory;
+  }
+
+  // Fallback: infer from name (for compatible databases without category)
   const nameLower = name.toLowerCase();
 
   if (nameLower.includes('aws') || nameLower.includes('amazon'))
@@ -131,10 +141,11 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
 
     Object.entries(databases).forEach(([name, db]) => {
       // Add the main database
+      // Use category from documentation metadata (computed by Python) when available
       entries.push({
         ...db,
         name,
-        category: getCategory(name),
+        category: getCategory(name, db.documentation?.category),
         timeGrainCount: countTimeGrains(db),
         hasDrivers: (db.documentation?.drivers?.length ?? 0) > 0,
         hasAuthMethods: (db.documentation?.authentication_methods?.length ?? 0) > 0,
@@ -154,9 +165,10 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
         );
 
         if (!existsAsMain) {
+          // Compatible databases: use their category if defined, or infer from name
           entries.push({
             name: compat.name,
-            category: getCategory(compat.name),
+            category: getCategory(compat.name, compat.category),
             // Compatible DBs inherit scores from parent
             score: db.score,
             max_score: db.max_score,

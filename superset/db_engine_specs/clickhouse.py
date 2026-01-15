@@ -145,6 +145,34 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
     _show_functions_column = "name"
     supports_file_upload = False
 
+    metadata = {
+        "description": "ClickHouse is an open-source column-oriented OLAP database.",
+        "logo": "clickhouse.png",
+        "homepage_url": "https://clickhouse.com/",
+        "category": "Analytical Databases",
+        "pypi_packages": ["clickhouse-connect"],
+        "connection_string": (
+            "clickhousedb://{username}:{password}@{hostname}:{port}/{database}"
+        ),
+        "version_requirements": "clickhouse-connect>=0.6.8",
+        "connection_examples": [
+            {
+                "description": "Altinity Cloud",
+                "connection_string": (
+                    "clickhousedb://demo:demo@github.demo.trial.altinity.cloud"
+                    "/default?secure=true"
+                ),
+            },
+            {
+                "description": "Local (no auth, no SSL)",
+                "connection_string": "clickhousedb://localhost/default",
+            },
+        ],
+        "install_instructions": (
+            'echo "clickhouse-connect>=0.6.8" >> ./docker/requirements-local.txt'
+        ),
+    }
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         return {NewConnectionError: SupersetDBAPIDatabaseError}
