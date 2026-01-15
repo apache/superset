@@ -32,6 +32,8 @@ function getStatusColor(status: TaskStatus, theme: SupersetTheme): string {
       return theme.colorSuccessText;
     case TaskStatus.Failure:
       return theme.colorErrorText;
+    case TaskStatus.Aborting:
+      return theme.colorWarningText;
     case TaskStatus.Aborted:
       return theme.colorWarningText;
     default:
@@ -44,6 +46,7 @@ const statusIcons = {
   [TaskStatus.InProgress]: Icons.LoadingOutlined,
   [TaskStatus.Success]: Icons.CheckCircleOutlined,
   [TaskStatus.Failure]: Icons.CloseCircleOutlined,
+  [TaskStatus.Aborting]: Icons.LoadingOutlined, // Spinning to show in-progress abort
   [TaskStatus.Aborted]: Icons.StopOutlined,
 };
 
@@ -52,6 +55,7 @@ const statusLabels = {
   [TaskStatus.InProgress]: 'In Progress',
   [TaskStatus.Success]: 'Success',
   [TaskStatus.Failure]: 'Failed',
+  [TaskStatus.Aborting]: 'Aborting',
   [TaskStatus.Aborted]: 'Aborted',
 };
 
@@ -74,13 +78,17 @@ export default function TaskStatusIcon({
       ? `${label}: ${Math.round(progress * 100)}%`
       : label;
 
+  // Spin for in-progress and aborting states
+  const shouldSpin =
+    status === TaskStatus.InProgress || status === TaskStatus.Aborting;
+
   return (
     <Tooltip title={tooltipText} placement="top">
       <span>
         <IconComponent
           iconSize="l"
           iconColor={getStatusColor(status, theme)}
-          spin={status === TaskStatus.InProgress}
+          spin={shouldSpin}
         />
       </span>
     </Tooltip>

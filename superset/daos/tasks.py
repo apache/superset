@@ -31,6 +31,7 @@ from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
 from superset.tasks.filters import TaskFilter
 from superset.tasks.utils import get_active_dedup_key
+from superset.utils.core import get_user_id
 from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
@@ -154,17 +155,25 @@ class TaskDAO(BaseDAO[Task]):
             **kwargs,
         }
 
-        # Add user_id if provided
-        if user_id is not None:
-            task_data["user_id"] = user_id
+        # Determine user_id: use provided value or fall back to current user
+        effective_user_id = user_id if user_id is not None else get_user_id()
+        if effective_user_id is not None:
+            task_data["user_id"] = effective_user_id
 
         task = cls.create(attributes=task_data)
 
-        # Auto-subscribe creator for shared tasks
-        if scope == TaskScope.SHARED and user_id:
-            cls.add_subscriber(task.id, user_id)
+        # Flush to get the task ID (auto-incremented primary key)
+        db.session.flush()
+
+        # Auto-subscribe creator for all tasks (not just shared)
+        # This enables consistent subscriber display across all task types
+        if effective_user_id:
+            cls.add_subscriber(task.id, effective_user_id)
             logger.info(
-                "Creator %s auto-subscribed to shared task: %s", user_id, task_key
+                "Creator %s auto-subscribed to task: %s (scope: %s)",
+                effective_user_id,
+                task_key,
+                scope_value,
             )
 
         logger.info(
@@ -181,18 +190,34 @@ class TaskDAO(BaseDAO[Task]):
         """
         Abort a task by UUID.
 
+        Abort behavior by status:
+        - PENDING: Goes directly to ABORTED (always abortable)
+        - IN_PROGRESS with is_abortable=True: Goes to ABORTING
+        - IN_PROGRESS with is_abortable=False/None: Raises TaskNotAbortableError
+        - ABORTING: Returns True (idempotent)
+        - Finished statuses: Returns False
+
         For shared tasks, only aborts if:
         - Admin is aborting (skip_base_filter=True), OR
         - This is the last subscriber unsubscribing
 
         :param task_uuid: UUID of task to abort
         :param skip_base_filter: If True, skip base filter (for admin abortions)
-        :returns: True if task was aborted, False if not found or already finished
+        :returns: True if task was aborted/aborting, False if not found or finished
+        :raises TaskNotAbortableError: If in-progress task has no abort handler
         """
+        from superset.commands.tasks.exceptions import TaskNotAbortableError
+
         task = cls.find_one_or_none(skip_base_filter=skip_base_filter, uuid=task_uuid)
         if not task:
             return False
 
+        # Already aborting - idempotent success
+        if task.status == TaskStatus.ABORTING.value:
+            logger.info("Task %s is already aborting", task_uuid)
+            return True
+
+        # Already finished - cannot abort
         if task.status not in [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]:
             return False
 
@@ -207,10 +232,27 @@ class TaskDAO(BaseDAO[Task]):
                 )
                 return False
 
-        task.set_status(TaskStatus.ABORTED.value)
+        # PENDING: Go directly to ABORTED
+        if task.status == TaskStatus.PENDING.value:
+            task.set_status(TaskStatus.ABORTED)
+            logger.info("Aborted pending task: %s (scope: %s)", task_uuid, task.scope)
+            return True
 
-        logger.info("Aborted task: %s (scope: %s)", task_uuid, task.scope)
-        return True
+        # IN_PROGRESS: Check if abortable
+        if task.status == TaskStatus.IN_PROGRESS.value:
+            if task.is_abortable is not True:
+                raise TaskNotAbortableError(
+                    f"Task {task_uuid} is in progress but has not registered "
+                    "an abort handler (is_abortable is not true)"
+                )
+
+            # Transition to ABORTING (not ABORTED yet)
+            task.status = TaskStatus.ABORTING.value
+            db.session.merge(task)
+            logger.info("Set task %s to ABORTING (scope: %s)", task_uuid, task.scope)
+            return True
+
+        return False
 
     @classmethod
     def bulk_abort_tasks(
@@ -238,15 +280,43 @@ class TaskDAO(BaseDAO[Task]):
         abortable_tasks = [
             task
             for task in all_tasks
-            if task.status in [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]
+            if task.status
+            in [
+                TaskStatus.PENDING.value,
+                TaskStatus.IN_PROGRESS.value,
+                TaskStatus.ABORTING.value,
+            ]
         ]
 
         aborted_count = 0
         for task in abortable_tasks:
             try:
-                task.set_status(TaskStatus.ABORTED.value)
-                db.session.commit()
-                aborted_count += 1
+                # Already aborting - count as success (idempotent)
+                if task.status == TaskStatus.ABORTING.value:
+                    aborted_count += 1
+                    continue
+
+                # PENDING: Go directly to ABORTED
+                if task.status == TaskStatus.PENDING.value:
+                    task.set_status(TaskStatus.ABORTED)
+                    db.session.commit()
+                    aborted_count += 1
+                    continue
+
+                # IN_PROGRESS: Check if abortable, transition to ABORTING
+                if task.status == TaskStatus.IN_PROGRESS.value:
+                    if task.is_abortable is True:
+                        task.status = TaskStatus.ABORTING.value
+                        db.session.merge(task)
+                        db.session.commit()
+                        aborted_count += 1
+                    else:
+                        logger.warning(
+                            "Task %s is not abortable (no abort handler registered)",
+                            task.uuid,
+                        )
+                    continue
+
             except Exception as ex:
                 logger.error("Failed to abort task %s: %s", task.uuid, str(ex))
                 db.session.rollback()

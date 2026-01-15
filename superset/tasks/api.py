@@ -29,6 +29,7 @@ from superset.commands.tasks.exceptions import (
     TaskAbortFailedError,
     TaskForbiddenError,
     TaskInvalidError,
+    TaskNotAbortableError,
     TaskNotFoundError,
     TaskPermissionDeniedError,
     TaskUpdateFailedError,
@@ -45,7 +46,12 @@ from superset.tasks.schemas import (
     TaskResponseSchema,
     TaskStatusResponseSchema,
 )
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    RelatedFieldFilter,
+    statsd_metrics,
+)
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 if TYPE_CHECKING:
     pass
@@ -76,6 +82,8 @@ class TaskRestApi(BaseSupersetModelRestApi):
         "abort",
         "unsubscribe",
         "status",
+        "related_subscribers",
+        "related",
     }
 
     list_columns = [
@@ -100,10 +108,14 @@ class TaskRestApi(BaseSupersetModelRestApi):
         "database_id",
         "error_message",
         "payload",
+        "progress",
         "duration_seconds",
         "is_finished",
         "is_successful",
         "is_aborted",
+        "is_aborting",
+        "is_abortable",
+        "can_be_aborted",
         "subscriber_count",
         "subscribers",
     ]
@@ -134,6 +146,15 @@ class TaskRestApi(BaseSupersetModelRestApi):
 
     base_order = ("created_on", "desc")
     base_filters = [["id", TaskFilter, lambda: []]]
+
+    # Related field configuration for filter dropdowns
+    allowed_rel_fields = {"created_by"}
+    related_field_filters = {
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+    }
+    base_related_field_filters = {
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
 
     show_model_schema = TaskResponseSchema()
     list_model_schema = TaskResponseSchema()
@@ -321,6 +342,16 @@ class TaskRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except TaskForbiddenError:
             return self.response_403()
+        except TaskPermissionDeniedError:
+            return self.response_403()
+        except TaskNotAbortableError as ex:
+            # Task is in progress but doesn't have an abort handler registered
+            logger.warning(
+                "Task %s is not abortable: %s",
+                uuid_or_id,
+                str(ex),
+            )
+            return self.response_422(message=str(ex))
         except TaskAbortFailedError as ex:
             logger.error(
                 "Error aborting task %s: %s",
@@ -510,3 +541,98 @@ class TaskRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
         except (ValueError, TypeError):
             return self.response_404()
+
+    @expose("/related/subscribers", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        ".related_subscribers",
+        log_to_statsd=False,
+    )
+    def related_subscribers(self) -> Response:
+        """Get users who are subscribers to tasks.
+        ---
+        get:
+          summary: Get related subscribers
+          description: >
+            Returns a list of users who are subscribed to tasks, for use in filter
+            dropdowns. Results can be filtered by a search query parameter.
+          parameters:
+          - in: query
+            schema:
+              type: string
+            name: q
+            description: Search query to filter subscribers by name
+          responses:
+            200:
+              description: List of subscribers
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        description: Total number of matching subscribers
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            value:
+                              type: integer
+                              description: User ID
+                            text:
+                              type: string
+                              description: User display name
+            401:
+              $ref: '#/components/responses/401'
+        """
+        from flask import request
+
+        from superset import db, security_manager
+        from superset.models.task_subscribers import TaskSubscriber
+
+        # Get search query
+
+        # Get user model
+        user_model = security_manager.user_model
+
+        # Query distinct users who are task subscribers
+        query = (
+            db.session.query(user_model.id, user_model.first_name, user_model.last_name)
+            .join(TaskSubscriber, user_model.id == TaskSubscriber.user_id)
+            .distinct()
+        )
+
+        # Apply search filter if provided
+        if search_query := request.args.get("q", ""):
+            like_value = f"%{search_query}%"
+            query = query.filter(
+                (user_model.first_name + " " + user_model.last_name).ilike(like_value)
+                | user_model.username.ilike(like_value)
+            )
+
+        # Order by name
+        query = query.order_by(user_model.first_name, user_model.last_name)
+
+        # Limit results
+        query = query.limit(100)
+
+        # Execute and format results
+        results = query.all()
+
+        return self.response(
+            200,
+            count=len(results),
+            result=[
+                {
+                    "value": user_id,
+                    "text": f"{first_name or ''} {last_name or ''}".strip()
+                    or str(user_id),
+                }
+                for user_id, first_name, last_name in results
+            ],
+        )

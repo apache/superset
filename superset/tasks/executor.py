@@ -31,7 +31,7 @@ from superset.tasks.registry import TaskRegistry
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="tasks.execute", bind=True)
+@celery_app.task(name="tasks.execute", bind=True)  # noqa: C901
 def execute_task(
     self: Any,  # Celery task instance
     task_uuid: str,
@@ -65,7 +65,7 @@ def execute_task(
     # Build context from task (includes user who created the task)
     ctx = TaskContext(task_uuid=task_uuid)
 
-    # AUTOMATIC PRE-EXECUTION CHECK: Don't execute if already aborted
+    # AUTOMATIC PRE-EXECUTION CHECK: Don't execute if already aborted/aborting
     if ctx.is_aborted():
         logger.info(
             "Task %s (uuid=%s) was aborted before execution started",
@@ -73,6 +73,9 @@ def execute_task(
             task_uuid,
         )
         task = ctx._task
+        # Ensure status is ABORTED (not just ABORTING)
+        if task.status != TaskStatus.ABORTED.value:
+            task.set_status(TaskStatus.ABORTED)
         task.ended_at = datetime.now(timezone.utc)
         from superset.extensions import db
 
@@ -135,13 +138,37 @@ def execute_task(
         # ALWAYS run cleanup handlers
         ctx._run_cleanup()
 
-        # Always set end time
+        # Check if task was aborting and needs to transition to aborted
         task = ctx._task
+        if task.status == TaskStatus.ABORTING.value:
+            if ctx.abort_handlers_completed:
+                # All handlers succeeded, transition to ABORTED
+                task.set_status(TaskStatus.ABORTED)
+                logger.info(
+                    "Task %s (uuid=%s) transitioned from ABORTING to ABORTED",
+                    task_type,
+                    task_uuid,
+                )
+            else:
+                # Handlers didn't complete successfully
+                # If status is still ABORTING, something went wrong
+                if task.status == TaskStatus.ABORTING.value:
+                    task.set_status(TaskStatus.FAILURE)
+                    if not task.error_message:
+                        task.error_message = "Abort handlers did not complete"
+                    logger.warning(
+                        "Task %s (uuid=%s) stuck in ABORTING - marking as FAILURE",
+                        task_type,
+                        task_uuid,
+                    )
+
+        # Always set end time if not already set
         if not task.ended_at:
             task.ended_at = datetime.now(timezone.utc)
-            from superset.extensions import db
 
-            db.session.merge(task)
-            db.session.commit()
+        from superset.extensions import db
+
+        db.session.merge(task)
+        db.session.commit()
 
     return {"status": task.status, "task_uuid": task_uuid}

@@ -147,19 +147,83 @@ class TestTaskDAO:
 
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     @patch("superset.daos.tasks.db.session")
-    def test_abort_task_success(self, mock_session, mock_find):
-        """Test successful task abortlation"""
+    def test_abort_task_pending_success(self, mock_session, mock_find):
+        """Test successful abort of pending task - goes directly to ABORTED"""
         mock_task = MagicMock(spec=Task)
         mock_task.status = TaskStatus.PENDING.value
-        mock_task.is_shared = False  # Not a shared task
-        mock_task.subscriber_count = 0  # Set as int, not MagicMock
+        mock_task.is_shared = False
+        mock_task.subscriber_count = 0
         mock_find.return_value = mock_task
 
         result = TaskDAO.abort_task("test-uuid")
 
         assert result is True
-        mock_task.set_status.assert_called_once_with(TaskStatus.ABORTED.value)
+        mock_task.set_status.assert_called_once_with(TaskStatus.ABORTED)
         mock_session.commit.assert_called_once()
+
+    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
+    @patch("superset.daos.tasks.db.session")
+    def test_abort_task_in_progress_abortable(self, mock_session, mock_find):
+        """Test abort of in-progress task with abort handler.
+
+        Should transition to ABORTING status.
+        """
+        mock_task = MagicMock(spec=Task)
+        mock_task.status = TaskStatus.IN_PROGRESS.value
+        mock_task.is_abortable = True  # Has registered abort handler
+        mock_task.is_shared = False
+        mock_task.subscriber_count = 0
+        mock_find.return_value = mock_task
+
+        result = TaskDAO.abort_task("test-uuid")
+
+        assert result is True
+        # Should set status to ABORTING, not ABORTED
+        assert mock_task.status == TaskStatus.ABORTING.value
+        mock_session.merge.assert_called_once_with(mock_task)
+        mock_session.commit.assert_called_once()
+
+    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
+    def test_abort_task_in_progress_not_abortable(self, mock_find):
+        """Test abort of in-progress task without abort handler - raises error"""
+        from superset.commands.tasks.exceptions import TaskNotAbortableError
+
+        mock_task = MagicMock(spec=Task)
+        mock_task.status = TaskStatus.IN_PROGRESS.value
+        mock_task.is_abortable = False  # No abort handler registered
+        mock_task.is_shared = False
+        mock_task.subscriber_count = 0
+        mock_find.return_value = mock_task
+
+        with pytest.raises(TaskNotAbortableError):
+            TaskDAO.abort_task("test-uuid")
+
+    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
+    def test_abort_task_in_progress_is_abortable_none(self, mock_find):
+        """Test abort of in-progress task with is_abortable=None - raises error"""
+        from superset.commands.tasks.exceptions import TaskNotAbortableError
+
+        mock_task = MagicMock(spec=Task)
+        mock_task.status = TaskStatus.IN_PROGRESS.value
+        mock_task.is_abortable = None  # Default value - no handler registered
+        mock_task.is_shared = False
+        mock_task.subscriber_count = 0
+        mock_find.return_value = mock_task
+
+        with pytest.raises(TaskNotAbortableError):
+            TaskDAO.abort_task("test-uuid")
+
+    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
+    def test_abort_task_already_aborting(self, mock_find):
+        """Test abort of already aborting task - idempotent success"""
+        mock_task = MagicMock(spec=Task)
+        mock_task.status = TaskStatus.ABORTING.value
+        mock_find.return_value = mock_task
+
+        result = TaskDAO.abort_task("test-uuid")
+
+        assert result is True  # Idempotent - already aborting
+        mock_task.set_status.assert_not_called()  # No status change needed
 
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     def test_abort_task_not_found(self, mock_find):
@@ -263,15 +327,15 @@ class TestTaskDAO:
 
     @patch("superset.daos.tasks.TaskDAO.find_by_ids")
     @patch("superset.daos.tasks.db.session")
-    def test_bulk_abort_tasks_success(self, mock_session, mock_find_by_ids):
-        """Test successful bulk abortlation of tasks"""
+    def test_bulk_abort_tasks_pending_success(self, mock_session, mock_find_by_ids):
+        """Test successful bulk abort of pending tasks - go directly to ABORTED"""
         mock_task1 = MagicMock(spec=Task)
         mock_task1.uuid = "uuid1"
         mock_task1.status = TaskStatus.PENDING.value
 
         mock_task2 = MagicMock(spec=Task)
         mock_task2.uuid = "uuid2"
-        mock_task2.status = TaskStatus.IN_PROGRESS.value
+        mock_task2.status = TaskStatus.PENDING.value
 
         mock_find_by_ids.return_value = [mock_task1, mock_task2]
 
@@ -279,9 +343,65 @@ class TestTaskDAO:
 
         assert aborted_count == 2
         assert total_requested == 2
-        mock_task1.set_status.assert_called_once_with(TaskStatus.ABORTED.value)
-        mock_task2.set_status.assert_called_once_with(TaskStatus.ABORTED.value)
+        mock_task1.set_status.assert_called_once_with(TaskStatus.ABORTED)
+        mock_task2.set_status.assert_called_once_with(TaskStatus.ABORTED)
         assert mock_session.commit.call_count == 2
+
+    @patch("superset.daos.tasks.TaskDAO.find_by_ids")
+    @patch("superset.daos.tasks.db.session")
+    def test_bulk_abort_tasks_in_progress_abortable(
+        self, mock_session, mock_find_by_ids
+    ):
+        """Test bulk abort of in-progress abortable tasks - transition to ABORTING"""
+        mock_task = MagicMock(spec=Task)
+        mock_task.uuid = "uuid1"
+        mock_task.status = TaskStatus.IN_PROGRESS.value
+        mock_task.is_abortable = True
+
+        mock_find_by_ids.return_value = [mock_task]
+
+        aborted_count, total_requested = TaskDAO.bulk_abort_tasks(["uuid1"])
+
+        assert aborted_count == 1
+        assert total_requested == 1
+        # Should set status to ABORTING
+        assert mock_task.status == TaskStatus.ABORTING.value
+        mock_session.merge.assert_called_once_with(mock_task)
+        assert mock_session.commit.call_count >= 1
+
+    @patch("superset.daos.tasks.TaskDAO.find_by_ids")
+    @patch("superset.daos.tasks.db.session")
+    def test_bulk_abort_tasks_in_progress_not_abortable(
+        self, mock_session, mock_find_by_ids
+    ):
+        """Test bulk abort of in-progress non-abortable tasks - skipped with warning"""
+        mock_task = MagicMock(spec=Task)
+        mock_task.uuid = "uuid1"
+        mock_task.status = TaskStatus.IN_PROGRESS.value
+        mock_task.is_abortable = False  # Not abortable
+
+        mock_find_by_ids.return_value = [mock_task]
+
+        aborted_count, total_requested = TaskDAO.bulk_abort_tasks(["uuid1"])
+
+        assert aborted_count == 0  # Task was not aborted
+        assert total_requested == 1
+
+    @patch("superset.daos.tasks.TaskDAO.find_by_ids")
+    @patch("superset.daos.tasks.db.session")
+    def test_bulk_abort_tasks_already_aborting(self, mock_session, mock_find_by_ids):
+        """Test bulk abort of already aborting tasks - idempotent success"""
+        mock_task = MagicMock(spec=Task)
+        mock_task.uuid = "uuid1"
+        mock_task.status = TaskStatus.ABORTING.value
+
+        mock_find_by_ids.return_value = [mock_task]
+
+        aborted_count, total_requested = TaskDAO.bulk_abort_tasks(["uuid1"])
+
+        assert aborted_count == 1  # Idempotent - counts as success
+        assert total_requested == 1
+        mock_task.set_status.assert_not_called()  # No status change needed
 
     @patch("superset.daos.tasks.TaskDAO.find_all")
     def test_bulk_abort_tasks_empty_list(self, mock_find_all):
@@ -295,7 +415,7 @@ class TestTaskDAO:
     @patch("superset.daos.tasks.TaskDAO.find_by_ids")
     @patch("superset.daos.tasks.db.session")
     def test_bulk_abort_tasks_partial_success(self, mock_session, mock_find_by_ids):
-        """Test bulk abort with partial success (some tasks fail)"""
+        """Test bulk abort with partial success (some tasks not abortable)"""
         mock_task1 = MagicMock(spec=Task)
         mock_task1.uuid = "uuid1"
         mock_task1.status = TaskStatus.PENDING.value
@@ -303,7 +423,7 @@ class TestTaskDAO:
         mock_task2 = MagicMock(spec=Task)
         mock_task2.uuid = "uuid2"
         mock_task2.status = TaskStatus.IN_PROGRESS.value
-        mock_task2.set_status.side_effect = Exception("Database error")
+        mock_task2.is_abortable = False  # Not abortable
 
         mock_find_by_ids.return_value = [mock_task1, mock_task2]
 
@@ -311,18 +431,14 @@ class TestTaskDAO:
             ["uuid1", "uuid2", "uuid3"]
         )
 
-        assert aborted_count == 1  # Only task1 succeeded
+        assert aborted_count == 1  # Only task1 (pending) succeeded
         assert total_requested == 3
-        mock_task1.set_status.assert_called_once_with(TaskStatus.ABORTED.value)
-        mock_task2.set_status.assert_called_once_with(TaskStatus.ABORTED.value)
-        # One commit for successful task, one rollback for failed task
-        assert mock_session.commit.call_count == 1
-        assert mock_session.rollback.call_count == 1
+        mock_task1.set_status.assert_called_once_with(TaskStatus.ABORTED)
 
     @patch("superset.daos.tasks.TaskDAO.find_by_ids")
-    def test_bulk_abort_tasks_no_abortlable_tasks(self, mock_find_by_ids):
-        """Test bulk abort when no tasks are in abortlable state"""
-        # Simulate tasks exist but are not in abortlable state
+    def test_bulk_abort_tasks_no_abortable_tasks(self, mock_find_by_ids):
+        """Test bulk abort when no tasks are in abortable state"""
+        # Simulate tasks exist but are already finished
         mock_task1 = MagicMock(spec=Task)
         mock_task1.status = TaskStatus.SUCCESS.value
 
@@ -335,6 +451,41 @@ class TestTaskDAO:
 
         assert aborted_count == 0
         assert total_requested == 2
+
+    @patch("superset.daos.tasks.TaskDAO.find_by_ids")
+    @patch("superset.daos.tasks.db.session")
+    def test_bulk_abort_tasks_mixed_states(self, mock_session, mock_find_by_ids):
+        """Test bulk abort with mixed task states"""
+        # Pending - should abort
+        mock_task1 = MagicMock(spec=Task)
+        mock_task1.uuid = "uuid1"
+        mock_task1.status = TaskStatus.PENDING.value
+
+        # In-progress abortable - should transition to ABORTING
+        mock_task2 = MagicMock(spec=Task)
+        mock_task2.uuid = "uuid2"
+        mock_task2.status = TaskStatus.IN_PROGRESS.value
+        mock_task2.is_abortable = True
+
+        # Already aborting - idempotent
+        mock_task3 = MagicMock(spec=Task)
+        mock_task3.uuid = "uuid3"
+        mock_task3.status = TaskStatus.ABORTING.value
+
+        # In-progress not abortable - skip
+        mock_task4 = MagicMock(spec=Task)
+        mock_task4.uuid = "uuid4"
+        mock_task4.status = TaskStatus.IN_PROGRESS.value
+        mock_task4.is_abortable = False
+
+        mock_find_by_ids.return_value = [mock_task1, mock_task2, mock_task3, mock_task4]
+
+        aborted_count, total_requested = TaskDAO.bulk_abort_tasks(
+            ["uuid1", "uuid2", "uuid3", "uuid4"]
+        )
+
+        assert aborted_count == 3  # pending + in-progress abortable + aborting
+        assert total_requested == 4
 
     @patch("superset.daos.tasks.TaskDAO.find_by_ids")
     @patch("superset.daos.tasks.db.session")

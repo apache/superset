@@ -23,6 +23,7 @@ from superset_core.api.tasks import TaskScope, TaskStatus
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import (
     TaskAbortFailedError,
+    TaskNotAbortableError,
     TaskNotFoundError,
     TaskPermissionDeniedError,
 )
@@ -41,6 +42,7 @@ class AbortTaskCommand(BaseCommand):
     def __init__(self, task_uuid: str):
         self._task_uuid = task_uuid
         self._model: "Task" | None = None
+        self._is_admin: bool = False
 
     @transaction(on_error=partial(on_error, reraise=TaskAbortFailedError))
     def run(self) -> "Task":
@@ -48,38 +50,55 @@ class AbortTaskCommand(BaseCommand):
         self.validate()
         assert self._model
 
-        # Check if task can be aborted
-        if self._model.status not in [
-            TaskStatus.PENDING.value,
-            TaskStatus.IN_PROGRESS.value,
-        ]:
-            raise TaskAbortFailedError()
+        # Lazy import to avoid circular dependency
+        from superset.daos.tasks import TaskDAO
 
         # For shared tasks, use remove_subscriber logic which auto-aborts
-        # if last subscriber
-        if self._model.is_shared:
+        # if last subscriber (unless admin force-abort)
+        if self._model.is_shared and not self._is_admin:
             user_id = get_user_id()
             if user_id and self._model.has_subscriber(user_id):
                 # Remove user's subscription; task aborts if last subscriber
-                # Lazy import to avoid circular dependency
-                from superset.daos.tasks import TaskDAO
-
                 TaskDAO.remove_subscriber(self._model.id, user_id)
                 logger.info(
                     "Unsubscribed user %s from shared task: %s (auto-abort if last)",
                     user_id,
                     self._task_uuid,
                 )
-            else:
-                # Admin force-abort (skip_base_filter was True)
-                self._model.set_status(TaskStatus.ABORTED.value)
-                logger.info("Admin force-aborted shared task: %s", self._task_uuid)
-        else:
-            # Private or system tasks - direct abort
-            self._model.set_status(TaskStatus.ABORTED.value)
-            logger.info(
-                "Aborted task: %s (scope: %s)", self._task_uuid, self._model.scope
-            )
+                # Refresh model to get updated status
+                refreshed = TaskDAO.find_one_or_none(
+                    skip_base_filter=True, uuid=self._task_uuid
+                )
+                if not refreshed:
+                    raise TaskNotFoundError()
+                self._model = refreshed
+                return self._model
+            # If user is not a subscriber, fall through to direct abort
+
+        # Use DAO's abort_task which handles two-phase abort logic:
+        # - PENDING → ABORTED (direct)
+        # - IN_PROGRESS with is_abortable=True → ABORTING
+        # - IN_PROGRESS with is_abortable=False/None → raises TaskNotAbortableError
+        # - ABORTING → returns True (idempotent)
+        try:
+            TaskDAO.abort_task(self._task_uuid, skip_base_filter=self._is_admin)
+        except TaskNotAbortableError:
+            # Re-raise as-is (will be handled by API)
+            raise
+
+        # Refresh model to get updated status
+        refreshed = TaskDAO.find_one_or_none(
+            skip_base_filter=True, uuid=self._task_uuid
+        )
+        if not refreshed:
+            raise TaskNotFoundError()
+        self._model = refreshed
+        logger.info(
+            "Abort requested for task: %s (scope: %s, new_status: %s)",
+            self._task_uuid,
+            self._model.scope,
+            self._model.status,
+        )
 
         return self._model
 
@@ -95,21 +114,30 @@ class AbortTaskCommand(BaseCommand):
         from superset import security_manager
 
         # Check if admin first
-        is_admin = security_manager.is_admin()
+        self._is_admin = security_manager.is_admin()
 
         # Find task (skip_base_filter for admin to see all tasks)
         # Lazy import to avoid circular dependency
         from superset.daos.tasks import TaskDAO
 
         self._model = TaskDAO.find_one_or_none(
-            skip_base_filter=is_admin, uuid=self._task_uuid
+            skip_base_filter=self._is_admin, uuid=self._task_uuid
         )
 
         if not self._model:
             raise TaskNotFoundError()
 
+        # Check if task can be aborted based on status
+        # ABORTING is allowed (idempotent) - will just refresh and return
+        if self._model.status not in [
+            TaskStatus.PENDING.value,
+            TaskStatus.IN_PROGRESS.value,
+            TaskStatus.ABORTING.value,  # Already aborting is OK (idempotent)
+        ]:
+            raise TaskAbortFailedError()
+
         # Admin can abort anything
-        if is_admin:
+        if self._is_admin:
             return
 
         # Non-admin permission checks by scope
