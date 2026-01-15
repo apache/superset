@@ -247,6 +247,39 @@ class TestTaskWrapperSchedule:
         call_args = mock_submit.call_args
         assert call_args[1]["scope"] == TaskScope.PRIVATE
 
+    @patch("superset.tasks.decorators.TaskManager.submit_task")
+    def test_schedule_shared_task_requires_task_key(self, mock_submit):
+        """Test shared task schedule() requires explicit task_key"""
+
+        @task(name="test_shared_requires_key", scope=TaskScope.SHARED)
+        def shared_task(arg1: int) -> None:
+            pass
+
+        # Should raise ValueError when no task_key provided
+        with pytest.raises(
+            ValueError,
+            match="Shared task.*requires an explicit task_key.*for deduplication",
+        ):
+            shared_task.schedule(123)
+
+        # Should work with task_key provided
+        mock_submit.return_value = MagicMock()
+        shared_task.schedule(123, options=TaskOptions(task_key="valid_key"))
+        mock_submit.assert_called_once()
+
+    @patch("superset.tasks.decorators.TaskManager.submit_task")
+    def test_schedule_private_task_allows_no_task_key(self, mock_submit):
+        """Test private task schedule() works without task_key"""
+        mock_submit.return_value = MagicMock()
+
+        @task(name="test_private_no_key", scope=TaskScope.PRIVATE)
+        def private_task(arg1: int) -> None:
+            pass
+
+        # Should work without task_key (generates random UUID)
+        private_task.schedule(123)
+        mock_submit.assert_called_once()
+
 
 class TestTaskWrapperCall:
     """Tests for TaskWrapper.__call__() with scope"""
@@ -328,3 +361,59 @@ class TestTaskWrapperCall:
         assert call_args[1]["scope"] == TaskScope.SYSTEM.value
         assert call_args[1]["task_key"] == "custom_key"
         assert call_args[1]["task_name"] == "Custom Task Name"
+
+    def test_call_shared_task_requires_task_key(self):
+        """Test shared task direct call requires explicit task_key"""
+
+        @task(name="test_shared_call_requires_key", scope=TaskScope.SHARED)
+        def shared_task(arg1: int) -> None:
+            pass
+
+        # Should raise ValueError when no task_key provided
+        with pytest.raises(
+            ValueError,
+            match="Shared task.*requires an explicit task_key.*for deduplication",
+        ):
+            shared_task(123)
+
+    @patch("superset.extensions.db")
+    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
+    @patch("superset.daos.tasks.TaskDAO.create_task")
+    def test_call_shared_task_works_with_task_key(
+        self, mock_create_task, mock_find, mock_db
+    ):
+        """Test shared task direct call works with task_key"""
+        mock_task = MagicMock()
+        mock_task.uuid = "test-uuid"
+        mock_task.status = "in_progress"
+        mock_create_task.return_value = mock_task
+        mock_find.return_value = mock_task
+
+        @task(name="test_shared_call_with_key", scope=TaskScope.SHARED)
+        def shared_task(arg1: int) -> None:
+            pass
+
+        # Should work with task_key provided
+        shared_task(123, options=TaskOptions(task_key="valid_key"))
+        mock_create_task.assert_called_once()
+
+    @patch("superset.extensions.db")
+    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
+    @patch("superset.daos.tasks.TaskDAO.create_task")
+    def test_call_private_task_allows_no_task_key(
+        self, mock_create_task, mock_find, mock_db
+    ):
+        """Test private task direct call works without task_key"""
+        mock_task = MagicMock()
+        mock_task.uuid = "test-uuid"
+        mock_task.status = "in_progress"
+        mock_create_task.return_value = mock_task
+        mock_find.return_value = mock_task
+
+        @task(name="test_private_call_no_key", scope=TaskScope.PRIVATE)
+        def private_task(arg1: int) -> None:
+            pass
+
+        # Should work without task_key (generates random UUID)
+        private_task(123)
+        mock_create_task.assert_called_once()

@@ -2424,6 +2424,9 @@ except ImportError:
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
 
+# Default polling interval for tasks (seconds)
+TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
+
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------
