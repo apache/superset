@@ -51,7 +51,7 @@ export interface ChartProps {
   chartId: number;
   datasource?: Datasource;
   dashboardId?: number;
-  initialValues?: object;
+  initialValues?: Record<string, unknown>;
   formData: QueryFormData;
   labelColors?: string;
   sharedLabelColors?: string;
