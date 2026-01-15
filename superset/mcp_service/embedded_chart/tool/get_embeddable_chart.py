@@ -29,6 +29,31 @@ from fastmcp import Context
 from flask import g
 from superset_core.mcp import tool
 
+# Time series viz types that require a datetime column on the x-axis
+TIMESERIES_VIZ_TYPES = {
+    "echarts_timeseries",
+    "echarts_timeseries_line",
+    "echarts_timeseries_bar",
+    "echarts_timeseries_area",
+    "echarts_timeseries_scatter",
+    "echarts_timeseries_smooth",
+    "echarts_timeseries_step",
+    "mixed_timeseries",
+    "line",
+    "area",
+}
+
+# Categorical viz types for bar/pie charts (use these for non-time data)
+CATEGORICAL_VIZ_TYPES = {
+    "bar",
+    "dist_bar",
+    "pie",
+    "big_number",
+    "big_number_total",
+    "table",
+    "pivot_table_v2",
+}
+
 from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.embedded_chart.schemas import (
     GetEmbeddableChartRequest,
@@ -57,23 +82,33 @@ async def get_embeddable_chart(
     in external applications via iframe. The chart is configured via form_data
     and stored as a permalink with TTL.
 
-    IMPORTANT:
-    - The iframe_html can be directly embedded in web pages
-    - Guest token must be passed to the iframe for authentication
-    - Chart expires after ttl_minutes (default: 60 minutes)
+    IMPORTANT - Chart Type Selection:
+    - For CATEGORICAL data (genre, country, status): use 'bar', 'pie', 'table'
+    - For TIME SERIES data (dates/timestamps): use 'echarts_timeseries_*'
+    - Common mistake: using 'echarts_timeseries_bar' for categorical data
 
-    Example usage:
+    Example 1 - Categorical bar chart (sales by genre):
+    ```json
+    {
+        "datasource_id": 22,
+        "viz_type": "bar",
+        "form_data": {
+            "metrics": [{"aggregate": "SUM", "column": {"column_name": "sales"}}],
+            "groupby": ["genre"]
+        }
+    }
+    ```
+
+    Example 2 - Time series line chart (requires datetime column):
     ```json
     {
         "datasource_id": 123,
         "viz_type": "echarts_timeseries_line",
         "form_data": {
+            "x_axis": "created_at",
             "metrics": ["count"],
-            "groupby": ["category"],
             "time_range": "Last 7 days"
-        },
-        "ttl_minutes": 120,
-        "height": 500
+        }
     }
     ```
 
@@ -122,6 +157,36 @@ async def get_embeddable_chart(
                 success=False,
                 error="Access denied to dataset",
             )
+
+        # Validate timeseries viz types have required datetime configuration
+        if request.viz_type in TIMESERIES_VIZ_TYPES:
+            has_x_axis = request.form_data.get("x_axis")
+            has_granularity = request.form_data.get("granularity_sqla")
+            has_time_column = request.form_data.get("time_column")
+
+            if not (has_x_axis or has_granularity or has_time_column):
+                # Check if dataset has a main temporal column configured
+                main_dttm_col = getattr(dataset, "main_dttm_col", None)
+                if not main_dttm_col:
+                    categorical_alternative = (
+                        "bar" if "bar" in request.viz_type else "pie"
+                    )
+                    await ctx.error(
+                        f"Time series chart '{request.viz_type}' requires a datetime "
+                        f"column. Either provide 'x_axis' or 'granularity_sqla' in "
+                        f"form_data pointing to a datetime column, or use a categorical "
+                        f"chart type like '{categorical_alternative}' for non-time data."
+                    )
+                    return GetEmbeddableChartResponse(
+                        success=False,
+                        error=(
+                            f"Time series chart type '{request.viz_type}' requires a "
+                            f"datetime column on the x-axis. For categorical data like "
+                            f"'genre', use viz_type='{categorical_alternative}' instead. "
+                            f"Alternatively, add 'x_axis' or 'granularity_sqla' to "
+                            f"form_data with a datetime column name."
+                        ),
+                    )
 
         # Build complete form_data
         form_data = {
