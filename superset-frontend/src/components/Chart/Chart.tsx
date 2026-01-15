@@ -57,7 +57,7 @@ export interface ChartProps {
   sharedLabelColors?: string;
   width: number;
   height: number;
-  setControlValue: Function;
+  setControlValue: (name: string, value: unknown) => void;
   timeout?: number;
   vizType: string;
   triggerRender?: boolean;
