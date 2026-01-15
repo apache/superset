@@ -1096,9 +1096,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           <th
             id={`header-${headerId}`}
             title={
-              description
-                ? description
-                : t('Shift + Click to sort by multiple columns')
+              description || t('Shift + Click to sort by multiple columns')
             }
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
