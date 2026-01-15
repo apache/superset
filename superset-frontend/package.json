@@ -337,7 +337,7 @@
     "open-cli": "^8.0.0",
     "oxlint": "^1.32.0",
     "po2json": "^0.4.5",
-    "prettier": "3.7.4",
+    "prettier": "3.8.0",
     "prettier-plugin-packagejson": "^2.5.20",
     "process": "^0.11.10",
     "react-refresh": "^0.18.0",
