@@ -2119,6 +2119,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ] = None,  # fix(hughhh): Optional[Type[BaseEngineSpec]]
         db_extra: Optional[dict[str, Any]] = None,
     ) -> Optional[FilterValues]:
+        is_list_target = bool(is_list_target)
         if values is None:
             return None
 
@@ -3107,7 +3108,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         utils.FilterOperator.EQUALS,
                         utils.FilterOperator.NOT_EQUALS,
                     }:
-                        cond = db_engine_spec.handle_array_filter(sqla_col, op, eq)
+                        eq_list = list(eq) if isinstance(eq, (list, tuple)) else [eq]
+                        cond = db_engine_spec.handle_array_filter(sqla_col, op, eq_list)
                     target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IS_NULL,
