@@ -330,7 +330,6 @@ test('filter with selectedLayers should exclude charts that have layer selection
   expect(chartsInScope.sort()).toEqual([1, 2]);
 });
 
-
 test('filter with selectedLayers should ignore invalid layer key formats', () => {
   const chartLayoutItems = createNestedTabsLayout();
   const filterScope = {
