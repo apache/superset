@@ -2284,8 +2284,10 @@ def test_export_includes_configuration_method(
     includes the 'configuration_method' field in the YAML.
     """
     import zipfile
-    from superset.models.core import Database
+
     import prison
+
+    from superset.models.core import Database
 
     # Create a database with a non-default configuration_method
     db_obj = Database(
