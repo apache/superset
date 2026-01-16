@@ -45,14 +45,15 @@ import { Tag } from 'src/components/Tag';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { AlertObject } from 'src/features/alerts/types';
+import { ReportObject } from 'src/features/reports/types';
 import { User } from 'src/types/bootstrapTypes';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
 interface ExploreActions {
   updateChartTitle: (title: string) => void;
-  fetchFaveStar: (sliceId: string) => void;
-  saveFaveStar: (sliceId: string, isStarred: boolean) => void;
+  fetchFaveStar: (sliceId: number) => void;
+  saveFaveStar: (sliceId: number, isStarred: boolean) => void;
   redirectSQLLab: (
     formData: QueryFormData,
     history?: ReturnType<typeof useHistory> | false,
@@ -178,7 +179,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   );
 
   const handleReportDelete = async (report: AlertObject) => {
-    await dispatch(deleteActiveReport(report));
+    await dispatch(deleteActiveReport(report as unknown as ReportObject));
     setCurrentReportDeleting(null);
   };
 
@@ -205,7 +206,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
       setCurrentReportDeleting,
     );
 
-  const metadataBar = useExploreMetadataBar(metadata, slice);
+  const metadataBar = useExploreMetadataBar(metadata, slice ?? null);
   const oldSliceName = slice?.slice_name;
 
   const originalFormData = useMemo(() => {
@@ -234,7 +235,9 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     triggerManualSave,
   } = useUnsavedChangesPrompt({
     hasUnsavedChanges: Object.keys(formDiffs).length > 0,
-    onSave: () => dispatch(setSaveChartModalVisibility(true)),
+    onSave: () => {
+      dispatch(setSaveChartModalVisibility(true));
+    },
     isSaveModalVisible,
     manualSaveOnUnsavedChanges: true,
   });
@@ -261,7 +264,8 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
           canEdit:
             !slice ||
             canOverwrite ||
-            (slice?.owners || []).includes(user?.userId),
+            (user?.userId !== undefined &&
+              (slice?.owners || []).includes(user.userId)),
           onSave: actions.updateChartTitle,
           placeholder: t('Add the name of the chart'),
           label: t('Chart title'),
@@ -271,9 +275,9 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
           certifiedBy: slice?.certified_by,
           details: slice?.certification_details,
         }}
-        showFaveStar={!!user?.userId}
+        showFaveStar={!!user?.userId && slice?.slice_id !== undefined}
         faveStarProps={{
-          itemId: slice?.slice_id,
+          itemId: slice?.slice_id ?? 0,
           fetchFaveStar: actions.fetchFaveStar,
           saveFaveStar: actions.saveFaveStar,
           isStarred,
@@ -285,8 +289,8 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
               <AlteredSliceTag
                 className="altered"
                 diffs={formDiffs}
-                origFormData={originalFormData}
-                currentFormData={currentFormData}
+                origFormData={originalFormData as QueryFormData}
+                currentFormData={currentFormData as QueryFormData}
               />
             ) : null}
             {formData && isMatrixifyEnabled(formData) && (

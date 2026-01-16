@@ -97,9 +97,7 @@ describe('logger middleware', () => {
 
     timeSandbox.clock.tick(2000);
     expect(postStub.callCount).toBe(1);
-    expect(postStub.getCall(0).args[0].endpoint).toMatch(
-      '/superset/log/',
-    );
+    expect(postStub.getCall(0).args[0].endpoint).toMatch('/superset/log/');
   });
 
   test('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
@@ -139,9 +137,7 @@ describe('logger middleware', () => {
     timeSandbox.clock.tick(2000);
 
     expect(postStub.callCount).toBe(1);
-    expect(
-      postStub.getCall(0).args[0].postPayload.events,
-    ).toHaveLength(3);
+    expect(postStub.getCall(0).args[0].postPayload.events).toHaveLength(3);
   });
 
   test('should use navigator.sendBeacon if it exists', () => {

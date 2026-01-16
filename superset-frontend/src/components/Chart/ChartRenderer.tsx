@@ -55,9 +55,11 @@ interface LegendState {
 }
 
 // Webpack globals declaration
-declare const __webpack_require__: {
-  h?: () => string;
-} | undefined;
+declare const __webpack_require__:
+  | {
+      h?: () => string;
+    }
+  | undefined;
 
 // Types for chart actions
 interface ChartActions {

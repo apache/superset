@@ -306,7 +306,9 @@ function mapDispatchToProps(
 ) {
   return {
     refreshAnnotationData: (payload: Payload) =>
-      dispatch(runAnnotationQuery(payload as Parameters<typeof runAnnotationQuery>[0])),
+      dispatch(
+        runAnnotationQuery(payload as Parameters<typeof runAnnotationQuery>[0]),
+      ),
   };
 }
 

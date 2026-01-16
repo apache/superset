@@ -241,7 +241,7 @@ const FilterValue: FC<FilterValueProps> = ({
               setState([result as ChartDataResponseResult]);
               handleFilterLoadFinish();
             } else if (response.status === 202) {
-              waitForAsyncData(result as ChartDataResponseResult)
+              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
                 .then((asyncResult: ChartDataResponseResult[]) => {
                   setState(asyncResult);
                   handleFilterLoadFinish();
