@@ -380,7 +380,7 @@ export default function transformProps(
             text: t('Total: %s', primaryValueFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
-            color: theme.colorText,
+            fill: theme.colorText,
 
           },
           z: 10,
