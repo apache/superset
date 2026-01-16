@@ -436,7 +436,7 @@ Task never starts
 ```
 User aborts → Task.status = ABORTING
                     ↓
-Background polling detects ABORTING status
+Abort notification sent
                     ↓
 Abort handlers execute (LIFO order)
                     ↓
@@ -458,6 +458,90 @@ Error message set to handler exception
 Remaining abort handlers skipped
                     ↓
 Cleanup handlers still run
+```
+
+### Event-Based Abort (Optional)
+
+By default, GTF uses database polling to detect abort requests. For faster abort detection, you can enable Redis pub/sub notifications.
+
+#### Configuration
+
+Configure `TASKS_BACKEND` in `superset_config.py`:
+
+**Standard Redis:**
+```python
+TASKS_BACKEND = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "localhost",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_DB": 0,
+    "CACHE_REDIS_PASSWORD": None,
+}
+```
+
+**Redis Sentinel (High Availability):**
+```python
+TASKS_BACKEND = {
+    "CACHE_TYPE": "RedisSentinelCache",
+    "CACHE_REDIS_SENTINELS": [
+        ("sentinel1.example.com", 26379),
+        ("sentinel2.example.com", 26379),
+        ("sentinel3.example.com", 26379),
+    ],
+    "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+    "CACHE_REDIS_SENTINEL_PASSWORD": None,
+    "CACHE_REDIS_PASSWORD": None,
+    "CACHE_REDIS_DB": 0,
+}
+```
+
+**Redis with SSL:**
+```python
+TASKS_BACKEND = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "redis.example.com",
+    "CACHE_REDIS_PORT": 6380,
+    "CACHE_REDIS_SSL": True,
+    "CACHE_REDIS_SSL_CERTFILE": "/path/to/cert.pem",
+    "CACHE_REDIS_SSL_KEYFILE": "/path/to/key.pem",
+    "CACHE_REDIS_SSL_CA_CERTS": "/path/to/ca.pem",
+}
+```
+
+#### How It Works
+
+When `TASKS_BACKEND` is configured:
+
+1. **Abort Request:** When a task abort is requested, the framework publishes a message to a per-task Redis channel (`gtf:abort:{task_uuid}`)
+2. **Listener:** Tasks with abort handlers subscribe to their channel and receive abort notifications instantly
+3. **Fallback:** If Redis becomes unavailable, the framework automatically falls back to database polling
+
+The channel prefix can be customized via `TASKS_ABORT_CHANNEL_PREFIX` (default: `"gtf:abort:"`).
+
+#### Benefits
+
+| Aspect | Polling (Default) | Pub/Sub (Redis) |
+|--------|------------------|-----------------|
+| **Latency** | Up to polling interval (default 10s) | Instant (~milliseconds) |
+| **Database Load** | Periodic queries | No additional queries |
+| **Infrastructure** | None | Requires Redis |
+| **Reliability** | Always works | Falls back to polling on failure |
+
+#### Task Code
+
+No changes to task code are required. The framework automatically uses pub/sub when available:
+
+```python
+@task
+def my_task() -> None:
+    ctx = get_context()
+
+    @ctx.on_abort
+    def handle_abort():
+        # This handler fires instantly with pub/sub enabled
+        logger.info("Abort received!")
+
+    # ... task logic
 ```
 
 ## Best Practices
