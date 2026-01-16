@@ -175,8 +175,8 @@ def mcp_auth_hook(tool_func: F) -> F:
     """
     Authentication and authorization decorator for MCP tools.
 
-    This decorator assumes Flask application context and g.user
-    have already been set by WorkspaceContextMiddleware.
+    This decorator pushes Flask application context and sets up g.user
+    for MCP tool execution.
 
     Supports both sync and async tool functions.
 
@@ -188,27 +188,31 @@ def mcp_auth_hook(tool_func: F) -> F:
     import inspect
     import types
 
+    from superset.mcp_service.flask_singleton import get_flask_app
+
     is_async = inspect.iscoroutinefunction(tool_func)
 
     if is_async:
 
         @functools.wraps(tool_func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            user = _setup_user_context()
+            app = get_flask_app()
+            with app.app_context():
+                user = _setup_user_context()
 
-            try:
-                logger.debug(
-                    "MCP tool call: user=%s, tool=%s",
-                    user.username,
-                    tool_func.__name__,
-                )
-                result = await tool_func(*args, **kwargs)
-                return result
-            except Exception:
-                _cleanup_session_on_error()
-                raise
-            finally:
-                _cleanup_session_finally()
+                try:
+                    logger.debug(
+                        "MCP tool call: user=%s, tool=%s",
+                        user.username,
+                        tool_func.__name__,
+                    )
+                    result = await tool_func(*args, **kwargs)
+                    return result
+                except Exception:
+                    _cleanup_session_on_error()
+                    raise
+                finally:
+                    _cleanup_session_finally()
 
         wrapper = async_wrapper
 
@@ -216,21 +220,23 @@ def mcp_auth_hook(tool_func: F) -> F:
 
         @functools.wraps(tool_func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            user = _setup_user_context()
+            app = get_flask_app()
+            with app.app_context():
+                user = _setup_user_context()
 
-            try:
-                logger.debug(
-                    "MCP tool call: user=%s, tool=%s",
-                    user.username,
-                    tool_func.__name__,
-                )
-                result = tool_func(*args, **kwargs)
-                return result
-            except Exception:
-                _cleanup_session_on_error()
-                raise
-            finally:
-                _cleanup_session_finally()
+                try:
+                    logger.debug(
+                        "MCP tool call: user=%s, tool=%s",
+                        user.username,
+                        tool_func.__name__,
+                    )
+                    result = tool_func(*args, **kwargs)
+                    return result
+                except Exception:
+                    _cleanup_session_on_error()
+                    raise
+                finally:
+                    _cleanup_session_finally()
 
         wrapper = sync_wrapper
 
