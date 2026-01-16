@@ -312,7 +312,7 @@
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-lodash": "^7.4.0",
     "eslint-plugin-no-only-tests": "^3.3.0",
-    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-prefer-function-component": "^5.0.0",
