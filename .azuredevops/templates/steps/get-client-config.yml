@@ -3,17 +3,18 @@ parameters:
     type: string
 
 variables:
-  - group: blue-dev-superset-secret   # <-- attach your variable group here
+  # dynamically attach the variable group for the environment
+  - group: ${{ format('{0}-superset-secret', parameters.targetEnvironment) }}
 
 steps:
   - bash: |
       set -euo pipefail
-      echo "Rehydrating ${{ parameters.targetEnvironment }} client config..."
+      echo "Creating client-config.json from variable group..."
 
       CLIENT_CONFIG="$CLIENT_CONFIG_JSON"
 
       if [ -z "$CLIENT_CONFIG" ]; then
-        echo "ERROR: CLIENT_CONFIG is empty"
+        echo "ERROR: CLIENT_CONFIG_JSON is empty"
         exit 1
       fi
 
@@ -21,8 +22,10 @@ steps:
       echo "$CLIENT_CONFIG" > "$CFG_FILE"
       echo "Config written to $CFG_FILE"
 
+      # Make file path available to other steps
       echo "##vso[task.setvariable variable=cfgPath]$CFG_FILE"
 
+      # Validate JSON
       if ! jq empty "$CFG_FILE"; then
         echo "ERROR: Config is not valid JSON"
         exit 1
