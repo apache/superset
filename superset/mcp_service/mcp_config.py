@@ -190,7 +190,7 @@ MCP_CACHE_CONFIG: Dict[str, Any] = {
 # Configuration:
 # --------------
 # - enabled: Toggle the guard on/off (default: True)
-# - token_limit: Maximum estimated tokens per response (default: 50,000)
+# - token_limit: Maximum estimated tokens per response (default: 25,000)
 # - excluded_tools: Tools to skip checking (e.g., streaming tools)
 # - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
 #
