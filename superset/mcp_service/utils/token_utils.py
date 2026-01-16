@@ -83,9 +83,9 @@ def estimate_response_tokens(response: Any) -> int:
             response_str = str(response)
 
         return estimate_token_count(response_str)
-    except (TypeError, ValueError, AttributeError) as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning("Failed to estimate response tokens: %s", e)
-        # Return a high estimate to be safe
+        # Return a high estimate to be safe (conservative fallback)
         return 100000
 
 
@@ -114,9 +114,11 @@ def get_response_size_bytes(response: Any) -> int:
             response_str = str(response)
 
         return len(response_str.encode("utf-8"))
-    except (TypeError, ValueError, AttributeError) as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning("Failed to get response size: %s", e)
-        return 0
+        # Return a conservative large value to avoid allowing oversized responses
+        # to bypass size checks (returning 0 would underestimate)
+        return 1_000_000  # 1MB fallback
 
 
 def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
@@ -298,7 +300,7 @@ def _identify_large_fields(response: Any) -> List[str]:
                     if size > 500 and f not in ("id", "uuid", "name", "slice_name")
                 ]
 
-    except (TypeError, ValueError, KeyError, AttributeError) as e:
+    except Exception as e:  # noqa: BLE001
         logger.debug("Failed to identify large fields: %s", e)
 
     return large_fields

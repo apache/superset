@@ -809,18 +809,17 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         try:
             estimated_tokens = estimate_response_tokens(response)
-        except MemoryError:
+        except MemoryError as me:
             logger.warning(
-                "MemoryError while estimating tokens for %s, treating as over limit",
-                tool_name,
+                "MemoryError while estimating tokens for %s: %s", tool_name, me
             )
-            # Treat as over the limit to be safe
+            # Treat as over limit to avoid further serialization
             estimated_tokens = self.token_limit + 1
-        except (TypeError, ValueError) as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(
                 "Failed to estimate response tokens for %s: %s", tool_name, e
             )
-            # Conservative fallback: assume it's over the limit so we block
+            # Conservative fallback: block rather than risk OOM
             estimated_tokens = self.token_limit + 1
 
         # Log warning if approaching limit
@@ -859,7 +858,7 @@ class ResponseSizeGuardMiddleware(Middleware):
                         "params": params,
                     },
                 )
-            except (ValueError, TypeError, AttributeError) as log_error:
+            except Exception as log_error:  # noqa: BLE001
                 logger.warning("Failed to log size exceeded event: %s", log_error)
 
             # Generate helpful error message with suggestions
