@@ -91,6 +91,7 @@ import TimeTableChartPlugin from '../TimeTable';
 import {
   GlyphBigNumberChartPlugin,
   GlyphFancyBigNumberChartPlugin,
+  GlyphLineChartPlugin,
 } from '@superset-ui/plugin-chart-glyph';
 
 export default class MainPreset extends Preset {
@@ -220,6 +221,7 @@ export default class MainPreset extends Preset {
         new GlyphFancyBigNumberChartPlugin().configure({
           key: 'glyph_fancy_big_number',
         }),
+        new GlyphLineChartPlugin().configure({ key: 'glyph_line_chart' }),
       ],
     });
   }
