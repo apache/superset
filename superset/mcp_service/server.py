@@ -31,7 +31,7 @@ from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
     MCP_STORE_CONFIG,
 )
-from superset.mcp_service.storage import get_raw_redis_store
+from superset.mcp_service.storage import _create_redis_store
 
 
 def configure_logging(debug: bool = False) -> None:
@@ -87,8 +87,8 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
     try:
         from fastmcp.server.event_store import EventStore
 
-        # Reuse centralized Redis store from storage.py (handles SSL properly)
-        redis_store = get_raw_redis_store(redis_url)
+        # Reuse _create_redis_store with wrap=False for raw RedisStore
+        redis_store = _create_redis_store(config, wrap=False)
         if redis_store is None:
             logging.warning("Failed to create Redis store, falling back to in-memory")
             return None

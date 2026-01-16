@@ -33,81 +33,6 @@ from urllib.parse import urlparse
 logger = logging.getLogger(__name__)
 
 
-def get_raw_redis_store(redis_url: str | None = None) -> Any | None:
-    """
-    Create a raw RedisStore instance for direct use (e.g., EventStore).
-
-    Unlike get_mcp_store(), this returns an unwrapped store suitable for
-    components that need direct Redis access (like FastMCP's EventStore).
-
-    Handles SSL/TLS connections (rediss:// scheme) with proper configuration.
-
-    Args:
-        redis_url: Redis URL. If None, reads from Flask config MCP_STORE_CONFIG.
-
-    Returns:
-        RedisStore instance or None if not configured/available.
-    """
-    if redis_url is None:
-        from flask import has_app_context
-
-        from superset.mcp_service.flask_singleton import get_flask_app
-
-        flask_app = get_flask_app()
-
-        def _get_url() -> str | None:
-            store_config = flask_app.config.get("MCP_STORE_CONFIG", {})
-            return store_config.get("CACHE_REDIS_URL")
-
-        if has_app_context():
-            redis_url = _get_url()
-        else:
-            with flask_app.app_context():
-                redis_url = _get_url()
-
-    if not redis_url:
-        logger.debug("No Redis URL configured for raw store")
-        return None
-
-    try:
-        from key_value.aio.stores.redis import RedisStore
-    except ImportError:
-        logger.warning(
-            "key_value package not available for Redis storage. "
-            "Install with: pip install py-key-value-aio[redis]"
-        )
-        return None
-
-    try:
-        # Parse URL to handle SSL properly
-        parsed = urlparse(redis_url)
-        use_ssl = parsed.scheme == "rediss"
-
-        # Build clean URL without query params that may cause issues
-        clean_url = f"{parsed.scheme}://"
-        if parsed.password:
-            clean_url += f":{parsed.password}@"
-        clean_url += f"{parsed.hostname or 'localhost'}"
-        clean_url += f":{parsed.port or 6379}"
-        clean_url += f"/{parsed.path.strip('/') or '0'}"
-
-        # Create Redis store with SSL support for cloud deployments
-        if use_ssl:
-            redis_store = RedisStore(
-                url=clean_url,
-                ssl_cert_reqs=ssl.CERT_NONE,  # For self-signed certs (ElastiCache)
-            )
-            logger.info("Created RedisStore with SSL at %s", parsed.hostname)
-        else:
-            redis_store = RedisStore(url=clean_url)
-            logger.info("Created RedisStore at %s", parsed.hostname)
-
-        return redis_store
-    except Exception as e:
-        logger.error("Failed to create raw RedisStore: %s", e)
-        return None
-
-
 def get_mcp_store(
     prefix: str | Callable[[], str],
 ) -> Any | None:
@@ -159,17 +84,21 @@ def get_mcp_store(
 
 def _create_redis_store(
     store_config: Dict[str, Any],
-    prefix: str | Callable[[], str],
+    prefix: str | Callable[[], str] | None = None,
+    wrap: bool = True,
 ) -> Any | None:
     """
-    Create a RedisStore with the given prefix.
+    Create a RedisStore, optionally wrapped with a prefix.
+
+    Handles SSL/TLS connections (rediss:// scheme) for cloud deployments.
 
     Args:
         store_config: MCP_STORE_CONFIG dict (Redis URL, wrapper type)
-        prefix: Feature-specific prefix
+        prefix: Feature-specific prefix (required if wrap=True)
+        wrap: If True, wrap store with prefix. If False, return raw RedisStore.
 
     Returns:
-        Wrapped RedisStore instance or None if not configured
+        RedisStore instance (wrapped or raw) or None if not configured
     """
     redis_url = store_config.get("CACHE_REDIS_URL")
     if not redis_url:
@@ -186,15 +115,46 @@ def _create_redis_store(
         return None
 
     try:
+        # Parse URL to handle SSL properly
+        parsed = urlparse(redis_url)
+        use_ssl = parsed.scheme == "rediss"
+
+        # Build clean URL without query params that may cause issues
+        clean_url = f"{parsed.scheme}://"
+        if parsed.password:
+            clean_url += f":{parsed.password}@"
+        clean_url += f"{parsed.hostname or 'localhost'}"
+        clean_url += f":{parsed.port or 6379}"
+        clean_url += f"/{parsed.path.strip('/') or '0'}"
+
+        # Create Redis store with SSL support for cloud deployments
+        if use_ssl:
+            redis_store = RedisStore(
+                url=clean_url,
+                ssl_cert_reqs=ssl.CERT_NONE,  # For self-signed certs (ElastiCache)
+            )
+            logger.info("Created RedisStore with SSL at %s", parsed.hostname)
+        else:
+            redis_store = RedisStore(url=clean_url)
+            logger.info("Created RedisStore at %s", parsed.hostname)
+
+        # Return raw store if wrapping not requested
+        if not wrap:
+            return redis_store
+
+        # Wrap with prefix
+        if prefix is None:
+            logger.error("prefix is required when wrap=True")
+            return None
+
         wrapper_type = store_config.get("WRAPPER_TYPE")
         if not wrapper_type:
             logger.error("MCP store WRAPPER_TYPE not configured")
             return None
 
         wrapper_class = _import_wrapper_class(wrapper_type)
-        redis_store = RedisStore(url=redis_url)
         store = wrapper_class(key_value=redis_store, prefix=prefix)
-        logger.info("✅ MCP RedisStore created")
+        logger.info("Created wrapped MCP RedisStore")
         return store
     except Exception as e:
         logger.error("Failed to create MCP store: %s", e)
