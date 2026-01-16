@@ -18,14 +18,14 @@
  */
 
 /**
- * This script generates database documentation data from the Python lib.py script.
+ * This script generates database documentation data from engine spec metadata.
  * It outputs a JSON file that can be imported by React components for rendering.
  *
  * Usage: node scripts/generate-database-docs.mjs
  *
  * The script can run in two modes:
  * 1. With Flask app (full diagnostics) - requires superset to be installed
- * 2. Fallback mode (documentation only) - uses just the DATABASE_DOCS from lib.py
+ * 2. Fallback mode (documentation only) - parses engine spec `metadata` attributes via AST
  */
 
 import { spawnSync } from 'child_process';
@@ -96,6 +96,8 @@ import os
 
 def eval_node(node):
     """Safely evaluate an AST node as a Python literal."""
+    if node is None:
+        return None
     if isinstance(node, ast.Constant):
         return node.value
     elif isinstance(node, ast.Str):  # Python 3.7
@@ -105,63 +107,96 @@ def eval_node(node):
     elif isinstance(node, ast.List):
         return [eval_node(e) for e in node.elts]
     elif isinstance(node, ast.Dict):
-        return {eval_node(k): eval_node(v) for k, v in zip(node.keys, node.values) if k}
+        result = {}
+        for k, v in zip(node.keys, node.values):
+            if k is not None:
+                key = eval_node(k)
+                if key is not None:
+                    result[key] = eval_node(v)
+        return result
     elif isinstance(node, ast.Name):
+        # Handle True, False, None constants
+        if node.id == 'True':
+            return True
+        elif node.id == 'False':
+            return False
+        elif node.id == 'None':
+            return None
         return node.id
     elif isinstance(node, ast.Attribute):
-        # Handle DatabaseCategory.SOMETHING
-        return f"{eval_node(node.value)}.{node.attr}" if hasattr(node, 'value') else node.attr
+        # Handle DatabaseCategory.SOMETHING - return just the attribute name
+        return node.attr
     elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
         left, right = eval_node(node.left), eval_node(node.right)
-        return left + right if isinstance(left, str) and isinstance(right, str) else None
+        if isinstance(left, str) and isinstance(right, str):
+            return left + right
+        return None
     elif isinstance(node, ast.Tuple):
         return tuple(eval_node(e) for e in node.elts)
+    elif isinstance(node, ast.JoinedStr):
+        # f-strings - just return a placeholder
+        return "<f-string>"
     return None
 
 databases = {}
 specs_dir = 'superset/db_engine_specs'
+errors = []
 
-for filename in os.listdir(specs_dir):
+if not os.path.isdir(specs_dir):
+    print(json.dumps({"error": f"Directory not found: {specs_dir}"}))
+    sys.exit(1)
+
+for filename in sorted(os.listdir(specs_dir)):
     if not filename.endswith('.py') or filename in ('__init__.py', 'base.py', 'lib.py', 'lint_metadata.py'):
         continue
 
     filepath = os.path.join(specs_dir, filename)
     try:
         with open(filepath) as f:
-            tree = ast.parse(f.read())
+            source = f.read()
+        tree = ast.parse(source)
 
         for node in ast.walk(tree):
             if not isinstance(node, ast.ClassDef):
                 continue
 
-            # Check if it's an engine spec class
-            is_engine_spec = any('EngineSpec' in ast.unparse(b) for b in node.bases) if hasattr(ast, 'unparse') else True
+            # Check if it's an engine spec class by looking at base class names
+            base_names = []
+            for b in node.bases:
+                if isinstance(b, ast.Name):
+                    base_names.append(b.id)
+                elif isinstance(b, ast.Attribute):
+                    base_names.append(b.attr)
+
+            is_engine_spec = any('EngineSpec' in name or 'Mixin' in name for name in base_names)
             if not is_engine_spec:
                 continue
 
-            # Skip base classes
-            if node.name.endswith('BaseEngineSpec') or node.name == 'BasicParametersMixin':
+            # Skip base classes and mixins
+            if node.name.endswith('BaseEngineSpec') or 'Mixin' in node.name:
                 continue
 
-            engine_name = node.name
-            metadata = {}
+            engine_name = None
+            metadata = None
 
             for item in node.body:
                 if isinstance(item, ast.Assign):
                     for target in item.targets:
                         if isinstance(target, ast.Name):
-                            if target.id == 'engine_name' and isinstance(item.value, ast.Constant):
-                                engine_name = item.value.value
+                            if target.id == 'engine_name':
+                                val = eval_node(item.value)
+                                if isinstance(val, str):
+                                    engine_name = val
                             elif target.id == 'metadata':
-                                try:
-                                    metadata = eval_node(item.value) or {}
-                                except:
-                                    pass
+                                metadata = eval_node(item.value)
 
-            if metadata and engine_name:
-                databases[engine_name] = {
-                    'engine': engine_name.lower().replace(' ', '_'),
-                    'engine_name': engine_name,
+            # Use class name as fallback for engine_name
+            display_name = engine_name or node.name.replace('EngineSpec', '').replace('_', ' ')
+
+            if metadata and isinstance(metadata, dict) and display_name:
+                databases[display_name] = {
+                    'engine': display_name.lower().replace(' ', '_'),
+                    'engine_name': display_name,
                     'documentation': metadata,
                     'time_grains': {},
                     'score': 0,
@@ -179,7 +214,10 @@ for filename in os.listdir(specs_dir):
                     'sql_validation': False,
                 }
     except Exception as e:
-        pass  # Skip files that can't be parsed
+        errors.append(f"{filename}: {str(e)}")
+
+if errors and not databases:
+    print(json.dumps({"error": "Parse errors", "details": errors}), file=sys.stderr)
 
 print(json.dumps(databases, default=str))
 `;
@@ -207,143 +245,6 @@ print(json.dumps(databases, default=str))
     console.log('Engine spec metadata extraction failed:', err.message);
     return null;
   }
-}
-
-/**
- * Extract DATABASE_DOCS from lib.py using pure AST parsing
- * Fallback for databases without metadata in engine specs
- */
-function extractDatabaseDocs() {
-  console.log('Extracting DATABASE_DOCS from lib.py (fallback)...');
-
-  try {
-    const pythonCode = `
-import sys
-import json
-import ast
-import re
-
-# Read the lib.py file
-with open('superset/db_engine_specs/lib.py', 'r') as f:
-    content = f.read()
-
-# Find the DATABASE_DOCS dictionary using regex to extract the block
-# This avoids needing to execute any superset code
-# Handle both plain assignment and type-annotated assignment
-match = re.search(r'^DATABASE_DOCS[^=]*=\\s*({.*?^})', content, re.MULTILINE | re.DOTALL)
-if not match:
-    print(json.dumps({}))
-    sys.exit(0)
-
-docs_str = match.group(1)
-
-# Parse the extracted dictionary as a Python literal
-tree = ast.parse(docs_str, mode='eval')
-
-# Safely evaluate the AST - only allow literals
-def eval_node(node):
-    if isinstance(node, ast.Expression):
-        return eval_node(node.body)
-    elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
-        # Handle string concatenation
-        return eval_node(node.left) + eval_node(node.right)
-    elif isinstance(node, ast.Dict):
-        return {eval_node(k): eval_node(v) for k, v in zip(node.keys, node.values)}
-    elif isinstance(node, ast.List):
-        return [eval_node(e) for e in node.elts]
-    elif isinstance(node, ast.Set):
-        return {eval_node(e) for e in node.elts}
-    elif isinstance(node, ast.Tuple):
-        return tuple(eval_node(e) for e in node.elts)
-    elif isinstance(node, ast.Constant):
-        return node.value
-    elif isinstance(node, ast.Str):  # Python 3.7 compat
-        return node.s
-    elif isinstance(node, ast.Num):  # Python 3.7 compat
-        return node.n
-    elif isinstance(node, ast.NameConstant):  # Python 3.7 compat
-        return node.value
-    elif isinstance(node, ast.Name):
-        # Handle True, False, None
-        if node.id == 'True':
-            return True
-        elif node.id == 'False':
-            return False
-        elif node.id == 'None':
-            return None
-        else:
-            return node.id  # Return name as string for unknown refs
-    elif isinstance(node, ast.Call):
-        # Handle set() calls
-        if isinstance(node.func, ast.Name) and node.func.id == 'set':
-            if node.args:
-                return set(eval_node(node.args[0]))
-            return set()
-        return None
-    else:
-        return None
-
-result = eval_node(tree)
-print(json.dumps(result if result else {}, default=str))
-`;
-    const result = spawnSync('python3', ['-c', pythonCode], {
-      cwd: ROOT_DIR,
-      encoding: 'utf-8',
-      timeout: 30000,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-
-    if (result.error) {
-      throw result.error;
-    }
-    if (result.status !== 0) {
-      throw new Error(result.stderr || 'Python script failed');
-    }
-    const databaseDocs = JSON.parse(result.stdout);
-    if (Object.keys(databaseDocs).length === 0) {
-      throw new Error('No DATABASE_DOCS found');
-    }
-
-    // Build the expected format: wrap documentation in full entry structure
-    const databases = {};
-    for (const [name, docs] of Object.entries(databaseDocs)) {
-      databases[name] = {
-        engine: name.toLowerCase().replace(/\s+/g, '_'),
-        engine_name: name,
-        documentation: docs,
-        time_grains: {},
-        score: 0,
-        max_score: 0,
-        joins: true,
-        subqueries: true,
-        supports_dynamic_schema: false,
-        supports_catalog: false,
-        supports_dynamic_catalog: false,
-        ssh_tunneling: false,
-        query_cancelation: false,
-        supports_file_upload: false,
-        user_impersonation: false,
-        query_cost_estimation: false,
-        sql_validation: false,
-      };
-    }
-    console.log(`Extracted ${Object.keys(databases).length} databases from lib.py`);
-    return databases;
-  } catch (err) {
-    console.error('AST extraction failed:', err.message);
-    // Fall back to simple extraction
-    return extractDatabaseDocsSimple();
-  }
-}
-
-/**
- * Simple extraction fallback - just reads DATABASE_DOCS keys and builds placeholder entries
- * No superset imports required - works in CI without dependencies
- */
-function extractDatabaseDocsSimple() {
-  console.log('Using simple extraction method (no diagnostics)...');
-  // This is a final fallback - just return null and let caller use existing data
-  return null;
 }
 
 /**
@@ -691,24 +592,18 @@ async function main() {
   const existingData = loadExistingData();
 
   // Try sources in order of preference:
-  // 1. Full script with Flask context (richest data)
-  // 2. Engine spec metadata files (new approach)
-  // 3. DATABASE_DOCS in lib.py (legacy fallback)
+  // 1. Full script with Flask context (richest data with diagnostics)
+  // 2. Engine spec metadata files (works in CI without Flask)
   let databases = tryRunFullScript();
 
   if (!databases) {
-    // Try extracting from engine spec metadata (preferred for CI)
+    // Extract from engine spec metadata (preferred for CI)
     databases = extractEngineSpecMetadata();
-  }
-
-  if (!databases) {
-    // Fall back to DATABASE_DOCS (legacy)
-    databases = extractDatabaseDocs();
   }
 
   if (!databases || Object.keys(databases).length === 0) {
     console.error('Failed to generate database documentation data.');
-    console.error('Could not extract from Flask app, engine specs, or DATABASE_DOCS.');
+    console.error('Could not extract from Flask app or engine spec metadata.');
     process.exit(1);
   }
 
