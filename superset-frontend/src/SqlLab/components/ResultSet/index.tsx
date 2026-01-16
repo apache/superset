@@ -304,7 +304,7 @@ const ResultSet = ({
 
         all_columns: results.columns.map(column => column.column_name),
       });
-      const url = mountExploreUrl(null, {
+      const url = mountExploreUrl('base', {
         [URL_PARAMS.formDataKey.name]: key,
       });
       if (openInNewWindow) {
@@ -439,7 +439,10 @@ const ResultSet = ({
             )}
             {canExportData && (
               <CopyToClipboard
-                text={prepareCopyToClipboardTabularData(data, columns)}
+                text={prepareCopyToClipboardTabularData(
+                  data,
+                  columns.map(c => c.column_name),
+                )}
                 wrapped={false}
                 copyNode={
                   <CopyStyledButton

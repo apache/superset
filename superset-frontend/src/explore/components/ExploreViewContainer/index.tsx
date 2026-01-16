@@ -17,14 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  KeyboardEvent,
-} from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
@@ -34,6 +27,7 @@ import {
   isMatrixifyEnabled,
   QueryFormData,
   JsonObject,
+  MatrixifyFormData,
 } from '@superset-ui/core';
 import { ControlStateMapping } from '@superset-ui/chart-controls';
 import { t, styled, css, useTheme } from '@apache-superset/core/ui';
@@ -184,8 +178,8 @@ const updateHistory = debounce(
     });
 
     try {
-      let key;
-      let stateModifier;
+      let key: string | null | undefined;
+      let stateModifier: 'replaceState' | 'pushState';
       if (isReplace) {
         key = await postFormData(
           datasourceId,
@@ -197,22 +191,24 @@ const updateHistory = debounce(
         stateModifier = 'replaceState';
       } else {
         key = getUrlParam(URL_PARAMS.formDataKey);
-        await putFormData(
-          datasourceId,
-          datasourceType,
-          key,
-          formData,
-          chartId,
-          tabId,
-        );
+        if (key) {
+          await putFormData(
+            datasourceId,
+            datasourceType,
+            key,
+            formData,
+            chartId,
+            tabId,
+          );
+        }
         stateModifier = 'pushState';
       }
       // avoid race condition in case user changes route before explore updates the url
       if (window.location.pathname.startsWith(ensureAppRoot('/explore'))) {
         const url = mountExploreUrl(
-          standalone ? URL_PARAMS.standalone.name : null,
+          standalone ? URL_PARAMS.standalone.name : 'base',
           {
-            [URL_PARAMS.formDataKey.name]: key,
+            [URL_PARAMS.formDataKey.name]: key ?? '',
             ...additionalParam,
           },
           force,
@@ -432,7 +428,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     props.actions.setForceQuery(false);
 
     // Skip main query if Matrixify is enabled
-    if (isMatrixifyEnabled(props.form_data)) {
+    if (isMatrixifyEnabled(props.form_data as MatrixifyFormData)) {
       // Set chart to success state since Matrixify will handle its own queries
       props.actions.chartUpdateSucceeded([], props.chart.id);
       props.actions.chartRenderingSucceeded(props.chart.id);
