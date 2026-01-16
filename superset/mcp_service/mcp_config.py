@@ -134,6 +134,39 @@ MCP_STORE_CONFIG: Dict[str, Any] = {
     "WRAPPER_TYPE": "key_value.aio.wrappers.prefix_keys.PrefixKeysWrapper",
 }
 
+# =============================================================================
+# MCP Event Store Configuration (for multi-pod deployments)
+# =============================================================================
+#
+# Overview:
+# ---------
+# The EventStore manages MCP protocol session state (SSE events, progress updates).
+# By default, sessions are stored in-memory (single-pod only).
+# For multi-pod/Kubernetes deployments, enable Redis-backed EventStore to share
+# session state across pods.
+#
+# Configuration:
+# --------------
+# - enabled: Set to True to use Redis for session storage
+# - redis_url: Redis connection URL (supports redis:// and rediss:// for SSL)
+# - max_events_per_stream: Maximum events to keep per session (memory management)
+# - ttl: Event time-to-live in seconds (session expiration)
+#
+# Example (multi-pod deployment):
+#   MCP_EVENT_STORE_CONFIG = {
+#       "enabled": True,
+#       "redis_url": "rediss://elasticache.amazonaws.com:6379/1",
+#       "max_events_per_stream": 100,
+#       "ttl": 3600,
+#   }
+# =============================================================================
+MCP_EVENT_STORE_CONFIG: Dict[str, Any] = {
+    "enabled": False,  # Disabled by default - uses in-memory store
+    "redis_url": None,  # Redis URL (e.g., "redis://localhost:6379/1")
+    "max_events_per_stream": 100,  # Keep last 100 events per session
+    "ttl": 3600,  # Events expire after 1 hour
+}
+
 # MCP Response Caching Configuration - controls caching behavior and TTLs
 # When enabled without MCP_STORE_CONFIG, uses in-memory store.
 # When enabled with MCP_STORE_CONFIG, uses Redis store.
