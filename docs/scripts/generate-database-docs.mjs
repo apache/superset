@@ -217,19 +217,22 @@ for filename in sorted(os.listdir(specs_dir)):
                             elif target.id == 'metadata':
                                 metadata = eval_node(item.value)
 
-            # Check for engine attribute to distinguish true base classes
-            has_engine = False
+            # Check for engine attribute with non-empty value to distinguish
+            # true base classes from product classes like OceanBaseEngineSpec
+            has_non_empty_engine = False
             for item in node.body:
                 if isinstance(item, ast.Assign):
                     for target in item.targets:
                         if isinstance(target, ast.Name) and target.id == 'engine':
-                            has_engine = True
+                            # Check if engine value is non-empty string
+                            if isinstance(item.value, ast.Constant):
+                                has_non_empty_engine = bool(item.value.value)
                             break
 
-            # True base classes: end with BaseEngineSpec AND don't define their own engine
-            # This excludes PostgresBaseEngineSpec but includes OceanBaseEngineSpec
+            # True base classes: end with BaseEngineSpec AND don't define engine
+            # or have empty engine (like PostgresBaseEngineSpec with engine = "")
             is_true_base = (
-                node.name.endswith('BaseEngineSpec') and not has_engine
+                node.name.endswith('BaseEngineSpec') and not has_non_empty_engine
             ) or 'Mixin' in node.name
 
             # Store class info for inheritance resolution

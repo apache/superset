@@ -265,18 +265,20 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:  # noqa: C901
                 if "Mixin" in node.name:
                     continue
 
-                # Check for engine attribute to distinguish true base classes
-                # from product classes like OceanBaseEngineSpec
-                has_engine = False
+                # Check for engine attribute with non-empty value to distinguish
+                # true base classes from product classes like OceanBaseEngineSpec
+                has_non_empty_engine = False
                 for item in node.body:
                     if isinstance(item, ast.Assign):
                         for target in item.targets:
                             if isinstance(target, ast.Name) and target.id == "engine":
-                                has_engine = True
+                                # Check if engine value is non-empty string
+                                if isinstance(item.value, ast.Constant):
+                                    has_non_empty_engine = bool(item.value.value)
                                 break
 
-                # Skip true base classes (no engine attribute)
-                if node.name.endswith("BaseEngineSpec") and not has_engine:
+                # Skip true base classes (no engine or empty engine attribute)
+                if node.name.endswith("BaseEngineSpec") and not has_non_empty_engine:
                     continue
 
                 # Extract engine_name and metadata
