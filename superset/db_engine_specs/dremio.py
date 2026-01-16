@@ -55,7 +55,7 @@ class DremioEngineSpec(BaseEngineSpec):
         "description": (
             "Dremio is a data lakehouse platform for fast, self-service analytics."
         ),
-        "logo": "dremio.svg",
+        "logo": "dremio.png",
         "homepage_url": "https://www.dremio.com/",
         "category": DatabaseCategory.QUERY_ENGINES,
         "pypi_packages": ["sqlalchemy_dremio"],

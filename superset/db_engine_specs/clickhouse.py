@@ -304,7 +304,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             "ClickHouse Connect is the official Python driver for ClickHouse, "
             "recommended for Superset integration."
         ),
-        "logo": "clickhouse.svg",
+        "logo": "clickhouse.png",
         "homepage_url": "https://clickhouse.com/docs/en/integrations/python",
         "category": DatabaseCategory.OLAP_ANALYTICAL,
         "pypi_packages": ["clickhouse-connect>=0.6.8"],

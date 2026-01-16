@@ -91,7 +91,7 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
         "description": (
             "Couchbase is a distributed NoSQL document database with SQL++ support."
         ),
-        "logo": "couchbase.png",
+        "logo": "couchbase.svg",
         "homepage_url": "https://www.couchbase.com/",
         "category": DatabaseCategory.SEARCH_NOSQL,
         "pypi_packages": ["couchbase-sqlalchemy"],

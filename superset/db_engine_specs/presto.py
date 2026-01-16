@@ -898,7 +898,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
     metadata = {
         "description": "Presto is a distributed SQL query engine for big data.",
-        "logo": "presto.png",
+        "logo": "presto-og.png",
         "homepage_url": "https://prestodb.io/",
         "category": DatabaseCategory.QUERY_ENGINES,
         "pypi_packages": ["pyhive"],
