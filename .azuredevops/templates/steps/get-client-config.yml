@@ -4,23 +4,20 @@ parameters:
 
 steps:
   - bash: |
-      set -e
-      echo "Creating client-config.json from variable group..."
+      echo "Creating client-config.json..."
 
-      if [ -z "$(CLIENT_CONFIG_JSON)" ]; then
+      if [ -z "$CLIENT_CONFIG_JSON" ]; then
         echo "ERROR: CLIENT_CONFIG_JSON is not set"
         exit 1
       fi
 
-      mkdir -p $(Build.SourcesDirectory)/config
-      echo '$(CLIENT_CONFIG_JSON)' > $(Build.SourcesDirectory)/config/client-config.json
+      # Write JSON to file (allow variable expansion)
+      cat << EOF > client-config.json
+$CLIENT_CONFIG_JSON
+EOF
 
-      echo "Client config written to:"
-      echo "$(Build.SourcesDirectory)/config/client-config.json"
-
-      jq '.' $(Build.SourcesDirectory)/config/client-config.json
-    displayName: 'Create client-config.json'
-
-  - bash: |
-      echo "##vso[task.setvariable variable=cfgPath]$(Build.SourcesDirectory)/config/client-config.json"
-    displayName: 'Expose client-config path'
+      echo "client-config.json created successfully"
+      echo "##vso[task.setvariable variable=cfgPath]$(System.DefaultWorkingDirectory)/client-config.json"
+    displayName: Create client-config.json
+    env:
+      CLIENT_CONFIG_JSON: $(CLIENT_CONFIG_JSON)
