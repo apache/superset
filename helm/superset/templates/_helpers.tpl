@@ -424,7 +424,7 @@ GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
     {{- else }}
     "CACHE_REDIS_PASSWORD": "",
     {{- end }}
-    "CACHE_REDIS_DB": {{ .Values.cache.asyncQueries.db | default 0 | int }},
+    "CACHE_REDIS_DB": {{ .Values.cache.asyncQueries.db | default .Values.cache.cacheDb | default 0 | int }},
     "CACHE_KEY_PREFIX": {{ .Values.cache.asyncQueries.keyPrefix | default "qc-" | quote }},
     "CACHE_DEFAULT_TIMEOUT": {{ .Values.cache.asyncQueries.timeout | default 86400 | int }},
     {{- if .Values.cache.sentinel }}
@@ -465,7 +465,7 @@ GLOBAL_ASYNC_QUERIES_RESULTS_BACKEND = {
     "host": {{ .Values.cache.host | quote }},
     "port": {{ .Values.cache.port | int }},
     "prefix": {{ .Values.cache.asyncQueries.keyPrefix | default "qc-" | quote }},
-    "db": {{ .Values.cache.asyncQueries.db | default 0 | int }},
+    "db": {{ .Values.cache.asyncQueries.db | default .Values.cache.cacheDb | default 0 | int }},
     {{- if .Values.cache.password }}
     "password": {{ .Values.cache.password | quote }},
     {{- end }}
