@@ -622,6 +622,16 @@ categories:
     - name: Stockarea
       url: https://stockarea.io
 
+  Sports:
+    - name: komoot
+      url: https://www.komoot.com/
+      contributors: [ "@christophlingg" ]
+
+    - name: Club 25 de Agosto (Femenino / Women's Team)
+      url: https://www.instagram.com/25deagosto.basketfemenino/
+      contributors: [ "@lion90" ]
+      logo: club25deagosto.svg
+
   Others:
     - name: 10Web
       url: https://10web.io/
@@ -656,10 +666,6 @@ categories:
     - name: Increff
       url: https://www.increff.com/
       contributors: ["@ishansinghania"]
-
-    - name: komoot
-      url: https://www.komoot.com/
-      contributors: ["@christophlingg"]
 
     - name: Let's Roam
       url: https://www.letsroam.com/
