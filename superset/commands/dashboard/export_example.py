@@ -52,10 +52,18 @@ def sanitize_filename(name: str) -> str:
     return safe.strip("_")
 
 
-def export_dataset_yaml(dataset: SqlaTable) -> dict[str, Any]:
-    """Export a dataset to YAML format."""
+def export_dataset_yaml(
+    dataset: SqlaTable, data_file: str | None = None
+) -> dict[str, Any]:
+    """Export a dataset to YAML format.
+
+    Args:
+        dataset: The dataset to export
+        data_file: Optional explicit parquet filename (for deduplication)
+    """
     dataset_config: dict[str, Any] = {
         "table_name": dataset.table_name,
+        "data_file": data_file,  # Explicit reference to parquet file
         "main_dttm_col": dataset.main_dttm_col,
         "description": dataset.description,
         "default_endpoint": dataset.default_endpoint,
@@ -429,16 +437,37 @@ class ExportExampleCommand(BaseCommand):
 
         logger.info("Found %d charts and %d datasets", len(charts), len(datasets))
 
+        # Build unique filenames for datasets (handle table_name collisions)
+        dataset_filenames: dict[int, str] = {}
+        seen_table_names: dict[str, int] = {}  # table_name -> first dataset_id
+
+        for ds_id, dataset in datasets.items():
+            table_name = dataset.table_name
+            if table_name in seen_table_names:
+                # Collision! Use UUID suffix for uniqueness
+                uuid_suffix = str(dataset.uuid)[:8]
+                filename = f"{table_name}-{uuid_suffix}"
+                logger.info(
+                    "Table name collision for '%s', using '%s'", table_name, filename
+                )
+            else:
+                filename = table_name
+                seen_table_names[table_name] = ds_id
+            dataset_filenames[ds_id] = filename
+
         # Export datasets
         multi_dataset = len(datasets) > 1
 
         if multi_dataset:
             # Multiple datasets: use datasets/ and data/ folders
-            for dataset in datasets.values():
-                # Export YAML
-                dataset_config = export_dataset_yaml(dataset)
+            for ds_id, dataset in datasets.items():
+                filename = dataset_filenames[ds_id]
+                data_file = f"{filename}.parquet"
+
+                # Export YAML with explicit data_file reference
+                dataset_config = export_dataset_yaml(dataset, data_file=data_file)
                 yield (
-                    f"datasets/{dataset.table_name}.yaml",
+                    f"datasets/{filename}.yaml",
                     _make_yaml_generator(dataset_config),
                 )
 
@@ -447,20 +476,21 @@ class ExportExampleCommand(BaseCommand):
                     data = export_dataset_data(dataset, self._sample_rows)
                     if data:
                         yield (
-                            f"data/{dataset.table_name}.parquet",
+                            f"data/{data_file}",
                             _make_bytes_generator(data),
                         )
 
         elif len(datasets) == 1:
             # Single dataset: use dataset.yaml and data.parquet at root
             dataset = list(datasets.values())[0]
-            dataset_config = export_dataset_yaml(dataset)
+            data_file = "data.parquet"
+            dataset_config = export_dataset_yaml(dataset, data_file=data_file)
             yield ("dataset.yaml", _make_yaml_generator(dataset_config))
 
             if self._export_data:
                 data = export_dataset_data(dataset, self._sample_rows)
                 if data:
-                    yield ("data.parquet", _make_bytes_generator(data))
+                    yield (data_file, _make_bytes_generator(data))
 
         # Export charts
         for chart in charts:
