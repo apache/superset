@@ -30,7 +30,7 @@ from urllib.parse import urlparse
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
-    MCP_EVENT_STORE_CONFIG,
+    MCP_STORE_CONFIG,
 )
 
 
@@ -71,24 +71,17 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
     across pods. For single-pod deployments, returns None (uses in-memory).
 
     Args:
-        config: Optional config dict. If None, reads from MCP_EVENT_STORE_CONFIG.
+        config: Optional config dict. If None, reads from MCP_STORE_CONFIG.
 
     Returns:
-        EventStore instance if Redis is configured, None otherwise.
+        EventStore instance if Redis URL is configured, None otherwise.
     """
     if config is None:
-        config = MCP_EVENT_STORE_CONFIG
+        config = MCP_STORE_CONFIG
 
-    if not config.get("enabled", False):
-        logging.info("EventStore: Using in-memory storage (single-pod mode)")
-        return None
-
-    redis_url = config.get("redis_url")
+    redis_url = config.get("CACHE_REDIS_URL")
     if not redis_url:
-        logging.warning(
-            "MCP_EVENT_STORE_CONFIG enabled but redis_url not set, "
-            "falling back to in-memory storage"
-        )
+        logging.info("EventStore: Using in-memory storage (single-pod mode)")
         return None
 
     try:
@@ -120,8 +113,8 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
         # Create EventStore with Redis backend
         event_store = EventStore(
             storage=redis_store,
-            max_events_per_stream=config.get("max_events_per_stream", 100),
-            ttl=config.get("ttl", 3600),
+            max_events_per_stream=config.get("event_store_max_events", 100),
+            ttl=config.get("event_store_ttl", 3600),
         )
 
         logging.info(
