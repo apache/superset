@@ -718,7 +718,8 @@ test('should refetch when mixing renderTrigger string control with non-renderTri
     // Should refetch because metrics changed (non-renderTrigger)
     expect(mockChartClient.client.post).toHaveBeenCalledTimes(2);
   });
-  
+});
+
 test('should display error message when HTTP request fails with Response object', async () => {
   const errorBody = JSON.stringify({ message: 'Error: division by zero' });
   const mockResponse = new Response(errorBody, {
