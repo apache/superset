@@ -37,7 +37,7 @@ export interface UseAutoRefreshTabPauseOptions {
  * - When tab becomes hidden: Stop the refresh timer, set status to paused
  * - When tab becomes visible: If not manually paused, fetch data immediately and restart timer
  *
- * This behavior is always enabled for real-time dashboards (dashboards with auto-refresh).
+ * This behavior is enabled for real-time dashboards when the user opts in.
  * Manual pause state is respected - if the user manually paused, returning to the tab won't auto-resume.
  */
 export function useAutoRefreshTabPause({
@@ -45,15 +45,20 @@ export function useAutoRefreshTabPause({
   onRestartTimer,
   onStopTimer,
 }: UseAutoRefreshTabPauseOptions): void {
-  const { isRealTimeDashboard, isManuallyPaused, setPausedByTab, setStatus } =
-    useRealTimeDashboard();
+  const {
+    isRealTimeDashboard,
+    isManuallyPaused,
+    autoRefreshPauseOnInactiveTab,
+    setPausedByTab,
+    setStatus,
+  } = useRealTimeDashboard();
 
   // Track if we should resume on visibility change
   const shouldResumeRef = useRef(false);
 
   const handleHidden = useCallback(() => {
     // Only act if dashboard has auto-refresh enabled and not already manually paused
-    if (!isRealTimeDashboard) {
+    if (!isRealTimeDashboard || !autoRefreshPauseOnInactiveTab) {
       return;
     }
 
@@ -74,7 +79,7 @@ export function useAutoRefreshTabPause({
 
   const handleVisible = useCallback(() => {
     // Only act if dashboard has auto-refresh enabled
-    if (!isRealTimeDashboard) {
+    if (!isRealTimeDashboard || !autoRefreshPauseOnInactiveTab) {
       return;
     }
 
@@ -97,6 +102,7 @@ export function useAutoRefreshTabPause({
   }, [
     isRealTimeDashboard,
     isManuallyPaused,
+    autoRefreshPauseOnInactiveTab,
     setPausedByTab,
     onRefresh,
     onRestartTimer,
@@ -105,7 +111,7 @@ export function useAutoRefreshTabPause({
   useTabVisibility({
     onVisible: handleVisible,
     onHidden: handleHidden,
-    enabled: isRealTimeDashboard,
+    enabled: isRealTimeDashboard && autoRefreshPauseOnInactiveTab,
   });
 }
 

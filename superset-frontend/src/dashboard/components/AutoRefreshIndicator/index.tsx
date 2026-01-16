@@ -56,7 +56,7 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
     () => css`
       display: inline-flex;
       align-items: center;
-      gap: ${theme.marginXXS}px;
+      gap: ${theme.marginXS}px;
       border: 1px solid ${theme.colorSplit};
       border-radius: ${theme.borderRadiusLG}px;
       padding: ${theme.paddingXXS}px;

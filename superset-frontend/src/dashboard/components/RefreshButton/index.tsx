@@ -23,7 +23,7 @@ import { Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
 export interface RefreshButtonProps {
-  onRefresh: () => void;
+  onRefresh: () => Promise<void> | void;
 }
 
 /**
@@ -58,13 +58,14 @@ export const RefreshButton: FC<RefreshButtonProps> = ({ onRefresh }) => {
   `;
 
   const handleClick = useCallback(() => {
+    if (isSpinning) {
+      return;
+    }
     setIsSpinning(true);
-    onRefresh();
-    // Stop spinning after a short duration
-    setTimeout(() => {
+    Promise.resolve(onRefresh()).finally(() => {
       setIsSpinning(false);
-    }, 1000);
-  }, [onRefresh]);
+    });
+  }, [isSpinning, onRefresh]);
 
   return (
     <Tooltip title={t('Refresh dashboard')} placement="bottom">

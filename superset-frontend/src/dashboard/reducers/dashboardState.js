@@ -374,7 +374,7 @@ export default function dashboardStateReducer(state = {}, action) {
     [RECORD_AUTO_REFRESH_ERROR]() {
       const newErrorCount = (state.refreshErrorCount || 0) + 1;
       // Determine status based on error count threshold
-      // 1-2 errors = Delayed (yellow), 3+ errors = Error (red)
+      // 1 error = Delayed (yellow), 2+ errors = Error (red)
       const newStatus =
         newErrorCount >= ERROR_THRESHOLD_COUNT
           ? AutoRefreshStatus.Error

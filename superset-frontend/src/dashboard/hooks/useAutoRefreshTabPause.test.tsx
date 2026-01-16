@@ -133,6 +133,7 @@ test('does nothing when not a real-time dashboard (refreshFrequency = 0)', () =>
 test('stops timer when tab becomes hidden for real-time dashboard', () => {
   const store = createMockStore({
     refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: true,
   });
   const onRefresh = jest.fn().mockResolvedValue(undefined);
   const onRestartTimer = jest.fn();
@@ -161,6 +162,7 @@ test('does not stop timer when manually paused', () => {
   const store = createMockStore({
     refreshFrequency: 5,
     autoRefreshPaused: true,
+    autoRefreshPauseOnInactiveTab: true,
   });
   const onRefresh = jest.fn().mockResolvedValue(undefined);
   const onRestartTimer = jest.fn();
@@ -189,6 +191,7 @@ test('does not stop timer when manually paused', () => {
 test('refreshes and restarts timer when tab becomes visible after being paused by tab', async () => {
   const store = createMockStore({
     refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: true,
   });
   const onRefresh = jest.fn().mockResolvedValue(undefined);
   const onRestartTimer = jest.fn();
@@ -232,6 +235,7 @@ test('does not refresh when returning to visible if manually paused', () => {
     refreshFrequency: 5,
     autoRefreshPausedByTab: true,
     autoRefreshPaused: true,
+    autoRefreshPauseOnInactiveTab: true,
   });
   const onRefresh = jest.fn().mockResolvedValue(undefined);
   const onRestartTimer = jest.fn();
@@ -263,6 +267,7 @@ test('does not refresh when returning to visible if manually paused', () => {
 test('restarts timer when refresh fails after tab resumes', async () => {
   const store = createMockStore({
     refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: true,
   });
   const onRefresh = jest.fn().mockRejectedValue(new Error('boom'));
   const onRestartTimer = jest.fn();
@@ -296,4 +301,31 @@ test('restarts timer when refresh fails after tab resumes', async () => {
 
   expect(onRefresh).toHaveBeenCalledTimes(1);
   expect(onRestartTimer).toHaveBeenCalledTimes(1);
+});
+
+test('does nothing when pause-on-inactive is disabled', () => {
+  const store = createMockStore({
+    refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: false,
+  });
+  const onRefresh = jest.fn().mockResolvedValue(undefined);
+  const onRestartTimer = jest.fn();
+  const onStopTimer = jest.fn();
+
+  renderHook(
+    () =>
+      useAutoRefreshTabPause({
+        onRefresh,
+        onRestartTimer,
+        onStopTimer,
+      }),
+    { wrapper: createWrapper(store) },
+  );
+
+  act(() => {
+    mockVisibilityState('hidden');
+    fireVisibilityChange();
+  });
+
+  expect(onStopTimer).not.toHaveBeenCalled();
 });

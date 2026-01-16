@@ -21,6 +21,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import {
   AutoRefreshStatus,
   DELAY_THRESHOLD_PERCENTAGE,
+  ERROR_THRESHOLD_MULTIPLIER,
 } from '../types/autoRefresh';
 import {
   setAutoRefreshStatus,
@@ -98,16 +99,21 @@ export const selectEffectiveRefreshStatus = (
   const currentStatus =
     dashboardState?.autoRefreshStatus ?? AutoRefreshStatus.Idle;
 
-  // Check for delay during fetch
+  // Check for delay/error during fetch
   if (
     currentStatus === AutoRefreshStatus.Fetching &&
     dashboardState?.autoRefreshFetchStartTime
   ) {
     const elapsed = Date.now() - dashboardState.autoRefreshFetchStartTime;
-    const threshold =
-      dashboardState.refreshFrequency * 1000 * DELAY_THRESHOLD_PERCENTAGE;
+    const intervalMs = dashboardState.refreshFrequency * 1000;
+    const delayThreshold = intervalMs * DELAY_THRESHOLD_PERCENTAGE;
+    const errorThreshold = intervalMs * ERROR_THRESHOLD_MULTIPLIER;
 
-    if (elapsed > threshold) {
+    if (elapsed >= errorThreshold) {
+      return AutoRefreshStatus.Error;
+    }
+
+    if (elapsed >= delayThreshold) {
       return AutoRefreshStatus.Delayed;
     }
   }

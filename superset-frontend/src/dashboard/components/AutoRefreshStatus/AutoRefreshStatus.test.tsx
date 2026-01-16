@@ -97,13 +97,13 @@ test('shows fetching status when fetching', () => {
   expect(dot).toHaveAttribute('data-status', AutoRefreshStatus.Fetching);
 });
 
-test('shows error status after 3+ consecutive errors', () => {
+test('shows error status after 2+ consecutive errors', () => {
   render(<AutoRefreshStatusComponent />, {
     useRedux: true,
     initialState: createMockState({
       refreshFrequency: 5,
       autoRefreshStatus: AutoRefreshStatus.Error,
-      refreshErrorCount: 3,
+      refreshErrorCount: 2,
     }),
   });
   const dot = screen.getByTestId('status-indicator-dot');

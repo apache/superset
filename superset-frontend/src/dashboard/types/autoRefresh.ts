@@ -23,8 +23,8 @@
  * Per requirements:
  * - Green (Success/Idle): Refreshed on schedule
  * - Blue (Fetching): Currently fetching data
- * - Yellow (Delayed): Refresh taking longer than expected OR 1-2 consecutive errors
- * - Red (Error): 3+ consecutive errors
+ * - Yellow (Delayed): Refresh taking longer than expected OR 1 consecutive error
+ * - Red (Error): 2+ consecutive errors
  * - White (Paused): Auto-refresh is paused (manually or by tab visibility)
  */
 export enum AutoRefreshStatus {
@@ -34,9 +34,9 @@ export enum AutoRefreshStatus {
   Success = 'success',
   /** Currently fetching data */
   Fetching = 'fetching',
-  /** Refresh is taking longer than expected (> 50% of interval) */
+  /** Refresh is taking longer than expected (> 1 interval) */
   Delayed = 'delayed',
-  /** Refresh failed with error (3+ consecutive errors) */
+  /** Refresh failed with error (2+ consecutive errors) */
   Error = 'error',
   /** Auto-refresh is paused */
   Paused = 'paused',
@@ -83,10 +83,17 @@ export const AUTO_REFRESH_STATE_DEFAULTS: AutoRefreshState = {
  * If fetch takes longer than this percentage of the refresh interval,
  * the status changes to "delayed".
  */
-export const DELAY_THRESHOLD_PERCENTAGE = 0.5;
+export const DELAY_THRESHOLD_PERCENTAGE = 1;
+
+/**
+ * Threshold for determining "error" status during an in-flight refresh.
+ * If fetch takes longer than this multiple of the refresh interval,
+ * the status changes to "error".
+ */
+export const ERROR_THRESHOLD_MULTIPLIER = 2;
 
 /**
  * Number of consecutive errors before showing "error" status.
- * 1-2 errors show "delayed", 3+ show "error".
+ * 1 error shows "delayed", 2+ show "error".
  */
-export const ERROR_THRESHOLD_COUNT = 3;
+export const ERROR_THRESHOLD_COUNT = 2;

@@ -150,9 +150,9 @@ test('RECORD_AUTO_REFRESH_ERROR increments error count', () => {
   expect(result.lastRefreshError).toBe('Network error');
 });
 
-test('RECORD_AUTO_REFRESH_ERROR sets delayed status for 1-2 errors', () => {
+test('RECORD_AUTO_REFRESH_ERROR sets delayed status for 1 error', () => {
   const initialState = createInitialState({
-    refreshErrorCount: 1,
+    refreshErrorCount: 0,
     autoRefreshStatus: AutoRefreshStatus.Fetching,
   });
 
@@ -161,14 +161,14 @@ test('RECORD_AUTO_REFRESH_ERROR sets delayed status for 1-2 errors', () => {
     recordAutoRefreshError('Timeout'),
   );
 
-  // 2nd error should set delayed status
-  expect(result.refreshErrorCount).toBe(2);
+  // 1st error should set delayed status
+  expect(result.refreshErrorCount).toBe(1);
   expect(result.autoRefreshStatus).toBe(AutoRefreshStatus.Delayed);
 });
 
-test('RECORD_AUTO_REFRESH_ERROR sets error status for 3+ errors', () => {
+test('RECORD_AUTO_REFRESH_ERROR sets error status for 2+ errors', () => {
   const initialState = createInitialState({
-    refreshErrorCount: 2,
+    refreshErrorCount: 1,
     autoRefreshStatus: AutoRefreshStatus.Delayed,
   });
 
@@ -177,8 +177,8 @@ test('RECORD_AUTO_REFRESH_ERROR sets error status for 3+ errors', () => {
     recordAutoRefreshError('Server error'),
   );
 
-  // 3rd error should set error status
-  expect(result.refreshErrorCount).toBe(3);
+  // 2nd error should set error status
+  expect(result.refreshErrorCount).toBe(2);
   expect(result.autoRefreshStatus).toBe(AutoRefreshStatus.Error);
 });
 

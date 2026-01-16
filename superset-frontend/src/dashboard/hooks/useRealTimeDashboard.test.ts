@@ -110,7 +110,7 @@ test('selectEffectiveRefreshStatus returns actual status when not paused', () =>
 test('selectEffectiveRefreshStatus returns Delayed when fetch exceeds threshold', () => {
   const now = Date.now();
   const refreshFrequency = 10; // 10 seconds
-  const fetchStartTime = now - 6000; // Started 6 seconds ago (> 50% of 10s)
+  const fetchStartTime = now - 11000; // Started 11 seconds ago (> 10s)
 
   const state = createMockState({
     refreshFrequency,
@@ -130,7 +130,7 @@ test('selectEffectiveRefreshStatus returns Delayed when fetch exceeds threshold'
 test('selectEffectiveRefreshStatus returns Fetching when within threshold', () => {
   const now = Date.now();
   const refreshFrequency = 10; // 10 seconds
-  const fetchStartTime = now - 2000; // Started 2 seconds ago (< 50% of 10s)
+  const fetchStartTime = now - 2000; // Started 2 seconds ago (< 10s)
 
   const state = createMockState({
     refreshFrequency,
@@ -146,6 +146,25 @@ test('selectEffectiveRefreshStatus returns Fetching when within threshold', () =
   Date.now = originalDateNow;
 });
 
+test('selectEffectiveRefreshStatus returns Error when fetch exceeds error threshold', () => {
+  const now = Date.now();
+  const refreshFrequency = 10; // 10 seconds
+  const fetchStartTime = now - 21000; // Started 21 seconds ago (> 20s)
+
+  const state = createMockState({
+    refreshFrequency,
+    autoRefreshStatus: AutoRefreshStatus.Fetching,
+    autoRefreshFetchStartTime: fetchStartTime,
+  });
+
+  const originalDateNow = Date.now;
+  Date.now = jest.fn(() => now);
+
+  expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Error);
+
+  Date.now = originalDateNow;
+});
+
 test('selectEffectiveRefreshStatus returns Idle when not a real-time dashboard', () => {
   const state = createMockState({
     refreshFrequency: 0,
@@ -154,20 +173,20 @@ test('selectEffectiveRefreshStatus returns Idle when not a real-time dashboard',
   expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Idle);
 });
 
-test('selectEffectiveRefreshStatus returns Error status when error count >= 3', () => {
+test('selectEffectiveRefreshStatus returns Error status when error count >= 2', () => {
   const state = createMockState({
     refreshFrequency: 5,
     autoRefreshStatus: AutoRefreshStatus.Error,
-    refreshErrorCount: 3,
+    refreshErrorCount: 2,
   });
   expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Error);
 });
 
-test('selectEffectiveRefreshStatus returns Delayed status for 1-2 errors', () => {
+test('selectEffectiveRefreshStatus returns Delayed status for 1 error', () => {
   const state = createMockState({
     refreshFrequency: 5,
     autoRefreshStatus: AutoRefreshStatus.Delayed,
-    refreshErrorCount: 2,
+    refreshErrorCount: 1,
   });
   expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Delayed);
 });

@@ -145,23 +145,8 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
       margin-left: ${theme.marginXS}px;
       margin-right: ${theme.marginXS}px;
       cursor: help;
-
-      ${displayStatus === AutoRefreshStatus.Fetching &&
-      css`
-        animation: pulse 1.5s ease-in-out infinite;
-
-        @keyframes pulse {
-          0%,
-          100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-      `}
     `,
-    [statusConfig, size, theme, displayStatus],
+    [statusConfig, size, theme],
   );
 
   return (
