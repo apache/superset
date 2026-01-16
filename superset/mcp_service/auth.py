@@ -28,6 +28,7 @@ Future enhancements (to be added in separate PRs):
 """
 
 import logging
+from contextlib import AbstractContextManager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from flask import g
@@ -171,12 +172,12 @@ def _cleanup_session_finally() -> None:
         logger.warning("Error in finally block: %s", e)
 
 
-def mcp_auth_hook(tool_func: F) -> F:
+def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
 
-    This decorator assumes Flask application context and g.user
-    have already been set by WorkspaceContextMiddleware.
+    This decorator pushes Flask application context and sets up g.user
+    for MCP tool execution.
 
     Supports both sync and async tool functions.
 
@@ -184,9 +185,23 @@ def mcp_auth_hook(tool_func: F) -> F:
     TODO (future PR): Add JWT scope validation
     TODO (future PR): Add comprehensive audit logging
     """
+    import contextlib
     import functools
     import inspect
     import types
+
+    from flask import has_app_context
+
+    from superset.mcp_service.flask_singleton import get_flask_app
+
+    def _get_app_context_manager() -> AbstractContextManager[None]:
+        """Return app context manager only if not already in one."""
+        if has_app_context():
+            # Already in app context (e.g., in tests), use null context
+            return contextlib.nullcontext()
+        # Push new app context for standalone MCP server
+        app = get_flask_app()
+        return app.app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
@@ -194,21 +209,22 @@ def mcp_auth_hook(tool_func: F) -> F:
 
         @functools.wraps(tool_func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            user = _setup_user_context()
+            with _get_app_context_manager():
+                user = _setup_user_context()
 
-            try:
-                logger.debug(
-                    "MCP tool call: user=%s, tool=%s",
-                    user.username,
-                    tool_func.__name__,
-                )
-                result = await tool_func(*args, **kwargs)
-                return result
-            except Exception:
-                _cleanup_session_on_error()
-                raise
-            finally:
-                _cleanup_session_finally()
+                try:
+                    logger.debug(
+                        "MCP tool call: user=%s, tool=%s",
+                        user.username,
+                        tool_func.__name__,
+                    )
+                    result = await tool_func(*args, **kwargs)
+                    return result
+                except Exception:
+                    _cleanup_session_on_error()
+                    raise
+                finally:
+                    _cleanup_session_finally()
 
         wrapper = async_wrapper
 
@@ -216,21 +232,22 @@ def mcp_auth_hook(tool_func: F) -> F:
 
         @functools.wraps(tool_func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            user = _setup_user_context()
+            with _get_app_context_manager():
+                user = _setup_user_context()
 
-            try:
-                logger.debug(
-                    "MCP tool call: user=%s, tool=%s",
-                    user.username,
-                    tool_func.__name__,
-                )
-                result = tool_func(*args, **kwargs)
-                return result
-            except Exception:
-                _cleanup_session_on_error()
-                raise
-            finally:
-                _cleanup_session_finally()
+                try:
+                    logger.debug(
+                        "MCP tool call: user=%s, tool=%s",
+                        user.username,
+                        tool_func.__name__,
+                    )
+                    result = tool_func(*args, **kwargs)
+                    return result
+                except Exception:
+                    _cleanup_session_on_error()
+                    raise
+                finally:
+                    _cleanup_session_finally()
 
         wrapper = sync_wrapper
 
