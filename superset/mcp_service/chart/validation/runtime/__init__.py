@@ -75,22 +75,16 @@ class RuntimeValidator:
             warnings.extend(type_warnings)
             suggestions.extend(type_suggestions)
 
-        # If we have warnings, return them as a validation error
+        # Semantic warnings are informational, not blocking errors.
+        # Log them for debugging but allow chart generation to proceed.
         if warnings:
-            from superset.mcp_service.utils.error_builder import (
-                ChartErrorBuilder,
+            logger.info(
+                "Runtime semantic warnings for dataset %s: %s",
+                dataset_id,
+                "; ".join(warnings[:3]) + ("..." if len(warnings) > 3 else ""),
             )
-
-            return False, ChartErrorBuilder.build_error(
-                error_type="runtime_semantic_warning",
-                template_key="performance_warning",
-                template_vars={
-                    "reason": "; ".join(warnings[:3])
-                    + ("..." if len(warnings) > 3 else "")
-                },
-                custom_suggestions=suggestions[:5],  # Limit suggestions
-                error_code="RUNTIME_SEMANTIC_WARNING",
-            )
+            if suggestions:
+                logger.info("Suggestions: %s", "; ".join(suggestions[:3]))
 
         return True, None
 
