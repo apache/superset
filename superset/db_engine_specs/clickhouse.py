@@ -299,6 +299,19 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
 
     supports_dynamic_schema = True
 
+    metadata = {
+        "description": (
+            "ClickHouse Connect is the official Python driver for ClickHouse, "
+            "recommended for Superset integration."
+        ),
+        "logo": "clickhouse.svg",
+        "homepage_url": "https://clickhouse.com/docs/en/integrations/python",
+        "category": DatabaseCategory.OLAP_ANALYTICAL,
+        "pypi_packages": ["clickhouse-connect>=0.6.8"],
+        "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 8123,
+    }
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         return {}

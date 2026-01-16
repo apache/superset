@@ -199,3 +199,18 @@ class AzureSynapseSpec(MssqlEngineSpec):
     engine = "mssql"
     engine_name = "Azure Synapse"
     default_driver = "pyodbc"
+
+    metadata = {
+        "description": (
+            "Azure Synapse Analytics is a cloud-based enterprise data warehouse "
+            "from Microsoft that combines big data and data warehousing."
+        ),
+        "logo": "azure.png",
+        "homepage_url": "https://azure.microsoft.com/en-us/products/synapse-analytics/",
+        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "pypi_packages": ["pymssql"],
+        "connection_string": (
+            "mssql+pymssql://{username}@{server}:{password}@"
+            "{server}.database.windows.net:1433/{database}"
+        ),
+    }

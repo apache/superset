@@ -307,6 +307,29 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       title: 'Features',
       key: 'features',
       width: 200,
+      filters: [
+        { text: 'JOINs', value: 'joins' },
+        { text: 'Subqueries', value: 'subqueries' },
+        { text: 'Dynamic Schema', value: 'dynamic_schema' },
+        { text: 'Catalog', value: 'catalog' },
+        { text: 'SSH Tunneling', value: 'ssh' },
+      ],
+      onFilter: (value: React.Key | boolean, record: TableEntry) => {
+        switch (value) {
+          case 'joins':
+            return Boolean(record.joins);
+          case 'subqueries':
+            return Boolean(record.subqueries);
+          case 'dynamic_schema':
+            return Boolean(record.supports_dynamic_schema);
+          case 'catalog':
+            return Boolean(record.supports_catalog);
+          case 'ssh':
+            return Boolean(record.ssh_tunneling);
+          default:
+            return true;
+        }
+      },
       render: (_: unknown, record: TableEntry) => (
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {record.joins && <Tag color="green">JOINs</Tag>}

@@ -323,6 +323,22 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
     drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
     default_driver = "pyodbc"
 
+    metadata = {
+        "description": (
+            "Databricks SQL Endpoint connector using ODBC driver for "
+            "serverless SQL warehouses."
+        ),
+        "logo": "databricks.png",
+        "homepage_url": "https://docs.databricks.com/integrations/bi/jdbc-odbc-bi.html",
+        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "pypi_packages": ["databricks-sql-connector"],
+        "connection_string": "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}",
+        "notes": (
+            "Requires ODBC driver installed. Use http_path in engine parameters: "
+            '{"connect_args": {"http_path": "/sql/1.0/endpoints/****"}}'
+        ),
+    }
+
 
 class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngineSpec):
     default_driver = ""
@@ -510,6 +526,24 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     sqlalchemy_uri_placeholder = (
         "databricks+connector://token:{access_token}@{host}:{port}/{database_name}"
     )
+
+    metadata = {
+        "description": (
+            "Legacy Databricks connector using databricks-dbapi. "
+            "Consider using Databricks Python Connector for new deployments."
+        ),
+        "logo": "databricks.png",
+        "homepage_url": "https://docs.databricks.com/",
+        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
+        "connection_string": (
+            "databricks+connector://token:{access_token}@{host}:{port}/{database}"
+        ),
+        "notes": (
+            "Requires http_path in engine parameters: "
+            '{"connect_args": {"http_path": "sql/protocolv1/o/****"}}'
+        ),
+    }
     context_key_mapping = {
         **DatabricksDynamicBaseEngineSpec.context_key_mapping,
         "database": "database",
@@ -648,6 +682,28 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         "databricks://token:{access_token}@{host}:{port}?http_path={http_path}"
         "&catalog={default_catalog}&schema={default_schema}"
     )
+
+    metadata = {
+        "description": (
+            "Databricks Python Connector - the recommended driver for connecting "
+            "to Databricks SQL warehouses and clusters."
+        ),
+        "logo": "databricks.png",
+        "homepage_url": "https://docs.databricks.com/dev-tools/python-sql-connector.html",
+        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "pypi_packages": ["apache-superset[databricks]"],
+        "install_instructions": "pip install apache-superset[databricks]",
+        "connection_string": (
+            "databricks://token:{access_token}@{host}:{port}"
+            "?http_path={http_path}&catalog={catalog}&schema={schema}"
+        ),
+        "parameters": {
+            "access_token": "Personal access token from Settings > User Settings",
+            "host": "Server hostname from cluster JDBC/ODBC settings",
+            "port": "Port (default 443)",
+            "http_path": "HTTP path from cluster JDBC/ODBC settings",
+        },
+    }
 
     context_key_mapping = {
         **DatabricksDynamicBaseEngineSpec.context_key_mapping,

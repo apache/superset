@@ -357,6 +357,22 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         "duckdb:///md:{database_name}?motherduck_token={SERVICE_TOKEN}"
     )
 
+    metadata = {
+        "description": (
+            "MotherDuck is a serverless analytics platform built on DuckDB, "
+            "offering cloud-native OLAP with local DuckDB compatibility."
+        ),
+        "logo": "motherduck.png",
+        "homepage_url": "https://motherduck.com/",
+        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "pypi_packages": ["duckdb", "duckdb-engine"],
+        "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+        "parameters": {
+            "database": "MotherDuck database name (prefixed with md:)",
+            "motherduck_token": "Service token from MotherDuck dashboard",
+        },
+    }
+
     @staticmethod
     def _is_motherduck(database: str) -> bool:
         return True
