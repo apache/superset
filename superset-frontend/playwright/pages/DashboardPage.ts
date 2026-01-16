@@ -27,9 +27,9 @@ export class DashboardPage {
   private readonly page: Page;
 
   private static readonly SELECTORS = {
-    DASHBOARD_HEADER: '[data-test="dashboard-header"]',
-    DASHBOARD_MENU_TRIGGER: '[data-test="header-actions-trigger"]',
-    DOWNLOAD_MENU: '[data-test="download-menu-button"]',
+    DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
+    DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
+    DOWNLOAD_SUBMENU: '[data-test="header-actions-menu"] li:has-text("Download")',
     EXPORT_YAML_OPTION: 'li:has-text("Export YAML")',
     EXPORT_AS_EXAMPLE_OPTION: 'li:has-text("Export as Example")',
   } as const;
@@ -75,7 +75,7 @@ export class DashboardPage {
    * Click the Download submenu in the header actions
    */
   async openDownloadMenu(): Promise<void> {
-    await this.page.click(DashboardPage.SELECTORS.DOWNLOAD_MENU);
+    await this.page.click(DashboardPage.SELECTORS.DOWNLOAD_SUBMENU);
   }
 
   /**
