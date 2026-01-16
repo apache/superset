@@ -40,6 +40,8 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import TaskStatusIcon from 'src/features/tasks/TaskStatusIcon';
 import TaskPayloadPopover from 'src/features/tasks/TaskPayloadPopover';
+import TaskStackTracePopover from 'src/features/tasks/TaskStackTracePopover';
+import { formatDuration } from 'src/features/tasks/timeUtils';
 import { Task, TaskStatus, TaskScope } from 'src/features/tasks/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -212,6 +214,8 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               progress_current,
               progress_total,
               duration_seconds,
+              error_message,
+              exception_type,
             },
           },
         }: any) => (
@@ -221,6 +225,8 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             progressCurrent={progress_current}
             progressTotal={progress_total}
             durationSeconds={duration_seconds}
+            errorMessage={error_message}
+            exceptionType={exception_type}
           />
         ),
         accessor: 'status',
@@ -311,8 +317,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           row: {
             original: { duration_seconds },
           },
-        }: any) =>
-          duration_seconds !== null ? `${Math.round(duration_seconds)}s` : '-',
+        }: any) => formatDuration(duration_seconds) ?? '-',
         accessor: 'duration_seconds',
         Header: t('Duration'),
         size: 'sm',
@@ -322,12 +327,25 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { payload },
+            original: { payload, stack_trace },
           },
-        }: any) =>
-          payload && Object.keys(payload).length > 0 ? (
-            <TaskPayloadPopover payload={payload} />
-          ) : null,
+        }: any) => {
+          const hasPayload = payload && Object.keys(payload).length > 0;
+          const hasStackTrace = !!stack_trace;
+
+          if (!hasPayload && !hasStackTrace) {
+            return null;
+          }
+
+          return (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {hasPayload && <TaskPayloadPopover payload={payload} />}
+              {hasStackTrace && (
+                <TaskStackTracePopover stackTrace={stack_trace} />
+              )}
+            </div>
+          );
+        },
         accessor: 'payload',
         Header: t('Details'),
         size: 'xs',

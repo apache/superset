@@ -16,6 +16,7 @@
 # under the License.
 """Task model for Global Task Framework (GTF)"""
 
+import traceback
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -74,7 +75,9 @@ class Task(CoreTask, AuditMixinNullable, Model):
     database_id = Column(
         Integer, ForeignKey("dbs.id", ondelete="SET NULL"), nullable=True
     )
-    error_message = Column(Text, nullable=True)
+    error_message = Column(Text, nullable=True)  # Human-readable error message
+    exception_type = Column(String(256), nullable=True)  # Exception class name
+    stack_trace = Column(Text, nullable=True)  # Full formatted traceback
     payload = Column(
         Text, nullable=True, default="{}"
     )  # JSON serialized task-specific data
@@ -122,6 +125,19 @@ class Task(CoreTask, AuditMixinNullable, Model):
         current = self.get_payload()
         current.update(data)
         self.payload = json.dumps(current)
+
+    def set_error_from_exception(self, exception: BaseException) -> None:
+        """
+        Set error fields from an exception.
+
+        Captures the error message, exception type, and full stack trace.
+        Called automatically by the executor when a task raises an exception.
+
+        :param exception: The exception that caused the failure
+        """
+        self.error_message = str(exception)
+        self.exception_type = type(exception).__name__
+        self.stack_trace = traceback.format_exc()
 
     def set_status(self, status: TaskStatus | str) -> None:
         """
@@ -308,6 +324,8 @@ class Task(CoreTask, AuditMixinNullable, Model):
             "user_id": self.user_id,
             "database_id": self.database_id,
             "error_message": self.error_message,
+            "exception_type": self.exception_type,
+            "stack_trace": self.stack_trace,
             "payload": self.get_payload(),
             "progress_percent": self.progress_percent,
             "progress_current": self.progress_current,

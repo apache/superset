@@ -732,3 +732,118 @@ Only call `get_context()` from within `@task` decorated functions.
 ### Duplicate Tasks Despite Task Key
 
 Deduplication only prevents duplicates while task is PENDING or IN_PROGRESS. Once complete, new tasks with same key can be created.
+
+## Error Handling
+
+When a task raises an exception, the framework automatically captures detailed error information for debugging.
+
+### Captured Error Information
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `error_message` | string | The exception message (`str(exception)`) |
+| `exception_type` | string | The exception class name (e.g., `"ValueError"`, `"ZeroDivisionError"`) |
+| `stack_trace` | string | Full formatted traceback (visibility controlled by config) |
+
+### Automatic Error Capture
+
+When a task raises an exception, the framework automatically:
+
+1. Sets the task status to `FAILURE`
+2. Captures the error message, exception type, and full stack trace
+3. Runs any registered cleanup handlers
+
+```python
+@task
+def my_task() -> None:
+    ctx = get_context()
+
+    @ctx.on_cleanup
+    def cleanup():
+        # This still runs even if the task fails
+        logger.info("Cleaning up...")
+
+    # If this raises, the error is automatically captured
+    result = some_operation_that_might_fail()
+```
+
+### Stack Trace Visibility
+
+The `stack_trace` field is **always stored** in the database but only exposed in API responses when `SHOW_STACKTRACE=True` is set in your Superset configuration.
+
+| Environment | `SHOW_STACKTRACE` | Stack Trace in API |
+|-------------|-------------------|-------------------|
+| Development | `True` (default) | ✅ Visible |
+| Production | `False` (recommended) | ❌ Hidden |
+
+This allows:
+- **Development**: Full stack traces visible for debugging
+- **Production**: Stack traces hidden from end users but still accessible to operators via direct database access
+
+### Example API Response
+
+When `SHOW_STACKTRACE=True`:
+
+```json
+{
+  "status": "failure",
+  "error_message": "division by zero",
+  "exception_type": "ZeroDivisionError",
+  "stack_trace": "Traceback (most recent call last):\n  File \"/app/superset/tasks/executor.py\", line 108, in execute_task\n    executor_fn(*args, **kwargs)\n  File \"/app/my_task.py\", line 42, in my_task\n    result = 1 / 0\nZeroDivisionError: division by zero\n"
+}
+```
+
+When `SHOW_STACKTRACE=False`:
+
+```json
+{
+  "status": "failure",
+  "error_message": "division by zero",
+  "exception_type": "ZeroDivisionError",
+  "stack_trace": null
+}
+```
+
+### Best Practice: Let Exceptions Propagate
+
+Tasks should raise exceptions for errors rather than trying to handle them manually. This ensures:
+
+- Consistent error capture across all tasks
+- Proper task status transitions
+- Cleanup handlers still run
+
+**Good:**
+```python
+@task
+def my_task() -> None:
+    # Let the framework handle the error
+    result = risky_operation()
+    process(result)
+```
+
+**Avoid:**
+```python
+@task
+def my_task() -> None:
+    try:
+        result = risky_operation()
+        process(result)
+    except Exception as e:
+        # Don't swallow exceptions - the framework won't know the task failed
+        logger.error(f"Failed: {e}")
+        return  # Task status will be SUCCESS, not FAILURE!
+```
+
+If you need custom error handling logic, re-raise the exception after your handling:
+
+```python
+@task
+def my_task() -> None:
+    try:
+        result = risky_operation()
+    except SpecificError as e:
+        # Do custom cleanup
+        cleanup_partial_work()
+        # Re-raise so framework captures the error
+        raise
+```

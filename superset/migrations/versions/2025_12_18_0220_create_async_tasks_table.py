@@ -86,7 +86,9 @@ def upgrade():
         Column("ended_at", DateTime, nullable=True),
         Column("user_id", Integer, nullable=True),  # User context for execution
         Column("database_id", Integer, nullable=True),  # Optional FK to dbs.id
-        Column("error_message", Text, nullable=True),
+        Column("error_message", Text, nullable=True),  # Human-readable error message
+        Column("exception_type", String(256), nullable=True),  # Exception class name
+        Column("stack_trace", Text, nullable=True),  # Full formatted traceback
         Column("payload", Text, nullable=True),  # JSON serialized task-specific data
         # Progress tracking - supports three modes:
         # 1. Percentage only: progress_percent set, others null

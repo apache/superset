@@ -38,6 +38,10 @@ created_by_description = "User who created the task"
 user_id_description = "ID of the user context for task execution"
 database_id_description = "ID of the database associated with the task"
 error_message_description = "Error message if the task failed"
+exception_type_description = "The type of exception that caused the failure"
+stack_trace_description = (
+    "Full stack trace of the error. Only included when SHOW_STACKTRACE is enabled."
+)
 payload_description = "Task-specific data in JSON format"
 progress_percent_description = (
     "Task progress as a percentage (0.0-1.0). Set when using percentage-only mode "
@@ -118,6 +122,13 @@ class TaskResponseSchema(Schema):
     error_message = fields.String(
         metadata={"description": error_message_description}, allow_none=True
     )
+    exception_type = fields.String(
+        metadata={"description": exception_type_description}, allow_none=True
+    )
+    stack_trace = Method(
+        "get_stack_trace",
+        metadata={"description": stack_trace_description},
+    )
     payload = Method("get_payload_dict", metadata={"description": payload_description})
     progress_percent = fields.Float(
         metadata={"description": progress_percent_description}, allow_none=True
@@ -161,6 +172,14 @@ class TaskResponseSchema(Schema):
     def get_payload_dict(self, obj: object) -> dict[str, object] | None:
         """Get payload as dictionary"""
         return obj.get_payload()  # type: ignore[attr-defined]
+
+    def get_stack_trace(self, obj: object) -> str | None:
+        """Get stack trace only if SHOW_STACKTRACE is enabled."""
+        from flask import current_app
+
+        if not current_app.config.get("SHOW_STACKTRACE", False):
+            return None
+        return obj.stack_trace  # type: ignore[attr-defined]
 
     def get_duration(self, obj: object) -> float | None:
         """Get duration in seconds"""
