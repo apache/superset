@@ -250,6 +250,12 @@ class TaskDAO(BaseDAO[Task]):
             task.status = TaskStatus.ABORTING.value
             db.session.merge(task)
             logger.info("Set task %s to ABORTING (scope: %s)", task_uuid, task.scope)
+
+            # Publish abort notification via TaskManager
+            from superset.tasks.manager import TaskManager
+
+            TaskManager.publish_abort(task_uuid)
+
             return True
 
         return False
@@ -309,6 +315,12 @@ class TaskDAO(BaseDAO[Task]):
                         task.status = TaskStatus.ABORTING.value
                         db.session.merge(task)
                         db.session.commit()
+
+                        # Publish abort notification via TaskManager
+                        from superset.tasks.manager import TaskManager
+
+                        TaskManager.publish_abort(task.uuid)
+
                         aborted_count += 1
                     else:
                         logger.warning(
