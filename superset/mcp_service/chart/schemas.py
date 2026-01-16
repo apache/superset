@@ -36,6 +36,7 @@ from pydantic import (
     PositiveInt,
 )
 
+from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
@@ -670,24 +671,7 @@ class XYChartConfig(BaseModel):
     kind: Literal["line", "bar", "area", "scatter"] = Field(
         "line", description="Chart visualization type"
     )
-    time_grain: (
-        Literal[
-            "PT1S",
-            "PT1M",
-            "PT5M",
-            "PT10M",
-            "PT15M",
-            "PT30M",
-            "PT1H",
-            "PT6H",
-            "P1D",
-            "P1W",
-            "P1M",
-            "P3M",
-            "P1Y",
-        ]
-        | None
-    ) = Field(
+    time_grain: TimeGrain | None = Field(
         None,
         description=(
             "Time granularity for the x-axis when it's a temporal column. "
