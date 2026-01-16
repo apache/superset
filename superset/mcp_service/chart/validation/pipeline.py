@@ -181,8 +181,15 @@ class ValidationPipeline:
             )
             # Runtime validation always returns True now, warnings are informational
 
+            # Layer 4: Column name normalization
+            # Normalize column names to match canonical dataset column names
+            # This fixes case sensitivity issues (e.g., 'order_date' vs 'OrderDate')
+            normalized_request = ValidationPipeline._normalize_column_names(request)
+
             return ValidationResult(
-                is_valid=True, request=request, warnings=warnings_metadata
+                is_valid=True,
+                request=normalized_request,
+                warnings=warnings_metadata,
             )
 
         except Exception as e:
@@ -247,6 +254,41 @@ class ValidationPipeline:
             logger.warning("Runtime validation failed: %s", e)
             # Don't fail on runtime validation errors
             return True, None
+
+    @staticmethod
+    def _normalize_column_names(request: GenerateChartRequest) -> GenerateChartRequest:
+        """
+        Normalize column names in the request to match canonical dataset names.
+
+        This fixes case sensitivity issues where user-provided column names
+        don't match exactly with the dataset column names. For example,
+        if a user provides 'order_date' but the dataset has 'OrderDate',
+        this method will normalize it to 'OrderDate'.
+
+        Args:
+            request: The validated chart generation request
+
+        Returns:
+            A new request with normalized column names
+        """
+        try:
+            from .dataset_validator import DatasetValidator
+
+            normalized_config = DatasetValidator.normalize_column_names(
+                request.config, request.dataset_id
+            )
+
+            # Create a new request with the normalized config
+            request_dict = request.model_dump()
+            request_dict["config"] = normalized_config.model_dump()
+
+            return GenerateChartRequest.model_validate(request_dict)
+
+        except Exception as e:
+            # If normalization fails, return the original request
+            # Validation has already passed, so this is a non-critical failure
+            logger.warning("Column name normalization failed: %s", e)
+            return request
 
     @staticmethod
     def validate_filters(
