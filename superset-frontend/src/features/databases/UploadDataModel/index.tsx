@@ -68,6 +68,7 @@ interface UploadDataModalProps {
   show: boolean;
   allowedExtensions: string[];
   type: UploadType;
+  fileListOverride?: File[];
 }
 
 const CSVSpecificFields = [
@@ -216,6 +217,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   show,
   allowedExtensions,
   type = 'csv',
+  fileListOverride,
 }) => {
   const [form] = Form.useForm();
   const [currentDatabaseId, setCurrentDatabaseId] = useState<number>(0);
@@ -526,9 +528,25 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   };
 
   useEffect(() => {
+    if (fileListOverride?.length) {
+      setFileList(
+        fileListOverride.map(file => ({
+          uid: file.name,
+          name: file.name,
+          originFileObj: file as UploadFile['originFileObj'],
+          status: 'done' as const,
+        })),
+      );
+      if (previewUploadedFile) {
+        loadFileMetadata(fileListOverride[0]).then(r => r);
+      }
+    }
+  }, [fileListOverride, previewUploadedFile]);
+
+  useEffect(() => {
     if (
       columns.length > 0 &&
-      fileList[0].originFileObj &&
+      fileList.length > 0 &&
       fileList[0].originFileObj instanceof File
     ) {
       if (!previewUploadedFile) {
