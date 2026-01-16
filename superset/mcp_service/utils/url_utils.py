@@ -44,9 +44,9 @@ def get_superset_base_url() -> str:
     Get the Superset base URL from configuration.
 
     Returns:
-        Base URL for Superset web server (e.g., "http://localhost:9001")
+        Base URL for Superset web server (e.g., "http://localhost:9081")
     """
-    default_url = "http://localhost:9001"
+    default_url = "http://localhost:9081"
 
     try:
         config = current_app.config
