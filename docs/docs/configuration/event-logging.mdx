@@ -40,7 +40,7 @@ Here's an example of a simple JSON-to-stdout class:
 
 End by updating your config to pass in an instance of the logger you want to use:
 
-```
+```python
 EVENT_LOGGER = JSONStdOutEventLogger()
 ```
 
@@ -50,13 +50,28 @@ Superset can be configured to log events to [StatsD](https://github.com/statsd/s
 if desired. Most endpoints hit are logged as
 well as key events like query start and end in SQL Lab.
 
-To setup StatsD logging, it’s a matter of configuring the logger in your `superset_config.py`.
-If not already present, you need to ensure that the `statsd`-package is installed in Superset's python environment.
+By default, Superset also collects gunicorn [metrics](https://docs.gunicorn.org/en/stable/instrumentation.html).
+To enable these, the following environment variables should be set:
+
+```bash
+SERVER_STATSD_HOST=localhost
+SERVER_STATSD_PORT=8125
+SERVER_STATSD_PREFIX=superset
+```
+
+To setup StatsD logging for Superset, it’s a matter of configuring the logger in your `superset_config.py`.
 
 ```python
+import os
 from superset.stats_logger import StatsdStatsLogger
-STATS_LOGGER = StatsdStatsLogger(host='localhost', port=8125, prefix='superset')
+STATS_LOGGER = StatsdStatsLogger(
+    host=os.environ.get("SERVER_STATSD_HOST", "localhost"),
+    port=int(os.environ.get("SERVER_STATSD_PORT", "8125")),
+    prefix=os.environ.get("SERVER_STATSD_PREFIX", "superset"),
+)
 ```
+
+[statsd](https://pypi.org/project/statsd/) in version ~3.3.0 must be installed.
 
 Note that it’s also possible to implement your own logger by deriving
 `superset.stats_logger.BaseStatsLogger`.
