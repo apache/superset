@@ -342,6 +342,14 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             (sub: any) => sub.user_id === user.userId,
           );
 
+          // Check if task is in a non-active state (completed or aborting)
+          const isNonActiveStatus = [
+            TaskStatus.Success,
+            TaskStatus.Failure,
+            TaskStatus.Aborted,
+            TaskStatus.Aborting,
+          ].includes(original.status);
+
           // Determine if abort button should be shown:
           // - Admins: Always show abort for abortable tasks (any scope)
           // - Non-admins on shared tasks: Never show abort (use unsubscribe instead)
@@ -349,8 +357,9 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           const showAbort = taskIsAbortable && (isAdmin || !isSharedTask);
 
           // Determine if unsubscribe button should be shown:
-          // - Only for shared tasks where user is subscribed
-          const showUnsubscribe = isSharedTask && userIsSubscribed;
+          // - Only for shared tasks where user is subscribed AND task is still active
+          const showUnsubscribe =
+            isSharedTask && userIsSubscribed && !isNonActiveStatus;
 
           // Show disabled button for running tasks without abort handler
           // (only if abort would otherwise be shown)
