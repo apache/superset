@@ -101,10 +101,6 @@ def eval_node(node):
         return None
     if isinstance(node, ast.Constant):
         return node.value
-    elif isinstance(node, ast.Str):  # Python 3.7
-        return node.s
-    elif isinstance(node, ast.Num):  # Python 3.7
-        return node.n
     elif isinstance(node, ast.List):
         return [eval_node(e) for e in node.elts]
     elif isinstance(node, ast.Dict):
