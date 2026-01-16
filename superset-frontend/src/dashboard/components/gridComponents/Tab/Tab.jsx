@@ -27,6 +27,7 @@ import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
+import { Typography } from '@superset-ui/core/components/Typography';
 import {
   DragDroppable,
   Droppable,
@@ -260,41 +261,55 @@ const Tab = props => {
           </Droppable>
         )}
         {shouldDisplayEmptyState && (
-          <EmptyState
-            title={
-              editMode
-                ? t('Drag and drop components to this tab')
-                : t('There are no components added to this tab')
-            }
-            description={
-              canEdit &&
-              (editMode ? (
-                <span>
-                  {t('You can')}{' '}
-                  <a
-                    href={`/chart/add?dashboard_id=${dashboardId}`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {t('create a new chart')}
-                  </a>{' '}
-                  {t('or use existing ones from the panel on the right')}
-                </span>
-              ) : (
-                <span>
-                  {t('You can add the components in the')}{' '}
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => dispatch(setEditMode(true))}
-                  >
-                    {t('edit mode')}
-                  </span>
-                </span>
-              ))
-            }
-            image="chart.svg"
-          />
+          <Droppable
+            component={tabComponent}
+            orientation="column"
+            index={editMode ? 1 : 0}
+            depth={depth}
+            onDrop={handleTopDropTargetDrop}
+            editMode={editMode}
+            dropToChild
+          >
+            {() => (
+              <div data-test="emptystate-drop-indicator">
+                <EmptyState
+                  title={
+                    editMode
+                      ? t('Drag and drop components to this tab')
+                      : t('There are no components added to this tab')
+                  }
+                  description={
+                    canEdit &&
+                    (editMode ? (
+                      <span>
+                        {t('You can')}{' '}
+                        <Typography.Link
+                          href={`/chart/add?dashboard_id=${dashboardId}`}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          {t('create a new chart')}
+                        </Typography.Link>{' '}
+                        {t('or use existing ones from the panel on the right')}
+                      </span>
+                    ) : (
+                      <span>
+                        {t('You can add the components in the')}{' '}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => dispatch(setEditMode(true))}
+                        >
+                          {t('edit mode')}
+                        </span>
+                      </span>
+                    ))
+                  }
+                  image="chart.svg"
+                />
+              </div>
+            )}
+          </Droppable>
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
           <Fragment key={componentId}>
