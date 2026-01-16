@@ -157,7 +157,8 @@ async def generate_chart(  # noqa: C901
 
         if not validation_result.is_valid:
             execution_time = int((time.time() - start_time) * 1000)
-            assert validation_result.error is not None  # Type narrowing for mypy
+            if validation_result.error is None:
+                raise RuntimeError("Validation failed but error object is missing")
             await ctx.error(
                 "Chart validation failed: error=%s"
                 % (validation_result.error.model_dump(),)
