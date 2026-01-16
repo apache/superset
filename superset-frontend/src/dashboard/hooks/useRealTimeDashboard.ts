@@ -23,6 +23,7 @@ import {
   DELAY_THRESHOLD_PERCENTAGE,
   ERROR_THRESHOLD_MULTIPLIER,
 } from '../types/autoRefresh';
+import { RootState } from '../types';
 import {
   setAutoRefreshStatus,
   setAutoRefreshPaused,
@@ -33,39 +34,27 @@ import {
   setAutoRefreshPauseOnInactiveTab,
 } from '../actions/autoRefresh';
 
-interface RootState {
-  dashboardState: {
-    refreshFrequency: number;
-    autoRefreshStatus?: AutoRefreshStatus;
-    autoRefreshPaused?: boolean;
-    autoRefreshPausedByTab?: boolean;
-    lastSuccessfulRefresh?: number | null;
-    lastRefreshError?: string | null;
-    refreshErrorCount?: number;
-    autoRefreshFetchStartTime?: number | null;
-    autoRefreshPauseOnInactiveTab?: boolean;
-  };
-}
+type DashboardStateRoot = Pick<RootState, 'dashboardState'>;
 
 /**
  * Selector: Determines if this is a "real-time" dashboard.
  * A dashboard is real-time if it has an auto-refresh frequency > 0.
  */
-export const selectIsRealTimeDashboard = (state: RootState): boolean =>
+export const selectIsRealTimeDashboard = (state: DashboardStateRoot): boolean =>
   (state.dashboardState?.refreshFrequency ?? 0) > 0;
 
 /**
  * Selector: Determines if auto-refresh is manually paused (by user action).
  * Does NOT include tab visibility pause.
  */
-export const selectIsManuallyPaused = (state: RootState): boolean =>
+export const selectIsManuallyPaused = (state: DashboardStateRoot): boolean =>
   state.dashboardState?.autoRefreshPaused === true;
 
 /**
  * Selector: Determines if auto-refresh is paused.
  * Paused can be due to manual pause or tab visibility.
  */
-export const selectIsPaused = (state: RootState): boolean =>
+export const selectIsPaused = (state: DashboardStateRoot): boolean =>
   state.dashboardState?.autoRefreshPaused === true ||
   state.dashboardState?.autoRefreshPausedByTab === true;
 
@@ -79,7 +68,7 @@ export const selectIsPaused = (state: RootState): boolean =>
  * 4. Otherwise → Current status from state
  */
 export const selectEffectiveRefreshStatus = (
-  state: RootState,
+  state: DashboardStateRoot,
 ): AutoRefreshStatus => {
   const { dashboardState } = state;
 

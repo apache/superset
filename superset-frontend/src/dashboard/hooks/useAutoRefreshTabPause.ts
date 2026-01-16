@@ -72,6 +72,7 @@ export function useAutoRefreshTabPause({
   }, [
     isRealTimeDashboard,
     isManuallyPaused,
+    autoRefreshPauseOnInactiveTab,
     setPausedByTab,
     setStatus,
     onStopTimer,

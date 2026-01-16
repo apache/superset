@@ -71,9 +71,9 @@ export const AutoRefreshControls: FC<AutoRefreshControlsProps> = ({
     ? t('Resume auto-refresh')
     : t('Pause auto-refresh');
 
-  // Use StopOutlined for pause and SyncOutlined for resume
-  // since PauseCircleOutlined and PlayCircleOutlined are not in Superset's icon set
-  const PauseIcon = isPaused ? Icons.SyncOutlined : Icons.StopOutlined;
+  const PauseIcon = isPaused
+    ? Icons.PlayCircleOutlined
+    : Icons.PauseCircleOutlined;
 
   return (
     <div css={containerStyles}>

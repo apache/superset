@@ -464,8 +464,14 @@ const Header = () => {
   );
 
   useEffect(() => {
+    if (isPaused) {
+      stopPeriodicRender(refreshTimer.current);
+      refreshTimer.current = 0;
+      return;
+    }
+
     startPeriodicRender(refreshFrequency * 1000);
-  }, [refreshFrequency, startPeriodicRender]);
+  }, [isPaused, refreshFrequency, startPeriodicRender]);
 
   // Track theme changes as unsaved changes, and sync ref when navigating between dashboards
   useEffect(() => {

@@ -40,6 +40,7 @@ import {
 } from './components/nativeFilters/ChartCustomization/types';
 import { GroupByCustomizationsState } from './reducers/groupByCustomizations';
 import { ChartState } from '../explore/types';
+import { AutoRefreshStatus } from './types/autoRefresh';
 
 export type { Dashboard } from 'src/types/Dashboard';
 
@@ -130,7 +131,7 @@ export type DashboardState = {
   };
   chartStates?: Record<string, any>;
   // Auto-refresh state fields
-  autoRefreshStatus?: string;
+  autoRefreshStatus?: AutoRefreshStatus;
   autoRefreshPaused?: boolean;
   autoRefreshPausedByTab?: boolean;
   lastSuccessfulRefresh?: number | null;

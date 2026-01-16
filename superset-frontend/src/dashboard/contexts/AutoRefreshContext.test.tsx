@@ -102,36 +102,36 @@ test('setRefreshInFlight sets the value directly', () => {
 });
 
 test('useIsAutoRefreshing hook returns correct value inside provider', () => {
-  const { result: contextResult } = renderHook(() => useAutoRefreshContext(), {
-    wrapper,
-  });
-  const { result: hookResult } = renderHook(() => useIsAutoRefreshing(), {
-    wrapper,
-  });
+  const { result } = renderHook(
+    () => ({
+      context: useAutoRefreshContext(),
+      isAutoRefreshing: useIsAutoRefreshing(),
+    }),
+    { wrapper },
+  );
 
-  expect(hookResult.current).toBe(false);
+  expect(result.current.isAutoRefreshing).toBe(false);
 
   act(() => {
-    contextResult.current.startAutoRefresh();
+    result.current.context.startAutoRefresh();
   });
-
-  // Note: this test may need adjustment based on how hooks share state
-  // In practice, both hooks would read from the same context
+  expect(result.current.isAutoRefreshing).toBe(true);
 });
 
 test('useIsRefreshInFlight hook returns correct value inside provider', () => {
-  const { result: contextResult } = renderHook(() => useAutoRefreshContext(), {
-    wrapper,
-  });
-  const { result: hookResult } = renderHook(() => useIsRefreshInFlight(), {
-    wrapper,
-  });
+  const { result } = renderHook(
+    () => ({
+      context: useAutoRefreshContext(),
+      isRefreshInFlight: useIsRefreshInFlight(),
+    }),
+    { wrapper },
+  );
 
-  expect(hookResult.current).toBe(false);
+  expect(result.current.isRefreshInFlight).toBe(false);
 
   act(() => {
-    contextResult.current.setRefreshInFlight(true);
+    result.current.context.setRefreshInFlight(true);
   });
 
-  expect(hookResult.current).toBe(true);
+  expect(result.current.isRefreshInFlight).toBe(true);
 });

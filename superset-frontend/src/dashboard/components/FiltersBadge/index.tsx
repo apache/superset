@@ -108,10 +108,13 @@ const indicatorsInitialState: Indicator[] = [];
 export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const dispatch = useDispatch();
   const isAutoRefreshing = useIsAutoRefreshing();
-  const datasources = useSelector<RootState, any>(state => state.datasources);
-  const dashboardFilters = useSelector<RootState, any>(
-    state => state.dashboardFilters,
+  const datasources = useSelector<RootState, RootState['datasources']>(
+    state => state.datasources,
   );
+  const dashboardFilters = useSelector<
+    RootState,
+    RootState['dashboardFilters']
+  >(state => state.dashboardFilters);
   const nativeFilters = useSelector<RootState, Filters>(
     state => state.nativeFilters?.filters,
   );

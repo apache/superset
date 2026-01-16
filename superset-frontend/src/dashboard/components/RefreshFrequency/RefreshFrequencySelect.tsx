@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { Radio, Input } from '@superset-ui/core/components';
+import { Input } from '@superset-ui/core/components';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 
 // Minimum safe refresh interval to prevent server overload
 export const MINIMUM_REFRESH_INTERVAL = 5;
@@ -65,10 +66,17 @@ export const REFRESH_FREQUENCY_OPTIONS = [
   { value: -1, label: t('Custom') },
 ];
 
+const isPresetValue = (frequency: number) =>
+  REFRESH_FREQUENCY_OPTIONS.some(
+    option => option.value === frequency && option.value !== -1,
+  );
+
+const getCustomValue = (frequency: number) =>
+  !isPresetValue(frequency) && frequency > 0 ? frequency.toString() : '';
+
 interface RefreshFrequencySelectProps {
   value: number;
   onChange: (value: number) => void;
-  ariaLabel?: string;
 }
 
 /**
@@ -81,17 +89,19 @@ export const RefreshFrequencySelect = ({
 }: RefreshFrequencySelectProps) => {
   // Separate radio selection state from value state
   const [radioSelection, setRadioSelection] = useState(() =>
-    REFRESH_FREQUENCY_OPTIONS.find(opt => opt.value === value) ? value : -1,
+    isPresetValue(value) ? value : -1,
   );
 
-  const [customValue, setCustomValue] = useState(() =>
-    REFRESH_FREQUENCY_OPTIONS.find(opt => opt.value === value)
-      ? ''
-      : value.toString(),
-  );
+  const [customValue, setCustomValue] = useState(() => getCustomValue(value));
 
-  const handleRadioChange = (e: any) => {
-    const selectedValue = parseInt(e.target.value, 10);
+  useEffect(() => {
+    const selection = isPresetValue(value) ? value : -1;
+    setRadioSelection(selection);
+    setCustomValue(selection === -1 ? getCustomValue(value) : '');
+  }, [value]);
+
+  const handleRadioChange = (event: RadioChangeEvent) => {
+    const selectedValue = Number(event.target.value);
     setRadioSelection(selectedValue);
 
     if (selectedValue === -1) {
@@ -106,8 +116,8 @@ export const RefreshFrequencySelect = ({
     }
   };
 
-  const handleCustomInputChange = (e: any) => {
-    const inputValue = e.target.value;
+  const handleCustomInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const inputValue = event.target.value;
     setCustomValue(inputValue);
 
     const numValue = parseInt(inputValue, 10);

@@ -498,7 +498,7 @@ const PropertiesModal = ({
 
   // Section handlers for extracted components
   const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
-  const handleRefreshFrequencyChange = (value: any) =>
+  const handleRefreshFrequencyChange = (value: number) =>
     setRefreshFrequency(value);
 
   // Helper function for styling section
