@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { DataMaskStateWithId, JsonObject, QueryFormData } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
 import { isEmpty, isEqual } from 'lodash';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
@@ -138,7 +142,7 @@ export const getChartDataPayloads = async (
       };
 
       const payload = await buildV1ChartDataPayload({
-        formData: formData as QueryFormData,
+        formData: formData as unknown as QueryFormData,
         resultFormat: 'json',
         resultType: 'results',
         ownState,

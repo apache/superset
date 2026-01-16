@@ -1264,10 +1264,7 @@ class DatasourceEditor extends PureComponent<
     }
   }
 
-  findDuplicates<T>(
-    arr: T[],
-    accessor: (obj: T) => string,
-  ): string[] {
+  findDuplicates<T>(arr: T[], accessor: (obj: T) => string): string[] {
     const seen: Record<string, null> = {};
     const dups: string[] = [];
     arr.forEach((obj: T) => {
@@ -1293,7 +1290,10 @@ class DatasourceEditor extends PureComponent<
     );
 
     // Looking for duplicate metric_name
-    dups = this.findDuplicates(datasource.metrics ?? [], obj => obj.metric_name);
+    dups = this.findDuplicates(
+      datasource.metrics ?? [],
+      obj => obj.metric_name,
+    );
     errors = errors.concat(
       dups.map(name => t('Metric name [%s] is duplicated', name)),
     );
@@ -1586,7 +1586,11 @@ class DatasourceEditor extends PureComponent<
           allowDeletes
           itemRenderers={{
             name: (d, onChange) => (
-              <EditableTitle canEdit title={d as string} onSaveTitle={onChange} />
+              <EditableTitle
+                canEdit
+                title={d as string}
+                onSaveTitle={onChange}
+              />
             ),
             config: (v, onChange) => (
               <SpatialControl

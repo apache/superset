@@ -17,7 +17,14 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { memo, useCallback, useEffect, useMemo, useState, KeyboardEvent } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  KeyboardEvent,
+} from 'react';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
@@ -64,7 +71,12 @@ import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { ChartState, Datasource, ExplorePageInitialData, SaveActionType } from 'src/explore/types';
+import {
+  ChartState,
+  Datasource,
+  ExplorePageInitialData,
+  SaveActionType,
+} from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { User } from 'src/types/bootstrapTypes';
 import ExploreChartPanel from '../ExploreChartPanel';
@@ -222,7 +234,10 @@ const defaultSidebarsWidth: Record<DefaultSidebarWidthKey, number> = {
 };
 
 function getSidebarWidths(key: LocalStorageKeys): number {
-  const defaultKey = key === LocalStorageKeys.ControlsWidth ? 'controls_width' : 'datasource_width';
+  const defaultKey =
+    key === LocalStorageKeys.ControlsWidth
+      ? 'controls_width'
+      : 'datasource_width';
   return getItem(key, defaultSidebarsWidth[defaultKey]);
 }
 
@@ -954,13 +969,18 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
 }
 
-const retainQueryModeRequirements = (hiddenFormData: Partial<QueryFormData> | undefined): string[] =>
+const retainQueryModeRequirements = (
+  hiddenFormData: Partial<QueryFormData> | undefined,
+): string[] =>
   Object.keys(hiddenFormData ?? {}).filter(
     key => !QUERY_MODE_REQUISITES.has(key),
   );
 
 interface SliceWithSubheader extends Slice {
-  form_data?: QueryFormData & { subheader?: string; subheader_font_size?: number };
+  form_data?: QueryFormData & {
+    subheader?: string;
+    subheader_font_size?: number;
+  };
 }
 
 function patchBigNumberTotalFormData(

@@ -72,7 +72,9 @@ export const useResultsPane = ({
     // it's an invalid formData when gets a errorMessage
     if (errorMessage) return;
     if (isRequest && cache.has(queryFormData)) {
-      setResultResp(ensureIsArray(cache.get(queryFormData)) as QueryResultInterface[]);
+      setResultResp(
+        ensureIsArray(cache.get(queryFormData)) as QueryResultInterface[],
+      );
       setResponseError('');
       if (queryForce) {
         setForceQuery?.(false);
