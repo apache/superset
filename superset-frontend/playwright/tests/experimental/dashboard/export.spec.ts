@@ -31,11 +31,19 @@ import { TIMEOUT } from '../../../utils/constants';
  * Prerequisites:
  * - Superset running with example dashboards loaded
  * - Admin user authenticated (via global-setup)
+ *
+ * SKIP REASON: Ant Design Menu submenu hover behavior is not reliably
+ * triggered by Playwright. The submenu popup doesn't appear consistently
+ * when hovering over the Download menu item. This functionality is
+ * covered by unit tests in DownloadMenuItems.test.tsx.
+ *
+ * TODO: Investigate Ant Design Menu triggerSubMenuAction or alternative
+ * approaches for E2E testing of nested menus.
  */
 
 let dashboardPage: DashboardPage;
 
-test.describe('Dashboard Export', () => {
+test.describe.skip('Dashboard Export', () => {
   test.beforeEach(async ({ page }) => {
     dashboardPage = new DashboardPage(page);
 
