@@ -31,12 +31,6 @@ export class DashboardPage {
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
     // The header-actions-menu is the data-test for the dropdown menu content
     HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
-    // Use text-based selector for the Download submenu
-    DOWNLOAD_MENU_ITEM: 'text=Download',
-    // Export options appear in a submenu popup
-    SUBMENU_POPUP: '.ant-menu-submenu-popup',
-    EXPORT_YAML_OPTION: 'text=Export YAML',
-    EXPORT_AS_EXAMPLE_OPTION: 'text=Export as Example',
   } as const;
 
   constructor(page: Page) {
@@ -87,15 +81,11 @@ export class DashboardPage {
    * Hover over the Download submenu to open it (Ant Design submenus open on hover)
    */
   async openDownloadMenu(): Promise<void> {
-    // Find and hover over the Download menu item to trigger the submenu
-    const downloadItem = this.page
-      .locator(DashboardPage.SELECTORS.HEADER_ACTIONS_MENU)
-      .locator(DashboardPage.SELECTORS.DOWNLOAD_MENU_ITEM);
-    await downloadItem.hover();
-    // Wait for the submenu popup to appear
-    await this.page.waitForSelector(DashboardPage.SELECTORS.SUBMENU_POPUP, {
-      state: 'visible',
-    });
+    // Find the Download menu item within the header actions menu and hover
+    const menu = this.page.locator(DashboardPage.SELECTORS.HEADER_ACTIONS_MENU);
+    await menu.getByText('Download', { exact: true }).hover();
+    // Wait for Export YAML to become visible (indicates submenu opened)
+    await this.page.getByText('Export YAML').waitFor({ state: 'visible' });
   }
 
   /**
@@ -104,11 +94,7 @@ export class DashboardPage {
    */
   async clickExportYaml(): Promise<Download> {
     const downloadPromise = this.page.waitForEvent('download');
-    // Click on Export YAML within the submenu popup
-    await this.page
-      .locator(DashboardPage.SELECTORS.SUBMENU_POPUP)
-      .locator(DashboardPage.SELECTORS.EXPORT_YAML_OPTION)
-      .click();
+    await this.page.getByText('Export YAML').click();
     return downloadPromise;
   }
 
@@ -118,11 +104,7 @@ export class DashboardPage {
    */
   async clickExportAsExample(): Promise<Download> {
     const downloadPromise = this.page.waitForEvent('download');
-    // Click on Export as Example within the submenu popup
-    await this.page
-      .locator(DashboardPage.SELECTORS.SUBMENU_POPUP)
-      .locator(DashboardPage.SELECTORS.EXPORT_AS_EXAMPLE_OPTION)
-      .click();
+    await this.page.getByText('Export as Example').click();
     return downloadPromise;
   }
 }
