@@ -139,8 +139,9 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     if not raw_columns and not aggregated_metrics:
         raise ValueError("Table chart configuration resulted in no displayable columns")
 
+    # Use the viz_type from config (defaults to "table", can be "ag-grid-table")
     form_data: Dict[str, Any] = {
-        "viz_type": "table",
+        "viz_type": config.viz_type,
     }
 
     # Handle raw columns (no aggregation)
@@ -370,7 +371,8 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
             }
             viz_type = viz_type_map.get(kind, "echarts_timeseries_line")
         elif chart_type == "table":
-            viz_type = "table"
+            # Use the viz_type from config if available (table or ag-grid-table)
+            viz_type = getattr(config, "viz_type", "table")
         else:
             viz_type = "unknown"
 
@@ -382,10 +384,11 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
         "echarts_timeseries_scatter",
         "deck_scatter",
         "deck_hex",
+        "ag-grid-table",  # AG Grid tables are interactive
     ]
 
     supports_interaction = viz_type in interactive_types
-    supports_drill_down = viz_type in ["table", "pivot_table_v2"]
+    supports_drill_down = viz_type in ["table", "pivot_table_v2", "ag-grid-table"]
     supports_real_time = viz_type in [
         "echarts_timeseries_line",
         "echarts_timeseries_bar",
@@ -433,7 +436,8 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
             }
             viz_type = viz_type_map.get(kind, "echarts_timeseries_line")
         elif chart_type == "table":
-            viz_type = "table"
+            # Use the viz_type from config if available (table or ag-grid-table)
+            viz_type = getattr(config, "viz_type", "table")
         else:
             viz_type = "unknown"
 
@@ -442,6 +446,10 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
         "echarts_timeseries_line": "Shows trends and changes over time",
         "echarts_timeseries_bar": "Compares values across categories or time periods",
         "table": "Displays detailed data in tabular format",
+        "ag-grid-table": (
+            "Interactive table with advanced features like column resizing, "
+            "sorting, filtering, and server-side pagination"
+        ),
         "pie": "Shows proportional relationships within a dataset",
         "echarts_area": "Emphasizes cumulative totals and part-to-whole relationships",
     }
