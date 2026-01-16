@@ -25,6 +25,7 @@ import {
   SupersetClientInterface,
   buildQueryContext,
   RequestConfig,
+  getClientErrorObject,
 } from '../..';
 import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
@@ -303,11 +304,17 @@ export default function StatefulChart(props: StatefulChartProps) {
       }
     } catch (err) {
       // Ignore abort errors
-      if (err.name === 'AbortError') {
+      if ((err as Error).name === 'AbortError') {
         return;
       }
 
-      const errorObj = err as Error;
+      const parsedError = await getClientErrorObject(
+        err as Parameters<typeof getClientErrorObject>[0],
+      );
+      const errorMessage =
+        parsedError.error || parsedError.message || 'An error occurred';
+
+      const errorObj = new Error(errorMessage);
       setStatus('error');
       setError(errorObj);
 

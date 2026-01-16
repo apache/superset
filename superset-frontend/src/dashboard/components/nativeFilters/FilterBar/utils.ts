@@ -23,6 +23,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { RootState } from 'src/dashboard/types';
+import { FilterElement } from './FilterControls/types';
 
 export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
   Object.values(data).reduce(
@@ -31,7 +32,7 @@ export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
   );
 
 export const checkIsMissingRequiredValue = (
-  filter: Filter,
+  filter: FilterElement,
   filterState?: FilterState,
 ) => {
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
@@ -70,9 +71,12 @@ export const checkIsApplyDisabled = (
     ),
   );
 
+  const selectedExtraFormData = getOnlyExtraFormData(dataMaskSelected);
+  const appliedExtraFormData = getOnlyExtraFormData(dataMaskApplied);
+
   const areEqual = areObjectsEqual(
-    getOnlyExtraFormData(dataMaskSelected),
-    getOnlyExtraFormData(dataMaskApplied),
+    selectedExtraFormData,
+    appliedExtraFormData,
     { ignoreUndefined: true },
   );
 
