@@ -34,6 +34,7 @@ import {
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
+import { Link } from 'react-router-dom';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -278,13 +279,13 @@ const Tab = props => {
                     (editMode ? (
                       <span>
                         {t('You can')}{' '}
-                        <a
-                          href={`/chart/add?dashboard_id=${dashboardId}`}
+                        <Link
+                          to={`/chart/add?dashboard_id=${dashboardId}`}
                           rel="noopener noreferrer"
                           target="_blank"
                         >
                           {t('create a new chart')}
-                        </a>{' '}
+                        </Link>{' '}
                         {t('or use existing ones from the panel on the right')}
                       </span>
                     ) : (
