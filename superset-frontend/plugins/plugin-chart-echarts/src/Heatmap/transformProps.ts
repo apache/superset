@@ -342,6 +342,9 @@ export default function transformProps(
       bottom: bottomMargin,
       left: leftMargin,
     },
+    legend: {
+      show: false,
+    },
     series,
     tooltip: {
       ...getDefaultTooltip(refs),
