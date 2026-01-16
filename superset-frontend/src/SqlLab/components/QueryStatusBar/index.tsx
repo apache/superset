@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC, useMemo, createContext, useContext, useRef } from 'react';
-import { styled } from '@apache-superset/core';
+import { t, styled } from '@apache-superset/core';
 import {
   Flex,
   Steps,
@@ -25,7 +25,7 @@ import {
   StyledSpin,
   Timer,
 } from '@superset-ui/core/components';
-import { QueryResponse, QueryState, t, usePrevious } from '@superset-ui/core';
+import { QueryResponse, QueryState, usePrevious } from '@superset-ui/core';
 import QueryStateLabel from '../QueryStateLabel';
 
 type QueryStatusBarProps = {
