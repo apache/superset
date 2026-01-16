@@ -30,7 +30,9 @@ class AscendEngineSpec(ImpalaEngineSpec):
     engine_name = "Ascend"
 
     metadata = {
-        "description": "Ascend.io is a data automation platform.",
+        "description": "Ascend.io is a data automation platform for building data pipelines.",
+        "logo": "ascend.webp",
+        "homepage_url": "https://www.ascend.io/",
         "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
         "pypi_packages": ["impyla"],
         "connection_string": (
