@@ -537,6 +537,33 @@ GLOBAL_ASYNC_QUERIES_JWT_SECRET = {{ .Values.config.GLOBAL_ASYNC_QUERIES_JWT_SEC
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = {{ .Values.supersetWebsockets.config.jwtSecret | quote }}
 {{- end }}
 
+{{- /* Global Async Queries JWT Cookie Settings - Important for HTTPS/WSS */}}
+{{- /* SECURE: Must be True when using HTTPS/WSS, otherwise browser won't send the cookie */}}
+{{- if .Values.config.GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE }}
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = {{ if .Values.config.GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE }}True{{ else }}False{{ end }}
+{{- else if and .Values.supersetWebsockets.enabled (or (hasPrefix "wss://" $wsUrl) .Values.ingress.tls) }}
+{{- /* Auto-detect: Enable secure cookies when using wss:// or when TLS is configured */}}
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = True
+{{- else if .Values.supersetWebsockets.enabled }}
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
+{{- end }}
+
+{{- /* SAMESITE: Controls when browser sends the cookie */}}
+{{- /* "Lax" is recommended for most cases, "None" required for cross-origin (but requires Secure=True) */}}
+{{- if .Values.config.GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE }}
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE = {{ .Values.config.GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE | quote }}
+{{- else if .Values.supersetWebsockets.enabled }}
+{{- /* Default to "Lax" for same-origin WebSocket connections */}}
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE = "Lax"
+{{- end }}
+
+{{- /* JWT Cookie Name - must match websocket server config */}}
+{{- if .Values.config.GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME }}
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = {{ .Values.config.GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME | quote }}
+{{- else if and .Values.supersetWebsockets.enabled .Values.supersetWebsockets.config.jwtCookieName }}
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = {{ .Values.supersetWebsockets.config.jwtCookieName | quote }}
+{{- end }}
+
 {{- /* Content Security Policy (CSP) - Auto-add WebSocket URL to connect-src when websockets are enabled */}}
 {{- if and .Values.supersetWebsockets.enabled $wsUrl (not (hasKey .Values.config "TALISMAN_CONFIG")) }}
 {{- /* Add WebSocket URL to CSP connect-src to allow browser WebSocket connections */}}
@@ -570,14 +597,19 @@ TALISMAN_CONFIG = {
         "script-src": ["'self'", "'strict-dynamic'"],
     },
     "content_security_policy_nonce_in": ["script-src"],
+    {{- if or (hasPrefix "wss://" $wsUrl) .Values.ingress.tls }}
+    "force_https": True,
+    "session_cookie_secure": True,
+    {{- else }}
     "force_https": False,
     "session_cookie_secure": False,
+    {{- end }}
 }
 {{- end }}
 
 {{- /* General Configuration - iterate through all config values */}}
 {{- range $key, $value := .Values.config }}
-{{- if and (ne $key "cacheConfig") (ne $key "dataCacheConfig") (ne $key "celeryConfig") (ne $key "resultsBackend") (ne $key "GLOBAL_ASYNC_QUERIES_CACHE_BACKEND") (ne $key "GLOBAL_ASYNC_QUERIES_RESULTS_BACKEND") (ne $key "GLOBAL_ASYNC_QUERIES_TRANSPORT") (ne $key "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL") (ne $key "GLOBAL_ASYNC_QUERIES_JWT_SECRET") (ne $key "TALISMAN_CONFIG") (ne $key "SQLLAB_ASYNC_TIME_LIMIT_SEC") }}
+{{- if and (ne $key "cacheConfig") (ne $key "dataCacheConfig") (ne $key "celeryConfig") (ne $key "resultsBackend") (ne $key "GLOBAL_ASYNC_QUERIES_CACHE_BACKEND") (ne $key "GLOBAL_ASYNC_QUERIES_RESULTS_BACKEND") (ne $key "GLOBAL_ASYNC_QUERIES_TRANSPORT") (ne $key "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL") (ne $key "GLOBAL_ASYNC_QUERIES_JWT_SECRET") (ne $key "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE") (ne $key "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE") (ne $key "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME") (ne $key "TALISMAN_CONFIG") (ne $key "SQLLAB_ASYNC_TIME_LIMIT_SEC") }}
 {{- if kindIs "map" $value }}
 {{ $key }} = {{ $value | toJson | indent 2 }}
 {{- else if kindIs "slice" $value }}
