@@ -29,12 +29,15 @@ export class DashboardPage {
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
-    DOWNLOAD_SUBMENU:
-      '[data-test="header-actions-menu"] li:has-text("Download")',
-    // Ant Design renders submenu items in a popup portal, so we need to search globally
-    EXPORT_YAML_OPTION: '.ant-menu-submenu-popup li:has-text("Export YAML")',
+    // Ant Design submenu trigger is rendered as .ant-dropdown-menu-submenu-title
+    DOWNLOAD_SUBMENU_TITLE:
+      '.ant-dropdown-menu-submenu-title:has-text("Download")',
+    // Submenu popup appears as .ant-dropdown-menu-submenu-popup
+    SUBMENU_POPUP: '.ant-dropdown-menu-submenu-popup',
+    EXPORT_YAML_OPTION:
+      '.ant-dropdown-menu-submenu-popup li:has-text("Export YAML")',
     EXPORT_AS_EXAMPLE_OPTION:
-      '.ant-menu-submenu-popup li:has-text("Export as Example")',
+      '.ant-dropdown-menu-submenu-popup li:has-text("Export as Example")',
   } as const;
 
   constructor(page: Page) {
@@ -78,9 +81,10 @@ export class DashboardPage {
    * Hover over the Download submenu to open it (Ant Design submenus open on hover)
    */
   async openDownloadMenu(): Promise<void> {
-    await this.page.hover(DashboardPage.SELECTORS.DOWNLOAD_SUBMENU);
+    // Hover over the submenu title to trigger the popup
+    await this.page.hover(DashboardPage.SELECTORS.DOWNLOAD_SUBMENU_TITLE);
     // Wait for the submenu popup to appear
-    await this.page.waitForSelector('.ant-menu-submenu-popup', {
+    await this.page.waitForSelector(DashboardPage.SELECTORS.SUBMENU_POPUP, {
       state: 'visible',
     });
   }
