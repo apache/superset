@@ -141,7 +141,7 @@
     "ag-grid-community": "34.3.1",
     "ag-grid-react": "34.3.1",
     "antd": "^5.26.0",
-    "chrono-node": "^2.7.8",
+    "chrono-node": "^2.9.0",
     "classnames": "^2.2.5",
     "content-disposition": "^1.0.1",
     "d3-color": "^3.1.0",
