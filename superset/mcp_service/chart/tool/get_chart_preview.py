@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Protocol
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -1874,6 +1875,24 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
         logger.info("Generating preview for chart %s", getattr(chart, "id", "NO_ID"))
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
+
+        # Validate the chart's dataset is accessible before generating preview
+        # Skip validation for transient charts (no ID) - different data sources
+        if getattr(chart, "id", None) is not None:
+            validation_result = validate_chart_dataset(chart, check_access=True)
+            if not validation_result.is_valid:
+                await ctx.warning(
+                    "Chart found but dataset is not accessible: %s"
+                    % (validation_result.error,)
+                )
+                return ChartError(
+                    error=validation_result.error
+                    or "Chart's dataset is not accessible. Dataset may be deleted.",
+                    error_type="DatasetNotAccessible",
+                )
+            # Log any warnings (e.g., virtual dataset warnings)
+            for warning in validation_result.warnings:
+                await ctx.warning("Dataset warning: %s" % (warning,))
 
         import time
 
