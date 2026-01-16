@@ -176,6 +176,17 @@ def run_server(
 
         # Build middleware list
         middleware_list = []
+
+        # Add response size guard (protects LLM clients from huge responses)
+        from superset.mcp_service.middleware import (
+            create_response_size_guard_middleware,
+        )
+
+        size_guard_middleware = create_response_size_guard_middleware()
+        if size_guard_middleware:
+            middleware_list.append(size_guard_middleware)
+
+        # Add caching middleware
         caching_middleware = create_response_caching_middleware()
         if caching_middleware:
             middleware_list.append(caching_middleware)
