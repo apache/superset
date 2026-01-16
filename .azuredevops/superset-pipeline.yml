@@ -1,63 +1,190 @@
-# Azure DevOps Pipeline for Superset
-# Reuses templates and scripts from oee-intellisuite project
+trigger: none
+pr: none
 
-trigger:
-  - main
+parameters:
+  - name: targetEnvironment
+    type: string
+    displayName: Target Environment
+    default: blue-dev
 
-pool:
-  name: "Default" # Reuse oee-intellisuite agent pool
+  - name: dockerPool
+    type: string
+    displayName: Docker Agent Pool
+    default: 'Linux-Hosted'
 
 variables:
-  # Reuse oee-intellisuite variable groups
-  - group: "common-variables"
-  - name: dockerRegistryServiceConnection
-    value: "acr-connection"
-  - name: imageRepository
-    value: "superset"
-  - name: containerRegistry
-    value: "youracr.azurecr.io"
-  - name: dockerfilePath
-    value: "Dockerfile"
-  - name: buildContext
-    value: "."
+  appName: superset
+  containerRegistry: 'IntelliSuite Container Registry'
+  acrDomain: 'intellisuite.azurecr.io'
+  imageRepository: 'superset'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  artifactName: superset-deployment
+  vmImageName: 'ubuntu-latest'
 
 stages:
-  - stage: Build
-    displayName: "Build and Push Container"
-    jobs:
-      - job: Build
-        displayName: "Build Superset Container"
-        steps:
-          # Reuse oee-intellisuite build template
-          - template: templates/build-container.yml@oee-intellisuite
-            parameters:
-              dockerRegistryServiceConnection: $(dockerRegistryServiceConnection)
-              containerRegistry: $(containerRegistry)
-              imageRepository: $(imageRepository)
-              dockerfilePath: $(dockerfilePath)
-              buildContext: $(buildContext)
-              tags: |
-                $(Build.BuildNumber)
-                latest
+# =====================================================
+# BUILD STAGE
+# =====================================================
+- stage: Build
+  displayName: Build Superset Docker Image
+  jobs:
+    - job: BuildDocker
+      displayName: Build and Push Docker Image
+      pool:
+        vmImage: ubuntu-latest
+      steps:
+        - checkout: self
+          clean: true
 
-  - stage: Deploy
-    displayName: "Deploy to Environment"
-    dependsOn: Build
-    condition: succeeded()
-    jobs:
-      - deployment: Deploy
-        displayName: "Deploy Superset"
-        environment: "production"
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                # Reuse oee-intellisuite deployment template
-                - template: templates/deploy-docker-compose.yml@oee-intellisuite
-                  parameters:
-                    # Reuse oee-intellisuite deployment script
-                    - template: scripts/deploy-superset.sh@oee-intellisuite
-                      parameters:
-                        environment: "production"
-                        registry: $(containerRegistry)
-                        image: $(imageRepository):$(Build.BuildNumber)
+        - bash: |
+            BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            SHORT_SHA=$(echo "$(Build.SourceVersion)" | cut -c1-7)
+            SEMANTIC_TAG="$(Build.BuildId)-$SHORT_SHA"
+
+            echo "##vso[task.setvariable variable=BUILD_DATE]$BUILD_DATE"
+            echo "##vso[task.setvariable variable=shortCommitSha]$SHORT_SHA"
+            echo "##vso[task.setvariable variable=semanticTag]$SEMANTIC_TAG"
+          displayName: Set Build Variables
+
+        - task: Docker@2
+          displayName: Login to ACR
+          inputs:
+            command: login
+            containerRegistry: $(containerRegistry)
+
+        - task: Docker@2
+          displayName: Build Docker Image
+          inputs:
+            command: build
+            containerRegistry: $(containerRegistry)
+            repository: $(imageRepository)
+            Dockerfile: $(dockerfilePath)
+            buildContext: $(Build.SourcesDirectory)
+            tags: |
+              $(semanticTag)
+              latest
+
+        - task: Docker@2
+          displayName: Push Docker Image
+          inputs:
+            command: push
+            containerRegistry: $(containerRegistry)
+            repository: $(imageRepository)
+            tags: |
+              $(semanticTag)
+              latest
+
+        - bash: |
+            mkdir -p $(Build.ArtifactStagingDirectory)
+
+            cat > $(Build.ArtifactStagingDirectory)/deployment.env << EOF
+            FULL_IMAGE_NAME=$(acrDomain)/$(imageRepository):$(semanticTag)
+            APP_PORT=${{ parameters.port }}
+            EOF
+          displayName: Create Deployment Artifact
+
+        - publish: $(Build.ArtifactStagingDirectory)
+          artifact: $(artifactName)
+
+# =====================================================
+# DEPLOY STAGE
+# =====================================================
+- stage: Deploy
+  displayName: Deploy Superset
+  dependsOn: Build
+  jobs:
+    - deployment: DeploySuperset
+      variables:
+        - group: ${{ format('{0}-Secret', parameters.targetEnvironment) }}
+      environment:
+        name: ${{ parameters.targetEnvironment }}
+        resourceType: VirtualMachine
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - checkout: self
+
+              - download: current
+                artifact: $(artifactName)
+
+              # -------------------------------------
+              # Get client-config.json
+              # -------------------------------------
+              - template: .azuredevops/templates/steps/get-client-config.yml
+                parameters:
+                  targetEnvironment: ${{ parameters.targetEnvironment }}
+
+              # -------------------------------------
+              # Extract ALL values from client-config
+              # -------------------------------------
+              - pwsh: |
+                  $cfg = Get-Content -Raw "$(cfgPath)" | ConvertFrom-Json
+
+                  $superset = $cfg.superset
+                  $docker = $cfg.docker
+
+                  # Superset
+                  Write-Host "##vso[task.setvariable variable=SUPERSET_SECRET_KEY;issecret=true]$($cfg.superset.secretKey)"
+                  Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($cfg.superset.username)"
+                  Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($cfg.superset.password)"
+                  Write-Host "##vso[task.setvariable variable=SUPERSET_URL]$($cfg.superset.url)"
+                  Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($superset.port)"
+                  Write-Host "##vso[task.setvariable variable=DOCKER_NETWORK]$($docker.network)"
+
+                  # Postgres (override host for containers)
+                  $pg = $cfg.'app-suite'[0].postgres
+                  Write-Host "##vso[task.setvariable variable=DB_HOST]oee-postgres"
+                  Write-Host "##vso[task.setvariable variable=DB_PORT]5432"
+                  Write-Host "##vso[task.setvariable variable=DB_NAME]$($pg.database)"
+                  Write-Host "##vso[task.setvariable variable=DB_USER]$($pg.admin.user)"
+                  Write-Host "##vso[task.setvariable variable=DB_PASSWORD;issecret=true]$($pg.admin.password)"
+                  Write-Host "Superset Port: $($superset.port)"
+                  Write-Host "Docker Network: $($docker.network)"
+                displayName: Load config from client-config.json
+
+              # -------------------------------------
+              # Create docker-compose env file
+              # -------------------------------------
+              - bash: |
+                  cat > .env.deploy << EOF
+                  SUPERSET_IMAGE=$(FULL_IMAGE_NAME)
+
+                  SUPERSET_SECRET_KEY=$(SUPERSET_SECRET_KEY)
+                  SUPERSET_ADMIN_USER=$(SUPERSET_ADMIN_USER)
+                  SUPERSET_ADMIN_PASSWORD=$(SUPERSET_ADMIN_PASSWORD)
+                  SUPERSET_PORT=$(SUPERSET_PORT)
+                  DOCKER_NETWORK=$(DOCKER_NETWORK)
+
+                  POSTGRES_HOST=$(DB_HOST)
+                  POSTGRES_PORT=$(DB_PORT)
+                  POSTGRES_DB=$(DB_NAME)
+                  POSTGRES_USER=$(DB_USER)
+                  POSTGRES_PASSWORD=$(DB_PASSWORD)
+
+                  REDIS_HOST=redis
+                  REDIS_PORT=6379
+                  EOF
+                displayName: Create .env.deploy
+
+              # -------------------------------------
+              # Deploy
+              # -------------------------------------
+              - bash: |
+                  docker compose -f docker-compose-deploy.yml --env-file .env.deploy up -d
+                displayName: Deploy Superset
+
+              # -------------------------------------
+              # Health check
+              # -------------------------------------
+              - bash: |
+                  for i in {1..60}; do
+                    if curl -fs http://localhost:${{ parameters.port }}/health; then
+                      echo "Superset is healthy"
+                      exit 0
+                    fi
+                    sleep 10
+                  done
+                  echo "Superset failed health check"
+                  exit 1
+                displayName: Verify Health
