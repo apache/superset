@@ -70,6 +70,48 @@ const config: ControlPanelConfig = {
           },
         ],
         ['linear_color_scheme'],
+        [
+          {
+            name: 'customColorScale',
+            config: {
+              type: 'TextAreaControl',
+              label: t('Custom Color Scale (by %)'),
+              description: t(
+                'Custom JSON configuration that overrides the linear color scheme color codes and thresholds.<br />Thresholds are defined in percentage, and color codes accept any valid CSS value.<br />Config must be a valid JSON excerpt.<br />Copy-paste and adapt following sample configuration to define your own thresholds and colors :<br />\n' +
+                  '[<br />\n' +
+                  '  { "percent": 0, "color": "white" },<br />\n' +
+                  '  { "percent": 0.01, "color": "#A00000" },<br />\n' +
+                  '  { "percent": 20, "color": "#E52B50" },<br />\n' +
+                  '  { "percent": 35, "color": "#FFA500" },<br />\n' +
+                  '  { "percent": 50, "color": "#FFFF99" },<br />\n' +
+                  '  { "percent": 65, "color": "#9ACD32" },<br />\n' +
+                  '  { "percent": 80, "color": "#3CB371" },<br />\n' +
+                  '  { "percent": 99.99, "color": "#228B22" },<br />\n' +
+                  '  { "percent": 100, "color": "black" }<br />\n' +
+                  ']',
+              ),
+              default: ``,
+              language: 'json',
+              rows: 12,
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'pickColor',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Color selector'),
+              renderTrigger: false,
+              dontRefreshOnChange: false,
+              default: '#000000',
+              description: t(
+                'Pick a custom color and get its HEX code for use into the Custom Color Scale configuration.',
+              ),
+            },
+          },
+        ],
       ],
     },
   ],
