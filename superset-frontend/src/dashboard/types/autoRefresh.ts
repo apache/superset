@@ -28,45 +28,25 @@
  * - White (Paused): Auto-refresh is paused (manually or by tab visibility)
  */
 export enum AutoRefreshStatus {
-  /** Initial state or successful refresh completed */
   Idle = 'idle',
-  /** Refresh completed successfully */
   Success = 'success',
-  /** Currently fetching data */
   Fetching = 'fetching',
-  /** Refresh is taking longer than expected (> 1 interval) */
   Delayed = 'delayed',
-  /** Refresh failed with error (2+ consecutive errors) */
   Error = 'error',
-  /** Auto-refresh is paused */
   Paused = 'paused',
 }
 
-/**
- * Auto-refresh related state stored in Redux.
- */
 export interface AutoRefreshState {
-  /** Current auto-refresh status for the indicator */
   autoRefreshStatus: AutoRefreshStatus;
-  /** Whether auto-refresh is manually paused by the user */
   autoRefreshPaused: boolean;
-  /** Whether auto-refresh is paused due to tab being hidden */
   autoRefreshPausedByTab: boolean;
-  /** Timestamp of last successful refresh (ms since epoch) */
   lastSuccessfulRefresh: number | null;
-  /** Error message from the last failed refresh */
   lastRefreshError: string | null;
-  /** Count of consecutive refresh errors */
   refreshErrorCount: number;
-  /** Timestamp when current fetch started (for delay detection) */
   autoRefreshFetchStartTime: number | null;
-  /** User preference: pause auto-refresh when tab is inactive */
   autoRefreshPauseOnInactiveTab: boolean;
 }
 
-/**
- * Default values for auto-refresh state.
- */
 export const AUTO_REFRESH_STATE_DEFAULTS: AutoRefreshState = {
   autoRefreshStatus: AutoRefreshStatus.Idle,
   autoRefreshPaused: false,
@@ -78,22 +58,8 @@ export const AUTO_REFRESH_STATE_DEFAULTS: AutoRefreshState = {
   autoRefreshPauseOnInactiveTab: false,
 };
 
-/**
- * Threshold for determining "delayed" status.
- * If fetch takes longer than this percentage of the refresh interval,
- * the status changes to "delayed".
- */
 export const DELAY_THRESHOLD_PERCENTAGE = 1;
 
-/**
- * Threshold for determining "error" status during an in-flight refresh.
- * If fetch takes longer than this multiple of the refresh interval,
- * the status changes to "error".
- */
 export const ERROR_THRESHOLD_MULTIPLIER = 2;
 
-/**
- * Number of consecutive errors before showing "error" status.
- * 1 error shows "delayed", 2+ show "error".
- */
 export const ERROR_THRESHOLD_COUNT = 2;

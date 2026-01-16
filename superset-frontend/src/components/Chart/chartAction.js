@@ -587,6 +587,9 @@ export function redirectSQLLab(formData, history) {
 export function refreshChart(chartKey, force, dashboardId) {
   return (dispatch, getState) => {
     const chart = (getState().charts || {})[chartKey];
+    if (!chart) {
+      return Promise.resolve();
+    }
     const timeout =
       getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
 

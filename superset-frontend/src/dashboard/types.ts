@@ -130,7 +130,6 @@ export type DashboardState = {
     data: JsonObject;
   };
   chartStates?: Record<string, any>;
-  // Auto-refresh state fields
   autoRefreshStatus?: AutoRefreshStatus;
   autoRefreshPaused?: boolean;
   autoRefreshPausedByTab?: boolean;
