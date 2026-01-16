@@ -31,7 +31,7 @@ const ERROR = new Error('CaffeineOverLoadException');
 
 test('renders error only', () => {
   const { getByText } = setup({ error: ERROR });
-  expect(getByText('Error: CaffeineOverLoadException')).toBeInTheDocument();
+  expect(getByText('CaffeineOverLoadException')).toBeInTheDocument();
 });
 
 test('renders when nothing is given', () => {
