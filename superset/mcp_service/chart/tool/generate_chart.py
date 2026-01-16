@@ -31,6 +31,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    validate_chart_dataset,
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -170,6 +171,7 @@ async def generate_chart(  # noqa: C901
         chart_id = None
         explore_url = None
         form_data_key = None
+        response_warnings: list[str] = []
 
         # Save chart by default (unless save_chart=False)
         if request.save_chart:
@@ -278,6 +280,24 @@ async def generate_chart(  # noqa: C901
                         chart.slice_name,
                     )
                 )
+
+                # Post-creation validation: verify the chart's dataset is accessible
+                validation_result = validate_chart_dataset(chart, check_access=True)
+                if not validation_result.is_valid:
+                    # Dataset validation failed - warn but don't fail the operation
+                    await ctx.warning(
+                        "Chart created but dataset validation failed: %s"
+                        % (validation_result.error,)
+                    )
+                    logger.warning(
+                        "Chart %s created but dataset validation failed: %s",
+                        chart.id,
+                        validation_result.error,
+                    )
+                    if validation_result.error:
+                        response_warnings.append(validation_result.error)
+                # Add any validation warnings (e.g., virtual dataset warnings)
+                response_warnings.extend(validation_result.warnings)
 
             except Exception as e:
                 logger.error("Chart creation failed: %s", e)
@@ -493,6 +513,7 @@ async def generate_chart(  # noqa: C901
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
             "success": True,
+            "warnings": response_warnings,
             "schema_version": "2.0",
             "api_version": "v1",
         }
