@@ -188,3 +188,48 @@ def test_create_redis_store_non_ssl_url_no_ssl_param():
         # Verify SSL params were NOT passed for non-SSL URL
         call_kwargs = mock_redis_class.call_args[1]
         assert "ssl_cert_reqs" not in call_kwargs
+
+
+def test_create_redis_store_handles_url_with_username_and_password():
+    """_create_redis_store properly includes username in URL reconstruction."""
+    store_config = {
+        "CACHE_REDIS_URL": "redis://myuser:mypassword@redis.example.com:6379/0",
+    }
+
+    mock_redis_store = MagicMock()
+
+    with patch(
+        "key_value.aio.stores.redis.RedisStore",
+        return_value=mock_redis_store,
+    ) as mock_redis_class:
+        from superset.mcp_service.storage import _create_redis_store
+
+        result = _create_redis_store(store_config, wrap=False)
+
+        assert result is mock_redis_store
+        # Verify URL includes both username and password
+        call_kwargs = mock_redis_class.call_args[1]
+        assert "myuser:mypassword@" in call_kwargs["url"]
+
+
+def test_create_redis_store_handles_url_with_only_username():
+    """_create_redis_store handles URL with username but no password."""
+    store_config = {
+        "CACHE_REDIS_URL": "redis://myuser@redis.example.com:6379/0",
+    }
+
+    mock_redis_store = MagicMock()
+
+    with patch(
+        "key_value.aio.stores.redis.RedisStore",
+        return_value=mock_redis_store,
+    ) as mock_redis_class:
+        from superset.mcp_service.storage import _create_redis_store
+
+        result = _create_redis_store(store_config, wrap=False)
+
+        assert result is mock_redis_store
+        # Verify URL includes username without password
+        call_kwargs = mock_redis_class.call_args[1]
+        assert "myuser@" in call_kwargs["url"]
+        assert ":@" not in call_kwargs["url"]  # No empty password section

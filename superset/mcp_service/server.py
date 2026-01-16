@@ -26,6 +26,8 @@ import logging
 import os
 from typing import Any
 
+import uvicorn
+
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
@@ -191,8 +193,6 @@ def run_server(
             if event_store is not None:
                 # Multi-pod: Use http_app with Redis EventStore, run with uvicorn
                 logging.info("Running in multi-pod mode with Redis EventStore")
-                import uvicorn
-
                 app = mcp_instance.http_app(
                     transport="streamable-http",
                     event_store=event_store,

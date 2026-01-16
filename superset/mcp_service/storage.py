@@ -121,8 +121,11 @@ def _create_redis_store(
 
         # Build clean URL without query params that may cause issues
         clean_url = f"{parsed.scheme}://"
-        if parsed.password:
-            clean_url += f":{parsed.password}@"
+        if parsed.username or parsed.password:
+            auth = parsed.username if parsed.username else ""
+            if parsed.password:
+                auth += f":{parsed.password}"
+            clean_url += f"{auth}@"
         clean_url += f"{parsed.hostname or 'localhost'}"
         clean_url += f":{parsed.port or 6379}"
         clean_url += f"/{parsed.path.strip('/') or '0'}"
