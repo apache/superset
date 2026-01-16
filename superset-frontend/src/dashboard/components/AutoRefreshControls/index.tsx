@@ -24,13 +24,9 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { useRealTimeDashboard } from '../../hooks/useRealTimeDashboard';
 
 export interface AutoRefreshControlsProps {
-  /** Callback when pause/resume is toggled */
   onTogglePause: () => void;
-  /** Callback when manual refresh is triggered */
   onRefresh?: () => void;
-  /** Whether the dashboard is loading */
   isLoading?: boolean;
-  /** Whether to show the refresh button alongside pause */
   showRefreshButton?: boolean;
 }
 
@@ -47,7 +43,6 @@ export const AutoRefreshControls: FC<AutoRefreshControlsProps> = ({
   const theme = useTheme();
   const { isRealTimeDashboard, isPaused } = useRealTimeDashboard();
 
-  // Don't render if not a real-time dashboard
   if (!isRealTimeDashboard) {
     return null;
   }

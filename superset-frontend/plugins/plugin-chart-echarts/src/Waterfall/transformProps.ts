@@ -441,7 +441,7 @@ export default function transformProps(
     },
     legend: {
       show: showLegend,
-      selected: legendState,
+      ...(legendState != null && { selected: legendState }),
       data: [legendNames.INCREASE, legendNames.DECREASE, legendNames.TOTAL],
     },
     xAxis: {

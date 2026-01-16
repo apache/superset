@@ -452,7 +452,7 @@ export function getLegendProps(
       : 'vertical',
     show,
     type: effectiveType,
-    ...(legendState !== undefined && { selected: legendState }),
+    ...(legendState != null && { selected: legendState }),
     selector: ['all', 'inverse'],
     selectorLabel: {
       fontFamily: theme.fontFamily,

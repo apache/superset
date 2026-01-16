@@ -22,17 +22,11 @@ import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 export interface StatusTooltipContentProps {
-  /** Current status */
   status: AutoRefreshStatus;
-  /** Timestamp of last successful refresh (ms since epoch) */
   lastSuccessfulRefresh: number | null;
-  /** Error message from last failed refresh */
   lastError: string | null;
-  /** Refresh frequency in seconds */
   refreshFrequency: number;
-  /** Timestamp when current fetch started (for delay calculation) */
   autoRefreshFetchStartTime: number | null;
-  /** Whether paused due to tab visibility */
   isPausedByTab?: boolean;
 }
 
@@ -65,15 +59,6 @@ const getStatusMessage = (
   const intervalLine = t('Auto refresh set to %s seconds', refreshFrequency);
 
   switch (status) {
-    case AutoRefreshStatus.Success:
-    case AutoRefreshStatus.Idle:
-      return {
-        line1: t(
-          'Dashboard updated %s',
-          formatTimestamp(lastSuccessfulRefresh),
-        ),
-        line2: intervalLine,
-      };
     case AutoRefreshStatus.Fetching:
       return {
         line1: t('Fetching data...'),
@@ -110,6 +95,8 @@ const getStatusMessage = (
           : t('Auto-refresh paused'),
         line2: intervalLine,
       };
+    case AutoRefreshStatus.Success:
+    case AutoRefreshStatus.Idle:
     default:
       return {
         line1: t(
@@ -121,14 +108,6 @@ const getStatusMessage = (
   }
 };
 
-/**
- * Tooltip content for the auto-refresh status indicator.
- *
- * Per designer screenshot, displays:
- * - "Dashboard updated X ago"
- * - "Auto refresh set to X seconds"
- * - (Optional third line for errors/delays)
- */
 export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   status,
   lastSuccessfulRefresh,

@@ -26,10 +26,6 @@ export interface RefreshButtonProps {
   onRefresh: () => Promise<void> | void;
 }
 
-/**
- * Refresh button with spinning animation during refresh.
- * Placed next to the favorite star icon in the dashboard header.
- */
 export const RefreshButton: FC<RefreshButtonProps> = ({ onRefresh }) => {
   const theme = useTheme();
   const [isSpinning, setIsSpinning] = useState(false);

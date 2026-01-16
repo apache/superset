@@ -27,17 +27,11 @@ import {
 } from 'react';
 
 export interface AutoRefreshContextValue {
-  /** Whether an auto-refresh cycle is in progress */
   isAutoRefreshing: boolean;
-  /** Whether any refresh request is in-flight */
   isRefreshInFlight: boolean;
-  /** Set the auto-refresh state */
   setIsAutoRefreshing: (value: boolean) => void;
-  /** Set the refresh in-flight state */
   setRefreshInFlight: (value: boolean) => void;
-  /** Mark auto-refresh as started */
   startAutoRefresh: () => void;
-  /** Mark auto-refresh as completed */
   endAutoRefresh: () => void;
 }
 
@@ -91,17 +85,9 @@ export const AutoRefreshProvider: FC<AutoRefreshProviderProps> = ({
   );
 };
 
-/**
- * Hook to access the auto-refresh context.
- * Use this in chart components to check if spinners should be suppressed.
- */
 export const useAutoRefreshContext = (): AutoRefreshContextValue =>
   useContext(AutoRefreshContext);
 
-/**
- * Hook that returns just the isAutoRefreshing flag.
- * Convenience hook for components that only need to check the flag.
- */
 export const useIsAutoRefreshing = (): boolean => {
   const { isAutoRefreshing } = useContext(AutoRefreshContext);
   return isAutoRefreshing;

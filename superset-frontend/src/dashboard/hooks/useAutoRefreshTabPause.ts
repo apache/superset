@@ -22,11 +22,8 @@ import { useRealTimeDashboard } from './useRealTimeDashboard';
 import { AutoRefreshStatus } from '../types/autoRefresh';
 
 export interface UseAutoRefreshTabPauseOptions {
-  /** Callback to trigger immediate refresh */
   onRefresh: () => Promise<void>;
-  /** Callback to restart the periodic timer */
   onRestartTimer: () => void;
-  /** Callback to stop the periodic timer */
   onStopTimer: () => void;
 }
 
@@ -53,16 +50,13 @@ export function useAutoRefreshTabPause({
     setStatus,
   } = useRealTimeDashboard();
 
-  // Track if we should resume on visibility change
   const shouldResumeRef = useRef(false);
 
   const handleHidden = useCallback(() => {
-    // Only act if dashboard has auto-refresh enabled and not already manually paused
     if (!isRealTimeDashboard || !autoRefreshPauseOnInactiveTab) {
       return;
     }
 
-    // Don't track tab pause if already manually paused
     if (!isManuallyPaused) {
       shouldResumeRef.current = true;
       setPausedByTab(true);
@@ -79,22 +73,18 @@ export function useAutoRefreshTabPause({
   ]);
 
   const handleVisible = useCallback(() => {
-    // Only act if dashboard has auto-refresh enabled
     if (!isRealTimeDashboard || !autoRefreshPauseOnInactiveTab) {
       return;
     }
 
-    // Only resume if we paused due to tab visibility (not manual pause)
     if (shouldResumeRef.current && !isManuallyPaused) {
       setPausedByTab(false);
 
-      // Immediate refresh then restart timer
       onRefresh()
         .then(() => {
           onRestartTimer();
         })
         .catch(() => {
-          // Still restart timer even on error
           onRestartTimer();
         });
 

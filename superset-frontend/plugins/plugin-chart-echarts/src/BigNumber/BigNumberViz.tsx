@@ -23,7 +23,6 @@ import {
   getTimeFormatter,
   SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
-  BRAND_COLOR,
   BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
@@ -51,14 +50,11 @@ function BigNumberVis({
   kickerFontSize = PROPORTION.KICKER,
   metricNameFontSize = PROPORTION.METRIC_NAME,
   showMetricName = true,
-  mainColor: _mainColor = BRAND_COLOR,
   showTimestamp = false,
   showTrendLine = false,
-  startYAxisAtZero: _startYAxisAtZero = true,
   subheader = '',
   subheaderFontSize = PROPORTION.SUBHEADER,
   subtitleFontSize = PROPORTION.SUBHEADER,
-  timeRangeFixed: _timeRangeFixed = false,
   ...props
 }: BigNumberVizProps) {
   const theme = useTheme();
