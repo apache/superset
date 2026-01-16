@@ -296,9 +296,16 @@ describe('ControlPanelsContainer', () => {
       (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
     );
 
+    // Register control panel for line chart
+    getChartControlPanelRegistry().registerValue('line', {
+      controlPanelSections: [],
+    });
+
     const props = getDefaultProps();
+    // Use a chart type that supports matrixify (not a table)
     props.form_data = {
       ...props.form_data,
+      viz_type: 'line',
       matrixify_enable_vertical_layout: true,
     };
 
@@ -318,6 +325,7 @@ describe('ControlPanelsContainer', () => {
       ...props,
       form_data: {
         ...props.form_data,
+        viz_type: 'line',
         matrixify_enable_vertical_layout: true,
         matrixify_dimension_columns: {
           dimension: 'country',
@@ -335,6 +343,9 @@ describe('ControlPanelsContainer', () => {
       });
       expect(matrixifyTabAfterSave).toHaveAttribute('aria-selected', 'true');
     });
+
+    // Clean up
+    getChartControlPanelRegistry().remove('line');
   });
 
   test('should automatically switch to Matrixify tab when matrixify becomes enabled', async () => {
@@ -343,7 +354,17 @@ describe('ControlPanelsContainer', () => {
       (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
     );
 
+    // Register control panel for line chart
+    getChartControlPanelRegistry().registerValue('line', {
+      controlPanelSections: [],
+    });
+
     const props = getDefaultProps();
+    // Use a chart type that supports matrixify (not a table)
+    props.form_data = {
+      ...props.form_data,
+      viz_type: 'line',
+    };
 
     const { rerender } = render(<ControlPanelsContainer {...props} />, {
       useRedux: true,
@@ -358,6 +379,7 @@ describe('ControlPanelsContainer', () => {
       ...props,
       form_data: {
         ...props.form_data,
+        viz_type: 'line',
         matrixify_enable_horizontal_layout: true,
       },
     };
@@ -376,5 +398,88 @@ describe('ControlPanelsContainer', () => {
       'aria-selected',
       'false',
     );
+
+    // Clean up
+    getChartControlPanelRegistry().remove('line');
   });
+
+  test.each([
+    'table',
+    'ag-grid-table',
+    'pivot_table_v2',
+    'time_table',
+    'time_pivot',
+  ])(
+    'should not show Matrixify tab for %s chart type',
+    async (vizType: string) => {
+      // Enable Matrixify feature flag
+      mockIsFeatureEnabled.mockImplementation(
+        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
+      );
+
+      // Register control panel for this chart type
+      const simpleConfig = { controlPanelSections: [] };
+      getChartControlPanelRegistry().registerValue(vizType, simpleConfig);
+
+      const props = getDefaultProps();
+      props.form_data = {
+        ...props.form_data,
+        viz_type: vizType,
+      };
+
+      render(<ControlPanelsContainer {...props} />, {
+        useRedux: true,
+      });
+
+      // Wait for tabs to be rendered
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
+      });
+
+      // Check that Matrixify tab does not exist for table chart types
+      expect(
+        screen.queryByRole('tab', { name: /matrixify/i }),
+      ).not.toBeInTheDocument();
+
+      // Clean up registered chart type
+      getChartControlPanelRegistry().remove(vizType);
+    },
+  );
+
+  test.each(['line', 'bar', 'pie'])(
+    'should show Matrixify tab for %s chart type',
+    async (vizType: string) => {
+      // Enable Matrixify feature flag
+      mockIsFeatureEnabled.mockImplementation(
+        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
+      );
+
+      // Register control panel for this chart type
+      const simpleConfig = { controlPanelSections: [] };
+      getChartControlPanelRegistry().registerValue(vizType, simpleConfig);
+
+      const props = getDefaultProps();
+      props.form_data = {
+        ...props.form_data,
+        viz_type: vizType,
+      };
+
+      render(<ControlPanelsContainer {...props} />, {
+        useRedux: true,
+      });
+
+      // Wait for Matrixify tab to be rendered
+      await waitFor(() => {
+        expect(
+          screen.getByRole('tab', { name: /matrixify/i }),
+        ).toBeInTheDocument();
+      });
+
+      // Also verify Data tab exists
+      expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
+
+      // Clean up registered chart type
+      getChartControlPanelRegistry().remove(vizType);
+    },
+  );
 });
