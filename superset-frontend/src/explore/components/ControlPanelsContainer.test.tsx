@@ -477,7 +477,7 @@ describe('ControlPanelsContainer', () => {
 
       // Also verify Data tab exists
       expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
-      
+
       // Clean up this render before the next iteration
       unmount();
     }
