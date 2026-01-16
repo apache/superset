@@ -29,7 +29,8 @@ export class DashboardPage {
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
-    DOWNLOAD_SUBMENU: '[data-test="header-actions-menu"] li:has-text("Download")',
+    DOWNLOAD_SUBMENU:
+      '[data-test="header-actions-menu"] li:has-text("Download")',
     EXPORT_YAML_OPTION: 'li:has-text("Export YAML")',
     EXPORT_AS_EXAMPLE_OPTION: 'li:has-text("Export as Example")',
   } as const;
