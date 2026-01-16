@@ -212,17 +212,21 @@ def generate_size_reduction_suggestions(
     # Suggestion 2: Use select_columns to reduce fields
     current_columns = query_params.get("select_columns") or query_params.get("columns")
     if current_columns and len(current_columns) > 5:
+        preview = ", ".join(str(c) for c in current_columns[:3])
+        suffix = "..." if len(current_columns) > 3 else ""
         suggestions.append(
             f"Reduce select_columns from {len(current_columns)} columns to only "
-            f"essential fields (currently: {current_columns[:3]}...)"
+            f"essential fields (currently: {preview}{suffix})"
         )
     elif not current_columns and "list_" in tool_name:
         # Analyze response to suggest specific columns to exclude
         large_fields = _identify_large_fields(response)
         if large_fields:
+            fields_preview = ", ".join(large_fields[:3])
+            suffix = "..." if len(large_fields) > 3 else ""
             suggestions.append(
-                f"Use 'select_columns' to exclude large fields: {large_fields[:3]}. "
-                f"Only request the columns you need."
+                f"Use 'select_columns' to exclude large fields: "
+                f"{fields_preview}{suffix}. Only request the columns you need."
             )
         else:
             suggestions.append(
