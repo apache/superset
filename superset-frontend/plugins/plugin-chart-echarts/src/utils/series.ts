@@ -26,6 +26,7 @@ import {
   ensureIsArray,
   LegendState,
   normalizeTimestamp,
+  t,
   NumberFormats,
   NumberFormatter,
   TimeFormatter,
@@ -171,8 +172,8 @@ export function sortAndFilterSeries(
 
   return orderBy(
     sortedValues,
-    ['value'],
-    [sortSeriesAscending ? 'asc' : 'desc'],
+    ['value', 'name'],
+    [sortSeriesAscending ? 'asc' : 'desc', 'asc'],
   ).map(({ name }) => name);
 }
 
@@ -453,7 +454,10 @@ export function getLegendProps(
     show,
     type: effectiveType,
     ...(legendState != null && { selected: legendState }),
-    selector: ['all', 'inverse'],
+    selector: [
+      { type: 'all', title: t('All') },
+      { type: 'inverse', title: t('Inv') },
+    ],
     selectorLabel: {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeSM,
