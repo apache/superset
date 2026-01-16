@@ -326,8 +326,8 @@ def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
         ]
 
     # Add stacking configuration
-    if config.stacked:
-        form_data["stack"] = "Stack"
+    if getattr(config, "stacked", False):
+        form_data["stack"] = True
 
     # Add configurations
     add_axis_config(form_data, config)
