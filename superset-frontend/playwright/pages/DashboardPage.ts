@@ -31,8 +31,10 @@ export class DashboardPage {
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
     DOWNLOAD_SUBMENU:
       '[data-test="header-actions-menu"] li:has-text("Download")',
-    EXPORT_YAML_OPTION: 'li:has-text("Export YAML")',
-    EXPORT_AS_EXAMPLE_OPTION: 'li:has-text("Export as Example")',
+    // Ant Design renders submenu items in a popup portal, so we need to search globally
+    EXPORT_YAML_OPTION: '.ant-menu-submenu-popup li:has-text("Export YAML")',
+    EXPORT_AS_EXAMPLE_OPTION:
+      '.ant-menu-submenu-popup li:has-text("Export as Example")',
   } as const;
 
   constructor(page: Page) {
@@ -73,10 +75,14 @@ export class DashboardPage {
   }
 
   /**
-   * Click the Download submenu in the header actions
+   * Hover over the Download submenu to open it (Ant Design submenus open on hover)
    */
   async openDownloadMenu(): Promise<void> {
-    await this.page.click(DashboardPage.SELECTORS.DOWNLOAD_SUBMENU);
+    await this.page.hover(DashboardPage.SELECTORS.DOWNLOAD_SUBMENU);
+    // Wait for the submenu popup to appear
+    await this.page.waitForSelector('.ant-menu-submenu-popup', {
+      state: 'visible',
+    });
   }
 
   /**
