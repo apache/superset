@@ -168,8 +168,7 @@ async def get_chart_data(  # noqa: C901
                 # - pop_kpi (BigNumberPeriodOverPeriod)
                 # These charts also don't have groupby columns
                 viz_type = chart.viz_type or ""
-                single_metric_types = ("big_number", "pop_kpi")
-                if viz_type.startswith("big_number") or viz_type in single_metric_types:
+                if viz_type in ("big_number", "big_number_total", "pop_kpi"):
                     # These chart types use "metric" (singular)
                     metric = form_data.get("metric")
                     metrics = [metric] if metric else []
