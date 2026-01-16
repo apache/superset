@@ -54,7 +54,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
-const annotationsError = t('One ore more annotation layers failed loading.');
+const annotationsError = t('One or more annotation layers failed loading.');
 const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
   ${({ theme }) => `
     cursor: default;
