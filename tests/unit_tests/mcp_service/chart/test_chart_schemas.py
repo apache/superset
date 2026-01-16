@@ -92,7 +92,7 @@ class TestTableChartConfig:
         )
         assert config.viz_type == "ag-grid-table"
         assert len(config.columns) == 3
-        assert len(config.filters) == 1
+        assert config.filters is not None and len(config.filters) == 1
         assert config.sort_by == ["product_line"]
 
     def test_invalid_viz_type_rejected(self) -> None:
@@ -102,7 +102,7 @@ class TestTableChartConfig:
         with pytest.raises(ValidationError):
             TableChartConfig(
                 chart_type="table",
-                viz_type="invalid-type",  # type: ignore
+                viz_type="invalid-type",  # type: ignore[arg-type]
                 columns=[ColumnRef(name="product")],
             )
 
