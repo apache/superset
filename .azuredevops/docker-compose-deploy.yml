@@ -1,0 +1,92 @@
+# Docker Compose for Superset Deployment
+# This file is used by Azure DevOps pipeline for production deployments
+
+x-superset-volumes: &superset-volumes
+  - superset_home:/app/superset_home
+
+services:
+  redis:
+    image: redis:7
+    container_name: superset_cache
+    restart: unless-stopped
+    networks:
+      - superset-network
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:17.4
+    container_name: superset_db
+    shm_size: 1g
+    user: postgres
+    restart: unless-stopped
+    networks:
+      - superset-network
+    env_file:
+      - .env.deploy
+    volumes:
+      - db_home:/var/lib/postgresql/data
+      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER --dbname=$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  superset:
+    image: ${SUPERSET_IMAGE}
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    user: "root"
+    restart: unless-stopped
+    networks:
+      - superset-network
+      - oeeintellisuite
+    ports:
+      - "${SUPERSET_PORT}:5760"
+    env_file:
+      - .env.deploy
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    volumes: *superset-volumes
+
+  superset-init:
+    image: ${SUPERSET_IMAGE}
+    container_name: superset_init
+    command: ["/app/docker/docker-init.sh"]
+    user: "root"
+    networks:
+      - superset-network
+      - oeeintellisuite
+    env_file:
+      - .env.deploy
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+
+networks:
+  superset-network:
+    name: ${DOCKER_NETWORK}
+    external: false
+
+  oeeintellisuite:
+    name: oeeintellisuite
+    external: true
+
+volumes:
+  superset_home:
+  db_home:
+  redis:
