@@ -1149,6 +1149,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         datasource types (Query, SqlaTable, etc.).
         """
         qry_start_dttm = datetime.now()
+
+        # Check if this is an empty query (for drag-and-drop configured charts)
+        extras = query_obj.get("extras", {}) or {}
+        metrics = query_obj.get("metrics") or []
+        columns = query_obj.get("columns") or []
+        groupby = query_obj.get("groupby") or []
+        if extras.get("allow_empty_query") and not metrics and not columns and not groupby:
+            # Return empty result without executing any SQL
+            return QueryResult(
+                applied_template_filters=[],
+                applied_filter_columns=[],
+                rejected_filter_columns=[],
+                status=QueryStatus.SUCCESS,
+                df=pd.DataFrame(),
+                duration=datetime.now() - qry_start_dttm,
+                query="",
+                errors=None,
+                error_message=None,
+            )
+
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
         status = QueryStatus.SUCCESS
@@ -2727,7 +2747,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "and is required by this type of chart"
                 )
             )
-        if not metrics and not columns and not groupby:
+        # Allow charts to opt-in to empty queries (for drag-and-drop configuration)
+        # Note: The actual empty query handling is done in the query() method
+        allow_empty = extras.get("allow_empty_query", False)
+        if not metrics and not columns and not groupby and not allow_empty:
             raise QueryObjectValidationError(_("Empty query?"))
 
         metrics_exprs: list[ColumnElement] = []

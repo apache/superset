@@ -1029,6 +1029,15 @@ class ChartDataExtrasSchema(Schema):
         },
         allow_none=True,
     )
+    allow_empty_query = fields.Boolean(
+        metadata={
+            "description": (
+                "Allow queries with no metrics, columns, or groupby. "
+                "Used by charts that support drag-and-drop configuration."
+            )
+        },
+        load_default=False,
+    )
 
 
 class AnnotationLayerSchema(Schema):

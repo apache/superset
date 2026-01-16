@@ -20,6 +20,7 @@ import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import Split from 'react-split';
 import { t } from '@apache-superset/core';
 import {
+  Behavior,
   DatasourceType,
   ensureIsArray,
   isFeatureEnabled,
@@ -168,16 +169,33 @@ const ExploreChartPanel = ({
   const [showDatasetModal, setShowDatasetModal] = useState(false);
 
   const metaDataRegistry = getChartMetadataRegistry();
-  const { useLegacyApi } = metaDataRegistry.get(vizType) ?? {};
+  const chartMetadata = metaDataRegistry.get(vizType);
+  const { useLegacyApi } = chartMetadata ?? {};
   const vizTypeNeedsDataset =
     useLegacyApi && datasource.type !== DatasourceType.Table;
+
+  // Check if chart allows empty results (for drag-and-drop configuration)
+  const allowsEmptyResults = chartMetadata?.behaviors?.includes(
+    Behavior.AllowsEmptyResults,
+  );
+  // Check if query returned no actual data rows
+  const hasNoDataRows =
+    ensureIsArray(chart.queriesResponse).length > 0 &&
+    chart.queriesResponse?.every(
+      response => !response?.data || response.data.length === 0,
+    );
+  // Suppress stale warning for AllowsEmptyResults charts with no data
+  // (they're in initial unconfigured state)
+  const isUnconfiguredEmptyChart = allowsEmptyResults && hasNoDataRows;
+
   // added boolean column to below show boolean so that the errors aren't overlapping
   const showAlertBanner =
     !chartAlert &&
     chartIsStale &&
     !vizTypeNeedsDataset &&
     chart.chartStatus !== 'failed' &&
-    ensureIsArray(chart.queriesResponse).length > 0;
+    ensureIsArray(chart.queriesResponse).length > 0 &&
+    !isUnconfiguredEmptyChart;
 
   const updateQueryContext = useCallback(
     async function fetchChartData() {

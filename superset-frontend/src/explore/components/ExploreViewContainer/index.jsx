@@ -456,15 +456,27 @@ function ExploreViewContainer(props) {
     }
   }, [isDynamicPluginLoading]);
 
+  // Track if we've already triggered initial query
+  const [hasTriggeredInitialQuery, setHasTriggeredInitialQuery] =
+    useState(false);
+
+  // Auto-trigger query when there are no validation errors
+  // This effect runs on mount and when controls change (e.g., after dynamic plugin loads)
   useEffect(() => {
+    // Skip if already triggered or still loading dynamic plugin
+    if (hasTriggeredInitialQuery || isDynamicPluginLoading) {
+      return;
+    }
+
     const hasError = Object.values(props.controls).some(
       control =>
         control.validationErrors && control.validationErrors.length > 0,
     );
     if (!hasError) {
       props.actions.triggerQuery(true, props.chart.id);
+      setHasTriggeredInitialQuery(true);
     }
-  }, []);
+  }, [props.controls, isDynamicPluginLoading, hasTriggeredInitialQuery]);
 
   const reRenderChart = useCallback(
     controlsChanged => {
