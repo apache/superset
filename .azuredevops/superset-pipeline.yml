@@ -110,7 +110,7 @@ stages:
               # -------------------------------------
               # Get client-config.json
               # -------------------------------------
-              - template: .azuredevops/templates/steps/get-client-config.yml
+              - template: templates/steps/get-client-config.yml
                 parameters:
                   targetEnvironment: ${{ parameters.targetEnvironment }}
 
