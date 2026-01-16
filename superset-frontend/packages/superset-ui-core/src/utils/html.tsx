@@ -52,7 +52,6 @@ export function sanitizeHtml(htmlString: string) {
   return xssFilter.process(htmlString);
 }
 
-// Single source of truth for known HTML tags
 const KNOWN_HTML_TAGS = new Set([
   'div',
   'span',
@@ -113,7 +112,6 @@ const KNOWN_HTML_TAGS = new Set([
   'body',
 ]);
 
-// Pre-compiled regex pattern using all known tags
 const HTML_TAG_PATTERN = new RegExp(
   `<(${Array.from(KNOWN_HTML_TAGS).join('|')})\\b`,
   'i',

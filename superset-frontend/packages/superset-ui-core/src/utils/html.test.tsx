@@ -67,7 +67,6 @@ describe('isProbablyHTML', () => {
   });
 
   it('should return true for all known HTML tags', () => {
-    // Tags that were previously missing from hasHtmlTagPattern but are valid HTML
     expect(isProbablyHTML('<section>Content</section>')).toBe(true);
     expect(isProbablyHTML('<article>Content</article>')).toBe(true);
     expect(isProbablyHTML('<nav>Content</nav>')).toBe(true);
