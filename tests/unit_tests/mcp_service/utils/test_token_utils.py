@@ -73,31 +73,31 @@ class TestEstimateResponseTokens:
         value: int
         items: List[Any]
 
-    def test_estimate_pydantic_model(self):
+    def test_estimate_pydantic_model(self) -> None:
         """Should estimate tokens for Pydantic model."""
         response = self.MockResponse(name="test", value=42, items=[1, 2, 3])
         result = estimate_response_tokens(response)
         assert result > 0
 
-    def test_estimate_dict(self):
+    def test_estimate_dict(self) -> None:
         """Should estimate tokens for dict."""
         response = {"name": "test", "value": 42}
         result = estimate_response_tokens(response)
         assert result > 0
 
-    def test_estimate_list(self):
+    def test_estimate_list(self) -> None:
         """Should estimate tokens for list."""
         response = [{"name": "item1"}, {"name": "item2"}]
         result = estimate_response_tokens(response)
         assert result > 0
 
-    def test_estimate_string(self):
+    def test_estimate_string(self) -> None:
         """Should estimate tokens for string response."""
         response = "Hello world"
         result = estimate_response_tokens(response)
         assert result > 0
 
-    def test_estimate_large_response(self):
+    def test_estimate_large_response(self) -> None:
         """Should estimate tokens for large response."""
         response = {"items": [{"name": f"item{i}"} for i in range(1000)]}
         result = estimate_response_tokens(response)
@@ -107,19 +107,19 @@ class TestEstimateResponseTokens:
 class TestGetResponseSizeBytes:
     """Test get_response_size_bytes function."""
 
-    def test_size_dict(self):
+    def test_size_dict(self) -> None:
         """Should return size in bytes for dict."""
         response = {"name": "test"}
         result = get_response_size_bytes(response)
         assert result > 0
 
-    def test_size_string(self):
+    def test_size_string(self) -> None:
         """Should return size in bytes for string."""
         response = "Hello world"
         result = get_response_size_bytes(response)
         assert result == len(response.encode("utf-8"))
 
-    def test_size_bytes(self):
+    def test_size_bytes(self) -> None:
         """Should return size for bytes."""
         response = b"Hello world"
         result = get_response_size_bytes(response)
@@ -129,32 +129,32 @@ class TestGetResponseSizeBytes:
 class TestExtractQueryParams:
     """Test extract_query_params function."""
 
-    def test_extract_pagination_params(self):
+    def test_extract_pagination_params(self) -> None:
         """Should extract pagination parameters."""
         params = {"page_size": 100, "limit": 50}
         result = extract_query_params(params)
         assert result["page_size"] == 100
         assert result["limit"] == 50
 
-    def test_extract_column_selection(self):
+    def test_extract_column_selection(self) -> None:
         """Should extract column selection parameters."""
         params = {"select_columns": ["name", "id"]}
         result = extract_query_params(params)
         assert result["select_columns"] == ["name", "id"]
 
-    def test_extract_from_nested_request(self):
+    def test_extract_from_nested_request(self) -> None:
         """Should extract from nested request object."""
         params = {"request": {"page_size": 50, "filters": [{"col": "name"}]}}
         result = extract_query_params(params)
         assert result["page_size"] == 50
         assert result["filters"] == [{"col": "name"}]
 
-    def test_empty_params(self):
+    def test_empty_params(self) -> None:
         """Should return empty dict for empty params."""
         assert extract_query_params(None) == {}
         assert extract_query_params({}) == {}
 
-    def test_extract_filters(self):
+    def test_extract_filters(self) -> None:
         """Should extract filter parameters."""
         params = {"filters": [{"col": "name", "opr": "eq", "value": "test"}]}
         result = extract_query_params(params)
@@ -164,7 +164,7 @@ class TestExtractQueryParams:
 class TestGenerateSizeReductionSuggestions:
     """Test generate_size_reduction_suggestions function."""
 
-    def test_suggest_reduce_page_size(self):
+    def test_suggest_reduce_page_size(self) -> None:
         """Should suggest reducing page_size when present."""
         params = {"page_size": 100}
         suggestions = generate_size_reduction_suggestions(
@@ -177,9 +177,9 @@ class TestGenerateSizeReductionSuggestions:
             "page_size" in s.lower() or "limit" in s.lower() for s in suggestions
         )
 
-    def test_suggest_add_limit_for_list_tools(self):
+    def test_suggest_add_limit_for_list_tools(self) -> None:
         """Should suggest adding limit for list tools."""
-        params = {}
+        params: dict[str, Any] = {}
         suggestions = generate_size_reduction_suggestions(
             tool_name="list_charts",
             params=params,
@@ -190,9 +190,9 @@ class TestGenerateSizeReductionSuggestions:
             "limit" in s.lower() or "page_size" in s.lower() for s in suggestions
         )
 
-    def test_suggest_select_columns(self):
+    def test_suggest_select_columns(self) -> None:
         """Should suggest using select_columns."""
-        params = {}
+        params: dict[str, Any] = {}
         suggestions = generate_size_reduction_suggestions(
             tool_name="list_charts",
             params=params,
@@ -203,9 +203,9 @@ class TestGenerateSizeReductionSuggestions:
             "select_columns" in s.lower() or "columns" in s.lower() for s in suggestions
         )
 
-    def test_suggest_filters(self):
+    def test_suggest_filters(self) -> None:
         """Should suggest adding filters."""
-        params = {}
+        params: dict[str, Any] = {}
         suggestions = generate_size_reduction_suggestions(
             tool_name="list_charts",
             params=params,
@@ -214,7 +214,7 @@ class TestGenerateSizeReductionSuggestions:
         )
         assert any("filter" in s.lower() for s in suggestions)
 
-    def test_tool_specific_suggestions_execute_sql(self):
+    def test_tool_specific_suggestions_execute_sql(self) -> None:
         """Should provide SQL-specific suggestions for execute_sql."""
         suggestions = generate_size_reduction_suggestions(
             tool_name="execute_sql",
@@ -224,7 +224,7 @@ class TestGenerateSizeReductionSuggestions:
         )
         assert any("LIMIT" in s or "limit" in s.lower() for s in suggestions)
 
-    def test_tool_specific_suggestions_list_charts(self):
+    def test_tool_specific_suggestions_list_charts(self) -> None:
         """Should provide chart-specific suggestions for list_charts."""
         suggestions = generate_size_reduction_suggestions(
             tool_name="list_charts",
@@ -237,7 +237,7 @@ class TestGenerateSizeReductionSuggestions:
             "params" in s.lower() or "query_context" in s.lower() for s in suggestions
         )
 
-    def test_suggests_search_parameter(self):
+    def test_suggests_search_parameter(self) -> None:
         """Should suggest using search parameter."""
         suggestions = generate_size_reduction_suggestions(
             tool_name="list_dashboards",
@@ -251,7 +251,7 @@ class TestGenerateSizeReductionSuggestions:
 class TestFormatSizeLimitError:
     """Test format_size_limit_error function."""
 
-    def test_error_contains_token_counts(self):
+    def test_error_contains_token_counts(self) -> None:
         """Should include token counts in error message."""
         error = format_size_limit_error(
             tool_name="list_charts",
@@ -262,7 +262,7 @@ class TestFormatSizeLimitError:
         assert "50,000" in error
         assert "25,000" in error
 
-    def test_error_contains_tool_name(self):
+    def test_error_contains_tool_name(self) -> None:
         """Should include tool name in error message."""
         error = format_size_limit_error(
             tool_name="list_charts",
@@ -272,7 +272,7 @@ class TestFormatSizeLimitError:
         )
         assert "list_charts" in error
 
-    def test_error_contains_suggestions(self):
+    def test_error_contains_suggestions(self) -> None:
         """Should include suggestions in error message."""
         error = format_size_limit_error(
             tool_name="list_charts",
@@ -283,7 +283,7 @@ class TestFormatSizeLimitError:
         # Should have numbered suggestions
         assert "1." in error
 
-    def test_error_contains_reduction_percentage(self):
+    def test_error_contains_reduction_percentage(self) -> None:
         """Should include reduction percentage in error message."""
         error = format_size_limit_error(
             tool_name="list_charts",
@@ -294,7 +294,7 @@ class TestFormatSizeLimitError:
         # 50% reduction needed
         assert "50%" in error or "Reduction" in error
 
-    def test_error_limits_suggestions_to_five(self):
+    def test_error_limits_suggestions_to_five(self) -> None:
         """Should limit suggestions to 5."""
         error = format_size_limit_error(
             tool_name="list_charts",
@@ -306,7 +306,7 @@ class TestFormatSizeLimitError:
         suggestion_count = sum(1 for i in range(1, 10) if f"{i}." in error)
         assert suggestion_count <= 5
 
-    def test_error_message_is_readable(self):
+    def test_error_message_is_readable(self) -> None:
         """Should produce human-readable error message."""
         error = format_size_limit_error(
             tool_name="list_charts",
@@ -324,7 +324,7 @@ class TestFormatSizeLimitError:
 class TestCalculatedSuggestions:
     """Test that suggestions include calculated values."""
 
-    def test_suggested_limit_is_calculated(self):
+    def test_suggested_limit_is_calculated(self) -> None:
         """Should calculate suggested limit based on reduction needed."""
         params = {"page_size": 100}
         suggestions = generate_size_reduction_suggestions(
@@ -344,7 +344,7 @@ class TestCalculatedSuggestions:
             "50" in page_size_suggestion or "reduction" in page_size_suggestion.lower()
         )
 
-    def test_reduction_percentage_in_suggestions(self):
+    def test_reduction_percentage_in_suggestions(self) -> None:
         """Should include reduction percentage in suggestions."""
         params = {"page_size": 100}
         suggestions = generate_size_reduction_suggestions(
