@@ -28,6 +28,7 @@ Future enhancements (to be added in separate PRs):
 """
 
 import logging
+from contextlib import AbstractContextManager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from flask import g
@@ -171,7 +172,7 @@ def _cleanup_session_finally() -> None:
         logger.warning("Error in finally block: %s", e)
 
 
-def mcp_auth_hook(tool_func: F) -> F:
+def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
 
@@ -193,7 +194,7 @@ def mcp_auth_hook(tool_func: F) -> F:
 
     from superset.mcp_service.flask_singleton import get_flask_app
 
-    def _get_app_context_manager():
+    def _get_app_context_manager() -> AbstractContextManager[None]:
         """Return app context manager only if not already in one."""
         if has_app_context():
             # Already in app context (e.g., in tests), use null context
