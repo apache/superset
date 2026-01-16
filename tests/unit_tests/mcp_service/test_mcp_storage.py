@@ -17,6 +17,7 @@
 
 """Tests for MCP storage factory."""
 
+import ssl
 from unittest.mock import MagicMock, patch
 
 
@@ -94,3 +95,96 @@ def test_get_mcp_store_creates_store_when_enabled():
                     mock_wrapper_class.assert_called_once_with(
                         key_value=mock_redis_store, prefix="test_prefix_"
                     )
+
+
+def test_create_redis_store_wrap_false_returns_raw_store():
+    """_create_redis_store with wrap=False returns unwrapped RedisStore."""
+    store_config = {
+        "CACHE_REDIS_URL": "redis://localhost:6379/0",
+        "WRAPPER_TYPE": "key_value.aio.wrappers.prefix_keys.PrefixKeysWrapper",
+    }
+
+    mock_redis_store = MagicMock()
+
+    with patch(
+        "key_value.aio.stores.redis.RedisStore",
+        return_value=mock_redis_store,
+    ) as mock_redis_class:
+        from superset.mcp_service.storage import _create_redis_store
+
+        result = _create_redis_store(store_config, wrap=False)
+
+        # Verify raw store is returned (not wrapped)
+        assert result is mock_redis_store
+        # Verify RedisStore was called with the URL
+        mock_redis_class.assert_called_once()
+        call_kwargs = mock_redis_class.call_args
+        assert "redis://" in call_kwargs[1]["url"]
+
+
+def test_create_redis_store_wrap_true_requires_prefix():
+    """_create_redis_store with wrap=True requires prefix parameter."""
+    store_config = {
+        "CACHE_REDIS_URL": "redis://localhost:6379/0",
+        "WRAPPER_TYPE": "key_value.aio.wrappers.prefix_keys.PrefixKeysWrapper",
+    }
+
+    mock_redis_store = MagicMock()
+
+    with patch(
+        "key_value.aio.stores.redis.RedisStore",
+        return_value=mock_redis_store,
+    ):
+        from superset.mcp_service.storage import _create_redis_store
+
+        # wrap=True (default) with no prefix should return None
+        result = _create_redis_store(store_config, prefix=None, wrap=True)
+
+        assert result is None
+
+
+def test_create_redis_store_handles_ssl_url():
+    """_create_redis_store handles rediss:// URLs with SSL configuration."""
+    store_config = {
+        "CACHE_REDIS_URL": "rediss://:password@redis.example.com:6380/1",
+        "WRAPPER_TYPE": "key_value.aio.wrappers.prefix_keys.PrefixKeysWrapper",
+    }
+
+    mock_redis_store = MagicMock()
+
+    with patch(
+        "key_value.aio.stores.redis.RedisStore",
+        return_value=mock_redis_store,
+    ) as mock_redis_class:
+        from superset.mcp_service.storage import _create_redis_store
+
+        result = _create_redis_store(store_config, wrap=False)
+
+        # Verify store was created
+        assert result is mock_redis_store
+        # Verify SSL cert requirement was passed
+        call_kwargs = mock_redis_class.call_args[1]
+        assert call_kwargs["ssl_cert_reqs"] == ssl.CERT_NONE
+        assert "rediss://" in call_kwargs["url"]
+
+
+def test_create_redis_store_non_ssl_url_no_ssl_param():
+    """_create_redis_store with redis:// URL doesn't pass SSL params."""
+    store_config = {
+        "CACHE_REDIS_URL": "redis://localhost:6379/0",
+    }
+
+    mock_redis_store = MagicMock()
+
+    with patch(
+        "key_value.aio.stores.redis.RedisStore",
+        return_value=mock_redis_store,
+    ) as mock_redis_class:
+        from superset.mcp_service.storage import _create_redis_store
+
+        result = _create_redis_store(store_config, wrap=False)
+
+        assert result is mock_redis_store
+        # Verify SSL params were NOT passed for non-SSL URL
+        call_kwargs = mock_redis_class.call_args[1]
+        assert "ssl_cert_reqs" not in call_kwargs
