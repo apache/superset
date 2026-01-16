@@ -79,7 +79,6 @@ stages:
 
             cat > $(Build.ArtifactStagingDirectory)/deployment.env << EOF
             FULL_IMAGE_NAME=$(acrDomain)/$(imageRepository):$(semanticTag)
-            APP_PORT=${{ parameters.port }}
             EOF
           displayName: Create Deployment Artifact
 
@@ -179,7 +178,7 @@ stages:
               # -------------------------------------
               - bash: |
                   for i in {1..60}; do
-                    if curl -fs http://localhost:${{ parameters.port }}/health; then
+                    if curl -fs http://localhost:${SUPERSET_PORT}/health; then
                       echo "Superset is healthy"
                       exit 0
                     fi
