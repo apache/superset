@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
+import React, {
   ReactElement,
   useCallback,
   useMemo,
@@ -32,6 +32,8 @@ import {
   VizType,
   JsonObject,
   LatestQueryFormData,
+  QueryFormData,
+  Behavior,
 } from '@superset-ui/core';
 import { css, styled, useTheme, t } from '@apache-superset/core/ui';
 import {
@@ -60,7 +62,7 @@ import {
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import {
   useStreamingExport,
-  StreamingExportProgress,
+  StreamingProgress,
 } from 'src/components/StreamingExportModal';
 import { Slice } from 'src/types/Chart';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
@@ -156,15 +158,20 @@ interface OwnStateWithClientView extends JsonObject {
 
 export interface StreamingExportState {
   isVisible: boolean;
-  progress: StreamingExportProgress;
+  progress: StreamingProgress;
   onCancel: () => void;
   onRetry: () => void;
   onDownload: () => void;
 }
 
+interface ExploreSlice {
+  slice?: Slice | null;
+  form_data?: Partial<QueryFormData>;
+}
+
 interface ExploreState {
   charts?: Record<number, ChartState>;
-  explore?: JsonObject;
+  explore?: ExploreSlice;
   common?: {
     conf?: {
       CSV_STREAMING_ROW_THRESHOLD?: number;
@@ -189,7 +196,9 @@ export const useExploreAdditionalActionsMenu = (
   ) => void,
   onOpenPropertiesModal: () => void,
   ownState: OwnStateWithClientView | undefined,
-  dashboards: ExplorePageInitialData['metadata']['dashboards'] | undefined,
+  dashboards:
+    | NonNullable<ExplorePageInitialData['metadata']>['dashboards']
+    | undefined,
   showReportModal: () => void,
   setCurrentReportDeleting: Dispatch<SetStateAction<AlertObject | null>>,
   ...rest: MenuProps[]
@@ -203,8 +212,8 @@ export const useExploreAdditionalActionsMenu = (
     dashboardSearchTerm,
     300,
   );
-  const chart = useSelector<ExploreState, ChartState | undefined>(
-    state => state.charts?.[getChartKey(state.explore)],
+  const chart = useSelector<ExploreState, ChartState | undefined>(state =>
+    state.explore ? state.charts?.[getChartKey(state.explore)] : undefined,
   );
   const streamingThreshold = useSelector<ExploreState, number>(
     state =>
@@ -216,9 +225,9 @@ export const useExploreAdditionalActionsMenu = (
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
   const {
     progress,
-    isExporting,
+    isExporting: _isExporting,
     startExport,
-    cancelExport,
+    cancelExport: _cancelExport,
     resetExport,
     retryExport,
   } = useStreamingExport({
@@ -255,19 +264,24 @@ export const useExploreAdditionalActionsMenu = (
     searchTerm: debouncedDashboardSearchTerm,
   });
 
-  const showDashboardSearch = dashboards?.length > SEARCH_THRESHOLD;
+  const showDashboardSearch = (dashboards?.length ?? 0) > SEARCH_THRESHOLD;
   const vizType = latestQueryFormData?.viz_type;
   const meta = vizType ? getChartMetadataRegistry().get(vizType) : undefined;
 
   // Detect if the chart plugin exposes the export-current-view behavior
   const hasExportCurrentView = !!meta?.behaviors?.includes(
-    'EXPORT_CURRENT_VIEW',
+    'EXPORT_CURRENT_VIEW' as Behavior,
   );
 
   const shareByEmail = useCallback(async () => {
     try {
       const subject = t('Superset Chart');
-      const result = await getChartPermalink(latestQueryFormData);
+      if (!latestQueryFormData?.datasource) {
+        throw new Error('No datasource available');
+      }
+      const result = await getChartPermalink(
+        latestQueryFormData as Pick<QueryFormData, 'datasource'>,
+      );
       if (!result?.url) {
         throw new Error('Failed to generate permalink');
       }
@@ -290,11 +304,12 @@ export const useExploreAdditionalActionsMenu = (
 
     if (
       isTableViz &&
-      queriesResponse?.length > 1 &&
+      queriesResponse &&
+      queriesResponse.length > 1 &&
       queriesResponse[1]?.data?.[0]?.rowcount
     ) {
       actualRowCount = queriesResponse[1].data[0].rowcount;
-    } else if (queriesResponse?.[0]?.sql_rowcount != null) {
+    } else if (queriesResponse && queriesResponse[0]?.sql_rowcount != null) {
       actualRowCount = queriesResponse[0].sql_rowcount;
     } else {
       actualRowCount = latestQueryFormData?.row_limit;
@@ -304,7 +319,7 @@ export const useExploreAdditionalActionsMenu = (
     const shouldUseStreaming =
       actualRowCount && actualRowCount >= streamingThreshold;
 
-    let filename;
+    let filename: string | undefined;
     if (shouldUseStreaming) {
       const now = new Date();
       const date = now.toISOString().slice(0, 10);
@@ -317,18 +332,22 @@ export const useExploreAdditionalActionsMenu = (
     }
 
     return exportChart({
-      formData: latestQueryFormData,
+      formData: latestQueryFormData as QueryFormData,
       ownState,
       resultType: 'full',
       resultFormat: 'csv',
       onStartStreamingExport: shouldUseStreaming
         ? exportParams => {
-            setIsStreamingModalVisible(true);
-            startExport({
-              ...exportParams,
-              filename,
-              expectedRows: actualRowCount,
-            });
+            if (exportParams.url) {
+              setIsStreamingModalVisible(true);
+              startExport({
+                ...exportParams,
+                url: exportParams.url,
+                filename,
+                expectedRows: actualRowCount,
+                exportType: exportParams.exportType as 'csv' | 'xlsx',
+              });
+            }
           }
         : null,
     });
@@ -346,7 +365,7 @@ export const useExploreAdditionalActionsMenu = (
     () =>
       canDownloadCSV
         ? exportChart({
-            formData: latestQueryFormData,
+            formData: latestQueryFormData as QueryFormData,
             ownState,
             resultType: 'post_processed',
             resultFormat: 'csv',
@@ -359,7 +378,7 @@ export const useExploreAdditionalActionsMenu = (
     () =>
       canDownloadCSV
         ? exportChart({
-            formData: latestQueryFormData,
+            formData: latestQueryFormData as QueryFormData,
             ownState,
             resultType: 'results',
             resultFormat: 'json',
@@ -372,7 +391,7 @@ export const useExploreAdditionalActionsMenu = (
     () =>
       canDownloadCSV
         ? exportChart({
-            formData: latestQueryFormData,
+            formData: latestQueryFormData as QueryFormData,
             ownState,
             resultType: 'results',
             resultFormat: 'xlsx',
@@ -383,11 +402,13 @@ export const useExploreAdditionalActionsMenu = (
 
   const copyLink = useCallback(async () => {
     try {
-      if (!latestQueryFormData) {
-        throw new Error();
+      if (!latestQueryFormData?.datasource) {
+        throw new Error('No datasource available');
       }
       await copyTextToClipboard(async () => {
-        const result = await getChartPermalink(latestQueryFormData);
+        const result = await getChartPermalink(
+          latestQueryFormData as Pick<QueryFormData, 'datasource'>,
+        );
         if (!result?.url) {
           throw new Error('Failed to generate permalink');
         }
@@ -591,7 +612,10 @@ export const useExploreAdditionalActionsMenu = (
     // Download submenu
     const allDataChildren = [];
 
-    if (VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type)) {
+    if (
+      latestQueryFormData.viz_type &&
+      VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type as VizType)
+    ) {
       allDataChildren.push(
         {
           key: MENU_KEYS.EXPORT_TO_CSV,
@@ -686,7 +710,7 @@ export const useExploreAdditionalActionsMenu = (
         key: MENU_KEYS.EXPORT_ALL_SCREENSHOT,
         label: t('Export screenshot (jpeg)'),
         icon: <Icons.FileImageOutlined />,
-        onClick: e => {
+        onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
             '.panel-body .chart-container',
             slice?.slice_name ?? t('New chart'),
@@ -742,7 +766,7 @@ export const useExploreAdditionalActionsMenu = (
             );
           } else {
             exportChart({
-              formData: latestQueryFormData,
+              formData: latestQueryFormData as QueryFormData,
               ownState,
               resultType: 'results',
               resultFormat: 'csv',
@@ -790,7 +814,7 @@ export const useExploreAdditionalActionsMenu = (
         key: MENU_KEYS.EXPORT_CURRENT_SCREENSHOT,
         label: t('Export screenshot (jpeg)'),
         icon: <Icons.FileImageOutlined />,
-        onClick: e => {
+        onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
             '.panel-body .chart-container',
             slice?.slice_name ?? t('New chart'),
@@ -864,7 +888,11 @@ export const useExploreAdditionalActionsMenu = (
     });
 
     // Share submenu
-    const shareChildren = [
+    const shareChildren: Array<{
+      key: string;
+      label: React.ReactNode;
+      onClick: () => void;
+    }> = [
       {
         key: MENU_KEYS.COPY_PERMALINK,
         label: t('Copy permalink to clipboard'),
@@ -932,7 +960,9 @@ export const useExploreAdditionalActionsMenu = (
           }
           modalTitle={t('View query')}
           modalBody={
-            <ViewQueryModal latestQueryFormData={latestQueryFormData} />
+            <ViewQueryModal
+              latestQueryFormData={latestQueryFormData as QueryFormData}
+            />
           }
           draggable
           resizable
@@ -947,8 +977,11 @@ export const useExploreAdditionalActionsMenu = (
       menuItems.push({
         key: MENU_KEYS.RUN_IN_SQL_LAB,
         label: t('Run in SQL Lab'),
-        onClick: e => {
-          onOpenInEditor(latestQueryFormData, e.domEvent?.metaKey);
+        onClick: (e: { domEvent?: React.MouseEvent | React.KeyboardEvent }) => {
+          onOpenInEditor(
+            latestQueryFormData,
+            !!(e.domEvent as React.MouseEvent | undefined)?.metaKey,
+          );
           setIsDropdownVisible(false);
         },
       });

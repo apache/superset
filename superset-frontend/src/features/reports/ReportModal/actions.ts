@@ -119,11 +119,7 @@ export function fetchUISpecificReport({
         );
       })
       .catch(() =>
-        dispatch(
-          addDangerToast(
-            t('There was an issue fetching reports.'),
-          ),
-        ),
+        dispatch(addDangerToast(t('There was an issue fetching reports.'))),
       );
   };
 }

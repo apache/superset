@@ -502,7 +502,7 @@ const FiltersConfigForm = (
                 defaultValueQueriesData: [result as ChartDataResponseResult],
               });
             } else if (response.status === 202) {
-              waitForAsyncData(result as ChartDataResponseResult)
+              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
                 .then((asyncResult: ChartDataResponseResult[]) => {
                   setNativeFilterFieldValuesWrapper({
                     defaultValueQueriesData: asyncResult,

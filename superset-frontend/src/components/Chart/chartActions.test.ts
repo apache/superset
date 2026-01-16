@@ -128,7 +128,9 @@ describe('chart actions', () => {
         some_param: 'fake query!',
         result_type: 'full',
         result_format: 'json',
-      } as unknown as Awaited<ReturnType<typeof exploreUtils.buildV1ChartDataPayload>>);
+      } as unknown as Awaited<
+        ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
+      >);
     fakeMetadata = { useLegacyApi: true };
     mockedGetChartMetadataRegistry.mockImplementation(
       () =>
@@ -191,7 +193,9 @@ describe('chart actions', () => {
       >);
     const getQuerySettingsStub = sinon
       .stub(exploreUtils, 'getQuerySettings')
-      .returns([false, () => {}] as unknown as ReturnType<typeof exploreUtils.getQuerySettings>);
+      .returns([false, () => {}] as unknown as ReturnType<
+        typeof exploreUtils.getQuerySettings
+      >);
 
     try {
       const thunkAction = actions.exploreJSON(
