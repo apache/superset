@@ -66,6 +66,8 @@ interface TaskStatusIconProps {
   progressCurrent?: number | null;
   progressTotal?: number | null;
   durationSeconds?: number | null;
+  errorMessage?: string | null;
+  exceptionType?: string | null;
 }
 
 export default function TaskStatusIcon({
@@ -74,23 +76,38 @@ export default function TaskStatusIcon({
   progressCurrent,
   progressTotal,
   durationSeconds,
+  errorMessage,
+  exceptionType,
 }: TaskStatusIconProps) {
   const theme = useTheme();
   const IconComponent = statusIcons[status];
   const label = statusLabels[status];
 
-  // Build progress tooltip text based on available data
-  // Duration is shown separately in the table, so we only include ETA here
-  const tooltipText =
-    status === TaskStatus.InProgress || status === TaskStatus.Aborting
-      ? formatProgressTooltip(
-          label,
-          progressCurrent,
-          progressTotal,
-          progressPercent,
-          durationSeconds,
-        )
-      : label;
+  // Build tooltip text based on status
+  let tooltipText: string;
+  if (status === TaskStatus.InProgress || status === TaskStatus.Aborting) {
+    // Progress tooltip for active tasks
+    tooltipText = formatProgressTooltip(
+      label,
+      progressCurrent,
+      progressTotal,
+      progressPercent,
+      durationSeconds,
+    );
+  } else if (status === TaskStatus.Failure && (exceptionType || errorMessage)) {
+    // Error tooltip for failed tasks: "Failed (ExceptionType): message"
+    if (exceptionType && errorMessage) {
+      tooltipText = `${label} (${exceptionType}): ${errorMessage}`;
+    } else if (exceptionType) {
+      tooltipText = `${label} (${exceptionType})`;
+    } else if (errorMessage) {
+      tooltipText = `${label}: ${errorMessage}`;
+    } else {
+      tooltipText = label;
+    }
+  } else {
+    tooltipText = label;
+  }
 
   // Spin for in-progress and aborting states
   const shouldSpin =

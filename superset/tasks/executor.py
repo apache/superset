@@ -31,8 +31,8 @@ from superset.tasks.registry import TaskRegistry
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="tasks.execute", bind=True)  # noqa: C901
-def execute_task(
+@celery_app.task(name="tasks.execute", bind=True)
+def execute_task(  # noqa: C901
     self: Any,  # Celery task instance
     task_uuid: str,
     task_type: str,
@@ -121,7 +121,7 @@ def execute_task(
     except Exception as ex:
         task = ctx._task
         task.set_status(TaskStatus.FAILURE)
-        task.error_message = str(ex)
+        task.set_error_from_exception(ex)
         logger.error(
             "Task %s (uuid=%s) failed with error: %s",
             task_type,

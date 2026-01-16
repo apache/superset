@@ -61,6 +61,8 @@ export interface Task {
   user_id: number | null;
   database_id: number | null;
   error_message: string | null;
+  exception_type: string | null;
+  stack_trace: string | null;
   payload: Record<string, any>;
   progress_percent: number | null;
   progress_current: number | null;
