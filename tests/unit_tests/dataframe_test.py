@@ -203,3 +203,91 @@ def test_max_pandas_timestamp(input_, expected) -> None:
     df = results.to_pandas_df()
 
     assert df_to_records(df) == expected
+
+
+def test_df_to_records_with_nan_from_division_by_zero() -> None:
+    """Test that NaN values from division by zero are converted to None."""
+    import numpy as np
+
+    from superset.db_engine_specs import BaseEngineSpec
+    from superset.result_set import SupersetResultSet
+
+    # Simulate Athena query: select 0.00 / 0.00 as test
+    data = [(np.nan,), (5.0,), (np.nan,)]
+    cursor_descr: DbapiDescription = [("test", "double", None, None, None, None, False)]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    assert df_to_records(df) == [
+        {"test": None},
+        {"test": 5.0},
+        {"test": None},
+    ]
+
+
+def test_df_to_records_with_mixed_nan_and_valid_values() -> None:
+    """Test that NaN values are properly handled alongside valid numeric data."""
+    import numpy as np
+
+    from superset.db_engine_specs import BaseEngineSpec
+    from superset.result_set import SupersetResultSet
+
+    # Simulate a query with multiple columns containing NaN values
+    data = [
+        ("row1", 10.5, np.nan, 100),
+        ("row2", np.nan, 20.3, 200),
+        ("row3", 30.7, 40.2, np.nan),
+        ("row4", np.nan, np.nan, np.nan),
+    ]
+    cursor_descr: DbapiDescription = [
+        ("name", "varchar", None, None, None, None, False),
+        ("value1", "double", None, None, None, None, False),
+        ("value2", "double", None, None, None, None, False),
+        ("value3", "int", None, None, None, None, False),
+    ]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    assert df_to_records(df) == [
+        {"name": "row1", "value1": 10.5, "value2": None, "value3": 100},
+        {"name": "row2", "value1": None, "value2": 20.3, "value3": 200},
+        {"name": "row3", "value1": 30.7, "value2": 40.2, "value3": None},
+        {"name": "row4", "value1": None, "value2": None, "value3": None},
+    ]
+
+
+def test_df_to_records_with_inf_and_nan() -> None:
+    """Test that both NaN and infinity values are handled correctly."""
+    import numpy as np
+
+    from superset.db_engine_specs import BaseEngineSpec
+    from superset.result_set import SupersetResultSet
+
+    # Test various edge cases: NaN, positive infinity, negative infinity
+    data = [
+        (np.nan, "division by zero"),
+        (np.inf, "positive infinity"),
+        (-np.inf, "negative infinity"),
+        (0.0, "zero"),
+        (42.5, "normal value"),
+    ]
+    cursor_descr: DbapiDescription = [
+        ("result", "double", None, None, None, None, False),
+        ("description", "varchar", None, None, None, None, False),
+    ]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    records = df_to_records(df)
+
+    # NaN should be converted to None
+    assert records[0]["result"] is None
+    assert records[0]["description"] == "division by zero"
+
+    # Infinity values should remain as-is (they're valid JSON)
+    assert records[1]["result"] == np.inf
+    assert records[2]["result"] == -np.inf
+
+    # Normal values should remain unchanged
+    assert records[3]["result"] == 0.0
+    assert records[4]["result"] == 42.5
