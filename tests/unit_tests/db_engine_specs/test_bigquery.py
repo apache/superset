@@ -530,6 +530,7 @@ def test_get_view_names_excludes_materialized_views() -> None:
     # Ensure it's not querying for materialized views
     assert "MATERIALIZED VIEW" not in executed_query
 
+
 def test_handle_array_filter_bigquery() -> None:
     """
     Test handle_array_filter for BigQuery array columns and all supported operators.
