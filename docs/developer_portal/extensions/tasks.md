@@ -161,7 +161,7 @@ The framework provides built-in abort support with minimal boilerplate.
 
 ### UI Action Permissions
 
-The Task List UI shows different actions based on task scope and user role:
+The Task List UI shows different actions based on task scope, user role, and task status. Actions are only available for **active tasks** (pending or in_progress status).
 
 | Task Scope | User Role | Available Actions |
 |------------|-----------|-------------------|
@@ -174,7 +174,8 @@ The Task List UI shows different actions based on task scope and user role:
 | **System** | Non-admin | *(not visible)* |
 
 **Key behaviors:**
-- **Admins can abort any task** regardless of scope
+- **Actions are only shown for active tasks** - tasks with non-active status (success, failure, aborted, aborting) do not show Abort or Unsubscribe buttons
+- **Admins can abort any active task** regardless of scope
 - **For shared tasks**, non-admin users can only unsubscribe (not directly abort)
   - If the last subscriber unsubscribes, the task is automatically aborted
   - Admins who are also subscribed will see both Abort and Unsubscribe actions
