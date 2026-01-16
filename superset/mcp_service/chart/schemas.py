@@ -670,6 +670,10 @@ class XYChartConfig(BaseModel):
     kind: Literal["line", "bar", "area", "scatter"] = Field(
         "line", description="Chart visualization type"
     )
+    stacked: bool = Field(
+        False,
+        description="Stack bars/areas on top of each other instead of side-by-side",
+    )
     group_by: ColumnRef | None = Field(None, description="Column to group by")
     x_axis: AxisConfig | None = Field(None, description="X-axis configuration")
     y_axis: AxisConfig | None = Field(None, description="Y-axis configuration")
