@@ -2280,7 +2280,8 @@ def test_export_includes_configuration_method(
     mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     """
-    Test that exporting a database includes the 'configuration_method' field in the YAML.
+    Test that exporting a database 
+    includes the 'configuration_method' field in the YAML.
     """
     import zipfile
 
