@@ -261,10 +261,10 @@ class TestCreateResponseSizeGuardMiddleware:
         assert middleware.warn_threshold_pct == 80  # Default
 
     def test_handles_exception_gracefully(self):
-        """Should return None on exception."""
+        """Should return None on expected configuration exceptions."""
         with patch(
             "superset.mcp_service.flask_singleton.get_flask_app",
-            side_effect=Exception("Config error"),
+            side_effect=ImportError("Config error"),
         ):
             middleware = create_response_size_guard_middleware()
 
