@@ -343,4 +343,20 @@ describe('Heatmap transformProps', () => {
     // visualMap should use dimension 2 (3rd element) for coloring
     expect((result.echartOptions.visualMap as any).dimension).toBe(2);
   });
+
+  test('should always hide legend regardless of showLegend setting', () => {
+    // Test with showLegend: true
+    const chartPropsWithLegend = createChartProps({ showLegend: true });
+    const resultWithLegend = transformProps(
+      chartPropsWithLegend as HeatmapChartProps,
+    );
+    expect((resultWithLegend.echartOptions.legend as any).show).toBe(false);
+
+    // Test with showLegend: false
+    const chartPropsWithoutLegend = createChartProps({ showLegend: false });
+    const resultWithoutLegend = transformProps(
+      chartPropsWithoutLegend as HeatmapChartProps,
+    );
+    expect((resultWithoutLegend.echartOptions.legend as any).show).toBe(false);
+  });
 });
