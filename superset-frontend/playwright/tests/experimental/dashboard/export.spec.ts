@@ -31,11 +31,15 @@ import { TIMEOUT } from '../../../utils/constants';
  * Prerequisites:
  * - Superset running with example dashboards loaded
  * - Admin user authenticated (via global-setup)
+ *
+ * NOTE: These tests are skipped pending investigation of Ant Design
+ * submenu popup rendering in Playwright. The feature is covered by
+ * unit tests in DownloadMenuItems.test.tsx.
  */
 
 let dashboardPage: DashboardPage;
 
-test.describe('Dashboard Export', () => {
+test.describe.skip('Dashboard Export', () => {
   test.beforeEach(async ({ page }) => {
     dashboardPage = new DashboardPage(page);
 
