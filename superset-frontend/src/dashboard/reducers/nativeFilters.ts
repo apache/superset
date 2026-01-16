@@ -78,7 +78,10 @@ function handleFilterChangesComplete(
   >,
 ) {
   // Create new filters object from backend response (deleted filters won't be included)
-  const newFilters: Record<string, Filter | Divider> = {};
+  const newFilters: Record<
+    string,
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider
+  > = {};
   
   filters.forEach(filter => {
     const existingFilter = state.filters[filter.id];
