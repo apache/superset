@@ -106,7 +106,7 @@ class TaskContext(ABC):
     @abstractmethod
     def update_task(
         self,
-        progress: float | None = None,
+        progress: float | int | tuple[int, int] | None = None,
         payload: dict[str, Any] | None = None,
     ) -> None:
         """
@@ -115,19 +115,31 @@ class TaskContext(ABC):
         All parameters are optional. Payload is merged with existing data,
         not replaced. All updates occur in a single database transaction.
 
-        :param progress: Progress value (0.0-1.0), or None to leave unchanged
+        Progress can be specified in three ways:
+        - float (0.0-1.0): Percentage only, e.g., 0.5 means 50%
+        - int: Count only (total unknown), e.g., 42 means "42 items processed"
+        - tuple[int, int]: Count and total, e.g., (3, 100) means "3 of 100"
+          The percentage is automatically computed from count/total.
+
+        :param progress: Progress value, or None to leave unchanged
         :param payload: Payload data to merge (dict), or None to leave unchanged
 
-        Example:
-            # Update progress only
+        Examples:
+            # Percentage only - displays as "In progress: 50 %"
             ctx.update_task(progress=0.5)
+
+            # Count only (total unknown) - displays as "In progress: 42"
+            ctx.update_task(progress=42)
+
+            # Count and total - displays as "In progress: 3 of 100 (3 %)"
+            ctx.update_task(progress=(3, 100))
 
             # Update payload only
             ctx.update_task(payload={"step": "processing"})
 
             # Update both atomically
             ctx.update_task(
-                progress=0.8,
+                progress=(80, 100),
                 payload={"processed": 80, "total": 100}
             )
         """

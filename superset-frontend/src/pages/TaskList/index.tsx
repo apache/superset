@@ -26,7 +26,7 @@ import {
   Label,
 } from '@superset-ui/core/components';
 import {
-  ModifiedInfo,
+  CreatedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
@@ -206,9 +206,23 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { status, progress },
+            original: {
+              status,
+              progress_percent,
+              progress_current,
+              progress_total,
+              duration_seconds,
+            },
           },
-        }: any) => <TaskStatusIcon status={status} progress={progress} />,
+        }: any) => (
+          <TaskStatusIcon
+            status={status}
+            progressPercent={progress_percent}
+            progressCurrent={progress_current}
+            progressTotal={progress_total}
+            durationSeconds={duration_seconds}
+          />
+        ),
         accessor: 'status',
         Header: t('Status'),
         size: 'xs',
@@ -280,7 +294,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               created_by: createdBy,
             },
           },
-        }: any) => <ModifiedInfo date={createdOn} user={createdBy} />,
+        }: any) => <CreatedInfo date={createdOn} user={createdBy} />,
         Header: t('Created'),
         accessor: 'created_on',
         size: 'xl',

@@ -110,9 +110,9 @@ Tasks access execution context via `get_context()`:
 def my_task(business_arg: int) -> None:
     ctx = get_context()  # Ambient context access
 
-    # Update progress and payload atomically
+    # Update progress (percentage) and payload atomically
     ctx.update_task(
-        progress=0.5,
+        progress=0.5,  # 50%
         payload={"arg": business_arg}
     )
 ```
@@ -250,9 +250,9 @@ def process_large_batch(items: list[str]) -> None:
         result = process_item(item)
         results.append(result)
 
-        # Update progress and payload
+        # Update progress using count and total (auto-computes percentage)
         ctx.update_task(
-            progress=(i + 1) / len(items),
+            progress=(i + 1, len(items)),  # e.g., (3, 100) = "3 of 100 (3%)"
             payload={"processed": i + 1, "results": results}
         )
 
@@ -321,15 +321,26 @@ def fetch_and_process(api_url: str) -> None:
 
 **`ctx.update_task()` - Progress tracking:**
 
+Progress can be reported in three different ways depending on what information is available:
+
 ```python
 @task
 def process_batch(item_ids: list[int]) -> None:
     ctx = get_context()
 
     for i, item_id in enumerate(item_ids):
-        # Update progress
+        # Option 1: Percentage only (float 0.0-1.0)
+        # Displays as "In progress: 50 %"
+        ctx.update_task(progress=0.5)
+
+        # Option 2: Count only (int) - when total is unknown
+        # Displays as "In progress: 42"
+        ctx.update_task(progress=42)
+
+        # Option 3: Count and total (tuple) - percentage auto-computed
+        # Displays as "In progress: 3 of 100 (3 %)"
         ctx.update_task(
-            progress=(i + 1) / len(item_ids),
+            progress=(i + 1, len(item_ids)),
             payload={"current_item": item_id}
         )
 
@@ -386,9 +397,10 @@ def multi_step_task(item_ids: list[int]) -> None:
         logger.info("Task processing completed")
 
     for i, item_id in enumerate(item_ids):
-        # Update progress and payload atomically
+        # Update progress using count and total (percentage auto-computed)
+        # Displays as "In progress: 3 of 100 (3 %)"
         ctx.update_task(
-            progress=(i + 1) / len(item_ids),
+            progress=(i + 1, len(item_ids)),
             payload={"current_item": item_id, "count": i + 1}
         )
 
@@ -657,11 +669,20 @@ task = my_task.schedule(
 class TaskContext:
     def update_task(
         self,
-        progress: float | None = None,
+        progress: float | int | tuple[int, int] | None = None,
         payload: dict[str, Any] | None = None,
     ) -> None:
         """
         Update task progress and/or payload atomically.
+
+        Progress can be specified in three ways:
+        - float (0.0-1.0): Percentage only, e.g., 0.5 means 50%
+          Displays as "In progress: 50 %"
+        - int: Count only (total unknown), e.g., 42 means "42 items processed"
+          Displays as "In progress: 42"
+        - tuple[int, int]: Count and total, e.g., (3, 100) means "3 of 100"
+          The percentage is automatically computed from count/total.
+          Displays as "In progress: 3 of 100 (3 %)"
 
         All parameters are optional. Payload is merged with existing data.
         Updates occur in a single database transaction.

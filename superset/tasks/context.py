@@ -86,7 +86,7 @@ class TaskContext(CoreTaskContext):
     @transaction()
     def update_task(
         self,
-        progress: float | None = None,
+        progress: float | int | tuple[int, int] | None = None,
         payload: dict[str, Any] | None = None,
     ) -> None:
         """
@@ -95,13 +95,58 @@ class TaskContext(CoreTaskContext):
         All parameters are optional. Payload is merged with existing data.
         All updates occur in a single database transaction.
 
-        :param progress: Progress value (0.0-1.0), or None to leave unchanged
+        Progress can be specified in three ways:
+        - float (0.0-1.0): Percentage only, e.g., 0.5 means 50%
+        - int: Count only (total unknown), e.g., 42 means "42 items processed"
+        - tuple[int, int]: Count and total, e.g., (3, 100) means "3 of 100"
+          The percentage is automatically computed from count/total.
+
+        :param progress: Progress value, or None to leave unchanged
         :param payload: Payload data to merge (dict), or None to leave unchanged
         """
         task = self._task
 
         if progress is not None:
-            task.progress = progress
+            if isinstance(progress, float):
+                # Percentage only mode
+                task.progress_percent = progress
+                task.progress_current = None
+                task.progress_total = None
+            elif isinstance(progress, int):
+                # Count only mode (total unknown)
+                task.progress_percent = None
+                task.progress_current = progress
+                task.progress_total = None
+            elif isinstance(progress, tuple) and len(progress) == 2:
+                # Count and total mode
+                current, total = progress
+                task.progress_current = current
+                task.progress_total = total
+                # Compute percentage, handle division by zero
+                try:
+                    if total > 0:
+                        task.progress_percent = current / total
+                    else:
+                        logger.warning(
+                            "Progress total is zero for task %s, " \
+                            "cannot compute percentage",
+                            self._task_uuid,
+                        )
+                        task.progress_percent = None
+                except Exception as ex:
+                    logger.warning(
+                        "Failed to compute progress percentage for task %s: %s",
+                        self._task_uuid,
+                        str(ex),
+                    )
+                    task.progress_percent = None
+            else:
+                logger.warning(
+                    "Invalid progress value for task %s: %s "
+                    "(expected float, int, or tuple[int, int])",
+                    self._task_uuid,
+                    progress,
+                )
 
         if payload is not None:
             task.set_payload(payload)
