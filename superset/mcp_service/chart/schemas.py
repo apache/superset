@@ -21,7 +21,6 @@ Pydantic schemas for chart-related responses
 
 from __future__ import annotations
 
-import html
 import re
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
@@ -366,8 +365,8 @@ class ColumnRef(BaseModel):
                 f"Maximum allowed length is 255 characters."
             )
 
-        # Remove HTML tags and decode entities
-        sanitized = html.escape(v.strip())
+        # Strip whitespace
+        sanitized = v.strip()
 
         # Check for dangerous HTML tags using substring checks (safe)
         dangerous_tags = ["<script", "</script>", "<iframe", "<object", "<embed"]
@@ -455,12 +454,9 @@ class ColumnRef(BaseModel):
                 )
 
         # Filter dangerous Unicode characters
-        v = re.sub(
+        sanitized = re.sub(
             r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", v
         )
-
-        # HTML escape the cleaned content
-        sanitized = html.escape(v)
 
         return sanitized if sanitized else None
 
@@ -505,8 +501,8 @@ class FilterConfig(BaseModel):
                 f"Maximum allowed length is 255 characters."
             )
 
-        # Remove HTML tags and decode entities
-        sanitized = html.escape(v.strip())
+        # Strip whitespace
+        sanitized = v.strip()
 
         # Check for dangerous HTML tags using substring checks (safe)
         dangerous_tags = ["<script", "</script>"]
@@ -593,12 +589,9 @@ class FilterConfig(BaseModel):
             cls._validate_string_value(v)
 
             # Filter dangerous Unicode characters
-            v = re.sub(
+            return re.sub(
                 r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", v
             )
-
-            # HTML escape the cleaned content
-            return html.escape(v)
 
         return v  # Return non-string values as-is
 
@@ -933,12 +926,9 @@ class UpdateChartRequest(QueryCacheControl):
             )
 
         # Filter dangerous Unicode characters
-        v = re.sub(
+        sanitized = re.sub(
             r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", v
         )
-
-        # HTML escape the cleaned content
-        sanitized = html.escape(v)
 
         return sanitized if sanitized else None
 
