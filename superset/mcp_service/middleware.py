@@ -770,7 +770,7 @@ class ResponseSizeGuardMiddleware(Middleware):
 
     Configuration via MCP_RESPONSE_SIZE_CONFIG in superset_config.py:
     - enabled: Toggle the guard on/off (default: True)
-    - token_limit: Maximum estimated tokens per response (default: 50,000)
+    - token_limit: Maximum estimated tokens per response (default: 25,000)
     - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
     - excluded_tools: Tools to skip checking
     """
@@ -801,13 +801,27 @@ class ResponseSizeGuardMiddleware(Middleware):
         # Execute the tool
         response = await call_next(context)
 
-        # Estimate response token count
+        # Estimate response token count (guard against huge responses causing OOM)
         from superset.mcp_service.utils.token_utils import (
             estimate_response_tokens,
             format_size_limit_error,
         )
 
-        estimated_tokens = estimate_response_tokens(response)
+        try:
+            estimated_tokens = estimate_response_tokens(response)
+        except MemoryError:
+            logger.warning(
+                "MemoryError while estimating tokens for %s, treating as over limit",
+                tool_name,
+            )
+            # Treat as over the limit to be safe
+            estimated_tokens = self.token_limit + 1
+        except (TypeError, ValueError) as e:
+            logger.warning(
+                "Failed to estimate response tokens for %s: %s", tool_name, e
+            )
+            # Conservative fallback: assume it's over the limit so we block
+            estimated_tokens = self.token_limit + 1
 
         # Log warning if approaching limit
         if estimated_tokens > self.warn_threshold:
@@ -845,16 +859,18 @@ class ResponseSizeGuardMiddleware(Middleware):
                         "params": params,
                     },
                 )
-            except Exception as log_error:
+            except (ValueError, TypeError, AttributeError) as log_error:
                 logger.warning("Failed to log size exceeded event: %s", log_error)
 
             # Generate helpful error message with suggestions
+            # Avoid passing the full `response` (which may be huge) into the formatter
+            # to prevent large-memory operations during error formatting.
             error_message = format_size_limit_error(
                 tool_name=tool_name,
                 params=params,
                 estimated_tokens=estimated_tokens,
                 token_limit=self.token_limit,
-                response=response,
+                response=None,
             )
 
             raise ToolError(error_message)
@@ -899,6 +915,6 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
         )
         return middleware
 
-    except Exception as e:
+    except (ImportError, AttributeError, KeyError) as e:
         logger.error("Failed to create ResponseSizeGuardMiddleware: %s", e)
         return None
