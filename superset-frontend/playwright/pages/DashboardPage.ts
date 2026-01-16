@@ -29,13 +29,14 @@ export class DashboardPage {
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
-    // The Dropdown uses popupRender with Menu, so submenu uses ant-menu classes
-    DOWNLOAD_SUBMENU_TITLE: '.ant-menu-submenu-title:has-text("Download")',
-    // Menu submenu popup uses .ant-menu-submenu-popup
+    // The header-actions-menu is the data-test for the dropdown menu content
+    HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
+    // Use text-based selector for the Download submenu
+    DOWNLOAD_MENU_ITEM: 'text=Download',
+    // Export options appear in a submenu popup
     SUBMENU_POPUP: '.ant-menu-submenu-popup',
-    EXPORT_YAML_OPTION: '.ant-menu-submenu-popup li:has-text("Export YAML")',
-    EXPORT_AS_EXAMPLE_OPTION:
-      '.ant-menu-submenu-popup li:has-text("Export as Example")',
+    EXPORT_YAML_OPTION: 'text=Export YAML',
+    EXPORT_AS_EXAMPLE_OPTION: 'text=Export as Example',
   } as const;
 
   constructor(page: Page) {
@@ -73,14 +74,24 @@ export class DashboardPage {
    */
   async openHeaderActionsMenu(): Promise<void> {
     await this.page.click(DashboardPage.SELECTORS.DASHBOARD_MENU_TRIGGER);
+    // Wait for the dropdown menu to appear
+    await this.page.waitForSelector(
+      DashboardPage.SELECTORS.HEADER_ACTIONS_MENU,
+      {
+        state: 'visible',
+      },
+    );
   }
 
   /**
    * Hover over the Download submenu to open it (Ant Design submenus open on hover)
    */
   async openDownloadMenu(): Promise<void> {
-    // Hover over the submenu title to trigger the popup
-    await this.page.hover(DashboardPage.SELECTORS.DOWNLOAD_SUBMENU_TITLE);
+    // Find and hover over the Download menu item to trigger the submenu
+    const downloadItem = this.page
+      .locator(DashboardPage.SELECTORS.HEADER_ACTIONS_MENU)
+      .locator(DashboardPage.SELECTORS.DOWNLOAD_MENU_ITEM);
+    await downloadItem.hover();
     // Wait for the submenu popup to appear
     await this.page.waitForSelector(DashboardPage.SELECTORS.SUBMENU_POPUP, {
       state: 'visible',
@@ -93,7 +104,11 @@ export class DashboardPage {
    */
   async clickExportYaml(): Promise<Download> {
     const downloadPromise = this.page.waitForEvent('download');
-    await this.page.click(DashboardPage.SELECTORS.EXPORT_YAML_OPTION);
+    // Click on Export YAML within the submenu popup
+    await this.page
+      .locator(DashboardPage.SELECTORS.SUBMENU_POPUP)
+      .locator(DashboardPage.SELECTORS.EXPORT_YAML_OPTION)
+      .click();
     return downloadPromise;
   }
 
@@ -103,7 +118,11 @@ export class DashboardPage {
    */
   async clickExportAsExample(): Promise<Download> {
     const downloadPromise = this.page.waitForEvent('download');
-    await this.page.click(DashboardPage.SELECTORS.EXPORT_AS_EXAMPLE_OPTION);
+    // Click on Export as Example within the submenu popup
+    await this.page
+      .locator(DashboardPage.SELECTORS.SUBMENU_POPUP)
+      .locator(DashboardPage.SELECTORS.EXPORT_AS_EXAMPLE_OPTION)
+      .click();
     return downloadPromise;
   }
 }
