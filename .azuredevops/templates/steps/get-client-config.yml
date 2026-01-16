@@ -4,20 +4,28 @@ parameters:
 
 steps:
   - bash: |
-      echo "Creating client-config.json..."
+      set -euo pipefail
+      echo "Rehydrating ${{ parameters.targetEnvironment }} client config..."
 
-      if [ -z "$CLIENT_CONFIG_JSON" ]; then
-        echo "ERROR: CLIENT_CONFIG_JSON is not set"
+      CLIENT_CONFIG="$CLIENT_CONFIG_JSON"
+
+      if [ -z "$CLIENT_CONFIG" ]; then
+        echo "ERROR: CLIENT_CONFIG is empty"
         exit 1
       fi
 
-      # Write JSON to file (allow variable expansion)
-      cat << EOF > client-config.json
-$CLIENT_CONFIG_JSON
-EOF
+      # Create a temp file safely
+      CFG_FILE=$(mktemp --suffix=-${{ parameters.targetEnvironment }}-config.json)
+      echo "$CLIENT_CONFIG" > "$CFG_FILE"
+      echo "Config written to $CFG_FILE"
 
-      echo "client-config.json created successfully"
-      echo "##vso[task.setvariable variable=cfgPath]$(System.DefaultWorkingDirectory)/client-config.json"
-    displayName: Create client-config.json
-    env:
-      CLIENT_CONFIG_JSON: $(CLIENT_CONFIG_JSON)
+      # Set pipeline variable
+      echo "##vso[task.setvariable variable=cfgPath]$CFG_FILE"
+
+      # Validate JSON
+      if ! jq empty "$CFG_FILE"; then
+        echo "ERROR: Config is not valid JSON"
+        exit 1
+      fi
+      echo "JSON validation passed"
+    displayName: "Rehydrate & Validate ${{ parameters.targetEnvironment }} Config"
