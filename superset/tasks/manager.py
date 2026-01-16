@@ -366,21 +366,57 @@ class TaskManager:
                     break
 
         except redis.RedisError as ex:
-            logger.warning(
-                "Redis pub/sub error for task %s: %s. Falling back to polling.",
-                task_uuid,
-                ex,
-            )
-            # Fall back to database polling on pub/sub failure
-            cls._poll_for_abort(task_uuid, callback, stop_event, fallback_interval, app)
+            # Check if we were asked to stop - if so, this is expected
+            if stop_event.is_set():
+                logger.debug(
+                    "Abort listener for task %s stopped (Redis error: %s)",
+                    task_uuid,
+                    ex,
+                )
+            else:
+                logger.warning(
+                    "Redis pub/sub error for task %s: %s. Falling back to polling.",
+                    task_uuid,
+                    ex,
+                )
+                # Fall back to database polling on pub/sub failure
+                cls._poll_for_abort(
+                    task_uuid, callback, stop_event, fallback_interval, app
+                )
+
+        except (ValueError, OSError) as ex:
+            # ValueError: "I/O operation on closed file" - expected when stop() closes
+            # OSError: Similar connection-closed errors
+            if stop_event.is_set():
+                # Clean shutdown, expected behavior
+                logger.debug(
+                    "Abort listener for task %s stopped cleanly",
+                    task_uuid,
+                )
+            else:
+                # Unexpected error while running
+                logger.error(
+                    "Error in abort listener for task %s: %s",
+                    task_uuid,
+                    str(ex),
+                    exc_info=True,
+                )
 
         except Exception as ex:
-            logger.error(
-                "Error in abort listener for task %s: %s",
-                task_uuid,
-                str(ex),
-                exc_info=True,
-            )
+            # Only log as error if we weren't asked to stop
+            if stop_event.is_set():
+                logger.debug(
+                    "Abort listener for task %s stopped with exception: %s",
+                    task_uuid,
+                    ex,
+                )
+            else:
+                logger.error(
+                    "Error in abort listener for task %s: %s",
+                    task_uuid,
+                    str(ex),
+                    exc_info=True,
+                )
 
         finally:
             # Clean up pub/sub subscription

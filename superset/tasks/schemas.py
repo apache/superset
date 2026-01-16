@@ -39,7 +39,16 @@ user_id_description = "ID of the user context for task execution"
 database_id_description = "ID of the database associated with the task"
 error_message_description = "Error message if the task failed"
 payload_description = "Task-specific data in JSON format"
-progress_description = "Task progress as a float between 0.0 and 1.0 (null if not set)"
+progress_percent_description = (
+    "Task progress as a percentage (0.0-1.0). Set when using percentage-only mode "
+    "or auto-computed from progress_current/progress_total"
+)
+progress_current_description = (
+    "Current iteration count. Set when reporting count-only or count+total progress"
+)
+progress_total_description = (
+    "Total iterations (if known). Set when reporting count+total progress"
+)
 duration_seconds_description = (
     "Duration in seconds - for finished tasks: execution time, "
     "for running tasks: time since start, for pending: queue time"
@@ -110,8 +119,14 @@ class TaskResponseSchema(Schema):
         metadata={"description": error_message_description}, allow_none=True
     )
     payload = Method("get_payload_dict", metadata={"description": payload_description})
-    progress = fields.Float(
-        metadata={"description": progress_description}, allow_none=True
+    progress_percent = fields.Float(
+        metadata={"description": progress_percent_description}, allow_none=True
+    )
+    progress_current = fields.Int(
+        metadata={"description": progress_current_description}, allow_none=True
+    )
+    progress_total = fields.Int(
+        metadata={"description": progress_total_description}, allow_none=True
     )
     duration_seconds = Method(
         "get_duration",

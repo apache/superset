@@ -88,7 +88,13 @@ def upgrade():
         Column("database_id", Integer, nullable=True),  # Optional FK to dbs.id
         Column("error_message", Text, nullable=True),
         Column("payload", Text, nullable=True),  # JSON serialized task-specific data
-        Column("progress", Float, nullable=True),  # Progress 0.0-1.0, null by default
+        # Progress tracking - supports three modes:
+        # 1. Percentage only: progress_percent set, others null
+        # 2. Count only: progress_current set, others null
+        # 3. Count+total: progress_current and progress_total set, percent auto-computed
+        Column("progress_percent", Float, nullable=True),  # Progress 0.0-1.0
+        Column("progress_current", Integer, nullable=True),  # Current iteration count
+        Column("progress_total", Integer, nullable=True),  # Total iterations (if known)
         # Abort handling: null=pending/finished, false=in_progress no handler,
         # true=has abort handler
         Column("is_abortable", Boolean, nullable=True),

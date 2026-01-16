@@ -78,7 +78,13 @@ class Task(CoreTask, AuditMixinNullable, Model):
     payload = Column(
         Text, nullable=True, default="{}"
     )  # JSON serialized task-specific data
-    progress = Column(Float, nullable=True)  # Progress 0.0-1.0, null by default
+    # Progress tracking - supports three modes:
+    # 1. Percentage only: progress_percent set, others null
+    # 2. Count only: progress_current set, others null
+    # 3. Count+total: progress_current and progress_total set, percent auto-computed
+    progress_percent = Column(Float, nullable=True)  # Progress 0.0-1.0
+    progress_current = Column(Integer, nullable=True)  # Current iteration count
+    progress_total = Column(Integer, nullable=True)  # Total iterations (if known)
     # Abort handling: null=pending/finished, false=in_progress no handler,
     # true=has abort handler
     is_abortable = Column(Boolean, nullable=True)
@@ -303,7 +309,9 @@ class Task(CoreTask, AuditMixinNullable, Model):
             "database_id": self.database_id,
             "error_message": self.error_message,
             "payload": self.get_payload(),
-            "progress": self.progress,
+            "progress_percent": self.progress_percent,
+            "progress_current": self.progress_current,
+            "progress_total": self.progress_total,
             "duration_seconds": self.duration_seconds,
             "is_finished": self.is_finished,
             "is_successful": self.is_successful,

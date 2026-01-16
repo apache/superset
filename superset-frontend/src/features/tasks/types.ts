@@ -62,7 +62,9 @@ export interface Task {
   database_id: number | null;
   error_message: string | null;
   payload: Record<string, any>;
-  progress: number | null;
+  progress_percent: number | null;
+  progress_current: number | null;
+  progress_total: number | null;
   duration_seconds: number | null;
   is_finished: boolean;
   is_successful: boolean;

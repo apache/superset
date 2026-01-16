@@ -389,7 +389,9 @@ class Task(CoreModel):
     database_id: int | None
     error_message: str | None
     payload: str  # JSON serialized data
-    progress: float | None  # Progress 0.0-1.0, null by default
+    progress_percent: float | None  # Progress percentage 0.0-1.0, null by default
+    progress_current: int | None  # Current item count, null by default
+    progress_total: int | None  # Total item count, null by default
 
     def get_payload(self) -> dict[str, Any]:
         """

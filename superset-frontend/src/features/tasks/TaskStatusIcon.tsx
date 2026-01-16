@@ -21,6 +21,7 @@ import { useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components';
 import { TaskStatus } from './types';
+import { formatProgressTooltip } from './timeUtils';
 
 function getStatusColor(status: TaskStatus, theme: SupersetTheme): string {
   switch (status) {
@@ -61,21 +62,34 @@ const statusLabels = {
 
 interface TaskStatusIconProps {
   status: TaskStatus;
-  progress?: number | null;
+  progressPercent?: number | null;
+  progressCurrent?: number | null;
+  progressTotal?: number | null;
+  durationSeconds?: number | null;
 }
 
 export default function TaskStatusIcon({
   status,
-  progress,
+  progressPercent,
+  progressCurrent,
+  progressTotal,
+  durationSeconds,
 }: TaskStatusIconProps) {
   const theme = useTheme();
   const IconComponent = statusIcons[status];
   const label = statusLabels[status];
 
-  // Add progress to tooltip if available
+  // Build progress tooltip text based on available data
+  // Duration is shown separately in the table, so we only include ETA here
   const tooltipText =
-    progress !== null && progress !== undefined
-      ? `${label}: ${Math.round(progress * 100)}%`
+    status === TaskStatus.InProgress || status === TaskStatus.Aborting
+      ? formatProgressTooltip(
+          label,
+          progressCurrent,
+          progressTotal,
+          progressPercent,
+          durationSeconds,
+        )
       : label;
 
   // Spin for in-progress and aborting states

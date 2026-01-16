@@ -423,7 +423,7 @@ class TaskDAO(BaseDAO[Task]):
 
     @classmethod
     @transaction()
-    def remove_subscriber(cls, task_id: int, user_id: int) -> bool:
+    def remove_subscriber(cls, task_id: int, user_id: int) -> bool:  # noqa: C901
         """
         Remove a user's subscription from a task.
 
@@ -448,6 +448,7 @@ class TaskDAO(BaseDAO[Task]):
 
         try:
             db.session.delete(subscription)
+            db.session.flush()
 
             # Check if this was the last subscriber for a shared task
             remaining_count = (
@@ -464,15 +465,55 @@ class TaskDAO(BaseDAO[Task]):
                         TaskStatus.PENDING.value,
                         TaskStatus.IN_PROGRESS.value,
                     ]:
-                        task.set_status(TaskStatus.ABORTED.value)
-                        logger.info(
-                            "Auto-aborted shared task %s (last subscriber removed)",
-                            task.uuid,
+                        # Use abort_task to properly handle the abort flow:
+                        # - PENDING tasks go directly to ABORTED
+                        # - IN_PROGRESS tasks go to ABORTING and get notified
+                        from superset.commands.tasks.exceptions import (
+                            TaskNotAbortableError,
                         )
+
+                        try:
+                            # PENDING: Go directly to ABORTED
+                            if task.status == TaskStatus.PENDING.value:
+                                task.set_status(TaskStatus.ABORTED)
+                                logger.info(
+                                    "Auto-aborted pending shared task %s "
+                                    "(last subscriber removed)",
+                                    task.uuid,
+                                )
+                            # IN_PROGRESS: Check if abortable, go to ABORTING
+                            elif task.status == TaskStatus.IN_PROGRESS.value:
+                                if task.is_abortable is True:
+                                    task.status = TaskStatus.ABORTING.value
+                                    db.session.merge(task)
+                                    logger.info(
+                                        "Set shared task %s to ABORTING "
+                                        "(last subscriber removed)",
+                                        task.uuid,
+                                    )
+
+                                    # Publish abort notification
+                                    from superset.tasks.manager import TaskManager
+
+                                    TaskManager.publish_abort(task.uuid)
+                                else:
+                                    logger.warning(
+                                        "Cannot auto-abort shared task %s - "
+                                        "task is in progress but not abortable",
+                                        task.uuid,
+                                    )
+                        except TaskNotAbortableError as ex:
+                            logger.warning(
+                                "Cannot auto-abort shared task %s: %s",
+                                task.uuid,
+                                str(ex),
+                            )
 
             logger.info("Removed subscriber %s from task %s", user_id, task_id)
             return True
 
+        except DAODeleteFailedError:
+            raise
         except Exception as ex:
             raise DAODeleteFailedError(
                 f"Failed to remove subscription for task {task_id}, user {user_id}"
