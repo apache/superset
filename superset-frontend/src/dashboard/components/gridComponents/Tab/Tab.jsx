@@ -115,8 +115,11 @@ const TitleDropIndicator = styled.div`
   }
 `;
 
-const renderDraggableContent = dropProps =>
-  dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
+const renderDraggableContent = dropProps => {
+  return (
+    dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />
+  );
+};
 
 const Tab = props => {
   const dispatch = useDispatch();
@@ -213,6 +216,46 @@ const Tab = props => {
 
   const shouldDropToChild = useCallback(item => item.type !== TAB_TYPE, []);
 
+  const renderDropableEmptyState = dropProps => {
+    return (
+      <EmptyState
+        title={
+          props.editMode
+            ? t('Drag and drop components to this tab')
+            : t('There are no components added to this tab')
+        }
+        description={
+          canEdit &&
+          (props.editMode ? (
+            <span>
+              {t('You can')}{' '}
+              <a
+                href={`/chart/add?dashboard_id=${props.dashboardId}`}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {t('create a new chart')}
+              </a>{' '}
+              {t('or use existing ones from the panel on the right')}
+            </span>
+          ) : (
+            <span>
+              {t('You can add the components in the')}{' '}
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={() => dispatch(setEditMode(true))}
+              >
+                {t('edit mode')}
+              </span>
+            </span>
+          ))
+        }
+        image="chart.svg"
+      />
+    );
+  };
+
   const renderTabContent = useCallback(() => {
     const {
       component: tabComponent,
@@ -253,41 +296,55 @@ const Tab = props => {
           </Droppable>
         )}
         {shouldDisplayEmptyState && (
-          <EmptyState
-            title={
-              editMode
-                ? t('Drag and drop components to this tab')
-                : t('There are no components added to this tab')
-            }
-            description={
-              canEdit &&
-              (editMode ? (
-                <span>
-                  {t('You can')}{' '}
-                  <a
-                    href={`/chart/add?dashboard_id=${dashboardId}`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {t('create a new chart')}
-                  </a>{' '}
-                  {t('or use existing ones from the panel on the right')}
-                </span>
-              ) : (
-                <span>
-                  {t('You can add the components in the')}{' '}
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => dispatch(setEditMode(true))}
-                  >
-                    {t('edit mode')}
-                  </span>
-                </span>
-              ))
-            }
-            image="chart.svg"
-          />
+          <Droppable
+            component={tabComponent}
+            orientation="column"
+            index={editMode ? 1 : 0}
+            depth={depth}
+            onDrop={handleTopDropTargetDrop}
+            editMode={editMode}
+            dropToChild
+          >
+            {() => (
+              <div data-test="emptystate-drop-indicator">
+                <EmptyState
+                  title={
+                    editMode
+                      ? t('Drag and drop components to this tab')
+                      : t('There are no components added to this tab')
+                  }
+                  description={
+                    canEdit &&
+                    (editMode ? (
+                      <span>
+                        {t('You can')}{' '}
+                        <a
+                          href={`/chart/add?dashboard_id=${dashboardId}`}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          {t('create a new chart')}
+                        </a>{' '}
+                        {t('or use existing ones from the panel on the right')}
+                      </span>
+                    ) : (
+                      <span>
+                        {t('You can add the components in the')}{' '}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => dispatch(setEditMode(true))}
+                        >
+                          {t('edit mode')}
+                        </span>
+                      </span>
+                    ))
+                  }
+                  image="chart.svg"
+                />
+              </div>
+            )}
+          </Droppable>
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
           <Fragment key={componentId}>

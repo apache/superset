@@ -403,6 +403,7 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
       },
     },
   });
+  expect(screen.queryByTestId('emptystate-drop-indicator')).toBeInTheDocument();
   expect(
     screen.getByText('Drag and drop components to this tab'),
   ).toBeVisible();
