@@ -116,11 +116,8 @@ const TitleDropIndicator = styled.div`
   }
 `;
 
-const renderDraggableContent = dropProps => {
-  return (
-    dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />
-  );
-};
+const renderDraggableContent = dropProps =>
+  dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
 
 const Tab = props => {
   const dispatch = useDispatch();
@@ -279,13 +276,13 @@ const Tab = props => {
                     (editMode ? (
                       <span>
                         {t('You can')}{' '}
-                        <Link
-                          to={`/chart/add?dashboard_id=${dashboardId}`}
+                        <a
+                          href={`/chart/add?dashboard_id=${dashboardId}`}
                           rel="noopener noreferrer"
                           target="_blank"
                         >
                           {t('create a new chart')}
-                        </Link>{' '}
+                        </a>{' '}
                         {t('or use existing ones from the panel on the right')}
                       </span>
                     ) : (
