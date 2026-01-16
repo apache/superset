@@ -18,11 +18,12 @@
 import logging
 import re
 from re import Pattern
-from typing import Any, Optional, Union
+from typing import Any
 from urllib import parse
 
 from flask_babel import gettext as __
 from sqlalchemy import Float, Integer, Numeric, types
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
 
@@ -30,6 +31,8 @@ from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.utils.core import GenericDataType
+
+DEFAULT_CATALOG = "default_catalog"
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
@@ -68,7 +71,7 @@ class ARRAY(TypeEngine):
     __visit_name__ = "ARRAY"
 
     @property
-    def python_type(self) -> Optional[type[list[Any]]]:
+    def python_type(self) -> type[list[Any]] | None:
         return list
 
 
@@ -76,7 +79,7 @@ class MAP(TypeEngine):
     __visit_name__ = "MAP"
 
     @property
-    def python_type(self) -> Optional[type[dict[Any, Any]]]:
+    def python_type(self) -> type[dict[Any, Any]] | None:
         return dict
 
 
@@ -84,7 +87,7 @@ class STRUCT(TypeEngine):
     __visit_name__ = "STRUCT"
 
     @property
-    def python_type(self) -> Optional[type[Any]]:
+    def python_type(self) -> type[Any] | None:
         return None
 
 
@@ -93,9 +96,9 @@ class StarRocksEngineSpec(MySQLEngineSpec):
     engine_name = "StarRocks"
 
     default_driver = "starrocks"
-    sqlalchemy_uri_placeholder = (
-        "starrocks://user:password@host:port/catalog.db[?key=value&key=value...]"
-    )
+    sqlalchemy_uri_placeholder = "starrocks://user:password@host:port[/catalog.db]"
+    supports_dynamic_schema = True
+    supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
 
     column_type_mappings = (  # type: ignore
         (
@@ -168,17 +171,39 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         cls,
         uri: URL,
         connect_args: dict[str, Any],
-        catalog: Optional[str] = None,
-        schema: Optional[str] = None,
+        catalog: str | None = None,
+        schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
-        database = uri.database
-        if schema and database:
+        """
+        Adjust engine parameters for StarRocks catalog and schema support.
+
+        StarRocks uses a "catalog.schema" format in the database field:
+        - "catalog.schema" - both specified
+        - "catalog." - catalog only (for browsing schemas)
+        - None - neither specified
+        """
+        if uri.database and "." in uri.database:
+            current_catalog, current_schema = uri.database.split(".", 1)
+        elif uri.database:
+            current_catalog, current_schema = uri.database, None
+        else:
+            current_catalog, current_schema = None, None
+
+        if schema:
             schema = parse.quote(schema, safe="")
-            if "." in database:
-                database = database.split(".")[0] + "." + schema
-            else:
-                database = "default_catalog." + schema
-            uri = uri.set(database=database)
+
+        effective_catalog = catalog or current_catalog or DEFAULT_CATALOG
+        # only use the schema/db from uri if we're not overriding catalog
+        effective_schema = schema
+        if not effective_schema and (not catalog or catalog == current_catalog):
+            effective_schema = current_schema
+
+        if effective_schema:
+            adjusted_database = f"{effective_catalog}.{effective_schema}"
+        else:
+            adjusted_database = f"{effective_catalog}."
+
+        uri = uri.set(database=adjusted_database)
 
         return uri, connect_args
 
@@ -187,21 +212,87 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         cls,
         sqlalchemy_uri: URL,
         connect_args: dict[str, Any],
-    ) -> Optional[str]:
+    ) -> str | None:
         """
-        Return the configured schema.
+        Extract schema from engine parameters.
 
-        For StarRocks the SQLAlchemy URI looks like this:
-
-            starrocks://localhost:9030/catalog.schema
-
+        Returns the schema portion from formats like:
+        - "catalog.schema" -> "schema"
+        - "schema" -> None (ambiguous - could be catalog or schema)
+        - "" or None -> None
         """
-        database = sqlalchemy_uri.database.strip("/")
-
-        if "." not in database:
+        if not sqlalchemy_uri.database:
             return None
 
-        return parse.unquote(database.split(".")[1])
+        database = sqlalchemy_uri.database.strip("/")
+        if not database or "." not in database:
+            return None
+
+        schema = database.split(".")[-1]
+        return parse.unquote(schema)
+
+    @classmethod
+    def get_default_catalog(cls, database: Database) -> str:
+        """
+        Return the default catalog.
+
+        Extracts catalog from URI (e.g., "iceberg" from "iceberg.schema"),
+        otherwise returns DEFAULT_CATALOG.
+        """
+        if database.url_object.database and "." in database.url_object.database:
+            return database.url_object.database.split(".")[0]
+
+        return DEFAULT_CATALOG
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> set[str]:
+        """
+        Get all available catalogs.
+
+        Executes SHOW CATALOGS and extracts catalog names from the result.
+        The command returns columns: Catalog, Type, Comment
+        """
+        try:
+            result = inspector.bind.execute("SHOW CATALOGS")
+            catalogs = set()
+
+            for row in result:
+                try:
+                    if hasattr(row, "keys") and "Catalog" in row.keys():
+                        catalogs.add(row["Catalog"])
+                    elif hasattr(row, "Catalog"):
+                        catalogs.add(row.Catalog)
+                    else:
+                        catalogs.add(row[0])
+                except (AttributeError, TypeError, IndexError, KeyError) as ex:
+                    logger.warning(
+                        "Unable to extract catalog name from row: %s (%s)", row, ex
+                    )
+                    continue
+
+            return catalogs
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception("Error fetching catalog names from SHOW CATALOGS: %s", ex)
+            return set()
+
+    @classmethod
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
+        """
+        Get all schemas/databases using SHOW DATABASES.
+
+        The catalog context is set via the database field in the connection URL
+        (e.g., "catalog." sets the context to that catalog).
+        """
+        try:
+            result = inspector.bind.execute("SHOW DATABASES")
+            return {row[0] for row in result}
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception("Error fetching schema names from SHOW DATABASES: %s", ex)
+            return set()
 
     @classmethod
     def impersonate_user(
@@ -225,21 +316,13 @@ class StarRocksEngineSpec(MySQLEngineSpec):
     def get_prequeries(
         cls,
         database: Database,
-        catalog: Union[str, None] = None,
-        schema: Union[str, None] = None,
+        catalog: str | None = None,
+        schema: str | None = None,
     ) -> list[str]:
         """
-        Return pre-session queries.
+        Get pre-session queries.
 
-        These are currently used as an alternative to ``adjust_engine_params`` for
-        databases where the selected schema cannot be specified in the SQLAlchemy URI or
-        connection arguments.
-
-        For example, in order to specify a default schema in RDS we need to run a query
-        at the beginning of the session:
-
-            sql> set search_path = my_schema;
-
+        For StarRocks with user impersonation enabled, returns an EXECUTE AS statement.
         """
         if database.impersonate_user:
             username = database.get_effective_user(database.url_object)

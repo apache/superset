@@ -77,9 +77,15 @@ import {
   TimeColumnFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
+import {
+  ChartCustomizationTimeGrainPlugin,
+  ChartCustomizationDynamicGroupBy,
+  ChartCustomizationTimeColumnPlugin,
+  DeckglLayerVisibilityCustomizationPlugin,
+} from 'src/chartCustomizations/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
-import { FilterPlugins } from 'src/constants';
+import { ChartCustomizationPlugins, FilterPlugins } from 'src/constants';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
 
@@ -173,6 +179,18 @@ export default class MainPreset extends Preset {
         }),
         new TimeGrainFilterPlugin().configure({
           key: FilterPlugins.TimeGrain,
+        }),
+        new ChartCustomizationTimeGrainPlugin().configure({
+          key: ChartCustomizationPlugins.TimeGrain,
+        }),
+        new ChartCustomizationTimeColumnPlugin().configure({
+          key: ChartCustomizationPlugins.TimeColumn,
+        }),
+        new ChartCustomizationDynamicGroupBy().configure({
+          key: ChartCustomizationPlugins.DynamicGroupBy,
+        }),
+        new DeckglLayerVisibilityCustomizationPlugin().configure({
+          key: ChartCustomizationPlugins.DeckglLayerVisibility,
         }),
         new EchartsTreeChartPlugin().configure({ key: VizType.Tree }),
         new EchartsSunburstChartPlugin().configure({ key: VizType.Sunburst }),

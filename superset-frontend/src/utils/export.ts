@@ -20,7 +20,6 @@ import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
 import rison from 'rison';
 import contentDisposition from 'content-disposition';
-import { ensureAppRoot } from './pathUtils';
 
 // Maximum blob size for in-memory downloads (100MB)
 const MAX_BLOB_SIZE = 100 * 1024 * 1024;
@@ -50,9 +49,7 @@ export default async function handleResourceExport(
   ids: number[],
   done: () => void,
 ): Promise<void> {
-  const endpoint = ensureAppRoot(
-    `/api/v1/${resource}/export/?q=${rison.encode(ids)}`,
-  );
+  const endpoint = `/api/v1/${resource}/export/?q=${rison.encode(ids)}`;
 
   try {
     // Use fetch with blob response instead of iframe to avoid CSP frame-src violations

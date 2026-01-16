@@ -79,7 +79,7 @@ def test_get_column_spec(
         (
             "starrocks://user:password@host/db1",
             {"param1": "some_value"},
-            "db1",
+            "db1.",  # Single value is treated as schema (in default catalog)
             {"param1": "some_value"},
         ),
         (
@@ -88,12 +88,18 @@ def test_get_column_spec(
             "catalog1.db1",
             {"param1": "some_value"},
         ),
+        (
+            "starrocks://user:password@host",
+            {"param1": "some_value"},
+            "default_catalog.",
+            {"param1": "some_value"},
+        ),
     ],
 )
 def test_adjust_engine_params(
     sqlalchemy_uri: str,
     connect_args: dict[str, Any],
-    return_schema: str,
+    return_schema: Optional[str],
     return_connect_args: dict[str, Any],
 ) -> None:
     from superset.db_engine_specs.starrocks import StarRocksEngineSpec
@@ -112,6 +118,7 @@ def test_get_schema_from_engine_params() -> None:
     """
     from superset.db_engine_specs.starrocks import StarRocksEngineSpec
 
+    # With catalog.schema format
     assert (
         StarRocksEngineSpec.get_schema_from_engine_params(
             make_url("starrocks://localhost:9030/hive.default"),
@@ -120,9 +127,19 @@ def test_get_schema_from_engine_params() -> None:
         == "default"
     )
 
+    # With only catalog (no schema) - should return None
     assert (
         StarRocksEngineSpec.get_schema_from_engine_params(
-            make_url("starrocks://localhost:9030/hive"),
+            make_url("starrocks://localhost:9030/sales"),
+            {},
+        )
+        is None
+    )
+
+    # With no database - should return None
+    assert (
+        StarRocksEngineSpec.get_schema_from_engine_params(
+            make_url("starrocks://localhost:9030"),
             {},
         )
         is None
@@ -173,3 +190,96 @@ def test_impersonation_disabled(mocker: MockerFixture) -> None:
     ) == (make_url("starrocks://service_user@localhost:9030/hive.default"), {})
 
     assert StarRocksEngineSpec.get_prequeries(database) == []
+
+
+def test_get_default_catalog(mocker: MockerFixture) -> None:
+    """
+    Test the ``get_default_catalog`` method.
+    """
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    # Test case 1: Catalog is in the URI
+    database = mocker.MagicMock()
+    database.url_object.database = "hive.default"
+
+    assert StarRocksEngineSpec.get_default_catalog(database) == "hive"
+
+    # Test case 2: Catalog is not in the URI, returns default
+    database = mocker.MagicMock()
+    database.url_object.database = "default"
+
+    assert StarRocksEngineSpec.get_default_catalog(database) == "default_catalog"
+
+
+def test_get_catalog_names(mocker: MockerFixture) -> None:
+    """
+    Test the ``get_catalog_names`` method.
+    """
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    database = mocker.MagicMock()
+    inspector = mocker.MagicMock()
+
+    # Mock the actual StarRocks SHOW CATALOGS format
+    # StarRocks returns rows with keys: ['Catalog', 'Type', 'Comment']
+    mock_row_1 = mocker.MagicMock()
+    mock_row_1.keys.return_value = ["Catalog", "Type", "Comment"]
+    mock_row_1.__getitem__ = (
+        lambda self, key: "default_catalog" if key == "Catalog" else None
+    )
+
+    mock_row_2 = mocker.MagicMock()
+    mock_row_2.keys.return_value = ["Catalog", "Type", "Comment"]
+    mock_row_2.__getitem__ = lambda self, key: "hive" if key == "Catalog" else None
+
+    mock_row_3 = mocker.MagicMock()
+    mock_row_3.keys.return_value = ["Catalog", "Type", "Comment"]
+    mock_row_3.__getitem__ = lambda self, key: "iceberg" if key == "Catalog" else None
+
+    inspector.bind.execute.return_value = [mock_row_1, mock_row_2, mock_row_3]
+
+    catalogs = StarRocksEngineSpec.get_catalog_names(database, inspector)
+    assert catalogs == {"default_catalog", "hive", "iceberg"}
+
+
+@pytest.mark.parametrize(
+    "uri,catalog,schema,expected_database",
+    [
+        # Test with catalog and schema/db in URI
+        ("starrocks://host/hive.sales", None, None, "hive.sales"),
+        # Test overriding catalog
+        ("starrocks://host/hive.sales", "iceberg", None, "iceberg."),
+        # Test overriding schema/db
+        ("starrocks://host/hive.sales", None, "marketing", "hive.marketing"),
+        # Test overriding both
+        ("starrocks://host/hive.sales", "iceberg", "marketing", "iceberg.marketing"),
+        # Test with only catalog in URI (no schema/db), add new schema
+        ("starrocks://host/hive", None, "marketing", "hive.marketing"),
+        # Test with catalog in URI, override catalog
+        ("starrocks://host/hive", "iceberg", None, "iceberg."),
+        # Test with no catalog/database in URI, overriding catalog"
+        ("starrocks://host", "iceberg", None, "iceberg."),
+        # Test with no catalog/database in URI, catalog and schema/db
+        ("starrocks://host", "iceberg", "sales", "iceberg.sales"),
+        # Test with empty database and empty overrides, uses default catalog
+        ("starrocks://host", None, None, "default_catalog."),
+        # Test schema only (no catalog) when URI has no database, uses default_catalog
+        ("starrocks://host", None, "sales", "default_catalog.sales"),
+    ],
+)
+def test_adjust_engine_params_with_catalog(
+    uri: str,
+    catalog: Optional[str],
+    schema: Optional[str],
+    expected_database: Optional[str],
+) -> None:
+    """
+    Test the ``adjust_engine_params`` method with catalog parameter.
+    """
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    url = make_url(uri)
+    returned_url, _ = StarRocksEngineSpec.adjust_engine_params(
+        url, {}, catalog=catalog, schema=schema
+    )
+    assert returned_url.database == expected_database

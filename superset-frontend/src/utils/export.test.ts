@@ -37,6 +37,7 @@ jest.mock('@apache-superset/core', () => ({
 
 jest.mock('content-disposition');
 
+// Default no-op mock for pathUtils; specific tests customize ensureAppRoot to simulate app root prefixing
 jest.mock('./pathUtils', () => ({
   ensureAppRoot: jest.fn((path: string) => path),
 }));
@@ -400,3 +401,53 @@ test('handles export with empty IDs array', async () => {
     }),
   );
 });
+
+const { ensureAppRoot } = jest.requireMock('./pathUtils');
+
+const doublePrefixTestCases = [
+  {
+    name: 'subdirectory prefix',
+    appRoot: '/superset',
+    resource: 'dashboard',
+    ids: [1],
+  },
+  {
+    name: 'subdirectory prefix (dataset)',
+    appRoot: '/superset',
+    resource: 'dataset',
+    ids: [1],
+  },
+  {
+    name: 'nested prefix',
+    appRoot: '/my-app/superset',
+    resource: 'dataset',
+    ids: [1, 2],
+  },
+];
+
+test.each(doublePrefixTestCases)(
+  'handleResourceExport endpoint should not include app prefix: $name',
+  async ({ appRoot, resource, ids }) => {
+    // Simulate real ensureAppRoot behavior: prepend the appRoot
+    (ensureAppRoot as jest.Mock).mockImplementation(
+      (path: string) => `${appRoot}${path}`,
+    );
+
+    const doneMock = jest.fn();
+    await handleResourceExport(resource, ids, doneMock);
+
+    // The endpoint passed to SupersetClient.get should NOT have the appRoot prefix
+    // because SupersetClient.getUrl() adds it when building the full URL.
+    const expectedEndpoint = `/api/v1/${resource}/export/?q=!(${ids.join(',')})`;
+
+    // Explicitly verify no prefix in endpoint - this will fail if ensureAppRoot is used
+    const callArgs = (SupersetClient.get as jest.Mock).mock.calls.slice(
+      -1,
+    )[0][0];
+    expect(callArgs.endpoint).not.toContain(appRoot);
+    expect(callArgs.endpoint).toBe(expectedEndpoint);
+
+    // Reset mock for next test
+    (ensureAppRoot as jest.Mock).mockImplementation((path: string) => path);
+  },
+);

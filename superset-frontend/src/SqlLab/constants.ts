@@ -66,9 +66,10 @@ export const TIME_OPTIONS = [
 ];
 
 // SqlEditor layout constants
-export const SQL_EDITOR_GUTTER_HEIGHT = 4;
+export const SQL_EDITOR_GUTTER_HEIGHT = 5;
 export const SQL_EDITOR_LEFTBAR_WIDTH = 400;
 export const SQL_EDITOR_RIGHTBAR_WIDTH = 400;
+export const SQL_EDITOR_STATUSBAR_HEIGHT = 30;
 export const INITIAL_NORTH_PERCENT = 30;
 export const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
 export const VALIDATION_DEBOUNCE_MS = 600;

@@ -153,6 +153,8 @@ export interface QueryObject
   series_columns?: QueryFormColumn[];
   series_limit?: number;
   series_limit_metric?: Maybe<QueryFormMetric>;
+
+  visible_deckgl_layers?: number[];
 }
 
 export interface QueryContext {

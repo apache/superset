@@ -413,6 +413,11 @@ categories:
       url: https://unvired.com
       contributors: ["@srinisubramanian"]
 
+    - name: UserGuiding
+      url: https://userguiding.com/
+      logo: userguiding.svg
+      contributors: ["@tzercin"]
+
     - name: Virtuoso QA
       url: https://www.virtuosoqa.com
 

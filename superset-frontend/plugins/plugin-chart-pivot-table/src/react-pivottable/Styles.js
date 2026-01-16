@@ -145,7 +145,7 @@ export const Styles = styled.div`
     }
 
     .hoverable:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+      background-color: ${theme.colorFillContentHover};
       cursor: pointer;
     }
   `}

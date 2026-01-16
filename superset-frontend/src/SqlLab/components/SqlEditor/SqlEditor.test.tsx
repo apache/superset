@@ -321,7 +321,7 @@ describe('SqlEditor', () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const { findByText } = setup(updatedProps, store);
-    fireEvent.click(await findByText('LIMIT:'));
+    fireEvent.click(await findByText('Limit'));
     expect(await findByText('10 000')).toBeInTheDocument();
   });
 
@@ -382,8 +382,8 @@ describe('SqlEditor', () => {
           },
         },
       });
-      const { findByText } = setup(mockedProps, store);
-      const button = await findByText('Estimate cost');
+      const { findByLabelText } = setup(mockedProps, store);
+      const button = await findByLabelText('Estimate cost');
       expect(button).toBeInTheDocument();
 
       // click button

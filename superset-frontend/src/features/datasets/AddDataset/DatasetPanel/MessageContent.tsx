@@ -94,7 +94,8 @@ export const MessageContent = (props: MessageContentProps) => {
     <StyledContainer>
       <StyledEmptyState
         image={currentImage}
-        size="large"
+        size="medium"
+        textSize="large"
         title={currentTitle}
         description={currentDescription}
       />

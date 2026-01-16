@@ -42,6 +42,42 @@ const StyledEditableTabs = styled(EditableTabs)`
   height: 100%;
   display: flex;
   flex-direction: column;
+  & .ant-tabs-nav::before {
+    border-color: ${({ theme }) => theme.colorBorder} !important;
+  }
+  & .ant-tabs-nav-add {
+    border-color: ${({ theme }) => theme.colorBorder} !important;
+    height: 34px;
+  }
+  & .ant-tabs-nav-list {
+    align-items: end;
+    padding-top: 1px;
+    column-gap: ${({ theme }) => theme.sizeUnit}px;
+  }
+  & .ant-tabs-tab-active {
+    border-left-color: ${({ theme }) => theme.colorPrimaryActive} !important;
+    border-top-color: ${({ theme }) => theme.colorPrimaryActive} !important;
+    border-right-color: ${({ theme }) => theme.colorPrimaryActive} !important;
+    box-shadow: 0 0 2px ${({ theme }) => theme.colorPrimaryActive} !important;
+    border-top: 2px;
+  }
+  & .ant-tabs-tab {
+    border-radius: 2px 2px 0px 0px !important;
+    padding: ${({ theme }) => theme.sizeUnit}px
+      ${({ theme }) => theme.sizeUnit * 2}px !important;
+    & + .ant-tabs-nav-add {
+      margin-right: ${({ theme }) => theme.sizeUnit * 4}px;
+    }
+    &:not(.ant-tabs-tab-active) {
+      border-color: ${({ theme }) => theme.colorBorder} !important;
+      box-shadow: inset 0 0 1px ${({ theme }) => theme.colorBorder} !important;
+    }
+  }
+  & .ant-tabs-nav-add {
+    border-radius: 2px 2px 0px 0px !important;
+    min-height: auto !important;
+    align-self: flex-end;
+  }
 `;
 
 const StyledTab = styled.span`
@@ -198,14 +234,14 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
         addIcon={
           <Tooltip
             id="add-tab"
-            placement="bottom"
+            placement="left"
             title={
               userOS === 'Windows'
                 ? t('New tab (Ctrl + q)')
                 : t('New tab (Ctrl + t)')
             }
           >
-            <Icons.PlusCircleOutlined
+            <Icons.PlusOutlined
               iconSize="l"
               css={css`
                 vertical-align: middle;

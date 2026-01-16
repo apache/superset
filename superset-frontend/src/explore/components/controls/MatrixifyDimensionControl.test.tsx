@@ -430,3 +430,122 @@ test('should clear values when switching from topn to members mode', async () =>
     });
   });
 });
+
+test('should preserve dimension values when rerendering with same mode', async () => {
+  // Regression test for bug where values disappear on save
+  const onChange = jest.fn();
+  const value: MatrixifyDimensionControlValue = {
+    dimension: 'country',
+    values: ['USA', 'Australia'],
+  };
+
+  (SupersetClient.get as jest.Mock).mockResolvedValue({
+    json: { result: ['USA', 'Canada', 'Australia', 'Mexico'] },
+  });
+
+  const { rerender } = render(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      value={value}
+      onChange={onChange}
+      selectionMode="members"
+    />,
+  );
+
+  // Simulate a rerender that would happen during save
+  rerender(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      value={value}
+      onChange={onChange}
+      selectionMode="members"
+    />,
+  );
+
+  // Values should not be cleared when mode hasn't changed
+  expect(onChange).not.toHaveBeenCalledWith({
+    dimension: 'country',
+    values: [],
+    topNValues: [],
+  });
+
+  // The values should still be present in the UI
+  expect(
+    screen.getByRole('combobox', { name: 'Select dimension values' }),
+  ).toBeInTheDocument();
+});
+
+test('should not clear values on initial render with members mode', async () => {
+  // Regression test: ensure values are not cleared on initial mount
+  const onChange = jest.fn();
+  const value: MatrixifyDimensionControlValue = {
+    dimension: 'country',
+    values: ['USA', 'Australia'],
+  };
+
+  (SupersetClient.get as jest.Mock).mockResolvedValue({
+    json: { result: ['USA', 'Canada', 'Australia', 'Mexico'] },
+  });
+
+  render(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      value={value}
+      onChange={onChange}
+      selectionMode="members"
+    />,
+  );
+
+  // onChange should not be called to clear values on initial render
+  expect(onChange).not.toHaveBeenCalledWith({
+    dimension: 'country',
+    values: [],
+    topNValues: [],
+  });
+
+  // The values selector should be visible
+  expect(
+    screen.getByRole('combobox', { name: 'Select dimension values' }),
+  ).toBeInTheDocument();
+});
+
+test('should preserve values when other props change but mode stays the same', async () => {
+  // Regression test for save scenario where form_data updates trigger rerenders
+  const onChange = jest.fn();
+  const value: MatrixifyDimensionControlValue = {
+    dimension: 'country',
+    values: ['USA', 'Australia'],
+  };
+
+  (SupersetClient.get as jest.Mock).mockResolvedValue({
+    json: { result: ['USA', 'Canada', 'Australia', 'Mexico'] },
+  });
+
+  const { rerender } = render(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      value={value}
+      onChange={onChange}
+      selectionMode="members"
+      formData={{ some_field: 'initial' }}
+    />,
+  );
+
+  // Simulate form_data change (like what happens during save)
+  rerender(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      value={value}
+      onChange={onChange}
+      selectionMode="members"
+      formData={{ some_field: 'updated', another_field: 'new' }}
+    />,
+  );
+
+  // Values should not be cleared when only form_data changes
+  expect(onChange).not.toHaveBeenCalledWith({
+    dimension: 'country',
+    values: [],
+    topNValues: [],
+  });
+});

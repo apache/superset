@@ -190,6 +190,13 @@ export enum FilterPlugins {
   TimeGrain = 'filter_timegrain',
 }
 
+export enum ChartCustomizationPlugins {
+  DynamicGroupBy = 'chart_customization_dynamic_groupby',
+  TimeGrain = 'chart_customization_timegrain',
+  TimeColumn = 'chart_customization_timecolumn',
+  DeckglLayerVisibility = 'chart_customization_deckgl_layer_visibility',
+}
+
 export enum Actions {
   CREATE = 'create',
   UPDATE = 'update',

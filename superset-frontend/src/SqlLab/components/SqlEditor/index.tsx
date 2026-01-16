@@ -51,17 +51,15 @@ import { debounce, isEmpty } from 'lodash';
 import Mousetrap from 'mousetrap';
 import {
   Button,
-  Dropdown,
+  Divider,
   EmptyState,
   Input,
   Modal,
-  Timer,
 } from '@superset-ui/core/components';
 import { Splitter } from 'src/components/Splitter';
 import { Skeleton } from '@superset-ui/core/components/Skeleton';
 import { Switch } from '@superset-ui/core/components/Switch';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
-import { Icons } from '@superset-ui/core/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,
@@ -85,7 +83,6 @@ import {
   switchQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
 import {
-  STATE_TYPE_MAP,
   SQL_EDITOR_GUTTER_HEIGHT,
   INITIAL_NORTH_PERCENT,
   SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
@@ -107,8 +104,6 @@ import {
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
   Logger,
 } from 'src/logger/LogUtils';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
-import { commands } from 'src/core';
 import { CopyToClipboard } from 'src/components';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
@@ -123,6 +118,7 @@ import KeyboardShortcutButton, {
   KEY_MAP,
   KeyboardShortcut,
 } from '../KeyboardShortcutButton';
+import SqlEditorTopBar from '../SqlEditorTopBar';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -166,34 +162,56 @@ const StyledSqlEditor = styled.div`
     height: 100%;
 
     .queryPane {
-      padding: ${theme.sizeUnit * 2}px 0px;
+      padding: 0;
       + .ant-splitter-bar .ant-splitter-bar-dragger {
         &::before {
-          background: transparent;
+          height: 1px;
+          background-color: ${theme.colorBorder};
+          transform: translateX(-50%) !important;
         }
         &::after {
           height: ${SQL_EDITOR_GUTTER_HEIGHT}px;
           background: transparent;
           border-top: 1px solid ${theme.colorBorder};
           border-bottom: 1px solid ${theme.colorBorder};
+          transform: translate(-50%, -2px);
         }
       }
     }
 
     .north-pane {
+      padding: ${theme.sizeUnit * 2}px 0 0 0;
       height: 100%;
       margin: 0 ${theme.sizeUnit * 4}px;
     }
 
-    .SouthPane .ant-tabs-tabpane {
-      margin: 0 ${theme.sizeUnit * 4}px;
-      & .ant-tabs {
-        margin: 0 ${theme.sizeUnit * -4}px;
+    .SouthPane {
+      & .ant-tabs-tabpane {
+        margin: 0 ${theme.sizeUnit * 4}px;
+        & .ant-tabs {
+          margin: 0 ${theme.sizeUnit * -4}px;
+        }
+      }
+      & .ant-tabs-tab {
+        box-shadow: none !important;
+        background: transparent !important;
+        border-color: transparent !important;
+        margin-top: ${theme.sizeUnit * 2}px !important;
+        &.ant-tabs-tab-active {
+          border-bottom-color: ${theme.colorPrimary} !important;
+          & .ant-tabs-tab-btn {
+            font-weight: ${theme.fontWeightStrong};
+            color: ${theme.colorTextBase} !important;
+            text-shadow: none !important;
+          }
+        }
       }
     }
 
     .sql-container {
       flex: 1 1 auto;
+      margin: 0 ${theme.sizeUnit * -4}px;
+      box-shadow: 0 0 0 1px ${theme.colorBorder};
     }
   `}
 `;
@@ -615,29 +633,12 @@ const SqlEditor: FC<Props> = ({
     setCtas(event.target.value);
   };
 
-  const renderDropdown = () => {
+  const getSecondaryMenuItems = () => {
     const qe = queryEditor;
     const successful = latestQuery?.state === 'success';
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
-
-    const contributions =
-      ExtensionsManager.getInstance().getMenuContributions('sqllab.editor');
-
-    const secondaryContributions = (contributions?.secondary || []).map(
-      contribution => {
-        const command = ExtensionsManager.getInstance().getCommandContribution(
-          contribution.command,
-        )!;
-        return {
-          key: command.command,
-          label: command.title,
-          title: command.description,
-          onClick: () => commands.executeCommand(command.command),
-        };
-      },
-    );
 
     const menuItems: MenuItemType[] = [
       {
@@ -710,10 +711,9 @@ const SqlEditor: FC<Props> = ({
           </KeyboardShortcutButton>
         ),
       },
-      ...secondaryContributions,
     ].filter(Boolean) as MenuItemType[];
 
-    return <Menu css={{ width: theme.sizeUnit * 50 }} items={menuItems} />;
+    return menuItems;
   };
 
   const onSaveQuery = async (query: QueryPayload, clientId: string) => {
@@ -721,34 +721,8 @@ const SqlEditor: FC<Props> = ({
     dispatch(addSavedQueryToTabState(queryEditor, savedQuery));
   };
 
-  const renderEditorBottomBar = (hideActions: boolean) => {
+  const renderEditorPrimaryAction = () => {
     const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } = database || {};
-
-    const contributions =
-      ExtensionsManager.getInstance().getMenuContributions('sqllab.editor');
-
-    const primaryContributions = (contributions?.primary || []).map(
-      contribution => {
-        const command = ExtensionsManager.getInstance().getCommandContribution(
-          contribution.command,
-        )!;
-        // @ts-ignore
-        const Icon = Icons[command?.icon as IconNameType];
-
-        return (
-          <Button
-            key={contribution.view}
-            onClick={() => commands.executeCommand(command.command)}
-            tooltip={command?.description}
-            icon={<Icon iconSize="m" iconColor={theme.colorPrimary} />}
-            buttonSize="small"
-          >
-            {command?.title}
-          </Button>
-        );
-      },
-    );
-
     const showMenu = allowCTAS || allowCVAS;
     const menuItems: MenuItemType[] = [
       allowCTAS && {
@@ -778,92 +752,61 @@ const SqlEditor: FC<Props> = ({
     const runMenuBtn = <Menu items={menuItems} />;
 
     return (
-      <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
-        {hideActions ? (
-          <Alert
-            type="warning"
-            message={t(
-              'The database that was used to generate this query could not be found',
-            )}
-            description={t(
-              'Choose one of the available databases on the left panel.',
-            )}
-            closable={false}
+      <>
+        <RunQueryActionButton
+          queryEditorId={queryEditor.id}
+          queryState={latestQuery?.state}
+          runQuery={runQuery}
+          stopQuery={stopQuery}
+          overlayCreateAsMenu={showMenu ? runMenuBtn : null}
+        />
+        <span>
+          <QueryLimitSelect
+            queryEditorId={queryEditor.id}
+            maxRow={maxRow}
+            defaultQueryLimit={defaultQueryLimit}
           />
-        ) : (
-          <>
-            <div className="leftItems">
-              <span>
-                <RunQueryActionButton
-                  allowAsync={database?.allow_run_async === true}
-                  queryEditorId={queryEditor.id}
-                  queryState={latestQuery?.state}
-                  runQuery={runQuery}
-                  stopQuery={stopQuery}
-                  overlayCreateAsMenu={showMenu ? runMenuBtn : null}
-                />
-              </span>
-              {isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
-                database?.allows_cost_estimate && (
-                  <span>
-                    <EstimateQueryCostButton
-                      getEstimate={getQueryCostEstimate}
-                      queryEditorId={queryEditor.id}
-                      tooltip={t('Estimate the cost before running a query')}
-                    />
-                  </span>
-                )}
-              <span>
-                <QueryLimitSelect
-                  queryEditorId={queryEditor.id}
-                  maxRow={maxRow}
-                  defaultQueryLimit={defaultQueryLimit}
-                />
-              </span>
-              {latestQuery && (
-                <Timer
-                  startTime={latestQuery.startDttm}
-                  endTime={latestQuery.endDttm}
-                  status={STATE_TYPE_MAP[latestQuery.state]}
-                  isRunning={latestQuery.state === 'running'}
-                />
-              )}
-            </div>
-            <div className="rightItems">
-              <span>
-                <SaveQuery
-                  queryEditorId={queryEditor.id}
-                  columns={latestQuery?.results?.columns || []}
-                  onSave={onSaveQuery}
-                  onUpdate={(query, remoteId) =>
-                    dispatch(updateSavedQuery(query, remoteId))
-                  }
-                  saveQueryWarning={saveQueryWarning}
-                  database={database}
-                />
-              </span>
-              <span>
-                <ShareSqlLabQuery queryEditorId={queryEditor.id} />
-              </span>
-              <div>{primaryContributions}</div>
-              <Dropdown
-                popupRender={() => renderDropdown()}
-                trigger={['click']}
-              >
-                <Button
-                  buttonSize="xsmall"
-                  showMarginRight={false}
-                  buttonStyle="link"
-                >
-                  <Icons.EllipsisOutlined />
-                </Button>
-              </Dropdown>
-            </div>
-          </>
-        )}
-      </StyledToolbar>
+        </span>
+        <Divider type="vertical" />
+        {isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
+          database?.allows_cost_estimate && (
+            <span>
+              <EstimateQueryCostButton
+                getEstimate={getQueryCostEstimate}
+                queryEditorId={queryEditor.id}
+                tooltip={t('Estimate the cost before running a query')}
+              />
+            </span>
+          )}
+        <SaveQuery
+          queryEditorId={queryEditor.id}
+          columns={latestQuery?.results?.columns || []}
+          onSave={onSaveQuery}
+          onUpdate={(query, remoteId) =>
+            dispatch(updateSavedQuery(query, remoteId))
+          }
+          saveQueryWarning={saveQueryWarning}
+          database={database}
+        />
+        <ShareSqlLabQuery queryEditorId={queryEditor.id} />
+      </>
     );
   };
+
+  const renderEmptyAlert = () => (
+    <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
+      <Alert
+        type="warning"
+        message={t(
+          'The database that was used to generate this query could not be found',
+        )}
+        description={t(
+          'Choose one of the available databases on the left panel.',
+        )}
+        closable={false}
+      />
+    </StyledToolbar>
+  );
 
   const handleCursorPositionChange = (newPosition: CursorPosition) => {
     dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
@@ -950,13 +893,13 @@ const SqlEditor: FC<Props> = ({
         className="queryPane"
       >
         <div className="north-pane">
-          {SqlFormExtension && (
-            <SqlFormExtension
+          {showEmptyState ? (
+            renderEmptyAlert()
+          ) : (
+            <SqlEditorTopBar
               queryEditorId={queryEditor.id}
-              setQueryEditorAndSaveSqlWithDebounce={
-                setQueryEditorAndSaveSqlWithDebounce
-              }
-              startQuery={startQuery}
+              defaultPrimaryActions={renderEditorPrimaryAction()}
+              defaultSecondaryActions={getSecondaryMenuItems()}
             />
           )}
           {queryEditor.isDataset && renderDatasetWarning()}
@@ -977,7 +920,15 @@ const SqlEditor: FC<Props> = ({
               }
             </AutoSizer>
           </div>
-          {renderEditorBottomBar(showEmptyState)}
+          {SqlFormExtension && (
+            <SqlFormExtension
+              queryEditorId={queryEditor.id}
+              setQueryEditorAndSaveSqlWithDebounce={
+                setQueryEditorAndSaveSqlWithDebounce
+              }
+              startQuery={startQuery}
+            />
+          )}
         </div>
       </Splitter.Panel>
       <Splitter.Panel className="queryPane">
