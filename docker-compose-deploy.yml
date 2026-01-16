@@ -1,8 +1,7 @@
 # Docker Compose for Superset Deployment
 # This file is used by Azure DevOps pipeline for production deployments
 
-x-superset-volumes:
-  &superset-volumes
+x-superset-volumes: &superset-volumes
   - superset_home:/app/superset_home
 
 services:
@@ -23,25 +22,24 @@ services:
   db:
     image: postgres:17.4
     container_name: superset_db
-    env_file:
-      - path: docker/.env 
-        required: true
     shm_size: 1g
     user: postgres
     restart: unless-stopped
     networks:
       - superset-network
+    env_file:
+      - .env.deploy
     volumes:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-superset} --dbname=${POSTGRES_DB:-superset}"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER --dbname=$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   superset:
-    image: ${SUPERSET_IMAGE:-intellisuite.azurecr.io/superset:latest}
+    image: ${SUPERSET_IMAGE}
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
     user: "root"
@@ -50,49 +48,46 @@ services:
       - superset-network
       - oeeintellisuite
     ports:
-      - "${SUPERSET_PORT:-8088}:8088"
-    env_file:                           
-      - path: docker/.env               
-        required: true  
+      - "${SUPERSET_PORT}:5760"
+    env_file:
+      - .env.deploy
     environment:
-      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
     depends_on:
       superset-init:
         condition: service_completed_successfully
     volumes: *superset-volumes
 
   superset-init:
-    image: ${SUPERSET_IMAGE:-intellisuite.azurecr.io/superset:latest}
+    image: ${SUPERSET_IMAGE}
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
     user: "root"
     networks:
       - superset-network
       - oeeintellisuite
-    env_file:                           
-      - path: docker/.env               
-        required: true  
+    env_file:
+      - .env.deploy
     environment:
-      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
     depends_on:
       redis:
         condition: service_healthy
     volumes: *superset-volumes
     healthcheck:
       disable: true
-      
+
 networks:
   superset-network:
-    name: ${DOCKER_NETWORK:-superset-network}
+    name: ${DOCKER_NETWORK}
     external: false
+
   oeeintellisuite:
     name: oeeintellisuite
     external: true
 
 volumes:
   superset_home:
-    external: false
   db_home:
-    external: false
   redis:
-    external: false
+
