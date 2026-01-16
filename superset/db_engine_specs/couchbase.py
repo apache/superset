@@ -102,6 +102,7 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
             "password": "Couchbase password",
             "host": "Couchbase host or connection string for cloud",
             "port": "Couchbase port (default 8091)",
+            "database": "Couchbase database/bucket name",
         },
         "drivers": [
             {

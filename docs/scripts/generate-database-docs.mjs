@@ -141,15 +141,23 @@ def eval_node(node):
 databases = {}
 specs_dir = 'superset/db_engine_specs'
 errors = []
+debug_info = {
+    "cwd": os.getcwd(),
+    "specs_dir_exists": os.path.isdir(specs_dir),
+    "files_checked": 0,
+    "classes_found": 0,
+    "classes_with_metadata": 0,
+}
 
 if not os.path.isdir(specs_dir):
-    print(json.dumps({"error": f"Directory not found: {specs_dir}"}))
+    print(json.dumps({"error": f"Directory not found: {specs_dir}", "cwd": os.getcwd()}))
     sys.exit(1)
 
 for filename in sorted(os.listdir(specs_dir)):
     if not filename.endswith('.py') or filename in ('__init__.py', 'base.py', 'lib.py', 'lint_metadata.py'):
         continue
 
+    debug_info["files_checked"] += 1
     filepath = os.path.join(specs_dir, filename)
     try:
         with open(filepath) as f:
@@ -176,6 +184,7 @@ for filename in sorted(os.listdir(specs_dir)):
             if node.name.endswith('BaseEngineSpec') or 'Mixin' in node.name:
                 continue
 
+            debug_info["classes_found"] += 1
             engine_name = None
             metadata = None
 
@@ -194,6 +203,7 @@ for filename in sorted(os.listdir(specs_dir)):
             display_name = engine_name or node.name.replace('EngineSpec', '').replace('_', ' ')
 
             if metadata and isinstance(metadata, dict) and display_name:
+                debug_info["classes_with_metadata"] += 1
                 databases[display_name] = {
                     'engine': display_name.lower().replace(' ', '_'),
                     'engine_name': display_name,
@@ -217,7 +227,10 @@ for filename in sorted(os.listdir(specs_dir)):
         errors.append(f"{filename}: {str(e)}")
 
 if errors and not databases:
-    print(json.dumps({"error": "Parse errors", "details": errors}), file=sys.stderr)
+    print(json.dumps({"error": "Parse errors", "details": errors, "debug": debug_info}), file=sys.stderr)
+
+# Print debug info to stderr for troubleshooting
+print(json.dumps(debug_info), file=sys.stderr)
 
 print(json.dumps(databases, default=str))
 `;
@@ -230,6 +243,10 @@ print(json.dumps(databases, default=str))
 
     if (result.error) {
       throw result.error;
+    }
+    // Log debug info from stderr
+    if (result.stderr) {
+      console.log('Python debug info:', result.stderr.trim());
     }
     if (result.status !== 0) {
       throw new Error(result.stderr || 'Python script failed');
