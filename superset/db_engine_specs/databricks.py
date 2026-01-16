@@ -222,80 +222,17 @@ time_grain_expressions: dict[str | None, str] = {
 
 
 class DatabricksHiveEngineSpec(HiveEngineSpec):
+    """Databricks engine spec using Hive connector for Interactive Clusters."""
+
     engine_name = "Databricks Interactive Cluster"
 
     engine = "databricks"
     drivers = {"pyhive": "Hive driver for Interactive Cluster"}
     default_driver = "pyhive"
 
-    metadata = {
-        "description": (
-            "Databricks is a unified analytics platform built on Apache Spark."
-        ),
-        "logo": "databricks.png",
-        "homepage_url": "https://www.databricks.com/",
-        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
-        "pypi_packages": ["databricks-sql-connector", "sqlalchemy-databricks"],
-        "install_instructions": 'pip install "apache-superset[databricks]"',
-        "connection_string": (
-            "databricks+connector://token:{access_token}@{server_hostname}:{port}"
-            "/{database_name}"
-        ),
-        "parameters": {
-            "server_hostname": (
-                "Found in Configuration -> Advanced Options -> JDBC/ODBC"
-            ),
-            "port": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
-            "http_path": "Found in Configuration -> Advanced Options -> JDBC/ODBC",
-            "access_token": "From Settings -> User Settings -> Access Tokens",
-        },
-        "engine_parameters": [
-            {
-                "name": "HTTP Path (Required)",
-                "description": "Must be specified in Engine Parameters",
-                "json": {"connect_args": {"http_path": "sql/protocolv1/o/****"}},
-            },
-        ],
-        "drivers": [
-            {
-                "name": "Native Connector (Recommended)",
-                "pypi_package": "databricks-sql-connector",
-                "connection_string": (
-                    "databricks+connector://token:{access_token}@{server_hostname}:{port}"
-                    "/{database_name}"
-                ),
-                "is_recommended": True,
-            },
-            {
-                "name": "databricks-dbapi (Legacy)",
-                "pypi_package": "databricks-dbapi[sqlalchemy]",
-                "is_recommended": False,
-                "notes": (
-                    "Older connector. Try if having problems with official connector."
-                ),
-            },
-            {
-                "name": "Hive Connector",
-                "pypi_package": "databricks-dbapi[sqlalchemy]",
-                "connection_string": (
-                    "databricks+pyhive://token:{access_token}@{server_hostname}:{port}"
-                    "/{database_name}"
-                ),
-                "is_recommended": False,
-            },
-            {
-                "name": "ODBC",
-                "pypi_package": "databricks-dbapi[sqlalchemy]",
-                "connection_string": (
-                    "databricks+pyodbc://token:{access_token}@{server_hostname}:{port}"
-                    "/{database_name}"
-                ),
-                "is_recommended": False,
-                "notes": "Requires ODBC drivers. Use for SQL endpoints.",
-                "docs_url": "https://databricks.com/spark/odbc-drivers-download",
-            },
-        ],
-    }
+    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
+    # consolidates all Databricks connection methods. This spec exists for
+    # backwards compatibility with Interactive Cluster connections.
 
     _show_functions_column = "function"
 
@@ -317,27 +254,17 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
 
 
 class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
+    """Databricks engine spec using ODBC driver for SQL Endpoints."""
+
     engine_name = "Databricks SQL Endpoint"
 
     engine = "databricks"
     drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
     default_driver = "pyodbc"
 
-    metadata = {
-        "description": (
-            "Databricks SQL Endpoint connector using ODBC driver for "
-            "serverless SQL warehouses."
-        ),
-        "logo": "databricks.png",
-        "homepage_url": "https://docs.databricks.com/integrations/bi/jdbc-odbc-bi.html",
-        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
-        "pypi_packages": ["databricks-sql-connector"],
-        "connection_string": "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}",
-        "notes": (
-            "Requires ODBC driver installed. Use http_path in engine parameters: "
-            '{"connect_args": {"http_path": "/sql/1.0/endpoints/****"}}'
-        ),
-    }
+    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
+    # consolidates all Databricks connection methods. This spec exists for
+    # backwards compatibility with ODBC connections to SQL Endpoints.
 
 
 class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngineSpec):
@@ -515,6 +442,8 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
 
 class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
+    """Legacy Databricks connector using databricks-dbapi."""
+
     engine = "databricks"
     engine_name = "Databricks (legacy)"
     drivers = {"connector": "Native all-purpose driver"}
@@ -527,23 +456,9 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         "databricks+connector://token:{access_token}@{host}:{port}/{database_name}"
     )
 
-    metadata = {
-        "description": (
-            "Legacy Databricks connector using databricks-dbapi. "
-            "Consider using Databricks Python Connector for new deployments."
-        ),
-        "logo": "databricks.png",
-        "homepage_url": "https://docs.databricks.com/",
-        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
-        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
-        "connection_string": (
-            "databricks+connector://token:{access_token}@{host}:{port}/{database}"
-        ),
-        "notes": (
-            "Requires http_path in engine parameters: "
-            '{"connect_args": {"http_path": "sql/protocolv1/o/****"}}'
-        ),
-    }
+    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
+    # consolidates all Databricks connection methods. This spec exists for
+    # backwards compatibility with legacy databricks-dbapi connections.
     context_key_mapping = {
         **DatabricksDynamicBaseEngineSpec.context_key_mapping,
         "database": "database",
@@ -685,11 +600,12 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
 
     metadata = {
         "description": (
-            "Databricks Python Connector - the recommended driver for connecting "
-            "to Databricks SQL warehouses and clusters."
+            "Databricks is a unified analytics platform built on Apache Spark, "
+            "providing data engineering, data science, and machine learning capabilities "
+            "in the cloud. Use the Python Connector for SQL warehouses and clusters."
         ),
         "logo": "databricks.png",
-        "homepage_url": "https://docs.databricks.com/dev-tools/python-sql-connector.html",
+        "homepage_url": "https://www.databricks.com/",
         "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
         "pypi_packages": ["apache-superset[databricks]"],
         "install_instructions": "pip install apache-superset[databricks]",
@@ -703,6 +619,45 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             "port": "Port (default 443)",
             "http_path": "HTTP path from cluster JDBC/ODBC settings",
         },
+        "drivers": [
+            {
+                "name": "Databricks Python Connector (Recommended)",
+                "pypi_package": "databricks-sql-connector",
+                "connection_string": (
+                    "databricks://token:{access_token}@{host}:{port}"
+                    "?http_path={http_path}&catalog={catalog}&schema={schema}"
+                ),
+                "is_recommended": True,
+                "notes": "Official Databricks connector. Best for SQL warehouses and clusters.",
+            },
+            {
+                "name": "Hive Connector (Interactive Clusters)",
+                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "connection_string": (
+                    "databricks+pyhive://token:{access_token}@{host}:{port}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": "For Interactive Clusters. Requires http_path in engine parameters.",
+            },
+            {
+                "name": "ODBC (SQL Endpoints)",
+                "pypi_package": "pyodbc",
+                "connection_string": (
+                    "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": "Requires ODBC driver. For serverless SQL warehouses.",
+            },
+            {
+                "name": "databricks-dbapi (Legacy)",
+                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "connection_string": (
+                    "databricks+connector://token:{access_token}@{host}:{port}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": "Legacy connector. Use Python Connector for new deployments.",
+            },
+        ],
     }
 
     context_key_mapping = {

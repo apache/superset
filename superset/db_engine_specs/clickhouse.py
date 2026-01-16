@@ -138,41 +138,17 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
 
 class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
-    """Engine spec for clickhouse_sqlalchemy connector"""
+    """Engine spec for clickhouse_sqlalchemy connector (legacy)"""
 
     engine = "clickhouse"
-    engine_name = "ClickHouse"
+    engine_name = "ClickHouse (sqlalchemy)"  # Internal name for legacy connector
 
     _show_functions_column = "name"
     supports_file_upload = False
 
-    metadata = {
-        "description": "ClickHouse is an open-source column-oriented OLAP database.",
-        "logo": "clickhouse.png",
-        "homepage_url": "https://clickhouse.com/",
-        "category": "Analytical Databases",
-        "pypi_packages": ["clickhouse-connect"],
-        "connection_string": (
-            "clickhousedb://{username}:{password}@{hostname}:{port}/{database}"
-        ),
-        "version_requirements": "clickhouse-connect>=0.6.8",
-        "connection_examples": [
-            {
-                "description": "Altinity Cloud",
-                "connection_string": (
-                    "clickhousedb://demo:demo@github.demo.trial.altinity.cloud"
-                    "/default?secure=true"
-                ),
-            },
-            {
-                "description": "Local (no auth, no SSL)",
-                "connection_string": "clickhousedb://localhost/default",
-            },
-        ],
-        "install_instructions": (
-            'echo "clickhouse-connect>=0.6.8" >> ./docker/requirements-local.txt'
-        ),
-    }
+    # Note: Primary metadata is in ClickHouseConnectEngineSpec which consolidates
+    # both drivers. This spec exists for backwards compatibility with existing
+    # connections using the clickhouse-sqlalchemy driver.
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -284,10 +260,10 @@ except ImportError:  # ClickHouse Connect not installed, do nothing
 
 
 class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
-    """Engine spec for clickhouse-connect connector"""
+    """Engine spec for clickhouse-connect connector (recommended)"""
 
     engine = "clickhousedb"
-    engine_name = "ClickHouse Connect (Superset)"
+    engine_name = "ClickHouse"
 
     default_driver = "connect"
     _function_names: list[str] = []
@@ -302,15 +278,52 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
 
     metadata = {
         "description": (
-            "ClickHouse Connect is the official Python driver for ClickHouse, "
-            "recommended for Superset integration."
+            "ClickHouse is an open-source column-oriented database for real-time "
+            "analytics using SQL. It's known for extremely fast query performance "
+            "on large datasets."
         ),
         "logo": "clickhouse.png",
-        "homepage_url": "https://clickhouse.com/docs/en/integrations/python",
+        "homepage_url": "https://clickhouse.com/",
         "category": DatabaseCategory.ANALYTICAL_DATABASES,
         "pypi_packages": ["clickhouse-connect>=0.6.8"],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
+        "drivers": [
+            {
+                "name": "clickhouse-connect (Recommended)",
+                "pypi_package": "clickhouse-connect>=0.6.8",
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "is_recommended": True,
+                "notes": "Official ClickHouse Python driver with native protocol support.",
+            },
+            {
+                "name": "clickhouse-sqlalchemy (Legacy)",
+                "pypi_package": "clickhouse-sqlalchemy",
+                "connection_string": (
+                    "clickhouse://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": "Older driver using HTTP interface. Use clickhouse-connect for new deployments.",
+            },
+        ],
+        "connection_examples": [
+            {
+                "description": "Altinity Cloud",
+                "connection_string": (
+                    "clickhousedb://demo:demo@github.demo.trial.altinity.cloud"
+                    "/default?secure=true"
+                ),
+            },
+            {
+                "description": "Local (no auth, no SSL)",
+                "connection_string": "clickhousedb://localhost/default",
+            },
+        ],
+        "install_instructions": (
+            'echo "clickhouse-connect>=0.6.8" >> ./docker/requirements-local.txt'
+        ),
     }
 
     @classmethod

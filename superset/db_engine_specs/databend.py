@@ -153,45 +153,17 @@ class DatabendBaseEngineSpec(BaseEngineSpec):
 
 
 class DatabendEngineSpec(DatabendBaseEngineSpec):
-    """Engine spec for databend_sqlalchemy connector"""
+    """Engine spec for databend_sqlalchemy connector (legacy)"""
 
     engine = "databend"
-    engine_name = "Databend"
+    engine_name = "Databend (legacy)"  # Internal name for legacy connector
     _function_names: list[str] = []
 
     _show_functions_column = "name"
     supports_file_upload = False
 
-    metadata = {
-        "description": (
-            "Databend is a cloud-native data warehouse with instant elasticity."
-        ),
-        "logo": "databend.png",
-        "homepage_url": "https://www.databend.com/",
-        "category": DatabaseCategory.OTHER,
-        "pypi_packages": ["databend-sqlalchemy"],
-        "connection_string": (
-            "databend://{username}:{password}@{host}:{port}/{database}?secure=true"
-        ),
-        "default_port": 443,
-        "parameters": {
-            "username": "Database username",
-            "password": "Database password",
-            "host": "Databend host",
-            "port": "Databend port (default 443 for HTTPS)",
-            "database": "Database name",
-        },
-        "drivers": [
-            {
-                "name": "databend-sqlalchemy",
-                "pypi_package": "databend-sqlalchemy",
-                "connection_string": (
-                    "databend://{username}:{password}@{host}:{port}/{database}?secure=true"
-                ),
-                "is_recommended": True,
-            },
-        ],
-    }
+    # Note: Primary metadata is in DatabendConnectEngineSpec which provides
+    # the native connection UI. This spec exists for backwards compatibility.
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -240,10 +212,10 @@ class DatabendParametersSchema(Schema):
 
 
 class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
-    """Engine spec for databend sqlalchemy connector"""
+    """Engine spec for databend with native connection UI (recommended)"""
 
     engine = "databend"
-    engine_name = "Databend (Superset)"
+    engine_name = "Databend"
 
     default_driver = "databend"
     _function_names: list[str] = []
@@ -254,14 +226,17 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
     parameters_schema = DatabendParametersSchema()
     encryption_parameters = {"secure": "true"}
 
+    # Note: Inherits metadata from DatabendEngineSpec. This spec provides
+    # the native connection UI experience in Superset.
+
     metadata = {
         "description": (
-            "Databend connector with Superset's native connection UI. "
-            "Databend is a cloud-native data warehouse with instant elasticity."
+            "Databend is a modern cloud-native data warehouse with instant elasticity "
+            "and pay-as-you-go pricing. Built in Rust for high performance."
         ),
         "logo": "databend.png",
         "homepage_url": "https://www.databend.com/",
-        "category": DatabaseCategory.OTHER,
+        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
         "pypi_packages": ["databend-sqlalchemy"],
         "connection_string": (
             "databend://{username}:{password}@{host}:{port}/{database}?secure=true"

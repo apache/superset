@@ -679,9 +679,13 @@ def main() -> int:
         else:
             print(output_text)
 
-    # In strict mode, fail if any required fields are missing or PyPI packages invalid
+    # In strict mode, fail if specs WITH metadata are missing required fields.
+    # Specs without metadata are intentionally internal/legacy and are allowed.
     if args.strict:
-        missing_count = sum(1 for r in reports if r.missing_required)
+        # Only count specs that HAVE metadata but are incomplete
+        missing_count = sum(
+            1 for r in reports if r.has_metadata and r.missing_required
+        )
         invalid_pypi_count = sum(1 for r in reports if r.invalid_packages)
 
         if missing_count > 0:
