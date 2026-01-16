@@ -167,6 +167,50 @@ MCP_CACHE_CONFIG: Dict[str, Any] = {
     ],
 }
 
+# =============================================================================
+# MCP Response Size Guard Configuration
+# =============================================================================
+#
+# Overview:
+# ---------
+# The Response Size Guard prevents oversized responses from overwhelming LLM
+# clients (e.g., Claude Desktop). When a tool response exceeds the token limit,
+# it returns a helpful error with suggestions for reducing the response size.
+#
+# How it works:
+# -------------
+# 1. After a tool executes, the middleware estimates the response's token count
+# 2. If the response exceeds the configured limit, it blocks the response
+# 3. Instead, it returns an error message with smart suggestions:
+#    - Reduce page_size/limit
+#    - Use select_columns to exclude large fields
+#    - Add filters to narrow results
+#    - Tool-specific recommendations
+#
+# Configuration:
+# --------------
+# - enabled: Toggle the guard on/off (default: True)
+# - token_limit: Maximum estimated tokens per response (default: 50,000)
+# - excluded_tools: Tools to skip checking (e.g., streaming tools)
+# - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
+#
+# Token Estimation:
+# -----------------
+# Uses character-based heuristic (~3.5 chars per token for JSON).
+# This is intentionally conservative to avoid underestimating.
+# =============================================================================
+MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
+    "enabled": True,  # Enabled by default to protect LLM clients
+    "token_limit": 25000,  # ~25k tokens prevents overwhelming LLM context windows
+    "warn_threshold_pct": 80,  # Log warnings above 80% of limit
+    "excluded_tools": [  # Tools to skip size checking
+        "health_check",  # Always small
+        "get_chart_preview",  # Returns URLs, not data
+        "generate_explore_link",  # Returns URLs
+        "open_sql_lab_with_context",  # Returns URLs
+    ],
+}
+
 
 def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     """Default MCP auth factory using app.config values."""

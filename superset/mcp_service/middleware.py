@@ -755,3 +755,150 @@ class FieldPermissionsMiddleware(Middleware):
                 "Unknown response type for field filtering: %s", type(response)
             )
             return response
+
+
+class ResponseSizeGuardMiddleware(Middleware):
+    """
+    Middleware that prevents oversized responses from overwhelming LLM clients.
+
+    When a tool response exceeds the configured token limit, this middleware
+    intercepts it and returns a helpful error message with suggestions for
+    reducing the response size.
+
+    This is critical for protecting LLM clients like Claude Desktop which can
+    crash or become unresponsive when receiving extremely large responses.
+
+    Configuration via MCP_RESPONSE_SIZE_CONFIG in superset_config.py:
+    - enabled: Toggle the guard on/off (default: True)
+    - token_limit: Maximum estimated tokens per response (default: 50,000)
+    - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
+    - excluded_tools: Tools to skip checking
+    """
+
+    def __init__(
+        self,
+        token_limit: int = 25000,
+        warn_threshold_pct: int = 80,
+        excluded_tools: list[str] | None = None,
+    ) -> None:
+        self.token_limit = token_limit
+        self.warn_threshold_pct = warn_threshold_pct
+        self.warn_threshold = int(token_limit * warn_threshold_pct / 100)
+        self.excluded_tools = set(excluded_tools or [])
+
+    async def on_call_tool(
+        self,
+        context: MiddlewareContext,
+        call_next: Callable[[MiddlewareContext], Awaitable[Any]],
+    ) -> Any:
+        """Check response size after tool execution."""
+        tool_name = getattr(context.message, "name", "unknown")
+
+        # Skip excluded tools
+        if tool_name in self.excluded_tools:
+            return await call_next(context)
+
+        # Execute the tool
+        response = await call_next(context)
+
+        # Estimate response token count
+        from superset.mcp_service.utils.token_utils import (
+            estimate_response_tokens,
+            format_size_limit_error,
+        )
+
+        estimated_tokens = estimate_response_tokens(response)
+
+        # Log warning if approaching limit
+        if estimated_tokens > self.warn_threshold:
+            logger.warning(
+                "Response size warning for %s: ~%d tokens (%.0f%% of %d limit)",
+                tool_name,
+                estimated_tokens,
+                (estimated_tokens / self.token_limit) * 100,
+                self.token_limit,
+            )
+
+        # Block if over limit
+        if estimated_tokens > self.token_limit:
+            # Extract params for smart suggestions
+            params = getattr(context.message, "params", {}) or {}
+
+            # Log the blocked response
+            logger.error(
+                "Response blocked for %s: ~%d tokens exceeds limit of %d",
+                tool_name,
+                estimated_tokens,
+                self.token_limit,
+            )
+
+            # Log to event logger for monitoring
+            try:
+                user_id = get_user_id()
+                event_logger.log(
+                    user_id=user_id,
+                    action="mcp_response_size_exceeded",
+                    curated_payload={
+                        "tool": tool_name,
+                        "estimated_tokens": estimated_tokens,
+                        "token_limit": self.token_limit,
+                        "params": params,
+                    },
+                )
+            except Exception as log_error:
+                logger.warning("Failed to log size exceeded event: %s", log_error)
+
+            # Generate helpful error message with suggestions
+            error_message = format_size_limit_error(
+                tool_name=tool_name,
+                params=params,
+                estimated_tokens=estimated_tokens,
+                token_limit=self.token_limit,
+                response=response,
+            )
+
+            raise ToolError(error_message)
+
+        return response
+
+
+def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | None:
+    """
+    Factory function to create ResponseSizeGuardMiddleware from config.
+
+    Reads configuration from Flask app's MCP_RESPONSE_SIZE_CONFIG.
+    Returns None if the guard is disabled.
+
+    Returns:
+        ResponseSizeGuardMiddleware instance or None if disabled
+    """
+    try:
+        from superset.mcp_service.flask_singleton import get_flask_app
+        from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
+
+        flask_app = get_flask_app()
+
+        # Get config from Flask app, falling back to defaults
+        config = flask_app.config.get(
+            "MCP_RESPONSE_SIZE_CONFIG", MCP_RESPONSE_SIZE_CONFIG
+        )
+
+        if not config.get("enabled", True):
+            logger.info("Response size guard is disabled")
+            return None
+
+        middleware = ResponseSizeGuardMiddleware(
+            token_limit=config.get("token_limit", 25000),
+            warn_threshold_pct=config.get("warn_threshold_pct", 80),
+            excluded_tools=config.get("excluded_tools"),
+        )
+
+        logger.info(
+            "Created ResponseSizeGuardMiddleware with token_limit=%d",
+            middleware.token_limit,
+        )
+        return middleware
+
+    except Exception as e:
+        logger.error("Failed to create ResponseSizeGuardMiddleware: %s", e)
+        return None
