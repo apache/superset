@@ -184,11 +184,23 @@ def mcp_auth_hook(tool_func: F) -> F:
     TODO (future PR): Add JWT scope validation
     TODO (future PR): Add comprehensive audit logging
     """
+    import contextlib
     import functools
     import inspect
     import types
 
+    from flask import has_app_context
+
     from superset.mcp_service.flask_singleton import get_flask_app
+
+    def _get_app_context_manager():
+        """Return app context manager only if not already in one."""
+        if has_app_context():
+            # Already in app context (e.g., in tests), use null context
+            return contextlib.nullcontext()
+        # Push new app context for standalone MCP server
+        app = get_flask_app()
+        return app.app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
@@ -196,8 +208,7 @@ def mcp_auth_hook(tool_func: F) -> F:
 
         @functools.wraps(tool_func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            app = get_flask_app()
-            with app.app_context():
+            with _get_app_context_manager():
                 user = _setup_user_context()
 
                 try:
@@ -220,8 +231,7 @@ def mcp_auth_hook(tool_func: F) -> F:
 
         @functools.wraps(tool_func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            app = get_flask_app()
-            with app.app_context():
+            with _get_app_context_manager():
                 user = _setup_user_context()
 
                 try:
