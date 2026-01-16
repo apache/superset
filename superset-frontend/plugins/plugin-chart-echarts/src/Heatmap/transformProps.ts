@@ -291,6 +291,7 @@ export default function transformProps(
         const xValue = row[xAxisColumnName];
         const yValue = row[yAxisColumnName];
         const metricValue = row[metricLabel];
+        const rankValue = row['rank'];
 
         // Convert to axis indices for ECharts when explicit axis data is provided
         const xIndex = xAxisIndexMap.get(xValue);
@@ -304,8 +305,13 @@ export default function transformProps(
           );
           return [];
         }
-        return [[xIndex, yIndex, metricValue] as [number, number, any]];
-      }),
+        // Include rank as 4th dimension when normalized is enabled
+        // This allows visualMap to use dimension: 3 to color by rank percentile
+        if (normalized) {
+          return [[xIndex, yIndex, metricValue, rankValue]];
+        }
+        return [[xIndex, yIndex, metricValue]];
+      }) as any,
       label: {
         show: showValues,
         formatter: (params: CallbackDataParams) => {
