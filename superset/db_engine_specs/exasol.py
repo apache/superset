@@ -36,6 +36,7 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "category": DatabaseCategory.ANALYTICAL_DATABASES,
         "pypi_packages": ["sqlalchemy-exasol"],
         "connection_string": "exa+pyodbc://{username}:{password}@{dsn}",
+        "default_port": 8563,
         "parameters": {
             "username": "Database username",
             "password": "Database password",

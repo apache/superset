@@ -28,10 +28,13 @@ class RisingWaveDbEngineSpec(PostgresEngineSpec):
 
     metadata = {
         "description": "RisingWave is a distributed streaming database.",
+        "logo": "risingwave.png",
+        "homepage_url": "https://risingwave.com/",
         "category": DatabaseCategory.ANALYTICAL_DATABASES,
         "pypi_packages": ["sqlalchemy-risingwave"],
         "connection_string": (
             "risingwave://root@{hostname}:{port}/{database}?sslmode=disable"
         ),
+        "default_port": 4566,
         "docs_url": "https://github.com/risingwavelabs/sqlalchemy-risingwave",
     }

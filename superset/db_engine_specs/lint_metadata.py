@@ -72,6 +72,7 @@ OPTIONAL_FIELDS = {
     "sqlalchemy_docs_url": "SQLAlchemy dialect documentation",
     "notes": "Additional configuration notes",
     "warnings": "Important warnings for users",
+    "limitations": "Known limitations (no JOINs, row limits, etc.)",
     "install_instructions": "How to install the driver",
     "version_requirements": "Version compatibility info",
     "connection_examples": "Example connection strings",
@@ -86,6 +87,49 @@ OPTIONAL_FIELDS = {
     "tutorials": "Tutorial links",
 }
 
+# Cache for PyPI package validation
+_pypi_cache: dict[str, bool] = {}
+
+
+def check_pypi_package(package_name: str, timeout: float = 5.0) -> bool:
+    """Check if a package exists on PyPI."""
+    import urllib.error
+    import urllib.request
+
+    # Strip version specifiers and extras
+    base_name = package_name.split("[")[0].split(">")[0].split("<")[0].split("=")[0]
+    base_name = base_name.strip()
+
+    if base_name in _pypi_cache:
+        return _pypi_cache[base_name]
+
+    url = f"https://pypi.org/pypi/{base_name}/json"
+    try:
+        req = urllib.request.Request(  # noqa: S310
+            url, headers={"User-Agent": "superset-lint/1.0"}
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as response:  # noqa: S310
+            exists = response.status == 200
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError):
+        exists = False
+
+    _pypi_cache[base_name] = exists
+    return exists
+
+
+def validate_pypi_packages(
+    packages: list[str], timeout: float = 5.0
+) -> tuple[list[str], list[str]]:
+    """Validate a list of PyPI packages. Returns (valid, invalid) lists."""
+    valid = []
+    invalid = []
+    for pkg in packages:
+        if check_pypi_package(pkg, timeout):
+            valid.append(pkg)
+        else:
+            invalid.append(pkg)
+    return valid, invalid
+
 
 @dataclass
 class MetadataReport:
@@ -99,9 +143,11 @@ class MetadataReport:
     missing_recommended: set[str]
     missing_optional: set[str]
     completeness_score: float  # 0-100
+    invalid_packages: list[str] | None = None  # PyPI packages that don't exist
+    limitations: list[str] | None = None  # Known limitations
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "engine_name": self.engine_name,
             "module": self.module,
             "has_metadata": self.has_metadata,
@@ -111,9 +157,14 @@ class MetadataReport:
             "missing_optional": sorted(self.missing_optional),
             "completeness_score": self.completeness_score,
         }
+        if self.invalid_packages is not None:
+            result["invalid_packages"] = self.invalid_packages
+        if self.limitations is not None:
+            result["limitations"] = self.limitations
+        return result
 
 
-def analyze_spec(spec_data: dict[str, Any]) -> MetadataReport:
+def analyze_spec(spec_data: dict[str, Any], check_pypi: bool = False) -> MetadataReport:
     """Analyze a single engine spec for metadata completeness."""
     metadata = spec_data.get("metadata", {})
     engine_name = spec_data.get("engine_name", spec_data.get("class_name", "Unknown"))
@@ -144,6 +195,16 @@ def analyze_spec(spec_data: dict[str, Any]) -> MetadataReport:
         + (optional_present / total_optional) * 10
     )
 
+    # Validate PyPI packages if requested
+    invalid_packages = None
+    if check_pypi and metadata.get("pypi_packages"):
+        packages = metadata.get("pypi_packages", [])
+        if packages:
+            _, invalid_packages = validate_pypi_packages(packages)
+
+    # Extract limitations
+    limitations = metadata.get("limitations") if metadata else None
+
     return MetadataReport(
         engine_name=engine_name,
         module=module,
@@ -153,6 +214,8 @@ def analyze_spec(spec_data: dict[str, Any]) -> MetadataReport:
         missing_recommended=missing_recommended,
         missing_optional=missing_optional,
         completeness_score=round(score, 1),
+        invalid_packages=invalid_packages,
+        limitations=limitations,
     )
 
 
@@ -196,6 +259,24 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:  # noqa: C901
                 )
 
                 if not is_engine_spec:
+                    continue
+
+                # Skip mixins
+                if "Mixin" in node.name:
+                    continue
+
+                # Check for engine attribute to distinguish true base classes
+                # from product classes like OceanBaseEngineSpec
+                has_engine = False
+                for item in node.body:
+                    if isinstance(item, ast.Assign):
+                        for target in item.targets:
+                            if isinstance(target, ast.Name) and target.id == "engine":
+                                has_engine = True
+                                break
+
+                # Skip true base classes (no engine attribute)
+                if node.name.endswith("BaseEngineSpec") and not has_engine:
                     continue
 
                 # Extract engine_name and metadata
@@ -355,6 +436,15 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None: 
         print("-" * 50)
         for r in no_metadata:
             print(f"  {r.engine_name} ({r.module}.py)")
+
+    # Show invalid PyPI packages
+    invalid_pypi = [r for r in reports if r.invalid_packages]
+    if invalid_pypi:
+        print(f"\n📦 INVALID PyPI PACKAGES ({len(invalid_pypi)} specs):")
+        print("-" * 50)
+        for r in invalid_pypi:
+            packages = r.invalid_packages or []
+            print(f"  {r.engine_name}: {', '.join(packages)}")
 
     # Field coverage summary
     print("\n" + "=" * 60)
@@ -531,6 +621,11 @@ def main() -> int:
         help="Exit with error if required fields missing",
     )
     parser.add_argument(
+        "--check-pypi",
+        action="store_true",
+        help="Validate that pypi_packages exist on PyPI (slower)",
+    )
+    parser.add_argument(
         "--verbose", "-v", action="store_true", help="Show optional field coverage"
     )
     parser.add_argument("--output", "-o", type=str, help="Write output to file")
@@ -543,7 +638,10 @@ def main() -> int:
         print("Error: No engine specs found.", file=sys.stderr)
         return 1
 
-    reports = [analyze_spec(spec) for spec in specs]
+    if args.check_pypi:
+        print("Validating PyPI packages (this may take a moment)...", file=sys.stderr)
+
+    reports = [analyze_spec(spec, check_pypi=args.check_pypi) for spec in specs]
 
     # Generate output
     output_text = ""
@@ -579,14 +677,21 @@ def main() -> int:
         else:
             print(output_text)
 
-    # In strict mode, fail if any required fields are missing
+    # In strict mode, fail if any required fields are missing or PyPI packages invalid
     if args.strict:
         missing_count = sum(1 for r in reports if r.missing_required)
+        invalid_pypi_count = sum(1 for r in reports if r.invalid_packages)
+
         if missing_count > 0:
             print(
                 f"\n❌ STRICT MODE: {missing_count} specs missing required fields",
                 file=sys.stderr,
             )
+            return 1
+
+        if args.check_pypi and invalid_pypi_count > 0:
+            msg = f"\n❌ STRICT MODE: {invalid_pypi_count} specs have invalid packages"
+            print(msg, file=sys.stderr)
             return 1
 
     return 0

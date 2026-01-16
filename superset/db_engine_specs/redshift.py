@@ -75,6 +75,7 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         "homepage_url": "https://aws.amazon.com/redshift/",
         "category": DatabaseCategory.CLOUD_AWS,
         "pypi_packages": ["sqlalchemy-redshift"],
+        "connection_string": "redshift+psycopg2://{username}:{password}@{host}:5439/{database}",
         "default_port": 5439,
         "parameters": {
             "username": "Database username",

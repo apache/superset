@@ -61,6 +61,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         "homepage_url": "https://www.microsoft.com/en-us/sql-server",
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
         "pypi_packages": ["pymssql"],
+        "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
         "default_port": 1433,
         "drivers": [
             {
@@ -205,7 +206,7 @@ class AzureSynapseSpec(MssqlEngineSpec):
             "Azure Synapse Analytics is a cloud-based enterprise data warehouse "
             "from Microsoft that combines big data and data warehousing."
         ),
-        "logo": "azure.png",
+        "logo": "azure.svg",
         "homepage_url": "https://azure.microsoft.com/en-us/products/synapse-analytics/",
         "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
         "pypi_packages": ["pymssql"],

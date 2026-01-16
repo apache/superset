@@ -37,6 +37,8 @@ import {
   KeyOutlined,
   SettingOutlined,
   BookOutlined,
+  EditOutlined,
+  GithubOutlined,
 } from '@ant-design/icons';
 import type { DatabaseInfo } from './types';
 
@@ -456,6 +458,21 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
         />
       ))}
 
+      {/* Known Limitations */}
+      {docs?.limitations?.length > 0 && (
+        <Card
+          title="Known Limitations"
+          style={{ marginBottom: 16 }}
+          type="inner"
+        >
+          <ul style={{ margin: 0, paddingLeft: 20 }}>
+            {docs.limitations.map((limitation, idx) => (
+              <li key={idx}>{limitation}</li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {/* Installation */}
       {(docs?.pypi_packages?.length || docs?.install_instructions) && (
         <Card title="Installation" style={{ marginBottom: 16 }}>
@@ -579,6 +596,32 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
                 <LinkOutlined /> Tutorial {idx + 1}
               </a>
             ))}
+          </Space>
+        </Card>
+      )}
+
+      {/* Edit link */}
+      {database.module && (
+        <Card
+          style={{
+            marginBottom: 16,
+            background: 'var(--ifm-background-surface-color)',
+            borderStyle: 'dashed',
+          }}
+          size="small"
+        >
+          <Space>
+            <GithubOutlined />
+            <Text type="secondary">
+              Help improve this documentation by editing the engine spec:
+            </Text>
+            <a
+              href={`https://github.com/apache/superset/edit/master/superset/db_engine_specs/${database.module}.py`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <EditOutlined /> Edit {database.module}.py
+            </a>
           </Space>
         </Card>
       )}

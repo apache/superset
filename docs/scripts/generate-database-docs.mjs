@@ -83,6 +83,7 @@ with app.app_context():
 /**
  * Extract metadata from individual engine spec files using AST parsing
  * This is the preferred approach - reads directly from spec.metadata attributes
+ * Supports metadata inheritance - child classes inherit and merge with parent metadata
  */
 function extractEngineSpecMetadata() {
   console.log('Extracting metadata from engine spec files...');
@@ -135,6 +136,26 @@ def eval_node(node):
         return "<f-string>"
     return None
 
+def deep_merge(base, override):
+    """Deep merge two dictionaries. Override values take precedence."""
+    if base is None:
+        return override
+    if override is None:
+        return base
+    if not isinstance(base, dict) or not isinstance(override, dict):
+        return override
+
+    result = base.copy()
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = deep_merge(result[key], value)
+        elif key in result and isinstance(result[key], list) and isinstance(value, list):
+            # For lists, extend rather than replace (e.g., compatible_databases)
+            result[key] = result[key] + value
+        else:
+            result[key] = value
+    return result
+
 databases = {}
 specs_dir = 'superset/db_engine_specs'
 errors = []
@@ -144,14 +165,18 @@ debug_info = {
     "files_checked": 0,
     "classes_found": 0,
     "classes_with_metadata": 0,
+    "inherited_metadata": 0,
 }
 
 if not os.path.isdir(specs_dir):
     print(json.dumps({"error": f"Directory not found: {specs_dir}", "cwd": os.getcwd()}))
     sys.exit(1)
 
+# First pass: collect all class info (name, bases, metadata)
+class_info = {}  # class_name -> {bases: [], metadata: {}, engine_name: str, filename: str}
+
 for filename in sorted(os.listdir(specs_dir)):
-    if not filename.endswith('.py') or filename in ('__init__.py', 'base.py', 'lib.py', 'lint_metadata.py'):
+    if not filename.endswith('.py') or filename in ('__init__.py', 'lib.py', 'lint_metadata.py'):
         continue
 
     debug_info["files_checked"] += 1
@@ -165,7 +190,7 @@ for filename in sorted(os.listdir(specs_dir)):
             if not isinstance(node, ast.ClassDef):
                 continue
 
-            # Check if it's an engine spec class by looking at base class names
+            # Get base class names
             base_names = []
             for b in node.bases:
                 if isinstance(b, ast.Name):
@@ -177,11 +202,7 @@ for filename in sorted(os.listdir(specs_dir)):
             if not is_engine_spec:
                 continue
 
-            # Skip base classes and mixins
-            if node.name.endswith('BaseEngineSpec') or 'Mixin' in node.name:
-                continue
-
-            debug_info["classes_found"] += 1
+            # Extract class attributes
             engine_name = None
             metadata = None
 
@@ -196,32 +217,98 @@ for filename in sorted(os.listdir(specs_dir)):
                             elif target.id == 'metadata':
                                 metadata = eval_node(item.value)
 
-            # Use class name as fallback for engine_name
-            display_name = engine_name or node.name.replace('EngineSpec', '').replace('_', ' ')
+            # Check for engine attribute to distinguish true base classes
+            has_engine = False
+            for item in node.body:
+                if isinstance(item, ast.Assign):
+                    for target in item.targets:
+                        if isinstance(target, ast.Name) and target.id == 'engine':
+                            has_engine = True
+                            break
 
-            if metadata and isinstance(metadata, dict) and display_name:
-                debug_info["classes_with_metadata"] += 1
-                databases[display_name] = {
-                    'engine': display_name.lower().replace(' ', '_'),
-                    'engine_name': display_name,
-                    'documentation': metadata,
-                    'time_grains': {},
-                    'score': 0,
-                    'max_score': 0,
-                    'joins': True,
-                    'subqueries': True,
-                    'supports_dynamic_schema': False,
-                    'supports_catalog': False,
-                    'supports_dynamic_catalog': False,
-                    'ssh_tunneling': False,
-                    'query_cancelation': False,
-                    'supports_file_upload': False,
-                    'user_impersonation': False,
-                    'query_cost_estimation': False,
-                    'sql_validation': False,
-                }
+            # True base classes: end with BaseEngineSpec AND don't define their own engine
+            # This excludes PostgresBaseEngineSpec but includes OceanBaseEngineSpec
+            is_true_base = (
+                node.name.endswith('BaseEngineSpec') and not has_engine
+            ) or 'Mixin' in node.name
+
+            # Store class info for inheritance resolution
+            class_info[node.name] = {
+                'bases': base_names,
+                'metadata': metadata,
+                'engine_name': engine_name,
+                'filename': filename,
+                'is_base_or_mixin': is_true_base,
+            }
     except Exception as e:
         errors.append(f"{filename}: {str(e)}")
+
+# Second pass: resolve inheritance and build final metadata
+def get_inherited_metadata(class_name, visited=None):
+    """Recursively get metadata from parent classes."""
+    if visited is None:
+        visited = set()
+    if class_name in visited:
+        return {}  # Prevent circular inheritance
+    visited.add(class_name)
+
+    info = class_info.get(class_name)
+    if not info:
+        return {}
+
+    # Start with parent metadata
+    inherited = {}
+    for base_name in info['bases']:
+        parent_metadata = get_inherited_metadata(base_name, visited.copy())
+        if parent_metadata:
+            inherited = deep_merge(inherited, parent_metadata)
+
+    # Merge with own metadata (own takes precedence)
+    if info['metadata']:
+        inherited = deep_merge(inherited, info['metadata'])
+
+    return inherited
+
+for class_name, info in class_info.items():
+    # Skip base classes and mixins
+    if info['is_base_or_mixin']:
+        continue
+
+    debug_info["classes_found"] += 1
+
+    # Get final metadata with inheritance
+    final_metadata = get_inherited_metadata(class_name)
+
+    # Track if we inherited anything
+    own_metadata = info['metadata'] or {}
+    if final_metadata and final_metadata != own_metadata:
+        debug_info["inherited_metadata"] += 1
+
+    # Use class name as fallback for engine_name
+    display_name = info['engine_name'] or class_name.replace('EngineSpec', '').replace('_', ' ')
+
+    if final_metadata and isinstance(final_metadata, dict) and display_name:
+        debug_info["classes_with_metadata"] += 1
+        databases[display_name] = {
+            'engine': display_name.lower().replace(' ', '_'),
+            'engine_name': display_name,
+            'module': info['filename'][:-3],  # Remove .py extension
+            'documentation': final_metadata,
+            'time_grains': {},
+            'score': 0,
+            'max_score': 0,
+            'joins': True,
+            'subqueries': True,
+            'supports_dynamic_schema': False,
+            'supports_catalog': False,
+            'supports_dynamic_catalog': False,
+            'ssh_tunneling': False,
+            'query_cancelation': False,
+            'supports_file_upload': False,
+            'user_impersonation': False,
+            'query_cost_estimation': False,
+            'sql_validation': False,
+        }
 
 if errors and not databases:
     print(json.dumps({"error": "Parse errors", "details": errors, "debug": debug_info}), file=sys.stderr)

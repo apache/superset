@@ -25,6 +25,7 @@ class IBMiEngineSpec(Db2EngineSpec):
 
     metadata = {
         "description": "IBM Db2 for i (AS/400) is a database integrated with IBM i OS.",
+        "logo": "ibm-db2.svg",
         "homepage_url": "https://www.ibm.com/products/db2-for-i",
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
         "pypi_packages": ["sqlalchemy-ibmi"],

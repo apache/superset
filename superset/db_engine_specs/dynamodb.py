@@ -31,6 +31,7 @@ class DynamoDBEngineSpec(BaseEngineSpec):
         "description": (
             "Amazon DynamoDB is a serverless NoSQL database with SQL via PartiQL."
         ),
+        "logo": "aws.png",
         "homepage_url": "https://aws.amazon.com/dynamodb/",
         "category": DatabaseCategory.CLOUD_AWS,
         "pypi_packages": ["pydynamodb"],

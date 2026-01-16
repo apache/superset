@@ -106,6 +106,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         "category": DatabaseCategory.APACHE_PROJECTS,
         "pypi_packages": ["pyhive"],
         "connection_string": "hive://hive@{hostname}:{port}/{database}",
+        "default_port": 10000,
     }
 
     # When running `SHOW FUNCTIONS`, what is the name of the column with the

@@ -39,6 +39,7 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         "pypi_packages": ["hdbcli", "sqlalchemy-hana"],
         "install_instructions": "pip install apache_superset[hana]",
         "connection_string": "hana://{username}:{password}@{host}:{port}",
+        "default_port": 30015,
         "docs_url": "https://github.com/SAP/sqlalchemy-hana",
     }
     limit_method = LimitMethod.WRAP_SQL

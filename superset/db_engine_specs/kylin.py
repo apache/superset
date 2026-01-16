@@ -39,6 +39,7 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             "kylin://{username}:{password}@{hostname}:{port}/{project}"
             "?{param1}={value1}&{param2}={value2}"
         ),
+        "default_port": 7070,
     }
 
     _time_grain_expressions = {

@@ -41,6 +41,7 @@ class PinotEngineSpec(BaseEngineSpec):
             "pinot+http://{broker_host}:{broker_port}/query"
             "?controller=http://{controller_host}:{controller_port}/"
         ),
+        "default_port": 8099,
         "connection_examples": [
             {
                 "description": "With authentication",

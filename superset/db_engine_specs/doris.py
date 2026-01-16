@@ -132,6 +132,7 @@ class DorisEngineSpec(MySQLEngineSpec):
         "connection_string": (
             "doris://{username}:{password}@{host}:{port}/{catalog}.{database}"
         ),
+        "default_port": 9030,
         "parameters": {
             "username": "User name",
             "password": "Password",

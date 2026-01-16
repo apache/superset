@@ -45,8 +45,10 @@ class SparkEngineSpec(HiveEngineSpec):
 
     metadata = {
         "description": "Apache Spark SQL is a module for structured data processing.",
+        "logo": "apache-spark.png",
         "homepage_url": "https://spark.apache.org/sql/",
         "category": DatabaseCategory.APACHE_PROJECTS,
         "pypi_packages": ["pyhive"],
         "connection_string": "hive://hive@{hostname}:{port}/{database}",
+        "default_port": 10000,
     }

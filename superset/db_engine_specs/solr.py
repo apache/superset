@@ -30,6 +30,7 @@ class SolrEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     metadata = {
         "description": "Apache Solr is an open-source enterprise search platform.",
+        "logo": "apache-solr.svg",
         "homepage_url": "https://solr.apache.org/",
         "category": DatabaseCategory.APACHE_PROJECTS,
         "pypi_packages": ["sqlalchemy-solr"],
@@ -37,6 +38,7 @@ class SolrEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             "solr://{username}:{password}@{host}:{port}/{server_path}/{collection}"
             "[/?use_ssl=true|false]"
         ),
+        "default_port": 8983,
     }
 
     _time_grain_expressions = {

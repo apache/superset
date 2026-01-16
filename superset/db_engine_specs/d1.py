@@ -30,6 +30,7 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
 
     metadata = {
         "description": "Cloudflare D1 is a serverless SQLite database.",
+        "logo": "cloudflare.png",
         "homepage_url": "https://developers.cloudflare.com/d1/",
         "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
         "pypi_packages": ["superset-engine-d1"],

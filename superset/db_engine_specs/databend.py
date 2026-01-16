@@ -243,7 +243,7 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
     """Engine spec for databend sqlalchemy connector"""
 
     engine = "databend"
-    engine_name = "Databend"
+    engine_name = "Databend (Superset)"
 
     default_driver = "databend"
     _function_names: list[str] = []
@@ -253,6 +253,28 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
     )
     parameters_schema = DatabendParametersSchema()
     encryption_parameters = {"secure": "true"}
+
+    metadata = {
+        "description": (
+            "Databend connector with Superset's native connection UI. "
+            "Databend is a cloud-native data warehouse with instant elasticity."
+        ),
+        "logo": "databend.png",
+        "homepage_url": "https://www.databend.com/",
+        "category": DatabaseCategory.OTHER,
+        "pypi_packages": ["databend-sqlalchemy"],
+        "connection_string": (
+            "databend://{username}:{password}@{host}:{port}/{database}?secure=true"
+        ),
+        "default_port": 443,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "Databend host",
+            "port": "Databend port (default 443 for HTTPS)",
+            "database": "Database name",
+        },
+    }
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:

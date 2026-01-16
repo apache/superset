@@ -96,6 +96,7 @@ export interface DatabaseDocumentation {
   default_port?: number;
   parameters?: Record<string, string>;
   notes?: string;
+  limitations?: string[];  // Known limitations or caveats
   connection_examples?: ConnectionExample[];
   host_examples?: HostExample[];
   drivers?: Driver[];

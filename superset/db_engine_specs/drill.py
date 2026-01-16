@@ -49,6 +49,12 @@ class DrillEngineSpec(BaseEngineSpec):
         "logo": "apache-drill.png",
         "homepage_url": "https://drill.apache.org/",
         "category": DatabaseCategory.APACHE_PROJECTS,
+        "pypi_packages": ["sqlalchemy-drill"],
+        "connection_string": (
+            "drill+sadrill://{username}:{password}@{host}:{port}/"
+            "{storage_plugin}?use_ssl=True"
+        ),
+        "default_port": 8047,
         "drivers": [
             {
                 "name": "SQLAlchemy (REST)",

@@ -44,7 +44,7 @@ class SupersetEngineSpec(ShillelaghEngineSpec):
             "Superset meta database is an experimental feature that enables "
             "querying across multiple configured databases using a single connection."
         ),
-        "logo": "superset-favicon.png",
+        "logo": "superset.svg",
         "homepage_url": "https://superset.apache.org/",
         "category": DatabaseCategory.OTHER,
         "pypi_packages": [],

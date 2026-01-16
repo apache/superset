@@ -31,6 +31,7 @@ class NetezzaEngineSpec(PostgresBaseEngineSpec):
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
         "pypi_packages": ["nzalchemy"],
         "connection_string": "netezza+nzpy://{username}:{password}@{hostname}:{port}/{database}",
+        "default_port": 5480,
     }
 
     _time_grain_expressions = {

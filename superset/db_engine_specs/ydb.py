@@ -58,6 +58,7 @@ class YDBEngineSpec(BaseEngineSpec):
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
         "pypi_packages": ["ydb-sqlalchemy"],
         "connection_string": "ydb://{host}:{port}/{database_name}",
+        "default_port": 2135,
         "engine_parameters": [
             {
                 "name": "Protocol",

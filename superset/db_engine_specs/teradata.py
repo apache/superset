@@ -31,6 +31,7 @@ class TeradataEngineSpec(BaseEngineSpec):
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
         "pypi_packages": ["teradatasqlalchemy"],
         "connection_string": "teradatasql://{user}:{password}@{host}",
+        "default_port": 1025,
         "drivers": [
             {
                 "name": "teradatasqlalchemy (Recommended)",

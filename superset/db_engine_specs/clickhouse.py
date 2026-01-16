@@ -36,6 +36,7 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     BasicParametersType,
     BasicPropertiesType,
+    DatabaseCategory,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -306,7 +307,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         ),
         "logo": "clickhouse.png",
         "homepage_url": "https://clickhouse.com/docs/en/integrations/python",
-        "category": DatabaseCategory.OLAP_ANALYTICAL,
+        "category": DatabaseCategory.ANALYTICAL_DATABASES,
         "pypi_packages": ["clickhouse-connect>=0.6.8"],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,

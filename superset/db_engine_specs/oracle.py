@@ -34,6 +34,7 @@ class OracleEngineSpec(BaseEngineSpec):
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
         "pypi_packages": ["oracledb"],
         "connection_string": "oracle://{username}:{password}@{hostname}:{port}",
+        "default_port": 1521,
         "notes": "Previously used cx_Oracle, now uses oracledb.",
         "docs_url": "https://cx-oracle.readthedocs.io/en/latest/user_guide/installation.html",
     }

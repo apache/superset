@@ -31,10 +31,12 @@ class CockroachDbEngineSpec(PostgresEngineSpec):
         "description": (
             "CockroachDB is a distributed SQL database built for cloud applications."
         ),
+        "logo": "cockroachdb.png",
         "homepage_url": "https://www.cockroachlabs.com/",
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
         "pypi_packages": ["cockroachdb"],
         "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
+        "default_port": 26257,
         "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",
     }
 

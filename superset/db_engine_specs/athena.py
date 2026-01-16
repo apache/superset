@@ -47,6 +47,12 @@ class AthenaEngineSpec(BaseEngineSpec):
         "logo": "amazon-athena.jpg",
         "homepage_url": "https://aws.amazon.com/athena/",
         "category": DatabaseCategory.CLOUD_AWS,
+        "pypi_packages": ["pyathena[pandas]"],
+        "connection_string": (
+            "awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}"
+            "@athena.{region_name}.amazonaws.com/{schema_name}"
+            "?s3_staging_dir={s3_staging_dir}"
+        ),
         "drivers": [
             {
                 "name": "PyAthena (REST)",

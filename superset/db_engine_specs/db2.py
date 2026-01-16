@@ -38,6 +38,8 @@ class Db2EngineSpec(BaseEngineSpec):
         "homepage_url": "https://www.ibm.com/db2",
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
         "pypi_packages": ["ibm_db_sa"],
+        "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+        "default_port": 50000,
         "drivers": [
             {
                 "name": "ibm_db_sa (with LIMIT)",

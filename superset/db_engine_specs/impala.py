@@ -57,6 +57,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         "category": DatabaseCategory.APACHE_PROJECTS,
         "pypi_packages": ["impyla"],
         "connection_string": "impala://{hostname}:{port}/{database}",
+        "default_port": 21050,
     }
 
     _time_grain_expressions = {
