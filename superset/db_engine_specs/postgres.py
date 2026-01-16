@@ -313,6 +313,33 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 "notes": "psycopg2 comes bundled with Superset Docker images.",
                 "docs_url": "https://www.yugabyte.com/",
             },
+            {
+                "name": "Amazon Aurora PostgreSQL",
+                "description": (
+                    "Amazon Aurora PostgreSQL is a fully managed, PostgreSQL-compatible "
+                    "relational database with up to 5x the throughput of standard PostgreSQL."
+                ),
+                "logo": "aws-aurora.jpg",
+                "homepage_url": "https://aws.amazon.com/rds/aurora/",
+                "pypi_packages": ["sqlalchemy-aurora-data-api"],
+                "connection_string": (
+                    "postgresql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+                    "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+                    "secret_arn={secret_arn}&region_name={region_name}"
+                ),
+                "parameters": {
+                    "aws_access_id": "AWS Access Key ID",
+                    "aws_secret_access_key": "AWS Secret Access Key",
+                    "database_name": "Database name",
+                    "aurora_cluster_arn": "Aurora cluster ARN",
+                    "secret_arn": "Secrets Manager ARN for credentials",
+                    "region_name": "AWS region (e.g., us-east-1)",
+                },
+                "notes": (
+                    "Uses the Data API for serverless access. "
+                    "Standard PostgreSQL connections also work with psycopg2."
+                ),
+            },
         ],
     }
     # https://www.postgresql.org/docs/9.1/libpq-ssl.html#LIBQ-SSL-CERTIFICATES

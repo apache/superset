@@ -33,7 +33,10 @@ class Db2EngineSpec(BaseEngineSpec):
     engine_name = "IBM Db2"
 
     metadata = {
-        "description": "IBM Db2 is a family of data management products.",
+        "description": (
+            "IBM Db2 is a family of data management products for enterprise workloads, "
+            "available on-premises, in containers, and across cloud platforms."
+        ),
         "logo": "ibm-db2.svg",
         "homepage_url": "https://www.ibm.com/db2",
         "category": DatabaseCategory.TRADITIONAL_RDBMS,
@@ -54,6 +57,26 @@ class Db2EngineSpec(BaseEngineSpec):
                     "Use for older DB2 versions without LIMIT [n] syntax. "
                     "Recommended for SQL Lab."
                 ),
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "IBM Db2 for i (AS/400)",
+                "description": (
+                    "Db2 for i is a fully integrated database engine on IBM i (AS/400) "
+                    "systems. Uses a different SQLAlchemy driver optimized for IBM i."
+                ),
+                "logo": "ibm-db2.svg",
+                "homepage_url": "https://www.ibm.com/products/db2-for-i",
+                "pypi_packages": ["sqlalchemy-ibmi"],
+                "connection_string": "ibmi://{username}:{password}@{host}/{database}",
+                "parameters": {
+                    "username": "IBM i username",
+                    "password": "IBM i password",
+                    "host": "IBM i system host",
+                    "database": "Library/schema name",
+                },
+                "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
             },
         ],
         "docs_url": "https://github.com/ibmdb/python-ibmdbsa",

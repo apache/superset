@@ -30,7 +30,7 @@ class SolrEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     metadata = {
         "description": "Apache Solr is an open-source enterprise search platform.",
-        "logo": "apache-solr.svg",
+        "logo": "apache-solr.png",
         "homepage_url": "https://solr.apache.org/",
         "category": DatabaseCategory.APACHE_PROJECTS,
         "pypi_packages": ["sqlalchemy-solr"],

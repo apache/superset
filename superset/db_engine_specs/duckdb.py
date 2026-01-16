@@ -200,11 +200,12 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
     metadata = {
         "description": (
-            "DuckDB is an in-process OLAP database for fast analytical queries."
+            "DuckDB is an in-process OLAP database designed for fast analytical queries "
+            "on local data. Supports CSV, Parquet, JSON, and many other file formats."
         ),
         "logo": "duckdb.png",
         "homepage_url": "https://duckdb.org/",
-        "category": DatabaseCategory.OTHER,
+        "category": DatabaseCategory.ANALYTICAL_DATABASES,
         "pypi_packages": ["duckdb-engine"],
         "connection_string": "duckdb:////path/to/duck.db",
         "drivers": [
@@ -219,6 +220,24 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
             "DuckDB supports both local file and in-memory databases. "
             "Use `:memory:` for in-memory database."
         ),
+        "compatible_databases": [
+            {
+                "name": "MotherDuck",
+                "description": (
+                    "MotherDuck is a serverless cloud analytics platform built on DuckDB, "
+                    "offering collaborative data sharing and cloud-native scalability."
+                ),
+                "logo": "motherduck.png",
+                "homepage_url": "https://motherduck.com/",
+                "pypi_packages": ["duckdb", "duckdb-engine"],
+                "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+                "parameters": {
+                    "database": "MotherDuck database name",
+                    "motherduck_token": "Service token from MotherDuck dashboard",
+                },
+                "notes": "Cloud-hosted DuckDB with collaboration features.",
+            },
+        ],
     }
 
     # DuckDB-specific column type mappings to ensure float/double types are recognized
@@ -346,6 +365,12 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
 
 class MotherDuckEngineSpec(DuckDBEngineSpec):
+    """MotherDuck cloud analytics platform engine spec.
+
+    Note: Documentation is in DuckDBEngineSpec's compatible_databases section.
+    This spec exists for runtime support of the MotherDuck connector.
+    """
+
     engine = "motherduck"
     engine_name = "MotherDuck"
     engine_aliases: set[str] = {"duckdb"}
@@ -356,22 +381,6 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
     sqlalchemy_uri_placeholder = (
         "duckdb:///md:{database_name}?motherduck_token={SERVICE_TOKEN}"
     )
-
-    metadata = {
-        "description": (
-            "MotherDuck is a serverless analytics platform built on DuckDB, "
-            "offering cloud-native OLAP with local DuckDB compatibility."
-        ),
-        "logo": "motherduck.png",
-        "homepage_url": "https://motherduck.com/",
-        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
-        "pypi_packages": ["duckdb", "duckdb-engine"],
-        "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
-        "parameters": {
-            "database": "MotherDuck database name (prefixed with md:)",
-            "motherduck_token": "Service token from MotherDuck dashboard",
-        },
-    }
 
     @staticmethod
     def _is_motherduck(database: str) -> bool:

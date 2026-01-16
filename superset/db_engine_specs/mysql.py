@@ -139,6 +139,33 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                     "mysql://{username}:{password}@{host}:{port}/{database}"
                 ),
             },
+            {
+                "name": "Amazon Aurora MySQL",
+                "description": (
+                    "Amazon Aurora MySQL is a fully managed, MySQL-compatible "
+                    "relational database with up to 5x the throughput of standard MySQL."
+                ),
+                "logo": "aws-aurora.jpg",
+                "homepage_url": "https://aws.amazon.com/rds/aurora/",
+                "pypi_packages": ["sqlalchemy-aurora-data-api"],
+                "connection_string": (
+                    "mysql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+                    "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+                    "secret_arn={secret_arn}&region_name={region_name}"
+                ),
+                "parameters": {
+                    "aws_access_id": "AWS Access Key ID",
+                    "aws_secret_access_key": "AWS Secret Access Key",
+                    "database_name": "Database name",
+                    "aurora_cluster_arn": "Aurora cluster ARN",
+                    "secret_arn": "Secrets Manager ARN for credentials",
+                    "region_name": "AWS region (e.g., us-east-1)",
+                },
+                "notes": (
+                    "Uses the Data API for serverless access. "
+                    "Standard MySQL connections also work with mysqlclient."
+                ),
+            },
         ],
     }
 
