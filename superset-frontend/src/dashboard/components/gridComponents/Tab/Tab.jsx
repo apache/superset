@@ -28,6 +28,7 @@ import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
+import { Typography } from '@superset-ui/core/components/Typography';
 import {
   DragDroppable,
   Droppable,
@@ -276,13 +277,13 @@ const Tab = props => {
                     (editMode ? (
                       <span>
                         {t('You can')}{' '}
-                        <a
+                        <Typography.Link
                           href={`/chart/add?dashboard_id=${dashboardId}`}
                           rel="noopener noreferrer"
                           target="_blank"
                         >
                           {t('create a new chart')}
-                        </a>{' '}
+                        </Typography.Link>{' '}
                         {t('or use existing ones from the panel on the right')}
                       </span>
                     ) : (
