@@ -64,15 +64,13 @@ const SkipLink: React.FC<SkipLinkProps> = ({
     e.preventDefault();
     const el = document.getElementById(targetId);
     if (el) {
-      // Make sure the element is focusable, focus it, then clean up any temporary tabindex
-      const hadTabIndex = el.hasAttribute('tabindex');
-      if (!hadTabIndex) {
+      // Make sure the element is focusable and focus it
+      // Note: We intentionally keep the tabindex to ensure the element remains focusable
+      // for subsequent keyboard navigation (fixes skip link accessibility)
+      if (!el.hasAttribute('tabindex')) {
         el.setAttribute('tabindex', '-1');
       }
       el.focus();
-      if (!hadTabIndex) {
-        el.removeAttribute('tabindex');
-      }
     } else {
       // Fallback to fragment navigation if target not present
       window.location.hash = `#${targetId}`;

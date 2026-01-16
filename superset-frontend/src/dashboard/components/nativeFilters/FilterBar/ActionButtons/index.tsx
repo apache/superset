@@ -112,16 +112,16 @@ const ActionButtons = ({
   isApplyDisabled,
   filterBarOrientation = FilterBarOrientation.Vertical,
 }: ActionButtonsProps) => {
-  const isClearAllEnabled = useMemo(
-    () =>
-      Object.values(dataMaskApplied).some(
-        filter =>
-          isDefined(dataMaskSelected[filter.id]?.filterState?.value) ||
-          (!dataMaskSelected[filter.id] &&
-            isDefined(filter.filterState?.value)),
-      ),
-    [dataMaskApplied, dataMaskSelected],
-  );
+  const isClearAllEnabled = useMemo(() => {
+    // Check both selected (pending) and applied filters to determine if clear is available
+    const hasSelectedValues = Object.values(dataMaskSelected).some(
+      mask => isDefined(mask.filterState?.value),
+    );
+    const hasAppliedValues = Object.values(dataMaskApplied).some(
+      mask => isDefined(mask.filterState?.value),
+    );
+    return hasSelectedValues || hasAppliedValues;
+  }, [dataMaskSelected, dataMaskApplied]);
   const isVertical = filterBarOrientation === FilterBarOrientation.Vertical;
 
   return (
