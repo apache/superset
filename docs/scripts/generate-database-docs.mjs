@@ -86,6 +86,7 @@ with app.app_context():
  */
 function extractEngineSpecMetadata() {
   console.log('Extracting metadata from engine spec files...');
+  console.log(`  ROOT_DIR: ${ROOT_DIR}`);
 
   try {
     const pythonCode = `
