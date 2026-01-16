@@ -284,7 +284,7 @@ class ValidationPipeline:
 
             return GenerateChartRequest.model_validate(request_dict)
 
-        except Exception as e:
+        except (ImportError, AttributeError, KeyError, ValueError, TypeError) as e:
             # If normalization fails, return the original request
             # Validation has already passed, so this is a non-critical failure
             logger.warning("Column name normalization failed: %s", e)
