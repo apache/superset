@@ -372,18 +372,20 @@ export default function transformProps(
       },
     ],
     graphic: showTotal
-      ? {
-          type: 'text',
-          top: 'center',
-          left: 'center',
-          style: {
-            text: t('Total: %s', primaryValueFormatter(totalValue)),
-            fontSize: 16,
-            fontWeight: 'bold',
-          },
-          z: 10,
-        }
-      : null,
+  ? {
+      type: 'text',
+      top: 'center',
+      left: 'center',
+      style: {
+        text: t('Total: %s', primaryValueFormatter(totalValue)),
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: theme.colorText,  // ← ADD THIS LINE
+      },
+      z: 10,
+    }
+  : null,
+
   };
   return {
     formData,
