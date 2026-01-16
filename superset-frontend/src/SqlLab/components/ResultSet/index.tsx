@@ -298,7 +298,7 @@ const ResultSet = ({
       const force = false;
       const includeAppRoot = openInNewWindow;
       const url = mountExploreUrl(
-        null,
+        'base',
         {
           [URL_PARAMS.formDataKey.name]: key,
         },

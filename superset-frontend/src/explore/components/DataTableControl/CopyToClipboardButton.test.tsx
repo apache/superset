@@ -25,7 +25,7 @@ import {
 import { CopyToClipboardButton } from '.';
 
 test('Render a button', () => {
-  render(<CopyToClipboardButton data={{ copy: 'data', data: 'copy' }} />, {
+  render(<CopyToClipboardButton data={[{ copy: 'data', data: 'copy' }]} />, {
     useRedux: true,
   });
   expect(screen.getByRole('button')).toBeInTheDocument();
@@ -39,7 +39,7 @@ test('Should copy to clipboard', async () => {
   // @ts-ignore
   global.navigator.clipboard = { write: callback, writeText: callback };
 
-  render(<CopyToClipboardButton data={{ copy: 'data', data: 'copy' }} />, {
+  render(<CopyToClipboardButton data={[{ copy: 'data', data: 'copy' }]} />, {
     useRedux: true,
   });
 
