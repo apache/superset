@@ -22,8 +22,8 @@ import { styled } from '@apache-superset/core/ui';
 import { Input } from '@superset-ui/core/components';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 
-// Minimum safe refresh interval to prevent server overload
-export const MINIMUM_REFRESH_INTERVAL = 5;
+// Minimum custom refresh interval in seconds
+export const MINIMUM_REFRESH_INTERVAL = 1;
 
 const StyledRadioGroup = styled(Radio.Group)`
   padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
@@ -53,7 +53,6 @@ const CustomContent = styled.div`
 // Standard refresh frequency options used across modals
 export const REFRESH_FREQUENCY_OPTIONS = [
   { value: 0, label: t("Don't refresh") },
-  { value: 5, label: t('5 seconds') },
   { value: 10, label: t('10 seconds') },
   { value: 30, label: t('30 seconds') },
   { value: 60, label: t('1 minute') },

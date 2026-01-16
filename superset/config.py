@@ -1182,12 +1182,8 @@ SQLLAB_PAYLOAD_MAX_MB = None
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 # Dashboard auto refresh intervals
-# Note: The 5-second interval is intended for real-time analytics use cases.
-# Enable with caution as it significantly increases server load.
-# Consider using DASHBOARD_AUTO_REFRESH_MODE = "fetch" to prefer cached data.
 DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [0, "Don't refresh"],
-    [5, "5 seconds"],  # High frequency - use with optimized queries
     [10, "10 seconds"],
     [30, "30 seconds"],
     [60, "1 minute"],
