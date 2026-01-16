@@ -23,6 +23,8 @@ import { apiGet, apiPost, apiDelete, ApiRequestOptions } from './requests';
 
 export const ENDPOINTS = {
   DATASET: 'api/v1/dataset/',
+  DATASET_EXPORT: 'api/v1/dataset/export/',
+  DATASET_DUPLICATE: 'api/v1/dataset/duplicate',
 } as const;
 
 /**
