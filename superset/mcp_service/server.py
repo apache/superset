@@ -25,13 +25,13 @@ For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 import logging
 import os
 from typing import Any
-from urllib.parse import urlparse
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
     MCP_STORE_CONFIG,
 )
+from superset.mcp_service.storage import get_raw_redis_store
 
 
 def configure_logging(debug: bool = False) -> None:
@@ -86,29 +86,12 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
 
     try:
         from fastmcp.server.event_store import EventStore
-        from key_value.aio.stores.redis import RedisStore
 
-        # Parse Redis URL to handle SSL properly
-        parsed = urlparse(redis_url)
-        use_ssl = parsed.scheme == "rediss"
-
-        # Build clean URL for RedisStore
-        # RedisStore from key_value uses different parameters than redis-py
-        clean_url = f"{parsed.scheme}://"
-        if parsed.password:
-            clean_url += f":{parsed.password}@"
-        clean_url += f"{parsed.hostname or 'localhost'}"
-        clean_url += f":{parsed.port or 6379}"
-        clean_url += f"/{parsed.path.strip('/') or '0'}"
-
-        # Create Redis store with SSL support for cloud deployments
-        if use_ssl:
-            redis_store = RedisStore(
-                url=clean_url,
-                ssl_cert_reqs="none",  # Disable cert verification for ElastiCache
-            )
-        else:
-            redis_store = RedisStore(url=clean_url)
+        # Reuse centralized Redis store from storage.py (handles SSL properly)
+        redis_store = get_raw_redis_store(redis_url)
+        if redis_store is None:
+            logging.warning("Failed to create Redis store, falling back to in-memory")
+            return None
 
         # Create EventStore with Redis backend
         event_store = EventStore(
@@ -117,16 +100,13 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
             ttl=config.get("event_store_ttl", 3600),
         )
 
-        logging.info(
-            "EventStore: Using Redis storage at %s (multi-pod mode)",
-            parsed.hostname,
-        )
+        logging.info("EventStore: Using Redis storage (multi-pod mode)")
         return event_store
 
     except ImportError as e:
         logging.error(
             "Failed to import EventStore dependencies: %s. "
-            "Ensure fastmcp and key_value packages are installed.",
+            "Ensure fastmcp package is installed.",
             e,
         )
         return None
