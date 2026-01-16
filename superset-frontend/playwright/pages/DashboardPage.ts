@@ -29,15 +29,13 @@ export class DashboardPage {
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
-    // Ant Design submenu trigger is rendered as .ant-dropdown-menu-submenu-title
-    DOWNLOAD_SUBMENU_TITLE:
-      '.ant-dropdown-menu-submenu-title:has-text("Download")',
-    // Submenu popup appears as .ant-dropdown-menu-submenu-popup
-    SUBMENU_POPUP: '.ant-dropdown-menu-submenu-popup',
-    EXPORT_YAML_OPTION:
-      '.ant-dropdown-menu-submenu-popup li:has-text("Export YAML")',
+    // The Dropdown uses popupRender with Menu, so submenu uses ant-menu classes
+    DOWNLOAD_SUBMENU_TITLE: '.ant-menu-submenu-title:has-text("Download")',
+    // Menu submenu popup uses .ant-menu-submenu-popup
+    SUBMENU_POPUP: '.ant-menu-submenu-popup',
+    EXPORT_YAML_OPTION: '.ant-menu-submenu-popup li:has-text("Export YAML")',
     EXPORT_AS_EXAMPLE_OPTION:
-      '.ant-dropdown-menu-submenu-popup li:has-text("Export as Example")',
+      '.ant-menu-submenu-popup li:has-text("Export as Example")',
   } as const;
 
   constructor(page: Page) {
