@@ -120,6 +120,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | extraConfigs | object | `{}` | Extra files to be mounted as ConfigMap on the path specified in `extraConfigMountPath` |
 | extraEnv | list | `[]` | Extra environment variables that will be passed into pods Supports both simple values and valueFrom references (secrets, configmaps) |
 | extraLabels | object | `{}` | Labels to be added to all resources |
+| extraPipPackages | list | `[]` | Extra pip packages to install at container startup (for POC/dev only) ⚠️ PRODUCTION: Leave this empty in production - dependencies should be pre-installed in a custom image These are arbitrary Python packages that will be installed via `uv pip install` Use this for packages not available in Superset's optional dependencies Example: ["redis>=4.0.0", "boto3", "my-custom-package==1.2.3"] |
 | extraSecretEnv | object | `{}` | Extra environment variables to pass as secrets |
 | extraSecrets | object | `{}` | Extra files to be mounted as Secrets on the path specified in `configMountPath` |
 | extraVolumeMounts | list | `[]` |  |

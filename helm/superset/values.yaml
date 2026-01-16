@@ -317,8 +317,8 @@ cache:
   resultsBackendKeyPrefix: "superset_results"
   # -- Async queries configuration
   asyncQueries:
-    # -- Redis database number for async queries (default: 0)
-    db: 0
+    # -- Redis database number for async queries (defaults to cacheDb if not set)
+    # db:
     # -- Key prefix for async queries (default: "qc-")
     keyPrefix: "qc-"
     # -- Cache timeout for async queries in seconds (default: 86400 = 1 day)
