@@ -38,13 +38,34 @@ type HttpMethod = (typeof HTTP_METHODS)[keyof typeof HTTP_METHODS];
 interface WaitForResponseOptions {
   /** Optional timeout in milliseconds */
   timeout?: number;
+  /** Match against URL pathname suffix instead of full URL includes (default: false) */
+  pathMatch?: boolean;
 }
 
 /**
- * Check if a URL matches a pattern (string includes or regex)
+ * Normalize a path by removing trailing slashes
  */
-function matchUrl(url: string, pattern: string | RegExp): boolean {
+function normalizePath(path: string): string {
+  return path.replace(/\/+$/, '');
+}
+
+/**
+ * Check if a URL matches a pattern
+ * - String + pathMatch: pathname.endsWith(pattern) with trailing slash normalization
+ * - String: url.includes(pattern)
+ * - RegExp: pattern.test(url)
+ */
+function matchUrl(
+  url: string,
+  pattern: string | RegExp,
+  pathMatch?: boolean,
+): boolean {
   if (typeof pattern === 'string') {
+    if (pathMatch) {
+      const pathname = normalizePath(new URL(url).pathname);
+      const normalizedPattern = normalizePath(pattern);
+      return pathname.endsWith(normalizedPattern);
+    }
     return url.includes(pattern);
   }
   return pattern.test(url);
@@ -59,11 +80,12 @@ function waitForResponse(
   method: HttpMethod,
   options?: WaitForResponseOptions,
 ): Promise<Response> {
+  const { pathMatch, ...waitOptions } = options ?? {};
   return page.waitForResponse(
     response =>
-      matchUrl(response.url(), urlPattern) &&
+      matchUrl(response.url(), urlPattern, pathMatch) &&
       response.request().method() === method,
-    options,
+    waitOptions,
   );
 }
 

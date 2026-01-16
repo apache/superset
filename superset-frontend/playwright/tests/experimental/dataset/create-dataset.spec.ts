@@ -112,12 +112,20 @@ test('should create a dataset via wizard', async ({ page }) => {
         throw error;
       }
       // Sheet not visible in dropdown - skip test (gsheets may have loading delay)
+      // Attach context so timeout skips are diagnosable in CI
+      await test.info().attach('skip-reason', {
+        body: `Table "${sheetName}" not found in dropdown after timeout. This may indicate gsheets loading delay or a selector change.`,
+        contentType: 'text/plain',
+      });
       test.skip();
       return;
     }
 
     // Step 5: Set up response intercept to capture new dataset ID
-    const createResponsePromise = waitForPost(page, ENDPOINTS.DATASET);
+    // Use pathMatch to match pathname suffix, avoiding false matches on /duplicate, /export
+    const createResponsePromise = waitForPost(page, ENDPOINTS.DATASET, {
+      pathMatch: true,
+    });
 
     // Click "Create and explore dataset" button
     await createDatasetPage.clickCreateAndExploreDataset();

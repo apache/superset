@@ -25,6 +25,7 @@ export const ENDPOINTS = {
   DATASET: 'api/v1/dataset/',
   DATASET_EXPORT: 'api/v1/dataset/export/',
   DATASET_DUPLICATE: 'api/v1/dataset/duplicate',
+  DATASET_IMPORT: 'api/v1/dataset/import/',
 } as const;
 
 /**

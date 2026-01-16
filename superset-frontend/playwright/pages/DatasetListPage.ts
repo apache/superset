@@ -215,4 +215,11 @@ export class DatasetListPage {
   async clickAddDataset(): Promise<void> {
     await this.getAddDatasetButton().click();
   }
+
+  /**
+   * Clicks the import button to open the import modal
+   */
+  async clickImportButton(): Promise<void> {
+    await this.page.getByTestId('import-button').click();
+  }
 }

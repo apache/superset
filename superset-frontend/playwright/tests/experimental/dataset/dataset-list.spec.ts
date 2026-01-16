@@ -18,11 +18,13 @@
  */
 
 import { test, expect, type Page, type Response } from '@playwright/test';
+import path from 'path';
 import * as unzipper from 'unzipper';
 import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ExplorePage } from '../../../pages/ExplorePage';
 import { ConfirmDialog } from '../../../components/modals/ConfirmDialog';
 import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
+import { ImportDatasetModal } from '../../../components/modals/ImportDatasetModal';
 import { DuplicateDatasetModal } from '../../../components/modals/DuplicateDatasetModal';
 import { EditDatasetModal } from '../../../components/modals/EditDatasetModal';
 import { Toast } from '../../../components/core/Toast';
@@ -33,7 +35,11 @@ import {
   duplicateDataset,
   ENDPOINTS,
 } from '../../../helpers/api/dataset';
-import { waitForGet, waitForPost, waitForPut } from '../../../helpers/api/intercepts';
+import {
+  waitForGet,
+  waitForPost,
+  waitForPut,
+} from '../../../helpers/api/intercepts';
 import { expectStatusOneOf } from '../../../helpers/api/assertions';
 
 /**
@@ -192,7 +198,10 @@ test('should duplicate a dataset with new name', async ({ page }) => {
     await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
 
     // Set up response intercept to capture duplicate dataset ID
-    const duplicateResponsePromise = waitForPost(page, ENDPOINTS.DATASET_DUPLICATE);
+    const duplicateResponsePromise = waitForPost(
+      page,
+      ENDPOINTS.DATASET_DUPLICATE,
+    );
 
     // Click duplicate action button
     await datasetListPage.clickDuplicateAction(originalName);
@@ -208,7 +217,10 @@ test('should duplicate a dataset with new name', async ({ page }) => {
     await duplicateModal.clickDuplicate();
 
     // Get the duplicate dataset ID from response (handle both response shapes)
-    const duplicateResponse = expectStatusOneOf(await duplicateResponsePromise, [200, 201]);
+    const duplicateResponse = expectStatusOneOf(
+      await duplicateResponsePromise,
+      [200, 201],
+    );
     const duplicateData = await duplicateResponse.json();
     const duplicateId = duplicateData.result?.id ?? duplicateData.id;
     expect(duplicateId, 'Duplicate API should return dataset id').toBeTruthy();
@@ -321,7 +333,10 @@ test('should export multiple datasets via bulk select action', async ({
     await datasetListPage.clickBulkAction('Export');
 
     // Wait for export API response and validate zip contains multiple datasets
-    const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
+    const exportResponse = expectStatusOneOf(
+      await exportResponsePromise,
+      [200],
+    );
     await expectValidExportZip(exportResponse, { minDatasetCount: 2 });
   } finally {
     await cleanupDatasets(page, testDatasetIds);
@@ -397,6 +412,196 @@ test('should edit dataset name via modal', async ({ page }) => {
     );
     const updatedDataset = (await updatedDatasetRes.json()).result;
     expect(updatedDataset.table_name).toBe(newName);
+  } finally {
+    await cleanupDatasets(page, testDatasetIds);
+  }
+});
+
+test('should bulk delete multiple datasets', async ({ page }) => {
+  const datasetListPage = new DatasetListPage(page);
+  const testDatasetIds: number[] = [];
+
+  try {
+    // Get example dataset to duplicate
+    const originalDataset = await getDatasetByName(page, 'members_channels_2');
+    expect(originalDataset).not.toBeNull();
+
+    // Create 2 throwaway copies for bulk delete (hermetic - uses duplicate API)
+    const dataset1Name = `test_bulk_delete_1_${Date.now()}`;
+    const dataset2Name = `test_bulk_delete_2_${Date.now()}`;
+
+    const [duplicate1, duplicate2] = await Promise.all([
+      duplicateDataset(page, originalDataset!.id, dataset1Name),
+      duplicateDataset(page, originalDataset!.id, dataset2Name),
+    ]);
+    testDatasetIds.push(duplicate1.id, duplicate2.id);
+
+    // Navigate to dataset list page
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
+
+    // Verify both datasets are visible in list
+    await expect(datasetListPage.getDatasetRow(dataset1Name)).toBeVisible();
+    await expect(datasetListPage.getDatasetRow(dataset2Name)).toBeVisible();
+
+    // Enable bulk select mode
+    await datasetListPage.clickBulkSelectButton();
+
+    // Select both datasets
+    await datasetListPage.selectDatasetCheckbox(dataset1Name);
+    await datasetListPage.selectDatasetCheckbox(dataset2Name);
+
+    // Click bulk delete action
+    await datasetListPage.clickBulkAction('Delete');
+
+    // Delete confirmation modal should appear
+    const deleteModal = new DeleteConfirmationModal(page);
+    await deleteModal.waitForVisible();
+
+    // Type "DELETE" to confirm
+    await deleteModal.fillConfirmationInput('DELETE');
+
+    // Click the Delete button
+    await deleteModal.clickDelete();
+
+    // Modal should close
+    await deleteModal.waitForHidden();
+
+    // Verify success toast appears
+    const toast = new Toast(page);
+    await expect(toast.getSuccess()).toBeVisible();
+
+    // Verify both datasets are removed from list
+    await expect(datasetListPage.getDatasetRow(dataset1Name)).not.toBeVisible();
+    await expect(datasetListPage.getDatasetRow(dataset2Name)).not.toBeVisible();
+
+    // Verify via API that datasets no longer exist (404)
+    // Use polling since deletes may be async
+    await expect
+      .poll(async () => {
+        const response = await apiGetDataset(page, duplicate1.id, {
+          failOnStatusCode: false,
+        });
+        return response.status();
+      })
+      .toBe(404);
+    await expect
+      .poll(async () => {
+        const response = await apiGetDataset(page, duplicate2.id, {
+          failOnStatusCode: false,
+        });
+        return response.status();
+      })
+      .toBe(404);
+
+    // Datasets were deleted successfully, clear from cleanup list
+    testDatasetIds.length = 0;
+  } finally {
+    await cleanupDatasets(page, testDatasetIds);
+  }
+});
+
+test('should import a dataset from a zip file', async ({ page }) => {
+  const datasetListPage = new DatasetListPage(page);
+  const testDatasetIds: number[] = [];
+
+  // Dataset name from fixture (test_netflix_1768502050965)
+  // Note: Fixture contains a Google Sheets dataset - test will skip if gsheets connector unavailable
+  const importedDatasetName = 'test_netflix_1768502050965';
+  const fixturePath = path.resolve(
+    __dirname,
+    '../../../fixtures/dataset_export.zip',
+  );
+
+  try {
+    // Cleanup: Delete any existing dataset with the same name from previous runs
+    const existingDataset = await getDatasetByName(page, importedDatasetName);
+    if (existingDataset) {
+      await apiDeleteDataset(page, existingDataset.id, {
+        failOnStatusCode: false,
+      });
+    }
+
+    // Navigate to dataset list page
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
+
+    // Click the import button
+    await datasetListPage.clickImportButton();
+
+    // Wait for import modal to be ready
+    const importModal = new ImportDatasetModal(page);
+    await importModal.waitForReady();
+
+    // Upload the fixture zip file
+    await importModal.uploadFile(fixturePath);
+
+    // Set up response intercept to catch the import POST
+    let importResponsePromise = waitForPost(page, ENDPOINTS.DATASET_IMPORT);
+
+    // Click Import button
+    await importModal.clickImport();
+
+    // Wait for first import response
+    let importResponse = await importResponsePromise;
+
+    // Handle overwrite confirmation if dataset already exists
+    // First response may be 409/422 indicating overwrite is required - this is expected
+    const overwriteInput = importModal.getOverwriteInput();
+    await overwriteInput
+      .waitFor({ state: 'visible', timeout: 3000 })
+      .catch(() => {});
+
+    if (await overwriteInput.isVisible()) {
+      // Set up new intercept for the actual import after overwrite confirmation
+      importResponsePromise = waitForPost(page, ENDPOINTS.DATASET_IMPORT);
+      await importModal.fillOverwriteConfirmation();
+      await importModal.clickImport();
+      // Wait for the second (final) import response
+      importResponse = await importResponsePromise;
+    }
+
+    // Check final import response for gsheets connector errors
+    if (!importResponse.ok()) {
+      const errorBody = await importResponse.json().catch(() => ({}));
+      const errorText = JSON.stringify(errorBody);
+      // Skip test if gsheets connector not installed
+      if (
+        errorText.includes('gsheets') ||
+        errorText.includes('No such DB engine') ||
+        errorText.includes('Could not load database driver')
+      ) {
+        await test.info().attach('skip-reason', {
+          body: `Import failed due to missing gsheets connector: ${errorText}`,
+          contentType: 'text/plain',
+        });
+        test.skip();
+        return;
+      }
+      // Re-throw other errors
+      throw new Error(`Import failed: ${errorText}`);
+    }
+
+    // Modal should close on success
+    await importModal.waitForHidden({ timeout: 30000 });
+
+    // Verify success toast appears
+    const toast = new Toast(page);
+    await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
+
+    // Refresh the page to see the imported dataset
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
+
+    // Verify dataset appears in list
+    await expect(
+      datasetListPage.getDatasetRow(importedDatasetName),
+    ).toBeVisible();
+
+    // Get dataset ID for cleanup
+    const importedDataset = await getDatasetByName(page, importedDatasetName);
+    expect(importedDataset).not.toBeNull();
+    testDatasetIds.push(importedDataset!.id);
   } finally {
     await cleanupDatasets(page, testDatasetIds);
   }
