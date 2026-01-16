@@ -2280,12 +2280,12 @@ def test_export_includes_configuration_method(
     mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     """
-    Test that exporting a database 
+    Test that exporting a database
     includes the 'configuration_method' field in the YAML.
     """
     import zipfile
-
     from superset.models.core import Database
+    import prison
 
     # Create a database with a non-default configuration_method
     db_obj = Database(
@@ -2297,8 +2297,8 @@ def test_export_includes_configuration_method(
     db.session.add(db_obj)
     db.session.commit()
 
-    # Export the database
-    response = client.get(f"/api/v1/database/export/?q=(id:!({db_obj.id}))")
+    rison_ids = prison.dumps([db_obj.id])
+    response = client.get(f"/api/v1/database/export/?q={rison_ids}")
     assert response.status_code == 200
 
     # Read the zip file from the response
