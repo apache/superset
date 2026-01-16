@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, {
-  FC,
+  forwardRef,
   ReactNode,
   useContext,
   useEffect,
@@ -41,7 +41,6 @@ import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 const extensionsRegistry = getExtensionsRegistry();
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
-  innerRef?: string;
   updateSliceName?: (arg0: string) => void;
   editMode?: boolean;
   annotationQuery?: object;
@@ -138,40 +137,43 @@ const ChartHeaderStyles = styled.div`
   `}
 `;
 
-const SliceHeader: FC<SliceHeaderProps> = ({
-  innerRef = null,
-  forceRefresh = () => ({}),
-  updateSliceName = () => ({}),
-  toggleExpandSlice = () => ({}),
-  logExploreChart = () => ({}),
-  logEvent,
-  exportCSV = () => ({}),
-  exportXLSX = () => ({}),
-  editMode = false,
-  annotationQuery = {},
-  annotationError = {},
-  cachedDttm = null,
-  updatedDttm = null,
-  isCached = [],
-  isExpanded = false,
-  sliceName = '',
-  supersetCanExplore = false,
-  supersetCanShare = false,
-  supersetCanCSV = false,
-  exportFullCSV,
-  exportFullXLSX,
-  slice,
-  componentId,
-  dashboardId,
-  addSuccessToast,
-  addDangerToast,
-  handleToggleFullSize,
-  isFullSize,
-  chartStatus,
-  formData,
-  width,
-  height,
-}) => {
+const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
+  (
+    {
+      forceRefresh = () => ({}),
+      updateSliceName = () => ({}),
+      toggleExpandSlice = () => ({}),
+      logExploreChart = () => ({}),
+      logEvent,
+      exportCSV = () => ({}),
+      exportXLSX = () => ({}),
+      editMode = false,
+      annotationQuery = {},
+      annotationError = {},
+      cachedDttm = null,
+      updatedDttm = null,
+      isCached = [],
+      isExpanded = false,
+      sliceName = '',
+      supersetCanExplore = false,
+      supersetCanShare = false,
+      supersetCanCSV = false,
+      exportFullCSV,
+      exportFullXLSX,
+      slice,
+      componentId,
+      dashboardId,
+      addSuccessToast,
+      addDangerToast,
+      handleToggleFullSize,
+      isFullSize,
+      chartStatus,
+      formData,
+      width,
+      height,
+    },
+    ref,
+  ) => {
   const SliceHeaderExtension = extensionsRegistry.get('dashboard.slice.header');
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
@@ -205,7 +207,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
   return (
-    <ChartHeaderStyles data-test="slice-header" ref={innerRef}>
+    <ChartHeaderStyles data-test="slice-header" ref={ref}>
       <div className="header-title" ref={headerRef}>
         {/* WCAG 1.3.1: Chart title as semantic heading for screen readers */}
         <h2>
@@ -309,6 +311,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
       </div>
     </ChartHeaderStyles>
   );
-};
+},
+);
 
 export default SliceHeader;
