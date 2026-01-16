@@ -17,8 +17,6 @@
 """Concrete TaskContext implementation for GATF"""
 
 import logging
-import threading
-import time
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from flask import current_app
@@ -29,6 +27,7 @@ from superset.utils.decorators import transaction
 
 if TYPE_CHECKING:
     from superset.models.tasks import Task
+    from superset.tasks.manager import AbortListener
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +52,7 @@ class TaskContext(CoreTaskContext):
         self._task_uuid = task_uuid
         self._cleanup_handlers: list[Callable[[], None]] = []
         self._abort_handlers: list[Callable[[], None]] = []
-        self._polling_thread: threading.Thread | None = None
-        self._polling_active = False
+        self._abort_listener: "AbortListener | None" = None
         self._abort_detected = False
         self._abort_handlers_completed = False  # Track if all abort handlers finished
 
@@ -146,11 +144,11 @@ class TaskContext(CoreTaskContext):
 
     def on_abort(self, handler: Callable[[], None]) -> Callable[[], None]:
         """
-        Register abort handler with automatic background polling.
+        Register abort handler with automatic background listening.
 
         When the first handler is registered:
         1. Sets is_abortable=true in the database (marks task as abortable)
-        2. Background polling starts automatically
+        2. Background abort listener starts automatically (pub/sub or polling)
 
         The handler will be called automatically when an abort is detected.
 
@@ -164,10 +162,9 @@ class TaskContext(CoreTaskContext):
                 cleanup_partial_work()
 
         Note:
-            The handler executes in a background polling thread when abort
-            is detected. The task code continues running unless the handler
-            does something to stop it (e.g., raises an exception, modifies
-            shared state, etc.)
+            The handler executes in a background thread when abort is detected.
+            The task code continues running unless the handler does something
+            to stop it (e.g., raises an exception, modifies shared state, etc.)
         """
         is_first_handler = len(self._abort_handlers) == 0
         self._abort_handlers.append(handler)
@@ -176,9 +173,9 @@ class TaskContext(CoreTaskContext):
             # Mark task as abortable in database
             self._set_abortable()
 
-            # Auto-start polling when first handler is registered
+            # Auto-start abort listener when first handler is registered
             interval = current_app.config["TASK_ABORT_POLLING_DEFAULT_INTERVAL"]
-            self.start_abort_polling(interval)
+            self._start_abort_listener(interval)
 
         return handler
 
@@ -189,86 +186,50 @@ class TaskContext(CoreTaskContext):
         task.is_abortable = True
         db.session.merge(task)
 
+    def _start_abort_listener(self, interval: float) -> None:
+        """
+        Start background abort listener via TaskManager.
+
+        Uses Redis pub/sub if available, otherwise falls back to database polling.
+        The implementation is encapsulated in TaskManager.
+        """
+        if self._abort_listener is not None:
+            return  # Already listening
+
+        from superset.tasks.manager import TaskManager
+
+        self._abort_listener = TaskManager.listen_for_abort(
+            task_uuid=self._task_uuid,
+            callback=self._on_abort_detected,
+            poll_interval=interval,
+            app=self._app,
+        )
+
+    def _on_abort_detected(self) -> None:
+        """
+        Callback invoked by TaskManager when abort is detected.
+
+        Triggers all registered abort handlers.
+        """
+        if self._abort_detected:
+            return  # Already handled
+
+        self._abort_detected = True
+        logger.info("Abort detected for task %s", self._task_uuid)
+        self._trigger_abort_handlers()
+
     def start_abort_polling(self, interval: float | None = None) -> None:
         """
-        Start background thread that polls for abort status.
+        Start background abort listener.
 
-        Usually called automatically when registering an abort handler.
-        Can be called explicitly to override the polling interval.
+        This method is kept for backwards compatibility. It now delegates
+        to _start_abort_listener which uses TaskManager.
 
         :param interval: Polling interval in seconds (uses config default if None)
         """
-        if self._polling_thread is not None:
-            return  # Already polling
-
         if interval is None:
             interval = current_app.config["TASK_ABORT_POLLING_DEFAULT_INTERVAL"]
-
-        self._polling_active = True
-        self._polling_thread = threading.Thread(
-            target=self._poll_for_abort,
-            args=(interval,),
-            daemon=True,
-            name=f"abort-poller-{self._task_uuid[:8]}",
-        )
-        self._polling_thread.start()
-        logger.info(
-            "Started abort polling for task %s (interval=%ss)",
-            self._task_uuid,
-            interval,
-        )
-
-    def _poll_for_abort(self, interval: float) -> None:
-        """Background polling loop - runs in separate thread"""
-        while self._polling_active:
-            try:
-                # Wrap database access in Flask app context
-                if self._app:
-                    with self._app.app_context():
-                        # Check if task is aborting or aborted
-                        task = self._task
-                        if task.status in [
-                            TaskStatus.ABORTING.value,
-                            TaskStatus.ABORTED.value,
-                        ]:
-                            if not self._abort_detected:
-                                self._abort_detected = True
-                                logger.info(
-                                    "Abort detected for task %s (status=%s)",
-                                    self._task_uuid,
-                                    task.status,
-                                )
-
-                                # Trigger abort handlers automatically
-                                self._trigger_abort_handlers()
-                            break  # Stop polling once aborting/aborted
-                else:
-                    # Fallback without app context (e.g., in tests)
-                    # This may fail with RuntimeError, but we log it
-                    task = self._task
-                    if task.status in [
-                        TaskStatus.ABORTING.value,
-                        TaskStatus.ABORTED.value,
-                    ]:
-                        if not self._abort_detected:
-                            self._abort_detected = True
-                            logger.info(
-                                "Abort detected for task %s (status=%s)",
-                                self._task_uuid,
-                                task.status,
-                            )
-                            self._trigger_abort_handlers()
-                        break
-
-                time.sleep(interval)
-            except Exception as ex:
-                logger.error(
-                    "Error in abort polling for task %s: %s",
-                    self._task_uuid,
-                    str(ex),
-                    exc_info=True,
-                )
-                break
+        self._start_abort_listener(interval)
 
     def _trigger_abort_handlers(self) -> None:
         """
@@ -302,11 +263,10 @@ class TaskContext(CoreTaskContext):
             self._abort_handlers_completed = True
 
     def stop_abort_polling(self) -> None:
-        """Stop the background polling thread"""
-        self._polling_active = False
-        if self._polling_thread:
-            self._polling_thread.join(timeout=2.0)
-            self._polling_thread = None
+        """Stop the background abort listener."""
+        if self._abort_listener is not None:
+            self._abort_listener.stop()
+            self._abort_listener = None
 
     @property
     def abort_handlers_completed(self) -> bool:
@@ -318,14 +278,14 @@ class TaskContext(CoreTaskContext):
         Run cleanup handlers (called by executor in finally block).
 
         This runs:
-        1. Abort handlers if task was aborting/aborted (but not yet detected by polling)
+        1. Abort handlers if task was aborting/aborted (but not yet detected)
         2. All cleanup handlers (always)
         """
-        # Stop polling thread
+        # Stop abort listener
         self.stop_abort_polling()
 
         # If aborting/aborted but handlers haven't run yet, run them now
-        # (This catches the case where task ended before polling detected abort)
+        # (This catches the case where task ended before listener detected abort)
         if self._app:
             with self._app.app_context():
                 task = self._task

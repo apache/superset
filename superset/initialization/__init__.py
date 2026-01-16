@@ -597,6 +597,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_async_queries()
         self.configure_ssh_manager()
         self.configure_stats_manager()
+        self.configure_task_manager()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -928,6 +929,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
             async_query_manager_factory.init_app(self.superset_app)
+
+    def configure_task_manager(self) -> None:
+        """Initialize the TaskManager for GTF realtime notifications."""
+        from superset.tasks.manager import TaskManager
+
+        TaskManager.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
         # Register custom blueprints from config
