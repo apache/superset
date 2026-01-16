@@ -2274,3 +2274,48 @@ def test_schemas_with_oauth2(
             }
         ]
     }
+
+
+def test_export_includes_configuration_method(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """
+    Test that exporting a database includes the 'configuration_method' field in the YAML.
+    """
+    import zipfile
+
+    from superset.models.core import Database
+
+    # Create a database with a non-default configuration_method
+    db_obj = Database(
+        database_name="export_test_db",
+        sqlalchemy_uri="bigquery://gcp-project-id/",
+        configuration_method="dynamic_form",
+        uuid=UUID("12345678-1234-5678-1234-567812345678"),
+    )
+    db.session.add(db_obj)
+    db.session.commit()
+
+    # Export the database
+    response = client.get(f"/api/v1/database/export/?q=(id:!({db_obj.id}))")
+    assert response.status_code == 200
+
+    # Read the zip file from the response
+    buf = BytesIO(response.data)
+    with zipfile.ZipFile(buf) as zf:
+        # Find the database yaml file
+        db_yaml_path = None
+        for name in zf.namelist():
+            if (
+                name.endswith(".yaml")
+                and name.startswith("database_export_")
+                and "/databases/" in name
+            ):
+                db_yaml_path = name
+                break
+        assert db_yaml_path, "Database YAML not found in export zip"
+        with zf.open(db_yaml_path) as f:
+            db_yaml = yaml.safe_load(f.read())
+    # Assert configuration_method is present and correct
+    assert "configuration_method" in db_yaml
+    assert db_yaml["configuration_method"] == "dynamic_form"
