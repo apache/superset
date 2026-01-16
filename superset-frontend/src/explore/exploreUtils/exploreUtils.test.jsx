@@ -22,6 +22,7 @@ import URI from 'urijs';
 import {
   buildV1ChartDataPayload,
   exploreChart,
+  exportChart,
   getExploreUrl,
   getSimpleSQLExpression,
   getQuerySettings,
@@ -29,6 +30,7 @@ import {
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import { getChartMetadataRegistry, SupersetClient } from '@superset-ui/core';
+import * as exportUtils from 'src/utils/export';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('exploreUtils', () => {
@@ -297,6 +299,214 @@ describe('exploreUtils', () => {
         formData: { ...formData, viz_type: 'my_custom_viz' },
       });
       expect(postFormSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('.exportChart()', () => {
+    let postBlobSpy;
+    let downloadBlobSpy;
+    let mockBlob;
+
+    beforeEach(() => {
+      // Create a mock blob
+      mockBlob = new Blob(['test data'], { type: 'text/csv' });
+
+      // Mock SupersetClient.postBlob
+      postBlobSpy = jest.spyOn(SupersetClient, 'postBlob');
+
+      // Mock downloadBlob from utils/export
+      downloadBlobSpy = jest.spyOn(exportUtils, 'downloadBlob');
+      downloadBlobSpy.mockImplementation(jest.fn());
+    });
+
+    afterEach(() => {
+      postBlobSpy.mockRestore();
+      downloadBlobSpy.mockRestore();
+    });
+
+    test('successfully exports chart as CSV', async () => {
+      // Mock successful response
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        blob: jest.fn().mockResolvedValue(mockBlob),
+      };
+      postBlobSpy.mockResolvedValue(mockResponse);
+
+      await exportChart({
+        formData: { ...formData, viz_type: 'my_custom_viz' },
+        resultFormat: 'csv',
+        resultType: 'full',
+      });
+
+      expect(postBlobSpy).toHaveBeenCalledTimes(1);
+      expect(mockResponse.blob).toHaveBeenCalled();
+      expect(downloadBlobSpy).toHaveBeenCalledWith(
+        mockBlob,
+        expect.stringContaining('.csv'),
+      );
+    });
+
+    test('successfully exports chart as Excel', async () => {
+      // Mock successful response
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        blob: jest.fn().mockResolvedValue(mockBlob),
+      };
+      postBlobSpy.mockResolvedValue(mockResponse);
+
+      await exportChart({
+        formData: { ...formData, viz_type: 'my_custom_viz' },
+        resultFormat: 'xlsx',
+        resultType: 'results',
+      });
+
+      expect(postBlobSpy).toHaveBeenCalledTimes(1);
+      expect(mockResponse.blob).toHaveBeenCalled();
+      expect(downloadBlobSpy).toHaveBeenCalledWith(
+        mockBlob,
+        expect.stringContaining('.xlsx'),
+      );
+    });
+
+    test('throws error with status 413 when payload is too large', async () => {
+      // Mock 413 response
+      const mockResponse = {
+        ok: false,
+        status: 413,
+        statusText: 'Payload Too Large',
+        blob: jest.fn(),
+      };
+      postBlobSpy.mockResolvedValue(mockResponse);
+
+      await expect(
+        exportChart({
+          formData: { ...formData, viz_type: 'my_custom_viz' },
+          resultFormat: 'csv',
+        }),
+      ).rejects.toMatchObject({
+        status: 413,
+        message: expect.stringContaining('413'),
+      });
+
+      expect(postBlobSpy).toHaveBeenCalledTimes(1);
+      // Blob should not be called if response is not ok
+      expect(mockResponse.blob).not.toHaveBeenCalled();
+      // Download should not be triggered
+      expect(downloadBlobSpy).not.toHaveBeenCalled();
+    });
+
+    test('throws error with status 500 for server errors', async () => {
+      // Mock 500 response
+      const mockResponse = {
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        blob: jest.fn(),
+      };
+      postBlobSpy.mockResolvedValue(mockResponse);
+
+      await expect(
+        exportChart({
+          formData: { ...formData, viz_type: 'my_custom_viz' },
+          resultFormat: 'json',
+        }),
+      ).rejects.toMatchObject({
+        status: 500,
+        message: expect.stringContaining('500'),
+      });
+
+      expect(downloadBlobSpy).not.toHaveBeenCalled();
+    });
+
+    test('handles Response object errors from SupersetClient', async () => {
+      // Mock Response object being thrown
+      const mockErrorResponse = new Response('Error body', {
+        status: 413,
+        statusText: 'Payload Too Large',
+      });
+      postBlobSpy.mockRejectedValue(mockErrorResponse);
+
+      await expect(
+        exportChart({
+          formData: { ...formData, viz_type: 'my_custom_viz' },
+          resultFormat: 'csv',
+        }),
+      ).rejects.toMatchObject({
+        status: 413,
+        message: expect.stringContaining('413'),
+      });
+
+      expect(downloadBlobSpy).not.toHaveBeenCalled();
+    });
+
+    test('enhances errors without status property', async () => {
+      // Mock generic error without status
+      const genericError = new Error('Network error');
+      postBlobSpy.mockRejectedValue(genericError);
+
+      await expect(
+        exportChart({
+          formData: { ...formData, viz_type: 'my_custom_viz' },
+          resultFormat: 'csv',
+        }),
+      ).rejects.toMatchObject({
+        status: 500,
+        message: expect.stringContaining('Network error'),
+      });
+
+      expect(downloadBlobSpy).not.toHaveBeenCalled();
+    });
+
+    test('uses streaming export when onStartStreamingExport is provided', async () => {
+      const mockStreamingHandler = jest.fn();
+
+      await exportChart({
+        formData: { ...formData, viz_type: 'my_custom_viz' },
+        resultFormat: 'csv',
+        onStartStreamingExport: mockStreamingHandler,
+      });
+
+      // Should call the streaming handler instead of postBlob
+      expect(mockStreamingHandler).toHaveBeenCalledWith({
+        url: expect.any(String),
+        payload: expect.any(Object),
+        exportType: 'csv',
+      });
+
+      // Should not call postBlob when streaming
+      expect(postBlobSpy).not.toHaveBeenCalled();
+      expect(downloadBlobSpy).not.toHaveBeenCalled();
+    });
+
+    test('generates correct filename with timestamp', async () => {
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        blob: jest.fn().mockResolvedValue(mockBlob),
+      };
+      postBlobSpy.mockResolvedValue(mockResponse);
+
+      // Mock Date to have consistent timestamp
+      const mockDate = new Date('2025-01-14T12:34:56.789Z');
+      jest.spyOn(global, 'Date').mockImplementation(() => mockDate);
+
+      await exportChart({
+        formData: { ...formData, viz_type: 'my_custom_viz' },
+        resultFormat: 'csv',
+      });
+
+      expect(downloadBlobSpy).toHaveBeenCalledWith(
+        mockBlob,
+        expect.stringMatching(
+          /^chart_export_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-.+\.csv$/,
+        ),
+      );
+
+      // Restore Date
+      global.Date.mockRestore();
     });
   });
 });
