@@ -82,7 +82,7 @@ function handleFilterChangesComplete(
     string,
     Filter | Divider | ChartCustomization | ChartCustomizationDivider
   > = {};
-  
+
   filters.forEach(filter => {
     const existingFilter = state.filters[filter.id];
     if (filter.chartsInScope != null && filter.tabsInScope != null) {

@@ -327,7 +327,11 @@ test('SET_NATIVE_FILTERS_CONFIG_COMPLETE handles mixed Filter and ChartCustomiza
   const initialState = {
     filters: {
       filter1: createMockFilter('filter1', [1, 2], ['tab1']),
-      customization1: createMockChartCustomization('customization1', [3, 4], ['tab2']),
+      customization1: createMockChartCustomization(
+        'customization1',
+        [3, 4],
+        ['tab2'],
+      ),
     },
   };
 
@@ -379,7 +383,11 @@ test('SET_NATIVE_FILTERS_CONFIG_COMPLETE treats backend response as source of tr
       filter1: createMockFilter('filter1', [1, 2], ['tab1']),
       filter2: createMockFilter('filter2', [3, 4], ['tab2']),
       filter3: createMockFilter('filter3', [5, 6], ['tab3']),
-      customization1: createMockChartCustomization('customization1', [7, 8], ['tab4']),
+      customization1: createMockChartCustomization(
+        'customization1',
+        [7, 8],
+        ['tab4'],
+      ),
     },
   };
 
