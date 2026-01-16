@@ -83,7 +83,7 @@ def estimate_response_tokens(response: Any) -> int:
             response_str = str(response)
 
         return estimate_token_count(response_str)
-    except Exception as e:
+    except (TypeError, ValueError, AttributeError) as e:
         logger.warning("Failed to estimate response tokens: %s", e)
         # Return a high estimate to be safe
         return 100000
@@ -114,7 +114,7 @@ def get_response_size_bytes(response: Any) -> int:
             response_str = str(response)
 
         return len(response_str.encode("utf-8"))
-    except Exception as e:
+    except (TypeError, ValueError, AttributeError) as e:
         logger.warning("Failed to get response size: %s", e)
         return 0
 
@@ -298,7 +298,7 @@ def _identify_large_fields(response: Any) -> List[str]:
                     if size > 500 and f not in ("id", "uuid", "name", "slice_name")
                 ]
 
-    except Exception as e:
+    except (TypeError, ValueError, KeyError, AttributeError) as e:
         logger.debug("Failed to identify large fields: %s", e)
 
     return large_fields
