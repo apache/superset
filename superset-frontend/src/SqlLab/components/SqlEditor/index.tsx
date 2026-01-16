@@ -859,7 +859,7 @@ const SqlEditor: FC<Props> = ({
               `}
             >
               {' '}
-              {t(`You are edting a query from the virtual dataset `) +
+              {t(`You are editing a query from the virtual dataset `) +
                 queryEditor.name}
             </p>
             <p
