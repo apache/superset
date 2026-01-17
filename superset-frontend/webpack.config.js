@@ -469,7 +469,7 @@ const config = {
       {
         test: /node_modules\/(geostyler-style|geostyler-qgis-parser).*\.js$/,
         resolve: {
-          fullySpecified: false
+          fullySpecified: false,
         },
       },
       {
