@@ -25,7 +25,6 @@ Reusable across caching middleware, OAuth providers, EventStore, etc.
 """
 
 import logging
-import ssl
 from importlib import import_module
 from typing import Any, Callable, Dict
 from urllib.parse import urlparse
@@ -119,29 +118,41 @@ def _create_redis_store(
         parsed = urlparse(redis_url)
         use_ssl = parsed.scheme == "rediss"
 
-        # Build clean URL without query params that may cause issues
-        clean_url = f"{parsed.scheme}://"
-        if parsed.username or parsed.password:
-            auth = parsed.username if parsed.username else ""
-            if parsed.password:
-                auth += f":{parsed.password}"
-            clean_url += f"{auth}@"
-        clean_url += f"{parsed.hostname or 'localhost'}"
-        clean_url += f":{parsed.port or 6379}"
-        clean_url += f"/{parsed.path.strip('/') or '0'}"
+        # RedisStore doesn't handle SSL from URL - it parses URL manually
+        # and ignores the scheme. We must create the Redis client ourselves.
+        from redis.asyncio import Redis
 
-        # Create Redis store with SSL support for cloud deployments
-        # Note: RedisStore uses redis.asyncio under the hood which handles
-        # SSL automatically via the rediss:// URL scheme
+        db = 0
+        if parsed.path and parsed.path != "/":
+            try:
+                db = int(parsed.path.strip("/"))
+            except ValueError:
+                db = 0
+
         if use_ssl:
-            # For ElastiCache with self-signed certs, append ssl_cert_reqs param
-            # redis.asyncio understands this as a query param in the URL
-            ssl_url = f"{clean_url}?ssl_cert_reqs=none"
-            redis_store = RedisStore(url=ssl_url)
-            logger.info("Created RedisStore with SSL at %s", parsed.hostname)
+            # For ElastiCache with self-signed certs, disable cert verification
+            redis_client = Redis(
+                host=parsed.hostname or "localhost",
+                port=parsed.port or 6379,
+                db=db,
+                password=parsed.password,
+                decode_responses=True,
+                ssl=True,
+                ssl_cert_reqs=None,  # Disable cert verification for ElastiCache
+            )
+            logger.info("Created async Redis client with SSL at %s", parsed.hostname)
         else:
-            redis_store = RedisStore(url=clean_url)
-            logger.info("Created RedisStore at %s", parsed.hostname)
+            redis_client = Redis(
+                host=parsed.hostname or "localhost",
+                port=parsed.port or 6379,
+                db=db,
+                password=parsed.password,
+                decode_responses=True,
+            )
+            logger.info("Created async Redis client at %s", parsed.hostname)
+
+        # Pass pre-configured client to RedisStore
+        redis_store = RedisStore(client=redis_client)
 
         # Return raw store if wrapping not requested
         if not wrap:
