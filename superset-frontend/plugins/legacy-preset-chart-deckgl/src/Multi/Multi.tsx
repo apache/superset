@@ -115,26 +115,31 @@ const DeckMulti = (props: DeckMultiProps) => {
 
   const getAdjustedViewport = useCallback(() => {
     let viewport = { ...props.viewport };
-    const points = [
-      ...getPointsPolygon(props.payload.data.features.deck_polygon || []),
-      ...getPointsPath(props.payload.data.features.deck_path || []),
-      ...getPointsGrid(props.payload.data.features.deck_grid || []),
-      ...getPointsScatter(props.payload.data.features.deck_scatter || []),
-      ...getPointsContour(props.payload.data.features.deck_contour || []),
-      ...getPointsHeatmap(props.payload.data.features.deck_heatmap || []),
-      ...getPointsHex(props.payload.data.features.deck_hex || []),
-      ...getPointsArc(props.payload.data.features.deck_arc || []),
-      ...getPointsGeojson(props.payload.data.features.deck_geojson || []),
-      ...getPointsScreengrid(props.payload.data.features.deck_screengrid || []),
-    ];
+    
+    // Only apply auto zoom if the autozoom setting is enabled
+    if (props.formData.autozoom) {
+      const points = [
+        ...getPointsPolygon(props.payload.data.features.deck_polygon || []),
+        ...getPointsPath(props.payload.data.features.deck_path || []),
+        ...getPointsGrid(props.payload.data.features.deck_grid || []),
+        ...getPointsScatter(props.payload.data.features.deck_scatter || []),
+        ...getPointsContour(props.payload.data.features.deck_contour || []),
+        ...getPointsHeatmap(props.payload.data.features.deck_heatmap || []),
+        ...getPointsHex(props.payload.data.features.deck_hex || []),
+        ...getPointsArc(props.payload.data.features.deck_arc || []),
+        ...getPointsGeojson(props.payload.data.features.deck_geojson || []),
+        ...getPointsScreengrid(props.payload.data.features.deck_screengrid || []),
+      ];
 
-    if (props.formData) {
-      viewport = fitViewport(viewport, {
-        width: props.width,
-        height: props.height,
-        points,
-      });
+      if (props.formData && points.length > 0) {
+        viewport = fitViewport(viewport, {
+          width: props.width,
+          height: props.height,
+          points,
+        });
+      }
     }
+    
     if (viewport.zoom < 0) {
       viewport.zoom = 0;
     }
