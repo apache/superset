@@ -205,7 +205,7 @@ if (!isDevMode) {
     new ForkTsCheckerWebpackPlugin({
       async: false,
       typescript: {
-        memoryLimit: 4096,
+        memoryLimit: TYPESCRIPT_MEMORY_LIMIT * (process.env.CI ? 1 : 2),
         build: true, // CRITICAL: Generate .d.ts files for plugins
         mode: 'write-references', // Handle project references
         configOverwrite: {
@@ -464,6 +464,12 @@ const config = {
         loader: 'imports-loader',
         options: {
           additionalCode: 'var module = module || {exports: {}};',
+        },
+      },
+      {
+        test: /node_modules\/(geostyler-style|geostyler-qgis-parser).*\.js$/,
+        resolve: {
+          fullySpecified: false
         },
       },
       {
