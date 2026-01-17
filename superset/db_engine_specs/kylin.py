@@ -33,7 +33,7 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "description": "Apache Kylin is an open-source OLAP engine for big data.",
         "logo": "apache-kylin.png",
         "homepage_url": "https://kylin.apache.org/",
-        "category": DatabaseCategory.APACHE_PROJECTS,
+        "categories": [DatabaseCategory.APACHE_PROJECTS, DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["kylinpy"],
         "connection_string": (
             "kylin://{username}:{password}@{hostname}:{port}/{project}"

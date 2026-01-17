@@ -56,7 +56,7 @@ from typing import Any
 # Schema definition - fields grouped by importance
 REQUIRED_FIELDS = {
     "description": "Brief description of the database",
-    "category": "DatabaseCategory constant for grouping",
+    "categories": "List of DatabaseCategory constants for grouping",
     "pypi_packages": "Python packages needed for connection",
     "connection_string": "SQLAlchemy URI template",
 }
@@ -592,7 +592,7 @@ def generate_markdown_report(reports: list[MetadataReport]) -> str:
             "",
             "    metadata = {",
             '        "description": "Brief description of the database.",',
-            '        "category": DatabaseCategory.TRADITIONAL_RDBMS,',
+            '        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],',
             '        "pypi_packages": ["my-driver"],',
             '        "connection_string": "mydb://{username}:{password}@{host}:{port}/{database}",',
             '        "logo": "mydb.svg",',

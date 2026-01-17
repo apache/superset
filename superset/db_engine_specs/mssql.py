@@ -59,7 +59,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         ),
         "logo": "msql.png",
         "homepage_url": "https://www.microsoft.com/en-us/sql-server",
-        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
         "pypi_packages": ["pymssql"],
         "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
         "default_port": 1433,
@@ -208,7 +208,7 @@ class AzureSynapseSpec(MssqlEngineSpec):
         ),
         "logo": "azure.svg",
         "homepage_url": "https://azure.microsoft.com/en-us/products/synapse-analytics/",
-        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["pymssql"],
         "connection_string": (
             "mssql+pymssql://{username}@{server}:{password}@"

@@ -37,7 +37,7 @@ class FireboltEngineSpec(BaseEngineSpec):
         ),
         "logo": "firebolt.png",
         "homepage_url": "https://www.firebolt.io/",
-        "category": DatabaseCategory.OTHER,
+        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["firebolt-sqlalchemy"],
         "connection_string": (
             "firebolt://{client_id}:{client_secret}@{database}/{engine_name}"

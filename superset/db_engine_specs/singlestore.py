@@ -54,7 +54,7 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
         ),
         "logo": "singlestore.png",
         "homepage_url": "https://www.singlestore.com/",
-        "category": DatabaseCategory.ANALYTICAL_DATABASES,
+        "categories": [DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["singlestoredb"],
         "connection_string": (
             "singlestoredb://{username}:{password}@{host}:{port}/{database}"

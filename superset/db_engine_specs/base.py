@@ -266,7 +266,7 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     homepage_url: str
     docs_url: str
     sqlalchemy_docs_url: str
-    category: str  # Use DatabaseCategory constants
+    categories: list[str]  # Use DatabaseCategory constants, supports multiple
 
     # Connection information
     pypi_packages: list[str]

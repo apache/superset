@@ -26,7 +26,7 @@ class MariaDBEngineSpec(MySQLEngineSpec):
         "description": "MariaDB is a community-developed fork of MySQL.",
         "logo": "mariadb.png",
         "homepage_url": "https://mariadb.org/",
-        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
         "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,

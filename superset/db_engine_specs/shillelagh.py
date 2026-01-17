@@ -44,7 +44,7 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
         ),
         "logo": "shillelagh.png",
         "homepage_url": "https://shillelagh.readthedocs.io/",
-        "category": DatabaseCategory.OTHER,
+        "categories": [DatabaseCategory.OTHER],
         "pypi_packages": ["shillelagh[gsheetsapi]"],
         "connection_string": "shillelagh://",
         "notes": (

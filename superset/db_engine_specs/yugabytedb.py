@@ -38,7 +38,7 @@ class YugabyteDBEngineSpec(PostgresBaseEngineSpec):
         ),
         "logo": "yugabyte.png",
         "homepage_url": "https://www.yugabyte.com/",
-        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.TRADITIONAL_RDBMS],
         "pypi_packages": ["psycopg2"],
         "connection_string": (
             "postgresql://{username}:{password}@{host}:{port}/{database}"

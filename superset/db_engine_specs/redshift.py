@@ -73,7 +73,7 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         "description": "Amazon Redshift is a fully managed data warehouse service.",
         "logo": "redshift.png",
         "homepage_url": "https://aws.amazon.com/redshift/",
-        "category": DatabaseCategory.CLOUD_AWS,
+        "categories": [DatabaseCategory.CLOUD_AWS, DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["sqlalchemy-redshift"],
         "connection_string": "redshift+psycopg2://{username}:{password}@{host}:5439/{database}",
         "default_port": 5439,

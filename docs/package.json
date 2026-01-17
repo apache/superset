@@ -18,6 +18,7 @@
     "typecheck": "yarn run generate:extension-components && yarn run generate:database-docs && tsc",
     "generate:extension-components": "node scripts/generate-extension-components.mjs",
     "generate:database-docs": "node scripts/generate-database-docs.mjs",
+    "gen-db-docs": "node scripts/generate-database-docs.mjs",
     "lint:db-metadata": "python3 ../superset/db_engine_specs/lint_metadata.py",
     "lint:db-metadata:report": "python3 ../superset/db_engine_specs/lint_metadata.py --markdown -o ../superset/db_engine_specs/METADATA_STATUS.md",
     "update:readme-db-logos": "node scripts/generate-database-docs.mjs --update-readme",

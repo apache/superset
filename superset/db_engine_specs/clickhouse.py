@@ -284,7 +284,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         ),
         "logo": "clickhouse.png",
         "homepage_url": "https://clickhouse.com/",
-        "category": DatabaseCategory.ANALYTICAL_DATABASES,
+        "categories": [DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["clickhouse-connect>=0.6.8"],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,

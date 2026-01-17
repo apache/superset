@@ -36,7 +36,11 @@ from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicPropertiesType,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
@@ -97,7 +101,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         "description": "Snowflake is a cloud-native data warehouse.",
         "logo": "snowflake.svg",
         "homepage_url": "https://www.snowflake.com/",
-        "category": "Cloud Data Warehouses",
+        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["snowflake-sqlalchemy"],
         "connection_string": (
             "snowflake://{user}:{password}@{account}.{region}/{database}"

@@ -236,7 +236,7 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
         ),
         "logo": "databend.png",
         "homepage_url": "https://www.databend.com/",
-        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["databend-sqlalchemy"],
         "connection_string": (
             "databend://{username}:{password}@{host}:{port}/{database}?secure=true"

@@ -39,7 +39,7 @@ class Db2EngineSpec(BaseEngineSpec):
         ),
         "logo": "ibm-db2.svg",
         "homepage_url": "https://www.ibm.com/db2",
-        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
         "pypi_packages": ["ibm_db_sa"],
         "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
         "default_port": 50000,

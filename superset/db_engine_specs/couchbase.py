@@ -93,7 +93,7 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
         ),
         "logo": "couchbase.svg",
         "homepage_url": "https://www.couchbase.com/",
-        "category": DatabaseCategory.SEARCH_NOSQL,
+        "categories": [DatabaseCategory.SEARCH_NOSQL],
         "pypi_packages": ["couchbase-sqlalchemy"],
         "connection_string": "couchbase://{username}:{password}@{host}:{port}?ssl=true",
         "default_port": 8091,

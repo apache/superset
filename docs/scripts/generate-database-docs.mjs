@@ -145,12 +145,19 @@ def deep_merge(base, override):
     if not isinstance(base, dict) or not isinstance(override, dict):
         return override
 
+    # Fields that should NOT be inherited from parent classes
+    NON_INHERITABLE_FIELDS = {'compatible_databases'}
+
     result = base.copy()
+    # Remove non-inheritable fields from base (they should only come from the class that defines them)
+    for field in NON_INHERITABLE_FIELDS:
+        result.pop(field, None)
+
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = deep_merge(result[key], value)
         elif key in result and isinstance(result[key], list) and isinstance(value, list):
-            # For lists, extend rather than replace (e.g., compatible_databases)
+            # Extend lists from parent (e.g., drivers)
             result[key] = result[key] + value
         else:
             result[key] = value
@@ -282,8 +289,12 @@ for class_name, info in class_info.items():
     # Get final metadata with inheritance
     final_metadata = get_inherited_metadata(class_name)
 
-    # Track if we inherited anything
+    # Remove compatible_databases if not defined by this class (it's not inheritable)
     own_metadata = info['metadata'] or {}
+    if 'compatible_databases' not in own_metadata and 'compatible_databases' in final_metadata:
+        del final_metadata['compatible_databases']
+
+    # Track if we inherited anything
     if final_metadata and final_metadata != own_metadata:
         debug_info["inherited_metadata"] += 1
 
@@ -458,7 +469,21 @@ import databaseData from '@site/src/data/databases.json';
 /**
  * Generate the index MDX for the databases overview
  */
-function generateIndexMDX(statistics) {
+function generateIndexMDX(statistics, usedFlaskContext = true) {
+  const fallbackNotice = usedFlaskContext ? '' : `
+:::info Developer Note
+This documentation was built without Flask context, so feature diagnostics (scores, time grain support, etc.)
+may not reflect actual database capabilities. For full diagnostics, build docs locally with:
+
+\`\`\`bash
+cd docs && npm run gen-db-docs
+\`\`\`
+
+This requires a working Superset development environment.
+:::
+
+`;
+
   return `---
 title: Connecting to Databases
 sidebar_label: Overview
@@ -552,7 +577,7 @@ To add or update database documentation, add a \`metadata\` attribute to your en
 
 See [METADATA_STATUS.md](https://github.com/apache/superset/blob/master/superset/db_engine_specs/METADATA_STATUS.md)
 for the current status of database documentation and the [README](https://github.com/apache/superset/blob/master/superset/db_engine_specs/README.md) for the metadata schema.
-`;
+${fallbackNotice}`;
 }
 
 const README_PATH = path.join(ROOT_DIR, 'README.md');
@@ -699,6 +724,7 @@ async function main() {
   // 1. Full script with Flask context (richest data with diagnostics)
   // 2. Engine spec metadata files (works in CI without Flask)
   let databases = tryRunFullScript();
+  let usedFlaskContext = !!databases;
 
   if (!databases) {
     // Extract from engine spec metadata (preferred for CI)
@@ -763,7 +789,7 @@ async function main() {
   console.log(`  Generated ${mdxCount} database pages`);
 
   // Generate index page
-  const indexContent = generateIndexMDX(statistics);
+  const indexContent = generateIndexMDX(statistics, usedFlaskContext);
   const indexPath = path.join(MDX_OUTPUT_DIR, 'index.mdx');
   fs.writeFileSync(indexPath, indexContent);
   console.log(`  Generated index page`);

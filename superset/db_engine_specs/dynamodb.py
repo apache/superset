@@ -33,7 +33,7 @@ class DynamoDBEngineSpec(BaseEngineSpec):
         ),
         "logo": "aws.png",
         "homepage_url": "https://aws.amazon.com/dynamodb/",
-        "category": DatabaseCategory.CLOUD_AWS,
+        "categories": [DatabaseCategory.CLOUD_AWS, DatabaseCategory.SEARCH_NOSQL],
         "pypi_packages": ["pydynamodb"],
         "connection_string": (
             "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"

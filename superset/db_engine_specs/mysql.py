@@ -84,7 +84,7 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         "description": "MySQL is a popular open-source relational database.",
         "logo": "mysql.png",
         "homepage_url": "https://www.mysql.com/",
-        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
         "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,

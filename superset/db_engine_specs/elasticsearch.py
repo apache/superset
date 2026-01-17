@@ -47,7 +47,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         ),
         "logo": "elasticsearch.png",
         "homepage_url": "https://www.elastic.co/elasticsearch/",
-        "category": DatabaseCategory.SEARCH_NOSQL,
+        "categories": [DatabaseCategory.SEARCH_NOSQL],
         "pypi_packages": ["elasticsearch-dbapi"],
         "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
         "default_port": 9243,

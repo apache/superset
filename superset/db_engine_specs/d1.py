@@ -32,7 +32,7 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
         "description": "Cloudflare D1 is a serverless SQLite database.",
         "logo": "cloudflare.png",
         "homepage_url": "https://developers.cloudflare.com/d1/",
-        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.TRADITIONAL_RDBMS],
         "pypi_packages": ["superset-engine-d1"],
         "connection_string": (
             "d1://{cloudflare_account_id}:{cloudflare_api_token}"

@@ -606,7 +606,7 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         ),
         "logo": "databricks.png",
         "homepage_url": "https://www.databricks.com/",
-        "category": DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["apache-superset[databricks]"],
         "install_instructions": "pip install apache-superset[databricks]",
         "connection_string": (

@@ -40,7 +40,11 @@ from sqlalchemy.sql.expression import table as sql_table
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicPropertiesType,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
@@ -135,7 +139,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         ),
         "logo": "google-big-query.svg",
         "homepage_url": "https://cloud.google.com/bigquery/",
-        "category": "Cloud - Google",
+        "categories": [DatabaseCategory.CLOUD_GCP, DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["sqlalchemy-bigquery"],
         "connection_string": "bigquery://{project_id}",
         "install_instructions": (

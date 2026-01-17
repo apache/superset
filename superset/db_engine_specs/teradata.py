@@ -28,7 +28,7 @@ class TeradataEngineSpec(BaseEngineSpec):
         "description": "Teradata is an enterprise data warehouse platform.",
         "logo": "teradata.png",
         "homepage_url": "https://www.teradata.com/",
-        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
         "pypi_packages": ["teradatasqlalchemy"],
         "connection_string": "teradatasql://{user}:{password}@{host}",
         "default_port": 1025,

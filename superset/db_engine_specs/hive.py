@@ -103,7 +103,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         ),
         "logo": "apache-hive.svg",
         "homepage_url": "https://hive.apache.org/",
-        "category": DatabaseCategory.APACHE_PROJECTS,
+        "categories": [DatabaseCategory.APACHE_PROJECTS, DatabaseCategory.QUERY_ENGINES],
         "pypi_packages": ["pyhive"],
         "connection_string": "hive://hive@{hostname}:{port}/{database}",
         "default_port": 10000,

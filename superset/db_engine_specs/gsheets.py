@@ -110,7 +110,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         ),
         "logo": "google-sheets.svg",
         "homepage_url": "https://www.google.com/sheets/about/",
-        "category": DatabaseCategory.CLOUD_GCP,
+        "categories": [DatabaseCategory.CLOUD_GCP],
         "pypi_packages": ["shillelagh[gsheetsapi]"],
         "install_instructions": 'pip install "apache-superset[gsheets]"',
         "connection_string": "gsheets://",

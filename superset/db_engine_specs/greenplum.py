@@ -37,7 +37,7 @@ class GreenplumEngineSpec(PostgresEngineSpec):
         ),
         "logo": "greenplum.png",
         "homepage_url": "https://greenplum.org/",
-        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
         "pypi_packages": ["sqlalchemy-greenplum", "psycopg2"],
         "connection_string": "greenplum://{username}:{password}@{host}:{port}/{database}",
         "default_port": 5432,

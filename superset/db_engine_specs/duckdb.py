@@ -205,7 +205,7 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         ),
         "logo": "duckdb.png",
         "homepage_url": "https://duckdb.org/",
-        "category": DatabaseCategory.ANALYTICAL_DATABASES,
+        "categories": [DatabaseCategory.ANALYTICAL_DATABASES],
         "pypi_packages": ["duckdb-engine"],
         "connection_string": "duckdb:////path/to/duck.db",
         "drivers": [

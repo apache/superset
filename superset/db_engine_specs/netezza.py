@@ -28,7 +28,7 @@ class NetezzaEngineSpec(PostgresBaseEngineSpec):
         "description": "IBM Netezza Performance Server is a data warehouse appliance.",
         "logo": "netezza.png",
         "homepage_url": "https://www.ibm.com/products/netezza",
-        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
         "pypi_packages": ["nzalchemy"],
         "connection_string": "netezza+nzpy://{username}:{password}@{hostname}:{port}/{database}",
         "default_port": 5480,

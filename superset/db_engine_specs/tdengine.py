@@ -37,7 +37,7 @@ class TDengineEngineSpec(BaseEngineSpec):
         "description": "TDengine is a high-performance time-series database for IoT.",
         "logo": "tdengine.png",
         "homepage_url": "https://tdengine.com/",
-        "category": DatabaseCategory.TIME_SERIES,
+        "categories": [DatabaseCategory.TIME_SERIES],
         "pypi_packages": ["taospy", "taos-ws-py"],
         "connection_string": "taosws://{user}:{password}@{host}:{port}",
         "default_port": 6041,

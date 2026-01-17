@@ -46,7 +46,7 @@ class SupersetEngineSpec(ShillelaghEngineSpec):
         ),
         "logo": "superset.svg",
         "homepage_url": "https://superset.apache.org/",
-        "category": DatabaseCategory.OTHER,
+        "categories": [DatabaseCategory.OTHER],
         "pypi_packages": [],
         "connection_string": "superset://",
         "notes": (

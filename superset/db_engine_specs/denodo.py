@@ -70,7 +70,7 @@ class DenodoEngineSpec(BaseEngineSpec, BasicParametersMixin):
         ),
         "logo": "denodo.png",
         "homepage_url": "https://www.denodo.com/",
-        "category": DatabaseCategory.OTHER,
+        "categories": [DatabaseCategory.QUERY_ENGINES],
         "pypi_packages": ["psycopg2"],
         "connection_string": "denodo://{username}:{password}@{host}:{port}/{database}",
         "default_port": 9996,

@@ -222,7 +222,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         "description": "PostgreSQL is an advanced open-source relational database.",
         "logo": "postgresql.svg",
         "homepage_url": "https://www.postgresql.org/",
-        "category": DatabaseCategory.TRADITIONAL_RDBMS,
+        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
         "pypi_packages": ["psycopg2"],
         "connection_string": (
             "postgresql://{username}:{password}@{host}:{port}/{database}"

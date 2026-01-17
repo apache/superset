@@ -57,7 +57,7 @@ class DremioEngineSpec(BaseEngineSpec):
         ),
         "logo": "dremio.png",
         "homepage_url": "https://www.dremio.com/",
-        "category": DatabaseCategory.QUERY_ENGINES,
+        "categories": [DatabaseCategory.QUERY_ENGINES],
         "pypi_packages": ["sqlalchemy_dremio"],
         "connection_string": (
             "dremio+flight://data.dremio.cloud:443/?Token={token}&UseEncryption=true"

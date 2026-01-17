@@ -32,7 +32,7 @@ class SolrEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "description": "Apache Solr is an open-source enterprise search platform.",
         "logo": "apache-solr.png",
         "homepage_url": "https://solr.apache.org/",
-        "category": DatabaseCategory.APACHE_PROJECTS,
+        "categories": [DatabaseCategory.APACHE_PROJECTS, DatabaseCategory.SEARCH_NOSQL],
         "pypi_packages": ["sqlalchemy-solr"],
         "connection_string": (
             "solr://{username}:{password}@{host}:{port}/{server_path}/{collection}"
