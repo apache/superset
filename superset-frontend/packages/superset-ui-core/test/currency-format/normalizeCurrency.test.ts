@@ -17,12 +17,18 @@
  * under the License.
  */
 
-export { default as CurrencyFormatter } from './CurrencyFormatter';
-export {
-  getCurrencySymbol,
-  normalizeCurrency,
-  hasMixedCurrencies,
-} from './CurrencyFormatter';
-export { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
-export * from './types';
-export * from './utils';
+import { normalizeCurrency } from '../../src/currency-format/CurrencyFormatter';
+
+test('normalizeCurrency normalizes valid ISO 4217 codes', () => {
+  expect(normalizeCurrency('USD')).toBe('USD');
+  expect(normalizeCurrency('usd')).toBe('USD');
+  expect(normalizeCurrency(' eur ')).toBe('EUR');
+});
+
+test('normalizeCurrency returns null for invalid input', () => {
+  expect(normalizeCurrency(null)).toBe(null);
+  expect(normalizeCurrency('')).toBe(null);
+  expect(normalizeCurrency('$')).toBe(null);
+  expect(normalizeCurrency('DOLLAR')).toBe(null);
+  expect(normalizeCurrency('USDD')).toBe(null);
+});

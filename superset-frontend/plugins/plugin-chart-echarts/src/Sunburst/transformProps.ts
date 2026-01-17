@@ -170,7 +170,7 @@ export default function transformProps(
     emitCrossFilters,
     datasource,
   } = chartProps;
-  const { data = [] } = queriesData[0];
+  const { data = [], detected_currency: detectedCurrency } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     groupby = [],
@@ -192,6 +192,7 @@ export default function transformProps(
     currencyFormats = {},
     columnFormats = {},
     verboseMap = {},
+    currencyCodeColumn,
   } = datasource;
   const refs: Refs = {};
   const primaryValueFormatter = getValueFormatter(
@@ -200,6 +201,10 @@ export default function transformProps(
     columnFormats,
     numberFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
   const secondaryValueFormatter = secondaryMetric
     ? getValueFormatter(
@@ -208,6 +213,10 @@ export default function transformProps(
         columnFormats,
         numberFormat,
         currencyFormat,
+        undefined,
+        data,
+        currencyCodeColumn,
+        detectedCurrency,
       )
     : undefined;
 

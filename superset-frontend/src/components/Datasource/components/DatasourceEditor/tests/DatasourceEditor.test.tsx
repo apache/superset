@@ -365,34 +365,52 @@ test('properly updates the metric information', async () => {
   });
 });
 
-test('shows the default datetime column', async () => {
+test('shows the default datetime column in dropdown', async () => {
   await asyncRender(createProps());
 
   const columnsButton = screen.getByTestId('collection-tab-Columns');
   await userEvent.click(columnsButton);
 
-  const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
-  expect(dsDefaultDatetimeRadio).toBeChecked();
+  // Find the Default Column Settings section
+  const defaultColumnSettings = screen.getByTestId('default-column-settings');
+  expect(defaultColumnSettings).toBeInTheDocument();
 
-  const genderDefaultDatetimeRadio = screen.getByTestId(
-    'radio-default-dttm-gender',
-  );
-  expect(genderDefaultDatetimeRadio).not.toBeChecked();
+  // Find the default datetime column dropdown
+  const defaultDatetimeDropdown = screen.getByRole('combobox', {
+    name: 'Default datetime column',
+  });
+  expect(defaultDatetimeDropdown).toBeInTheDocument();
+
+  // Verify the current value is 'ds' (from main_dttm_col in props)
+  const selectedValue = await screen.findByText('ds', {
+    selector: '.ant-select-selection-item',
+  });
+  expect(selectedValue).toBeInTheDocument();
 });
 
-test('allows choosing only temporal columns as the default datetime', async () => {
+test('default datetime dropdown shows only temporal columns', async () => {
   await asyncRender(createProps());
 
   const columnsButton = screen.getByTestId('collection-tab-Columns');
   await userEvent.click(columnsButton);
 
-  const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
-  expect(dsDefaultDatetimeRadio).toBeEnabled();
+  // Find the default datetime column dropdown
+  const defaultDatetimeDropdown = screen.getByRole('combobox', {
+    name: 'Default datetime column',
+  });
 
-  const genderDefaultDatetimeRadio = screen.getByTestId(
-    'radio-default-dttm-gender',
+  await userEvent.click(defaultDatetimeDropdown);
+
+  // Check that temporal column 'ds' is in the dropdown options
+  const options = document.querySelectorAll('.ant-select-item-option');
+  const dsOption = Array.from(options).find(o => o.textContent?.includes('ds'));
+  expect(dsOption).toBeDefined();
+
+  // Check that non-temporal column 'gender' is NOT in the dropdown
+  const genderOption = Array.from(options).find(o =>
+    o.textContent?.includes('gender'),
   );
-  expect(genderDefaultDatetimeRadio).toBeDisabled();
+  expect(genderOption).toBeUndefined();
 });
 
 test('aborts pending requests on unmount without errors', async () => {
