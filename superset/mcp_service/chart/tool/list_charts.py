@@ -137,17 +137,20 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
             % (count, total_pages)
         )
 
-        # Apply field filtering via serialization context
-        # Use columns_requested from result (already resolved by ModelListCore)
-        columns_to_filter = result.columns_requested
-        await ctx.debug(
-            "Applying field filtering via serialization context: select_columns=%s"
-            % (columns_to_filter,)
-        )
-        filtered = result.model_dump(
-            mode="json", context={"select_columns": columns_to_filter}
-        )
-        return ChartList.model_validate(filtered)
+        # Apply field filtering via serialization context if select_columns specified
+        # This triggers ChartInfo._filter_fields_by_context for each chart
+        if request.select_columns:
+            await ctx.debug(
+                "Applying field filtering via serialization context: select_columns=%s"
+                % (request.select_columns,)
+            )
+            # Return dict with context - FastMCP handles serialization
+            return result.model_dump(
+                mode="json", context={"select_columns": request.select_columns}
+            )
+
+        # No filtering - return full result as dict
+        return result.model_dump(mode="json")
     except Exception as e:
         await ctx.error("Failed to list charts: %s" % (str(e),))
         raise
