@@ -87,14 +87,14 @@ test('the form validates required fields', async () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('createNewOnOpen', () => {
-  test('does not show alert when there is no unsaved filters', async () => {
+  it('does not show alert when there is no unsaved filters', async () => {
     const onCancel = jest.fn();
     const { getByRole } = setup({ onCancel, createNewOnOpen: false });
     fireEvent.click(getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  test('shows correct alert message for unsaved filters', async () => {
+  it('shows correct alert message for unsaved filters', async () => {
     const onCancel = jest.fn();
     const { getByRole, getByTestId, findByRole } = setup({
       onCancel,

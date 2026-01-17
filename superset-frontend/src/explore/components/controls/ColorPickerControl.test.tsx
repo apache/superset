@@ -46,7 +46,7 @@ describe('ColorPickerControl', () => {
     jest.clearAllMocks();
   });
 
-  test('renders a ColorPicker component', () => {
+  it('renders a ColorPicker component', () => {
     render(<ColorPickerControl {...defaultProps} />);
 
     // AntD ColorPicker renders a trigger element with class
@@ -56,14 +56,14 @@ describe('ColorPickerControl', () => {
     expect(colorPickerTrigger).toBeInTheDocument();
   });
 
-  test('displays the correct color value', () => {
+  it('displays the correct color value', () => {
     render(<ColorPickerControl {...defaultProps} />);
 
     // The color should be displayed as hex #007A87 (uppercase in AntD)
     expect(screen.getByText('#007A87')).toBeInTheDocument();
   });
 
-  test('calls onChange with RGB values when color changes', async () => {
+  it('calls onChange with RGB values when color changes', async () => {
     const onChange = jest.fn();
     render(<ColorPickerControl {...defaultProps} onChange={onChange} />);
 
@@ -81,7 +81,7 @@ describe('ColorPickerControl', () => {
     // as it uses complex internal components. The main functionality is covered by the component itself.
   });
 
-  test('includes preset colors from the categorical scheme', () => {
+  it('includes preset colors from the categorical scheme', () => {
     render(<ColorPickerControl {...defaultProps} />);
 
     // The component should have access to the preset colors from the registry

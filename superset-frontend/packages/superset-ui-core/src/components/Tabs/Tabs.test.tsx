@@ -307,7 +307,7 @@ describe('Tabs', () => {
   });
 });
 
-test('fullHeight prop renders component hierarchy correctly', () => {
+it('fullHeight prop renders component hierarchy correctly', () => {
   const { container } = render(<Tabs items={defaultItems} fullHeight />);
 
   const tabsElement = container.querySelector('.ant-tabs');
@@ -324,7 +324,7 @@ test('fullHeight prop renders component hierarchy correctly', () => {
   expect(content?.contains(tabPane as Node)).toBe(true);
 });
 
-test('fullHeight prop maintains structure when content updates', () => {
+it('fullHeight prop maintains structure when content updates', () => {
   const { container, rerender } = render(
     <Tabs items={defaultItems} fullHeight />,
   );
@@ -352,7 +352,7 @@ test('fullHeight prop maintains structure when content updates', () => {
   expect(initialTabsElement).toBe(updatedTabsElement);
 });
 
-test('fullHeight prop works with allowOverflow to handle tall content', () => {
+it('fullHeight prop works with allowOverflow to handle tall content', () => {
   const { container } = render(
     <Tabs items={defaultItems} fullHeight allowOverflow />,
   );
@@ -370,7 +370,7 @@ test('fullHeight prop works with allowOverflow to handle tall content', () => {
   expect(holderStyles.overflow).not.toBe('hidden');
 });
 
-test('fullHeight prop handles empty items array', () => {
+it('fullHeight prop handles empty items array', () => {
   const { container } = render(<Tabs items={[]} fullHeight />);
 
   expect(container.querySelector('.ant-tabs')).toBeInTheDocument();

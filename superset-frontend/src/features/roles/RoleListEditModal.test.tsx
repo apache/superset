@@ -111,7 +111,7 @@ describe('RoleListEditModal', () => {
     groups: mockGroups,
   };
 
-  test('renders modal with correct title and fields', () => {
+  it('renders modal with correct title and fields', () => {
     render(<RoleListEditModal {...mockProps} />);
     expect(screen.getAllByText('Edit Role')[0]).toBeInTheDocument();
     expect(screen.getByText('Role Name')).toBeInTheDocument();
@@ -119,13 +119,13 @@ describe('RoleListEditModal', () => {
     expect(screen.getAllByText('Users')[0]).toBeInTheDocument();
   });
 
-  test('calls onHide when cancel button is clicked', () => {
+  it('calls onHide when cancel button is clicked', () => {
     render(<RoleListEditModal {...mockProps} />);
     fireEvent.click(screen.getByTestId('modal-cancel-button'));
     expect(mockProps.onHide).toHaveBeenCalled();
   });
 
-  test('disables save button when role name is empty', () => {
+  it('disables save button when role name is empty', () => {
     render(<RoleListEditModal {...mockProps} />);
     fireEvent.change(screen.getByTestId('role-name-input'), {
       target: { value: '' },
@@ -133,7 +133,7 @@ describe('RoleListEditModal', () => {
     expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
   });
 
-  test('enables save button when role name is entered', () => {
+  it('enables save button when role name is entered', () => {
     render(<RoleListEditModal {...mockProps} />);
     fireEvent.change(screen.getByTestId('role-name-input'), {
       target: { value: 'Updated Role' },
@@ -141,7 +141,7 @@ describe('RoleListEditModal', () => {
     expect(screen.getByTestId('form-modal-save-button')).toBeEnabled();
   });
 
-  test('calls update functions when save button is clicked', async () => {
+  it('calls update functions when save button is clicked', async () => {
     (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) => {
       if (endpoint?.includes('/api/v1/security/users/')) {
         return Promise.resolve({
@@ -197,7 +197,7 @@ describe('RoleListEditModal', () => {
     });
   });
 
-  test('switches tabs correctly', () => {
+  it('switches tabs correctly', () => {
     render(<RoleListEditModal {...mockProps} />);
 
     const usersTab = screen.getByRole('tab', { name: 'Users' });

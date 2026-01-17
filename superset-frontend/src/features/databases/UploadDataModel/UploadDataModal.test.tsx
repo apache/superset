@@ -126,7 +126,7 @@ const expectElementsNotVisible = (elements: any[]) => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - General Information Elements', () => {
-  test('CSV renders correctly', () => {
+  it('CSV renders correctly', () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
     const common = getCommonElements();
@@ -152,7 +152,7 @@ describe('UploadDataModal - General Information Elements', () => {
     ]);
   });
 
-  test('Excel renders correctly', () => {
+  it('Excel renders correctly', () => {
     render(<UploadDataModal {...excelProps} />, { useRedux: true });
 
     const common = getCommonElements();
@@ -184,7 +184,7 @@ describe('UploadDataModal - General Information Elements', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('Columnar renders correctly', () => {
+  it('Columnar renders correctly', () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
     const common = getCommonElements();
@@ -220,7 +220,7 @@ describe('UploadDataModal - File Settings Elements', () => {
     await userEvent.click(panelHeader);
   };
 
-  test('CSV file settings render correctly', async () => {
+  it('CSV file settings render correctly', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
     expect(
@@ -240,7 +240,7 @@ describe('UploadDataModal - File Settings Elements', () => {
     expectElementsVisible(elements);
   });
 
-  test('Excel file settings render correctly', async () => {
+  it('Excel file settings render correctly', async () => {
     render(<UploadDataModal {...excelProps} />, { useRedux: true });
 
     expect(
@@ -264,7 +264,7 @@ describe('UploadDataModal - File Settings Elements', () => {
     ]);
   });
 
-  test('Columnar file settings render correctly', async () => {
+  it('Columnar file settings render correctly', async () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
     expect(
@@ -299,7 +299,7 @@ describe('UploadDataModal - Columns Elements', () => {
     await userEvent.click(panelHeader);
   };
 
-  test('CSV columns render correctly', async () => {
+  it('CSV columns render correctly', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
     await openColumns();
@@ -317,7 +317,7 @@ describe('UploadDataModal - Columns Elements', () => {
     expectElementsVisible(elements);
   });
 
-  test('Excel columns render correctly', async () => {
+  it('Excel columns render correctly', async () => {
     render(<UploadDataModal {...excelProps} />, { useRedux: true });
 
     await openColumns();
@@ -339,7 +339,7 @@ describe('UploadDataModal - Columns Elements', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('Columnar columns render correctly', async () => {
+  it('Columnar columns render correctly', async () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
     await openColumns();
@@ -364,7 +364,7 @@ describe('UploadDataModal - Columns Elements', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Rows Elements', () => {
-  test('CSV/Excel rows render correctly', async () => {
+  it('CSV/Excel rows render correctly', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
     const panelHeader = screen.getByText(/rows/i);
@@ -379,7 +379,7 @@ describe('UploadDataModal - Rows Elements', () => {
     expectElementsVisible(elements);
   });
 
-  test('Columnar does not render rows', () => {
+  it('Columnar does not render rows', () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
     const panelHeader = screen.queryByText(/rows/i);
@@ -389,7 +389,7 @@ describe('UploadDataModal - Rows Elements', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Database and Schema Population', () => {
-  test('database and schema are correctly populated', async () => {
+  it('database and schema are correctly populated', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
     const selectDatabase = screen.getByRole('combobox', {
@@ -419,7 +419,7 @@ describe('UploadDataModal - Database and Schema Population', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Form Validation', () => {
-  test('form validation without required fields', async () => {
+  it('form validation without required fields', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
     const uploadButton = screen.getByRole('button', { name: 'Upload' });
@@ -478,7 +478,7 @@ describe('UploadDataModal - Form Submission', () => {
     return fetchMock.calls('glob:*api/v1/database/1/upload/')[0];
   };
 
-  test('CSV form submission', async () => {
+  it('CSV form submission', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
     const [, options] = await fillForm('csv', 'test.csv');
@@ -490,7 +490,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect((formData.get('file') as File).name).toBe('test.csv');
   }, 60000);
 
-  test('Excel form submission', async () => {
+  it('Excel form submission', async () => {
     render(<UploadDataModal {...excelProps} />, { useRedux: true });
 
     const [, options] = await fillForm('excel', 'test.xls', 'text');
@@ -502,7 +502,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect((formData.get('file') as File).name).toBe('test.xls');
   }, 60000);
 
-  test('Columnar form submission', async () => {
+  it('Columnar form submission', async () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
     const [, options] = await fillForm('columnar', 'test.parquet', 'text');
@@ -526,7 +526,7 @@ describe('File Extension Validation', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('CSV validation', () => {
-    test('returns false for invalid extensions', () => {
+    it('returns false for invalid extensions', () => {
       const invalidFiles = ['out', 'out.exe', 'out.csv.exe', '.csv', 'out.xls'];
       invalidFiles.forEach(fileName => {
         expect(
@@ -535,7 +535,7 @@ describe('File Extension Validation', () => {
       });
     });
 
-    test('returns true for valid extensions', () => {
+    it('returns true for valid extensions', () => {
       const validFiles = ['out.csv', 'out.tsv', 'out.exe.csv', 'out a.csv'];
       validFiles.forEach(fileName => {
         expect(
@@ -547,7 +547,7 @@ describe('File Extension Validation', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Excel validation', () => {
-    test('returns false for invalid extensions', () => {
+    it('returns false for invalid extensions', () => {
       const invalidFiles = ['out', 'out.exe', 'out.xls.exe', '.csv', 'out.csv'];
       invalidFiles.forEach(fileName => {
         expect(
@@ -559,7 +559,7 @@ describe('File Extension Validation', () => {
       });
     });
 
-    test('returns true for valid extensions', () => {
+    it('returns true for valid extensions', () => {
       const validFiles = ['out.xls', 'out.xlsx', 'out.exe.xls', 'out a.xls'];
       validFiles.forEach(fileName => {
         expect(
@@ -574,7 +574,7 @@ describe('File Extension Validation', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Columnar validation', () => {
-    test('returns false for invalid extensions', () => {
+    it('returns false for invalid extensions', () => {
       const invalidFiles = [
         'out',
         'out.exe',
@@ -592,7 +592,7 @@ describe('File Extension Validation', () => {
       });
     });
 
-    test('returns true for valid extensions', () => {
+    it('returns true for valid extensions', () => {
       const validFiles = [
         'out.parquet',
         'out.zip',
@@ -613,7 +613,7 @@ describe('File Extension Validation', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal Collapse Tabs', () => {
-  test('renders the collaps tab CSV correctly and resets to default tab after closing', async () => {
+  it('renders the collaps tab CSV correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...csvProps} />, {
       useRedux: true,
     });
@@ -633,7 +633,7 @@ describe('UploadDataModal Collapse Tabs', () => {
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  test('renders the collaps tab Excel correctly and resets to default tab after closing', async () => {
+  it('renders the collaps tab Excel correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...excelProps} />, {
       useRedux: true,
     });
@@ -653,7 +653,7 @@ describe('UploadDataModal Collapse Tabs', () => {
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  test('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
+  it('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...columnarProps} />, {
       useRedux: true,
     });

@@ -405,7 +405,7 @@ describe('filterStateManager', () => {
       const mockApi = {
         getFilterModel: jest.fn(() => filterModel),
         getColumnFilterInstance: jest.fn((colId: string) => {
-          callCount++;
+          callCount += 1;
           // Return match on col2
           if (colId === 'col2') {
             return Promise.resolve({

@@ -59,14 +59,14 @@ afterEach(() => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FacePile', () => {
-  test('renders empty state with no users', () => {
+  it('renders empty state with no users', () => {
     const { container } = render(<FacePile users={[]} />, { store });
 
     expect(container.querySelector('.ant-avatar-group')).toBeInTheDocument();
     expect(container.querySelectorAll('.ant-avatar')).toHaveLength(0);
   });
 
-  test('renders single user without truncation', () => {
+  it('renders single user without truncation', () => {
     const { container } = render(<FacePile users={users.slice(0, 1)} />, {
       store,
     });
@@ -77,7 +77,7 @@ describe('FacePile', () => {
     expect(within(container).queryByText(/\+/)).not.toBeInTheDocument();
   });
 
-  test('renders multiple users no truncation', () => {
+  it('renders multiple users no truncation', () => {
     const { container } = render(<FacePile users={users.slice(0, 4)} />, {
       store,
     });
@@ -91,7 +91,7 @@ describe('FacePile', () => {
     expect(within(container).queryByText(/\+/)).not.toBeInTheDocument();
   });
 
-  test('renders multiple users with truncation', () => {
+  it('renders multiple users with truncation', () => {
     const { container } = render(<FacePile users={users} />, { store });
 
     // Should show 4 avatars + 1 overflow indicator = 5 total elements
@@ -108,7 +108,7 @@ describe('FacePile', () => {
     expect(within(container).getByText('+6')).toBeInTheDocument();
   });
 
-  test('displays user tooltip on hover', () => {
+  it('displays user tooltip on hover', () => {
     const { container } = render(<FacePile users={users.slice(0, 2)} />, {
       store,
     });
@@ -120,7 +120,7 @@ describe('FacePile', () => {
     expect(screen.getByRole('tooltip')).toHaveTextContent('user 0');
   });
 
-  test('displays avatar images when Slack avatars are enabled', () => {
+  it('displays avatar images when Slack avatars are enabled', () => {
     // Enable Slack avatars feature flag
     mockIsFeatureEnabled.mockImplementation(
       feature => feature === 'SLACK_ENABLE_AVATARS',
@@ -150,20 +150,20 @@ describe('utils', () => {
   describe('getRandomColor', () => {
     const colors = ['color1', 'color2', 'color3'];
 
-    test('produces the same color for the same input values', () => {
+    it('produces the same color for the same input values', () => {
       const name = 'foo';
       expect(getRandomColor(name, colors)).toEqual(
         getRandomColor(name, colors),
       );
     });
 
-    test('produces a different color for different input values', () => {
+    it('produces a different color for different input values', () => {
       expect(getRandomColor('foo', colors)).not.toEqual(
         getRandomColor('bar', colors),
       );
     });
 
-    test('handles non-ascii input values', () => {
+    it('handles non-ascii input values', () => {
       expect(getRandomColor('泰', colors)).toMatchInlineSnapshot(`"color1"`);
       expect(getRandomColor('مُحَمَّد‎', colors)).toMatchInlineSnapshot(
         `"color2"`,

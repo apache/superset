@@ -77,7 +77,7 @@ describe('useTables hook', () => {
     store.dispatch(api.util.resetApiState());
   });
 
-  test('returns api response mapping json options', async () => {
+  it('returns api response mapping json options', async () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema1';
     const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
@@ -128,7 +128,7 @@ describe('useTables hook', () => {
     expect(result.current.data).toEqual(expectedData);
   });
 
-  test('skips the deprecated schema option', async () => {
+  it('skips the deprecated schema option', async () => {
     const expectDbId = 'db1';
     const unexpectedSchema = 'invalid schema';
     const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
@@ -164,7 +164,7 @@ describe('useTables hook', () => {
     ).toBe(0);
   });
 
-  test('returns hasMore when total is larger than result size', async () => {
+  it('returns hasMore when total is larger than result size', async () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema2';
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
@@ -193,7 +193,7 @@ describe('useTables hook', () => {
     expect(result.current.data).toEqual(expectedHasMoreData);
   });
 
-  test('returns cached data without api request', async () => {
+  it('returns cached data without api request', async () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema1';
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
@@ -234,7 +234,7 @@ describe('useTables hook', () => {
     expect(fetchMock.calls(tableApiRoute).length).toBe(1);
   });
 
-  test('returns refreshed data after expires', async () => {
+  it('returns refreshed data after expires', async () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema1';
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;

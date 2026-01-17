@@ -1065,7 +1065,7 @@ describe('getOverMaxHiddenFormatter', () => {
   });
 });
 
-test('calculateLowerLogTick', () => {
+it('calculateLowerLogTick', () => {
   expect(calculateLowerLogTick(1000000)).toEqual(1000000);
   expect(calculateLowerLogTick(456)).toEqual(100);
   expect(calculateLowerLogTick(100)).toEqual(100);
@@ -1074,7 +1074,7 @@ test('calculateLowerLogTick', () => {
   expect(calculateLowerLogTick(0.005)).toEqual(0.001);
 });
 
-test('getAxisType without forced categorical', () => {
+it('getAxisType without forced categorical', () => {
   expect(getAxisType(false, false, GenericDataType.Temporal)).toEqual(
     AxisType.Time,
   );
@@ -1092,13 +1092,13 @@ test('getAxisType without forced categorical', () => {
   );
 });
 
-test('getAxisType with forced categorical', () => {
+it('getAxisType with forced categorical', () => {
   expect(getAxisType(false, true, GenericDataType.Numeric)).toEqual(
     AxisType.Category,
   );
 });
 
-test('getMinAndMaxFromBounds returns empty object when not truncating', () => {
+it('getMinAndMaxFromBounds returns empty object when not truncating', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -1110,7 +1110,7 @@ test('getMinAndMaxFromBounds returns empty object when not truncating', () => {
   ).toEqual({});
 });
 
-test('getMinAndMaxFromBounds returns empty object for categorical axis', () => {
+it('getMinAndMaxFromBounds returns empty object for categorical axis', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Category,
@@ -1122,7 +1122,7 @@ test('getMinAndMaxFromBounds returns empty object for categorical axis', () => {
   ).toEqual({});
 });
 
-test('getMinAndMaxFromBounds returns empty object for time axis', () => {
+it('getMinAndMaxFromBounds returns empty object for time axis', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Time,
@@ -1134,7 +1134,7 @@ test('getMinAndMaxFromBounds returns empty object for time axis', () => {
   ).toEqual({});
 });
 
-test('getMinAndMaxFromBounds returns dataMin/dataMax for non-bar charts', () => {
+it('getMinAndMaxFromBounds returns dataMin/dataMax for non-bar charts', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -1149,7 +1149,7 @@ test('getMinAndMaxFromBounds returns dataMin/dataMax for non-bar charts', () => 
   });
 });
 
-test('getMinAndMaxFromBounds returns bound without scale for non-bar charts', () => {
+it('getMinAndMaxFromBounds returns bound without scale for non-bar charts', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -1164,7 +1164,7 @@ test('getMinAndMaxFromBounds returns bound without scale for non-bar charts', ()
   });
 });
 
-test('getMinAndMaxFromBounds returns scale when truncating without bounds', () => {
+it('getMinAndMaxFromBounds returns scale when truncating without bounds', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -1176,7 +1176,7 @@ test('getMinAndMaxFromBounds returns scale when truncating without bounds', () =
   ).toEqual({ scale: true });
 });
 
-test('getMinAndMaxFromBounds returns automatic upper bound when truncating', () => {
+it('getMinAndMaxFromBounds returns automatic upper bound when truncating', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -1191,7 +1191,7 @@ test('getMinAndMaxFromBounds returns automatic upper bound when truncating', () 
   });
 });
 
-test('getMinAndMaxFromBounds returns automatic lower bound when truncating', () => {
+it('getMinAndMaxFromBounds returns automatic lower bound when truncating', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -1247,17 +1247,17 @@ const forecastValue = [
   },
 ];
 
-test('extractTooltipKeys with rich tooltip', () => {
+it('extractTooltipKeys with rich tooltip', () => {
   const result = extractTooltipKeys(forecastValue, 1, true, false);
   expect(result).toEqual(['foo', 'bar']);
 });
 
-test('extractTooltipKeys with rich tooltip and sorting by metrics', () => {
+it('extractTooltipKeys with rich tooltip and sorting by metrics', () => {
   const result = extractTooltipKeys(forecastValue, 1, true, true);
   expect(result).toEqual(['bar', 'foo']);
 });
 
-test('extractTooltipKeys with non-rich tooltip', () => {
+it('extractTooltipKeys with non-rich tooltip', () => {
   const result = extractTooltipKeys(forecastValue, 1, false, false);
   expect(result).toEqual(['foo']);
 });

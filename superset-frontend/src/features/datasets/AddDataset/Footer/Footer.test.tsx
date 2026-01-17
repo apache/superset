@@ -70,7 +70,7 @@ describe('Footer', () => {
     jest.clearAllMocks();
   });
 
-  test('renders a Footer with a cancel button and a disabled create button', () => {
+  it('renders a Footer with a cancel button and a disabled create button', () => {
     render(<Footer {...mockedProps} />, { useRedux: true });
 
     const saveButton = screen.getByRole('button', {
@@ -85,7 +85,7 @@ describe('Footer', () => {
     expect(createButton).toBeDisabled();
   });
 
-  test('renders a Create Dataset dropdown button when a table is selected', () => {
+  it('renders a Create Dataset dropdown button when a table is selected', () => {
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
 
     const createButton = screen.getByRole('button', {
@@ -102,7 +102,7 @@ describe('Footer', () => {
     expect(dropdownArrow).toBeInTheDocument();
   });
 
-  test('create button becomes disabled when table already has a dataset', () => {
+  it('create button becomes disabled when table already has a dataset', () => {
     render(<Footer datasets={['real_info']} {...mockPropsWithDataset} />, {
       useRedux: true,
     });
@@ -114,7 +114,7 @@ describe('Footer', () => {
     expect(createButton).toBeDisabled();
   });
 
-  test('shows dropdown menu when dropdown arrow is clicked', async () => {
+  it('shows dropdown menu when dropdown arrow is clicked', async () => {
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
 
     // Find and click the dropdown trigger (the arrow part)
@@ -127,7 +127,7 @@ describe('Footer', () => {
     });
   });
 
-  test('navigates to chart creation when main button is clicked', async () => {
+  it('navigates to chart creation when main button is clicked', async () => {
     mockCreateResource.mockResolvedValue(123); // Mock successful dataset creation
 
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
@@ -151,7 +151,7 @@ describe('Footer', () => {
     });
   });
 
-  test('navigates to dataset list when "Create dataset" menu option is clicked', async () => {
+  it('navigates to dataset list when "Create dataset" menu option is clicked', async () => {
     mockCreateResource.mockResolvedValue(123);
 
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
@@ -177,7 +177,7 @@ describe('Footer', () => {
     });
   });
 
-  test('handles dataset creation failure gracefully', async () => {
+  it('handles dataset creation failure gracefully', async () => {
     mockCreateResource.mockResolvedValue(null); // Mock failed dataset creation
 
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
@@ -195,7 +195,7 @@ describe('Footer', () => {
     });
   });
 
-  test('passes correct data to createResource with catalog', async () => {
+  it('passes correct data to createResource with catalog', async () => {
     const mockPropsWithCatalog = {
       ...mockPropsWithDataset,
       datasetObject: {

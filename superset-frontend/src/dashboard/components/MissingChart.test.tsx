@@ -30,7 +30,7 @@ const setup = (overrides?: MissingChartProps) => (
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('MissingChart', () => {
-  test('renders a .missing-chart-container', () => {
+  it('renders a .missing-chart-container', () => {
     const rendered = render(setup());
 
     const missingChartContainer = rendered.container.querySelector(
@@ -39,7 +39,7 @@ describe('MissingChart', () => {
     expect(missingChartContainer).toBeVisible();
   });
 
-  test('renders a .missing-chart-body', () => {
+  it('renders a .missing-chart-body', () => {
     const rendered = render(setup());
 
     const missingChartBody = rendered.container.querySelector(

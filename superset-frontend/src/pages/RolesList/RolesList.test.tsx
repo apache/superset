@@ -125,12 +125,12 @@ describe('RolesList', () => {
     fetchMock.resetHistory();
   });
 
-  test('renders', async () => {
+  it('renders', async () => {
     await renderAndWait();
     expect(await screen.findByText('List Roles')).toBeInTheDocument();
   });
 
-  test('fetches roles on load', async () => {
+  it('fetches roles on load', async () => {
     await renderAndWait();
     await waitFor(() => {
       const calls = fetchMock.calls(rolesEndpoint);
@@ -138,7 +138,7 @@ describe('RolesList', () => {
     });
   });
 
-  test('fetches permissions on load', async () => {
+  it('fetches permissions on load', async () => {
     await renderAndWait();
     await waitFor(() => {
       const permissionCalls = fetchMock.calls(permissionsEndpoint);
@@ -146,14 +146,14 @@ describe('RolesList', () => {
     });
   });
 
-  test('renders filters options', async () => {
+  it('renders filters options', async () => {
     await renderAndWait();
 
     const typeFilter = screen.queryAllByTestId('filters-select');
     expect(typeFilter).toHaveLength(4);
   });
 
-  test('renders correct list columns', async () => {
+  it('renders correct list columns', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');
@@ -166,7 +166,7 @@ describe('RolesList', () => {
     expect(actionsColumn).toBeInTheDocument();
   });
 
-  test('opens add modal when Add Role button is clicked', async () => {
+  it('opens add modal when Add Role button is clicked', async () => {
     await renderAndWait();
 
     const addButton = screen.getByTestId('add-role-button');
@@ -175,7 +175,7 @@ describe('RolesList', () => {
     expect(screen.queryByTestId('Add Role-modal')).toBeInTheDocument();
   });
 
-  test('open duplicate modal when duplicate button is clicked', async () => {
+  it('open duplicate modal when duplicate button is clicked', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');
@@ -190,7 +190,7 @@ describe('RolesList', () => {
     ).toBeInTheDocument();
   });
 
-  test('open edit modal when edit button is clicked', async () => {
+  it('open edit modal when edit button is clicked', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');

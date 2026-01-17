@@ -37,7 +37,7 @@ describe('getFilterConfigsFromFormdata', () => {
     time_range: '2018-12-30T00:00:00+:+last+saturday',
   };
 
-  test('should add time grain', () => {
+  it('should add time grain', () => {
     const result = getFilterConfigsFromFormdata({
       ...testFormdata,
       show_sqla_time_granularity: true,
@@ -47,7 +47,7 @@ describe('getFilterConfigsFromFormdata', () => {
     });
   });
 
-  test('should add time column', () => {
+  it('should add time column', () => {
     const result = getFilterConfigsFromFormdata({
       ...testFormdata,
       show_sqla_time_column: true,
@@ -57,7 +57,7 @@ describe('getFilterConfigsFromFormdata', () => {
     });
   });
 
-  test('should use default value and treat empty defaults as null', () => {
+  it('should use default value and treat empty defaults as null', () => {
     const result = getFilterConfigsFromFormdata({
       ...testFormdata,
       show_sqla_time_column: true,
@@ -79,7 +79,7 @@ describe('getFilterConfigsFromFormdata', () => {
     });
   });
 
-  test('should read multi values from form_data', () => {
+  it('should read multi values from form_data', () => {
     const result = getFilterConfigsFromFormdata({
       ...testFormdata,
       filter_configs: [

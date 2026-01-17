@@ -26,7 +26,7 @@ describe('Header', () => {
   const waitForRender = (props?: any) =>
     waitFor(() => render(<Header setDataset={mockSetDataset} {...props} />));
 
-  test('renders a blank state Header', async () => {
+  it('renders a blank state Header', async () => {
     await waitForRender();
 
     const datasetName = screen.getByText(/new dataset/i);
@@ -34,14 +34,14 @@ describe('Header', () => {
     expect(datasetName).toBeVisible();
   });
 
-  test('displays "New dataset" when a table is not selected', async () => {
+  it('displays "New dataset" when a table is not selected', async () => {
     await waitForRender();
 
     const datasetName = screen.getByText(/new dataset/i);
     expect(datasetName.innerHTML).toBe(DEFAULT_TITLE);
   });
 
-  test('displays table name when a table is selected', async () => {
+  it('displays table name when a table is selected', async () => {
     // The schema and table name are passed in through props once selected
     await waitForRender({ schema: 'testSchema', title: 'testTable' });
 

@@ -27,17 +27,17 @@ describe('ColumnElement', () => {
     actions: mockedActions,
     column: table.columns[0],
   };
-  test('is valid with props', () => {
+  it('is valid with props', () => {
     expect(isValidElement(<ColumnElement {...mockedProps} />)).toBe(true);
   });
-  test('renders a proper primary key', () => {
+  it('renders a proper primary key', () => {
     const { container } = render(<ColumnElement column={table.columns[0]} />);
     expect(container.querySelector('i.fa-key')).toBeInTheDocument();
     expect(
       container.querySelector('[data-test="col-name"]')?.firstChild,
     ).toHaveTextContent('id');
   });
-  test('renders a multi-key column', () => {
+  it('renders a multi-key column', () => {
     const { container } = render(<ColumnElement column={table.columns[1]} />);
     expect(container.querySelector('i.fa-link')).toBeInTheDocument();
     expect(container.querySelector('i.fa-bookmark')).toBeInTheDocument();
@@ -45,7 +45,7 @@ describe('ColumnElement', () => {
       container.querySelector('[data-test="col-name"]')?.firstChild,
     ).toHaveTextContent('first_name');
   });
-  test('renders a column with no keys', () => {
+  it('renders a column with no keys', () => {
     const { container } = render(<ColumnElement column={table.columns[2]} />);
     expect(container.querySelector('i')).not.toBeInTheDocument();
     expect(

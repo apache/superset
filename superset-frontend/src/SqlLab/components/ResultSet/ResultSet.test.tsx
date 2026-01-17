@@ -183,7 +183,7 @@ describe('ResultSet', () => {
     await new Promise(resolve => setTimeout(resolve, 0));
   });
 
-  test('renders a Table', async () => {
+  it('renders a Table', async () => {
     const { getByTestId } = setup(
       mockedProps,
       mockStore({
@@ -203,7 +203,7 @@ describe('ResultSet', () => {
     });
   });
 
-  test('should render success query', async () => {
+  it('should render success query', async () => {
     const query = queries[0];
     const { queryAllByText, getByTestId } = setup(
       mockedProps,
@@ -235,7 +235,7 @@ describe('ResultSet', () => {
     expect(exploreButton).toBeInTheDocument();
   });
 
-  test('should render empty results', async () => {
+  it('should render empty results', async () => {
     const query = {
       ...queries[0],
       results: { data: [] },
@@ -261,7 +261,7 @@ describe('ResultSet', () => {
     expect(alert).toHaveTextContent('The query returned no data');
   });
 
-  test('should call reRunQuery if timed out', async () => {
+  it('should call reRunQuery if timed out', async () => {
     const query = {
       ...queries[0],
       errorMessage: 'Your session timed out',
@@ -289,7 +289,7 @@ describe('ResultSet', () => {
     );
   });
 
-  test('should not call reRunQuery if no error', async () => {
+  it('should not call reRunQuery if no error', async () => {
     const query = queries[0];
     const store = mockStore({
       ...initialState,
@@ -306,7 +306,7 @@ describe('ResultSet', () => {
     expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(0);
   });
 
-  test('should render cached query', async () => {
+  it('should render cached query', async () => {
     const store = mockStore(cachedQueryState);
     const { rerender } = setup(
       { ...mockedProps, queryId: cachedQuery.id },
@@ -320,7 +320,7 @@ describe('ResultSet', () => {
     expect(store.getActions()[0].type).toEqual('CLEAR_QUERY_RESULTS');
   });
 
-  test('should render stopped query', async () => {
+  it('should render stopped query', async () => {
     await waitFor(() => {
       setup(
         { ...mockedProps, queryId: stoppedQuery.id },
@@ -332,7 +332,7 @@ describe('ResultSet', () => {
     expect(alert).toBeInTheDocument();
   });
 
-  test('should render running/pending/fetching query', async () => {
+  it('should render running/pending/fetching query', async () => {
     const { getByTestId } = setup(
       { ...mockedProps, queryId: runningQuery.id },
       mockStore(runningQueryState),
@@ -341,7 +341,7 @@ describe('ResultSet', () => {
     expect(progressBar).toBeInTheDocument();
   });
 
-  test('should render fetching w/ 100 progress query', async () => {
+  it('should render fetching w/ 100 progress query', async () => {
     const { getByRole, getByText } = setup(
       mockedProps,
       mockStore(fetchingQueryState),
@@ -351,7 +351,7 @@ describe('ResultSet', () => {
     expect(getByText('fetching')).toBeInTheDocument();
   });
 
-  test('should render a failed query with an errors object', async () => {
+  it('should render a failed query with an errors object', async () => {
     const { errors } = failedQueryWithErrors;
 
     await waitFor(() => {
@@ -364,7 +364,7 @@ describe('ResultSet', () => {
     expect(errorMessages).toHaveLength(errors.length);
   });
 
-  test('should render a timeout error with a retrial button', async () => {
+  it('should render a timeout error with a retrial button', async () => {
     await waitFor(() => {
       setup(
         { ...mockedProps, queryId: failedQueryWithFrontendTimeoutErrors.id },
@@ -376,7 +376,7 @@ describe('ResultSet', () => {
     ).toBeInTheDocument();
   });
 
-  test('renders if there is no limit in query.results but has queryLimit', async () => {
+  it('renders if there is no limit in query.results but has queryLimit', async () => {
     const query = {
       ...queries[0],
     };
@@ -399,7 +399,7 @@ describe('ResultSet', () => {
     expect(getByRole('grid')).toBeInTheDocument();
   });
 
-  test('renders if there is a limit in query.results but not queryLimit', async () => {
+  it('renders if there is a limit in query.results but not queryLimit', async () => {
     const props = { ...mockedProps, queryId: queryWithNoQueryLimit.id };
     const { getByRole } = setup(
       props,
@@ -417,7 +417,7 @@ describe('ResultSet', () => {
     expect(getByRole('grid')).toBeInTheDocument();
   });
 
-  test('Async queries - renders "Fetch data preview" button when data preview has no results', () => {
+  it('Async queries - renders "Fetch data preview" button when data preview has no results', () => {
     const asyncRefetchDataPreviewQuery = {
       ...queries[0],
       state: 'success',
@@ -445,7 +445,7 @@ describe('ResultSet', () => {
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
-  test('Async queries - renders "Refetch results" button when a query has no results', () => {
+  it('Async queries - renders "Refetch results" button when a query has no results', () => {
     const asyncRefetchResultsTableQuery = {
       ...queries[0],
       state: 'success',
@@ -474,7 +474,7 @@ describe('ResultSet', () => {
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
-  test('Async queries - renders on the first call', () => {
+  it('Async queries - renders on the first call', () => {
     const query = {
       ...queries[0],
     };
@@ -504,7 +504,7 @@ describe('ResultSet', () => {
     ).not.toBeInTheDocument();
   });
 
-  test.each(['', '/myapp'])(
+  it.each(['', '/myapp'])(
     'should allow download as CSV when user has permission to export data with app_root=%s',
     async app_root => {
       applicationRootMock.mockReturnValue(app_root);
@@ -537,7 +537,7 @@ describe('ResultSet', () => {
     },
   );
 
-  test('should display a popup message when the CSV content is limited to the dropdown limit', async () => {
+  it('should display a popup message when the CSV content is limited to the dropdown limit', async () => {
     const queryLimit = 2;
     const { getByTestId, findByRole } = setup(
       mockedProps,
@@ -578,7 +578,7 @@ describe('ResultSet', () => {
     });
   });
 
-  test('should not allow download as CSV when user does not have permission to export data', async () => {
+  it('should not allow download as CSV when user does not have permission to export data', async () => {
     const { queryByTestId } = setup(
       mockedProps,
       mockStore({
@@ -595,7 +595,7 @@ describe('ResultSet', () => {
     expect(queryByTestId('export-csv-button')).not.toBeInTheDocument();
   });
 
-  test('should allow copy to clipboard when user has permission to export data', async () => {
+  it('should allow copy to clipboard when user has permission to export data', async () => {
     const { queryByTestId } = setup(
       mockedProps,
       mockStore({
@@ -617,7 +617,7 @@ describe('ResultSet', () => {
     expect(queryByTestId('copy-to-clipboard-button')).toBeInTheDocument();
   });
 
-  test('should not allow copy to clipboard when user does not have permission to export data', async () => {
+  it('should not allow copy to clipboard when user does not have permission to export data', async () => {
     const { queryByTestId } = setup(
       mockedProps,
       mockStore({
@@ -634,7 +634,7 @@ describe('ResultSet', () => {
     expect(queryByTestId('copy-to-clipboard-button')).not.toBeInTheDocument();
   });
 
-  test('should include sqlEditorImmutableId in query object when fetching results', async () => {
+  it('should include sqlEditorImmutableId in query object when fetching results', async () => {
     const queryWithResultsKey = {
       ...queries[0],
       resultsKey: 'test-results-key',
@@ -672,7 +672,7 @@ describe('ResultSet', () => {
     expect(resultsCalls).toHaveLength(1);
   });
 
-  test('should use non-streaming export (href) when rows below threshold', async () => {
+  it('should use non-streaming export (href) when rows below threshold', async () => {
     // This test validates that when rows < CSV_STREAMING_ROW_THRESHOLD,
     // the component uses the direct download href instead of streaming export.
     const appRoot = '/superset';
@@ -726,7 +726,7 @@ describe('ResultSet', () => {
     expect(mockStartExport).not.toHaveBeenCalled();
   });
 
-  test.each([
+  it.each([
     {
       name: 'no prefix (default deployment)',
       appRoot: '',

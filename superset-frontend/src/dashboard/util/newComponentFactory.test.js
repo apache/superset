@@ -49,7 +49,7 @@ const types = [
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('newEntityFactory', () => {
   types.forEach(type => {
-    test(`returns a new ${type}`, () => {
+    it(`returns a new ${type}`, () => {
       const result = newComponentFactory(type);
 
       expect(result.type).toBe(type);
@@ -59,7 +59,7 @@ describe('newEntityFactory', () => {
     });
   });
 
-  test('adds passed meta data to the entity', () => {
+  it('adds passed meta data to the entity', () => {
     const banana = 'banana';
     const result = newComponentFactory(CHART_TYPE, { banana });
     expect(result.meta.banana).toBe(banana);

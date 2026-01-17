@@ -72,7 +72,7 @@ describe('Heatmap transformProps', () => {
       theme: supersetTheme,
     });
 
-  test('should sort axes alphabetically in both directions', () => {
+  it('should sort axes alphabetically in both directions', () => {
     // X-axis ascending
     const xAscProps = createChartProps({ sortXAxis: 'alpha_asc' });
     const xAscResult = transformProps(xAscProps as HeatmapChartProps);
@@ -113,7 +113,7 @@ describe('Heatmap transformProps', () => {
     ]);
   });
 
-  test('should sort axes by metric value', () => {
+  it('should sort axes by metric value', () => {
     const chartPropsXAsc = createChartProps({ sortXAxis: 'value_asc' });
     const resultXAsc = transformProps(chartPropsXAsc as HeatmapChartProps);
     // Wednesday(8) < Tuesday(12) < Thursday(18) < Friday(20) < Monday(25=10+15)
@@ -151,7 +151,7 @@ describe('Heatmap transformProps', () => {
     ]);
   });
 
-  test('should handle no sort option specified', () => {
+  it('should handle no sort option specified', () => {
     const chartProps = createChartProps({});
     const result = transformProps(chartProps as HeatmapChartProps);
 
@@ -169,7 +169,7 @@ describe('Heatmap transformProps', () => {
     expect(yAxisData).toEqual([9, 14, 11, 16, 10, 15]);
   });
 
-  test('should aggregate metric values for value-based sorting', () => {
+  it('should aggregate metric values for value-based sorting', () => {
     const dataWithDuplicates = [
       { day_of_week: 'Monday', hour: 9, count: 10 },
       { day_of_week: 'Monday', hour: 10, count: 15 },
@@ -189,7 +189,7 @@ describe('Heatmap transformProps', () => {
     expect(xAxisData).toEqual(['Tuesday', 'Wednesday', 'Monday']);
   });
 
-  test('should handle data with null values', () => {
+  it('should handle data with null values', () => {
     const dataWithNulls: Record<string, any>[] = [
       { day_of_week: 'Monday', hour: 9, count: 10 },
       { day_of_week: null, hour: 10, count: 15 },
@@ -207,7 +207,7 @@ describe('Heatmap transformProps', () => {
     expect(xAxisData).toEqual(['Monday', 'Tuesday']);
   });
 
-  test('should sort numeric values numerically not alphabetically', () => {
+  it('should sort numeric values numerically not alphabetically', () => {
     const numericData = [
       { hour: 1, day: 'Mon', count: 10 },
       { hour: 10, day: 'Mon', count: 15 },
@@ -232,7 +232,7 @@ describe('Heatmap transformProps', () => {
     expect(xAxisData).toEqual([1, 2, 3, 10, 20]);
   });
 
-  test('should convert series data to axis indices', () => {
+  it('should convert series data to axis indices', () => {
     const chartProps = createChartProps({
       sortXAxis: 'alpha_asc',
       sortYAxis: 'alpha_asc',
@@ -258,7 +258,7 @@ describe('Heatmap transformProps', () => {
     });
   });
 
-  test('should handle mixed numeric and string values in axes', () => {
+  it('should handle mixed numeric and string values in axes', () => {
     const mixedData = [
       { category: 'A', value: 1, count: 10 },
       { category: 'B', value: 10, count: 15 },

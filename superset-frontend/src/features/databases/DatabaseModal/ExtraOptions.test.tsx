@@ -92,7 +92,7 @@ describe('ExtraOptions Component', () => {
     jest.clearAllMocks();
   });
 
-  test('renders all main panels', () => {
+  it('renders all main panels', () => {
     renderComponent();
 
     expect(screen.getByText(t('SQL Lab'))).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('ExtraOptions Component', () => {
     expect(screen.getByText(t('Other'))).toBeInTheDocument();
   });
 
-  test('calls onInputChange when "Expose database in SQL Lab" checkbox is clicked', () => {
+  it('calls onInputChange when "Expose database in SQL Lab" checkbox is clicked', () => {
     renderComponent();
     const sqlLabText = screen.getByText(t('SQL Lab'));
     fireEvent.click(sqlLabText);
@@ -111,7 +111,7 @@ describe('ExtraOptions Component', () => {
     expect(onInputChange).toHaveBeenCalled();
   });
 
-  test('calls onExtraInputChange when "Enable query cost estimation" checkbox is clicked', () => {
+  it('calls onExtraInputChange when "Enable query cost estimation" checkbox is clicked', () => {
     renderComponent();
     const sqlLabText = screen.getByText(t('SQL Lab'));
     fireEvent.click(sqlLabText);
@@ -120,7 +120,7 @@ describe('ExtraOptions Component', () => {
     expect(onExtraInputChange).toHaveBeenCalled();
   });
 
-  test('calls onExtraEditorChange when metadata_params json editor changes', async () => {
+  it('calls onExtraEditorChange when metadata_params json editor changes', async () => {
     renderComponent();
 
     // Click to open the editor tab/section
@@ -164,7 +164,7 @@ describe('ExtraOptions Component', () => {
     });
   });
 
-  test('calls onTextChange when server certificate textarea is changed', () => {
+  it('calls onTextChange when server certificate textarea is changed', () => {
     renderComponent();
     // Click to open the security tab/section
     const securityHeader = screen.getByText(t('Security'));
@@ -175,7 +175,7 @@ describe('ExtraOptions Component', () => {
     expect(onTextChange).toHaveBeenCalled();
   });
 
-  test('handles input change for schema cache timeout', () => {
+  it('handles input change for schema cache timeout', () => {
     renderComponent();
     const performanceHeader = screen.getByText(t('Performance'));
     fireEvent.click(performanceHeader);
@@ -184,7 +184,7 @@ describe('ExtraOptions Component', () => {
     expect(onExtraInputChange).toHaveBeenCalled();
   });
 
-  test('handles input change for table cache timeout', () => {
+  it('handles input change for table cache timeout', () => {
     renderComponent();
     const performanceHeader = screen.getByText(t('Performance'));
     fireEvent.click(performanceHeader);
@@ -193,7 +193,7 @@ describe('ExtraOptions Component', () => {
     expect(onExtraInputChange).toHaveBeenCalled();
   });
 
-  test('renders the collaps tab correctly and resets to default tab after closing', () => {
+  it('renders the collaps tab correctly and resets to default tab after closing', () => {
     const { rerender } = renderComponent();
     const sqlLabTab = screen.getByRole('tab', {
       name: /SQL Lab./i,
@@ -221,7 +221,7 @@ describe('ExtraOptions Component', () => {
     expect(sqlLabTab).toHaveAttribute('aria-expanded', 'false');
   });
 
-  test('all collapse panels should expand when clicking anywhere on the header', () => {
+  it('all collapse panels should expand when clicking anywhere on the header', () => {
     renderComponent();
     const allPanelTabs = screen.getAllByRole('tab');
     expect(allPanelTabs.length).toBeGreaterThanOrEqual(4); // At least 4 main panels

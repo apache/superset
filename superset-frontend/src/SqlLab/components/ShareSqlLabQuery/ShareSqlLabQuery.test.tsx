@@ -105,7 +105,7 @@ describe('ShareSqlLabQuery', () => {
       mockedIsFeatureEnabled.mockReset();
     });
 
-    test('calls storeQuery() with the query when getCopyUrl() is called', async () => {
+    it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
           useRedux: true,
@@ -123,7 +123,7 @@ describe('ShareSqlLabQuery', () => {
       ).toEqual(expected);
     });
 
-    test('calls storeQuery() with unsaved changes', async () => {
+    it('calls storeQuery() with unsaved changes', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
           useRedux: true,

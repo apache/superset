@@ -36,7 +36,7 @@ describe('useStoredSidebarWidth', () => {
     localStorage.clear();
   });
 
-  test('returns a default filterBar width by initialWidth', () => {
+  it('returns a default filterBar width by initialWidth', () => {
     const id = '123';
     const { result } = renderHook(() =>
       useStoredSidebarWidth(id, INITIAL_WIDTH),
@@ -46,7 +46,7 @@ describe('useStoredSidebarWidth', () => {
     expect(actualWidth).toEqual(INITIAL_WIDTH);
   });
 
-  test('returns a stored filterBar width from localStorage', () => {
+  it('returns a stored filterBar width from localStorage', () => {
     const id = '123';
     const expectedWidth = 378;
     setItem(LocalStorageKeys.CommonResizableSidebarWidths, {
@@ -62,7 +62,7 @@ describe('useStoredSidebarWidth', () => {
     expect(actualWidth).not.toEqual(250);
   });
 
-  test('returns a setter for filterBar width that stores the state in localStorage together', () => {
+  it('returns a setter for filterBar width that stores the state in localStorage together', () => {
     const id = '123';
     const expectedWidth = 378;
     const otherDashboardId = '456';

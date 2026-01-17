@@ -29,7 +29,7 @@ describe('cachedSupersetGet', () => {
   });
 
   describe('clearDatasetCache', () => {
-    test('clears cache entries for specific dataset ID', () => {
+    it('clears cache entries for specific dataset ID', () => {
       supersetGetCache.set('/api/v1/dataset/123', { data: 'dataset123' });
       supersetGetCache.set('/api/v1/dataset/123/', { data: 'dataset123slash' });
       supersetGetCache.set('/api/v1/dataset/123?query=1', {
@@ -47,7 +47,7 @@ describe('cachedSupersetGet', () => {
       expect(supersetGetCache.has('/api/v1/other/123')).toBe(true);
     });
 
-    test('clears cache entries for string dataset ID', () => {
+    it('clears cache entries for string dataset ID', () => {
       supersetGetCache.set('/api/v1/dataset/abc-123', { data: 'datasetAbc' });
       supersetGetCache.set('/api/v1/dataset/abc-123/', {
         data: 'datasetAbcSlash',
@@ -61,7 +61,7 @@ describe('cachedSupersetGet', () => {
       expect(supersetGetCache.has('/api/v1/dataset/def-456')).toBe(true);
     });
 
-    test('handles null dataset ID gracefully', () => {
+    it('handles null dataset ID gracefully', () => {
       supersetGetCache.set('/api/v1/dataset/123', { data: 'dataset123' });
 
       clearDatasetCache(null as any);
@@ -69,7 +69,7 @@ describe('cachedSupersetGet', () => {
       expect(supersetGetCache.has('/api/v1/dataset/123')).toBe(true);
     });
 
-    test('handles undefined dataset ID gracefully', () => {
+    it('handles undefined dataset ID gracefully', () => {
       supersetGetCache.set('/api/v1/dataset/123', { data: 'dataset123' });
 
       clearDatasetCache(undefined as any);
@@ -77,7 +77,7 @@ describe('cachedSupersetGet', () => {
       expect(supersetGetCache.has('/api/v1/dataset/123')).toBe(true);
     });
 
-    test('handles empty string dataset ID gracefully', () => {
+    it('handles empty string dataset ID gracefully', () => {
       supersetGetCache.set('/api/v1/dataset/123', { data: 'dataset123' });
 
       clearDatasetCache('');
@@ -85,7 +85,7 @@ describe('cachedSupersetGet', () => {
       expect(supersetGetCache.has('/api/v1/dataset/123')).toBe(true);
     });
 
-    test('does not clear unrelated cache entries', () => {
+    it('does not clear unrelated cache entries', () => {
       supersetGetCache.set('/api/v1/chart/123', { data: 'chart123' });
       supersetGetCache.set('/api/v1/dashboard/123', { data: 'dashboard123' });
       supersetGetCache.set('/api/v1/database/123', { data: 'database123' });
@@ -99,7 +99,7 @@ describe('cachedSupersetGet', () => {
       expect(supersetGetCache.has('/api/v1/dataset/123')).toBe(false);
     });
 
-    test('only clears exact dataset ID matches', () => {
+    it('only clears exact dataset ID matches', () => {
       supersetGetCache.set('/api/v1/dataset/1', { data: 'dataset1' });
       supersetGetCache.set('/api/v1/dataset/12', { data: 'dataset12' });
       supersetGetCache.set('/api/v1/dataset/123', { data: 'dataset123' });
@@ -115,7 +115,7 @@ describe('cachedSupersetGet', () => {
       expect(supersetGetCache.has('/api/v1/dataset/456')).toBe(true);
     });
 
-    test('clears cache entries with various URL patterns', () => {
+    it('clears cache entries with various URL patterns', () => {
       supersetGetCache.set('/api/v1/dataset/789', { data: 'base' });
       supersetGetCache.set('/api/v1/dataset/789/columns', { data: 'columns' });
       supersetGetCache.set('/api/v1/dataset/789/related', { data: 'related' });
@@ -133,7 +133,7 @@ describe('cachedSupersetGet', () => {
   });
 
   describe('clearAllDatasetCache', () => {
-    test('clears all dataset cache entries', () => {
+    it('clears all dataset cache entries', () => {
       supersetGetCache.set('/api/v1/dataset/123', { data: 'dataset123' });
       supersetGetCache.set('/api/v1/dataset/456', { data: 'dataset456' });
       supersetGetCache.set('/api/v1/dataset/789/columns', { data: 'columns' });
@@ -149,7 +149,7 @@ describe('cachedSupersetGet', () => {
       expect(supersetGetCache.has('/api/v1/dashboard/456')).toBe(true);
     });
 
-    test('handles empty cache gracefully', () => {
+    it('handles empty cache gracefully', () => {
       expect(supersetGetCache.size).toBe(0);
 
       clearAllDatasetCache();
@@ -157,7 +157,7 @@ describe('cachedSupersetGet', () => {
       expect(supersetGetCache.size).toBe(0);
     });
 
-    test('preserves non-dataset cache entries', () => {
+    it('preserves non-dataset cache entries', () => {
       supersetGetCache.set('/api/v1/chart/list', { data: 'chartList' });
       supersetGetCache.set('/api/v1/dashboard/list', { data: 'dashboardList' });
       supersetGetCache.set('/api/v1/database/list', { data: 'databaseList' });
@@ -171,7 +171,7 @@ describe('cachedSupersetGet', () => {
       expect(supersetGetCache.has('/api/v1/query/list')).toBe(true);
     });
 
-    test('clears all variations of dataset endpoints', () => {
+    it('clears all variations of dataset endpoints', () => {
       supersetGetCache.set('/api/v1/dataset/', { data: 'list' });
       supersetGetCache.set('/api/v1/dataset/export', { data: 'export' });
       supersetGetCache.set('/api/v1/dataset/import', { data: 'import' });

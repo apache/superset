@@ -129,7 +129,7 @@ describe('ControlPanelsContainer', () => {
     } as ControlPanelsContainerProps;
   }
 
-  test('renders ControlPanelSections', async () => {
+  it('renders ControlPanelSections', async () => {
     render(<ControlPanelsContainer {...getDefaultProps()} />, {
       useRedux: true,
     });
@@ -147,7 +147,7 @@ describe('ControlPanelsContainer', () => {
     });
   });
 
-  test('renders ControlPanelSections no Customize Tab', async () => {
+  it('renders ControlPanelSections no Customize Tab', async () => {
     getChartControlPanelRegistry().remove('table');
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
@@ -183,7 +183,7 @@ describe('ControlPanelsContainer', () => {
     });
   });
 
-  test('visibility of panels is correctly applied', async () => {
+  it('visibility of panels is correctly applied', async () => {
     getChartControlPanelRegistry().remove('table');
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
@@ -234,7 +234,7 @@ describe('ControlPanelsContainer', () => {
     );
   });
 
-  test('hidden state of controls is correctly applied', async () => {
+  it('hidden state of controls is correctly applied', async () => {
     getChartControlPanelRegistry().remove('table');
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
@@ -291,7 +291,7 @@ describe('ControlPanelsContainer', () => {
     expect(screen.getByText('Calculation type')).not.toBeVisible();
   });
 
-  test('should stay on Matrixify tab when matrixify is enabled', async () => {
+  it('should stay on Matrixify tab when matrixify is enabled', async () => {
     // Enable Matrixify feature flag
     mockIsFeatureEnabled.mockImplementation(
       (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
@@ -349,7 +349,7 @@ describe('ControlPanelsContainer', () => {
     getChartControlPanelRegistry().remove('line');
   });
 
-  test('should automatically switch to Matrixify tab when matrixify becomes enabled', async () => {
+  it('should automatically switch to Matrixify tab when matrixify becomes enabled', async () => {
     // Enable Matrixify feature flag
     mockIsFeatureEnabled.mockImplementation(
       (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
@@ -404,7 +404,7 @@ describe('ControlPanelsContainer', () => {
     getChartControlPanelRegistry().remove('line');
   });
 
-  test('should not show Matrixify tab for table chart types', async () => {
+  it('should not show Matrixify tab for table chart types', async () => {
     // Enable Matrixify feature flag
     mockIsFeatureEnabled.mockImplementation(
       (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
@@ -442,7 +442,7 @@ describe('ControlPanelsContainer', () => {
     }
   });
 
-  test('should show Matrixify tab for supported chart types', async () => {
+  it('should show Matrixify tab for supported chart types', async () => {
     // Enable Matrixify feature flag
     mockIsFeatureEnabled.mockImplementation(
       (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,

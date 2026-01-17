@@ -325,7 +325,7 @@ test('onChange is not called when close is clicked and canDelete is string, warn
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('when disallow_adhoc_metrics is set', () => {
-  test('can drop a column type from the simple column selection', () => {
+  it('can drop a column type from the simple column selection', () => {
     const adhocMetric = new AdhocMetric({
       expression: 'AVG(birth_names.num)',
       metric_name: 'avg__num',
@@ -365,7 +365,7 @@ describe('when disallow_adhoc_metrics is set', () => {
     expect(within(filterConfigPopup).getByText('column_b')).toBeInTheDocument();
   });
 
-  test('cannot drop any other types of selections apart from simple column selection', () => {
+  it('cannot drop any other types of selections apart from simple column selection', () => {
     const adhocMetric = new AdhocMetric({
       expression: 'AVG(birth_names.num)',
       metric_name: 'avg__num',

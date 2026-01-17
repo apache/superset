@@ -54,7 +54,7 @@ describe('TabsRenderer', () => {
     jest.clearAllMocks();
   });
 
-  test('renders tabs container with correct test attributes', () => {
+  it('renders tabs container with correct test attributes', () => {
     render(<TabsRenderer {...mockProps} />);
 
     const tabsContainer = screen.getByTestId('dashboard-component-tabs');
@@ -63,14 +63,14 @@ describe('TabsRenderer', () => {
     expect(tabsContainer).toHaveClass('dashboard-component-tabs');
   });
 
-  test('renders LineEditableTabs with correct props', () => {
+  it('renders LineEditableTabs with correct props', () => {
     render(<TabsRenderer {...mockProps} />);
 
     const editableTabs = screen.getByTestId('nav-list');
     expect(editableTabs).toBeInTheDocument();
   });
 
-  test('applies correct tab bar padding', () => {
+  it('applies correct tab bar padding', () => {
     const { rerender } = render(<TabsRenderer {...mockProps} />);
 
     let editableTabs = screen.getByTestId('nav-list');
@@ -82,7 +82,7 @@ describe('TabsRenderer', () => {
     expect(editableTabs).toBeInTheDocument();
   });
 
-  test('calls handleClickTab when tab is clicked', () => {
+  it('calls handleClickTab when tab is clicked', () => {
     const handleClickTabMock = jest.fn();
     const propsWithTab2Active = {
       ...mockProps,
@@ -100,7 +100,7 @@ describe('TabsRenderer', () => {
     expect(handleClickTabMock).toHaveBeenCalledTimes(1);
   });
 
-  test('shows hover menu in edit mode', () => {
+  it('shows hover menu in edit mode', () => {
     const mockRef = { current: null };
     const editModeProps: TabsRendererProps = {
       ...mockProps,
@@ -116,7 +116,7 @@ describe('TabsRenderer', () => {
     expect(hoverMenu).toBeInTheDocument();
   });
 
-  test('hides hover menu when not in edit mode', () => {
+  it('hides hover menu when not in edit mode', () => {
     const viewModeProps: TabsRendererProps = {
       ...mockProps,
       editMode: false,
@@ -130,7 +130,7 @@ describe('TabsRenderer', () => {
     expect(hoverMenu).not.toBeInTheDocument();
   });
 
-  test('hides hover menu when renderHoverMenu is false', () => {
+  it('hides hover menu when renderHoverMenu is false', () => {
     const mockRef = { current: null };
     const noHoverMenuProps: TabsRendererProps = {
       ...mockProps,
@@ -146,7 +146,7 @@ describe('TabsRenderer', () => {
     expect(hoverMenu).not.toBeInTheDocument();
   });
 
-  test('renders with correct tab type based on edit mode', () => {
+  it('renders with correct tab type based on edit mode', () => {
     const { rerender } = render(
       <TabsRenderer {...mockProps} editMode={false} />,
     );
@@ -161,7 +161,7 @@ describe('TabsRenderer', () => {
     expect(editableTabs).toBeInTheDocument();
   });
 
-  test('handles default props correctly', () => {
+  it('handles default props correctly', () => {
     const minimalProps: TabsRendererProps = {
       tabItems: mockProps.tabItems,
       editMode: false,
@@ -180,7 +180,7 @@ describe('TabsRenderer', () => {
     expect(tabsContainer).toBeInTheDocument();
   });
 
-  test('calls onEdit when edit action is triggered', () => {
+  it('calls onEdit when edit action is triggered', () => {
     const handleEditMock = jest.fn();
     const editableProps = {
       ...mockProps,
@@ -193,7 +193,7 @@ describe('TabsRenderer', () => {
     expect(screen.getByTestId('nav-list')).toBeInTheDocument();
   });
 
-  test('renders tab content correctly', () => {
+  it('renders tab content correctly', () => {
     render(<TabsRenderer {...mockProps} />);
 
     expect(screen.getByText('Tab 1 Content')).toBeInTheDocument();

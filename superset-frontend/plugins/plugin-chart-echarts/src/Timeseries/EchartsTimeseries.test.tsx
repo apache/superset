@@ -23,6 +23,7 @@ import {
 } from '../../../../spec/helpers/testing-library';
 import { AxisType } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
+import { noop } from 'lodash';
 import type { ReactNode } from 'react';
 import {
   LegendOrientation,
@@ -45,7 +46,7 @@ jest.mock('../components/Echart', () => {
   const MockEchart = forwardRef<EchartsHandler | null, EchartsProps>(
     (props, ref) => {
       mockEchart(props);
-      void ref;
+      noop(ref);
       return null;
     },
   );
@@ -228,7 +229,7 @@ test('observes extra control height changes when ResizeObserver is available', a
     };
 
     unobserve(_target: Element): void {
-      void _target;
+      noop(_target);
     }
 
     disconnect = () => {

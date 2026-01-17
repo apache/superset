@@ -94,7 +94,7 @@ describe('ResultsPaneOnDashboard', () => {
     jest.resetAllMocks();
   });
 
-  test('render', async () => {
+  it('render', async () => {
     const props = createResultsPaneOnDashboardProps({ sliceId: 121 });
     const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
       useRedux: true,
@@ -104,7 +104,7 @@ describe('ResultsPaneOnDashboard', () => {
     ).toBeVisible();
   });
 
-  test('render errorMessage', async () => {
+  it('render errorMessage', async () => {
     const props = createResultsPaneOnDashboardProps({
       sliceId: 121,
       errorMessage: <p>error</p>,
@@ -115,7 +115,7 @@ describe('ResultsPaneOnDashboard', () => {
     expect(await findByText('Run a query to display results')).toBeVisible();
   });
 
-  test('error response', async () => {
+  it('error response', async () => {
     const props = createResultsPaneOnDashboardProps({
       sliceId: 169,
     });
@@ -126,7 +126,7 @@ describe('ResultsPaneOnDashboard', () => {
     expect(await findByText('Bad request')).toBeVisible();
   });
 
-  test('force query, render and search', async () => {
+  it('force query, render and search', async () => {
     const props = createResultsPaneOnDashboardProps({
       sliceId: 144,
       queryForce: true,
@@ -151,7 +151,7 @@ describe('ResultsPaneOnDashboard', () => {
     expect(queryByText('Action')).not.toBeInTheDocument();
   });
 
-  test('multiple results pane', async () => {
+  it('multiple results pane', async () => {
     const FakeChart = () => <span>test</span>;
     const metadata = new ChartMetadata({
       name: 'test-chart',
@@ -185,7 +185,7 @@ describe('ResultsPaneOnDashboard', () => {
     expect(tab2).toBeVisible();
   });
 
-  test('dynamic number of results pane', async () => {
+  it('dynamic number of results pane', async () => {
     const FakeChart = () => <span>test</span>;
     const metadata = new ChartMetadata({
       name: 'test-chart',

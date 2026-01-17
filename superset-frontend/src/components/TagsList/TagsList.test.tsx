@@ -81,7 +81,7 @@ test('should render 3 elements when maxTags is set to 3', async () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Tag type filtering', () => {
-  test('should render only custom type tags (type: 1)', async () => {
+  it('should render only custom type tags (type: 1)', async () => {
     const mixedTypeTags = [
       { name: 'custom-tag', type: 1, id: 1 }, // Custom - should show
       { name: 'type:chart', type: 2, id: 2 }, // Type - should be filtered out
@@ -105,7 +105,7 @@ describe('Tag type filtering', () => {
     expect(tagsListItems[1]).toHaveTextContent('custom-tag');
   });
 
-  test('should show tags when type is undefined (fallback case)', async () => {
+  it('should show tags when type is undefined (fallback case)', async () => {
     const undefinedTypeTags = [
       { name: 'legacy-tag', id: 1 }, // No type property - should show due to fallback
       { name: 'custom-tag', type: 1, id: 2 }, // Custom - should show
@@ -128,7 +128,7 @@ describe('Tag type filtering', () => {
     expect(tagsListItems[1]).toHaveTextContent('legacy-tag');
   });
 
-  test('should handle legacy TagTypes.custom string format', async () => {
+  it('should handle legacy TagTypes.custom string format', async () => {
     const legacyFormatTags = [
       { name: 'legacy-custom', type: 'TagTypes.custom', id: 1 }, // Legacy string format - should show
       { name: 'modern-custom', type: 1, id: 2 }, // Modern enum - should show
@@ -151,7 +151,7 @@ describe('Tag type filtering', () => {
     expect(tagsListItems[1]).toHaveTextContent('modern-custom');
   });
 
-  test('should show empty list when all tags are filtered out', async () => {
+  it('should show empty list when all tags are filtered out', async () => {
     const nonCustomTags = [
       { name: 'type:chart', type: 2, id: 1 }, // Type tag
       { name: 'owner:admin', type: 3, id: 2 }, // Owner tag
@@ -176,7 +176,7 @@ describe('Tag type filtering', () => {
     expect(tagsListItems).toHaveLength(0);
   });
 
-  test('should handle mixed scenarios with truncation', async () => {
+  it('should handle mixed scenarios with truncation', async () => {
     const largeMixedTagSet = [
       { name: 'custom-1', type: 1, id: 1 }, // Custom - should show
       { name: 'system-1', type: 2, id: 2 }, // System - filtered out

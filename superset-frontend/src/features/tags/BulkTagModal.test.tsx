@@ -43,12 +43,12 @@ describe('BulkTagModal', () => {
     jest.clearAllMocks();
   });
 
-  test('should render', () => {
+  it('should render', () => {
     const { container } = render(<BulkTagModal {...mockedProps} />);
     expect(container).toBeInTheDocument();
   });
 
-  test('renders the correct title and message', () => {
+  it('renders the correct title and message', () => {
     render(<BulkTagModal {...mockedProps} />);
     expect(
       screen.getByText(/you are adding tags to 2 dashboards/i),
@@ -56,20 +56,20 @@ describe('BulkTagModal', () => {
     expect(screen.getByText('Bulk tag')).toBeInTheDocument();
   });
 
-  test('renders tags input field', async () => {
+  it('renders tags input field', async () => {
     render(<BulkTagModal {...mockedProps} />);
     const tagsInput = await screen.findByRole('combobox', { name: /tags/i });
     expect(tagsInput).toBeInTheDocument();
   });
 
-  test('calls onHide when the Cancel button is clicked', () => {
+  it('calls onHide when the Cancel button is clicked', () => {
     render(<BulkTagModal {...mockedProps} />);
     const cancelButton = screen.getByText('Cancel');
     fireEvent.click(cancelButton);
     expect(mockedProps.onHide).toHaveBeenCalled();
   });
 
-  test('submits the selected tags and shows success toast', async () => {
+  it('submits the selected tags and shows success toast', async () => {
     fetchMock.post('glob:*/api/v1/tag/bulk_create', {
       result: {
         objects_tagged: [1, 2],
@@ -95,7 +95,7 @@ describe('BulkTagModal', () => {
     expect(mockedProps.onHide).toHaveBeenCalled();
   });
 
-  test('handles API errors gracefully', async () => {
+  it('handles API errors gracefully', async () => {
     fetchMock.post('glob:*/api/v1/tag/bulk_create', 500);
 
     render(<BulkTagModal {...mockedProps} />);

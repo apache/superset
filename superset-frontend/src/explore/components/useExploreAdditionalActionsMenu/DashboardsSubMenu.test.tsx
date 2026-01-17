@@ -57,11 +57,11 @@ const createDashboards = (numberOfItems: number) => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardsSubMenu', () => {
-  test('exports SEARCH_THRESHOLD constant', () => {
+  it('exports SEARCH_THRESHOLD constant', () => {
     expect(SEARCH_THRESHOLD).toBe(10);
   });
 
-  test('renders menu items for dashboards', () => {
+  it('renders menu items for dashboards', () => {
     const dashboards = createDashboards(3);
     render(
       <TestDashboardsMenuItems
@@ -77,7 +77,7 @@ describe('DashboardsSubMenu', () => {
     expect(screen.getByTestId('menu-item-3')).toBeInTheDocument();
   });
 
-  test('filters dashboards based on search term', () => {
+  it('filters dashboards based on search term', () => {
     const dashboards = createDashboards(20);
     render(
       <TestDashboardsMenuItems
@@ -98,7 +98,7 @@ describe('DashboardsSubMenu', () => {
     expect(screen.queryByTestId('menu-item-3')).not.toBeInTheDocument();
   });
 
-  test('returns "No results found" when search has no matches', () => {
+  it('returns "No results found" when search has no matches', () => {
     const dashboards = createDashboards(20);
     render(
       <TestDashboardsMenuItems
@@ -114,7 +114,7 @@ describe('DashboardsSubMenu', () => {
     expect(screen.getByTestId('disabled')).toBeInTheDocument();
   });
 
-  test('returns "None" when no dashboards provided', () => {
+  it('returns "None" when no dashboards provided', () => {
     render(
       <TestDashboardsMenuItems chartId={123} dashboards={[]} searchTerm="" />,
       { useRouter: true },
@@ -125,7 +125,7 @@ describe('DashboardsSubMenu', () => {
     expect(screen.getByTestId('disabled')).toBeInTheDocument();
   });
 
-  test('handles missing chart ID gracefully', () => {
+  it('handles missing chart ID gracefully', () => {
     const dashboards = createDashboards(1);
     render(<TestDashboardsMenuItems dashboards={dashboards} searchTerm="" />, {
       useRouter: true,
@@ -134,7 +134,7 @@ describe('DashboardsSubMenu', () => {
     expect(screen.getByTestId('menu-item-1')).toBeInTheDocument();
   });
 
-  test('case-insensitive search filtering', () => {
+  it('case-insensitive search filtering', () => {
     const dashboards = [
       { id: 1, dashboard_title: 'Sales Dashboard' },
       { id: 2, dashboard_title: 'Marketing Dashboard' },
@@ -155,7 +155,7 @@ describe('DashboardsSubMenu', () => {
     expect(screen.queryByTestId('menu-item-3')).not.toBeInTheDocument();
   });
 
-  test('empty search term shows all dashboards', () => {
+  it('empty search term shows all dashboards', () => {
     const dashboards = createDashboards(5);
     render(
       <TestDashboardsMenuItems
@@ -173,7 +173,7 @@ describe('DashboardsSubMenu', () => {
     expect(screen.getByTestId('menu-item-5')).toBeInTheDocument();
   });
 
-  test('partial string search works correctly', () => {
+  it('partial string search works correctly', () => {
     const dashboards = [
       { id: 1, dashboard_title: 'Revenue Report' },
       { id: 2, dashboard_title: 'User Engagement' },

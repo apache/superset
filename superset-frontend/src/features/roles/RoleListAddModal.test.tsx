@@ -52,25 +52,25 @@ describe('RoleListAddModal', () => {
     ],
   };
 
-  test('renders modal with form fields', () => {
+  it('renders modal with form fields', () => {
     render(<RoleListAddModal {...mockProps} />);
     expect(screen.getByText('Add Role')).toBeInTheDocument();
     expect(screen.getByText('Role Name')).toBeInTheDocument();
     expect(screen.getByText('Permissions')).toBeInTheDocument();
   });
 
-  test('calls onHide when cancel button is clicked', () => {
+  it('calls onHide when cancel button is clicked', () => {
     render(<RoleListAddModal {...mockProps} />);
     fireEvent.click(screen.getByTestId('modal-cancel-button'));
     expect(mockProps.onHide).toHaveBeenCalled();
   });
 
-  test('disables save button when role name is empty', () => {
+  it('disables save button when role name is empty', () => {
     render(<RoleListAddModal {...mockProps} />);
     expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
   });
 
-  test('enables save button when role name is entered', () => {
+  it('enables save button when role name is entered', () => {
     render(<RoleListAddModal {...mockProps} />);
     fireEvent.change(screen.getByTestId('role-name-input'), {
       target: { value: 'New Role' },
@@ -78,7 +78,7 @@ describe('RoleListAddModal', () => {
     expect(screen.getByTestId('form-modal-save-button')).toBeEnabled();
   });
 
-  test('calls createRole when save button is clicked', async () => {
+  it('calls createRole when save button is clicked', async () => {
     render(<RoleListAddModal {...mockProps} />);
 
     fireEvent.change(screen.getByTestId('role-name-input'), {

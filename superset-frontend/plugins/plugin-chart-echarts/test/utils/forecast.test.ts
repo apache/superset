@@ -197,7 +197,7 @@ describe('rebaseForecastDatum', () => {
   });
 });
 
-test('extractForecastValuesFromTooltipParams should extract the proper data from tooltip params', () => {
+it('extractForecastValuesFromTooltipParams should extract the proper data from tooltip params', () => {
   expect(
     extractForecastValuesFromTooltipParams([
       {
@@ -241,7 +241,7 @@ test('extractForecastValuesFromTooltipParams should extract the proper data from
   });
 });
 
-test('extractForecastValuesFromTooltipParams should extract valid values', () => {
+it('extractForecastValuesFromTooltipParams should extract valid values', () => {
   expect(
     extractForecastValuesFromTooltipParams([
       {
@@ -269,7 +269,7 @@ test('extractForecastValuesFromTooltipParams should extract valid values', () =>
 
 const formatter = getNumberFormatter(NumberFormats.INTEGER);
 
-test('formatForecastTooltipSeries should apply format to value', () => {
+it('formatForecastTooltipSeries should apply format to value', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'abc',
@@ -280,7 +280,7 @@ test('formatForecastTooltipSeries should apply format to value', () => {
   ).toEqual(['<img>abc', '10']);
 });
 
-test('formatForecastTooltipSeries should show falsy value', () => {
+it('formatForecastTooltipSeries should show falsy value', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'abc',
@@ -291,7 +291,7 @@ test('formatForecastTooltipSeries should show falsy value', () => {
   ).toEqual(['<img>abc', '0']);
 });
 
-test('formatForecastTooltipSeries should format full forecast', () => {
+it('formatForecastTooltipSeries should format full forecast', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
@@ -305,7 +305,7 @@ test('formatForecastTooltipSeries should format full forecast', () => {
   ).toEqual(['<img>qwerty', '10, ŷ = 20 (5, 12)']);
 });
 
-test('formatForecastTooltipSeries should format forecast without observation', () => {
+it('formatForecastTooltipSeries should format forecast without observation', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
@@ -318,7 +318,7 @@ test('formatForecastTooltipSeries should format forecast without observation', (
   ).toEqual(['<img>qwerty', 'ŷ = 20 (5, 12)']);
 });
 
-test('formatForecastTooltipSeries should format forecast without point estimate', () => {
+it('formatForecastTooltipSeries should format forecast without point estimate', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
@@ -331,7 +331,7 @@ test('formatForecastTooltipSeries should format forecast without point estimate'
   ).toEqual(['<img>qwerty', '10 (6, 13)']);
 });
 
-test('formatForecastTooltipSeries should format forecast with only confidence band', () => {
+it('formatForecastTooltipSeries should format forecast with only confidence band', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',

@@ -38,7 +38,7 @@ describe('reduxStateToLocalStorageHelper', () => {
     });
   });
 
-  test('should empty query.results if query.startDttm is > LOCALSTORAGE_MAX_QUERY_AGE_MS', () => {
+  it('should empty query.results if query.startDttm is > LOCALSTORAGE_MAX_QUERY_AGE_MS', () => {
     // make sure sample data contains old query
     const oldQuery = queries[0];
     const { id, startDttm } = oldQuery;
@@ -52,7 +52,7 @@ describe('reduxStateToLocalStorageHelper', () => {
     expect(emptiedQuery[id].results).toEqual({});
   });
 
-  test('should empty query.results if query,.results size is greater than LOCALSTORAGE_MAX_QUERY_RESULTS_KB', () => {
+  it('should empty query.results if query,.results size is greater than LOCALSTORAGE_MAX_QUERY_RESULTS_KB', () => {
     const reasonableSizeQuery = {
       ...queries[0],
       startDttm: Date.now(),
@@ -84,7 +84,7 @@ describe('reduxStateToLocalStorageHelper', () => {
     );
   });
 
-  test('should only return selected keys for query editor', () => {
+  it('should only return selected keys for query editor', () => {
     const queryEditors = [{ ...defaultQueryEditor, dummy: 'value' }];
     expect(Object.keys(queryEditors[0])).toContain('dummy');
 

@@ -79,7 +79,7 @@ test('should apply', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('custom width', () => {
-  test('sets its default width with OPEN_FILTER_BAR_WIDTH', () => {
+  it('sets its default width with OPEN_FILTER_BAR_WIDTH', () => {
     const mockedProps = createProps();
     render(<ActionButtons {...mockedProps} />, { useRedux: true });
     const container = screen.getByTestId('filterbar-action-buttons');
@@ -88,7 +88,7 @@ describe('custom width', () => {
     });
   });
 
-  test('sets custom width', () => {
+  it('sets custom width', () => {
     const mockedProps = createProps();
     const expectedWidth = 423;
     const { getByTestId } = render(

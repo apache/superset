@@ -99,19 +99,19 @@ describe('SavedQueryList', () => {
     fetchMock.resetHistory();
   });
 
-  test('renders', async () => {
+  it('renders', async () => {
     renderList();
     expect(await screen.findByText('Saved queries')).toBeInTheDocument();
   });
 
-  test('renders a ListView', async () => {
+  it('renders a ListView', async () => {
     renderList();
     expect(
       await screen.findByTestId('saved_query-list-view'),
     ).toBeInTheDocument();
   });
 
-  test('renders query information', async () => {
+  it('renders query information', async () => {
     renderList();
 
     // Wait for list to load
@@ -129,7 +129,7 @@ describe('SavedQueryList', () => {
     });
   });
 
-  test('handles query deletion', async () => {
+  it('handles query deletion', async () => {
     renderList();
 
     // Wait for list to load
@@ -152,7 +152,7 @@ describe('SavedQueryList', () => {
     });
   });
 
-  test('handles search filtering', async () => {
+  it('handles search filtering', async () => {
     renderList();
 
     // Wait for list to load
@@ -173,7 +173,7 @@ describe('SavedQueryList', () => {
     });
   });
 
-  test('fetches data', async () => {
+  it('fetches data', async () => {
     renderList();
     await waitFor(() => {
       const calls = fetchMock.calls(/saved_query\/\?q/);
@@ -183,7 +183,7 @@ describe('SavedQueryList', () => {
     });
   });
 
-  test('handles sorting', async () => {
+  it('handles sorting', async () => {
     renderList();
 
     // Wait for list to load
@@ -204,7 +204,7 @@ describe('SavedQueryList', () => {
     });
   });
 
-  test('shows/hides elements based on permissions', async () => {
+  it('shows/hides elements based on permissions', async () => {
     // Mock info response without write permission
     fetchMock.get(
       queriesInfoEndpoint,

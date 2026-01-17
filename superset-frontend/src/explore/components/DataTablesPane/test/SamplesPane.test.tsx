@@ -67,7 +67,7 @@ describe('SamplesPane', () => {
     jest.resetAllMocks();
   });
 
-  test('render', async () => {
+  it('render', async () => {
     const props = createSamplesPaneProps({ datasourceId: 34 });
     const { findByText } = render(
       <SamplesPane {...props} setForceQuery={setForceQuery} />,
@@ -80,7 +80,7 @@ describe('SamplesPane', () => {
     });
   });
 
-  test('error response', async () => {
+  it('error response', async () => {
     const props = createSamplesPaneProps({
       datasourceId: 36,
     });
@@ -91,7 +91,7 @@ describe('SamplesPane', () => {
     expect(await findByText('Error: Bad request')).toBeVisible();
   });
 
-  test('force query, render and search', async () => {
+  it('force query, render and search', async () => {
     const props = createSamplesPaneProps({
       datasourceId: 35,
       queryForce: true,

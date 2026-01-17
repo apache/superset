@@ -71,7 +71,7 @@ describe('OAuth2ClientField', () => {
     jest.clearAllMocks();
   });
 
-  test('does not show input fields until the collapse trigger is clicked', () => {
+  it('does not show input fields until the collapse trigger is clicked', () => {
     const { getByText, getByTestId, queryByTestId } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
@@ -94,7 +94,7 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-scope')).toBeInTheDocument();
   });
 
-  test('renders the OAuth2ClientField component with initial values', () => {
+  it('renders the OAuth2ClientField component with initial values', () => {
     const { getByTestId, getByText } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
@@ -113,7 +113,7 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-scope')).toHaveValue('test-scope');
   });
 
-  test('handles input changes and triggers onEncryptedExtraInputChange', () => {
+  it('handles input changes and triggers onEncryptedExtraInputChange', () => {
     const { getByTestId, getByText } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
@@ -141,7 +141,7 @@ describe('OAuth2ClientField', () => {
     );
   });
 
-  test('does not render when supports_oauth2 is false', () => {
+  it('does not render when supports_oauth2 is false', () => {
     const props = {
       ...defaultProps,
       db: {
@@ -157,7 +157,7 @@ describe('OAuth2ClientField', () => {
     expect(queryByTestId('client-id')).not.toBeInTheDocument();
   });
 
-  test('renders empty fields when masked_encrypted_extra is empty', () => {
+  it('renders empty fields when masked_encrypted_extra is empty', () => {
     const props = {
       ...defaultProps,
       db: {

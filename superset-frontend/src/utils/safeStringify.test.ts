@@ -24,7 +24,7 @@ class Noise {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Stringify utility testing', () => {
-  test('correctly parses a simple object just like JSON', () => {
+  it('correctly parses a simple object just like JSON', () => {
     const noncircular = {
       b: 'foo',
       c: 'bar',
@@ -46,7 +46,7 @@ describe('Stringify utility testing', () => {
     );
   });
 
-  test('handles simple circular json as expected', () => {
+  it('handles simple circular json as expected', () => {
     const ping = new Noise();
     const pong = new Noise();
     const pang = new Noise();
@@ -62,7 +62,7 @@ describe('Stringify utility testing', () => {
     expect(safeString).toEqual(ordinaryString);
   });
 
-  test('creates a parseable object even when the input is circular', () => {
+  it('creates a parseable object even when the input is circular', () => {
     const ping = new Noise();
     const pong = new Noise();
     ping.next = pong;
@@ -73,7 +73,7 @@ describe('Stringify utility testing', () => {
     expect(newNoise.next).toEqual({});
   });
 
-  test('does not remove noncircular duplicates', () => {
+  it('does not remove noncircular duplicates', () => {
     const a = {
       foo: 'bar',
     };
@@ -87,7 +87,7 @@ describe('Stringify utility testing', () => {
     expect(safeStringify(repeating)).toEqual(JSON.stringify(repeating));
   });
 
-  test('does not remove nodes with empty objects', () => {
+  it('does not remove nodes with empty objects', () => {
     const emptyObjectValues = {
       a: {},
       b: 'foo',
@@ -101,7 +101,7 @@ describe('Stringify utility testing', () => {
     );
   });
 
-  test('does not remove nested same keys', () => {
+  it('does not remove nested same keys', () => {
     const nestedKeys = {
       a: 'b',
       c: {

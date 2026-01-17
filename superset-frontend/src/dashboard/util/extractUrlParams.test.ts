@@ -33,20 +33,20 @@ describe('extractUrlParams', () => {
     window.location = originalWindowLocation;
   });
 
-  test('returns all urlParams', () => {
+  it('returns all urlParams', () => {
     expect(extractUrlParams('all')).toEqual({
       edit: 'true',
       abc: '123',
     });
   });
 
-  test('returns reserved urlParams', () => {
+  it('returns reserved urlParams', () => {
     expect(extractUrlParams('reserved')).toEqual({
       edit: 'true',
     });
   });
 
-  test('returns regular urlParams', () => {
+  it('returns regular urlParams', () => {
     expect(extractUrlParams('regular')).toEqual({
       abc: '123',
     });

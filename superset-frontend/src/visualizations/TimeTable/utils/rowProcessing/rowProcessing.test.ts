@@ -26,7 +26,7 @@ const mockData = {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('processTimeTableData', () => {
-  test('should convert data to sorted entries', () => {
+  it('should convert data to sorted entries', () => {
     const result = processTimeTableData(mockData);
 
     expect(result.entries).toHaveLength(3);
@@ -35,7 +35,7 @@ describe('processTimeTableData', () => {
     expect(result.entries[2]).toEqual({ time: '2023-01-03', sales: 300 });
   });
 
-  test('should create reversed entries', () => {
+  it('should create reversed entries', () => {
     const result = processTimeTableData(mockData);
 
     expect(result.reversedEntries).toHaveLength(3);
@@ -53,7 +53,7 @@ describe('processTimeTableData', () => {
     });
   });
 
-  test('should sort data entries by time regardless of input order', () => {
+  it('should sort data entries by time regardless of input order', () => {
     const unsortedData = {
       '2023-01-03': { sales: 300 },
       '2023-01-01': { sales: 100 },
@@ -67,14 +67,14 @@ describe('processTimeTableData', () => {
     expect(result.entries[2].time).toBe('2023-01-03');
   });
 
-  test('should handle empty data', () => {
+  it('should handle empty data', () => {
     const result = processTimeTableData({});
 
     expect(result.entries).toHaveLength(0);
     expect(result.reversedEntries).toHaveLength(0);
   });
 
-  test('should preserve all data fields', () => {
+  it('should preserve all data fields', () => {
     const complexData = {
       '2023-01-01': { sales: 100, profit: 50, customers: 25 },
       '2023-01-02': { sales: 200, profit: 75, customers: 30 },
@@ -96,7 +96,7 @@ describe('processTimeTableData', () => {
     });
   });
 
-  test('should handle single entry', () => {
+  it('should handle single entry', () => {
     const singleData = {
       '2023-01-01': { sales: 100 },
     };

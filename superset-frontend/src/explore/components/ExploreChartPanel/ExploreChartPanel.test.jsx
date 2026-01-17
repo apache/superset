@@ -70,12 +70,12 @@ const createProps = (overrides = {}) => ({
 describe('ChartContainer', () => {
   jest.setTimeout(10000);
 
-  test('renders when vizType is line', () => {
+  it('renders when vizType is line', () => {
     const props = createProps();
     expect(isValidElement(<ChartContainer {...props} />)).toBe(true);
   });
 
-  test('renders with alert banner', async () => {
+  it('renders with alert banner', async () => {
     const props = createProps({
       chartIsStale: true,
       chart: { chartStatus: 'rendered', queriesResponse: [{}] },
@@ -94,7 +94,7 @@ describe('ChartContainer', () => {
     ).toBeVisible();
   });
 
-  test('doesnt render alert banner when no changes in control panel were made (chart is not stale)', async () => {
+  it('doesnt render alert banner when no changes in control panel were made (chart is not stale)', async () => {
     const props = createProps({
       chartIsStale: false,
     });
@@ -105,7 +105,7 @@ describe('ChartContainer', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('doesnt render alert banner when chart not created yet (no queries response)', async () => {
+  it('doesnt render alert banner when chart not created yet (no queries response)', async () => {
     const props = createProps({
       chartIsStale: true,
       chart: { queriesResponse: [] },
@@ -117,7 +117,7 @@ describe('ChartContainer', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('renders prompt to fill required controls when required control removed', async () => {
+  it('renders prompt to fill required controls when required control removed', async () => {
     const props = createProps({
       chartIsStale: true,
       chart: { chartStatus: 'rendered', queriesResponse: [{}] },
@@ -129,7 +129,7 @@ describe('ChartContainer', () => {
     ).toBeVisible();
   });
 
-  test('should render cached button and call expected actions', async () => {
+  it('should render cached button and call expected actions', async () => {
     const setForceQuery = jest.fn();
     const postChartFormData = jest.fn();
     const updateQueryFormData = jest.fn();
@@ -151,7 +151,7 @@ describe('ChartContainer', () => {
     expect(updateQueryFormData).toHaveBeenCalledTimes(1);
   });
 
-  test('should hide cached button', async () => {
+  it('should hide cached button', async () => {
     const props = createProps({
       chart: {
         chartStatus: 'rendered',
@@ -163,7 +163,7 @@ describe('ChartContainer', () => {
     expect(screen.queryByText(/cached/i)).not.toBeInTheDocument();
   });
 
-  test('hides gutter when collapsing data panel', async () => {
+  it('hides gutter when collapsing data panel', async () => {
     const props = createProps();
     setItem(LocalStorageKeys.IsDatapanelOpen, true);
     const { container } = render(<ChartContainer {...props} />, {

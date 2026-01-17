@@ -83,28 +83,28 @@ describe('SliceAdder', () => {
     jest.clearAllMocks();
   });
 
-  test('renders the create new chart button', () => {
+  it('renders the create new chart button', () => {
     renderSliceAdder();
     expect(screen.getByText('Create new chart')).toBeInTheDocument();
   });
 
-  test('renders loading state', () => {
+  it('renders loading state', () => {
     renderSliceAdder({ ...defaultProps, isLoading: true });
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  test('renders error message', () => {
+  it('renders error message', () => {
     const errorMessage = 'Error loading charts';
     renderSliceAdder({ ...defaultProps, errorMessage });
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
-  test('fetches slices on mount', () => {
+  it('fetches slices on mount', () => {
     renderSliceAdder();
     expect(defaultProps.fetchSlices).toHaveBeenCalledWith(1, '', 'changed_on');
   });
 
-  test('handles search input changes', async () => {
+  it('handles search input changes', async () => {
     renderSliceAdder();
     const searchInput = screen.getByPlaceholderText('Filter your charts');
     await userEvent.type(searchInput, 'test search');
@@ -115,7 +115,7 @@ describe('SliceAdder', () => {
     );
   });
 
-  test('handles sort selection changes', async () => {
+  it('handles sort selection changes', async () => {
     renderSliceAdder();
     // Update selector to match the actual rendered element
     const sortSelect = screen.getByText('Sort by recent');
@@ -125,7 +125,7 @@ describe('SliceAdder', () => {
     expect(defaultProps.fetchSlices).toHaveBeenCalledWith(1, '', 'viz_type');
   });
 
-  test('handles show only my charts toggle', async () => {
+  it('handles show only my charts toggle', async () => {
     renderSliceAdder();
     const checkbox = screen.getByRole('checkbox');
     await userEvent.click(checkbox);
@@ -136,7 +136,7 @@ describe('SliceAdder', () => {
     );
   });
 
-  test('opens new chart in new tab when create new chart is clicked', () => {
+  it('opens new chart in new tab when create new chart is clicked', () => {
     const windowSpy = jest.spyOn(window, 'open').mockImplementation();
     renderSliceAdder();
     const createButton = screen.getByText('Create new chart');
@@ -172,7 +172,7 @@ describe('SliceAdder', () => {
       query_context: null,
     };
 
-    test('should sort by changed_on in descending order', () => {
+    it('should sort by changed_on in descending order', () => {
       const input = [
         {
           ...baseSlice,
@@ -200,7 +200,7 @@ describe('SliceAdder', () => {
       expect(sorted[2].changed_on).toBe(1577836800000);
     });
 
-    test('should sort by other fields in ascending order', () => {
+    it('should sort by other fields in ascending order', () => {
       const input = [
         {
           ...baseSlice,
@@ -230,7 +230,7 @@ describe('SliceAdder', () => {
     });
   });
 
-  test('should update selectedSliceIdsSet when props change', () => {
+  it('should update selectedSliceIdsSet when props change', () => {
     const { rerender } = renderSliceAdder();
     rerender(<SliceAdder {...defaultProps} selectedSliceIds={[129]} />);
     // Verify the internal state was updated by checking if new charts are available

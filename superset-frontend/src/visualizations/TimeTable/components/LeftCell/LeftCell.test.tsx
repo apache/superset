@@ -21,7 +21,7 @@ import LeftCell from './LeftCell';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('LeftCell', () => {
-  test('should render column label for column row type', () => {
+  it('should render column label for column row type', () => {
     const columnRow = {
       label: 'Test Column',
       column_name: 'test_column',
@@ -32,7 +32,7 @@ describe('LeftCell', () => {
     expect(screen.getByText('Test Column')).toBeInTheDocument();
   });
 
-  test('should render link for column row type with URL', () => {
+  it('should render link for column row type with URL', () => {
     const columnRow = {
       label: 'Test Column',
       column_name: 'test_column',
@@ -51,7 +51,7 @@ describe('LeftCell', () => {
     expect(link).toHaveTextContent('Test Column');
   });
 
-  test('should render MetricOption for metric row type', () => {
+  it('should render MetricOption for metric row type', () => {
     const metricRow = {
       metric_name: 'SUM(sales)',
       label: 'Sum of Sales',
@@ -64,7 +64,7 @@ describe('LeftCell', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  test('should render MetricOption with URL for metric row type', () => {
+  it('should render MetricOption with URL for metric row type', () => {
     const metricRow = {
       metric_name: 'SUM(sales)',
       label: 'Sum of Sales',
@@ -79,7 +79,7 @@ describe('LeftCell', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  test('should handle empty column label', () => {
+  it('should handle empty column label', () => {
     const columnRow = {
       label: '',
       column_name: 'empty_column',
@@ -91,7 +91,7 @@ describe('LeftCell', () => {
     expect(container).toHaveTextContent('');
   });
 
-  test('should handle undefined values in row', () => {
+  it('should handle undefined values in row', () => {
     const columnRow = {
       label: undefined,
       column_name: 'test_column',
@@ -103,7 +103,7 @@ describe('LeftCell', () => {
     expect(element).toBeTruthy();
   });
 
-  test('should properly template URL with metric context', () => {
+  it('should properly template URL with metric context', () => {
     const metricRow = {
       metric_name: 'AVG(price)',
       label: 'Average Price',
@@ -121,7 +121,7 @@ describe('LeftCell', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  test('should handle complex templating patterns', () => {
+  it('should handle complex templating patterns', () => {
     const columnRow = {
       label: 'Sales Data',
       column_name: 'sales',

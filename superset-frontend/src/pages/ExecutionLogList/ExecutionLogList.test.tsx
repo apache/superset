@@ -63,7 +63,7 @@ const renderAndWait = (props = {}) =>
 describe('ExecutionLog', () => {
   beforeAll(() => renderAndWait());
 
-  test('renders with a ListView', () => {
+  it('renders with a ListView', () => {
     expect(screen.getByText('Back to all')).toHaveAttribute(
       'href',
       '/alert/list/',
@@ -71,7 +71,7 @@ describe('ExecutionLog', () => {
     expect(screen.getByTestId('execution-log-list-view')).toBeVisible();
   });
 
-  test('fetches report/alert', () => {
+  it('fetches report/alert', () => {
     const callsQ = fetchMock.calls(/report\/1/);
     expect(callsQ).toHaveLength(2);
     expect(callsQ[1][0]).toMatchInlineSnapshot(
@@ -79,7 +79,7 @@ describe('ExecutionLog', () => {
     );
   });
 
-  test('fetches execution logs', () => {
+  it('fetches execution logs', () => {
     const callsQ = fetchMock.calls(/report\/1\/log/);
     expect(callsQ).toHaveLength(1);
     expect(callsQ[0][0]).toMatchInlineSnapshot(

@@ -75,23 +75,23 @@ beforeEach(() => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceModal', () => {
-  test('renders', async () => {
+  it('renders', async () => {
     expect(container).toBeDefined();
   });
 
-  test('renders the component', () => {
+  it('renders the component', () => {
     expect(screen.getByText('Edit Dataset')).toBeInTheDocument();
   });
 
-  test('renders a Modal', async () => {
+  it('renders a Modal', async () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  test('renders a DatasourceEditor', async () => {
+  it('renders a DatasourceEditor', async () => {
     expect(screen.getByTestId('datasource-editor')).toBeInTheDocument();
   });
 
-  test('disables the save button when the datasource is managed externally', () => {
+  it('disables the save button when the datasource is managed externally', () => {
     // the render is currently in a before operation, so it needs to be cleaned up
     // we could alternatively move all the renders back into the tests or find a better
     // way to automatically render but still allow to pass in props with the tests
@@ -105,7 +105,7 @@ describe('DatasourceModal', () => {
     expect(saveButton).toBeDisabled();
   });
 
-  test('calls the onDatasourceSave function when the save button is clicked', async () => {
+  it('calls the onDatasourceSave function when the save button is clicked', async () => {
     cleanup();
     const onDatasourceSave = jest.fn();
 
@@ -121,7 +121,7 @@ describe('DatasourceModal', () => {
     });
   });
 
-  test('should render error dialog', async () => {
+  it('should render error dialog', async () => {
     const putSpy = jest
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Error('Something went wrong'));
@@ -141,7 +141,7 @@ describe('DatasourceModal', () => {
     putSpy.mockRestore();
   });
 
-  test('shows sync columns checkbox when SQL changes', async () => {
+  it('shows sync columns checkbox when SQL changes', async () => {
     cleanup();
     const datasourceWithSQL = {
       ...mockedProps.datasource,
@@ -179,7 +179,7 @@ describe('DatasourceModal', () => {
     expect(screen.getByText('Automatically sync columns')).toBeInTheDocument();
   });
 
-  test('syncs columns when checkbox is checked and submits with override_columns=true', async () => {
+  it('syncs columns when checkbox is checked and submits with override_columns=true', async () => {
     const datasourceWithSQL = {
       ...mockedProps.datasource,
       sql: 'SELECT * FROM original_table',
@@ -240,7 +240,7 @@ describe('DatasourceModal', () => {
     });
   });
 
-  test('does not sync columns when checkbox is unchecked and submits with override_columns=false', async () => {
+  it('does not sync columns when checkbox is unchecked and submits with override_columns=false', async () => {
     const datasourceWithSQL = {
       ...mockedProps.datasource,
       sql: 'SELECT * FROM original_table',

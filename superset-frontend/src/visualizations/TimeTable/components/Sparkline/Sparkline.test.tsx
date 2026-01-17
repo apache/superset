@@ -28,7 +28,7 @@ const mockEntries = [
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Sparkline', () => {
-  test('should render basic sparkline without time ratio', () => {
+  it('should render basic sparkline without time ratio', () => {
     const column = {
       key: 'test-sparkline',
       colType: 'spark',
@@ -43,7 +43,7 @@ describe('Sparkline', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  test('should handle time ratio sparkline', () => {
+  it('should handle time ratio sparkline', () => {
     const column = {
       key: 'test-sparkline',
       colType: 'spark',
@@ -59,7 +59,7 @@ describe('Sparkline', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  test('should handle string time ratio', () => {
+  it('should handle string time ratio', () => {
     const column = {
       key: 'test-sparkline',
       colType: 'spark',
@@ -75,7 +75,7 @@ describe('Sparkline', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  test('should use default dimensions when not specified', () => {
+  it('should use default dimensions when not specified', () => {
     const column = {
       key: 'test-sparkline',
       colType: 'spark',
@@ -88,7 +88,7 @@ describe('Sparkline', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  test('should handle yAxis bounds configuration', () => {
+  it('should handle yAxis bounds configuration', () => {
     const column = {
       key: 'test-sparkline',
       colType: 'spark',
@@ -103,7 +103,7 @@ describe('Sparkline', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  test('should handle invalid yAxis bounds', () => {
+  it('should handle invalid yAxis bounds', () => {
     const column = {
       key: 'test-sparkline',
       colType: 'spark',

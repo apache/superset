@@ -46,7 +46,7 @@ const mockDashboardFilters = {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('serializeFilterScopes', () => {
-  test('should serialize dashboard filter scopes correctly', () => {
+  it('should serialize dashboard filter scopes correctly', () => {
     const result = serializeFilterScopes(mockDashboardFilters);
 
     expect(result).toEqual({
@@ -69,12 +69,12 @@ describe('serializeFilterScopes', () => {
     });
   });
 
-  test('should handle empty dashboardFilters', () => {
+  it('should handle empty dashboardFilters', () => {
     const result = serializeFilterScopes({});
     expect(result).toEqual({});
   });
 
-  test('should handle filters with no scopes', () => {
+  it('should handle filters with no scopes', () => {
     const filtersWithEmptyScopes = {
       '1': {
         chartId: 'chart_1',
@@ -88,7 +88,7 @@ describe('serializeFilterScopes', () => {
     });
   });
 
-  test('should handle numeric chart IDs', () => {
+  it('should handle numeric chart IDs', () => {
     const filtersWithNumericIds = {
       '1': {
         chartId: 123,

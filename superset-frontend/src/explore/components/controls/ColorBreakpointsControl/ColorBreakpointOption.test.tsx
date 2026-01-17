@@ -54,29 +54,29 @@ describe('ColorBreakpointOption', () => {
     jest.clearAllMocks();
   });
 
-  test('should render', async () => {
+  it('should render', async () => {
     const { container } = renderComponent();
     await waitFor(() => expect(container).toBeInTheDocument());
   });
 
-  test('should render the breakpoint range text', async () => {
+  it('should render the breakpoint range text', async () => {
     renderComponent();
     expect(await screen.findByText('0 - 100')).toBeInTheDocument();
   });
 
-  test('should render the remove button', async () => {
+  it('should render the remove button', async () => {
     renderComponent();
     const removeBtn = await screen.findByTestId('remove-control-button');
     expect(removeBtn).toBeInTheDocument();
   });
 
-  test('should render the color preview', async () => {
+  it('should render the color preview', async () => {
     renderComponent();
     const colorPreview = await screen.findByTestId('color-preview');
     expect(colorPreview).toBeInTheDocument();
   });
 
-  test('should call onClose when remove button is clicked', async () => {
+  it('should call onClose when remove button is clicked', async () => {
     const onClose = jest.fn();
     renderComponent({ onClose });
 
@@ -86,7 +86,7 @@ describe('ColorBreakpointOption', () => {
     expect(onClose).toHaveBeenCalledWith(0);
   });
 
-  test('should open popover when clicked', async () => {
+  it('should open popover when clicked', async () => {
     renderComponent();
 
     const breakpointOption = await screen.findByTestId(
@@ -97,7 +97,7 @@ describe('ColorBreakpointOption', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  test('should render different color values correctly', async () => {
+  it('should render different color values correctly', async () => {
     const blueBreakpoint: ColorBreakpointType = {
       id: 1,
       color: { r: 0, g: 0, b: 255, a: 1 },
@@ -112,7 +112,7 @@ describe('ColorBreakpointOption', () => {
     expect(colorPreview).toBeInTheDocument();
   });
 
-  test('should handle decimal values', async () => {
+  it('should handle decimal values', async () => {
     const decimalBreakpoint: ColorBreakpointType = {
       id: 2,
       color: { r: 128, g: 128, b: 128, a: 1 },

@@ -44,7 +44,7 @@ jest.mock(
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasetPanel', () => {
-  test('renders a blank state DatasetPanel', () => {
+  it('renders a blank state DatasetPanel', () => {
     render(<DatasetPanel hasError={false} columnList={[]} loading={false} />, {
       useRouter: true,
     });
@@ -67,7 +67,7 @@ describe('DatasetPanel', () => {
     expect(sqlLabLink).toBeVisible();
   });
 
-  test('renders a no columns screen', () => {
+  it('renders a no columns screen', () => {
     render(
       <DatasetPanel
         tableName="Name"
@@ -88,7 +88,7 @@ describe('DatasetPanel', () => {
     expect(noColumnsDescription).toBeVisible();
   });
 
-  test('renders a loading screen', () => {
+  it('renders a loading screen', () => {
     render(
       <DatasetPanel
         tableName="Name"
@@ -107,7 +107,7 @@ describe('DatasetPanel', () => {
     expect(blankDatasetTitle).toBeVisible();
   });
 
-  test('renders an error screen', () => {
+  it('renders an error screen', () => {
     render(
       <DatasetPanel
         tableName="Name"
@@ -126,7 +126,7 @@ describe('DatasetPanel', () => {
     expect(errorDescription).toBeVisible();
   });
 
-  test('renders a table with columns displayed', async () => {
+  it('renders a table with columns displayed', async () => {
     const tableName = 'example_name';
     render(
       <DatasetPanel
@@ -153,7 +153,7 @@ describe('DatasetPanel', () => {
     });
   });
 
-  test('renders an info banner if table already has a dataset', async () => {
+  it('renders an info banner if table already has a dataset', async () => {
     render(
       <DatasetPanel
         tableName="example_table"

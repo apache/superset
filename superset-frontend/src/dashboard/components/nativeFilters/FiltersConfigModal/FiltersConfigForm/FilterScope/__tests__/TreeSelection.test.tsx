@@ -41,7 +41,7 @@ describe('FilterScope TreeSelection', () => {
     jest.useRealTimers();
   });
 
-  test('select tree values with 1 excluded', async () => {
+  it('select tree values with 1 excluded', async () => {
     const { MockModalComponent } = createMockModal({ formRef });
     const modal = render(<MockModalComponent />);
 
@@ -82,7 +82,7 @@ describe('FilterScope TreeSelection', () => {
     modal.unmount();
   });
 
-  test('select 1 value only', async () => {
+  it('select 1 value only', async () => {
     const { MockModalComponent } = createMockModal({ formRef });
     const modal = render(<MockModalComponent />);
 

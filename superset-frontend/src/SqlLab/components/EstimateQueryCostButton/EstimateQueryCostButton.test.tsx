@@ -55,13 +55,13 @@ const setup = (props: Partial<EstimateQueryCostButtonProps>, store?: Store) =>
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('EstimateQueryCostButton', () => {
-  test('renders EstimateQueryCostButton', async () => {
+  it('renders EstimateQueryCostButton', async () => {
     const { queryByLabelText } = setup({}, mockStore(initialState));
 
     expect(queryByLabelText('Estimate cost')).toBeInTheDocument();
   });
 
-  test('renders label for selected query', async () => {
+  it('renders label for selected query', async () => {
     const { queryByLabelText } = setup(
       { queryEditorId: extraQueryEditor1.id },
       mockStore(initialState),
@@ -72,7 +72,7 @@ describe('EstimateQueryCostButton', () => {
     ).toBeInTheDocument();
   });
 
-  test('renders label for selected query from unsaved', async () => {
+  it('renders label for selected query from unsaved', async () => {
     const { queryByLabelText } = setup(
       {},
       mockStore({
@@ -92,7 +92,7 @@ describe('EstimateQueryCostButton', () => {
     ).toBeInTheDocument();
   });
 
-  test('renders estimation error result', async () => {
+  it('renders estimation error result', async () => {
     const { queryByLabelText, queryByText, getByLabelText } = setup(
       {},
       mockStore({
@@ -114,7 +114,7 @@ describe('EstimateQueryCostButton', () => {
     expect(queryByText('Estimate error')).toBeInTheDocument();
   });
 
-  test('renders estimation success result', async () => {
+  it('renders estimation success result', async () => {
     const { queryByLabelText, getByLabelText, findByTitle } = setup(
       {},
       mockStore({

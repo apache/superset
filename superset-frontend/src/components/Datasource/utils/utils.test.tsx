@@ -28,7 +28,7 @@ describe('updateColumns', () => {
     addSuccessToast = jest.fn();
   });
 
-  test('adds new columns when prevCols is empty', () => {
+  it('adds new columns when prevCols is empty', () => {
     interface Column {
       column_name: string;
       type: string;
@@ -57,7 +57,7 @@ describe('updateColumns', () => {
     );
   });
 
-  test('modifies columns when type or is_dttm changes', () => {
+  it('modifies columns when type or is_dttm changes', () => {
     const prevCols = [
       { column_name: 'col1', type: 'string', is_dttm: false },
       { column_name: 'col2', type: 'number', is_dttm: false },
@@ -95,7 +95,7 @@ describe('updateColumns', () => {
     );
   });
 
-  test('removes columns not present in newCols', () => {
+  it('removes columns not present in newCols', () => {
     const prevCols = [
       { column_name: 'col1', type: 'string', is_dttm: false },
       { column_name: 'col2', type: 'number', is_dttm: true },
@@ -122,7 +122,7 @@ describe('updateColumns', () => {
     );
   });
 
-  test('handles combined additions, modifications, and removals', () => {
+  it('handles combined additions, modifications, and removals', () => {
     const prevCols = [
       { column_name: 'col1', type: 'string', is_dttm: false },
       { column_name: 'col2', type: 'number', is_dttm: false },
@@ -171,7 +171,7 @@ describe('updateColumns', () => {
       ],
     ]);
   });
-  test('should not remove columns with expressions', () => {
+  it('should not remove columns with expressions', () => {
     const prevCols = [
       { column_name: 'col1', type: 'string', is_dttm: false },
       { column_name: 'col2', type: 'number', is_dttm: false },

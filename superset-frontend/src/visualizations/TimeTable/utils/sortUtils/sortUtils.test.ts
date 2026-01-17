@@ -45,7 +45,7 @@ describe('sortNumberWithMixedTypes', () => {
     },
   });
 
-  test('should sort numbers in ascending order', () => {
+  it('should sort numbers in ascending order', () => {
     const rowA = createMockRow(10);
     const rowB = createMockRow(20);
 
@@ -54,7 +54,7 @@ describe('sortNumberWithMixedTypes', () => {
     expect(result).toBeLessThan(0); // rowA should come before rowB
   });
 
-  test('should sort numbers in descending order', () => {
+  it('should sort numbers in descending order', () => {
     const rowA = createMockRow(10);
     const rowB = createMockRow(20);
 
@@ -63,7 +63,7 @@ describe('sortNumberWithMixedTypes', () => {
     expect(result).toBeGreaterThan(0); // rowB should come before rowA in descending
   });
 
-  test('should handle equal values', () => {
+  it('should handle equal values', () => {
     const rowA = createMockRow(15);
     const rowB = createMockRow(15);
 
@@ -72,7 +72,7 @@ describe('sortNumberWithMixedTypes', () => {
     expect(result).toBe(0);
   });
 
-  test('should handle null values', () => {
+  it('should handle null values', () => {
     const rowA = createMockRow(null);
     const rowB = createMockRow(10);
 
@@ -80,7 +80,7 @@ describe('sortNumberWithMixedTypes', () => {
     expect(typeof result).toBe('number');
   });
 
-  test('should handle string numbers', () => {
+  it('should handle string numbers', () => {
     const rowA = createMockRow('10');
     const rowB = createMockRow('20');
 
@@ -89,7 +89,7 @@ describe('sortNumberWithMixedTypes', () => {
     expect(result).toBeLessThan(0);
   });
 
-  test('should handle mixed types', () => {
+  it('should handle mixed types', () => {
     const rowA = createMockRow(10);
     const rowB = createMockRow('20');
 
@@ -98,7 +98,7 @@ describe('sortNumberWithMixedTypes', () => {
     expect(typeof result).toBe('number');
   });
 
-  test('should handle negative numbers', () => {
+  it('should handle negative numbers', () => {
     const rowA = createMockRow(-10);
     const rowB = createMockRow(5);
 
@@ -107,7 +107,7 @@ describe('sortNumberWithMixedTypes', () => {
     expect(result).toBeLessThan(0);
   });
 
-  test('should handle zero values', () => {
+  it('should handle zero values', () => {
     const rowA = createMockRow(0);
     const rowB = createMockRow(10);
 

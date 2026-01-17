@@ -24,21 +24,21 @@ import { CALENDAR_RANGE_OPTIONS } from '../utils/constants';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CalendarFrame', () => {
-  test('calls onChange with PreviousCalendarWeek if value is not in CALENDAR_RANGE_SET', () => {
+  it('calls onChange with PreviousCalendarWeek if value is not in CALENDAR_RANGE_SET', () => {
     const mockOnChange = jest.fn();
     render(<CalendarFrame onChange={mockOnChange} value="invalid-value" />);
 
     expect(mockOnChange).toHaveBeenCalledWith(PreviousCalendarWeek);
   });
 
-  test('renders null if value is not in CALENDAR_RANGE_SET', () => {
+  it('renders null if value is not in CALENDAR_RANGE_SET', () => {
     render(<CalendarFrame onChange={jest.fn()} value="invalid-value" />);
     expect(
       screen.queryByText('Configure Time Range: Previous...'),
     ).not.toBeInTheDocument();
   });
 
-  test('renders the correct number of radio options', () => {
+  it('renders the correct number of radio options', () => {
     render(<CalendarFrame onChange={jest.fn()} value={PreviousCalendarWeek} />);
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(CALENDAR_RANGE_OPTIONS.length);
@@ -47,7 +47,7 @@ describe('CalendarFrame', () => {
     });
   });
 
-  test('calls onChange with the correct value when a radio button is selected', () => {
+  it('calls onChange with the correct value when a radio button is selected', () => {
     const mockOnChange = jest.fn();
     render(
       <CalendarFrame
@@ -63,7 +63,7 @@ describe('CalendarFrame', () => {
     expect(mockOnChange).toHaveBeenCalledWith(secondOption.value);
   });
 
-  test('renders the section title correctly', () => {
+  it('renders the section title correctly', () => {
     render(
       <CalendarFrame
         onChange={jest.fn()}
@@ -75,7 +75,7 @@ describe('CalendarFrame', () => {
     ).toBeInTheDocument();
   });
 
-  test('ensures the third option is PreviousCalendarQuarter', () => {
+  it('ensures the third option is PreviousCalendarQuarter', () => {
     render(
       <CalendarFrame
         onChange={jest.fn()}

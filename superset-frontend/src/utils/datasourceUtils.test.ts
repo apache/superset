@@ -86,7 +86,7 @@ const mockQueryEditor: QueryEditor = {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getDatasourceAsSaveableDataset', () => {
-  test('should convert Datasource object correctly', () => {
+  it('should convert Datasource object correctly', () => {
     const result = getDatasourceAsSaveableDataset(mockDatasource);
 
     expect(result).toEqual({
@@ -100,7 +100,7 @@ describe('getDatasourceAsSaveableDataset', () => {
     });
   });
 
-  test('should convert QueryEditor object correctly', () => {
+  it('should convert QueryEditor object correctly', () => {
     const queryWithColumns = { ...mockQueryEditor, columns: [mockColumnMeta] };
     const result = getDatasourceAsSaveableDataset(queryWithColumns);
 
@@ -115,7 +115,7 @@ describe('getDatasourceAsSaveableDataset', () => {
     });
   });
 
-  test('should handle datasource with fallback name from name property', () => {
+  it('should handle datasource with fallback name from name property', () => {
     const datasourceWithoutDatasourceName: Datasource = {
       ...mockDatasource,
       datasource_name: null,
@@ -129,7 +129,7 @@ describe('getDatasourceAsSaveableDataset', () => {
     expect(result.name).toBe('fallback_name');
   });
 
-  test('should use "Untitled" as fallback when no name is available', () => {
+  it('should use "Untitled" as fallback when no name is available', () => {
     const datasourceWithoutName: Datasource = {
       ...mockDatasource,
       datasource_name: null,
@@ -141,7 +141,7 @@ describe('getDatasourceAsSaveableDataset', () => {
     expect(result.name).toBe('Untitled');
   });
 
-  test('should handle missing database object', () => {
+  it('should handle missing database object', () => {
     const datasourceWithoutDatabase: Datasource = {
       ...mockDatasource,
       database: undefined,
@@ -152,7 +152,7 @@ describe('getDatasourceAsSaveableDataset', () => {
     expect(result.dbId).toBe(0);
   });
 
-  test('should handle QueryEditor with missing dbId', () => {
+  it('should handle QueryEditor with missing dbId', () => {
     const queryEditorWithoutDbId: QueryEditor = {
       ...mockQueryEditor,
       dbId: undefined,
@@ -163,7 +163,7 @@ describe('getDatasourceAsSaveableDataset', () => {
     expect(result.dbId).toBe(0);
   });
 
-  test('should handle QueryEditor without sql property', () => {
+  it('should handle QueryEditor without sql property', () => {
     const queryEditorWithoutSql: QueryEditor = {
       ...mockQueryEditor,
       sql: '',
@@ -174,7 +174,7 @@ describe('getDatasourceAsSaveableDataset', () => {
     expect(result.sql).toBe('');
   });
 
-  test('should handle null values for optional properties', () => {
+  it('should handle null values for optional properties', () => {
     const minimalQueryEditor: QueryEditor = {
       ...mockQueryEditor,
       catalog: null,

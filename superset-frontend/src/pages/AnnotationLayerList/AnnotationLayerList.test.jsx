@@ -92,24 +92,24 @@ describe('AnnotationLayersList', () => {
     fetchMock.resetHistory();
   });
 
-  test('renders', async () => {
+  it('renders', async () => {
     renderAnnotationLayersList();
     expect(await screen.findByText('Annotation layers')).toBeInTheDocument();
   });
 
-  test('renders a SubMenu', async () => {
+  it('renders a SubMenu', async () => {
     renderAnnotationLayersList();
     expect(await screen.findByRole('navigation')).toBeInTheDocument();
   });
 
-  test('renders a ListView', async () => {
+  it('renders a ListView', async () => {
     renderAnnotationLayersList();
     expect(
       await screen.findByTestId('annotation-layers-list-view'),
     ).toBeInTheDocument();
   });
 
-  test('renders a modal', async () => {
+  it('renders a modal', async () => {
     renderAnnotationLayersList();
     const addButton = await screen.findByRole('button', {
       name: /annotation layer$/i,
@@ -118,7 +118,7 @@ describe('AnnotationLayersList', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
-  test('fetches layers', async () => {
+  it('fetches layers', async () => {
     renderAnnotationLayersList();
     await waitFor(() => {
       const calls = fetchMock.calls(/annotation_layer\/\?q/);
@@ -129,13 +129,13 @@ describe('AnnotationLayersList', () => {
     });
   });
 
-  test('renders Filters', async () => {
+  it('renders Filters', async () => {
     renderAnnotationLayersList();
     await screen.findByTestId('annotation-layers-list-view');
     expect(screen.getByPlaceholderText(/type a value/i)).toBeInTheDocument();
   });
 
-  test('searches', async () => {
+  it('searches', async () => {
     renderAnnotationLayersList();
 
     // Wait for list to load
@@ -156,7 +156,7 @@ describe('AnnotationLayersList', () => {
     });
   });
 
-  test('deletes', async () => {
+  it('deletes', async () => {
     renderAnnotationLayersList();
 
     // Wait for list to load
@@ -184,7 +184,7 @@ describe('AnnotationLayersList', () => {
     });
   });
 
-  test('shows bulk actions when bulk select is clicked', async () => {
+  it('shows bulk actions when bulk select is clicked', async () => {
     renderAnnotationLayersList();
 
     // Wait for list to load

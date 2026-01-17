@@ -37,15 +37,15 @@ const queryWithResults = {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('QueryTable', () => {
-  test('is valid', () => {
+  it('is valid', () => {
     expect(isValidElement(<QueryTable displayLimit={100} />)).toBe(true);
   });
 
-  test('is valid with props', () => {
+  it('is valid with props', () => {
     expect(isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
   });
 
-  test('renders a proper table', () => {
+  it('renders a proper table', () => {
     const mockStore = configureStore([thunk]);
     const { container } = render(<QueryTable {...mockedProps} />, {
       store: mockStore({ user }),
@@ -62,7 +62,7 @@ describe('QueryTable', () => {
     ).toHaveLength(2);
   });
 
-  test('renders empty table when no queries provided', () => {
+  it('renders empty table when no queries provided', () => {
     const mockStore = configureStore([thunk]);
     const { container } = render(
       <QueryTable {...{ ...mockedProps, queries: [] }} />,
@@ -80,7 +80,7 @@ describe('QueryTable', () => {
     ).toHaveLength(0);
   });
 
-  test('renders with custom displayLimit', () => {
+  it('renders with custom displayLimit', () => {
     const mockStore = configureStore([thunk]);
     const customProps = {
       ...mockedProps,
@@ -99,7 +99,7 @@ describe('QueryTable', () => {
     ).toHaveLength(1);
   });
 
-  test('renders View button when query has resultsKey', () => {
+  it('renders View button when query has resultsKey', () => {
     const mockStore = configureStore([thunk]);
     const propsWithResults = {
       ...mockedProps,
@@ -113,7 +113,7 @@ describe('QueryTable', () => {
     expect(screen.getByRole('button', { name: /view/i })).toBeInTheDocument();
   });
 
-  test('does not render View button when query has no resultsKey', () => {
+  it('does not render View button when query has no resultsKey', () => {
     const mockStore = configureStore([thunk]);
     const queryWithoutResults = {
       ...successfulQuery,
@@ -133,7 +133,7 @@ describe('QueryTable', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('clicking View button opens data preview modal', async () => {
+  it('clicking View button opens data preview modal', async () => {
     const mockStore = configureStore([thunk]);
     const propsWithResults = {
       ...mockedProps,
@@ -157,7 +157,7 @@ describe('QueryTable', () => {
     expect(await screen.findByText('Data preview')).toBeInTheDocument();
   });
 
-  test('modal closes when exiting', async () => {
+  it('modal closes when exiting', async () => {
     const mockStore = configureStore([thunk]);
     const propsWithResults = {
       ...mockedProps,

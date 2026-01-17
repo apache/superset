@@ -208,7 +208,7 @@ describe('DatasourcePanel', () => {
     await new Promise(resolve => setTimeout(resolve, 0));
   });
 
-  test('should search and render matching columns', async () => {
+  it('should search and render matching columns', async () => {
     const { unmount } = render(
       <ExploreContainer>
         <DatasourcePanel {...props} />
@@ -239,7 +239,7 @@ describe('DatasourcePanel', () => {
   }, 15000);
 });
 
-test('should search and render matching metrics', async () => {
+it('should search and render matching metrics', async () => {
   render(
     <ExploreContainer>
       <DatasourcePanel {...props} />
@@ -257,7 +257,7 @@ test('should search and render matching metrics', async () => {
   });
 });
 
-test('should render a warning', async () => {
+it('should render a warning', async () => {
   const deprecatedDatasource = {
     ...datasource,
     extra: JSON.stringify({ warning_markdown: 'This is a warning.' }),
@@ -279,7 +279,7 @@ test('should render a warning', async () => {
   ).toBeInTheDocument();
 });
 
-test('should render a create dataset infobox', async () => {
+it('should render a create dataset infobox', async () => {
   const newProps = {
     ...props,
     datasource: {
@@ -298,7 +298,7 @@ test('should render a create dataset infobox', async () => {
   expect(infoboxText).toBeVisible();
 });
 
-test('should not render a save dataset modal when datasource is not query or dataset', async () => {
+it('should not render a save dataset modal when datasource is not query or dataset', async () => {
   const newProps = {
     ...props,
     datasource: {
@@ -312,7 +312,7 @@ test('should not render a save dataset modal when datasource is not query or dat
   expect(screen.queryByText(/create a dataset/i)).not.toBeInTheDocument();
 });
 
-test('should render only droppable metrics and columns', async () => {
+it('should render only droppable metrics and columns', async () => {
   const column1FilterProps = {
     type: 'DndColumnSelect' as const,
     name: 'Filter',
@@ -358,7 +358,7 @@ test('should render only droppable metrics and columns', async () => {
   unmount();
 });
 
-test('Renders with custom folders', () => {
+it('Renders with custom folders', () => {
   render(
     <ExploreContainer>
       <DatasourcePanel {...propsWithFolders} />
@@ -388,7 +388,7 @@ test('Renders with custom folders', () => {
   expect(screen.getAllByTestId('datasource-panel-divider').length).toEqual(3);
 });
 
-test('Collapse folders', () => {
+it('Collapse folders', () => {
   render(
     <ExploreContainer>
       <DatasourcePanel {...propsWithFolders} />
@@ -421,7 +421,7 @@ test('Collapse folders', () => {
   expect(screen.getByText(metrics[0].metric_name)).toBeInTheDocument();
 });
 
-test('Default Metrics and Columns folders dont render when all metrics and columns are assigned to custom folders', () => {
+it('Default Metrics and Columns folders dont render when all metrics and columns are assigned to custom folders', () => {
   const datasourceWithFullFolders: IDatasource = {
     ...datasource,
     folders: [

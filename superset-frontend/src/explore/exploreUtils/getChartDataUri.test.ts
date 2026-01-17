@@ -27,7 +27,7 @@ describe('Get ChartUri', () => {
     (path: string) => `/prefix${path}`,
   );
 
-  test('Get ChartUri when allowDomainSharding:false', () => {
+  it('Get ChartUri when allowDomainSharding:false', () => {
     expect(
       getChartDataUri({
         path: '/path',
@@ -54,7 +54,7 @@ describe('Get ChartUri', () => {
     });
   });
 
-  test('Get ChartUri when allowDomainSharding:true', () => {
+  it('Get ChartUri when allowDomainSharding:true', () => {
     expect(
       getChartDataUri({
         path: '/path-allowDomainSharding-true',

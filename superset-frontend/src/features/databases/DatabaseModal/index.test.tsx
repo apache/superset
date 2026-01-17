@@ -330,7 +330,7 @@ describe('DatabaseModal', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Visual: New database connection', () => {
-    test('renders the initial load of Step 1 correctly', async () => {
+    it('renders the initial load of Step 1 correctly', async () => {
       setup();
 
       // ---------- Components ----------
@@ -424,7 +424,7 @@ describe('DatabaseModal', () => {
       expect(footer).toBeEmptyDOMElement();
     });
 
-    test('shows database options when pasting text in the select', async () => {
+    it('shows database options when pasting text in the select', async () => {
       setup();
 
       const modal = await screen.findByRole('dialog');
@@ -445,7 +445,7 @@ describe('DatabaseModal', () => {
       ).not.toThrow();
     });
 
-    test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
+    it('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
       setup();
 
       // On step 1, click dbButton to access SQL Alchemy form
@@ -558,7 +558,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    test('renders the unexpanded "Advanced" tab correctly', async () => {
+    it('renders the unexpanded "Advanced" tab correctly', async () => {
       setup();
 
       // On step 1, click dbButton to access step 2
@@ -635,7 +635,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    test('renders the "Advanced" - SQL LAB tab correctly (unexpanded)', async () => {
+    it('renders the "Advanced" - SQL LAB tab correctly (unexpanded)', async () => {
       setup();
 
       // ---------- Components ----------
@@ -798,7 +798,7 @@ describe('DatabaseModal', () => {
       expect(tooltipButtons).toHaveLength(8);
     });
 
-    test('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
+    it('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
       setup();
 
       // ---------- Components ----------
@@ -855,7 +855,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    test('renders the "Advanced" - SECURITY tab correctly', async () => {
+    it('renders the "Advanced" - SECURITY tab correctly', async () => {
       setup();
 
       // ---------- Components ----------
@@ -931,7 +931,7 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
-    test('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
+    it('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
       setup();
 
       // ---------- Components ----------
@@ -1009,7 +1009,7 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).toBeInTheDocument();
     });
 
-    test('renders the "Advanced" - OTHER tab correctly', async () => {
+    it('renders the "Advanced" - OTHER tab correctly', async () => {
       setup();
 
       // ---------- Components ----------
@@ -1070,7 +1070,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    test('Dynamic form', async () => {
+    it('Dynamic form', async () => {
       setup();
 
       // ---------- Components ----------
@@ -1088,7 +1088,7 @@ describe('DatabaseModal', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Functional: Create new database', () => {
-    test('directs databases to the appropriate form (dynamic vs. SQL Alchemy)', async () => {
+    it('directs databases to the appropriate form (dynamic vs. SQL Alchemy)', async () => {
       setup();
 
       // ---------- Dynamic example (3-step form)
@@ -1123,7 +1123,7 @@ describe('DatabaseModal', () => {
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('SQL Alchemy form flow', () => {
-      test('enters step 2 of 2 when proper database is selected', async () => {
+      it('enters step 2 of 2 when proper database is selected', async () => {
         setup();
 
         userEvent.click(
@@ -1135,7 +1135,7 @@ describe('DatabaseModal', () => {
         expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       });
 
-      test('runs fetchResource when "Connect" is clicked', () => {
+      it('runs fetchResource when "Connect" is clicked', () => {
         /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
         // Mock useSingleViewResource
@@ -1154,7 +1154,7 @@ describe('DatabaseModal', () => {
 
       // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('step 2 component interaction', () => {
-        test('properly interacts with textboxes', async () => {
+        it('properly interacts with textboxes', async () => {
           setup();
 
           userEvent.click(
@@ -1179,7 +1179,7 @@ describe('DatabaseModal', () => {
           expect(sqlAlchemyURItextBox).toHaveValue('Different text');
         });
 
-        test('runs testDatabaseConnection when "TEST CONNECTION" is clicked', () => {
+        it('runs testDatabaseConnection when "TEST CONNECTION" is clicked', () => {
           /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
           // Mock testDatabaseConnection
@@ -1201,7 +1201,7 @@ describe('DatabaseModal', () => {
 
       // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('SSH Tunnel Form interaction', () => {
-        test('properly interacts with SSH Tunnel form textboxes for dynamic form', async () => {
+        it('properly interacts with SSH Tunnel form textboxes for dynamic form', async () => {
           setup();
 
           userEvent.click(
@@ -1238,7 +1238,7 @@ describe('DatabaseModal', () => {
           expect(SSHTunnelPasswordInput).toHaveValue('pass');
         });
 
-        test('properly interacts with SSH Tunnel form textboxes', async () => {
+        it('properly interacts with SSH Tunnel form textboxes', async () => {
           setup();
 
           userEvent.click(
@@ -1276,7 +1276,7 @@ describe('DatabaseModal', () => {
           expect(SSHTunnelPasswordInput).toHaveValue('pass');
         });
 
-        test('if the SSH Tunneling toggle is not true, no inputs are displayed', async () => {
+        it('if the SSH Tunneling toggle is not true, no inputs are displayed', async () => {
           setup();
 
           userEvent.click(
@@ -1306,7 +1306,7 @@ describe('DatabaseModal', () => {
           expect(SSHTunnelPasswordInput).not.toBeInTheDocument();
         });
 
-        test('If user changes the login method, the inputs change', async () => {
+        it('If user changes the login method, the inputs change', async () => {
           setup();
 
           userEvent.click(
@@ -1347,7 +1347,7 @@ describe('DatabaseModal', () => {
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('Dynamic form flow', () => {
-      test('enters step 2 of 3 when proper database is selected', async () => {
+      it('enters step 2 of 3 when proper database is selected', async () => {
         setup();
 
         expect(await screen.findByText(/step 1 of 3/i)).toBeInTheDocument();
@@ -1359,7 +1359,7 @@ describe('DatabaseModal', () => {
         expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
       });
 
-      test('enters form credentials and runs fetchResource when "Connect" is clicked', async () => {
+      it('enters form credentials and runs fetchResource when "Connect" is clicked', async () => {
         setup();
 
         userEvent.click(
@@ -1409,7 +1409,7 @@ describe('DatabaseModal', () => {
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('Import database flow', () => {
-      test('imports a file', async () => {
+      it('imports a file', async () => {
         setup();
 
         const importDbButton = (await screen.findByTestId(
@@ -1433,7 +1433,7 @@ describe('DatabaseModal', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w/ Deeplinking Engine', () => {
-    test('enters step 2 of 3 when proper database is selected', async () => {
+    it('enters step 2 of 3 when proper database is selected', async () => {
       setup({ dbEngine: 'PostgreSQL' });
       const step2of3text = await screen.findByText(/step 2 of 3/i);
       expect(step2of3text).toBeInTheDocument();
@@ -1442,13 +1442,13 @@ describe('DatabaseModal', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w/ GSheet Engine', () => {
-    test('enters step 2 of 2 when proper database is selected', async () => {
+    it('enters step 2 of 2 when proper database is selected', async () => {
       setup({ dbEngine: 'Google Sheets' });
       const step2of2text = await screen.findByText(/step 2 of 2/i);
       expect(step2of2text).toBeInTheDocument();
     });
 
-    test('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
+    it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
       setup({ dbEngine: 'Google Sheets' });
 
       // Click the "Advanced" tab
@@ -1486,7 +1486,7 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
-    test('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
+    it('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
       setup({ dbEngine: 'Google Sheets' });
 
       const SSHTunnelingToggle = screen.queryByTestId('ssh-tunnel-switch');
@@ -1517,7 +1517,7 @@ describe('DatabaseModal', () => {
       useSingleViewResource: jest.fn(),
     }));
 
-    test('Error displays when it is an object', async () => {
+    it('Error displays when it is an object', async () => {
       setup({ dbEngine: 'PostgreSQL' });
       const step2of3text = await screen.findByText(/step 2 of 3/i);
       const errorSection = screen.getByText(/Database Creation Error/i);
@@ -1550,7 +1550,7 @@ describe('DatabaseModal', () => {
       setResource: jest.fn(),
     });
 
-    test('Error displays when it is a string', async () => {
+    it('Error displays when it is a string', async () => {
       setup({ dbEngine: 'PostgreSQL' });
 
       const step2of3text = await screen.findByText(/step 2 of 3/i);
@@ -1576,7 +1576,7 @@ describe('DatabaseModal', () => {
       setupCodeOverrides();
     });
 
-    test('should render an extension component if one is supplied', async () => {
+    it('should render an extension component if one is supplied', async () => {
       setup({ dbEngine: 'SQLite' });
       expect(
         await screen.findByText('ssh_tunnel.form.switch extension component'),
@@ -1585,7 +1585,7 @@ describe('DatabaseModal', () => {
   });
 });
 
-test('handleChangeWithValidation function clears validation errors when called', () => {
+it('handleChangeWithValidation function clears validation errors when called', () => {
   const mockSetValidationErrors = jest.fn();
   const mockSetHasValidated = jest.fn();
   const mockClearError = jest.fn();
@@ -1620,7 +1620,7 @@ test('handleChangeWithValidation function clears validation errors when called',
   expect(mockClearError).toHaveBeenCalled();
 });
 
-test('validates fix by testing all form field types clear validation errors', () => {
+it('validates fix by testing all form field types clear validation errors', () => {
   // This test validates that all the different types of form fields changed in the fix
   // (TextChange, ExtraInputChange, ExtraEditorChange, InputChange, ParametersChange, etc.)
   // properly call the validation clearing functions
@@ -1668,13 +1668,13 @@ test('validates fix by testing all form field types clear validation errors', ()
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dbReducer', () => {
-  test('it will reset state to null', () => {
+  it('will reset state to null', () => {
     const action: DBReducerActionType = { type: ActionType.Reset };
     const currentState = dbReducer(databaseFixture, action);
     expect(currentState).toBeNull();
   });
 
-  test('it will set state to payload from fetched', () => {
+  it('will set state to payload from fetched', () => {
     const action: DBReducerActionType = {
       type: ActionType.Fetched,
       payload: databaseFixture,
@@ -1689,7 +1689,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will set state to payload from extra editor', () => {
+  it('will set state to payload from extra editor', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraEditorChange,
       payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
@@ -1702,7 +1702,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will set state to payload from editor', () => {
+  it('will set state to payload from editor', () => {
     const action: DBReducerActionType = {
       type: ActionType.EditorChange,
       payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
@@ -1715,7 +1715,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will add extra payload to existing extra data', () => {
+  it('will add extra payload to existing extra data', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraEditorChange,
       payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
@@ -1735,7 +1735,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will set state to payload from extra input change', () => {
+  it('will set state to payload from extra input change', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
       payload: { name: 'foo', value: 'bar' },
@@ -1749,7 +1749,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will set state to payload from encrypted extra input change', () => {
+  it('will set state to payload from encrypted extra input change', () => {
     const action: DBReducerActionType = {
       type: ActionType.EncryptedExtraInputChange,
       payload: { name: 'foo', value: 'bar' },
@@ -1763,7 +1763,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will set state to payload from extra input change when checkbox', () => {
+  it('will set state to payload from extra input change when checkbox', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
       payload: { name: 'foo', type: 'checkbox', checked: true },
@@ -1777,7 +1777,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will set state to payload from extra input change when schema_cache_timeout', () => {
+  it('will set state to payload from extra input change when schema_cache_timeout', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
       payload: { name: 'schema_cache_timeout', value: '10' },
@@ -1791,7 +1791,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will set state to payload from extra input change when table_cache_timeout', () => {
+  it('will set state to payload from extra input change when table_cache_timeout', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
       payload: { name: 'table_cache_timeout', value: '10' },
@@ -1805,7 +1805,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will overwrite state to payload from extra input change when table_cache_timeout', () => {
+  it('will overwrite state to payload from extra input change when table_cache_timeout', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
       payload: { name: 'table_cache_timeout', value: '10' },
@@ -1825,7 +1825,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test(`it will set state to payload from extra
+  it(`will set state to payload from extra
   input change when schemas_allowed_for_file_upload`, () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
@@ -1840,7 +1840,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test(`it will overwrite state to payload from extra
+  it(`will overwrite state to payload from extra
   input change when schemas_allowed_for_file_upload`, () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
@@ -1861,7 +1861,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test(`it will set state to payload from extra
+  it(`will set state to payload from extra
   input change when schemas_allowed_for_file_upload
   with blank list`, () => {
     const action: DBReducerActionType = {
@@ -1876,7 +1876,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test(`it will set state to payload from extra
+  it(`will set state to payload from extra
   input change when schemas_allowed_for_file_upload
   with trailing comma preserves empty string`, () => {
     const action: DBReducerActionType = {
@@ -1891,7 +1891,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test(`it will set state to payload from extra
+  it(`will set state to payload from extra
   input change when schemas_allowed_for_file_upload
   with multiple schemas and trailing comma`, () => {
     const action: DBReducerActionType = {
@@ -1909,7 +1909,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test(`it will set state to payload from extra
+  it(`will set state to payload from extra
   input change when schemas_allowed_for_file_upload
   with double commas filters empty strings`, () => {
     const action: DBReducerActionType = {
@@ -1927,7 +1927,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will set state to payload from input change', () => {
+  it('will set state to payload from input change', () => {
     const action: DBReducerActionType = {
       type: ActionType.InputChange,
       payload: { name: 'foo', value: 'bar' },
@@ -1940,7 +1940,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will set state to payload from input change for checkbox', () => {
+  it('will set state to payload from input change for checkbox', () => {
     const action: DBReducerActionType = {
       type: ActionType.InputChange,
       payload: { name: 'foo', type: 'checkbox', checked: true },
@@ -1953,7 +1953,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will change state to payload from input change for checkbox', () => {
+  it('will change state to payload from input change for checkbox', () => {
     const action: DBReducerActionType = {
       type: ActionType.InputChange,
       payload: { name: 'allow_ctas', type: 'checkbox', checked: false },
@@ -1972,7 +1972,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will add a parameter', () => {
+  it('will add a parameter', () => {
     const action: DBReducerActionType = {
       type: ActionType.ParametersChange,
       payload: { name: 'host', value: '127.0.0.1' },
@@ -1987,7 +1987,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will add a parameter with existing parameters', () => {
+  it('will add a parameter with existing parameters', () => {
     const action: DBReducerActionType = {
       type: ActionType.ParametersChange,
       payload: { name: 'port', value: '1234' },
@@ -2011,7 +2011,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will change a parameter with existing parameters', () => {
+  it('will change a parameter with existing parameters', () => {
     const action: DBReducerActionType = {
       type: ActionType.ParametersChange,
       payload: { name: 'host', value: 'localhost' },
@@ -2034,7 +2034,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will set state to payload from parametersChange with catalog', () => {
+  it('will set state to payload from parametersChange with catalog', () => {
     const action: DBReducerActionType = {
       type: ActionType.ParametersChange,
       payload: { name: 'name', type: 'catalog-0', value: 'bar' },
@@ -2055,7 +2055,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will add a new catalog array when empty', () => {
+  it('will add a new catalog array when empty', () => {
     const action: DBReducerActionType = {
       type: ActionType.AddTableCatalogSheet,
     };
@@ -2067,7 +2067,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will add a new catalog array when one exists', () => {
+  it('will add a new catalog array when one exists', () => {
     const action: DBReducerActionType = {
       type: ActionType.AddTableCatalogSheet,
     };
@@ -2085,7 +2085,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will remove a catalog when one exists', () => {
+  it('will remove a catalog when one exists', () => {
     const action: DBReducerActionType = {
       type: ActionType.RemoveTableCatalogSheet,
       payload: { indexToDelete: 0 },
@@ -2101,7 +2101,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will add db information when one is selected', () => {
+  it('will add db information when one is selected', () => {
     const { backend, ...db } = databaseFixture;
     const action: DBReducerActionType = {
       type: ActionType.DbSelected,
@@ -2134,7 +2134,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will add a SSH Tunnel config parameter', () => {
+  it('will add a SSH Tunnel config parameter', () => {
     const action: DBReducerActionType = {
       type: ActionType.ParametersSSHTunnelChange,
       payload: { name: 'server_address', value: '127.0.0.1' },
@@ -2149,7 +2149,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will add a SSH Tunnel config parameter with existing configs', () => {
+  it('will add a SSH Tunnel config parameter with existing configs', () => {
     const action: DBReducerActionType = {
       type: ActionType.ParametersSSHTunnelChange,
       payload: { name: 'server_port', value: '22' },
@@ -2173,7 +2173,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will change a SSH Tunnel config parameter with existing configs', () => {
+  it('will change a SSH Tunnel config parameter with existing configs', () => {
     const action: DBReducerActionType = {
       type: ActionType.ParametersSSHTunnelChange,
       payload: { name: 'server_address', value: 'localhost' },
@@ -2196,7 +2196,7 @@ describe('dbReducer', () => {
     });
   });
 
-  test('it will remove the SSH Tunnel config parameters', () => {
+  it('will remove the SSH Tunnel config parameters', () => {
     const action: DBReducerActionType = {
       type: ActionType.RemoveSSHTunnelConfig,
     };

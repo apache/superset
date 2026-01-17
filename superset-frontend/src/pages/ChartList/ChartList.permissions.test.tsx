@@ -187,7 +187,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     ).mockReset();
   });
 
-  test('shows all UI elements for admin users with full permissions', async () => {
+  it('shows all UI elements for admin users with full permissions', async () => {
     await renderWithPermissions(PERMISSIONS.ADMIN);
 
     // Wait for component to load
@@ -206,7 +206,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(favoriteStars).toHaveLength(mockCharts.length);
   });
 
-  test('renders basic UI for anonymous users without permissions', async () => {
+  it('renders basic UI for anonymous users without permissions', async () => {
     await renderWithPermissions(PERMISSIONS.NONE, undefined);
     await screen.findByTestId('chart-list-view');
 
@@ -227,7 +227,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
 
-  test('shows Actions column for users with admin permissions', async () => {
+  it('shows Actions column for users with admin permissions', async () => {
     await renderWithPermissions(PERMISSIONS.ADMIN);
     await screen.findByTestId('chart-list-view');
 
@@ -243,7 +243,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(deleteButtons).toHaveLength(mockCharts.length);
   });
 
-  test('hides Actions column for users with read-only permissions', async () => {
+  it('hides Actions column for users with read-only permissions', async () => {
     await renderWithPermissions(PERMISSIONS.READ_ONLY);
     await screen.findByTestId('chart-list-view');
 
@@ -251,7 +251,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.queryAllByLabelText('more')).toHaveLength(0);
   });
 
-  test('hides Actions column for users with export-only permissions', async () => {
+  it('hides Actions column for users with export-only permissions', async () => {
     // Known issue: Actions column requires can_write permission
     await renderWithPermissions(PERMISSIONS.EXPORT_ONLY);
     await screen.findByTestId('chart-list-view');
@@ -260,7 +260,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.queryAllByLabelText('more')).toHaveLength(0);
   });
 
-  test('shows Actions column for users with write-only permissions', async () => {
+  it('shows Actions column for users with write-only permissions', async () => {
     await renderWithPermissions(PERMISSIONS.WRITE_ONLY);
     await screen.findByTestId('chart-list-view');
 
@@ -276,7 +276,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(deleteButtons).toHaveLength(mockCharts.length);
   });
 
-  test('shows favorite stars for logged-in users', async () => {
+  it('shows favorite stars for logged-in users', async () => {
     await renderWithPermissions(PERMISSIONS.ADMIN, 1);
     await screen.findByTestId('chart-list-view');
 
@@ -284,7 +284,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(favoriteStars).toHaveLength(mockCharts.length);
   });
 
-  test('shows favorite stars even for users without userId', async () => {
+  it('shows favorite stars even for users without userId', async () => {
     // Current behavior: Component renders favorites regardless of userId
     await renderWithPermissions(PERMISSIONS.ADMIN, undefined);
     await screen.findByTestId('chart-list-view');
@@ -293,56 +293,56 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(favoriteStars).toHaveLength(mockCharts.length);
   });
 
-  test('shows Tags column when TAGGING_SYSTEM feature flag is enabled', async () => {
+  it('shows Tags column when TAGGING_SYSTEM feature flag is enabled', async () => {
     await renderWithPermissions(PERMISSIONS.ADMIN, 1, { tagging: true });
     await screen.findByTestId('chart-list-view');
 
     expect(screen.getByTitle('Tags')).toBeInTheDocument();
   });
 
-  test('hides Tags column when TAGGING_SYSTEM feature flag is disabled', async () => {
+  it('hides Tags column when TAGGING_SYSTEM feature flag is disabled', async () => {
     await renderWithPermissions(PERMISSIONS.ADMIN, 1, { tagging: false });
     await screen.findByTestId('chart-list-view');
 
     expect(screen.queryByText('Tags')).not.toBeInTheDocument();
   });
 
-  test('shows Tags column based on feature flag regardless of user permissions', async () => {
+  it('shows Tags column based on feature flag regardless of user permissions', async () => {
     await renderWithPermissions(PERMISSIONS.READ_ONLY, 1, { tagging: true });
     await screen.findByTestId('chart-list-view');
 
     expect(screen.getByTitle('Tags')).toBeInTheDocument();
   });
 
-  test('shows bulk select button for users with admin permissions', async () => {
+  it('shows bulk select button for users with admin permissions', async () => {
     await renderWithPermissions(PERMISSIONS.ADMIN);
     await screen.findByTestId('chart-list-view');
 
     expect(screen.getByTestId('bulk-select')).toBeInTheDocument();
   });
 
-  test('shows bulk select button for users with export-only permissions', async () => {
+  it('shows bulk select button for users with export-only permissions', async () => {
     await renderWithPermissions(PERMISSIONS.EXPORT_ONLY);
     await screen.findByTestId('chart-list-view');
 
     expect(screen.getByTestId('bulk-select')).toBeInTheDocument();
   });
 
-  test('shows bulk select button for users with write-only permissions', async () => {
+  it('shows bulk select button for users with write-only permissions', async () => {
     await renderWithPermissions(PERMISSIONS.WRITE_ONLY);
     await screen.findByTestId('chart-list-view');
 
     expect(screen.getByTestId('bulk-select')).toBeInTheDocument();
   });
 
-  test('hides bulk select button for users with read-only permissions', async () => {
+  it('hides bulk select button for users with read-only permissions', async () => {
     await renderWithPermissions(PERMISSIONS.READ_ONLY);
     await screen.findByTestId('chart-list-view');
 
     expect(screen.queryByTestId('bulk-select')).not.toBeInTheDocument();
   });
 
-  test('shows Create and Import buttons for users with write permissions', async () => {
+  it('shows Create and Import buttons for users with write permissions', async () => {
     await renderWithPermissions(PERMISSIONS.WRITE_ONLY);
     await screen.findByTestId('chart-list-view');
 
@@ -350,7 +350,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
   });
 
-  test('shows Create and Import buttons for users with admin permissions', async () => {
+  it('shows Create and Import buttons for users with admin permissions', async () => {
     await renderWithPermissions(PERMISSIONS.ADMIN);
     await screen.findByTestId('chart-list-view');
 
@@ -358,7 +358,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
   });
 
-  test('hides Create and Import buttons for users with read-only permissions', async () => {
+  it('hides Create and Import buttons for users with read-only permissions', async () => {
     await renderWithPermissions(PERMISSIONS.READ_ONLY);
     await screen.findByTestId('chart-list-view');
 
@@ -368,7 +368,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
 
-  test('hides Create and Import buttons for users with export-only permissions', async () => {
+  it('hides Create and Import buttons for users with export-only permissions', async () => {
     await renderWithPermissions(PERMISSIONS.EXPORT_ONLY);
     await screen.findByTestId('chart-list-view');
 
@@ -378,7 +378,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
 
-  test('shows individual action buttons when user has admin permissions', async () => {
+  it('shows individual action buttons when user has admin permissions', async () => {
     await renderWithPermissions(PERMISSIONS.ADMIN);
     await screen.findByTestId('chart-list-view');
 
@@ -401,7 +401,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(actionButtons.length).toBeGreaterThanOrEqual(0);
   });
 
-  test('hides individual action buttons when user has read-only permissions', async () => {
+  it('hides individual action buttons when user has read-only permissions', async () => {
     await renderWithPermissions(PERMISSIONS.READ_ONLY);
     await screen.findByTestId('chart-list-view');
 
@@ -413,7 +413,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(actionButtons).toHaveLength(0);
   });
 
-  test('shows individual action buttons when user has write-only permissions', async () => {
+  it('shows individual action buttons when user has write-only permissions', async () => {
     await renderWithPermissions(PERMISSIONS.WRITE_ONLY);
     await screen.findByTestId('chart-list-view');
 
@@ -429,7 +429,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     // The important verification is that Actions column is visible for write permissions
   });
 
-  test('shows correct UI elements for users with mixed permissions (export + tag read)', async () => {
+  it('shows correct UI elements for users with mixed permissions (export + tag read)', async () => {
     await renderWithPermissions(PERMISSIONS.MIXED, 1, { tagging: true });
     await screen.findByTestId('chart-list-view');
 
@@ -456,7 +456,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
 
-  test('shows minimal UI for users with no permissions', async () => {
+  it('shows minimal UI for users with no permissions', async () => {
     await renderWithPermissions(PERMISSIONS.NONE, undefined);
     await screen.findByTestId('chart-list-view');
 

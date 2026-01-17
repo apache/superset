@@ -25,11 +25,11 @@ describe('getLeafComponentIdFromPath', () => {
   const path = dashboardFilters[filterId].directPathToFilter;
   const leaf = path.slice().pop();
 
-  test('should return component id', () => {
+  it('should return component id', () => {
     expect(getLeafComponentIdFromPath(path)).toBe(leaf);
   });
 
-  test('should not return label component', () => {
+  it('should not return label component', () => {
     const updatedPath =
       dashboardFilters[filterId].directPathToFilter.concat('LABEL-test123');
     expect(getLeafComponentIdFromPath(updatedPath)).toBe(leaf);

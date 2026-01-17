@@ -40,7 +40,7 @@ describe('dashboardFilters reducer', () => {
   const directPathToFilter = (component.parents || []).slice();
   directPathToFilter.push(component.id);
 
-  test('should overwrite a filter if merge is false', () => {
+  it('should overwrite a filter if merge is false', () => {
     expect(
       dashboardFiltersReducer(dashboardFilters, {
         type: CHANGE_FILTER,
@@ -73,7 +73,7 @@ describe('dashboardFilters reducer', () => {
     });
   });
 
-  test('should merge a filter if merge is true', () => {
+  it('should merge a filter if merge is true', () => {
     expect(
       dashboardFiltersReducer(dashboardFilters, {
         type: CHANGE_FILTER,
@@ -106,7 +106,7 @@ describe('dashboardFilters reducer', () => {
     });
   });
 
-  test('should buildActiveFilters on UPDATE_DASHBOARD_FILTERS_SCOPE', () => {
+  it('should buildActiveFilters on UPDATE_DASHBOARD_FILTERS_SCOPE', () => {
     const regionScope = {
       scope: ['TAB-1'],
       immune: [],
