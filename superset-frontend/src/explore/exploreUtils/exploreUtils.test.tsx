@@ -29,6 +29,7 @@ import {
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import {
+  ChartMetadata,
   getChartMetadataRegistry,
   QueryFormData,
   SupersetClient,
@@ -58,7 +59,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'http://superset.com',
       });
-      compareURI(URI(url), URI('/explore/'));
+      compareURI(URI(url!), URI('/explore/'));
     });
     test('generates proper json url', () => {
       const url = getExploreUrl({
@@ -67,7 +68,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'http://superset.com',
       });
-      compareURI(URI(url), URI('/superset/explore_json/'));
+      compareURI(URI(url!), URI('/superset/explore_json/'));
     });
     test('generates proper json forced url', () => {
       const url = getExploreUrl({
@@ -77,7 +78,7 @@ describe('exploreUtils', () => {
         curUrl: 'superset.com',
       });
       compareURI(
-        URI(url),
+        URI(url!),
         URI('/superset/explore_json/').search({ force: 'true' }),
       );
     });
@@ -89,7 +90,7 @@ describe('exploreUtils', () => {
         curUrl: 'superset.com',
       });
       compareURI(
-        URI(url),
+        URI(url!),
         URI('/superset/explore_json/').search({ csv: 'true' }),
       );
     });
@@ -101,7 +102,7 @@ describe('exploreUtils', () => {
         curUrl: 'superset.com',
       });
       compareURI(
-        URI(url),
+        URI(url!),
         URI('/explore/').search({
           standalone: DashboardStandaloneMode.HideNav,
         }),
@@ -115,7 +116,7 @@ describe('exploreUtils', () => {
         curUrl: 'superset.com?foo=bar',
       });
       compareURI(
-        URI(url),
+        URI(url!),
         URI('/superset/explore_json/').search({ foo: 'bar' }),
       );
     });
@@ -127,7 +128,7 @@ describe('exploreUtils', () => {
         curUrl: 'superset.com?foo=bar',
       });
       compareURI(
-        URI(url),
+        URI(url!),
         URI('/superset/explore_json/').search({ foo: 'bar' }),
       );
     });
@@ -214,8 +215,12 @@ describe('exploreUtils', () => {
   describe('getQuerySettings', () => {
     beforeAll(() => {
       getChartMetadataRegistry()
-        .registerValue('my_legacy_viz', { useLegacyApi: true })
-        .registerValue('my_v1_viz', { useLegacyApi: false });
+        .registerValue('my_legacy_viz', {
+          useLegacyApi: true,
+        } as unknown as ChartMetadata)
+        .registerValue('my_v1_viz', {
+          useLegacyApi: false,
+        } as unknown as ChartMetadata);
     });
 
     afterAll(() => {

@@ -32,7 +32,7 @@ import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
-import ExploreHeader from '.';
+import ExploreHeader, { ExploreChartHeaderProps } from '.';
 import { getChartMetadataRegistry } from '@superset-ui/core';
 import fs from 'fs';
 import path from 'path';
@@ -124,7 +124,7 @@ const createProps = (additionalProps = {}) => ({
     slice_name: 'Age distribution of respondents',
     slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
   },
-  slice_name: 'Age distribution of respondents',
+  sliceName: 'Age distribution of respondents',
   actions: {
     postChartFormData: jest.fn(),
     updateChartTitle: jest.fn(),
@@ -147,7 +147,7 @@ const createProps = (additionalProps = {}) => ({
   canDownload: false,
   isStarred: false,
   ...additionalProps,
-});
+}) as unknown as ExploreChartHeaderProps;
 
 fetchMock.post(
   'http://api/v1/chart/data?form_data=%7B%22slice_id%22%3A318%7D',
@@ -176,7 +176,7 @@ describe('ExploreChartHeader', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });
     const newChartName = 'New chart name';
-    const prevChartName = props.slice_name;
+    const prevChartName = props.sliceName;
     expect(
       await screen.findByText(/add the name of the chart/i),
     ).toBeInTheDocument();
@@ -196,7 +196,9 @@ describe('ExploreChartHeader', () => {
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
     userEvent.click(screen.getByText('Edit chart properties'));
 
-    expect(await screen.findByDisplayValue(prevChartName)).toBeInTheDocument();
+    expect(
+      await screen.findByDisplayValue(prevChartName ?? ''),
+    ).toBeInTheDocument();
   });
 
   test('renders the metadata bar when saved', async () => {
@@ -214,7 +216,7 @@ describe('ExploreChartHeader', () => {
       <ExploreHeader
         {...props}
         metadata={{
-          ...props.metadata,
+          ...props.metadata!,
           dashboards: [
             { id: 1, dashboard_title: 'Test' },
             { id: 2, dashboard_title: 'Test2' },
