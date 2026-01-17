@@ -19,7 +19,7 @@
 
 import { t } from '@apache-superset/core';
 
-export default function validateInteger(v: any) {
+export default function validateNumber(v: any) {
   if (
     (typeof v === 'string' &&
       v.trim().length > 0 &&
