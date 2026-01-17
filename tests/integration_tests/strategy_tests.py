@@ -34,7 +34,7 @@ from superset.utils.database import get_example_database  # noqa: F401
 from superset import db
 
 from superset.models.core import Log
-from superset.tags.models import get_tag, ObjectType, TaggedObject, TagType
+from superset.tags.models import get_or_create_tag, ObjectType, TaggedObject, TagType
 from superset.tasks.cache import (
     DashboardTagsStrategy,
     TopNDashboardsStrategy,
@@ -103,7 +103,7 @@ class TestCacheWarmUp(SupersetTestCase):
         "load_unicode_dashboard_with_slice", "load_birth_names_dashboard_with_slices"
     )
     def test_dashboard_tags_strategy(self):
-        tag1 = get_tag("tag1", db.session, TagType.custom)
+        tag1 = get_or_create_tag("tag1", db.session, TagType.custom)
         # delete first to make test idempotent
         self.reset_tag(tag1)
 
@@ -111,7 +111,7 @@ class TestCacheWarmUp(SupersetTestCase):
         assert strategy.get_tasks() == []
 
         # tag dashboard 'births' with `tag1`
-        tag1 = get_tag("tag1", db.session, TagType.custom)
+        tag1 = get_or_create_tag("tag1", db.session, TagType.custom)
         dash = self.get_dash_by_slug("births")
         tag1_payloads = [{"chart_id": chart.id} for chart in dash.slices]
         tagged_object = TaggedObject(
@@ -123,7 +123,7 @@ class TestCacheWarmUp(SupersetTestCase):
         assert len(strategy.get_tasks()) == len(tag1_payloads)
 
         strategy = DashboardTagsStrategy(["tag2"])
-        tag2 = get_tag("tag2", db.session, TagType.custom)
+        tag2 = get_or_create_tag("tag2", db.session, TagType.custom)
         self.reset_tag(tag2)
 
         assert strategy.get_tasks() == []
