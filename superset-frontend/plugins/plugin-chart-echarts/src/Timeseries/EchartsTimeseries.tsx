@@ -64,6 +64,8 @@ export default function EchartsTimeseries({
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+  // Track if we just applied a brush filter to prevent immediate reset on re-render
+  const brushFilterApplied = useRef(false);
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {
@@ -94,6 +96,39 @@ export default function EchartsTimeseries({
       window.removeEventListener('resize', updateHeight);
     };
   }, [formData.showExtraControls]);
+
+  // Activate brush mode for time-axis charts
+  useEffect(() => {
+    if (xAxis.type !== AxisType.Time) {
+      return;
+    }
+
+    // Skip on touch devices to avoid interfering with scrolling
+    if (
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window ||
+        (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0))
+    ) {
+      return;
+    }
+
+    // Small delay to ensure chart is fully rendered
+    const timer = setTimeout(() => {
+      const echartInstance = echartRef.current?.getEchartInstance();
+      if (echartInstance) {
+        echartInstance.dispatchAction({
+          type: 'takeGlobalCursor',
+          key: 'brush',
+          brushOption: {
+            brushType: 'rect',
+            brushMode: 'single',
+          },
+        });
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [xAxis.type]);
 
   const hasDimensions = ensureIsArray(groupby).length > 0;
 
@@ -162,6 +197,112 @@ export default function EchartsTimeseries({
       setDataMask(getCrossFilterDataMask(value).dataMask);
     },
     [emitCrossFilters, setDataMask, getCrossFilterDataMask],
+  );
+
+  const handleBrushEnd = useCallback(
+    (params: any) => {
+      if (xAxis.type !== AxisType.Time) {
+        return;
+      }
+
+      // Skip on touch devices to avoid interfering with scrolling
+      const isTouchDevice =
+        typeof window !== 'undefined' &&
+        ('ontouchstart' in window ||
+          (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0));
+      if (isTouchDevice) {
+        return;
+      }
+
+      const brushAreas = params.areas || [];
+
+      if (brushAreas.length === 0) {
+        // If we just applied a filter, the chart re-rendered and cleared the brush
+        // Don't reset the filter in this case
+        if (brushFilterApplied.current) {
+          brushFilterApplied.current = false;
+          return;
+        }
+        // Brush was cleared by user, reset the filter
+        setTimeout(() => {
+          if (emitCrossFilters) {
+            setDataMask({
+              extraFormData: {},
+              filterState: {
+                value: null,
+                selectedValues: null,
+              },
+            });
+          }
+        }, 0);
+        return;
+      }
+
+      const area = brushAreas[0];
+      const coordRange = area.coordRange;
+
+      // Debug: log the brush area structure
+      // eslint-disable-next-line no-console
+      console.log('[BRUSH DEBUG] area:', JSON.stringify(area));
+
+      // For lineX brush, coordRange is [xMin, xMax] (flat array)
+      if (!coordRange || coordRange.length < 2) {
+        return;
+      }
+
+      const [startValue, endValue] = coordRange.map(Number);
+
+      // Debug: log the extracted values
+      // eslint-disable-next-line no-console
+      console.log('[BRUSH DEBUG] startValue:', startValue, 'endValue:', endValue);
+
+      // Validate that we have valid timestamps
+      if (
+        !Number.isFinite(startValue) ||
+        !Number.isFinite(endValue) ||
+        startValue <= 0 ||
+        endValue <= 0
+      ) {
+        return;
+      }
+
+      // Convert timestamps to ISO date strings for time_range format
+      const startDate = new Date(startValue).toISOString().slice(0, 19);
+      const endDate = new Date(endValue).toISOString().slice(0, 19);
+      const timeRange = `${startDate} : ${endDate}`;
+
+      // Mark that we're applying a filter so we don't reset on re-render
+      brushFilterApplied.current = true;
+
+      // Defer to let brush event complete before triggering re-render
+      setTimeout(() => {
+        // In Explore view, update the time_range control
+        if (setControlValue) {
+          setControlValue('time_range', timeRange);
+        }
+        // On dashboards, emit cross-filter
+        if (emitCrossFilters) {
+          const col =
+            xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+          const startFormatted = xValueFormatter(startValue);
+          const endFormatted = xValueFormatter(endValue);
+          setDataMask({
+            extraFormData: {
+              filters: [
+                { col, op: '>=', val: startValue },
+                { col, op: '<=', val: endValue },
+              ],
+            },
+            filterState: {
+              value: [startValue, endValue],
+              selectedValues: [startValue, endValue],
+              label: `${startFormatted} - ${endFormatted}`,
+            },
+          });
+        }
+      }, 0);
+    },
+    [emitCrossFilters, formData, setControlValue, setDataMask, xAxis, xValueFormatter],
   );
 
   const eventHandlers: EventHandlers = {
@@ -261,6 +402,7 @@ export default function EchartsTimeseries({
         });
       }
     },
+    brushEnd: handleBrushEnd,
   };
 
   const zrEventHandlers: EventHandlers = {

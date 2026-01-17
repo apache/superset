@@ -116,4 +116,5 @@ export type TimeseriesChartTransformedProps =
         type: AxisType;
       };
       onFocusedSeries: (series: string | null) => void;
+      isHorizontal?: boolean;
     };
