@@ -104,6 +104,24 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     }
 
     @classmethod
+    def normalize_table_name_for_upload(
+        cls,
+        table_name: str,
+        schema_name: str | None = None,
+    ) -> tuple[str, str | None]:
+        """
+        Redshift folds unquoted identifiers to lowercase.
+
+        :param table_name: The table name to normalize
+        :param schema_name: The schema name to normalize (optional)
+        :return: Tuple of (normalized_table_name, normalized_schema_name)
+        """
+        return (
+            table_name.lower(),
+            schema_name.lower() if schema_name else None,
+        )
+
+    @classmethod
     def df_to_sql(
         cls,
         database: Database,
