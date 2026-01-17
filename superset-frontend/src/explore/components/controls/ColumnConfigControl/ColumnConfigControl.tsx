@@ -81,6 +81,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
     });
   }
   const theme = useTheme();
+
   const columnConfigs = useMemo(() => {
     const configs: Record<string, ColumnConfigInfo> = {};
     colnames?.forEach((col, idx) => {
@@ -99,6 +100,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   const [showAllColumns, setShowAllColumns] = useState(false);
 
   const getColumnInfo = (col: string) => columnConfigs[col] || {};
+
   const setColumnConfig = (col: string, config: T) => {
     if (onChange) {
       // Only keep configs for known columns

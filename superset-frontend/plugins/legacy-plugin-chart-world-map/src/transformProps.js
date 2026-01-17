@@ -47,7 +47,12 @@ export default function transformProps(chartProps) {
     currencyFormat,
   } = formData;
   const { r, g, b } = colorPicker;
-  const { currencyFormats = {}, columnFormats = {} } = datasource;
+  const {
+    currencyFormats = {},
+    columnFormats = {},
+    currencyCodeColumn,
+  } = datasource;
+  const { data, detected_currency: detectedCurrency } = queriesData[0];
 
   const formatter = getValueFormatter(
     metric,
@@ -55,12 +60,16 @@ export default function transformProps(chartProps) {
     columnFormats,
     yAxisFormat,
     currencyFormat,
+    undefined, // key - not needed for single-metric charts
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   return {
     countryFieldtype,
     entity,
-    data: queriesData[0].data,
+    data,
     width,
     height,
     maxBubbleSize: parseInt(maxBubbleSize, 10),

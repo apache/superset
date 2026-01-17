@@ -101,13 +101,20 @@ describe('DatasourceEditor RTL Columns Tests', () => {
     const columnsButton = screen.getByTestId('collection-tab-Columns');
     await userEvent.click(columnsButton);
 
-    const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
-    expect(dsDefaultDatetimeRadio).toBeChecked();
+    // Use the new Select dropdown (ariaLabel='Default datetime column')
+    const defaultDatetimeSelect = screen.getByRole('combobox', {
+      name: 'Default datetime column',
+    });
+    expect(defaultDatetimeSelect).toBeInTheDocument();
 
-    const genderDefaultDatetimeRadio = screen.getByTestId(
-      'radio-default-dttm-gender',
-    );
-    expect(genderDefaultDatetimeRadio).not.toBeChecked();
+    // The mock datasource has main_dttm_col: 'ds', verify it's displayed as the selected value
+    // The Select component displays the selected value in a span with class 'ant-select-selection-item'
+    await waitFor(() => {
+      const selectedItem = document.querySelector(
+        '[data-test="default-datetime-column-select"] .ant-select-selection-item',
+      );
+      expect(selectedItem?.textContent).toBe('ds');
+    });
   });
 
   it('allows choosing only temporal columns as the default datetime', async () => {
@@ -116,12 +123,29 @@ describe('DatasourceEditor RTL Columns Tests', () => {
     const columnsButton = screen.getByTestId('collection-tab-Columns');
     await userEvent.click(columnsButton);
 
-    const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
-    expect(dsDefaultDatetimeRadio).toBeEnabled();
+    // Verify the Select dropdown exists
+    const defaultDatetimeSelect = screen.getByRole('combobox', {
+      name: 'Default datetime column',
+    });
+    expect(defaultDatetimeSelect).toBeInTheDocument();
 
-    const genderDefaultDatetimeRadio = screen.getByTestId(
-      'radio-default-dttm-gender',
-    );
-    expect(genderDefaultDatetimeRadio).toBeDisabled();
+    // Open the dropdown
+    await userEvent.click(defaultDatetimeSelect);
+
+    // Wait for dropdown to open and verify only datetime columns are available
+    await waitFor(() => {
+      // 'ds' should be available (is_dttm: true in mock)
+      const options = document.querySelectorAll('.ant-select-item-option');
+      const dsOption = Array.from(options).find(opt =>
+        opt.textContent?.includes('ds'),
+      );
+      expect(dsOption).toBeDefined();
+
+      // 'gender' should NOT be in options (is_dttm: false)
+      const genderOption = Array.from(options).find(
+        opt => opt.textContent === 'gender',
+      );
+      expect(genderOption).toBeUndefined();
+    });
   });
 });

@@ -16,13 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { render } from 'spec/helpers/testing-library';
+import { CurrencyControl } from './CurrencyControl';
 
-export { default as CurrencyFormatter } from './CurrencyFormatter';
-export {
-  getCurrencySymbol,
-  normalizeCurrency,
-  hasMixedCurrencies,
-} from './CurrencyFormatter';
-export { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
-export * from './types';
-export * from './utils';
+test('CurrencyControl renders position and symbol selects', () => {
+  const { container } = render(
+    <CurrencyControl onChange={jest.fn()} value={{}} />,
+    {
+      useRedux: true,
+      initialState: {
+        common: { currencies: ['USD', 'EUR'] },
+        explore: { datasource: {} },
+      },
+    },
+  );
+
+  expect(
+    container.querySelector('[data-test="currency-control-container"]'),
+  ).toBeInTheDocument();
+  expect(container.querySelectorAll('.ant-select')).toHaveLength(2);
+});

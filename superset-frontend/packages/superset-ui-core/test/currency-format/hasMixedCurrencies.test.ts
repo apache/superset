@@ -17,12 +17,16 @@
  * under the License.
  */
 
-export { default as CurrencyFormatter } from './CurrencyFormatter';
-export {
-  getCurrencySymbol,
-  normalizeCurrency,
-  hasMixedCurrencies,
-} from './CurrencyFormatter';
-export { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
-export * from './types';
-export * from './utils';
+import { hasMixedCurrencies } from '../../src/currency-format/CurrencyFormatter';
+
+test('hasMixedCurrencies detects mixed vs single currency', () => {
+  expect(hasMixedCurrencies(['USD', 'EUR'])).toBe(true);
+  expect(hasMixedCurrencies(['USD', 'usd'])).toBe(false);
+  expect(hasMixedCurrencies(['USD'])).toBe(false);
+  expect(hasMixedCurrencies([])).toBe(false);
+});
+
+test('hasMixedCurrencies ignores null values', () => {
+  expect(hasMixedCurrencies(['USD', null, 'USD'])).toBe(false);
+  expect(hasMixedCurrencies(['USD', null, 'EUR'])).toBe(true);
+});
