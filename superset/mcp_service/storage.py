@@ -131,11 +131,13 @@ def _create_redis_store(
         clean_url += f"/{parsed.path.strip('/') or '0'}"
 
         # Create Redis store with SSL support for cloud deployments
+        # Note: RedisStore uses redis.asyncio under the hood which handles
+        # SSL automatically via the rediss:// URL scheme
         if use_ssl:
-            redis_store = RedisStore(
-                url=clean_url,
-                ssl_cert_reqs=ssl.CERT_NONE,  # For self-signed certs (ElastiCache)
-            )
+            # For ElastiCache with self-signed certs, append ssl_cert_reqs param
+            # redis.asyncio understands this as a query param in the URL
+            ssl_url = f"{clean_url}?ssl_cert_reqs=none"
+            redis_store = RedisStore(url=ssl_url)
             logger.info("Created RedisStore with SSL at %s", parsed.hostname)
         else:
             redis_store = RedisStore(url=clean_url)
