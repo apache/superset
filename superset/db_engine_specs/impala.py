@@ -54,7 +54,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
         ),
         "logo": "apache-impala.png",
         "homepage_url": "https://impala.apache.org/",
-        "categories": [DatabaseCategory.APACHE_PROJECTS, DatabaseCategory.QUERY_ENGINES],
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.QUERY_ENGINES,
+        ],
         "pypi_packages": ["impyla"],
         "connection_string": "impala://{hostname}:{port}/{database}",
         "default_port": 21050,

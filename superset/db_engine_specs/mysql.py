@@ -143,7 +143,8 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 "name": "Amazon Aurora MySQL",
                 "description": (
                     "Amazon Aurora MySQL is a fully managed, MySQL-compatible "
-                    "relational database with up to 5x the throughput of standard MySQL."
+                    "relational database with up to 5x the throughput of "
+                    "standard MySQL."
                 ),
                 "logo": "aws-aurora.jpg",
                 "homepage_url": "https://aws.amazon.com/rds/aurora/",

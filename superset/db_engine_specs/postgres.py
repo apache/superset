@@ -316,8 +316,9 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             {
                 "name": "Amazon Aurora PostgreSQL",
                 "description": (
-                    "Amazon Aurora PostgreSQL is a fully managed, PostgreSQL-compatible "
-                    "relational database with up to 5x the throughput of standard PostgreSQL."
+                    "Amazon Aurora PostgreSQL is a fully managed, "
+                    "PostgreSQL-compatible relational database with up to 5x "
+                    "the throughput of standard PostgreSQL."
                 ),
                 "logo": "aws-aurora.jpg",
                 "homepage_url": "https://aws.amazon.com/rds/aurora/",

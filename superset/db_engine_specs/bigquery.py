@@ -139,7 +139,10 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         ),
         "logo": "google-big-query.svg",
         "homepage_url": "https://cloud.google.com/bigquery/",
-        "categories": [DatabaseCategory.CLOUD_GCP, DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.CLOUD_GCP,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+        ],
         "pypi_packages": ["sqlalchemy-bigquery"],
         "connection_string": "bigquery://{project_id}",
         "install_instructions": (

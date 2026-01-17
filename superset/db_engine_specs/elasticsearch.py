@@ -62,7 +62,9 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
                 "pypi_package": "elasticsearch-dbapi",
                 "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
                 "is_recommended": True,
-                "notes": "For Elastic Cloud and self-hosted Elasticsearch with SQL enabled.",
+                "notes": (
+                    "For Elastic Cloud and self-hosted Elasticsearch with SQL enabled."
+                ),
             },
             {
                 "name": "OpenDistro / OpenSearch SQL",

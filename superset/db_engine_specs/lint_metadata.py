@@ -683,9 +683,7 @@ def main() -> int:
     # Specs without metadata are intentionally internal/legacy and are allowed.
     if args.strict:
         # Only count specs that HAVE metadata but are incomplete
-        missing_count = sum(
-            1 for r in reports if r.has_metadata and r.missing_required
-        )
+        missing_count = sum(1 for r in reports if r.has_metadata and r.missing_required)
         invalid_pypi_count = sum(1 for r in reports if r.invalid_packages)
 
         if missing_count > 0:

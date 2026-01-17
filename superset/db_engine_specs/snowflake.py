@@ -101,7 +101,10 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         "description": "Snowflake is a cloud-native data warehouse.",
         "logo": "snowflake.svg",
         "homepage_url": "https://www.snowflake.com/",
-        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+        ],
         "pypi_packages": ["snowflake-sqlalchemy"],
         "connection_string": (
             "snowflake://{user}:{password}@{account}.{region}/{database}"

@@ -39,7 +39,10 @@ class HologresEngineSpec(PostgresBaseEngineSpec):
         ),
         "logo": "hologres.png",
         "homepage_url": "https://www.alibabacloud.com/product/hologres",
-        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+        ],
         "pypi_packages": ["psycopg2"],
         "connection_string": (
             "postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}"

@@ -48,7 +48,10 @@ class DrillEngineSpec(BaseEngineSpec):
         ),
         "logo": "apache-drill.png",
         "homepage_url": "https://drill.apache.org/",
-        "categories": [DatabaseCategory.APACHE_PROJECTS, DatabaseCategory.QUERY_ENGINES],
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.QUERY_ENGINES,
+        ],
         "pypi_packages": ["sqlalchemy-drill"],
         "connection_string": (
             "drill+sadrill://{username}:{password}@{host}:{port}/"

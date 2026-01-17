@@ -296,7 +296,9 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     "clickhousedb://{username}:{password}@{host}:{port}/{database}"
                 ),
                 "is_recommended": True,
-                "notes": "Official ClickHouse Python driver with native protocol support.",
+                "notes": (
+                    "Official ClickHouse Python driver with native protocol support."
+                ),
             },
             {
                 "name": "clickhouse-sqlalchemy (Legacy)",
@@ -305,7 +307,10 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     "clickhouse://{username}:{password}@{host}:{port}/{database}"
                 ),
                 "is_recommended": False,
-                "notes": "Older driver using HTTP interface. Use clickhouse-connect for new deployments.",
+                "notes": (
+                    "Older driver using HTTP interface. Use clickhouse-connect "
+                    "for new deployments."
+                ),
             },
         ],
         "connection_examples": [

@@ -127,7 +127,10 @@ class DorisEngineSpec(MySQLEngineSpec):
         ),
         "logo": "doris.png",
         "homepage_url": "https://doris.apache.org/",
-        "categories": [DatabaseCategory.APACHE_PROJECTS, DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+        ],
         "pypi_packages": ["pydoris"],
         "connection_string": (
             "doris://{username}:{password}@{host}:{port}/{catalog}.{database}"

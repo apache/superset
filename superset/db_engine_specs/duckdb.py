@@ -200,8 +200,9 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
     metadata = {
         "description": (
-            "DuckDB is an in-process OLAP database designed for fast analytical queries "
-            "on local data. Supports CSV, Parquet, JSON, and many other file formats."
+            "DuckDB is an in-process OLAP database designed for fast "
+            "analytical queries on local data. Supports CSV, Parquet, JSON, "
+            "and many other file formats."
         ),
         "logo": "duckdb.png",
         "homepage_url": "https://duckdb.org/",
@@ -224,8 +225,9 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
             {
                 "name": "MotherDuck",
                 "description": (
-                    "MotherDuck is a serverless cloud analytics platform built on DuckDB, "
-                    "offering collaborative data sharing and cloud-native scalability."
+                    "MotherDuck is a serverless cloud analytics platform "
+                    "built on DuckDB, offering collaborative data sharing "
+                    "and cloud-native scalability."
                 ),
                 "logo": "motherduck.png",
                 "homepage_url": "https://motherduck.com/",

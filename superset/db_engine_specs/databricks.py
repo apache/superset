@@ -600,13 +600,17 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
 
     metadata = {
         "description": (
-            "Databricks is a unified analytics platform built on Apache Spark, "
-            "providing data engineering, data science, and machine learning capabilities "
-            "in the cloud. Use the Python Connector for SQL warehouses and clusters."
+            "Databricks is a unified analytics platform built on Apache "
+            "Spark, providing data engineering, data science, and machine "
+            "learning capabilities in the cloud. Use the Python Connector "
+            "for SQL warehouses and clusters."
         ),
         "logo": "databricks.png",
         "homepage_url": "https://www.databricks.com/",
-        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+        ],
         "pypi_packages": ["apache-superset[databricks]"],
         "install_instructions": "pip install apache-superset[databricks]",
         "connection_string": (
@@ -628,7 +632,10 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
                     "?http_path={http_path}&catalog={catalog}&schema={schema}"
                 ),
                 "is_recommended": True,
-                "notes": "Official Databricks connector. Best for SQL warehouses and clusters.",
+                "notes": (
+                    "Official Databricks connector. Best for SQL warehouses "
+                    "and clusters."
+                ),
             },
             {
                 "name": "Hive Connector (Interactive Clusters)",
@@ -637,7 +644,9 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
                     "databricks+pyhive://token:{access_token}@{host}:{port}/{database}"
                 ),
                 "is_recommended": False,
-                "notes": "For Interactive Clusters. Requires http_path in engine parameters.",
+                "notes": (
+                    "For Interactive Clusters. Requires http_path in engine parameters."
+                ),
             },
             {
                 "name": "ODBC (SQL Endpoints)",

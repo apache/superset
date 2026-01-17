@@ -48,7 +48,10 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         ),
         "logo": "kusto.png",
         "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
-        "categories": [DatabaseCategory.CLOUD_AZURE, DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.CLOUD_AZURE,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+        ],
         "pypi_packages": ["sqlalchemy-kusto"],
         "connection_string": (
             "kustosql+https://{cluster}.kusto.windows.net/{database}"

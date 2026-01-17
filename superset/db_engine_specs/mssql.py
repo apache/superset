@@ -208,7 +208,10 @@ class AzureSynapseSpec(MssqlEngineSpec):
         ),
         "logo": "azure.svg",
         "homepage_url": "https://azure.microsoft.com/en-us/products/synapse-analytics/",
-        "categories": [DatabaseCategory.CLOUD_DATA_WAREHOUSES, DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+        ],
         "pypi_packages": ["pymssql"],
         "connection_string": (
             "mssql+pymssql://{username}@{server}:{password}@"
