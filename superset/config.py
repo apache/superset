@@ -355,19 +355,29 @@ AUTH_RATE_LIMIT = "5 per second"
 APP_NAME = "Superset"
 
 # Specify the App icon
+# NOTE: This variable is used to populate THEME_DEFAULT. If you override this in
+# superset_config.py, you must also override THEME_DEFAULT to see the change,
+# or set THEME_DEFAULT["token"]["brandLogoUrl"] directly.
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 
 # Specify where clicking the logo would take the user'
 # Default value of None will take you to '/superset/welcome'
 # You can also specify a relative URL e.g. '/superset/welcome' or '/dashboards/list'
 # or you can specify a full URL e.g. 'https://foo.bar'
+# NOTE: This variable is used to populate THEME_DEFAULT. If you override this in
+# superset_config.py, you must also override THEME_DEFAULT to see the change,
+# or set THEME_DEFAULT["token"]["brandLogoHref"] directly.
 LOGO_TARGET_PATH = None
 
 # Specify tooltip that should appear when hovering over the App Icon/Logo
+# NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_TOOLTIP = ""
 
 # Specify any text that should appear to the right of the logo
+# NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
+
+# APP_ICON_WIDTH is deprecated. Use THEME_DEFAULT["token"]["brandLogoHeight"] instead (default: "24px").
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
@@ -780,9 +790,10 @@ THEME_DEFAULT: Theme = {
         "brandLogoAlt": "Apache Superset",
         "brandLogoUrl": APP_ICON,
         "brandLogoMargin": "18px 0",
-        "brandLogoHref": "/",
+        "brandLogoHref": LOGO_TARGET_PATH or "/",
         "brandLogoHeight": "24px",
         # Spinner
+        # "brandSpinnerUrl": "/static/assets/images/loading.gif",  # Set this to use a custom GIF/image loader
         "brandSpinnerUrl": None,
         "brandSpinnerSvg": None,
         # Default colors
