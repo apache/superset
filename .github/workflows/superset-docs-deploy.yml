@@ -58,6 +58,24 @@ jobs:
         working-directory: docs
         run: |
           yarn install --check-cache
+      - name: Try to download database diagnostics artifact
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: superset-python-integrationtest.yml
+          name: database-diagnostics
+          path: docs/src/data/
+          search_artifacts: true
+          if_no_artifact_found: warn
+      - name: Use artifact diagnostics if available
+        working-directory: docs
+        run: |
+          if [ -f "src/data/databases-diagnostics.json" ]; then
+            echo "Using fresh diagnostics from integration tests"
+            mv src/data/databases-diagnostics.json src/data/databases.json
+          else
+            echo "Using committed databases.json (no artifact found)"
+          fi
       - name: yarn build
         working-directory: docs
         run: |

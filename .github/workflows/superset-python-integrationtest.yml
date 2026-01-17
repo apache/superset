@@ -73,6 +73,36 @@ jobs:
           flags: python,mysql
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+      - name: Generate database diagnostics for docs
+        if: steps.check.outputs.python
+        env:
+          SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+          SUPERSET__SQLALCHEMY_DATABASE_URI: |
+            mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
+        run: |
+          python -c "
+          import json
+          from superset.app import create_app
+          from superset.db_engine_specs.lib import generate_yaml_docs
+          app = create_app()
+          with app.app_context():
+              docs = generate_yaml_docs()
+              # Wrap in the expected format
+              output = {
+                  'generated': '$(date -Iseconds)',
+                  'databases': docs
+              }
+              with open('databases-diagnostics.json', 'w') as f:
+                  json.dump(output, f, indent=2, default=str)
+              print(f'Generated diagnostics for {len(docs)} databases')
+          "
+      - name: Upload database diagnostics artifact
+        if: steps.check.outputs.python
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-diagnostics
+          path: databases-diagnostics.json
+          retention-days: 7
   test-postgres:
     runs-on: ubuntu-24.04
     strategy:
