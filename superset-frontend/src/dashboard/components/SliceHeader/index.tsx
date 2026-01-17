@@ -206,6 +206,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
         : Number(queriesResponse?.[0]?.sql_rowcount ?? 0);
 
     const canExplore = !editMode && supersetCanExplore;
+    const showRowCountLabel = !uiConfig.hideChartControls && isTableChart && sqlRowCount > 0;
+    const showRowLimitWarning = shouldShowRowLimitWarning && sqlRowCount >= rowLimit && rowLimit > 0;
 
     useEffect(() => {
       const headerElement = headerRef.current;
@@ -314,12 +316,12 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 <FiltersBadge chartId={slice.slice_id} />
               )}
 
-              {!uiConfig.hideChartControls && isTableChart && sqlRowCount > 0 && (
+              {showRowCountLabel && (
                 <RowCountLabel
                   rowcount={sqlRowCount}
                   limit={rowLimit}
                   label={
-                    shouldShowRowLimitWarning && sqlRowCount >= rowLimit && rowLimit > 0 ? (
+                    showRowLimitWarning ? (
                       <Icons.WarningOutlined
                         iconSize="l"
                         iconColor={theme.colorWarning}
