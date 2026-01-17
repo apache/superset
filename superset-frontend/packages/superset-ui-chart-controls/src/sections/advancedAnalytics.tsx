@@ -23,6 +23,10 @@ import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions, displayTimeRelatedControls } from '../utils';
 
+import { glossary } from '@superset-ui/core';
+
+const TIME_SHIFT_DESCRIPTION = glossary.Advanced_Analytics.Time_Shift.encode();
+
 export const advancedAnalyticsControls: ControlPanelSectionConfig = {
   label: t('Advanced analytics'),
   tabOverride: 'data',
@@ -123,12 +127,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
             ['156 weeks ago', t('156 weeks ago')],
             ['3 years ago', t('3 years ago')],
           ],
-          description: t(
-            'Overlay one or more timeseries from a ' +
-              'relative time period. Expects relative time deltas ' +
-              'in natural language (example:  24 hours, 7 days, ' +
-              '52 weeks, 365 days). Free text is supported.',
-          ),
+          description: t(TIME_SHIFT_DESCRIPTION),
         },
       },
     ],
