@@ -236,23 +236,29 @@ class TaskStatusResponseSchema(Schema):
     status = fields.String(metadata={"description": status_description})
 
 
-class TaskAbortResponseSchema(Schema):
-    """Schema for task abortion response"""
+class TaskCancelRequestSchema(Schema):
+    """Schema for task cancellation request"""
 
-    message = fields.String(metadata={"description": "Success or error message"})
+    force = fields.Boolean(
+        load_default=False,
+        metadata={
+            "description": "Force cancel the task for all subscribers (admin only). "
+            "Only applicable for shared tasks with multiple subscribers."
+        },
+    )
+
+
+class TaskCancelResponseSchema(Schema):
+    """Schema for task cancellation response"""
+
+    message = fields.String(metadata={"description": "Success or status message"})
+    action = fields.String(
+        metadata={
+            "description": "The action taken: 'aborted' (task terminated) or "
+            "'unsubscribed' (user removed from shared task)"
+        }
+    )
     task = fields.Nested(TaskResponseSchema, allow_none=True)
-
-
-class TaskBulkAbortResponseSchema(Schema):
-    """Schema for bulk task abortion response"""
-
-    message = fields.String(metadata={"description": "Status message"})
-    aborted_count = fields.Int(
-        metadata={"description": "Number of tasks successfully aborted"}
-    )
-    failed_count = fields.Int(
-        metadata={"description": "Number of tasks that could not be aborted"}
-    )
 
 
 openapi_spec_methods_override = {

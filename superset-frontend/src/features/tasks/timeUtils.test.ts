@@ -86,58 +86,60 @@ test('calculateEta returns null for ETAs over 24 hours', () => {
 });
 
 test('formatProgressTooltip returns label only when no progress data', () => {
-  expect(formatProgressTooltip('In Progress')).toBe('In Progress');
-  expect(formatProgressTooltip('In Progress', null, null, null, null)).toBe(
+  expect(formatProgressTooltip('In Progress')).toEqual(['In Progress']);
+  expect(formatProgressTooltip('In Progress', null, null, null, null)).toEqual([
     'In Progress',
-  );
+  ]);
 });
 
 test('formatProgressTooltip formats count and total correctly', () => {
-  expect(formatProgressTooltip('In Progress', 9, 60)).toBe(
+  expect(formatProgressTooltip('In Progress', 9, 60)).toEqual([
     'In Progress: 9 of 60',
-  );
+  ]);
 });
 
 test('formatProgressTooltip formats count only correctly', () => {
-  expect(formatProgressTooltip('In Progress', 42)).toBe(
+  expect(formatProgressTooltip('In Progress', 42)).toEqual([
     'In Progress: 42 processed',
-  );
-  expect(formatProgressTooltip('In Progress', 42, null)).toBe(
+  ]);
+  expect(formatProgressTooltip('In Progress', 42, null)).toEqual([
     'In Progress: 42 processed',
-  );
+  ]);
 });
 
 test('formatProgressTooltip formats percentage correctly', () => {
-  expect(formatProgressTooltip('In Progress', null, null, 0.5)).toBe(
+  expect(formatProgressTooltip('In Progress', null, null, 0.5)).toEqual([
     'In Progress: 50%',
-  );
-  expect(formatProgressTooltip('In Progress', null, null, 0.333)).toBe(
+  ]);
+  expect(formatProgressTooltip('In Progress', null, null, 0.333)).toEqual([
     'In Progress: 33%',
-  );
+  ]);
 });
 
 test('formatProgressTooltip combines count, total, and percentage', () => {
-  expect(formatProgressTooltip('In Progress', 9, 60, 0.15)).toBe(
-    'In Progress: 9 of 60, 15%',
-  );
+  expect(formatProgressTooltip('In Progress', 9, 60, 0.15)).toEqual([
+    'In Progress: 9 of 60 (15%)',
+  ]);
 });
 
 test('formatProgressTooltip includes ETA when duration is provided', () => {
   // 50% done in 60s -> ETA = 60s = ~1m
-  expect(formatProgressTooltip('In Progress', 30, 60, 0.5, 60)).toBe(
-    'In Progress: 30 of 60, 50%, ETA ~1m',
-  );
+  expect(formatProgressTooltip('In Progress', 30, 60, 0.5, 60)).toEqual([
+    'In Progress: 30 of 60 (50%)',
+    'ETA: 1m',
+  ]);
 });
 
 test('formatProgressTooltip works with percentage and ETA only', () => {
   // 25% done in 30s -> ETA = (30/0.25) * 0.75 = 90s = 1m 30s
-  expect(formatProgressTooltip('In Progress', null, null, 0.25, 30)).toBe(
-    'In Progress: 25%, ETA ~1m 30s',
-  );
+  expect(formatProgressTooltip('In Progress', null, null, 0.25, 30)).toEqual([
+    'In Progress: 25%',
+    'ETA: 1m 30s',
+  ]);
 });
 
 test('formatProgressTooltip works with different labels', () => {
-  expect(formatProgressTooltip('Aborting', 5, 10, 0.5)).toBe(
-    'Aborting: 5 of 10, 50%',
-  );
+  expect(formatProgressTooltip('Aborting', 5, 10, 0.5)).toEqual([
+    'Aborting: 5 of 10 (50%)',
+  ]);
 });

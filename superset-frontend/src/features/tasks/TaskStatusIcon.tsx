@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import React from 'react';
 import { useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components';
@@ -83,30 +84,40 @@ export default function TaskStatusIcon({
   const IconComponent = statusIcons[status];
   const label = statusLabels[status];
 
-  // Build tooltip text based on status
-  let tooltipText: string;
+  // Build tooltip content based on status
+  let tooltipContent: React.ReactNode;
   if (status === TaskStatus.InProgress || status === TaskStatus.Aborting) {
-    // Progress tooltip for active tasks
-    tooltipText = formatProgressTooltip(
+    // Progress tooltip for active tasks (multiline)
+    const lines = formatProgressTooltip(
       label,
       progressCurrent,
       progressTotal,
       progressPercent,
       durationSeconds,
     );
+    tooltipContent = (
+      <>
+        {lines.map((line, index) => (
+          <React.Fragment key={index}>
+            {index > 0 && <br />}
+            {line}
+          </React.Fragment>
+        ))}
+      </>
+    );
   } else if (status === TaskStatus.Failure && (exceptionType || errorMessage)) {
     // Error tooltip for failed tasks: "Failed (ExceptionType): message"
     if (exceptionType && errorMessage) {
-      tooltipText = `${label} (${exceptionType}): ${errorMessage}`;
+      tooltipContent = `${label} (${exceptionType}): ${errorMessage}`;
     } else if (exceptionType) {
-      tooltipText = `${label} (${exceptionType})`;
+      tooltipContent = `${label} (${exceptionType})`;
     } else if (errorMessage) {
-      tooltipText = `${label}: ${errorMessage}`;
+      tooltipContent = `${label}: ${errorMessage}`;
     } else {
-      tooltipText = label;
+      tooltipContent = label;
     }
   } else {
-    tooltipText = label;
+    tooltipContent = label;
   }
 
   // Spin for in-progress and aborting states
@@ -114,7 +125,7 @@ export default function TaskStatusIcon({
     status === TaskStatus.InProgress || status === TaskStatus.Aborting;
 
   return (
-    <Tooltip title={tooltipText} placement="top">
+    <Tooltip title={tooltipContent} placement="top">
       <span>
         <IconComponent
           iconSize="l"

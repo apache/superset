@@ -19,18 +19,13 @@
 
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core';
-import { useMemo, useCallback } from 'react';
-import {
-  ConfirmStatusChange,
-  Tooltip,
-  Label,
-} from '@superset-ui/core/components';
+import { useMemo, useCallback, useState } from 'react';
+import { Tooltip, Label, Modal, Checkbox } from '@superset-ui/core/components';
 import {
   CreatedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
-  type ListViewProps,
   FacePile,
 } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -60,112 +55,106 @@ interface TaskListProps {
 
 function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   const {
-    state: {
-      loading,
-      resourceCount: tasksCount,
-      resourceCollection: tasks,
-      bulkSelectEnabled,
-    },
-    hasPerm,
+    state: { loading, resourceCount: tasksCount, resourceCollection: tasks },
     fetchData,
     refreshData,
-    toggleBulkSelect,
   } = useListViewResource<Task>('task', t('task'), addDangerToast);
-
-  const canWrite = hasPerm('can_write');
 
   // Get full user with roles to check admin status
   const bootstrapData = getBootstrapData();
   const fullUser = bootstrapData?.user;
   const isAdmin = useMemo(() => isUserAdmin(fullUser), [fullUser]);
 
-  const handleTaskAbort = useCallback(
+  // State for cancel confirmation modal
+  const [cancelModalTask, setCancelModalTask] = useState<Task | null>(null);
+  const [forceCancel, setForceCancel] = useState(false);
+
+  // Determine dialog message based on task context
+  const getCancelDialogMessage = useCallback(
     (task: Task) => {
-      SupersetClient.post({
-        endpoint: `/api/v1/task/${task.uuid}/abort`,
-      }).then(
-        () => {
-          refreshData();
-          addSuccessToast(
-            t('Task aborted: %s', task.task_type || task.task_key),
-          );
-        },
-        createErrorHandler(errMsg =>
-          addDangerToast(t('There was an issue aborting the task: %s', errMsg)),
-        ),
-      );
-    },
-    [addDangerToast, addSuccessToast, refreshData],
-  );
+      const isSharedTask = task.scope === TaskScope.Shared;
+      const subscriberCount = task.subscriber_count || 0;
+      const otherSubscribers = subscriberCount - 1;
 
-  const handleTaskUnsubscribe = useCallback(
-    (task: Task) => {
-      SupersetClient.post({
-        endpoint: `/api/v1/task/${task.uuid}/unsubscribe`,
-      }).then(
-        () => {
-          refreshData();
-          addSuccessToast(
-            t('Unsubscribed from task: %s', task.task_type || task.task_key),
-          );
-        },
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t('There was an issue unsubscribing from the task: %s', errMsg),
-          ),
-        ),
-      );
-    },
-    [addDangerToast, addSuccessToast, refreshData],
-  );
-
-  const handleBulkAbort = useCallback(
-    (tasks: Task[]) => {
-      // Filter tasks that can be aborted using the can_be_aborted field
-      const abortableTasks = tasks.filter(task => task.can_be_aborted);
-
-      if (abortableTasks.length === 0) {
-        addDangerToast(
-          t(
-            'None of the selected tasks can be aborted (already completed or not abortable)',
-          ),
-        );
-        return;
+      // If it's going to abort (private, system, or last subscriber)
+      if (!isSharedTask || subscriberCount <= 1) {
+        return t('This will cancel the task.');
       }
 
-      const taskUuids = abortableTasks.map(task => task.uuid);
+      // Shared task with multiple subscribers
+      return t(
+        "You'll be removed from this task. It will continue running for %s other subscriber(s).",
+        otherSubscribers,
+      );
+    },
+    [],
+  );
 
+  // Get force cancel message for admin checkbox
+  const getForceCancelMessage = useCallback((task: Task) => {
+    const subscriberCount = task.subscriber_count || 0;
+    return t(
+      'This will cancel the task for all %s subscribers.',
+      subscriberCount,
+    );
+  }, []);
+
+  // Check if force cancel option should be shown
+  const showForceCancelOption = useCallback(
+    (task: Task) => {
+      const isSharedTask = task.scope === TaskScope.Shared;
+      const subscriberCount = task.subscriber_count || 0;
+      return isAdmin && isSharedTask && subscriberCount > 1;
+    },
+    [isAdmin],
+  );
+
+  const handleTaskCancel = useCallback(
+    (task: Task, force: boolean = false) => {
       SupersetClient.post({
-        endpoint: '/api/v1/task/bulk_abort',
-        jsonPayload: { task_uuids: taskUuids },
+        endpoint: `/api/v1/task/${task.uuid}/cancel`,
+        jsonPayload: force ? { force: true } : {},
       }).then(
         ({ json }) => {
           refreshData();
-          toggleBulkSelect();
-          const { aborted_count, failed_count } = json;
-          if (failed_count > 0) {
-            addDangerToast(
-              t(
-                'Partially aborted: %s of %s tasks aborted successfully',
-                aborted_count,
-                abortableTasks.length,
-              ),
+          const { action } = json as { action: string };
+          if (action === 'aborted') {
+            addSuccessToast(
+              t('Task cancelled: %s', task.task_name || task.task_key),
             );
           } else {
             addSuccessToast(
-              t('Successfully aborted %s task(s)', aborted_count),
+              t(
+                'You have been removed from task: %s',
+                task.task_name || task.task_key,
+              ),
             );
           }
         },
-        createErrorHandler(errMsg => {
+        createErrorHandler(errMsg =>
           addDangerToast(
-            t('There was an issue aborting the selected tasks: %s', errMsg),
-          );
-        }),
+            t('There was an issue cancelling the task: %s', errMsg),
+          ),
+        ),
       );
     },
-    [addDangerToast, addSuccessToast, refreshData, toggleBulkSelect],
+    [addDangerToast, addSuccessToast, refreshData],
   );
+
+  // Handle modal confirmation
+  const handleCancelConfirm = useCallback(() => {
+    if (cancelModalTask) {
+      handleTaskCancel(cancelModalTask, forceCancel);
+      setCancelModalTask(null);
+      setForceCancel(false);
+    }
+  }, [cancelModalTask, forceCancel, handleTaskCancel]);
+
+  // Handle modal close
+  const handleCancelModalClose = useCallback(() => {
+    setCancelModalTask(null);
+    setForceCancel(false);
+  }, []);
 
   const columns = useMemo(
     () => [
@@ -354,20 +343,12 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          // Action button logic based on user role and task scope:
-          //
-          // For SHARED tasks:
-          //   - Admins: Can abort any abortable task AND unsubscribe (if subscribed)
-          //   - Non-admins: Can only unsubscribe (abort happens automatically if last subscriber)
-          //
-          // For PRIVATE/SYSTEM tasks:
-          //   - Admins: Can abort any abortable task
-          //   - Non-admins: Can abort their own private tasks (system tasks are admin-only)
+          // Unified Cancel button logic:
+          // - Show Cancel for any active task that the user can cancel
+          // - The backend handles the smart behavior (unsubscribe vs abort)
           const isRunning = original.status === TaskStatus.InProgress;
-          const isRunningButNotAbortable =
+          const isRunningButNotCancellable =
             isRunning && original.is_abortable === false;
-          const taskIsAbortable =
-            original.can_be_aborted && !original.is_aborting;
 
           const isSharedTask = original.scope === TaskScope.Shared;
           const userIsSubscribed = original.subscribers?.some(
@@ -382,32 +363,30 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             TaskStatus.Aborting,
           ].includes(original.status);
 
-          // Determine if abort button should be shown:
-          // - Admins: Always show abort for abortable tasks (any scope)
-          // - Non-admins on shared tasks: Never show abort (use unsubscribe instead)
-          // - Non-admins on private tasks: Show abort if abortable (base filter ensures ownership)
-          const showAbort = taskIsAbortable && (isAdmin || !isSharedTask);
-
-          // Determine if unsubscribe button should be shown:
-          // - Only for shared tasks where user is subscribed AND task is still active
-          const showUnsubscribe =
-            isSharedTask && userIsSubscribed && !isNonActiveStatus;
+          // Show Cancel button when:
+          // 1. Task can be aborted (pending, or in-progress with handler), OR
+          // 2. User is subscribed to a shared task (can always unsubscribe)
+          const canCancel =
+            (original.can_be_aborted && !original.is_aborting) ||
+            (isSharedTask && userIsSubscribed && !isNonActiveStatus);
 
           // Show disabled button for running tasks without abort handler
-          // (only if abort would otherwise be shown)
-          const showDisabledAbort =
-            isRunningButNotAbortable && (isAdmin || !isSharedTask);
+          // (only for non-shared tasks or when user is the only subscriber)
+          const showDisabledCancel =
+            isRunningButNotCancellable &&
+            !isNonActiveStatus &&
+            (!isSharedTask || (original.subscriber_count || 0) <= 1);
 
-          if (!showAbort && !showUnsubscribe && !showDisabledAbort) {
+          if (!canCancel && !showDisabledCancel) {
             return null;
           }
 
           return (
             <div style={{ display: 'flex', gap: '8px' }}>
-              {showDisabledAbort && (
+              {showDisabledCancel && (
                 <Tooltip
-                  id="abort-disabled-tooltip"
-                  title={t('This task does not support aborting')}
+                  id="cancel-disabled-tooltip"
+                  title={t('This task does not support cancellation')}
                   placement="bottom"
                 >
                   <span
@@ -418,63 +397,21 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   </span>
                 </Tooltip>
               )}
-              {showAbort && (
-                <ConfirmStatusChange
-                  title={t('Please confirm')}
-                  description={
-                    <>
-                      {t('Are you sure you want to abort')}{' '}
-                      <b>{original.task_key}</b>?
-                    </>
-                  }
-                  onConfirm={() => handleTaskAbort(original)}
+              {canCancel && (
+                <Tooltip
+                  id="cancel-action-tooltip"
+                  title={t('Cancel')}
+                  placement="bottom"
                 >
-                  {confirmAbort => (
-                    <Tooltip
-                      id="abort-action-tooltip"
-                      title={t('Abort')}
-                      placement="bottom"
-                    >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
-                        onClick={confirmAbort}
-                      >
-                        <Icons.StopOutlined iconSize="l" />
-                      </span>
-                    </Tooltip>
-                  )}
-                </ConfirmStatusChange>
-              )}
-              {showUnsubscribe && (
-                <ConfirmStatusChange
-                  title={t('Please confirm')}
-                  description={
-                    <>
-                      {t('Are you sure you want to unsubscribe from')}{' '}
-                      <b>{original.task_key}</b>?
-                    </>
-                  }
-                  onConfirm={() => handleTaskUnsubscribe(original)}
-                >
-                  {confirmUnsubscribe => (
-                    <Tooltip
-                      id="unsubscribe-action-tooltip"
-                      title={t('Unsubscribe')}
-                      placement="bottom"
-                    >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
-                        onClick={confirmUnsubscribe}
-                      >
-                        <Icons.UserOutlined iconSize="l" />
-                      </span>
-                    </Tooltip>
-                  )}
-                </ConfirmStatusChange>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={() => setCancelModalTask(original)}
+                  >
+                    <Icons.StopOutlined iconSize="l" />
+                  </span>
+                </Tooltip>
               )}
             </div>
           );
@@ -485,7 +422,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         disableSortBy: true,
       },
     ],
-    [handleTaskAbort, handleTaskUnsubscribe, isAdmin, user.userId],
+    [user.userId],
   );
 
   const filters: ListViewFilters = useMemo(
@@ -560,39 +497,9 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
     ),
   };
 
-  const bulkActions: ListViewProps['bulkActions'] = canWrite
-    ? [
-        {
-          key: 'abort',
-          name: t('Abort'),
-          type: 'secondary',
-          onSelect: (tasks: Task[]) => {
-            handleBulkAbort(tasks);
-          },
-        },
-      ]
-    : [];
-
-  const subMenuButtons = useMemo(() => {
-    if (!canWrite) {
-      return [];
-    }
-    return [
-      {
-        name: (
-          <>
-            <Icons.StopOutlined iconSize="l" /> {t('Bulk Select')}
-          </>
-        ),
-        buttonStyle: 'secondary' as const,
-        onClick: toggleBulkSelect,
-      },
-    ];
-  }, [canWrite, toggleBulkSelect]);
-
   return (
     <>
-      <SubMenu name={t('Tasks')} buttons={subMenuButtons} />
+      <SubMenu name={t('Tasks')} />
       <ListView<Task>
         className="task-list-view"
         columns={columns}
@@ -607,9 +514,34 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         refreshData={refreshData}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
-        bulkSelectEnabled={bulkSelectEnabled}
-        bulkActions={bulkActions}
       />
+
+      {/* Cancel Confirmation Modal */}
+      <Modal
+        title={t('Cancel Task')}
+        show={!!cancelModalTask}
+        onHide={handleCancelModalClose}
+        primaryButtonName={t('Yes, Cancel')}
+        onHandledPrimaryAction={handleCancelConfirm}
+      >
+        {cancelModalTask && (
+          <>
+            <p>
+              {forceCancel
+                ? getForceCancelMessage(cancelModalTask)
+                : getCancelDialogMessage(cancelModalTask)}
+            </p>
+            {showForceCancelOption(cancelModalTask) && (
+              <Checkbox
+                checked={forceCancel}
+                onChange={e => setForceCancel(e.target.checked)}
+              >
+                {t('Cancel for all subscribers')}
+              </Checkbox>
+            )}
+          </>
+        )}
+      </Modal>
     </>
   );
 }

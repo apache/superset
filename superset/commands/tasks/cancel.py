@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Unified cancel task command for GTF."""
+
 import logging
 from functools import partial
 from typing import TYPE_CHECKING
@@ -36,55 +38,89 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class AbortTaskCommand(BaseCommand):
-    """Command to abort an task with scope-based permissions."""
+class CancelTaskCommand(BaseCommand):
+    """
+    Unified command to cancel a task.
 
-    def __init__(self, task_uuid: str):
+    Behavior:
+    - For private tasks or single-subscriber tasks: aborts the task
+    - For shared tasks with multiple subscribers (non-admin): unsubscribes user
+    - For shared tasks with force=True (admin only): aborts for all subscribers
+
+    The term "cancel" is user-facing; internally this may abort or unsubscribe.
+    """
+
+    def __init__(self, task_uuid: str, force: bool = False):
+        """
+        Initialize the cancel command.
+
+        :param task_uuid: UUID of the task to cancel
+        :param force: If True, force abort even with multiple subscribers (admin only)
+        """
         self._task_uuid = task_uuid
+        self._force = force
         self._model: "Task" | None = None
         self._is_admin: bool = False
+        self._action_taken: str = (
+            "cancelled"  # Will be set to 'aborted' or 'unsubscribed'
+        )
 
     @transaction(on_error=partial(on_error, reraise=TaskAbortFailedError))
     def run(self) -> "Task":
-        """Execute the command."""
+        """
+        Execute the cancel command.
+
+        :returns: The updated task model
+        """
         self.validate()
         assert self._model
 
         # Lazy import to avoid circular dependency
         from superset.daos.tasks import TaskDAO
 
-        # For shared tasks, use remove_subscriber logic which auto-aborts
-        # if last subscriber (unless admin force-abort)
-        if self._model.is_shared and not self._is_admin:
-            user_id = get_user_id()
+        user_id = get_user_id()
+
+        # Determine action based on task scope and force flag
+        should_abort_directly = (
+            # Admin with force flag always aborts
+            (self._is_admin and self._force)
+            # Private tasks always abort (only one user)
+            or self._model.is_private
+            # System tasks always abort (admin only anyway)
+            or self._model.is_system
+            # Single or last subscriber - abort
+            or self._model.subscriber_count <= 1
+        )
+
+        if should_abort_directly:
+            # Direct abort
+            self._action_taken = "aborted"
+            try:
+                TaskDAO.abort_task(self._task_uuid, skip_base_filter=self._is_admin)
+            except TaskNotAbortableError:
+                raise
+
+            logger.info(
+                "Task aborted: %s (scope: %s, force: %s)",
+                self._task_uuid,
+                self._model.scope,
+                self._force,
+            )
+        else:
+            # Shared task with multiple subscribers - unsubscribe user
+            self._action_taken = "unsubscribed"
             if user_id and self._model.has_subscriber(user_id):
-                # Remove user's subscription; task aborts if last subscriber
                 TaskDAO.remove_subscriber(self._model.id, user_id)
                 logger.info(
-                    "Unsubscribed user %s from shared task: %s (auto-abort if last)",
+                    "User %s unsubscribed from shared task: %s",
                     user_id,
                     self._task_uuid,
                 )
-                # Refresh model to get updated status
-                refreshed = TaskDAO.find_one_or_none(
-                    skip_base_filter=True, uuid=self._task_uuid
+            else:
+                # User not subscribed - they shouldn't be able to cancel
+                raise TaskPermissionDeniedError(
+                    "You are not subscribed to this shared task"
                 )
-                if not refreshed:
-                    raise TaskNotFoundError()
-                self._model = refreshed
-                return self._model
-            # If user is not a subscriber, fall through to direct abort
-
-        # Use DAO's abort_task which handles two-phase abort logic:
-        # - PENDING → ABORTED (direct)
-        # - IN_PROGRESS with is_abortable=True → ABORTING
-        # - IN_PROGRESS with is_abortable=False/None → raises TaskNotAbortableError
-        # - ABORTING → returns True (idempotent)
-        try:
-            TaskDAO.abort_task(self._task_uuid, skip_base_filter=self._is_admin)
-        except TaskNotAbortableError:
-            # Re-raise as-is (will be handled by API)
-            raise
 
         # Refresh model to get updated status
         refreshed = TaskDAO.find_one_or_none(
@@ -93,14 +129,17 @@ class AbortTaskCommand(BaseCommand):
         if not refreshed:
             raise TaskNotFoundError()
         self._model = refreshed
-        logger.info(
-            "Abort requested for task: %s (scope: %s, new_status: %s)",
-            self._task_uuid,
-            self._model.scope,
-            self._model.status,
-        )
 
         return self._model
+
+    @property
+    def action_taken(self) -> str:
+        """
+        Get the action that was taken.
+
+        :returns: 'aborted' or 'unsubscribed'
+        """
+        return self._action_taken
 
     def validate(self) -> None:
         """
@@ -110,14 +149,23 @@ class AbortTaskCommand(BaseCommand):
         - private: Only creator or admin
         - shared: Subscribers or admin
         - system: Only admin
+
+        Force flag:
+        - Only admins can use force=True
+        - Force is only meaningful for shared tasks with multiple subscribers
         """
         from superset import security_manager
 
         # Check if admin first
         self._is_admin = security_manager.is_admin()
 
+        # Force flag requires admin
+        if self._force and not self._is_admin:
+            raise TaskPermissionDeniedError(
+                "Only administrators can force cancel a task"
+            )
+
         # Find task (skip_base_filter for admin to see all tasks)
-        # Lazy import to avoid circular dependency
         from superset.daos.tasks import TaskDAO
 
         self._model = TaskDAO.find_one_or_none(
@@ -127,8 +175,7 @@ class AbortTaskCommand(BaseCommand):
         if not self._model:
             raise TaskNotFoundError()
 
-        # Check if task can be aborted based on status
-        # ABORTING is allowed (idempotent) - will just refresh and return
+        # Check if task is in a cancellable state
         if self._model.status not in [
             TaskStatus.PENDING.value,
             TaskStatus.IN_PROGRESS.value,
@@ -136,7 +183,7 @@ class AbortTaskCommand(BaseCommand):
         ]:
             raise TaskAbortFailedError()
 
-        # Admin can abort anything
+        # Admin can cancel anything
         if self._is_admin:
             return
 
@@ -146,14 +193,14 @@ class AbortTaskCommand(BaseCommand):
         if self._model.scope == TaskScope.SYSTEM.value:
             # System tasks are admin-only
             raise TaskPermissionDeniedError(
-                "Only administrators can abort system tasks"
+                "Only administrators can cancel system tasks"
             )
 
         if self._model.is_shared:
             # Shared tasks: must be a subscriber
             if not user_id or not self._model.has_subscriber(user_id):
                 raise TaskPermissionDeniedError(
-                    "You must be subscribed to abort this shared task"
+                    "You must be subscribed to cancel this shared task"
                 )
 
         # Private tasks: already filtered by base_filter (only creator can see)

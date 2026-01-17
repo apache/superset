@@ -20,7 +20,7 @@ import time
 
 from superset_core.api.tasks import get_context, task, TaskStatus
 
-from superset.commands.tasks.bulk_abort import BulkAbortTasksCommand
+from superset.commands.tasks.cancel import CancelTaskCommand
 from superset.extensions import db
 from tests.integration_tests.base_tests import SupersetTestCase
 
@@ -56,8 +56,8 @@ class TestAbortHandlers(SupersetTestCase):
         # Give task time to start
         time.sleep(0.2)
 
-        # Abort the task
-        BulkAbortTasksCommand([created_task.uuid]).run()
+        # Cancel the task (force=True to abort directly)
+        CancelTaskCommand(created_task.uuid, force=True).run()
 
         # Wait for abort handler to fire
         time.sleep(1.0)
@@ -83,10 +83,10 @@ class TestAbortHandlers(SupersetTestCase):
             # Sleep to allow abort
             time.sleep(0.5)
 
-        # Schedule and abort
+        # Schedule and cancel
         created_task = test_task.schedule()
         time.sleep(0.2)
-        BulkAbortTasksCommand([created_task.uuid]).run()
+        CancelTaskCommand(created_task.uuid, force=True).run()
         time.sleep(1.0)
 
         # Verify cleanup happened
@@ -110,10 +110,10 @@ class TestAbortHandlers(SupersetTestCase):
 
             time.sleep(0.5)
 
-        # Schedule and abort
+        # Schedule and cancel
         created_task = test_task.schedule()
         time.sleep(0.2)
-        BulkAbortTasksCommand([created_task.uuid]).run()
+        CancelTaskCommand(created_task.uuid, force=True).run()
         time.sleep(1.0)
 
         # Both handlers should have been called
@@ -141,10 +141,10 @@ class TestAbortHandlers(SupersetTestCase):
 
             time.sleep(0.5)
 
-        # Schedule and abort
+        # Schedule and cancel
         created_task = test_task.schedule()
         time.sleep(0.2)
-        BulkAbortTasksCommand([created_task.uuid]).run()
+        CancelTaskCommand(created_task.uuid, force=True).run()
         time.sleep(1.0)
 
         # Both should have been called
@@ -192,10 +192,10 @@ class TestAbortHandlers(SupersetTestCase):
 
             time.sleep(1.0)
 
-        # Schedule and abort
+        # Schedule and cancel
         created_task = test_task.schedule()
         time.sleep(0.2)
-        BulkAbortTasksCommand([created_task.uuid]).run()
+        CancelTaskCommand(created_task.uuid, force=True).run()
         time.sleep(1.5)
 
         assert abort_called
@@ -219,10 +219,10 @@ class TestAbortHandlers(SupersetTestCase):
 
             time.sleep(0.5)
 
-        # Schedule and abort
+        # Schedule and cancel
         created_task = test_task.schedule()
         time.sleep(0.2)
-        BulkAbortTasksCommand([created_task.uuid]).run()
+        CancelTaskCommand(created_task.uuid, force=True).run()
         time.sleep(1.0)
 
         # Good handler should still have been called
@@ -255,8 +255,8 @@ class TestAbortHandlers(SupersetTestCase):
         # Schedule the task
         created_task = test_task.schedule()
 
-        # Abort immediately (before execution starts)
-        BulkAbortTasksCommand([created_task.uuid]).run()
+        # Cancel immediately (before execution starts)
+        CancelTaskCommand(created_task.uuid, force=True).run()
 
         # Wait a bit
         time.sleep(1.0)
