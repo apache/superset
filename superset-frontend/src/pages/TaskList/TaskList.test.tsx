@@ -52,8 +52,7 @@ import TaskList from 'src/pages/TaskList';
 const tasksInfoEndpoint = 'glob:*/api/v1/task/_info*';
 const tasksCreatedByEndpoint = 'glob:*/api/v1/task/related/created_by*';
 const tasksEndpoint = 'glob:*/api/v1/task/?*';
-const taskAbortEndpoint = 'glob:*/api/v1/task/*/abort';
-const taskUnsubscribeEndpoint = 'glob:*/api/v1/task/*/unsubscribe';
+const taskCancelEndpoint = 'glob:*/api/v1/task/*/cancel';
 
 const mockTasks = [
   {
@@ -174,8 +173,10 @@ fetchMock.get(tasksEndpoint, {
   result: mockTasks,
   count: 3,
 });
-fetchMock.post(taskAbortEndpoint, {});
-fetchMock.post(taskUnsubscribeEndpoint, {});
+fetchMock.post(taskCancelEndpoint, {
+  action: 'aborted',
+  message: 'Task cancelled',
+});
 
 const renderTaskList = (props = {}, userProp = mockUser) =>
   render(
@@ -245,7 +246,7 @@ test('displays task duration for completed tasks', async () => {
   });
 });
 
-test('shows abort button for abortable in-progress tasks', async () => {
+test('shows cancel button for cancellable in-progress tasks', async () => {
   renderTaskList();
   await waitFor(() => {
     expect(screen.getAllByRole('img', { name: 'stop' }).length).toBeGreaterThan(
@@ -254,36 +255,33 @@ test('shows abort button for abortable in-progress tasks', async () => {
   });
 });
 
-test('shows abort confirmation dialog when abort button is clicked', async () => {
+test('shows cancel confirmation modal when cancel button is clicked', async () => {
   renderTaskList();
 
   // Wait for data to load
   await screen.findByText('test_task_2');
 
-  // Find abort button (StopOutlined icon)
+  // Find cancel button (StopOutlined icon)
   const stopIcons = await screen.findAllByRole('img', { name: 'stop' });
-  // Click the first clickable abort button
-  const abortButton = stopIcons.find(
+  // Click the first clickable cancel button
+  const cancelButton = stopIcons.find(
     icon => icon.closest('[role="button"]') !== null,
   );
-  if (abortButton) {
-    fireEvent.click(abortButton);
+  if (cancelButton) {
+    fireEvent.click(cancelButton);
 
-    // Check for confirmation dialog
-    expect(
-      await screen.findByText(/Are you sure you want to abort/i),
-    ).toBeInTheDocument();
+    // Check for confirmation modal
+    expect(await screen.findByText('Cancel Task')).toBeInTheDocument();
   }
 });
 
-test('shows unsubscribe button for shared tasks where user is subscribed', async () => {
+test('shows cancel button for shared tasks where user is subscribed', async () => {
   renderTaskList();
 
   // Wait for data to load
   await screen.findByText('Shared Bulk Task');
 
-  // For shared tasks, admin users see the abort button
-  // Non-admin subscribed users would see unsubscribe button
+  // For shared tasks, users see the cancel button
   await waitFor(() => {
     expect(screen.getAllByRole('img', { name: 'stop' }).length).toBeGreaterThan(
       0,
@@ -305,12 +303,7 @@ test('displays subscribers via FacePile for shared tasks', async () => {
   });
 });
 
-test('shows bulk select button when user has write permission', async () => {
-  renderTaskList();
-  expect(await screen.findByText('Bulk Select')).toBeInTheDocument();
-});
-
-test('does not show unsubscribe button for completed shared tasks', async () => {
+test('does not show cancel button for completed shared tasks', async () => {
   // Create a completed shared task where user is subscribed
   const completedSharedTask = {
     id: 4,
@@ -360,9 +353,15 @@ test('does not show unsubscribe button for completed shared tasks', async () => 
   // Wait for data to load
   await screen.findByText('Completed Shared Task');
 
-  // Verify that no unsubscribe button (UserOutlined icon) is present
-  // For completed shared tasks, even if user is subscribed, unsubscribe should not be shown
-  expect(screen.queryByRole('img', { name: 'user' })).not.toBeInTheDocument();
+  // Verify that no cancel button is present in the actions column
+  // For completed shared tasks, cancel should not be shown
+  // Note: There might be stop icons elsewhere (e.g., status icons) but not as action buttons
+  const stopIcons = screen.queryAllByRole('img', { name: 'stop' });
+  // Filter to only those that are action buttons
+  const actionButtons = stopIcons.filter(
+    icon => icon.closest('[role="button"]') !== null,
+  );
+  expect(actionButtons).toHaveLength(0);
 
   // Restore mock
   fetchMock.get(

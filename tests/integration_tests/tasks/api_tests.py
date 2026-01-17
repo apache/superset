@@ -278,9 +278,9 @@ class TestTaskApi(SupersetTestCase):
             assert len(data["result"]) <= 2
             assert data["count"] >= 6
 
-    def test_abort_async_task_by_id(self):
+    def test_cancel_async_task_by_id(self):
         """
-        Task API: Test abort async task by ID
+        Task API: Test cancel async task by ID
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -299,12 +299,13 @@ class TestTaskApi(SupersetTestCase):
             assert original_dedup_key.startswith("private|test_type|")
             assert f"|{admin.id}" in original_dedup_key
 
-            uri = f"{self.TASK_API_BASE}/{task.id}/abort"
+            uri = f"{self.TASK_API_BASE}/{task.id}/cancel"
             rv = self.client.post(uri, json={})
             assert rv.status_code == 200
 
             data = json.loads(rv.data.decode("utf-8"))
-            assert data["message"] == "Task aborted successfully"
+            assert data["message"] == "Task cancelled"
+            assert data["action"] == "aborted"
             assert data["task"]["status"] == TaskStatus.ABORTED.value
 
             # Verify task was aborted and dedup_key changed to UUID
@@ -313,9 +314,9 @@ class TestTaskApi(SupersetTestCase):
             assert task.dedup_key == task.uuid
             assert task.dedup_key != original_dedup_key
 
-    def test_abort_async_task_by_uuid(self):
+    def test_cancel_async_task_by_uuid(self):
         """
-        Task API: Test abort async task by UUID
+        Task API: Test cancel async task by UUID
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -328,52 +329,53 @@ class TestTaskApi(SupersetTestCase):
             )
             assert task is not None
 
-            uri = f"{self.TASK_API_BASE}/{task.uuid}/abort"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}/cancel"
             rv = self.client.post(uri)
             assert rv.status_code == 200
 
             data = json.loads(rv.data.decode("utf-8"))
             assert data["task"]["uuid"] == task.uuid
             assert data["task"]["status"] == TaskStatus.ABORTED.value
+            assert data["action"] == "aborted"
 
-    def test_abort_async_task_not_found(self):
+    def test_cancel_async_task_not_found(self):
         """
-        Task API: Test abort async task not found
+        Task API: Test cancel async task not found
         """
         self.login(ADMIN_USERNAME)
-        uri = f"{self.TASK_API_BASE}/99999/abort"
+        uri = f"{self.TASK_API_BASE}/99999/cancel"
         rv = self.client.post(uri)
         assert rv.status_code == 404
 
-    def test_abort_async_task_not_owned(self):
+    def test_cancel_async_task_not_owned(self):
         """
-        Task API: Test abort async task not owned by user
+        Task API: Test cancel async task not owned by user
         """
         with self._create_tasks():
             self.login(GAMMA_USERNAME)
             admin = self.get_user("admin")
 
-            # Try to abort admin's task as gamma user
+            # Try to cancel admin's task as gamma user
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
             assert task is not None
 
-            uri = f"{self.TASK_API_BASE}/{task.id}/abort"
+            uri = f"{self.TASK_API_BASE}/{task.id}/cancel"
             rv = self.client.post(uri)
             assert rv.status_code == 404
 
-    def test_abort_async_task_admin_can_abort_others(self):
+    def test_cancel_async_task_admin_can_cancel_others(self):
         """
-        Task API: Test admin can abort other users' tasks
+        Task API: Test admin can cancel other users' tasks
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
             gamma = self.get_user("gamma")
 
-            # Admin aborts gamma's task
+            # Admin cancels gamma's task
             task = db.session.query(Task).filter_by(created_by_fk=gamma.id).first()
             assert task is not None
 
-            uri = f"{self.TASK_API_BASE}/{task.id}/abort"
+            uri = f"{self.TASK_API_BASE}/{task.id}/cancel"
             rv = self.client.post(uri)
             assert rv.status_code == 200
 

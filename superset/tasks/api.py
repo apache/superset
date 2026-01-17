@@ -23,26 +23,22 @@ from flask import Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset.commands.tasks.abort import AbortTaskCommand
-from superset.commands.tasks.bulk_abort import BulkAbortTasksCommand
+from superset.commands.tasks.cancel import CancelTaskCommand
 from superset.commands.tasks.exceptions import (
     TaskAbortFailedError,
     TaskForbiddenError,
-    TaskInvalidError,
     TaskNotAbortableError,
     TaskNotFoundError,
     TaskPermissionDeniedError,
-    TaskUpdateFailedError,
 )
-from superset.commands.tasks.unsubscribe import UnsubscribeFromTaskCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.tasks import Task
 from superset.tasks.filters import TaskFilter
 from superset.tasks.schemas import (
     openapi_spec_methods_override,
-    TaskAbortResponseSchema,
-    TaskBulkAbortResponseSchema,
+    TaskCancelRequestSchema,
+    TaskCancelResponseSchema,
     TaskResponseSchema,
     TaskStatusResponseSchema,
 )
@@ -68,19 +64,15 @@ class TaskRestApi(BaseSupersetModelRestApi):
 
     class_permission_name = "Task"
 
-    # Map bulk_abort, abort, unsubscribe, and status to write/read permissions
+    # Map cancel and status to write/read permissions
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
-        "bulk_abort": "write",
-        "abort": "write",
-        "unsubscribe": "write",
+        "cancel": "write",
         "status": "read",
     }
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
-        "bulk_abort",
-        "abort",
-        "unsubscribe",
+        "cancel",
         "status",
         "related_subscribers",
         "related",
@@ -160,12 +152,13 @@ class TaskRestApi(BaseSupersetModelRestApi):
 
     show_model_schema = TaskResponseSchema()
     list_model_schema = TaskResponseSchema()
+    cancel_request_schema = TaskCancelRequestSchema()
 
     openapi_spec_tag = "Tasks"
     openapi_spec_component_schemas = (
         TaskResponseSchema,
-        TaskAbortResponseSchema,
-        TaskBulkAbortResponseSchema,
+        TaskCancelRequestSchema,
+        TaskCancelResponseSchema,
         TaskStatusResponseSchema,
     )
     openapi_spec_methods = openapi_spec_methods_override
@@ -284,221 +277,51 @@ class TaskRestApi(BaseSupersetModelRestApi):
         except (ValueError, TypeError):
             return self.response_404()
 
-    @expose("/<uuid_or_id>/abort", methods=("POST",))
+    @expose("/<uuid_or_id>/cancel", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.abort",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.cancel",
         log_to_statsd=False,
     )
-    def abort(self, uuid_or_id: str) -> Response:
-        """Abort a task.
+    def cancel(self, uuid_or_id: str) -> Response:
+        """Cancel a task.
         ---
         post:
-          summary: Abort a task
+          summary: Cancel a task
+          description: >
+            Cancel a task. The behavior depends on task scope and subscriber
+            count:
+
+            - **Private tasks**: Aborts the task
+            - **Shared tasks (single subscriber)**: Aborts the task
+            - **Shared tasks (multiple subscribers)**: Removes current user's
+              subscription; the task continues for other subscribers
+            - **Shared tasks with force=true (admin only)**: Aborts task for
+              all subscribers
+
+            The `action` field in the response indicates what happened:
+            - `aborted`: Task was terminated
+            - `unsubscribed`: User was removed from task (task continues)
           parameters:
           - in: path
             schema:
               type: string
             name: uuid_or_id
-            description: The UUID or ID of the task to abort
-          responses:
-            200:
-              description: Task aborted successfully
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/TaskAbortResponseSchema'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-        """
-        try:
-            # Resolve UUID or ID
-            if len(uuid_or_id) == 36 or "-" in uuid_or_id:
-                task_uuid = uuid_or_id
-            else:
-                # Lazy import to avoid circular dependency
-                from superset.daos.tasks import TaskDAO
-
-                task = TaskDAO.find_by_id(uuid_or_id)
-                if not task:
-                    return self.response_404()
-                task_uuid = task.uuid
-
-            # Execute abort command
-            updated_task = AbortTaskCommand(task_uuid).run()
-            result = {
-                "message": "Task aborted successfully",
-                "task": self.show_model_schema.dump(updated_task),
-            }
-            return self.response(200, **result)
-
-        except TaskNotFoundError:
-            return self.response_404()
-        except TaskForbiddenError:
-            return self.response_403()
-        except TaskPermissionDeniedError:
-            return self.response_403()
-        except TaskNotAbortableError as ex:
-            # Task is in progress but doesn't have an abort handler registered
-            logger.warning(
-                "Task %s is not abortable: %s",
-                uuid_or_id,
-                str(ex),
-            )
-            return self.response_422(message=str(ex))
-        except TaskAbortFailedError as ex:
-            logger.error(
-                "Error aborting task %s: %s",
-                uuid_or_id,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
-        except (ValueError, TypeError):
-            return self.response_404()
-
-    @expose("/bulk_abort", methods=("POST",))
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_abort",
-        log_to_statsd=False,
-    )
-    def bulk_abort(self) -> Response:
-        """Bulk abort tasks.
-        ---
-        post:
-          summary: Abort multiple tasks
+            description: The UUID or ID of the task to cancel
           requestBody:
-            required: true
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    task_uuids:
-                      type: array
-                      items:
-                        type: string
-                      description: List of task UUIDs to abort
+                  $ref: '#/components/schemas/TaskCancelRequestSchema'
           responses:
             200:
-              description: Tasks aborted successfully (including partial success)
+              description: Task cancelled successfully
               content:
                 application/json:
                   schema:
-                    $ref: '#/components/schemas/TaskBulkAbortResponseSchema'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            422:
-              $ref: '#/components/responses/422'
-        """
-        try:
-            from flask import request
-
-            # Get task_uuids from request body
-            if not request.json or "task_uuids" not in request.json:
-                return self.response_400(message="task_uuids is required")
-
-            task_uuids = request.json.get("task_uuids", [])
-
-            if not isinstance(task_uuids, list):
-                return self.response_400(message="task_uuids must be an array")
-
-            if not task_uuids:
-                return self.response_400(
-                    message="At least one task UUID must be provided"
-                )
-
-            # Execute bulk abort command
-            aborted_count, total_requested = BulkAbortTasksCommand(task_uuids).run()
-
-            failed_count = total_requested - aborted_count
-
-            # Build response message
-            if aborted_count == total_requested:
-                message = f"Successfully aborted {aborted_count} task(s)"
-            elif aborted_count > 0:
-                message = (
-                    f"Partially successful: aborted {aborted_count} "
-                    f"out of {total_requested} task(s)"
-                )
-            else:
-                message = "No tasks were aborted"
-
-            result = {
-                "message": message,
-                "aborted_count": aborted_count,
-                "failed_count": failed_count,
-            }
-            return self.response(200, **result)
-
-        except TaskInvalidError as ex:
-            logger.error(
-                "Invalid bulk abort request: %s",
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
-        except TaskForbiddenError:
-            return self.response_403()
-        except Exception as ex:
-            logger.error(
-                "Error during bulk abort: %s",
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_500(message="Internal server error")
-
-    @expose("/<uuid_or_id>/unsubscribe", methods=("POST",))
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.unsubscribe",
-        log_to_statsd=False,
-    )
-    def unsubscribe(self, uuid_or_id: str) -> Response:
-        """Unsubscribe from a shared task.
-        ---
-        post:
-          summary: Unsubscribe from a shared task
-          description: >
-            Remove current user's subscription from a shared task.
-            If this is the last subscriber, the task will be automatically aborted.
-            Only applicable to shared tasks.
-          parameters:
-          - in: path
-            schema:
-              type: string
-            name: uuid_or_id
-            description: The UUID or ID of the task to unsubscribe from
-          responses:
-            200:
-              description: Successfully unsubscribed from task
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-                        description: Success message
-                      task:
-                        $ref: '#/components/schemas/TaskResponseSchema'
+                    $ref: '#/components/schemas/TaskCancelResponseSchema'
             401:
               $ref: '#/components/responses/401'
             403:
@@ -508,41 +331,78 @@ class TaskRestApi(BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
+        return self._execute_cancel(uuid_or_id)
+
+    def _execute_cancel(self, uuid_or_id: str) -> Response:
+        """Execute the cancel operation with error handling."""
         try:
-            # Resolve UUID or ID
-            if len(uuid_or_id) == 36 or "-" in uuid_or_id:
-                task_uuid = uuid_or_id
-            else:
-                # Lazy import to avoid circular dependency
-                from superset.daos.tasks import TaskDAO
+            task_uuid = self._resolve_task_uuid(uuid_or_id)
+            if task_uuid is None:
+                return self.response_404()
 
-                task = TaskDAO.find_by_id(uuid_or_id)
-                if not task:
-                    return self.response_404()
-                task_uuid = task.uuid
-
-            # Execute unsubscribe command
-            updated_task = UnsubscribeFromTaskCommand(task_uuid).run()
-            result = {
-                "message": "Successfully unsubscribed from task",
-                "task": self.show_model_schema.dump(updated_task),
-            }
-            return self.response(200, **result)
+            command, updated_task = self._run_cancel_command(task_uuid)
+            return self._build_cancel_response(command, updated_task)
 
         except TaskNotFoundError:
             return self.response_404()
-        except (TaskPermissionDeniedError, TaskForbiddenError):
+        except (TaskForbiddenError, TaskPermissionDeniedError) as ex:
+            if isinstance(ex, TaskPermissionDeniedError):
+                logger.warning(
+                    "Permission denied cancelling task %s: %s",
+                    uuid_or_id,
+                    str(ex),
+                )
             return self.response_403()
-        except TaskUpdateFailedError as ex:
+        except TaskNotAbortableError as ex:
+            logger.warning("Task %s is not cancellable: %s", uuid_or_id, str(ex))
+            return self.response_422(message=str(ex))
+        except TaskAbortFailedError as ex:
             logger.error(
-                "Error unsubscribing from task %s: %s",
-                uuid_or_id,
-                str(ex),
-                exc_info=True,
+                "Error cancelling task %s: %s", uuid_or_id, str(ex), exc_info=True
             )
             return self.response_422(message=str(ex))
         except (ValueError, TypeError):
             return self.response_404()
+
+    def _resolve_task_uuid(self, uuid_or_id: str) -> str | None:
+        """Resolve a UUID or ID to a task UUID."""
+        if len(uuid_or_id) == 36 or "-" in uuid_or_id:
+            return uuid_or_id
+
+        from superset.daos.tasks import TaskDAO
+
+        task = TaskDAO.find_by_id(uuid_or_id)
+        return task.uuid if task else None
+
+    def _run_cancel_command(self, task_uuid: str) -> tuple[CancelTaskCommand, "Task"]:
+        """Parse request and run the cancel command."""
+        from flask import request
+
+        force = False
+        if request.json:
+            parsed = self.cancel_request_schema.load(request.json)
+            force = parsed.get("force", False)
+
+        command = CancelTaskCommand(task_uuid, force=force)
+        updated_task = command.run()
+        return command, updated_task
+
+    def _build_cancel_response(
+        self, command: CancelTaskCommand, updated_task: "Task"
+    ) -> Response:
+        """Build the response for a successful cancel operation."""
+        action = command.action_taken
+        message = (
+            "Task cancelled"
+            if action == "aborted"
+            else "You have been removed from this task"
+        )
+        result = {
+            "message": message,
+            "action": action,
+            "task": self.show_model_schema.dump(updated_task),
+        }
+        return self.response(200, **result)
 
     @expose("/related/subscribers", methods=("GET",))
     @protect()

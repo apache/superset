@@ -15,15 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset.commands.tasks.abort import AbortTaskCommand
-from superset.commands.tasks.bulk_abort import BulkAbortTasksCommand
+from superset.commands.tasks.cancel import CancelTaskCommand
 from superset.commands.tasks.create import CreateTaskCommand
 from superset.commands.tasks.delete import DeleteOldTasksCommand
 from superset.commands.tasks.update import UpdateTaskCommand
 
 __all__ = [
-    "AbortTaskCommand",
-    "BulkAbortTasksCommand",
+    "CancelTaskCommand",
     "CreateTaskCommand",
     "DeleteOldTasksCommand",
     "UpdateTaskCommand",

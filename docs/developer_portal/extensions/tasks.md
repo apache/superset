@@ -161,26 +161,27 @@ The framework provides built-in abort support with minimal boilerplate.
 
 ### UI Action Permissions
 
-The Task List UI shows different actions based on task scope, user role, and task status. Actions are only available for **active tasks** (pending or in_progress status).
+The Task List UI shows a unified **Cancel** action. The behavior adapts based on task scope, user role, subscriber count, and task status. Actions are only available for **active tasks** (pending or in_progress status).
 
-| Task Scope | User Role | Available Actions |
-|------------|-----------|-------------------|
-| **Private** | Owner | Abort |
-| **Private** | Admin (not owner) | Abort |
-| **Shared** | Subscriber (non-admin) | Unsubscribe only |
-| **Shared** | Admin (not subscribed) | Abort |
-| **Shared** | Admin (subscribed) | Abort + Unsubscribe |
-| **System** | Admin | Abort |
+| Task Scope | User Role | Cancel Behavior |
+|------------|-----------|-----------------|
+| **Private** | Owner | Cancels (aborts) the task |
+| **Private** | Admin (not owner) | Cancels (aborts) the task |
+| **Shared** | Subscriber (only subscriber) | Cancels (aborts) the task |
+| **Shared** | Subscriber (multiple subscribers) | Removes you from task (task continues for others) |
+| **Shared** | Admin (with Force Cancel) | Cancels (aborts) for all subscribers |
+| **System** | Admin | Cancels (aborts) the task |
 | **System** | Non-admin | *(not visible)* |
 
 **Key behaviors:**
-- **Actions are only shown for active tasks** - tasks with non-active status (success, failure, aborted, aborting) do not show Abort or Unsubscribe buttons
-- **Admins can abort any active task** regardless of scope
-- **For shared tasks**, non-admin users can only unsubscribe (not directly abort)
-  - If the last subscriber unsubscribes, the task is automatically aborted
-  - Admins who are also subscribed will see both Abort and Unsubscribe actions
-- **For private tasks**, only the owner can see and abort the task (admins can also abort)
-- **For system tasks**, only admins can see and abort the task
+- **Unified Cancel button** - A single "Cancel" action replaces the old separate Abort/Unsubscribe buttons
+- **Smart behavior** - The backend automatically determines whether to abort or unsubscribe based on context
+- **Confirmation dialog** - Shows contextual messaging explaining what will happen:
+  - For single/last subscriber: "This will cancel the task."
+  - For shared tasks with multiple subscribers: "You'll be removed from this task. It will continue running for N other subscriber(s)."
+- **Force Cancel (admin only)** - For shared tasks with multiple subscribers, admins see a checkbox to "Cancel for all subscribers" which forces immediate abort
+- **For private tasks**, only the owner can see and cancel the task (admins can also cancel)
+- **For system tasks**, only admins can see and cancel the task
 
 ### Abort Flow
 
@@ -330,15 +331,17 @@ def process_batch(item_ids: list[int]) -> None:
 
     for i, item_id in enumerate(item_ids):
         # Option 1: Percentage only (float 0.0-1.0)
-        # Displays as "In progress: 50 %"
+        # Displays as "In Progress: 50%"
         ctx.update_task(progress=0.5)
 
         # Option 2: Count only (int) - when total is unknown
-        # Displays as "In progress: 42"
+        # Displays as "In Progress: 42 processed"
         ctx.update_task(progress=42)
 
         # Option 3: Count and total (tuple) - percentage auto-computed
-        # Displays as "In progress: 3 of 100 (3 %)"
+        # Displays as:
+        #   In Progress: 3 of 100 (3%)
+        #   ETA: 52s
         ctx.update_task(
             progress=(i + 1, len(item_ids)),
             payload={"current_item": item_id}
@@ -677,12 +680,12 @@ class TaskContext:
 
         Progress can be specified in three ways:
         - float (0.0-1.0): Percentage only, e.g., 0.5 means 50%
-          Displays as "In progress: 50 %"
+          Displays as "In Progress: 50%"
         - int: Count only (total unknown), e.g., 42 means "42 items processed"
-          Displays as "In progress: 42"
+          Displays as "In Progress: 42 processed"
         - tuple[int, int]: Count and total, e.g., (3, 100) means "3 of 100"
           The percentage is automatically computed from count/total.
-          Displays as "In progress: 3 of 100 (3 %)"
+          Displays as "In Progress: 3 of 100 (3%)" with ETA on a separate line
 
         All parameters are optional. Payload is merged with existing data.
         Updates occur in a single database transaction.

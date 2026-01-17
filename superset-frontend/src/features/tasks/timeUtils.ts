@@ -42,7 +42,7 @@ export function formatDuration(
     unitCount: 2,
     secondsDecimalDigits: 0,
     keepDecimalsOnWholeSeconds: false,
-   });
+  });
 }
 
 /**
@@ -84,24 +84,28 @@ export function calculateEta(
   }
 
   // Use unitCount: 2 to show up to 2 units (e.g., "1m 30s" instead of just "1m")
-  return prettyMs(remainingSeconds * 1000, { unitCount: 2 });
+  // Use secondsDecimalDigits: 0 to show whole seconds (e.g., "52s" instead of "52.4s")
+  return prettyMs(remainingSeconds * 1000, {
+    unitCount: 2,
+    secondsDecimalDigits: 0,
+  });
 }
 
 /**
- * Build a progress display string for task status tooltips.
+ * Build a progress display for task status tooltips.
  *
- * Examples:
- * - "In Progress: 9 of 60, 15%, ETA ~51s"
- * - "In Progress: 42 processed"
- * - "In Progress: 50%"
- * - "In Progress: 50%, ETA ~2m"
+ * Returns an array of lines for proper multiline tooltip rendering:
+ * - ["In Progress: 9 of 60 (15%)", "ETA: 51s"]
+ * - ["In Progress: 42 processed"]
+ * - ["In Progress: 50%"]
+ * - ["In Progress: 50%", "ETA: 2m"]
  *
  * @param label - Status label (e.g., "In Progress", "Aborting")
  * @param progressCurrent - Current count of items processed
  * @param progressTotal - Total count of items to process
  * @param progressPercent - Progress as a fraction (0.0 to 1.0)
  * @param durationSeconds - Time elapsed so far in seconds (used for ETA calculation)
- * @returns Formatted progress string
+ * @returns Array of lines for tooltip display
  */
 export function formatProgressTooltip(
   label: string,
@@ -109,35 +113,39 @@ export function formatProgressTooltip(
   progressTotal?: number | null,
   progressPercent?: number | null,
   durationSeconds?: number | null,
-): string {
-  const parts: string[] = [];
+): string[] {
+  const lines: string[] = [];
+  let progressPart = '';
 
   // Build progress part
   if (progressCurrent !== null && progressCurrent !== undefined) {
     if (progressTotal !== null && progressTotal !== undefined) {
-      // Count and total: "3 of 278"
-      parts.push(`${progressCurrent} of ${progressTotal}`);
+      // Count and total with percentage: "3 of 278 (15%)"
+      progressPart = `${progressCurrent} of ${progressTotal}`;
+      if (progressPercent !== null && progressPercent !== undefined) {
+        progressPart += ` (${Math.round(progressPercent * 100)}%)`;
+      }
     } else {
       // Count only: "3 processed"
-      parts.push(`${progressCurrent} processed`);
+      progressPart = `${progressCurrent} processed`;
     }
+  } else if (progressPercent !== null && progressPercent !== undefined) {
+    // Percentage only: "50%"
+    progressPart = `${Math.round(progressPercent * 100)}%`;
   }
 
-  // Add percentage if available
-  if (progressPercent !== null && progressPercent !== undefined) {
-    parts.push(`${Math.round(progressPercent * 100)}%`);
+  // Add the main progress line
+  if (progressPart) {
+    lines.push(`${label}: ${progressPart}`);
+  } else {
+    lines.push(label);
   }
 
-  // Add ETA if available (duration is shown separately in table)
+  // Add ETA on a separate line if available
   const eta = calculateEta(progressPercent, durationSeconds);
   if (eta) {
-    parts.push(`ETA ~${eta}`);
+    lines.push(`ETA: ${eta}`);
   }
 
-  // Combine parts with commas, prefixed by status label
-  if (parts.length > 0) {
-    return `${label}: ${parts.join(', ')}`;
-  }
-
-  return label;
+  return lines;
 }
