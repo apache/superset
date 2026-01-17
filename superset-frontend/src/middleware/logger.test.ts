@@ -24,15 +24,7 @@ import {
   LOG_ACTIONS_LOAD_CHART,
   LOG_ACTIONS_SPA_NAVIGATION,
 } from 'src/logger/LogUtils';
-import { AnyAction } from 'redux';
-
-interface MockStore {
-  getState: () => {
-    dashboardInfo: { id: number };
-    impressionId: string;
-  };
-  dispatch: () => void;
-}
+import { Dispatch } from 'redux';
 
 interface LogEventAction {
   type: typeof LOG_EVENT;
@@ -46,14 +38,15 @@ interface LogEventAction {
 describe('logger middleware', () => {
   const dashboardId = 123;
   const next: SinonSpy = sinon.spy();
-  const mockStore: MockStore = {
+  // Mock store with minimal state needed for tests
+  const mockStore = {
     getState: () => ({
       dashboardInfo: {
         id: dashboardId,
       },
       impressionId: 'impression_id',
     }),
-    dispatch: () => {},
+    dispatch: ((action: unknown) => action) as Dispatch,
   };
   const action: LogEventAction = {
     type: LOG_EVENT,
@@ -81,18 +74,18 @@ describe('logger middleware', () => {
   });
 
   test('should listen to LOG_EVENT action type', () => {
-    const action1: AnyAction = {
+    const action1 = {
       type: 'ACTION_TYPE',
       payload: {
         some: 'data',
       },
     };
-    logger(mockStore)(next)(action1);
+    (logger as Function)(mockStore)(next)(action1);
     expect(next.callCount).toBe(1);
   });
 
   test('should POST an event to /superset/log/ when called', () => {
-    logger(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
     expect(next.callCount).toBe(0);
 
     timeSandbox.clock.tick(2000);
@@ -101,7 +94,7 @@ describe('logger middleware', () => {
   });
 
   test('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
-    const fetchLog = logger(mockStore)(next);
+    const fetchLog = (logger as Function)(mockStore)(next);
     fetchLog({
       type: LOG_EVENT,
       payload: {
@@ -131,9 +124,9 @@ describe('logger middleware', () => {
   });
 
   test('should debounce a few log requests to one', () => {
-    logger(mockStore)(next)(action);
-    logger(mockStore)(next)(action);
-    logger(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
     timeSandbox.clock.tick(2000);
 
     expect(postStub.callCount).toBe(1);
@@ -147,7 +140,7 @@ describe('logger middleware', () => {
       value: beaconMock,
     });
 
-    logger(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
     timeSandbox.clock.tick(2000);
 
@@ -164,7 +157,7 @@ describe('logger middleware', () => {
     });
     SupersetClient.configure({ guestToken: 'token' });
 
-    logger(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
     timeSandbox.clock.tick(2000);
     expect(beaconMock.mock.calls.length).toBe(1);

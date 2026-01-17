@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { ensureIsArray, QueryFormData, JsonObject } from '@superset-ui/core';
+import { ensureIsArray, QueryFormData, JsonValue } from '@superset-ui/core';
 import {
   ControlState,
   ControlStateMapping,
@@ -55,7 +55,11 @@ export interface ExploreState {
   controlsTransferred?: string[];
   standalone?: boolean;
   force?: boolean;
-  common?: JsonObject;
+  common?: {
+    conf: {
+      DEFAULT_VIZ_TYPE?: string;
+    };
+  };
   metadata?: {
     owners?: string[] | null;
   };
@@ -200,7 +204,7 @@ interface MetricItem {
 }
 
 type ActionHandlers = {
-  [key: string]: () => ExploreState;
+  [key: string]: () => Partial<ExploreState> | ExploreState;
 };
 
 export default function exploreReducer(
@@ -277,8 +281,8 @@ export default function exploreReducer(
         ) {
           newFormData[controlName] = getControlValuesCompatibleWithDatasource(
             newDatasource,
-            controlState,
-            controlState.value,
+            controlState as unknown as ControlState,
+            controlState.value as JsonValue,
           );
           if (
             ensureIsArray(newFormData[controlName]).length > 0 &&
@@ -289,16 +293,16 @@ export default function exploreReducer(
         }
       });
 
-      const newState = {
+      const newState: ExploreState = {
         ...state,
-        controls,
+        controls: controls as ControlStateMapping,
         datasource: newDatasource,
       };
       return {
         ...newState,
         form_data: newFormData as QueryFormData,
         controls: getControlsState(
-          newState,
+          newState as Parameters<typeof getControlsState>[0],
           newFormData as QueryFormData,
         ) as ControlStateMapping,
         controlsTransferred,
@@ -362,7 +366,11 @@ export default function exploreReducer(
 
       // will call validators again
       const control: ExtendedControlState = {
-        ...getControlStateFromControlConfig(controlConfig, state, value),
+        ...getControlStateFromControlConfig(
+          controlConfig as Parameters<typeof getControlStateFromControlConfig>[0],
+          state as Parameters<typeof getControlStateFromControlConfig>[1],
+          value as JsonValue,
+        ),
       } as ExtendedControlState;
 
       const column_config = {
@@ -382,11 +390,14 @@ export default function exploreReducer(
       const rerenderedControls: Record<string, ExtendedControlState> = {};
       if (Array.isArray(control.rerender)) {
         control.rerender.forEach((rerenderControlName: string) => {
+          const rerenderControl = (newState.controls as Record<string, ControlState>)[
+            rerenderControlName
+          ];
           rerenderedControls[rerenderControlName] = {
             ...getControlStateFromControlConfig(
-              newState.controls[rerenderControlName],
-              newState,
-              newState.controls[rerenderControlName].value,
+              rerenderControl as Parameters<typeof getControlStateFromControlConfig>[0],
+              newState as Parameters<typeof getControlStateFromControlConfig>[1],
+              rerenderControl?.value,
             ),
           } as ExtendedControlState;
         });
@@ -446,9 +457,9 @@ export default function exploreReducer(
             return {
               // Re run validation for dependent controls
               controlState: getControlStateFromControlConfig(
-                controlState,
-                overWrittenState,
-                controlState?.value,
+                controlState as Parameters<typeof getControlStateFromControlConfig>[0],
+                overWrittenState as Parameters<typeof getControlStateFromControlConfig>[1],
+                controlState?.value as JsonValue | undefined,
               ),
               dependantControlName,
             };
@@ -483,7 +494,7 @@ export default function exploreReducer(
           }),
           ...rerenderedControls,
           ...updatedControlStates,
-        },
+        } as ControlStateMapping,
       };
     },
     [actions.SET_EXPLORE_CONTROLS]() {
@@ -491,7 +502,7 @@ export default function exploreReducer(
       return {
         ...state,
         controls: getControlsState(
-          state,
+          state as Parameters<typeof getControlsState>[0],
           typedAction.formData,
         ) as ControlStateMapping,
       };
@@ -523,7 +534,7 @@ export default function exploreReducer(
         ...state,
         slice: typedAction.slice,
         controls: getControlsState(
-          state,
+          state as Parameters<typeof getControlsState>[0],
           typedAction.form_data,
         ) as ControlStateMapping,
         can_add: typedAction.can_add,
@@ -584,7 +595,9 @@ export default function exploreReducer(
         metadata: {
           ...state.metadata,
           owners: typedAction.slice.owners
-            ? typedAction.slice.owners.map(getOwnerLabel).filter(Boolean)
+            ? (typedAction.slice.owners
+                .map(getOwnerLabel)
+                .filter((x): x is string => x !== null) as string[])
             : null,
         },
       };
@@ -600,11 +613,11 @@ export default function exploreReducer(
       const typedAction = action as HydrateExplore;
       return {
         ...typedAction.data.explore,
-      };
+      } as ExploreState;
     },
   };
   if (action.type in actionHandlers) {
-    return actionHandlers[action.type]();
+    return actionHandlers[action.type]() as ExploreState;
   }
   return state;
 }

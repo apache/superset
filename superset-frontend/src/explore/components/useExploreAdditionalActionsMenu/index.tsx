@@ -597,7 +597,7 @@ export const useExploreAdditionalActionsMenu = (
 
     menuItems.push({
       key: MENU_KEYS.DASHBOARDS_ADDED_TO,
-      type: 'submenu',
+      type: 'submenu' as const,
       label: t('On dashboards'),
       children: dashboardsChildren,
       popupStyle: {
@@ -607,7 +607,7 @@ export const useExploreAdditionalActionsMenu = (
     });
 
     // Divider
-    menuItems.push({ type: 'divider' });
+    menuItems.push({ type: 'divider' as const });
 
     // Download submenu
     const allDataChildren = [];
@@ -865,12 +865,12 @@ export const useExploreAdditionalActionsMenu = (
 
     menuItems.push({
       key: MENU_KEYS.DATA_EXPORT_OPTIONS,
-      type: 'submenu',
+      type: 'submenu' as const,
       label: t('Data Export Options'),
       children: [
         {
           key: MENU_KEYS.EXPORT_ALL_DATA_GROUP,
-          type: 'submenu',
+          type: 'submenu' as const,
           label: t('Export All Data'),
           children: allDataChildren,
         },
@@ -878,7 +878,7 @@ export const useExploreAdditionalActionsMenu = (
           ? [
               {
                 key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
-                type: 'submenu',
+                type: 'submenu' as const,
                 label: t('Export Current View'),
                 children: currentViewChildren,
               },
@@ -937,13 +937,13 @@ export const useExploreAdditionalActionsMenu = (
 
     menuItems.push({
       key: MENU_KEYS.SHARE_SUBMENU,
-      type: 'submenu',
+      type: 'submenu' as const,
       label: t('Share'),
       children: shareChildren,
     });
 
     // Divider
-    menuItems.push({ type: 'divider' });
+    menuItems.push({ type: 'divider' as const });
 
     // Report menu item
     if (reportMenuItem) {
