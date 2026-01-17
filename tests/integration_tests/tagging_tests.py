@@ -102,7 +102,6 @@ class TestTagging(SupersetTestCase):
             datasource_type=DatasourceType.TABLE,
             viz_type="bubble",
             datasource_id=1,
-            id=1,
         )
         db.session.add(test_chart)
         db.session.commit()
@@ -171,7 +170,7 @@ class TestTagging(SupersetTestCase):
         assert [] == self.query_tagged_object_table()
 
         # Create a saved query and add it to the db
-        test_saved_query = SavedQuery(id=1, label="test saved query")
+        test_saved_query = SavedQuery(label="test saved query")
         db.session.add(test_saved_query)
         db.session.commit()
 
@@ -258,7 +257,6 @@ class TestTagging(SupersetTestCase):
             datasource_type=DatasourceType.TABLE,
             viz_type="bubble",
             datasource_id=1,
-            id=1,
         )
 
         # Create a dashboard and add it to the db
@@ -268,7 +266,7 @@ class TestTagging(SupersetTestCase):
         test_dashboard.published = True
 
         # Create a saved query and add it to the db
-        test_saved_query = SavedQuery(id=1, label="test saved query")
+        test_saved_query = SavedQuery(label="test saved query")
 
         # Create a favorited object and add it to the db
         test_favorited_object = FavStar(user_id=1, class_name="slice", obj_id=1)

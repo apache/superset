@@ -52,6 +52,7 @@ export const useHeaderActionsMenu = ({
   userCanShare,
   userCanSave,
   userCanCurate,
+  userCanExport,
   isLoading,
   lastModifiedTime,
   addSuccessToast,
@@ -161,6 +162,7 @@ export const useHeaderActionsMenu = ({
     title: t('Download'),
     disabled: isLoading,
     logEvent,
+    userCanExport,
   });
 
   const reportMenuItem = useHeaderReportMenuItems({

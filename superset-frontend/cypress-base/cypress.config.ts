@@ -79,7 +79,7 @@ export default eyesPlugin(
         return config;
       },
       baseUrl: 'http://localhost:8088',
-      excludeSpecPattern: [],
+      excludeSpecPattern: ['**/_skip.*'],
       experimentalRunAllSpecs: true,
       specPattern: [
         'cypress/e2e/**/*.{js,jsx,ts,tsx}',

@@ -29,6 +29,7 @@
  */
 export const URL = {
   DATASET_LIST: 'tablemodelview/list',
+  DASHBOARD_LIST: 'dashboard/list/',
   LOGIN: 'login/',
   WELCOME: 'superset/welcome/',
 } as const;

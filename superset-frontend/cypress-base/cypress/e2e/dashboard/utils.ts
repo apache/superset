@@ -31,7 +31,7 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Growth Rate', viz: 'echarts_timeseries_line' },
   { name: 'Rural Breakdown', viz: 'sunburst_v2' },
   { name: "World's Pop Growth", viz: 'echarts_area' },
-  { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
+  { name: 'Life Expectancy VS Rural %', viz: 'bubble_v2' },
   { name: 'Treemap', viz: 'treemap_v2' },
   { name: 'Box plot', viz: 'box_plot' },
 ] as ChartSpec[];

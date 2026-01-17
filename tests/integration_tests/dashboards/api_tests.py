@@ -615,6 +615,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "can_read",
             "can_write",
             "can_export",
+            "can_export_as_example",
             "can_get_embedded",
             "can_delete_embedded",
             "can_set_embedded",
@@ -2650,6 +2651,84 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         db.session.delete(dashboard)
         db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_export_as_example(self):
+        """
+        Dashboard API: Test export_as_example returns a valid ZIP
+        """
+        self.login(ADMIN_USERNAME)
+        dashboards_ids = get_dashboards_ids(["births"])
+        dashboard_id = dashboards_ids[0]
+        uri = f"api/v1/dashboard/{dashboard_id}/export_as_example/"
+
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+        assert "application/zip" in rv.content_type
+
+        buf = BytesIO(rv.data)
+        assert is_zipfile(buf)
+
+        # Verify ZIP contains expected files
+        with ZipFile(buf) as zf:
+            file_names = zf.namelist()
+            assert "dashboard.yaml" in file_names
+            # Should have dataset.yaml (single dataset) or datasets/ folder
+            has_dataset = "dataset.yaml" in file_names or any(
+                f.startswith("datasets/") for f in file_names
+            )
+            assert has_dataset, f"Missing dataset files: {file_names}"
+            # Should have charts
+            has_charts = any(f.startswith("charts/") for f in file_names)
+            assert has_charts, f"Missing chart files: {file_names}"
+
+    def test_export_as_example_not_found(self):
+        """
+        Dashboard API: Test export_as_example returns 404 for non-existent dashboard
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/99999/export_as_example/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_export_as_example_no_data(self):
+        """
+        Dashboard API: Test export_as_example with export_data=false
+        """
+        self.login(ADMIN_USERNAME)
+        dashboards_ids = get_dashboards_ids(["births"])
+        dashboard_id = dashboards_ids[0]
+        uri = f"api/v1/dashboard/{dashboard_id}/export_as_example/?export_data=false"
+
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+
+        buf = BytesIO(rv.data)
+        with ZipFile(buf) as zf:
+            file_names = zf.namelist()
+            # Should have dashboard.yaml and dataset(s).yaml but no parquet
+            assert "dashboard.yaml" in file_names
+            has_parquet = any(f.endswith(".parquet") for f in file_names)
+            assert not has_parquet, f"Should not have parquet files: {file_names}"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_export_as_example_content_disposition(self):
+        """
+        Dashboard API: Test export_as_example returns proper Content-Disposition
+        """
+        self.login(ADMIN_USERNAME)
+        dashboards_ids = get_dashboards_ids(["births"])
+        dashboard_id = dashboards_ids[0]
+        uri = f"api/v1/dashboard/{dashboard_id}/export_as_example/"
+
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+        assert "Content-Disposition" in rv.headers
+        assert "_example.zip" in rv.headers["Content-Disposition"]
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dashboard(self, mock_add_permissions):

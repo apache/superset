@@ -265,6 +265,7 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
+          dash_export_perm: findPermission('can_export', 'Dashboard', roles),
           superset_can_explore: findPermission(
             'can_explore',
             'Superset',
