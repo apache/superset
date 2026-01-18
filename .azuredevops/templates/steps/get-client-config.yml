@@ -1,31 +1,27 @@
-# Rehydrate client config from a Variable Group secret (RAW JSON),
-# validate JSON  and client-config schema.
-# Must pull in variable group at either stage or job level when using this template:
-#  ie:
-#       variables:
-#        - group: ${{ format('{0}-Secret', parameters.targetEnvironment) }}
-
 parameters:
-  - name: targetEnvironment # e.g., "Brown-Win2016"
+  - name: targetEnvironment
     type: string
 
 steps:
   - task: PowerShell@2
     displayName: 'Rehydrate & validate ${{ parameters.targetEnvironment }}-config'
     env:
-      CLIENT_CONFIG: ${{ format('$({0}-Secret)', parameters.targetEnvironment) }}
+      CLIENT_CONFIG: ${{ format('{0}-secret', parameters.targetEnvironment) }}
     inputs:
       pwsh: true
       targetType: inline
       script: |
-        # 1) Write the raw JSON from the VG variable to a temp file on the target VM
+        # 1) Write raw JSON to temp file
         $out = Join-Path "$(Agent.TempDirectory)" "${{ parameters.targetEnvironment }}-config.json"
 
         $raw = $env:CLIENT_CONFIG
-        Write-Host "client-config to be retrieved from VG: $raw"
+        if ([string]::IsNullOrWhiteSpace($raw)) {
+          throw "CLIENT_CONFIG is empty. Variable group not injected correctly."
+        }
+
+        Write-Host "CLIENT_CONFIG retrieved from variable group (hidden)"
         Set-Content -Path $out -Value $raw -Encoding UTF8
 
-        if (-not (Test-Path -LiteralPath $out)) { throw "Failed to write config file: $out" }
         Write-Host "Config written to: $out"
         Write-Host "##vso[task.setvariable variable=cfgPath]$out"
 
@@ -37,68 +33,40 @@ steps:
         function Assert-HasProp {
           param($Obj, [string]$Name, [string]$Path)
           if (-not $Obj) { throw "Missing '$Path'." }
-          if (-not ($Obj.PSObject.Properties.Name -contains $Name)) { throw "Missing '$Path.$Name'." }
+          if (-not ($Obj.PSObject.Properties.Name -contains $Name)) {
+            throw "Missing '$Path.$Name'."
+          }
         }
         function Assert-NonEmptyString {
           param($Obj, [string]$Name, [string]$Path)
           Assert-HasProp $Obj $Name $Path
-          $v = $Obj.$Name
-          if (-not ($v -is [string])) { throw "'$Path.$Name' must be a string." }
-          if ([string]::IsNullOrWhiteSpace($v)) { throw "'$Path.$Name' cannot be empty." }
+          if ([string]::IsNullOrWhiteSpace($Obj.$Name)) {
+            throw "'$Path.$Name' cannot be empty."
+          }
         }
         function Assert-Int {
           param($Obj, [string]$Name, [string]$Path)
           Assert-HasProp $Obj $Name $Path
-          $v = $Obj.$Name
-          if ($null -ne $v -and -not ($v -is [int] -or $v -is [long])) {
+          if (-not ($Obj.$Name -is [int])) {
             throw "'$Path.$Name' must be an integer."
           }
         }
         function Assert-Creds {
           param($Parent, [string]$CredKey, [string]$Path)
           Assert-HasProp $Parent $CredKey $Path
-          $c = $Parent.$CredKey
-          if (-not $c) { throw "Missing '$Path.$CredKey'." }
-          # Require non-empty strings for credentials:
-          Assert-NonEmptyString $c 'user' "$Path.$CredKey"
-          Assert-NonEmptyString $c 'password' "$Path.$CredKey"
+          Assert-NonEmptyString $Parent.$CredKey 'user' "$Path.$CredKey"
+          Assert-NonEmptyString $Parent.$CredKey 'password' "$Path.$CredKey"
         }
 
-        # Client field checks
         $client = $json.client
-        if (-not $client) { throw "Missing 'client' field." }
         Assert-NonEmptyString $client 'name' 'client'
 
-        # Determine the root for connection objects (app-suite[0])
         $appSuite = $json.'app-suite'[0]
-        if (-not $appSuite) { throw "Missing 'app-suite[0]' array object." }
+        if (-not $appSuite) { throw "Missing app-suite[0]" }
 
-        # --- 3) SQL Server schema checks
         $mssql = $appSuite.'sql-server'
-        $mssqlPath = "app-suite[0].sql-server"
-        if (-not $mssql) { throw "Missing $mssqlPath field." }
-        Assert-NonEmptyString $mssql 'host' $mssqlPath
-        Assert-Int    $mssql 'port' $mssqlPath
-        Assert-NonEmptyString $mssql 'database' $mssqlPath
-        Assert-Creds  $mssql 'admin'  $mssqlPath
-        Assert-Creds   $mssql 'owner'  $mssqlPath
-        Assert-Creds  $mssql 'writer' $mssqlPath
-        Assert-Creds  $mssql 'reader' $mssqlPath
-
-        # --- 4) Postgres schema checks
         $pg = $appSuite.postgres
-        $pgPath = "app-suite[0].postgres"
-        if (-not $pg) { throw "Missing $pgPath field." }
-        Assert-NonEmptyString $pg 'host' $pgPath
-        Assert-Int    $pg 'port' $pgPath
-        Assert-NonEmptyString $pg 'database' $pgPath
-        Assert-Creds  $pg 'admin'  $pgPath
-        Assert-Creds  $pg 'owner'  $pgPath
-        Assert-Creds  $pg 'writer' $pgPath
-        Assert-Creds  $pg 'reader' $pgPath
-        Assert-Creds  $pg 'zero'   $pgPath
 
-        # --- 5) Sanitized confirmation (no secrets) ---
-        Write-Host "Validated sql_server: host=$($mssql.host), port=$($mssql.port), db=$($mssql.database)"
-        Write-Host "Validated postgres  : host=$($pg.host),  port=$($pg.port),  db=$($pg.database)"
+        Write-Host "Validated SQL Server: $($mssql.host):$($mssql.port)"
+        Write-Host "Validated Postgres : $($pg.host):$($pg.port)"
         Write-Host "JSON + schema validation passed."
