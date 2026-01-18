@@ -110,7 +110,7 @@ stages:
               # -------------------------------------
               # Get client-config.json
               # -------------------------------------
-              - template: .azuredevops/templates/steps/get-client-config.yml@oee-intellisuite
+              - template: templates/steps/get-client-config.yml@oee-intellisuite
                 parameters:
                   targetEnvironment: ${{ parameters.targetEnvironment }}
                   configVariableName: 'CLIENT_CONFIG_JSON'
