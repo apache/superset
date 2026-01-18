@@ -40,6 +40,7 @@ class FireboltEngineSpec(BaseEngineSpec):
         "categories": [
             DatabaseCategory.CLOUD_DATA_WAREHOUSES,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["firebolt-sqlalchemy"],
         "connection_string": (

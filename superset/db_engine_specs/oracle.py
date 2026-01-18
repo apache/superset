@@ -31,7 +31,10 @@ class OracleEngineSpec(BaseEngineSpec):
         "description": "Oracle Database is a multi-model database management system.",
         "logo": "oraclelogo.png",
         "homepage_url": "https://www.oracle.com/database/",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
         "pypi_packages": ["oracledb"],
         "connection_string": "oracle://{username}:{password}@{hostname}:{port}",
         "default_port": 1521,

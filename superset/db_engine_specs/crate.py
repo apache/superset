@@ -38,7 +38,7 @@ class CrateEngineSpec(BaseEngineSpec):
         ),
         "logo": "cratedb.png",
         "homepage_url": "https://crate.io/",
-        "categories": [DatabaseCategory.TIME_SERIES],
+        "categories": [DatabaseCategory.TIME_SERIES, DatabaseCategory.OPEN_SOURCE],
         "pypi_packages": ["crate", "sqlalchemy-cratedb"],
         "connection_string": "crate://{host}:{port}",
         "default_port": 4200,

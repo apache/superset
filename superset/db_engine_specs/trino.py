@@ -86,7 +86,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         ),
         "logo": "trino.png",
         "homepage_url": "https://trino.io/",
-        "categories": [DatabaseCategory.QUERY_ENGINES],
+        "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.OPEN_SOURCE],
         "pypi_packages": ["trino"],
         "install_instructions": 'pip install "apache-superset[trino]"',
         "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",

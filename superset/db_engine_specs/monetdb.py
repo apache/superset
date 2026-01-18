@@ -37,7 +37,10 @@ class MonetDbEngineSpec(BaseEngineSpec):
         ),
         "logo": "monet-db.png",
         "homepage_url": "https://www.monetdb.org/",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["sqlalchemy-monetdb", "pymonetdb"],
         "connection_string": "monetdb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 50000,

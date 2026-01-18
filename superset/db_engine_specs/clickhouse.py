@@ -284,7 +284,10 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         ),
         "logo": "clickhouse.png",
         "homepage_url": "https://clickhouse.com/",
-        "categories": [DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["clickhouse-connect>=0.6.8"],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,

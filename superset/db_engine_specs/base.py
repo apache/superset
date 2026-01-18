@@ -191,12 +191,20 @@ class DatabaseCategory:
     """
     Standard categories for database classification.
     Used for organizing databases in documentation and UI.
+
+    Categories are grouped into:
+    - Cloud providers (where the database runs)
+    - Database types (what kind of database it is)
+    - Licensing (open source vs proprietary)
     """
 
+    # Cloud providers
     CLOUD_AWS = "Cloud - AWS"
     CLOUD_GCP = "Cloud - Google"
     CLOUD_AZURE = "Cloud - Azure"
     CLOUD_DATA_WAREHOUSES = "Cloud Data Warehouses"
+
+    # Database types
     APACHE_PROJECTS = "Apache Projects"
     TRADITIONAL_RDBMS = "Traditional RDBMS"
     ANALYTICAL_DATABASES = "Analytical Databases"
@@ -204,6 +212,11 @@ class DatabaseCategory:
     QUERY_ENGINES = "Query Engines"
     TIME_SERIES = "Time Series Databases"
     OTHER = "Other Databases"
+
+    # Licensing
+    OPEN_SOURCE = "Open Source"
+    HOSTED_OPEN_SOURCE = "Hosted Open Source"
+    PROPRIETARY = "Proprietary"
 
 
 class DriverInfo(TypedDict, total=False):
@@ -249,6 +262,7 @@ class CompatibleDatabase(TypedDict, total=False):
     connection_examples: list[ConnectionExample]
     notes: str
     docs_url: str
+    categories: list[str]  # Override parent categories (e.g., for HOSTED_OPEN_SOURCE)
 
 
 class DBEngineSpecMetadata(TypedDict, total=False):

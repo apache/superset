@@ -84,7 +84,10 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         "description": "MySQL is a popular open-source relational database.",
         "logo": "mysql.png",
         "homepage_url": "https://www.mysql.com/",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,
@@ -138,6 +141,7 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 "connection_string": (
                     "mysql://{username}:{password}@{host}:{port}/{database}"
                 ),
+                "categories": [DatabaseCategory.OPEN_SOURCE],
             },
             {
                 "name": "Amazon Aurora MySQL",
@@ -166,6 +170,10 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                     "Uses the Data API for serverless access. "
                     "Standard MySQL connections also work with mysqlclient."
                 ),
+                "categories": [
+                    DatabaseCategory.CLOUD_AWS,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
             },
         ],
     }

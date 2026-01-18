@@ -48,7 +48,10 @@ class SqliteEngineSpec(BaseEngineSpec):
         "description": "SQLite is a self-contained, serverless SQL database engine.",
         "logo": "sqlite.png",
         "homepage_url": "https://www.sqlite.org/",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": [],
         "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",
         "notes": "No additional library needed. SQLite is bundled with Python.",

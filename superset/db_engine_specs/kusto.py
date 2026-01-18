@@ -51,6 +51,7 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "categories": [
             DatabaseCategory.CLOUD_AZURE,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["sqlalchemy-kusto"],
         "connection_string": (

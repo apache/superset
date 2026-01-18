@@ -239,6 +239,7 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
         "categories": [
             DatabaseCategory.CLOUD_DATA_WAREHOUSES,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["databend-sqlalchemy"],
         "connection_string": (

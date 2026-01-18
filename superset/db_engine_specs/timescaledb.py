@@ -39,7 +39,10 @@ class TimescaleDBEngineSpec(PostgresBaseEngineSpec):
         ),
         "logo": "timescale.png",
         "homepage_url": "https://www.timescale.com/",
-        "categories": [DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["psycopg2"],
         "connection_string": (
             "postgresql://{username}:{password}@{host}:{port}/{database}"

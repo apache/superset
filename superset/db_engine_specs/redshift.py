@@ -76,6 +76,7 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         "categories": [
             DatabaseCategory.CLOUD_AWS,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["sqlalchemy-redshift"],
         "connection_string": "redshift+psycopg2://{username}:{password}@{host}:5439/{database}",

@@ -106,6 +106,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         "categories": [
             DatabaseCategory.APACHE_PROJECTS,
             DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["pyhive"],
         "connection_string": "hive://hive@{hostname}:{port}/{database}",

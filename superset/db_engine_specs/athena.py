@@ -46,7 +46,11 @@ class AthenaEngineSpec(BaseEngineSpec):
         ),
         "logo": "amazon-athena.jpg",
         "homepage_url": "https://aws.amazon.com/athena/",
-        "categories": [DatabaseCategory.CLOUD_AWS, DatabaseCategory.QUERY_ENGINES],
+        "categories": [
+            DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.PROPRIETARY,
+        ],
         "pypi_packages": ["pyathena[pandas]"],
         "connection_string": (
             "awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}"

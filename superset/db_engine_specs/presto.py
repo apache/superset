@@ -900,7 +900,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         "description": "Presto is a distributed SQL query engine for big data.",
         "logo": "presto-og.png",
         "homepage_url": "https://prestodb.io/",
-        "categories": [DatabaseCategory.QUERY_ENGINES],
+        "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.OPEN_SOURCE],
         "pypi_packages": ["pyhive"],
         "install_instructions": 'pip install "apache-superset[presto]"',
         "connection_string": "presto://{hostname}:{port}/{database}",

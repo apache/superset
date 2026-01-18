@@ -57,6 +57,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         "categories": [
             DatabaseCategory.APACHE_PROJECTS,
             DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["impyla"],
         "connection_string": "impala://{hostname}:{port}/{database}",

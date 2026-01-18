@@ -610,6 +610,7 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         "categories": [
             DatabaseCategory.CLOUD_DATA_WAREHOUSES,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
         "pypi_packages": ["apache-superset[databricks]"],
         "install_instructions": "pip install apache-superset[databricks]",

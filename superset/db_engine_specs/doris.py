@@ -130,6 +130,7 @@ class DorisEngineSpec(MySQLEngineSpec):
         "categories": [
             DatabaseCategory.APACHE_PROJECTS,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["pydoris"],
         "connection_string": (

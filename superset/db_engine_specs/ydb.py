@@ -55,7 +55,10 @@ class YDBEngineSpec(BaseEngineSpec):
         "description": "YDB is a distributed SQL database by Yandex.",
         "logo": "ydb.svg",
         "homepage_url": "https://ydb.tech/",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["ydb-sqlalchemy"],
         "connection_string": "ydb://{host}:{port}/{database_name}",
         "default_port": 2135,

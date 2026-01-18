@@ -42,6 +42,7 @@ class HologresEngineSpec(PostgresBaseEngineSpec):
         "categories": [
             DatabaseCategory.CLOUD_DATA_WAREHOUSES,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["psycopg2"],
         "connection_string": (

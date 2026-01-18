@@ -88,7 +88,10 @@ class OceanBaseEngineSpec(MySQLEngineSpec):
         "description": "OceanBase is a distributed relational database.",
         "logo": "oceanbase.svg",
         "homepage_url": "https://www.oceanbase.com/",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["oceanbase_py"],
         "connection_string": "oceanbase://{username}:{password}@{host}:{port}/{database}",
     }

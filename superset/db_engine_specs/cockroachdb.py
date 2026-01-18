@@ -33,7 +33,10 @@ class CockroachDbEngineSpec(PostgresEngineSpec):
         ),
         "logo": "cockroachdb.png",
         "homepage_url": "https://www.cockroachlabs.com/",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["cockroachdb"],
         "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
         "default_port": 26257,

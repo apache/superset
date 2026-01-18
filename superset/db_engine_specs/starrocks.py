@@ -105,7 +105,10 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         ),
         "logo": "starrocks.png",
         "homepage_url": "https://www.starrocks.io/",
-        "categories": [DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["starrocks"],
         "connection_string": (
             "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}"

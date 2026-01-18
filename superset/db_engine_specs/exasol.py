@@ -33,7 +33,10 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         ),
         "logo": "exasol.png",
         "homepage_url": "https://www.exasol.com/",
-        "categories": [DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
         "pypi_packages": ["sqlalchemy-exasol"],
         "connection_string": "exa+pyodbc://{username}:{password}@{dsn}",
         "default_port": 8563,

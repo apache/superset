@@ -35,6 +35,7 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
         "categories": [
             DatabaseCategory.CLOUD_DATA_WAREHOUSES,
             DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
         "pypi_packages": ["superset-engine-d1"],
         "connection_string": (

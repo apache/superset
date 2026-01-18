@@ -238,7 +238,10 @@ class OcientEngineSpec(BaseEngineSpec):
 
     metadata = {
         "description": "Ocient is a hyperscale data analytics database.",
-        "categories": [DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
         "pypi_packages": ["sqlalchemy-ocient"],
         "connection_string": "ocient://{username}:{password}@{host}:{port}/{database}",
         "install_instructions": "pip install sqlalchemy-ocient",

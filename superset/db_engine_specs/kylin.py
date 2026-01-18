@@ -36,6 +36,7 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "categories": [
             DatabaseCategory.APACHE_PROJECTS,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["kylinpy"],
         "connection_string": (

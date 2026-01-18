@@ -38,6 +38,7 @@ class AscendEngineSpec(ImpalaEngineSpec):
         "categories": [
             DatabaseCategory.CLOUD_DATA_WAREHOUSES,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
         "pypi_packages": ["impyla"],
         "connection_string": (

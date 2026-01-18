@@ -52,7 +52,11 @@ class DruidEngineSpec(BaseEngineSpec):
         ),
         "logo": "druid.png",
         "homepage_url": "https://druid.apache.org/",
-        "categories": [DatabaseCategory.APACHE_PROJECTS, DatabaseCategory.TIME_SERIES],
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.TIME_SERIES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["pydruid"],
         "connection_string": (
             "druid://{username}:{password}@{host}:{port}/druid/v2/sql"

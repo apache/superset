@@ -35,7 +35,11 @@ class PinotEngineSpec(BaseEngineSpec):
         "description": "Apache Pinot is a real-time distributed OLAP datastore.",
         "logo": "apache-pinot.svg",
         "homepage_url": "https://pinot.apache.org/",
-        "categories": [DatabaseCategory.APACHE_PROJECTS, DatabaseCategory.TIME_SERIES],
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.TIME_SERIES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["pinotdb"],
         "connection_string": (
             "pinot+http://{broker_host}:{broker_port}/query"

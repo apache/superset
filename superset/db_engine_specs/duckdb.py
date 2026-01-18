@@ -206,7 +206,10 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         ),
         "logo": "duckdb.png",
         "homepage_url": "https://duckdb.org/",
-        "categories": [DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["duckdb-engine"],
         "connection_string": "duckdb:////path/to/duck.db",
         "drivers": [
@@ -238,6 +241,7 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
                     "motherduck_token": "Service token from MotherDuck dashboard",
                 },
                 "notes": "Cloud-hosted DuckDB with collaboration features.",
+                "categories": [DatabaseCategory.HOSTED_OPEN_SOURCE],
             },
         ],
     }

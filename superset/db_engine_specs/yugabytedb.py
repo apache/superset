@@ -41,6 +41,7 @@ class YugabyteDBEngineSpec(PostgresBaseEngineSpec):
         "categories": [
             DatabaseCategory.CLOUD_DATA_WAREHOUSES,
             DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["psycopg2"],
         "connection_string": (

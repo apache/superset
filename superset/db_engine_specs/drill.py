@@ -51,6 +51,7 @@ class DrillEngineSpec(BaseEngineSpec):
         "categories": [
             DatabaseCategory.APACHE_PROJECTS,
             DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["sqlalchemy-drill"],
         "connection_string": (

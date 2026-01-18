@@ -104,6 +104,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         "categories": [
             DatabaseCategory.CLOUD_DATA_WAREHOUSES,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["snowflake-sqlalchemy"],
         "connection_string": (

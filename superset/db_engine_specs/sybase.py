@@ -38,7 +38,10 @@ class SybaseEngineSpec(MssqlEngineSpec):
         ),
         "logo": "sybase.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
         "pypi_packages": ["sqlalchemy-sybase", "pyodbc"],
         "connection_string": "sybase+pyodbc://{username}:{password}@{dsn}",
         "parameters": {

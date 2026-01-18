@@ -222,7 +222,10 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         "description": "PostgreSQL is an advanced open-source relational database.",
         "logo": "postgresql.svg",
         "homepage_url": "https://www.postgresql.org/",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["psycopg2"],
         "connection_string": (
             "postgresql://{username}:{password}@{host}:{port}/{database}"
@@ -276,6 +279,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     "port": "Port number of the Hologres instance",
                     "database": "Name of the Hologres database",
                 },
+                "categories": [DatabaseCategory.PROPRIETARY],
             },
             {
                 "name": "TimescaleDB",
@@ -300,6 +304,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 ],
                 "notes": "psycopg2 comes bundled with Superset Docker images.",
                 "docs_url": "https://docs.timescale.com/",
+                "categories": [DatabaseCategory.OPEN_SOURCE],
             },
             {
                 "name": "YugabyteDB",
@@ -312,6 +317,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 ),
                 "notes": "psycopg2 comes bundled with Superset Docker images.",
                 "docs_url": "https://www.yugabyte.com/",
+                "categories": [DatabaseCategory.OPEN_SOURCE],
             },
             {
                 "name": "Amazon Aurora PostgreSQL",
@@ -340,6 +346,10 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     "Uses the Data API for serverless access. "
                     "Standard PostgreSQL connections also work with psycopg2."
                 ),
+                "categories": [
+                    DatabaseCategory.CLOUD_AWS,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
             },
         ],
     }

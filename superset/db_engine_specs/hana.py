@@ -35,7 +35,10 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         ),
         "logo": "sap-hana.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/hana.html",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
         "pypi_packages": ["hdbcli", "sqlalchemy-hana"],
         "install_instructions": "pip install apache_superset[hana]",
         "connection_string": "hana://{username}:{password}@{host}:{port}",

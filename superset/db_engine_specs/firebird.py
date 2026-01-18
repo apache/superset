@@ -34,7 +34,10 @@ class FirebirdEngineSpec(BaseEngineSpec):
         "description": "Firebird is an open-source relational database.",
         "logo": "firebird.png",
         "homepage_url": "https://firebirdsql.org/",
-        "categories": [DatabaseCategory.TRADITIONAL_RDBMS],
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
         "pypi_packages": ["sqlalchemy-firebird"],
         "version_requirements": "sqlalchemy-firebird>=0.7.0,<0.8",
         "connection_string": "firebird+fdb://{username}:{password}@{host}:{port}//{path_to_db_file}",

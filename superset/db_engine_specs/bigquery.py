@@ -142,6 +142,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         "categories": [
             DatabaseCategory.CLOUD_GCP,
             DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["sqlalchemy-bigquery"],
         "connection_string": "bigquery://{project_id}",

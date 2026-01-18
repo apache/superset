@@ -26,7 +26,10 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
         "description": "Vertica is a column-oriented analytics database.",
         "logo": "vertica.png",
         "homepage_url": "https://www.vertica.com/",
-        "categories": [DatabaseCategory.ANALYTICAL_DATABASES],
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
         "pypi_packages": ["sqlalchemy-vertica-python"],
         "connection_string": "vertica+vertica_python://{username}:{password}@{host}/{database}",
         "default_port": 5433,
