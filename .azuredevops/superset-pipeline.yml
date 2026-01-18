@@ -75,7 +75,6 @@ stages:
 
         - bash: |
             mkdir -p $(Build.ArtifactStagingDirectory)
-
             cat > $(Build.ArtifactStagingDirectory)/deployment.env << EOF
             FULL_IMAGE_NAME=$(acrDomain)/$(imageRepository):$(semanticTag)
             EOF
@@ -94,7 +93,7 @@ stages:
   jobs:
     - deployment: DeploySuperset
       variables:
-        - group: blue-dev-secret
+        - group: blue-dev-secret   # contains raw JSON in BLUE_DEV_SECRET
       environment:
         name: ${{ parameters.targetEnvironment }}
         resourceType: VirtualMachine
@@ -108,34 +107,46 @@ stages:
                 artifact: $(artifactName)
 
               # -------------------------------------
-              # Get client-config.json
+              # Rehydrate & validate client config
               # -------------------------------------
-              - template: templates/steps/get-client-config.yml
-                parameters:
-                  targetEnvironment: ${{ parameters.targetEnvironment }}
+              - task: PowerShell@2
+                displayName: 'Rehydrate & validate client config'
+                inputs:
+                  pwsh: true
+                  targetType: inline
+                  script: |
+                    # Use secret variable directly
+                    $raw = $env:BLUE_DEV_SECRET
+                    Write-Host "Retrieved client config"
 
-              # -------------------------------------
-              # Load config from client-config.json
-              # -------------------------------------
-              - pwsh: |
-                  $cfg = Get-Content -Raw "$(cfgPath)" | ConvertFrom-Json
+                    # Write to temp file
+                    $out = Join-Path "$(Agent.TempDirectory)" "blue-dev-config.json"
+                    Set-Content -Path $out -Value $raw -Encoding UTF8
+                    Write-Host "Config written to: $out"
+                    Write-Host "##vso[task.setvariable variable=cfgPath]$out"
 
-                  $explorer = $cfg.'app-suite'[0].explorer
-                  $pg = $cfg.'app-suite'[0].postgres
+                    # Parse JSON
+                    try { 
+                        $cfg = Get-Content -Raw -Path $out | ConvertFrom-Json 
+                    } catch { 
+                        throw "Config is not valid JSON: $($_.Exception.Message)" 
+                    }
 
-                  # Superset (Explorer)
-                  Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($explorer.port)"
-                  Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($explorer.'admin-user')"
-                  Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($explorer.'admin-password')"
+                    # Extract Superset and Postgres info
+                    $explorer = $cfg.'app-suite'[0].explorer
+                    $pg = $cfg.'app-suite'[0].postgres
 
-                  # Postgres
-                  Write-Host "##vso[task.setvariable variable=DB_HOST]oee-postgres"
-                  Write-Host "##vso[task.setvariable variable=DB_PORT]5432"
-                  Write-Host "##vso[task.setvariable variable=DB_NAME]$($pg.database)"
-                  Write-Host "##vso[task.setvariable variable=DB_USER]$($pg.admin.user)"
-                  Write-Host "##vso[task.setvariable variable=DB_PASSWORD;issecret=true]$($pg.admin.password)"
+                    # Superset (Explorer)
+                    Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($explorer.port)"
+                    Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($explorer.'admin-user')"
+                    Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($explorer.'admin-password')"
 
-                displayName: Load config from client-config.json
+                    # Postgres
+                    Write-Host "##vso[task.setvariable variable=DB_HOST]oee-postgres"
+                    Write-Host "##vso[task.setvariable variable=DB_PORT]5432"
+                    Write-Host "##vso[task.setvariable variable=DB_NAME]$($pg.database)"
+                    Write-Host "##vso[task.setvariable variable=DB_USER]$($pg.admin.user)"
+                    Write-Host "##vso[task.setvariable variable=DB_PASSWORD;issecret=true]$($pg.admin.password)"
 
               # -------------------------------------
               # Create docker-compose env file
@@ -163,7 +174,7 @@ stages:
                 displayName: Create .env.deploy
 
               # -------------------------------------
-              # Deploy
+              # Deploy Superset
               # -------------------------------------
               - bash: |
                   docker compose -f docker-compose-deploy.yml --env-file .env.deploy up -d
