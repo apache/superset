@@ -33,6 +33,8 @@ import {
   legendSection,
   onlyTotalControl,
   showValueControl,
+  rotateValueControl,
+  distanceValueControl,
   richTooltipSection,
   seriesOrderSection,
   percentageThresholdControl,
@@ -107,6 +109,8 @@ const config: ControlPanelConfig = {
           },
         ],
         [showValueControl],
+        [rotateValueControl],
+        [distanceValueControl],
         [
           {
             name: 'stack',
