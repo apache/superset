@@ -371,21 +371,20 @@ export default function transformProps(
         data: traverse(treeData, []),
       },
     ],
-    graphic: showTotal
-  ? {
-      type: 'text',
-      top: 'center',
-      left: 'center',
-      style: {
-        text: t('Total: %s', primaryValueFormatter(totalValue)),
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: theme.colorText,
-
-      },
-      z: 10,
-    }
-  : null,
+        graphic: showTotal
+      ? {
+          type: 'text',
+          top: 'center',
+          left: 'center',
+          style: {
+            text: t('Total: %s', primaryValueFormatter(totalValue)),
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: theme.colorText,
+          },
+          z: 10,
+        }
+      : null,
 
   };
   return {
