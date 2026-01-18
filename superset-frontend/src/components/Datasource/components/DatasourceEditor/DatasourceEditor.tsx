@@ -125,6 +125,7 @@ interface Column {
   groupby?: boolean;
   is_dttm?: boolean;
   type?: string;
+  type_generic?: number;
   advanced_data_type?: string;
   python_date_format?: string;
   json?: string;
@@ -158,6 +159,7 @@ interface DatasourceObject {
   metrics?: Metric[];
   owners: Owner[];
   main_dttm_col?: string;
+  currency_code_column?: string;
   filter_select_enabled?: boolean;
   fetch_values_predicate?: string;
   description?: string;
@@ -379,7 +381,7 @@ const DefaultColumnSettingsTitle = styled.h4`
   ${({ theme }) => css`
     margin: 0 0 ${theme.sizeUnit * 2}px 0;
     font-size: ${theme.fontSizeLG}px;
-    font-weight: ${theme.fontWeightMedium};
+    font-weight: ${theme.fontWeightStrong};
     color: ${theme.colorText};
   `}
 `;
@@ -1363,8 +1365,8 @@ class DatasourceEditor extends PureComponent<
         <DefaultColumnSettingsTitle>
           {t('Default Column Settings')}
         </DefaultColumnSettingsTitle>
-        <Flex vertical gap={theme.sizeUnit * 3}>
-          <Flex vertical gap={theme.sizeUnit}>
+        <Flex vertical gap={(theme?.sizeUnit ?? 4) * 3}>
+          <Flex vertical gap={theme?.sizeUnit ?? 4}>
             <FieldLabelWithTooltip>
               <span>{t('Default datetime column')}</span>
               <InfoTooltip
@@ -1380,7 +1382,7 @@ class DatasourceEditor extends PureComponent<
               onChange={value =>
                 this.onDatasourceChange({
                   ...datasource,
-                  main_dttm_col: value,
+                  main_dttm_col: value as string | undefined,
                 })
               }
               placeholder={t('Select datetime column')}
@@ -1388,7 +1390,7 @@ class DatasourceEditor extends PureComponent<
               data-test="default-datetime-column-select"
             />
           </Flex>
-          <Flex vertical gap={theme.sizeUnit}>
+          <Flex vertical gap={theme?.sizeUnit ?? 4}>
             <FieldLabelWithTooltip>
               <span>{t('Currency code column')}</span>
               <InfoTooltip
@@ -1404,7 +1406,7 @@ class DatasourceEditor extends PureComponent<
               onChange={value =>
                 this.onDatasourceChange({
                   ...datasource,
-                  currency_code_column: value,
+                  currency_code_column: value as string | undefined,
                 })
               }
               placeholder={t('Select currency code column')}
