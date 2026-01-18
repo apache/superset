@@ -93,8 +93,6 @@ stages:
   dependsOn: Build
   jobs:
     - deployment: DeploySuperset
-      variables:
-        - group: ${{ format('{0}-Secret', parameters.targetEnvironment) }}
       environment:
         name: ${{ parameters.targetEnvironment }}
         resourceType: VirtualMachine
@@ -110,36 +108,37 @@ stages:
               # -------------------------------------
               # Get client-config.json
               # -------------------------------------
-              - template: templates/steps/get-client-config.yml
+              - template: .azuredevops/templates/steps/get-client-config.yml@oee-intellisuite
                 parameters:
                   targetEnvironment: ${{ parameters.targetEnvironment }}
 
               # -------------------------------------
-              # Extract ALL values from client-config
+              # Load config from client-config.json
               # -------------------------------------
               - pwsh: |
                   $cfg = Get-Content -Raw "$(cfgPath)" | ConvertFrom-Json
 
-                  $superset = $cfg.superset
-                  $docker = $cfg.docker
-
-                  # Superset
-                  Write-Host "##vso[task.setvariable variable=SUPERSET_SECRET_KEY;issecret=true]$($cfg.superset.secretKey)"
-                  Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($cfg.superset.username)"
-                  Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($cfg.superset.password)"
-                  Write-Host "##vso[task.setvariable variable=SUPERSET_URL]$($cfg.superset.url)"
-                  Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($superset.port)"
-                  Write-Host "##vso[task.setvariable variable=DOCKER_NETWORK]$($docker.network)"
-
-                  # Postgres (override host for containers)
+                  $explorer = $cfg.'app-suite'[0].explorer
                   $pg = $cfg.'app-suite'[0].postgres
+
+                  # Superset (Explorer)
+                  Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($explorer.port)"
+                  Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($explorer.'admin-user')"
+                  Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($explorer.'admin-password')"
+
+                  # Superset secret key (pipeline variable)
+                  Write-Host "##vso[task.setvariable variable=SUPERSET_SECRET_KEY;issecret=true]$(SUPERSET_SECRET_KEY)"
+
+                  # Docker network (pipeline variable)
+                  Write-Host "##vso[task.setvariable variable=DOCKER_NETWORK]$(DOCKER_NETWORK)"
+
+                  # Postgres
                   Write-Host "##vso[task.setvariable variable=DB_HOST]oee-postgres"
                   Write-Host "##vso[task.setvariable variable=DB_PORT]5432"
                   Write-Host "##vso[task.setvariable variable=DB_NAME]$($pg.database)"
                   Write-Host "##vso[task.setvariable variable=DB_USER]$($pg.admin.user)"
                   Write-Host "##vso[task.setvariable variable=DB_PASSWORD;issecret=true]$($pg.admin.password)"
-                  Write-Host "Superset Port: $($superset.port)"
-                  Write-Host "Docker Network: $($docker.network)"
+
                 displayName: Load config from client-config.json
 
               # -------------------------------------
@@ -153,7 +152,6 @@ stages:
                   SUPERSET_ADMIN_USER=$(SUPERSET_ADMIN_USER)
                   SUPERSET_ADMIN_PASSWORD=$(SUPERSET_ADMIN_PASSWORD)
                   SUPERSET_PORT=$(SUPERSET_PORT)
-                  DOCKER_NETWORK=$(DOCKER_NETWORK)
 
                   POSTGRES_HOST=$(DB_HOST)
                   POSTGRES_PORT=$(DB_PORT)
@@ -163,6 +161,8 @@ stages:
 
                   REDIS_HOST=redis
                   REDIS_PORT=6379
+
+                  DOCKER_NETWORK=$(DOCKER_NETWORK)
                   EOF
                 displayName: Create .env.deploy
 
