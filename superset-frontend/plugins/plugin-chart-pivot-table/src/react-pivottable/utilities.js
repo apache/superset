@@ -129,6 +129,101 @@ const naturalSort = (as, bs) => {
   return a.length - b.length;
 };
 
+/**
+ *  Targets: https://github.com/apache/superset/issues/20564 issue
+ *  Topic: order by value (asc/desc)
+ *  Fixed problems:
+ *  1. valid ordering with multiple rows/columns (groupping due to subtotal values)
+ *  2. guarantee for normal `subtotal` row/col position both top(left)/bottom(right) in any asc/desc case
+ *  3. fixed a-z order in equal group/row aggregate values
+ *  KNOWN ISSUES: now is applyable only for monotonic sumable aggregates (sum, count, avg), not for min/max
+ *  @param keys - [[key,...],...] - array of row or col keys
+ *  @param dataFunc - function to retrieve data by key (for natural sum order)
+ *  @param top - bool - top/left (true) or bottom/right (false) position of subtotal rows
+ *  @param asc - ascending(true) or descending(false) sort
+ *  NOTE: we REQUIRE to use `asc` parameter and not just `(+|-)groupingValueSort(keys, dataFunc, top)`
+ *  because top/bottom position should be evaluated correctly without dependency of asc/desc
+ */
+const groupingValueSort = (keys, dataFunc, top, asc) => {
+  // precalculate subtotal for every group and subgroup
+  const groups = {};
+  for (let i = 0; i < keys.length; i += 1) {
+    const rk = keys[i];
+    let current = groups;
+    // we should not visit whole key ignore last key part (only groups)
+    for (let ki = 0; ki < rk.length - 1; ki += 1) {
+      const k = rk[ki];
+      if (!current[k]) {
+        //
+        current[k] = { auto_agg_sum: 0 };
+      }
+      current[k].auto_agg_sum += dataFunc(rk, []);
+      current = current[k];
+    }
+  }
+  // compare function, that uses subtotals values to define valid position
+  const compare = (a, b) => {
+    let current = groups;
+    const topBasis = top ? 1 : -1;
+    const ansBasis = asc ? 1 : -1;
+
+    // keys could be different size (one is group subtotal and other is terminal for example)
+    // so we have to get max length of them
+    let l = a.length;
+    if (b.length > l) {
+      l = b.length;
+    }
+
+    // walk all key part except last part of longest key
+    for (let ki = 0; ki < l - 1; ki += 1) {
+      const ka = a[ki];
+      const kb = b[ki];
+
+      // if key subpart is not matched - it's different groups so we have
+      // decide sort order by closest group sum
+      if (ka !== kb) {
+        const sa = current[ka].auto_agg_sum;
+        const sb = current[kb].auto_agg_sum;
+        // if groups have same aggregated value we goes for a-z order (ignoring asc/desc for values!)
+        if (sa === sb) {
+          return ka >= kb ? 1 : -1;
+        }
+        // in other cases we get comparation of it's aggregate value not ignoring asc/desc
+        return sa >= sb ? ansBasis : -ansBasis;
+      }
+
+      // special cases if one of key is subtotal (can be a or b in comparation)
+      // we see it if loop already at end of smaller key (if they different)
+
+      // b compare param is subtotal
+      if (ki + 1 < l && ki + 1 >= b.length) {
+        return topBasis;
+      }
+      // a compare param is subtital
+      if (ki + 1 < l && ki + 1 >= a.length) {
+        return -topBasis;
+      }
+
+      // walk groups deeper
+      current = current[ka];
+    }
+
+    // if rows/cols are at same groups and both are terminals we use natural order of it's values
+    const naturalOrder =
+      naturalSort(dataFunc(a, []), dataFunc(b, [])) * ansBasis;
+
+    // if natural order is equal, we use fixed alphabetical order inside it's group
+    if (naturalOrder === 0) {
+      return a[a.length - 1] >= b[b.length - 1] ? 1 : -1;
+    }
+
+    return naturalOrder;
+  };
+
+  // resort keys with knowledge of group subtotals
+  keys.sort(compare);
+};
+
 const sortAs = function (order) {
   const mapping = {};
 
@@ -737,7 +832,8 @@ class PivotData {
   sortKeys() {
     if (!this.sorted) {
       this.sorted = true;
-      const v = (r, c) => this.getAggregator(r, c).value();
+      const vr = (r, c) => this.getAggregator(r, c).value();
+      const vc = (c, r) => this.getAggregator(r, c).value();
       switch (this.props.rowOrder) {
         case 'key_z_to_a':
           this.rowKeys.sort(
@@ -745,10 +841,20 @@ class PivotData {
           );
           break;
         case 'value_a_to_z':
-          this.rowKeys.sort((a, b) => naturalSort(v(a, []), v(b, [])));
+          groupingValueSort(
+            this.rowKeys,
+            vr,
+            this.subtotals.rowPartialOnTop,
+            true,
+          );
           break;
         case 'value_z_to_a':
-          this.rowKeys.sort((a, b) => -naturalSort(v(a, []), v(b, [])));
+          groupingValueSort(
+            this.rowKeys,
+            vr,
+            this.subtotals.rowPartialOnTop,
+            false,
+          );
           break;
         default:
           this.rowKeys.sort(
@@ -762,10 +868,20 @@ class PivotData {
           );
           break;
         case 'value_a_to_z':
-          this.colKeys.sort((a, b) => naturalSort(v([], a), v([], b)));
+          groupingValueSort(
+            this.colKeys,
+            vc,
+            this.subtotals.colPartialOnTop,
+            true,
+          );
           break;
         case 'value_z_to_a':
-          this.colKeys.sort((a, b) => -naturalSort(v([], a), v([], b)));
+          groupingValueSort(
+            this.colKeys,
+            vc,
+            this.subtotals.colPartialOnTop,
+            false,
+          );
           break;
         default:
           this.colKeys.sort(
@@ -939,6 +1055,7 @@ export {
   derivers,
   locales,
   naturalSort,
+  groupingValueSort,
   numberFormat,
   getSort,
   sortAs,
