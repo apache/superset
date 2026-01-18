@@ -91,6 +91,8 @@ stages:
 - stage: Deploy
   displayName: Deploy Superset
   dependsOn: Build
+  variables:
+    - group: blue-dev-secret
   jobs:
     - deployment: DeploySuperset
       environment:
@@ -111,6 +113,7 @@ stages:
               - template: .azuredevops/templates/steps/get-client-config.yml@oee-intellisuite
                 parameters:
                   targetEnvironment: ${{ parameters.targetEnvironment }}
+                  configVariableName: 'CLIENT_CONFIG_JSON'
 
               # -------------------------------------
               # Load config from client-config.json
