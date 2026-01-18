@@ -260,7 +260,7 @@
     "unicorn/no-useless-undefined": "off",
 
     // === Jest rules ===
-    "jest/consistent-test-it": ["error"],
+    "jest/consistent-test-it": ["error"]
   },
   "ignorePatterns": [
     "packages/generator-superset/**/*",
