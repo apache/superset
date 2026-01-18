@@ -1,34 +1,104 @@
+# Rehydrate client config from a Variable Group secret (RAW JSON),
+# validate JSON  and client-config schema.
+# Must pull in variable group at either stage or job level when using this template:
+#  ie:
+#       variables:
+#        - group: ${{ format('{0}-Secret', parameters.targetEnvironment) }}
+
 parameters:
-  - name: targetEnvironment
+  - name: targetEnvironment # e.g., "Brown-Win2016"
     type: string
 
-variables:
-  # dynamically attach the variable group for the environment
-  - group: ${{ format('{0}-superset-secret', parameters.targetEnvironment) }}
-
 steps:
-  - bash: |
-      set -euo pipefail
-      echo "Creating client-config.json from variable group..."
+  - task: PowerShell@2
+    displayName: 'Rehydrate & validate ${{ parameters.targetEnvironment }}-config'
+    env:
+      CLIENT_CONFIG: ${{ format('$({0}-Secret)', parameters.targetEnvironment) }}
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        # 1) Write the raw JSON from the VG variable to a temp file on the target VM
+        $out = Join-Path "$(Agent.TempDirectory)" "${{ parameters.targetEnvironment }}-config.json"
 
-      CLIENT_CONFIG="$CLIENT_CONFIG_JSON"
+        $raw = $env:CLIENT_CONFIG
+        Write-Host "client-config to be retrieved from VG: $raw"
+        Set-Content -Path $out -Value $raw -Encoding UTF8
 
-      if [ -z "$CLIENT_CONFIG" ]; then
-        echo "ERROR: CLIENT_CONFIG_JSON is empty"
-        exit 1
-      fi
+        if (-not (Test-Path -LiteralPath $out)) { throw "Failed to write config file: $out" }
+        Write-Host "Config written to: $out"
+        Write-Host "##vso[task.setvariable variable=cfgPath]$out"
 
-      CFG_FILE=$(mktemp --suffix=-${{ parameters.targetEnvironment }}-config.json)
-      echo "$CLIENT_CONFIG" > "$CFG_FILE"
-      echo "Config written to $CFG_FILE"
+        # 2) Validate JSON
+        try { $json = Get-Content -Raw -Path $out | ConvertFrom-Json }
+        catch { throw "Config is not valid JSON: $($_.Exception.Message)" }
 
-      # Make file path available to other steps
-      echo "##vso[task.setvariable variable=cfgPath]$CFG_FILE"
+        # 3) Schema checks
+        function Assert-HasProp {
+          param($Obj, [string]$Name, [string]$Path)
+          if (-not $Obj) { throw "Missing '$Path'." }
+          if (-not ($Obj.PSObject.Properties.Name -contains $Name)) { throw "Missing '$Path.$Name'." }
+        }
+        function Assert-NonEmptyString {
+          param($Obj, [string]$Name, [string]$Path)
+          Assert-HasProp $Obj $Name $Path
+          $v = $Obj.$Name
+          if (-not ($v -is [string])) { throw "'$Path.$Name' must be a string." }
+          if ([string]::IsNullOrWhiteSpace($v)) { throw "'$Path.$Name' cannot be empty." }
+        }
+        function Assert-Int {
+          param($Obj, [string]$Name, [string]$Path)
+          Assert-HasProp $Obj $Name $Path
+          $v = $Obj.$Name
+          if ($null -ne $v -and -not ($v -is [int] -or $v -is [long])) {
+            throw "'$Path.$Name' must be an integer."
+          }
+        }
+        function Assert-Creds {
+          param($Parent, [string]$CredKey, [string]$Path)
+          Assert-HasProp $Parent $CredKey $Path
+          $c = $Parent.$CredKey
+          if (-not $c) { throw "Missing '$Path.$CredKey'." }
+          # Require non-empty strings for credentials:
+          Assert-NonEmptyString $c 'user' "$Path.$CredKey"
+          Assert-NonEmptyString $c 'password' "$Path.$CredKey"
+        }
 
-      # Validate JSON
-      if ! jq empty "$CFG_FILE"; then
-        echo "ERROR: Config is not valid JSON"
-        exit 1
-      fi
-      echo "JSON validation passed"
-    displayName: "Rehydrate & Validate ${{ parameters.targetEnvironment }} Config"
+        # Client field checks
+        $client = $json.client
+        if (-not $client) { throw "Missing 'client' field." }
+        Assert-NonEmptyString $client 'name' 'client'
+
+        # Determine the root for connection objects (app-suite[0])
+        $appSuite = $json.'app-suite'[0]
+        if (-not $appSuite) { throw "Missing 'app-suite[0]' array object." }
+
+        # --- 3) SQL Server schema checks
+        $mssql = $appSuite.'sql-server'
+        $mssqlPath = "app-suite[0].sql-server"
+        if (-not $mssql) { throw "Missing $mssqlPath field." }
+        Assert-NonEmptyString $mssql 'host' $mssqlPath
+        Assert-Int    $mssql 'port' $mssqlPath
+        Assert-NonEmptyString $mssql 'database' $mssqlPath
+        Assert-Creds  $mssql 'admin'  $mssqlPath
+        Assert-Creds   $mssql 'owner'  $mssqlPath
+        Assert-Creds  $mssql 'writer' $mssqlPath
+        Assert-Creds  $mssql 'reader' $mssqlPath
+
+        # --- 4) Postgres schema checks
+        $pg = $appSuite.postgres
+        $pgPath = "app-suite[0].postgres"
+        if (-not $pg) { throw "Missing $pgPath field." }
+        Assert-NonEmptyString $pg 'host' $pgPath
+        Assert-Int    $pg 'port' $pgPath
+        Assert-NonEmptyString $pg 'database' $pgPath
+        Assert-Creds  $pg 'admin'  $pgPath
+        Assert-Creds  $pg 'owner'  $pgPath
+        Assert-Creds  $pg 'writer' $pgPath
+        Assert-Creds  $pg 'reader' $pgPath
+        Assert-Creds  $pg 'zero'   $pgPath
+
+        # --- 5) Sanitized confirmation (no secrets) ---
+        Write-Host "Validated sql_server: host=$($mssql.host), port=$($mssql.port), db=$($mssql.database)"
+        Write-Host "Validated postgres  : host=$($pg.host),  port=$($pg.port),  db=$($pg.database)"
+        Write-Host "JSON + schema validation passed."
