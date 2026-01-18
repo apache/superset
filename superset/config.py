@@ -794,7 +794,6 @@ THEME_DEFAULT: Theme = {
         "colorInfo": "#66bcfe",
         # Fonts
         "fontUrls": [],
-        "fontFamily": "Inter, Helvetica, Arial, sans-serif",
         "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
         # Extra tokens
         "transitionTiming": 0.3,
