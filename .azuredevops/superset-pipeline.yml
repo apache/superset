@@ -109,7 +109,7 @@ stages:
               # -------------------------------------
               # Get client-config.json
               # -------------------------------------
-              - template: templates/steps/get-client-config.yml@oee-intellisuite
+              - template: templates/steps/get-client-config.yml
                 parameters:
                   targetEnvironment: ${{ parameters.targetEnvironment }}'
 
