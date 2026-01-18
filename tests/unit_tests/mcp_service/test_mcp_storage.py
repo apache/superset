@@ -182,7 +182,7 @@ def test_create_redis_store_handles_ssl_url():
             # Verify Redis client was created with SSL params
             call_kwargs = mock_redis_class.call_args[1]
             assert call_kwargs["ssl"] is True
-            assert call_kwargs["ssl_cert_reqs"] is None
+            assert call_kwargs["ssl_cert_reqs"] == "none"
             assert call_kwargs["host"] == "redis.example.com"
             assert call_kwargs["port"] == 6380
             assert call_kwargs["db"] == 1
