@@ -23,6 +23,9 @@ import { apiGet, apiPost, apiDelete, ApiRequestOptions } from './requests';
 
 export const ENDPOINTS = {
   DATASET: 'api/v1/dataset/',
+  DATASET_EXPORT: 'api/v1/dataset/export/',
+  DATASET_DUPLICATE: 'api/v1/dataset/duplicate',
+  DATASET_IMPORT: 'api/v1/dataset/import/',
 } as const;
 
 /**
@@ -43,8 +46,8 @@ export interface DatasetCreatePayload {
 export interface DatasetResult {
   id: number;
   table_name: string;
-  sql?: string;
-  schema?: string;
+  sql?: string | null;
+  schema?: string | null;
   database: {
     id: number;
     database_name: string;
@@ -130,4 +133,31 @@ export async function apiDeleteDataset(
   options?: ApiRequestOptions,
 ): Promise<APIResponse> {
   return apiDelete(page, `${ENDPOINTS.DATASET}${datasetId}`, options);
+}
+
+/**
+ * Duplicate a dataset via the API
+ * @param page - Playwright page instance (provides authentication context)
+ * @param datasetId - ID of the dataset to duplicate
+ * @param newName - Name for the duplicated dataset
+ * @returns Object containing the new dataset's ID (use apiGetDataset for full details)
+ */
+export async function duplicateDataset(
+  page: Page,
+  datasetId: number,
+  newName: string,
+): Promise<{ id: number }> {
+  const response = await apiPost(page, `${ENDPOINTS.DATASET}duplicate`, {
+    base_model_id: datasetId,
+    table_name: newName,
+  });
+  const body = await response.json();
+  // Normalize: API may return id at top level or inside result
+  const resolvedId = body.result?.id ?? body.id;
+  if (!resolvedId) {
+    throw new Error(
+      `Duplicate dataset API returned no id. Response: ${JSON.stringify(body)}`,
+    );
+  }
+  return { id: resolvedId };
 }
