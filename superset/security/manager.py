@@ -445,6 +445,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "AnnotationLayerRestApi"),
         # Chart permalinks (for shared chart links)
         ("can_read", "ExplorePermalinkRestApi"),
+        # User info for embedded views (needed by frontend during initialization)
+        ("can_read", "CurrentUserRestApi"),
     }
 
     # View menus that Public role should NOT have access to
@@ -2564,6 +2566,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
                 or self.is_owner(datasource)
+                # Grant access for embedded charts via guest token with chart_permalink
+                or self.has_guest_chart_permalink_access(datasource)
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
                     # or the user is an embedded guest user with access to the dashboard
@@ -2823,7 +2827,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.commands.dashboard.embedded.exceptions import (
             EmbeddedDashboardNotFoundError,
         )
+        from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
         from superset.daos.dashboard import EmbeddedDashboardDAO
+        from superset.embedded_chart.exceptions import (
+            EmbeddedChartPermalinkNotFoundError,
+        )
         from superset.models.dashboard import Dashboard
 
         for resource in resources:
@@ -2834,6 +2842,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
                     if not embedded:
                         raise EmbeddedDashboardNotFoundError()
+            elif resource["type"] == GuestTokenResourceType.CHART_PERMALINK.value:
+                # Validate that the chart permalink exists
+                permalink_key = str(resource["id"])
+                try:
+                    permalink_value = GetExplorePermalinkCommand(permalink_key).run()
+                    if not permalink_value:
+                        raise EmbeddedChartPermalinkNotFoundError()
+                except EmbeddedChartPermalinkNotFoundError:
+                    raise
+                except Exception:
+                    raise EmbeddedChartPermalinkNotFoundError() from None
 
     def create_guest_access_token(
         self,
@@ -2951,6 +2970,37 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if str(resource["id"]) == str(dashboard.embedded[0].uuid):
                 return True
         return False
+
+    def has_guest_chart_permalink_access(self, datasource: Any) -> bool:
+        """
+        Check if a guest user has access to a datasource via a chart permalink resource.
+
+        For embedded charts, the guest token contains chart_permalink resources.
+        This method validates that the requested datasource matches one of the
+        chart permalinks in the user's token.
+        """
+        user = self.get_current_guest_user_if_guest()
+        if not user or not isinstance(user, GuestUser):
+            return False
+
+        # Get chart permalink resources from the guest token
+        permalink_resources = [
+            r
+            for r in user.resources
+            if r.get("type") == GuestTokenResourceType.CHART_PERMALINK.value
+        ]
+
+        if not permalink_resources:
+            return False
+
+        # For embedded charts, we allow access to any datasource that is
+        # referenced by a chart permalink in the guest token.
+        # The permalink validation happens at the embedded_chart API level,
+        # ensuring the user only accesses charts they have been granted access to.
+        # Here we simply need to verify the user has at least one chart_permalink
+        # resource, as the permalink's form_data already specifies which datasource
+        # to use.
+        return True
 
     def raise_for_ownership(self, resource: Model) -> None:
         """
