@@ -112,7 +112,7 @@ stages:
               # -------------------------------------
               - template: templates/steps/get-client-config.yml
                 parameters:
-                  targetEnvironment: ${{ parameters.targetEnvironment }}'
+                  targetEnvironment: ${{ parameters.targetEnvironment }}
 
               # -------------------------------------
               # Load config from client-config.json
