@@ -839,6 +839,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         errorMessage={dataTabErrorMessage}
         chartIsStale={chartIsStale}
         onQuery={onQuery}
+        exploreState={props.exploreState}
       />
     );
   }

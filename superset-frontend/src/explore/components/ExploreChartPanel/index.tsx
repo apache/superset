@@ -88,6 +88,7 @@ export interface ExploreChartPanelProps {
   errorMessage?: ReactNode;
   triggerRender?: boolean;
   chartAlert?: string;
+  exploreState?: JsonObject;
 }
 
 type PanelSizes = [number, number];

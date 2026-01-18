@@ -81,12 +81,12 @@ const mockActions: MockActions = {
 const requiredProps: Partial<ChartRendererProps> = {
   chartId: 1,
   datasource: {} as ChartRendererProps['datasource'],
-  formData: { testControl: 'foo', datasource: '', viz_type: VizType.Table },
+  formData: {
+    testControl: 'foo',
+  } as unknown as ChartRendererProps['formData'],
   latestQueryFormData: {
     testControl: 'bar',
-    datasource: '',
-    viz_type: VizType.Table,
-  },
+  } as unknown as ChartRendererProps['latestQueryFormData'],
   vizType: VizType.Table,
   source: ChartSource.Dashboard,
   actions: mockActions as ChartRendererProps['actions'],
@@ -122,8 +122,6 @@ test('should use latestQueryFormData instead of formData when chartIsStale is tr
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify({
       testControl: 'bar',
-      datasource: '',
-      viz_type: VizType.Table,
     }),
   );
 });
