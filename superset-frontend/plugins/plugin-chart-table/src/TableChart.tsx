@@ -893,7 +893,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         columnKey: key,
         accessor: ((datum: D) => datum[key]) as never,
         Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
-          const [isHtml, text] = formatColumnValue(column, value);
+          const [isHtml, text] = formatColumnValue(column, value, row.original);
           const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
 
           let backgroundColor;
