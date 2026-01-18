@@ -21,7 +21,10 @@ import { t } from '@superset-ui/core';
 import { SupersetTheme } from '../..';
 import { FallbackPropsWithDimension } from './SuperChart';
 
-export type Props = FallbackPropsWithDimension;
+export type Props = Partial<FallbackPropsWithDimension>;
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 export default function FallbackComponent({ error, height, width }: Props) {
   return (
@@ -38,7 +41,7 @@ export default function FallbackComponent({ error, height, width }: Props) {
         <div>
           <b>{t('Oops! An error occurred!')}</b>
         </div>
-        <code>{error ? error.toString() : 'Unknown Error'}</code>
+        <code>{error ? getErrorMessage(error) : 'Unknown Error'}</code>
       </div>
     </div>
   );
