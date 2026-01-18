@@ -130,6 +130,7 @@ def _create_redis_store(
             except ValueError:
                 db = 0
 
+        redis_client: Redis[str]
         if use_ssl:
             # For ElastiCache with self-signed certs, disable cert verification.
             # NOTE: ssl_cert_reqs=ssl.CERT_NONE is required to disable verification.

@@ -218,8 +218,9 @@ def test_create_redis_store_non_ssl_url_no_ssl_param():
 
 def test_create_redis_store_handles_url_with_username_and_password():
     """_create_redis_store properly handles URL with username and password."""
+    test_password = "mypassword"  # noqa: S105
     store_config = {
-        "CACHE_REDIS_URL": "redis://myuser:mypassword@redis.example.com:6379/0",
+        "CACHE_REDIS_URL": f"redis://myuser:{test_password}@redis.example.com:6379/0",
     }
 
     mock_redis_store = MagicMock()
@@ -241,7 +242,7 @@ def test_create_redis_store_handles_url_with_username_and_password():
             # Verify Redis client was created with password from URL
             call_kwargs = mock_redis_class.call_args[1]
             assert call_kwargs["host"] == "redis.example.com"
-            assert call_kwargs["password"] == "mypassword"
+            assert call_kwargs["password"] == test_password
 
 
 def test_create_redis_store_handles_url_with_only_username():
