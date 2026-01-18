@@ -25,6 +25,7 @@ Reusable across caching middleware, OAuth providers, EventStore, etc.
 """
 
 import logging
+import ssl
 from importlib import import_module
 from typing import Any, Callable, Dict
 from urllib.parse import urlparse
@@ -130,15 +131,18 @@ def _create_redis_store(
                 db = 0
 
         if use_ssl:
-            # For ElastiCache with self-signed certs, disable cert verification
+            # For ElastiCache with self-signed certs, disable cert verification.
+            # NOTE: ssl_cert_reqs=ssl.CERT_NONE is required to disable verification.
+            # Using Python None would default to CERT_REQUIRED, not disable it.
             redis_client = Redis(
                 host=parsed.hostname or "localhost",
                 port=parsed.port or 6379,
                 db=db,
+                username=parsed.username,  # Support Redis 6+ ACLs
                 password=parsed.password,
                 decode_responses=True,
                 ssl=True,
-                ssl_cert_reqs=None,  # Disable cert verification for ElastiCache
+                ssl_cert_reqs=ssl.CERT_NONE,
             )
             logger.info("Created async Redis client with SSL at %s", parsed.hostname)
         else:
@@ -146,6 +150,7 @@ def _create_redis_store(
                 host=parsed.hostname or "localhost",
                 port=parsed.port or 6379,
                 db=db,
+                username=parsed.username,  # Support Redis 6+ ACLs
                 password=parsed.password,
                 decode_responses=True,
             )
