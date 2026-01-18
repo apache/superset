@@ -4,7 +4,6 @@ pr: none
 parameters:
   - name: targetEnvironment
     type: string
-    displayName: Target Environment
     default: blue-dev
 
   - name: dockerPool
@@ -88,8 +87,8 @@ stages:
 # =====================================================
 # DEPLOY STAGE
 # =====================================================
-- stage: Deploy
-  displayName: Deploy Superset
+- stage: Deploy_blue_dev
+  displayName: Deploy to blue-dev
   dependsOn: Build
   variables:
     - group: blue-dev-secret
@@ -112,8 +111,7 @@ stages:
               # -------------------------------------
               - template: templates/steps/get-client-config.yml@oee-intellisuite
                 parameters:
-                  targetEnvironment: ${{ parameters.targetEnvironment }}
-                  configVariableName: 'CLIENT_CONFIG_JSON'
+                  targetEnvironment: ${{ parameters.targetEnvironment }}'
 
               # -------------------------------------
               # Load config from client-config.json
