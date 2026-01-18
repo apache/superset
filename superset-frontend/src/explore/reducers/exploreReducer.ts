@@ -367,7 +367,9 @@ export default function exploreReducer(
       // will call validators again
       const control: ExtendedControlState = {
         ...getControlStateFromControlConfig(
-          controlConfig as Parameters<typeof getControlStateFromControlConfig>[0],
+          controlConfig as Parameters<
+            typeof getControlStateFromControlConfig
+          >[0],
           state as Parameters<typeof getControlStateFromControlConfig>[1],
           value as JsonValue,
         ),
@@ -390,13 +392,17 @@ export default function exploreReducer(
       const rerenderedControls: Record<string, ExtendedControlState> = {};
       if (Array.isArray(control.rerender)) {
         control.rerender.forEach((rerenderControlName: string) => {
-          const rerenderControl = (newState.controls as Record<string, ControlState>)[
-            rerenderControlName
-          ];
+          const rerenderControl = (
+            newState.controls as Record<string, ControlState>
+          )[rerenderControlName];
           rerenderedControls[rerenderControlName] = {
             ...getControlStateFromControlConfig(
-              rerenderControl as Parameters<typeof getControlStateFromControlConfig>[0],
-              newState as Parameters<typeof getControlStateFromControlConfig>[1],
+              rerenderControl as Parameters<
+                typeof getControlStateFromControlConfig
+              >[0],
+              newState as Parameters<
+                typeof getControlStateFromControlConfig
+              >[1],
               rerenderControl?.value,
             ),
           } as ExtendedControlState;
@@ -457,8 +463,12 @@ export default function exploreReducer(
             return {
               // Re run validation for dependent controls
               controlState: getControlStateFromControlConfig(
-                controlState as Parameters<typeof getControlStateFromControlConfig>[0],
-                overWrittenState as Parameters<typeof getControlStateFromControlConfig>[1],
+                controlState as Parameters<
+                  typeof getControlStateFromControlConfig
+                >[0],
+                overWrittenState as Parameters<
+                  typeof getControlStateFromControlConfig
+                >[1],
                 controlState?.value as JsonValue | undefined,
               ),
               dependantControlName,
