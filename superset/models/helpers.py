@@ -2135,6 +2135,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
                 return value
+        
+            # Ensure consistent numeric representation
+            if isinstance(value, (int, float)) and target_generic_type == utils.GenericDataType.NUMERIC:
+                value = float(value)  # Normalize all numeric values to float
+        
             if (
                 isinstance(value, (float, int))
                 and target_generic_type == utils.GenericDataType.TEMPORAL
@@ -2147,9 +2152,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_extra=db_extra,
                 )
                 value = literal_column(value)
+        
             if isinstance(value, str):
                 value = value.strip("\t\n")
-
+        
                 if (
                     target_generic_type == utils.GenericDataType.NUMERIC
                     and operator
@@ -2160,16 +2166,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         utils.FilterOperator.NOT_LIKE,
                     }
                 ):
-                    # For backwards compatibility and edge cases
-                    # where a column data type might have changed
-                    return utils.cast_to_num(value)
+                    try:
+                        value = float(value)  # Convert string-based numbers to float
+                    except ValueError:
+                        return utils.cast_to_num(value)
+        
                 if value == NULL_STRING:
                     return None
                 if value == EMPTY_STRING:
                     return ""
-            if target_generic_type == utils.GenericDataType.BOOLEAN:
-                return utils.cast_to_boolean(value)
-            return value
+   
+    if target_generic_type == utils.GenericDataType.BOOLEAN:
+        return utils.cast_to_boolean(value)
+   
+    return value
+
 
         if isinstance(values, (list, tuple)):
             values = [handle_single_value(v) for v in values]  # type: ignore
