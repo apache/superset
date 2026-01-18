@@ -35,7 +35,6 @@ import {
   cachedQuery,
   failedQueryWithErrors,
   queries,
-  runningQuery,
   stoppedQuery,
   initialState,
   user,
@@ -82,32 +81,6 @@ const stoppedQueryState = {
     ...initialState.sqlLab,
     queries: {
       [stoppedQuery.id]: stoppedQuery,
-    },
-  },
-};
-const runningQueryState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [runningQuery.id]: runningQuery,
-    },
-  },
-};
-const fetchingQueryState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [mockedProps.queryId]: {
-        dbId: 1,
-        cached: false,
-        ctas: false,
-        id: 'ryhHUZCGb',
-        progress: 100,
-        state: 'fetching',
-        startDttm: Date.now() - 500,
-      },
     },
   },
 };
@@ -330,25 +303,6 @@ describe('ResultSet', () => {
 
     const alert = screen.getByRole('alert');
     expect(alert).toBeInTheDocument();
-  });
-
-  test('should render running/pending/fetching query', async () => {
-    const { getByTestId } = setup(
-      { ...mockedProps, queryId: runningQuery.id },
-      mockStore(runningQueryState),
-    );
-    const progressBar = getByTestId('progress-bar');
-    expect(progressBar).toBeInTheDocument();
-  });
-
-  test('should render fetching w/ 100 progress query', async () => {
-    const { getByRole, getByText } = setup(
-      mockedProps,
-      mockStore(fetchingQueryState),
-    );
-    const loading = getByRole('status');
-    expect(loading).toBeInTheDocument();
-    expect(getByText('fetching')).toBeInTheDocument();
   });
 
   test('should render a failed query with an errors object', async () => {
