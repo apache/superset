@@ -177,8 +177,10 @@ describe('ExploreChartHeader', () => {
     render(<ExploreHeader {...props} />, { useRedux: true });
     const newChartName = 'New chart name';
     const prevChartName = props.sliceName;
+
+    // Wait for the component to render with the chart title
     expect(
-      await screen.findByText(/add the name of the chart/i),
+      await screen.findByDisplayValue(prevChartName ?? ''),
     ).toBeInTheDocument();
 
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
