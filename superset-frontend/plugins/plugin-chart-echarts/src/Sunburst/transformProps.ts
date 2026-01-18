@@ -377,12 +377,12 @@ export default function transformProps(
           top: 'center',
           left: 'center',
           style: {
-          text: t('Total: %s', primaryValueFormatter(totalValue)),
-          fontSize: 16,
-          fontWeight: 'bold',
-          fill: theme.colorText,
-        },
-        z: 10,
+            text: t('Total: %s', primaryValueFormatter(totalValue)),
+            fontSize: 16,
+            fontWeight: 'bold',
+            fill: theme.colorText,
+          },
+          z: 10,
         }
       : null,
   };
