@@ -17,7 +17,6 @@
 
 """Tests for MCP storage factory."""
 
-import ssl
 from unittest.mock import MagicMock, patch
 
 
@@ -69,6 +68,7 @@ def test_get_mcp_store_creates_store_when_enabled():
     }
 
     mock_redis_store = MagicMock()
+    mock_redis_client = MagicMock()
     mock_wrapper_instance = MagicMock()
     mock_wrapper_class = MagicMock(return_value=mock_wrapper_instance)
 
@@ -85,16 +85,20 @@ def test_get_mcp_store_creates_store_when_enabled():
                     "key_value.aio.stores.redis.RedisStore",
                     return_value=mock_redis_store,
                 ):
-                    from superset.mcp_service.storage import get_mcp_store
+                    with patch(
+                        "superset.mcp_service.storage.Redis",
+                        return_value=mock_redis_client,
+                    ):
+                        from superset.mcp_service.storage import get_mcp_store
 
-                    result = get_mcp_store(prefix="test_prefix_")
+                        result = get_mcp_store(prefix="test_prefix_")
 
-                    # Verify store was created
-                    assert result is mock_wrapper_instance
-                    # Verify wrapper was called with correct args
-                    mock_wrapper_class.assert_called_once_with(
-                        key_value=mock_redis_store, prefix="test_prefix_"
-                    )
+                        # Verify store was created
+                        assert result is mock_wrapper_instance
+                        # Verify wrapper was called with correct args
+                        mock_wrapper_class.assert_called_once_with(
+                            key_value=mock_redis_store, prefix="test_prefix_"
+                        )
 
 
 def test_create_redis_store_wrap_false_returns_raw_store():
@@ -105,21 +109,29 @@ def test_create_redis_store_wrap_false_returns_raw_store():
     }
 
     mock_redis_store = MagicMock()
+    mock_redis_client = MagicMock()
 
     with patch(
         "key_value.aio.stores.redis.RedisStore",
         return_value=mock_redis_store,
-    ) as mock_redis_class:
-        from superset.mcp_service.storage import _create_redis_store
+    ) as mock_redis_store_class:
+        with patch(
+            "superset.mcp_service.storage.Redis",
+            return_value=mock_redis_client,
+        ) as mock_redis_class:
+            from superset.mcp_service.storage import _create_redis_store
 
-        result = _create_redis_store(store_config, wrap=False)
+            result = _create_redis_store(store_config, wrap=False)
 
-        # Verify raw store is returned (not wrapped)
-        assert result is mock_redis_store
-        # Verify RedisStore was called with the URL
-        mock_redis_class.assert_called_once()
-        call_kwargs = mock_redis_class.call_args
-        assert "redis://" in call_kwargs[1]["url"]
+            # Verify raw store is returned (not wrapped)
+            assert result is mock_redis_store
+            # Verify Redis client was created with correct params
+            mock_redis_class.assert_called_once()
+            call_kwargs = mock_redis_class.call_args[1]
+            assert call_kwargs["host"] == "localhost"
+            assert call_kwargs["port"] == 6379
+            # Verify RedisStore was called with the client
+            mock_redis_store_class.assert_called_once_with(client=mock_redis_client)
 
 
 def test_create_redis_store_wrap_true_requires_prefix():
@@ -151,21 +163,29 @@ def test_create_redis_store_handles_ssl_url():
     }
 
     mock_redis_store = MagicMock()
+    mock_redis_client = MagicMock()
 
     with patch(
         "key_value.aio.stores.redis.RedisStore",
         return_value=mock_redis_store,
-    ) as mock_redis_class:
-        from superset.mcp_service.storage import _create_redis_store
+    ):
+        with patch(
+            "superset.mcp_service.storage.Redis",
+            return_value=mock_redis_client,
+        ) as mock_redis_class:
+            from superset.mcp_service.storage import _create_redis_store
 
-        result = _create_redis_store(store_config, wrap=False)
+            result = _create_redis_store(store_config, wrap=False)
 
-        # Verify store was created
-        assert result is mock_redis_store
-        # Verify SSL cert requirement was passed
-        call_kwargs = mock_redis_class.call_args[1]
-        assert call_kwargs["ssl_cert_reqs"] == ssl.CERT_NONE
-        assert "rediss://" in call_kwargs["url"]
+            # Verify store was created
+            assert result is mock_redis_store
+            # Verify Redis client was created with SSL params
+            call_kwargs = mock_redis_class.call_args[1]
+            assert call_kwargs["ssl"] is True
+            assert call_kwargs["ssl_cert_reqs"] is None
+            assert call_kwargs["host"] == "redis.example.com"
+            assert call_kwargs["port"] == 6380
+            assert call_kwargs["db"] == 1
 
 
 def test_create_redis_store_non_ssl_url_no_ssl_param():
@@ -175,41 +195,53 @@ def test_create_redis_store_non_ssl_url_no_ssl_param():
     }
 
     mock_redis_store = MagicMock()
+    mock_redis_client = MagicMock()
 
     with patch(
         "key_value.aio.stores.redis.RedisStore",
         return_value=mock_redis_store,
-    ) as mock_redis_class:
-        from superset.mcp_service.storage import _create_redis_store
+    ):
+        with patch(
+            "superset.mcp_service.storage.Redis",
+            return_value=mock_redis_client,
+        ) as mock_redis_class:
+            from superset.mcp_service.storage import _create_redis_store
 
-        result = _create_redis_store(store_config, wrap=False)
+            result = _create_redis_store(store_config, wrap=False)
 
-        assert result is mock_redis_store
-        # Verify SSL params were NOT passed for non-SSL URL
-        call_kwargs = mock_redis_class.call_args[1]
-        assert "ssl_cert_reqs" not in call_kwargs
+            assert result is mock_redis_store
+            # Verify SSL params were NOT passed for non-SSL URL
+            call_kwargs = mock_redis_class.call_args[1]
+            assert "ssl" not in call_kwargs
+            assert "ssl_cert_reqs" not in call_kwargs
 
 
 def test_create_redis_store_handles_url_with_username_and_password():
-    """_create_redis_store properly includes username in URL reconstruction."""
+    """_create_redis_store properly handles URL with username and password."""
     store_config = {
         "CACHE_REDIS_URL": "redis://myuser:mypassword@redis.example.com:6379/0",
     }
 
     mock_redis_store = MagicMock()
+    mock_redis_client = MagicMock()
 
     with patch(
         "key_value.aio.stores.redis.RedisStore",
         return_value=mock_redis_store,
-    ) as mock_redis_class:
-        from superset.mcp_service.storage import _create_redis_store
+    ):
+        with patch(
+            "superset.mcp_service.storage.Redis",
+            return_value=mock_redis_client,
+        ) as mock_redis_class:
+            from superset.mcp_service.storage import _create_redis_store
 
-        result = _create_redis_store(store_config, wrap=False)
+            result = _create_redis_store(store_config, wrap=False)
 
-        assert result is mock_redis_store
-        # Verify URL includes both username and password
-        call_kwargs = mock_redis_class.call_args[1]
-        assert "myuser:mypassword@" in call_kwargs["url"]
+            assert result is mock_redis_store
+            # Verify Redis client was created with password from URL
+            call_kwargs = mock_redis_class.call_args[1]
+            assert call_kwargs["host"] == "redis.example.com"
+            assert call_kwargs["password"] == "mypassword"
 
 
 def test_create_redis_store_handles_url_with_only_username():
@@ -219,17 +251,23 @@ def test_create_redis_store_handles_url_with_only_username():
     }
 
     mock_redis_store = MagicMock()
+    mock_redis_client = MagicMock()
 
     with patch(
         "key_value.aio.stores.redis.RedisStore",
         return_value=mock_redis_store,
-    ) as mock_redis_class:
-        from superset.mcp_service.storage import _create_redis_store
+    ):
+        with patch(
+            "superset.mcp_service.storage.Redis",
+            return_value=mock_redis_client,
+        ) as mock_redis_class:
+            from superset.mcp_service.storage import _create_redis_store
 
-        result = _create_redis_store(store_config, wrap=False)
+            result = _create_redis_store(store_config, wrap=False)
 
-        assert result is mock_redis_store
-        # Verify URL includes username without password
-        call_kwargs = mock_redis_class.call_args[1]
-        assert "myuser@" in call_kwargs["url"]
-        assert ":@" not in call_kwargs["url"]  # No empty password section
+            assert result is mock_redis_store
+            # Verify Redis client was created with correct params
+            call_kwargs = mock_redis_class.call_args[1]
+            assert call_kwargs["host"] == "redis.example.com"
+            # No password in URL means password should be None
+            assert call_kwargs["password"] is None
