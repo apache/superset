@@ -595,7 +595,14 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
 
         if (tooltipContents.length > 0) {
           const getFieldName = (
-            item: string | { item_type?: string; column_name?: string; metric_name?: string; label?: string },
+            item:
+              | string
+              | {
+                  item_type?: string;
+                  column_name?: string;
+                  metric_name?: string;
+                  label?: string;
+                },
           ): string | null => {
             if (typeof item === 'string') return item;
             if (item?.item_type === 'column') return item.column_name ?? null;
