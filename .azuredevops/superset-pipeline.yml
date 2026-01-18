@@ -90,10 +90,11 @@ stages:
 - stage: Deploy_blue_dev
   displayName: Deploy to blue-dev
   dependsOn: Build
-  variables:
-    - group: blue-dev-secret
+  
   jobs:
     - deployment: DeploySuperset
+      variables:
+        - group: blue-dev-secret
       environment:
         name: ${{ parameters.targetEnvironment }}
         resourceType: VirtualMachine
@@ -126,12 +127,6 @@ stages:
                   Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($explorer.port)"
                   Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($explorer.'admin-user')"
                   Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($explorer.'admin-password')"
-
-                  # Superset secret key (pipeline variable)
-                  Write-Host "##vso[task.setvariable variable=SUPERSET_SECRET_KEY;issecret=true]$(SUPERSET_SECRET_KEY)"
-
-                  # Docker network (pipeline variable)
-                  Write-Host "##vso[task.setvariable variable=DOCKER_NETWORK]$(DOCKER_NETWORK)"
 
                   # Postgres
                   Write-Host "##vso[task.setvariable variable=DB_HOST]oee-postgres"
