@@ -52,7 +52,7 @@
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
     "antd": "^6.2.0",
-    "caniuse-lite": "^1.0.30001764",
+    "caniuse-lite": "^1.0.30001765",
     "docusaurus-plugin-less": "^2.0.2",
     "js-yaml": "^4.1.1",
     "js-yaml-loader": "^1.2.2",
