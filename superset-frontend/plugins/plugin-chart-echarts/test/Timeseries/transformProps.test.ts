@@ -25,11 +25,14 @@ import {
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   SqlaFormData,
+  TimeFormatter,
+  TimeGranularity,
   TimeseriesAnnotationLayer,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import transformProps from '../../src/Timeseries/transformProps';
+import { GenericDataType } from '@apache-superset/core/api/core';
 
 type YAxisFormatter = (value: number, index: number) => string;
 
@@ -636,6 +639,135 @@ describe('Does transformProps transform series correctly', () => {
       '1 year ago, foo2, bar2': ['foo2', 'bar2'],
       'foo1, bar1': ['foo1', 'bar1'],
       'foo2, bar2': ['foo2', 'bar2'],
+    });
+  });
+
+  describe('should add the correct time formatter for the xAxis', () => {
+    const getXAxisFormatter = (timeGrainSqla: TimeGranularity) => {
+      const updatedChartPropsConfig = {
+        ...chartPropsConfig,
+        formData: {
+          ...chartPropsConfig.formData,
+          time_grain_sqla: timeGrainSqla,
+          xAxisTimeFormat: '%Y-%m-%d',
+        },
+        queriesData: [
+          {
+            data: chartPropsConfig.queriesData[0].data,
+            colnames: ['San Francisco', 'New York', '__timestamp'],
+            coltypes: [
+              GenericDataType.String,
+              GenericDataType.String,
+              GenericDataType.Temporal,
+            ],
+          },
+        ],
+      };
+      const { echartOptions } = transformProps(
+        new ChartProps(updatedChartPropsConfig) as EchartsTimeseriesChartProps,
+      );
+      const xAxis = echartOptions.xAxis as {
+        axisLabel: { formatter: TimeFormatter };
+      };
+      return xAxis.axisLabel.formatter;
+    };
+
+    it('should work for days', () => {
+      const formatter = getXAxisFormatter(TimeGranularity.DAY);
+      expect(formatter(1610000000000)).toEqual(
+        expect.stringMatching('2021-01-07'),
+      );
+    });
+
+    it('should work for weeks', () => {
+      const formatter = getXAxisFormatter(TimeGranularity.WEEK);
+      expect(formatter).toBeDefined();
+      expect(formatter(1610000000000)).toEqual(
+        expect.stringMatching('2021-01-07 — 2021-01-13'),
+      );
+    });
+
+    it('should work for months', () => {
+      const formatter = getXAxisFormatter(TimeGranularity.MONTH);
+      expect(formatter).toBeDefined();
+      expect(formatter(1610000000000)).toEqual(expect.stringContaining('Jan'));
+      expect(formatter(1610000000000)).toEqual(expect.stringContaining('2021'));
+    });
+
+    it('should work for quarters', () => {
+      const formatter = getXAxisFormatter(TimeGranularity.QUARTER);
+      expect(formatter).toBeDefined();
+      expect(formatter(1610000000000)).toEqual(expect.stringContaining('Q1'));
+      expect(formatter(1610000000000)).toEqual(expect.stringContaining('2021'));
+    });
+
+    it('should work for years', () => {
+      const formatter = getXAxisFormatter(TimeGranularity.YEAR);
+      expect(formatter).toBeDefined();
+      expect(formatter(1610000000000)).toEqual('2021');
+    });
+  });
+
+  describe('should add the correct time formatter for the tooltip', () => {
+    const getTooltipFormatter = (timeGrainSqla: TimeGranularity) => {
+      const updatedChartPropsConfig = {
+        ...chartPropsConfig,
+        formData: {
+          ...chartPropsConfig.formData,
+          time_grain_sqla: timeGrainSqla,
+          tooltipTimeFormat: '%Y-%m-%d',
+        },
+        queriesData: [
+          {
+            data: chartPropsConfig.queriesData[0].data,
+            colnames: ['San Francisco', 'New York', '__timestamp'],
+            coltypes: [
+              GenericDataType.String,
+              GenericDataType.String,
+              GenericDataType.Temporal,
+            ],
+          },
+        ],
+      };
+
+      return transformProps(
+        new ChartProps(updatedChartPropsConfig) as EchartsTimeseriesChartProps,
+      ).xValueFormatter;
+    };
+
+    it('should work for days', () => {
+      const formatter = getTooltipFormatter(TimeGranularity.DAY);
+      expect(formatter(1610000000000)).toEqual(
+        expect.stringMatching('2021-01-07'),
+      );
+    });
+
+    it('should work for weeks', () => {
+      const formatter = getTooltipFormatter(TimeGranularity.WEEK);
+      expect(formatter).toBeDefined();
+      expect(formatter(1610000000000)).toEqual(
+        expect.stringMatching('2021-01-07 — 2021-01-13'),
+      );
+    });
+
+    it('should work for months', () => {
+      const formatter = getTooltipFormatter(TimeGranularity.MONTH);
+      expect(formatter).toBeDefined();
+      expect(formatter(1610000000000)).toEqual(expect.stringContaining('Jan'));
+      expect(formatter(1610000000000)).toEqual(expect.stringContaining('2021'));
+    });
+
+    it('should work for quarters', () => {
+      const formatter = getTooltipFormatter(TimeGranularity.QUARTER);
+      expect(formatter).toBeDefined();
+      expect(formatter(1610000000000)).toEqual(expect.stringContaining('Q1'));
+      expect(formatter(1610000000000)).toEqual(expect.stringContaining('2021'));
+    });
+
+    it('should work for years', () => {
+      const formatter = getTooltipFormatter(TimeGranularity.YEAR);
+      expect(formatter).toBeDefined();
+      expect(formatter(1610000000000)).toEqual('2021');
     });
   });
 });
