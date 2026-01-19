@@ -25,7 +25,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { bindActionCreators, Dispatch, ActionCreatorsMapObject } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
   useChangeEffect,
@@ -73,7 +73,6 @@ import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
-import { ExploreActions } from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -357,22 +356,11 @@ interface StateProps {
   isSaveModalVisible: boolean;
 }
 
-// Combined actions type representing all action creators used in Explore
-type CombinedExploreActions = typeof exploreActions &
-  typeof datasourcesActions &
-  typeof saveModalActions &
-  typeof chartActions &
-  typeof logActions;
-
-// Bound action creators type (what mapDispatchToProps actually returns)
-type BoundActions<T extends ActionCreatorsMapObject> = {
-  [K in keyof T]: T[K] extends (...args: infer A) => infer R
-    ? (...args: A) => R extends (...args: unknown[]) => infer R2 ? R2 : R
-    : T[K];
-};
-
+// Combined actions from all action modules used in Explore
+// Note: These modules export both action creators AND action type constants,
+// so we use Record<string, unknown> to accommodate the mixed exports
 interface DispatchProps {
-  actions: BoundActions<CombinedExploreActions>;
+  actions: Record<string, unknown>;
 }
 
 type ExploreViewContainerProps = StateProps & DispatchProps & OwnProps;
@@ -1205,7 +1193,7 @@ function mapStateToProps(state: ExploreRootState) {
 }
 
 function mapDispatchToProps(dispatch: Dispatch): DispatchProps {
-  const actions: CombinedExploreActions = {
+  const actions = {
     ...exploreActions,
     ...datasourcesActions,
     ...saveModalActions,
@@ -1213,10 +1201,8 @@ function mapDispatchToProps(dispatch: Dispatch): DispatchProps {
     ...logActions,
   };
   return {
-    actions: bindActionCreators(
-      actions as ActionCreatorsMapObject,
-      dispatch,
-    ) as BoundActions<CombinedExploreActions>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Action modules export mixed types (creators + constants)
+    actions: bindActionCreators(actions as any, dispatch),
   };
 }
 
