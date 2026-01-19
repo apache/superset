@@ -346,7 +346,7 @@ describe('chart actions', () => {
     });
 
     test('should dispatch CHART_UPDATE_STARTED action before the query', () => {
-      const actionThunk = actions.postChartFormData({} as QueryFormData);
+      const actionThunk = actions.postChartFormData({ viz_type: 'table' } as QueryFormData);
 
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
@@ -361,7 +361,7 @@ describe('chart actions', () => {
     });
 
     test('should dispatch TRIGGER_QUERY action with the query', () => {
-      const actionThunk = actions.postChartFormData({} as QueryFormData);
+      const actionThunk = actions.postChartFormData({ viz_type: 'table' } as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
         mockGetState as unknown as () => actions.RootState,
@@ -375,7 +375,7 @@ describe('chart actions', () => {
     });
 
     test('should dispatch UPDATE_QUERY_FORM_DATA action with the query', () => {
-      const actionThunk = actions.postChartFormData({} as QueryFormData);
+      const actionThunk = actions.postChartFormData({ viz_type: 'table' } as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
         mockGetState as unknown as () => actions.RootState,
@@ -389,7 +389,7 @@ describe('chart actions', () => {
     });
 
     test('should dispatch logEvent async action', () => {
-      const actionThunk = actions.postChartFormData({} as QueryFormData);
+      const actionThunk = actions.postChartFormData({ viz_type: 'table' } as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
         mockGetState as unknown as () => actions.RootState,
@@ -407,7 +407,10 @@ describe('chart actions', () => {
     });
 
     test('should dispatch CHART_UPDATE_SUCCEEDED action upon success', () => {
-      const actionThunk = actions.postChartFormData({} as QueryFormData);
+      // Pass a viz_type so getQuerySettings returns useLegacyApi from the mocked registry
+      const actionThunk = actions.postChartFormData({
+        viz_type: 'table',
+      } as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
         mockGetState as unknown as () => actions.RootState,
@@ -516,8 +519,9 @@ describe('chart actions', () => {
         .stub(exploreUtils, 'getExploreUrl')
         .callsFake(() => mockBigIntUrl);
 
+      // Need viz_type to trigger the mocked getChartMetadataRegistry for legacy API
       const { json } = await actions.getChartDataRequest({
-        formData: fakeMetadata as QueryFormData,
+        formData: { ...fakeMetadata, viz_type: 'table' } as QueryFormData,
       });
 
       expect(fetchMock.calls(mockBigIntUrl)).toHaveLength(1);
