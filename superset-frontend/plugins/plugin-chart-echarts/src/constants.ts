@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { JsonValue, t, TimeGranularity } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { JsonValue, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
   LabelPositionEnum,

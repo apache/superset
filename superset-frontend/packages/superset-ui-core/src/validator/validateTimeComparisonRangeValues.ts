@@ -18,7 +18,7 @@
  */
 
 import { ComparisonTimeRangeType } from '../time-comparison';
-import { t } from '../translation';
+import { t } from '@apache-superset/core';
 import { ensureIsArray } from '../utils';
 
 export const validateTimeComparisonRangeValues = (

@@ -54,11 +54,11 @@ logger = logging.getLogger(__name__)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
-    """Create and save a chart in Superset.
+    """Create a chart preview in Superset, optionally saving it permanently.
 
     IMPORTANT BEHAVIOR:
-    - Charts ARE saved by default (save_chart=True)
-    - Set save_chart=False for temporary preview only
+    - Charts are NOT saved by default (save_chart=False) - preview only
+    - Set save_chart=True to permanently save the chart
     - LLM clients MUST display returned chart URL to users
     - Embed preview_url as image: ![Chart Preview](preview_url)
     - Use numeric dataset ID or UUID (NOT schema.table_name format)

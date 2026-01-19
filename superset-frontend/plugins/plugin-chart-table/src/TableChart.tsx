@@ -47,11 +47,16 @@ import {
   getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
-  t,
-  tn,
   extractTextFromHTML,
 } from '@superset-ui/core';
-import { styled, css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  useTheme,
+  SupersetTheme,
+  t,
+  tn,
+} from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Input,
@@ -887,7 +892,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         columnKey: key,
         accessor: ((datum: D) => datum[key]) as never,
         Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
-          const [isHtml, text] = formatColumnValue(column, value);
+          const [isHtml, text] = formatColumnValue(column, value, row.original);
           const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
 
           let backgroundColor;

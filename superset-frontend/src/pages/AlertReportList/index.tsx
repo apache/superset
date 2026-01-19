@@ -19,8 +19,8 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
+import { t } from '@apache-superset/core';
 import {
-  t,
   SupersetClient,
   makeApi,
   getExtensionsRegistry,

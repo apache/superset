@@ -23,11 +23,11 @@ import type { QueryColumn, SupersetError } from '@superset-ui/core';
 import {
   FeatureFlag,
   SupersetClient,
-  t,
   isFeatureEnabled,
   COMMON_ERR_MESSAGES,
   getClientErrorObject,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { invert, mapKeys } from 'lodash';
 
 import { now } from '@superset-ui/core/utils/dates';

@@ -30,7 +30,8 @@ import {
   ReactElement,
 } from 'react';
 
-import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {
   LabeledValue as AntdLabeledValue,

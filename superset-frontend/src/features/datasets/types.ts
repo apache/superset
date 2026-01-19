@@ -65,6 +65,7 @@ export type DatasetObject = {
   catalog?: string;
   description: string | null;
   main_dttm_col: string;
+  currency_code_column?: string;
   offset?: number;
   default_endpoint?: string;
   cache_timeout?: number;

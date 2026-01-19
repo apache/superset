@@ -18,7 +18,8 @@
  */
 import { PureComponent, ReactNode } from 'react';
 import rison from 'rison';
-import { isDefined, JsonResponse, SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { isDefined, JsonResponse, SupersetClient } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';

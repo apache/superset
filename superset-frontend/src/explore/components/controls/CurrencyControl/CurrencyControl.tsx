@@ -16,18 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import {
-  Currency,
-  ensureIsArray,
-  getCurrencySymbol,
-  t,
-} from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core';
+import { Currency, ensureIsArray, getCurrencySymbol } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { CSSObject } from '@emotion/react';
 import { Select, type SelectProps } from '@superset-ui/core/components';
 import { ViewState } from 'src/views/types';
+import { ExplorePageState } from 'src/explore/types';
 import ControlHeader from '../../ControlHeader';
 
 export interface CurrencyControlProps {
@@ -71,19 +68,74 @@ export const CurrencyControl = ({
   currencySelectAdditionalStyles,
   ...props
 }: CurrencyControlProps) => {
+  const theme = useTheme();
   const currencies = useSelector<ViewState, string[]>(
     state => state.common?.currencies,
   );
-  const currenciesOptions = useMemo(
-    () =>
-      ensureIsArray(currencies).map(currencyCode => ({
-        value: currencyCode,
-        label: `${getCurrencySymbol({
-          symbol: currencyCode,
-        })} (${currencyCode})`,
-      })),
-    [currencies],
+  const currencyCodeColumn = useSelector<ExplorePageState, string | undefined>(
+    state => state?.explore?.datasource?.currency_code_column,
   );
+
+  const currenciesOptions = useMemo(() => {
+    const options = ensureIsArray(currencies).map(currencyCode => ({
+      value: currencyCode,
+      label: `${getCurrencySymbol({
+        symbol: currencyCode,
+      })} (${currencyCode})`,
+    }));
+
+    const autoDetectOption = currencyCodeColumn
+      ? [
+          {
+            value: 'AUTO',
+            label: t('Auto-detect'),
+            className: 'currency-auto-detect-option',
+          },
+        ]
+      : [];
+
+    return [
+      ...autoDetectOption,
+      ...options,
+      { value: '', label: t('Custom...') },
+    ];
+  }, [currencies, currencyCodeColumn]);
+
+  const currencySortComparator = useCallback(
+    (
+      a: { value?: string | number },
+      b: { value?: string | number },
+    ): number => {
+      if (a.value === 'AUTO') return -1;
+      if (b.value === 'AUTO') return 1;
+      if (a.value === '') return 1;
+      if (b.value === '') return -1;
+      const labelA = String(a.value ?? '');
+      const labelB = String(b.value ?? '');
+      return labelA.localeCompare(labelB);
+    },
+    [],
+  );
+
+  const renderCurrencyPopup = useMemo(
+    () =>
+      currencyCodeColumn
+        ? (menu: React.ReactNode) => (
+            <div
+              css={css`
+                .currency-auto-detect-option {
+                  border-bottom: 1px solid ${theme.colorBorderSecondary};
+                  margin-bottom: ${theme.sizeUnit}px;
+                }
+              `}
+            >
+              {menu}
+            </div>
+          )
+        : undefined,
+    [currencyCodeColumn, theme],
+  );
+
   return (
     <>
       <ControlHeader {...props} />
@@ -96,7 +148,7 @@ export const CurrencyControl = ({
             ${currencySelectAdditionalStyles};
           }
         `}
-        className="currency-control-container"
+        data-test="currency-control-container"
       >
         <Select
           ariaLabel={t('Currency prefix or suffix')}
@@ -121,6 +173,8 @@ export const CurrencyControl = ({
           value={currency?.symbol}
           allowClear
           allowNewOptions
+          sortComparator={currencySortComparator}
+          popupRender={renderCurrencyPopup}
           {...currencySelectOverrideProps}
         />
       </CurrencyControlContainer>

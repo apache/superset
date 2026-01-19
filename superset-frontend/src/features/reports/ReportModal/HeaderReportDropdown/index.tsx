@@ -18,8 +18,8 @@
  */
 import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { t } from '@apache-superset/core';
 import {
-  t,
   FeatureFlag,
   isFeatureEnabled,
   getExtensionsRegistry,

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DTTM_ALIAS, QueryColumn, QueryMode, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { DTTM_ALIAS, QueryColumn, QueryMode } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta, SortSeriesData, SortSeriesType } from './types';
 
