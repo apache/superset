@@ -1029,6 +1029,14 @@ class ChartDataExtrasSchema(Schema):
         },
         allow_none=True,
     )
+    transpile_to_dialect = fields.Boolean(
+        metadata={
+            "description": "If true, WHERE/HAVING clauses will be transpiled to the "
+            "target database dialect using SQLGlot."
+        },
+        load_default=False,
+        allow_none=True,
+    )
 
 
 class AnnotationLayerSchema(Schema):
