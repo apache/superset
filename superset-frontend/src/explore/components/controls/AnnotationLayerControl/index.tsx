@@ -305,8 +305,10 @@ function mapDispatchToProps(
   dispatch: ThunkDispatch<any, undefined, AnyAction>,
 ) {
   return {
-    refreshAnnotationData: (annotationObj: Annotation) =>
-      dispatch(runAnnotationQuery(annotationObj)),
+    refreshAnnotationData: (payload: Payload) =>
+      dispatch(
+        runAnnotationQuery(payload as Parameters<typeof runAnnotationQuery>[0]),
+      ),
   };
 }
 

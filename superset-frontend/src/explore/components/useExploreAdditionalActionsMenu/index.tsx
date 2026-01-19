@@ -16,10 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useState } from 'react';
+import React, {
+  ReactElement,
+  useCallback,
+  useMemo,
+  useState,
+  Dispatch,
+  SetStateAction,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import { isFeatureEnabled, FeatureFlag, VizType } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  VizType,
+  JsonObject,
+  LatestQueryFormData,
+  QueryFormData,
+  Behavior,
+} from '@superset-ui/core';
 import { css, styled, useTheme, t } from '@apache-superset/core/ui';
 import {
   Icons,
@@ -28,7 +43,7 @@ import {
   Input,
 } from '@superset-ui/core/components';
 import { getChartMetadataRegistry } from '@superset-ui/core';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Menu, MenuProps } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
@@ -45,7 +60,13 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
 } from 'src/logger/LogUtils';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
-import { useStreamingExport } from 'src/components/StreamingExportModal';
+import {
+  useStreamingExport,
+  StreamingProgress,
+} from 'src/components/StreamingExportModal';
+import { Slice } from 'src/types/Chart';
+import { ChartState, ExplorePageInitialData } from 'src/explore/types';
+import { AlertObject } from 'src/features/alerts/types';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
@@ -119,18 +140,69 @@ export const MenuTrigger = styled(Button)`
   `}
 `;
 
+interface ClientViewColumn {
+  key: string;
+  label?: string;
+}
+
+interface ClientViewRow {
+  [key: string]: unknown;
+}
+
+interface OwnStateWithClientView extends JsonObject {
+  clientView?: {
+    rows?: ClientViewRow[];
+    columns?: ClientViewColumn[];
+  };
+}
+
+export interface StreamingExportState {
+  isVisible: boolean;
+  progress: StreamingProgress;
+  onCancel: () => void;
+  onRetry: () => void;
+  onDownload: () => void;
+}
+
+interface ExploreSlice {
+  slice?: Slice | null;
+  form_data?: Partial<QueryFormData>;
+}
+
+interface ExploreState {
+  charts?: Record<number, ChartState>;
+  explore?: ExploreSlice;
+  common?: {
+    conf?: {
+      CSV_STREAMING_ROW_THRESHOLD?: number;
+    };
+  };
+}
+
+export type UseExploreAdditionalActionsMenuReturn = [
+  ReactElement,
+  boolean,
+  Dispatch<SetStateAction<boolean>>,
+  StreamingExportState,
+];
+
 export const useExploreAdditionalActionsMenu = (
-  latestQueryFormData,
-  canDownloadCSV,
-  slice,
-  onOpenInEditor,
-  onOpenPropertiesModal,
-  ownState,
-  dashboards,
-  showReportModal,
-  setCurrentReportDeleting,
-  ...rest
-) => {
+  latestQueryFormData: LatestQueryFormData,
+  canDownloadCSV: boolean,
+  slice: Slice | null | undefined,
+  onOpenInEditor: (
+    formData: LatestQueryFormData,
+    openNewWindow?: boolean,
+  ) => void,
+  onOpenPropertiesModal: () => void,
+  ownState: OwnStateWithClientView | undefined,
+  dashboards:
+    | NonNullable<ExplorePageInitialData['metadata']>['dashboards']
+    | undefined,
+  showReportModal: () => void,
+  setCurrentReportDeleting: Dispatch<SetStateAction<AlertObject | null>>,
+  ...rest: MenuProps[]
+): UseExploreAdditionalActionsMenuReturn => {
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
   const dispatch = useDispatch();
@@ -140,10 +212,10 @@ export const useExploreAdditionalActionsMenu = (
     dashboardSearchTerm,
     300,
   );
-  const chart = useSelector(
-    state => state.charts?.[getChartKey(state.explore)],
+  const chart = useSelector<ExploreState, ChartState | undefined>(state =>
+    state.explore ? state.charts?.[getChartKey(state.explore)] : undefined,
   );
-  const streamingThreshold = useSelector(
+  const streamingThreshold = useSelector<ExploreState, number>(
     state =>
       state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
       DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
@@ -153,9 +225,9 @@ export const useExploreAdditionalActionsMenu = (
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
   const {
     progress,
-    isExporting,
+    isExporting: _isExporting,
     startExport,
-    cancelExport,
+    cancelExport: _cancelExport,
     resetExport,
     retryExport,
   } = useStreamingExport({
@@ -192,19 +264,24 @@ export const useExploreAdditionalActionsMenu = (
     searchTerm: debouncedDashboardSearchTerm,
   });
 
-  const showDashboardSearch = dashboards?.length > SEARCH_THRESHOLD;
+  const showDashboardSearch = (dashboards?.length ?? 0) > SEARCH_THRESHOLD;
   const vizType = latestQueryFormData?.viz_type;
   const meta = vizType ? getChartMetadataRegistry().get(vizType) : undefined;
 
   // Detect if the chart plugin exposes the export-current-view behavior
   const hasExportCurrentView = !!meta?.behaviors?.includes(
-    'EXPORT_CURRENT_VIEW',
+    'EXPORT_CURRENT_VIEW' as Behavior,
   );
 
   const shareByEmail = useCallback(async () => {
     try {
       const subject = t('Superset Chart');
-      const result = await getChartPermalink(latestQueryFormData);
+      if (!latestQueryFormData?.datasource) {
+        throw new Error('No datasource available');
+      }
+      const result = await getChartPermalink(
+        latestQueryFormData as Pick<QueryFormData, 'datasource'>,
+      );
       if (!result?.url) {
         throw new Error('Failed to generate permalink');
       }
@@ -227,11 +304,12 @@ export const useExploreAdditionalActionsMenu = (
 
     if (
       isTableViz &&
-      queriesResponse?.length > 1 &&
+      queriesResponse &&
+      queriesResponse.length > 1 &&
       queriesResponse[1]?.data?.[0]?.rowcount
     ) {
       actualRowCount = queriesResponse[1].data[0].rowcount;
-    } else if (queriesResponse?.[0]?.sql_rowcount != null) {
+    } else if (queriesResponse && queriesResponse[0]?.sql_rowcount != null) {
       actualRowCount = queriesResponse[0].sql_rowcount;
     } else {
       actualRowCount = latestQueryFormData?.row_limit;
@@ -241,7 +319,7 @@ export const useExploreAdditionalActionsMenu = (
     const shouldUseStreaming =
       actualRowCount && actualRowCount >= streamingThreshold;
 
-    let filename;
+    let filename: string | undefined;
     if (shouldUseStreaming) {
       const now = new Date();
       const date = now.toISOString().slice(0, 10);
@@ -254,18 +332,22 @@ export const useExploreAdditionalActionsMenu = (
     }
 
     return exportChart({
-      formData: latestQueryFormData,
+      formData: latestQueryFormData as QueryFormData,
       ownState,
       resultType: 'full',
       resultFormat: 'csv',
       onStartStreamingExport: shouldUseStreaming
         ? exportParams => {
-            setIsStreamingModalVisible(true);
-            startExport({
-              ...exportParams,
-              filename,
-              expectedRows: actualRowCount,
-            });
+            if (exportParams.url) {
+              setIsStreamingModalVisible(true);
+              startExport({
+                ...exportParams,
+                url: exportParams.url,
+                filename,
+                expectedRows: actualRowCount,
+                exportType: exportParams.exportType as 'csv' | 'xlsx',
+              });
+            }
           }
         : null,
     });
@@ -283,7 +365,7 @@ export const useExploreAdditionalActionsMenu = (
     () =>
       canDownloadCSV
         ? exportChart({
-            formData: latestQueryFormData,
+            formData: latestQueryFormData as QueryFormData,
             ownState,
             resultType: 'post_processed',
             resultFormat: 'csv',
@@ -296,7 +378,7 @@ export const useExploreAdditionalActionsMenu = (
     () =>
       canDownloadCSV
         ? exportChart({
-            formData: latestQueryFormData,
+            formData: latestQueryFormData as QueryFormData,
             ownState,
             resultType: 'results',
             resultFormat: 'json',
@@ -309,7 +391,7 @@ export const useExploreAdditionalActionsMenu = (
     () =>
       canDownloadCSV
         ? exportChart({
-            formData: latestQueryFormData,
+            formData: latestQueryFormData as QueryFormData,
             ownState,
             resultType: 'results',
             resultFormat: 'xlsx',
@@ -320,11 +402,13 @@ export const useExploreAdditionalActionsMenu = (
 
   const copyLink = useCallback(async () => {
     try {
-      if (!latestQueryFormData) {
-        throw new Error();
+      if (!latestQueryFormData?.datasource) {
+        throw new Error('No datasource available');
       }
       await copyTextToClipboard(async () => {
-        const result = await getChartPermalink(latestQueryFormData);
+        const result = await getChartPermalink(
+          latestQueryFormData as Pick<QueryFormData, 'datasource'>,
+        );
         if (!result?.url) {
           throw new Error('Failed to generate permalink');
         }
@@ -337,9 +421,13 @@ export const useExploreAdditionalActionsMenu = (
   }, [addDangerToast, addSuccessToast, latestQueryFormData]);
 
   // Minimal client-side CSV builder used for "Current View" when pagination is disabled
-  const downloadClientCSV = (rows, columns, filename) => {
+  const downloadClientCSV = (
+    rows: ClientViewRow[],
+    columns: ClientViewColumn[],
+    filename: string,
+  ) => {
     if (!rows?.length || !columns?.length) return;
-    const esc = v => {
+    const esc = (v: unknown): string => {
       if (v === null || v === undefined) return '';
       const s = String(v);
       const wrapped = /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -361,20 +449,29 @@ export const useExploreAdditionalActionsMenu = (
   };
 
   // Robust client-side JSON for "Current View"
-  const downloadClientJSON = (rows, columns, filename) => {
+  const downloadClientJSON = (
+    rows: ClientViewRow[],
+    columns: ClientViewColumn[],
+    filename: string,
+  ) => {
     if (!rows?.length || !columns?.length) return;
 
-    const norm = v => {
+    const norm = (v: unknown): unknown => {
       if (v instanceof Date) return v.toISOString();
       if (v && typeof v === 'object' && 'input' in v && 'formatter' in v) {
-        const dv = v.input ?? v.value ?? v.toString?.() ?? '';
+        const typedV = v as {
+          input?: unknown;
+          value?: unknown;
+          toString?: () => string;
+        };
+        const dv = typedV.input ?? typedV.value ?? typedV.toString?.() ?? '';
         return dv instanceof Date ? dv.toISOString() : dv;
       }
       return v;
     };
 
     const data = rows.map(r => {
-      const out = {};
+      const out: Record<string, unknown> = {};
       columns.forEach(c => {
         out[c.key] = norm(r[c.key]);
       });
@@ -402,8 +499,12 @@ export const useExploreAdditionalActionsMenu = (
     URL.revokeObjectURL(link.href);
   };
 
-  // NEW: Client-side XLSX for "Current View" (uses 'xlsx' already in deps)
-  const downloadClientXLSX = async (rows, columns, filename) => {
+  // Client-side XLSX for "Current View" (uses 'xlsx' already in deps)
+  const downloadClientXLSX = async (
+    rows: ClientViewRow[],
+    columns: ClientViewColumn[],
+    filename: string,
+  ) => {
     if (!rows?.length || !columns?.length) return;
     try {
       const XLSX = (await import(/* webpackChunkName: "xlsx" */ 'xlsx'))
@@ -411,17 +512,20 @@ export const useExploreAdditionalActionsMenu = (
 
       // Build a flat array of objects keyed by backend column key
       const data = rows.map(r => {
-        const o = {};
+        const o: Record<string, unknown> = {};
         columns.forEach(c => {
           const v = r[c.key];
-          o[c.label ?? c.key] =
-            v && typeof v === 'object' && 'input' in v && 'formatter' in v
-              ? v.input instanceof Date
-                ? v.input.toISOString()
-                : (v.input ?? v.value ?? '')
-              : v instanceof Date
-                ? v.toISOString()
-                : v;
+          if (v && typeof v === 'object' && 'input' in v && 'formatter' in v) {
+            const typedV = v as { input?: unknown; value?: unknown };
+            o[c.label ?? c.key] =
+              typedV.input instanceof Date
+                ? typedV.input.toISOString()
+                : (typedV.input ?? typedV.value ?? '');
+          } else if (v instanceof Date) {
+            o[c.label ?? c.key] = v.toISOString();
+          } else {
+            o[c.label ?? c.key] = v;
+          }
         });
         return o;
       });
@@ -437,8 +541,8 @@ export const useExploreAdditionalActionsMenu = (
       ws['!cols'] = colWidths;
 
       XLSX.writeFile(wb, `${filename || 'current_view'}.xlsx`);
-    } catch (e) {
-      // If xlsx isn’t available for some reason, fall back to CSV
+    } catch {
+      // If xlsx isn't available for some reason, fall back to CSV
       downloadClientCSV(rows, columns, filename || 'current_view');
       addDangerToast?.(
         t('Falling back to CSV; Excel export library not available.'),
@@ -493,7 +597,7 @@ export const useExploreAdditionalActionsMenu = (
 
     menuItems.push({
       key: MENU_KEYS.DASHBOARDS_ADDED_TO,
-      type: 'submenu',
+      type: 'submenu' as const,
       label: t('On dashboards'),
       children: dashboardsChildren,
       popupStyle: {
@@ -503,12 +607,15 @@ export const useExploreAdditionalActionsMenu = (
     });
 
     // Divider
-    menuItems.push({ type: 'divider' });
+    menuItems.push({ type: 'divider' as const });
 
     // Download submenu
     const allDataChildren = [];
 
-    if (VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type)) {
+    if (
+      latestQueryFormData.viz_type &&
+      VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type as VizType)
+    ) {
       allDataChildren.push(
         {
           key: MENU_KEYS.EXPORT_TO_CSV,
@@ -603,7 +710,7 @@ export const useExploreAdditionalActionsMenu = (
         key: MENU_KEYS.EXPORT_ALL_SCREENSHOT,
         label: t('Export screenshot (jpeg)'),
         icon: <Icons.FileImageOutlined />,
-        onClick: e => {
+        onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
             '.panel-body .chart-container',
             slice?.slice_name ?? t('New chart'),
@@ -659,7 +766,7 @@ export const useExploreAdditionalActionsMenu = (
             );
           } else {
             exportChart({
-              formData: latestQueryFormData,
+              formData: latestQueryFormData as QueryFormData,
               ownState,
               resultType: 'results',
               resultFormat: 'csv',
@@ -707,7 +814,7 @@ export const useExploreAdditionalActionsMenu = (
         key: MENU_KEYS.EXPORT_CURRENT_SCREENSHOT,
         label: t('Export screenshot (jpeg)'),
         icon: <Icons.FileImageOutlined />,
-        onClick: e => {
+        onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
             '.panel-body .chart-container',
             slice?.slice_name ?? t('New chart'),
@@ -758,12 +865,12 @@ export const useExploreAdditionalActionsMenu = (
 
     menuItems.push({
       key: MENU_KEYS.DATA_EXPORT_OPTIONS,
-      type: 'submenu',
+      type: 'submenu' as const,
       label: t('Data Export Options'),
       children: [
         {
           key: MENU_KEYS.EXPORT_ALL_DATA_GROUP,
-          type: 'submenu',
+          type: 'submenu' as const,
           label: t('Export All Data'),
           children: allDataChildren,
         },
@@ -771,7 +878,7 @@ export const useExploreAdditionalActionsMenu = (
           ? [
               {
                 key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
-                type: 'submenu',
+                type: 'submenu' as const,
                 label: t('Export Current View'),
                 children: currentViewChildren,
               },
@@ -781,7 +888,11 @@ export const useExploreAdditionalActionsMenu = (
     });
 
     // Share submenu
-    const shareChildren = [
+    const shareChildren: Array<{
+      key: string;
+      label: React.ReactNode;
+      onClick: () => void;
+    }> = [
       {
         key: MENU_KEYS.COPY_PERMALINK,
         label: t('Copy permalink to clipboard'),
@@ -826,13 +937,13 @@ export const useExploreAdditionalActionsMenu = (
 
     menuItems.push({
       key: MENU_KEYS.SHARE_SUBMENU,
-      type: 'submenu',
+      type: 'submenu' as const,
       label: t('Share'),
       children: shareChildren,
     });
 
     // Divider
-    menuItems.push({ type: 'divider' });
+    menuItems.push({ type: 'divider' as const });
 
     // Report menu item
     if (reportMenuItem) {
@@ -849,7 +960,9 @@ export const useExploreAdditionalActionsMenu = (
           }
           modalTitle={t('View query')}
           modalBody={
-            <ViewQueryModal latestQueryFormData={latestQueryFormData} />
+            <ViewQueryModal
+              latestQueryFormData={latestQueryFormData as QueryFormData}
+            />
           }
           draggable
           resizable
@@ -864,8 +977,11 @@ export const useExploreAdditionalActionsMenu = (
       menuItems.push({
         key: MENU_KEYS.RUN_IN_SQL_LAB,
         label: t('Run in SQL Lab'),
-        onClick: e => {
-          onOpenInEditor(latestQueryFormData, e.domEvent?.metaKey);
+        onClick: (e: { domEvent?: React.MouseEvent | React.KeyboardEvent }) => {
+          onOpenInEditor(
+            latestQueryFormData,
+            !!(e.domEvent as React.MouseEvent | undefined)?.metaKey,
+          );
           setIsDropdownVisible(false);
         },
       });

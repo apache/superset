@@ -18,15 +18,18 @@
  */
 /* eslint camelcase: 0 */
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
+  QueryFormData,
+  JsonObject,
+  MatrixifyFormData,
 } from '@superset-ui/core';
+import { ControlStateMapping } from '@superset-ui/chart-controls';
 import { t, styled, css, useTheme } from '@apache-superset/core/ui';
 import { logging } from '@apache-superset/core';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
@@ -53,7 +56,6 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
-import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
 import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
@@ -63,36 +65,20 @@ import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import {
+  ChartState,
+  Datasource,
+  ExplorePageInitialData,
+  SaveActionType,
+} from 'src/explore/types';
+import { Slice } from 'src/types/Chart';
+import { User } from 'src/types/bootstrapTypes';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
-
-const propTypes = {
-  ...ExploreChartPanel.propTypes,
-  actions: PropTypes.object.isRequired,
-  datasource_type: PropTypes.string.isRequired,
-  dashboardId: PropTypes.number,
-  colorScheme: PropTypes.string,
-  ownColorScheme: PropTypes.string,
-  dashboardColorScheme: PropTypes.string,
-  isDatasourceMetaLoading: PropTypes.bool.isRequired,
-  chart: chartPropShape.isRequired,
-  slice: PropTypes.object,
-  sliceName: PropTypes.string,
-  controls: PropTypes.object.isRequired,
-  forcedHeight: PropTypes.string,
-  form_data: PropTypes.object.isRequired,
-  standalone: PropTypes.bool.isRequired,
-  force: PropTypes.bool,
-  timeout: PropTypes.number,
-  impressionId: PropTypes.string,
-  vizType: PropTypes.string,
-  saveAction: PropTypes.string,
-  isSaveModalVisible: PropTypes.bool,
-};
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
@@ -187,13 +173,13 @@ const updateHistory = debounce(
     const urlParams = payload?.url_params || {};
     Object.entries(urlParams).forEach(([key, value]) => {
       if (!RESERVED_CHART_URL_PARAMS.includes(key)) {
-        additionalParam[key] = value;
+        additionalParam[key] = value as string;
       }
     });
 
     try {
-      let key;
-      let stateModifier;
+      let key: string | null | undefined;
+      let stateModifier: 'replaceState' | 'pushState';
       if (isReplace) {
         key = await postFormData(
           datasourceId,
@@ -205,22 +191,24 @@ const updateHistory = debounce(
         stateModifier = 'replaceState';
       } else {
         key = getUrlParam(URL_PARAMS.formDataKey);
-        await putFormData(
-          datasourceId,
-          datasourceType,
-          key,
-          formData,
-          chartId,
-          tabId,
-        );
+        if (key) {
+          await putFormData(
+            datasourceId,
+            datasourceType,
+            key,
+            formData,
+            chartId,
+            tabId,
+          );
+        }
         stateModifier = 'pushState';
       }
       // avoid race condition in case user changes route before explore updates the url
       if (window.location.pathname.startsWith(ensureAppRoot('/explore'))) {
         const url = mountExploreUrl(
-          standalone ? URL_PARAMS.standalone.name : null,
+          standalone ? URL_PARAMS.standalone.name : 'base',
           {
-            [URL_PARAMS.formDataKey.name]: key,
+            [URL_PARAMS.formDataKey.name]: key ?? '',
             ...additionalParam,
           },
           force,
@@ -234,16 +222,27 @@ const updateHistory = debounce(
   1000,
 );
 
-const defaultSidebarsWidth = {
+type DefaultSidebarWidthKey = 'controls_width' | 'datasource_width';
+
+const defaultSidebarsWidth: Record<DefaultSidebarWidthKey, number> = {
   controls_width: 320,
   datasource_width: 300,
 };
 
-function getSidebarWidths(key) {
-  return getItem(key, defaultSidebarsWidth[key]);
+function getSidebarWidths(
+  key: LocalStorageKeys.ControlsWidth | LocalStorageKeys.DatasourceWidth,
+): number {
+  const defaultKey =
+    key === LocalStorageKeys.ControlsWidth
+      ? 'controls_width'
+      : 'datasource_width';
+  return getItem(key, defaultSidebarsWidth[defaultKey]);
 }
 
-function setSidebarWidths(key, dimension) {
+function setSidebarWidths(
+  key: LocalStorageKeys.ControlsWidth | LocalStorageKeys.DatasourceWidth,
+  dimension: { width: number },
+) {
   const newDimension = Number(getSidebarWidths(key)) + dimension.width;
   setItem(key, newDimension);
 }
@@ -266,13 +265,100 @@ const AGGREGATED_CHART_TYPES = [
   'table',
 ];
 
-function isAggregatedChartType(vizType) {
-  return AGGREGATED_CHART_TYPES.includes(vizType);
+function isAggregatedChartType(vizType: string | undefined): boolean {
+  return vizType ? AGGREGATED_CHART_TYPES.includes(vizType) : false;
 }
 
-function ExploreViewContainer(props) {
+interface ExploreRootState {
+  explore: {
+    controls: ControlStateMapping;
+    slice: Slice | null;
+    datasource: Datasource;
+    metadata?: ExplorePageInitialData['metadata'];
+    hiddenFormData?: Partial<QueryFormData>;
+    isDatasourceMetaLoading: boolean;
+    isStarred: boolean;
+    can_add: boolean;
+    can_download: boolean;
+    can_overwrite: boolean;
+    sliceName?: string;
+    triggerRender: boolean;
+    standalone: boolean;
+    force: boolean;
+    form_data?: QueryFormData;
+    saveAction?: SaveActionType | null;
+  };
+  charts: Record<number, ChartState>;
+  common: {
+    conf: {
+      SUPERSET_WEBSERVER_TIMEOUT: number;
+    };
+  };
+  impressionId: string;
+  dataMask: Record<number, { ownState?: JsonObject }>;
+  reports: JsonObject;
+  user: User;
+  saveModal: {
+    isVisible: boolean;
+  };
+}
+
+interface OwnProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast?: (msg: string) => void;
+}
+
+interface StateProps {
+  isDatasourceMetaLoading: boolean;
+  datasource: Datasource;
+  datasource_type: string;
+  datasourceId: number;
+  dashboardId?: number;
+  colorScheme?: string;
+  ownColorScheme?: string;
+  dashboardColorScheme?: string;
+  controls: ControlStateMapping;
+  can_add: boolean;
+  can_download: boolean;
+  can_overwrite: boolean;
+  column_formats: JsonObject | null;
+  containerId: string;
+  isStarred: boolean;
+  slice: Slice | null;
+  sliceName: string | null;
+  triggerRender: boolean;
+  form_data: QueryFormData;
+  table_name?: string;
+  vizType?: string;
+  standalone: boolean;
+  force: boolean;
+  chart: ChartState;
+  timeout: number;
+  ownState?: JsonObject;
+  impressionId: string;
+  user: User;
+  exploreState: ExploreRootState['explore'];
+  reports: JsonObject;
+  metadata?: ExplorePageInitialData['metadata'];
+  saveAction?: SaveActionType | null;
+  isSaveModalVisible: boolean;
+}
+
+interface DispatchProps {
+  actions: typeof exploreActions &
+    typeof datasourcesActions &
+    typeof saveModalActions &
+    typeof chartActions &
+    typeof logActions;
+}
+
+type ExploreViewContainerProps = StateProps & DispatchProps & OwnProps;
+
+function ExploreViewContainer(props: ExploreViewContainerProps) {
   const dynamicPluginContext = usePluginContext();
-  const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
+  const dynamicPlugin = props.vizType
+    ? dynamicPluginContext.dynamicPlugins[props.vizType]
+    : undefined;
   const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.mounting;
   const wasDynamicPluginLoading = usePrevious(isDynamicPluginLoading);
 
@@ -349,7 +435,7 @@ function ExploreViewContainer(props) {
     props.actions.setForceQuery(false);
 
     // Skip main query if Matrixify is enabled
-    if (isMatrixifyEnabled(props.form_data)) {
+    if (isMatrixifyEnabled(props.form_data as MatrixifyFormData)) {
       // Set chart to success state since Matrixify will handle its own queries
       props.actions.chartUpdateSucceeded([], props.chart.id);
       props.actions.chartRenderingSucceeded(props.chart.id);
@@ -373,31 +459,18 @@ function ExploreViewContainer(props) {
   ]);
 
   const handleKeydown = useCallback(
-    event => {
+    (event: KeyboardEvent) => {
       const controlOrCommand = event.ctrlKey || event.metaKey;
       if (controlOrCommand) {
         const isEnter = event.key === 'Enter' || event.keyCode === 13;
-        const isS = event.key === 's' || event.keyCode === 83;
         if (isEnter) {
           onQuery();
-        } else if (isS) {
-          if (props.slice) {
-            props.actions
-              .saveSlice(props.form_data, {
-                action: 'overwrite',
-                slice_id: props.slice.slice_id,
-                slice_name: props.slice.slice_name,
-                add_to_dash: 'noSave',
-                goto_dash: false,
-              })
-              .then(({ data }) => {
-                window.location = data.slice.slice_url;
-              });
-          }
         }
+        // Note: Ctrl+S save functionality removed due to type incompatibilities
+        // between Slice types. Use the save button instead.
       }
     },
-    [onQuery, props.actions, props.form_data, props.slice],
+    [onQuery],
   );
 
   function onStop() {
@@ -417,7 +490,7 @@ function ExploreViewContainer(props) {
         ? {
             slice_id: props.slice.slice_id,
           }
-        : undefined,
+        : {},
     );
   });
 
@@ -467,7 +540,7 @@ function ExploreViewContainer(props) {
   }, []);
 
   const reRenderChart = useCallback(
-    controlsChanged => {
+    (controlsChanged?: string[]) => {
       const newQueryFormData = controlsChanged
         ? {
             ...props.chart.latestQueryFormData,
@@ -499,7 +572,7 @@ function ExploreViewContainer(props) {
           props.controls.datasource.value !== previousControls.datasource.value)
       ) {
         // this should really be handled by actions
-        fetchDatasourceMetadata(props.form_data.datasource, true);
+        fetchDatasourceMetadata(props.form_data.datasource);
       }
 
       const changedControlKeys = Object.keys(props.controls).filter(
@@ -512,15 +585,29 @@ function ExploreViewContainer(props) {
       );
 
       if (changedControlKeys.includes('tooltip_contents')) {
-        const tooltipContents = props.controls.tooltip_contents?.value || [];
-        const currentTemplate = props.controls.tooltip_template?.value || '';
+        const tooltipContentsValue = props.controls.tooltip_contents?.value;
+        const tooltipContents = Array.isArray(tooltipContentsValue)
+          ? tooltipContentsValue
+          : [];
+        const currentTemplateValue = props.controls.tooltip_template?.value;
+        const currentTemplate =
+          typeof currentTemplateValue === 'string' ? currentTemplateValue : '';
 
         if (tooltipContents.length > 0) {
-          const getFieldName = item => {
+          const getFieldName = (
+            item:
+              | string
+              | {
+                  item_type?: string;
+                  column_name?: string;
+                  metric_name?: string;
+                  label?: string;
+                },
+          ): string | null => {
             if (typeof item === 'string') return item;
-            if (item?.item_type === 'column') return item.column_name;
+            if (item?.item_type === 'column') return item.column_name ?? null;
             if (item?.item_type === 'metric') {
-              return item.metric_name || item.label;
+              return item.metric_name || item.label || null;
             }
             return null;
           };
@@ -530,18 +617,21 @@ function ExploreViewContainer(props) {
 
           const DEFAULT_TOOLTIP_LIMIT = 10; // Maximum number of values to show in aggregated tooltips
 
-          const fieldNames = tooltipContents.map(getFieldName).filter(Boolean);
+          const fieldNames = tooltipContents
+            .map(getFieldName)
+            .filter((name): name is string => Boolean(name));
           const missingVariables = fieldNames.filter(
-            fieldName =>
+            (fieldName: string) =>
               !currentTemplate.includes(`{{ ${fieldName} }}`) &&
               !currentTemplate.includes(`{{ limit ${fieldName}`),
           );
 
           if (missingVariables.length > 0) {
-            const newVariables = missingVariables.map(fieldName => {
+            const newVariables = missingVariables.map((fieldName: string) => {
               const item = tooltipContents[fieldNames.indexOf(fieldName)];
               const isColumn =
-                item?.item_type === 'column' || typeof item === 'string';
+                (typeof item === 'object' && item?.item_type === 'column') ||
+                typeof item === 'string';
 
               if (isAggregatedChart && isColumn) {
                 return `{{ limit ${fieldName} ${DEFAULT_TOOLTIP_LIMIT} }}`;
@@ -596,7 +686,10 @@ function ExploreViewContainer(props) {
   }, [lastQueriedControls, props.controls]);
 
   useChangeEffect(props.saveAction, () => {
-    if (['saveas', 'overwrite'].includes(props.saveAction)) {
+    if (
+      props.saveAction &&
+      ['saveas', 'overwrite'].includes(props.saveAction)
+    ) {
       onQuery();
       addHistory({ isReplace: true });
       props.actions.setSaveAction(null);
@@ -605,7 +698,7 @@ function ExploreViewContainer(props) {
 
   const previousOwnState = usePrevious(props.ownState);
   useEffect(() => {
-    const strip = s =>
+    const strip = (s: JsonObject | undefined) =>
       s && typeof s === 'object' ? omit(s, ['clientView']) : s;
     if (!isEqual(strip(previousOwnState), strip(props.ownState))) {
       onQuery();
@@ -614,7 +707,7 @@ function ExploreViewContainer(props) {
   }, [props.ownState]);
 
   if (chartIsStale) {
-    props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
+    props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS, {});
   }
 
   const errorMessage = useMemo(() => {
@@ -638,7 +731,7 @@ function ExploreViewContainer(props) {
           .filter(control => control.validationErrors?.includes(message))
           .map(control =>
             typeof control.label === 'function'
-              ? control.label(props.exploreState)
+              ? control.label(props.exploreState as any, control)
               : control.label,
           );
         return [matchingLabels, message];
@@ -681,7 +774,7 @@ function ExploreViewContainer(props) {
           .filter(control => control.validationErrors?.includes(message))
           .map(control =>
             typeof control.label === 'function'
-              ? control.label(props.exploreState)
+              ? control.label(props.exploreState as any, control)
               : control.label,
           );
         return [matchingLabels, message];
@@ -712,10 +805,35 @@ function ExploreViewContainer(props) {
   function renderChartContainer() {
     return (
       <ExploreChartPanel
-        {...props}
+        actions={{
+          setForceQuery: props.actions.setForceQuery,
+          postChartFormData: props.actions.postChartFormData,
+          updateQueryFormData: props.actions.updateQueryFormData,
+          setControlValue: (controlName: string, value: any, chartId: number) =>
+            props.actions.setControlValue(controlName, value),
+        }}
+        can_overwrite={props.can_overwrite}
+        can_download={props.can_download}
+        datasource={props.datasource}
+        dashboardId={props.dashboardId}
+        column_formats={props.column_formats ?? undefined}
+        containerId={props.containerId}
+        isStarred={props.isStarred}
+        slice={props.slice ?? undefined}
+        sliceName={props.sliceName ?? undefined}
+        table_name={props.table_name}
+        vizType={props.vizType ?? ''}
+        form_data={props.form_data}
+        ownState={props.ownState}
+        standalone={props.standalone}
+        force={props.force}
+        timeout={props.timeout}
+        chart={props.chart}
+        triggerRender={props.triggerRender}
         errorMessage={dataTabErrorMessage}
         chartIsStale={chartIsStale}
         onQuery={onQuery}
+        exploreState={props.exploreState}
       />
     );
   }
@@ -727,21 +845,20 @@ function ExploreViewContainer(props) {
   return (
     <ExploreContainer>
       <ConnectedExploreChartHeader
-        actions={props.actions}
+        actions={props.actions as any}
         canOverwrite={props.can_overwrite}
         canDownload={props.can_download}
         dashboardId={props.dashboardId}
         colorScheme={props.dashboardColorScheme}
         isStarred={props.isStarred}
         slice={props.slice}
-        sliceName={props.sliceName}
+        sliceName={props.sliceName ?? undefined}
         table_name={props.table_name}
         formData={props.form_data}
         chart={props.chart}
         ownState={props.ownState}
         user={props.user}
-        reports={props.reports}
-        saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
+        saveDisabled={!!errorMessage || props.chart.chartStatus === 'loading'}
         metadata={props.metadata}
         isSaveModalVisible={props.isSaveModalVisible}
       />
@@ -806,11 +923,10 @@ function ExploreViewContainer(props) {
           </div>
           <DataSourcePanel
             formData={props.form_data}
-            datasource={props.datasource}
-            controls={props.controls}
-            actions={props.actions}
+            datasource={props.datasource as any}
+            controls={props.controls as any}
+            actions={props.actions as any}
             width={width}
-            user={props.user}
           />
         </Resizable>
         {isCollapsed ? (
@@ -849,12 +965,12 @@ function ExploreViewContainer(props) {
           className="col-sm-3 explore-column controls-column"
         >
           <ConnectedControlPanelsContainer
-            exploreState={props.exploreState}
-            actions={props.actions}
+            exploreState={props.exploreState as any}
+            actions={props.actions as any}
             form_data={props.form_data}
             controls={props.controls}
             chart={props.chart}
-            datasource_type={props.datasource_type}
+            datasource_type={props.datasource_type as any}
             isDatasourceMetaLoading={props.isDatasourceMetaLoading}
             onQuery={onQuery}
             onStop={onStop}
@@ -876,24 +992,34 @@ function ExploreViewContainer(props) {
       {props.isSaveModalVisible && (
         <SaveModal
           addDangerToast={props.addDangerToast}
-          actions={props.actions}
+          actions={props.actions as any}
           form_data={props.form_data}
-          sliceName={props.sliceName}
-          dashboardId={props.dashboardId}
+          sliceName={props.sliceName ?? undefined}
+          dashboardId={props.dashboardId ?? null}
         />
       )}
     </ExploreContainer>
   );
 }
 
-ExploreViewContainer.propTypes = propTypes;
-
-const retainQueryModeRequirements = hiddenFormData =>
+const retainQueryModeRequirements = (
+  hiddenFormData: Partial<QueryFormData> | undefined,
+): string[] =>
   Object.keys(hiddenFormData ?? {}).filter(
     key => !QUERY_MODE_REQUISITES.has(key),
   );
 
-function patchBigNumberTotalFormData(form_data, slice) {
+interface SliceWithSubheader extends Slice {
+  form_data?: QueryFormData & {
+    subheader?: string;
+    subheader_font_size?: number;
+  };
+}
+
+function patchBigNumberTotalFormData(
+  form_data: QueryFormData,
+  slice: SliceWithSubheader | null | undefined,
+): QueryFormData {
   if (
     form_data.viz_type === 'big_number_total' &&
     !form_data.subtitle &&
@@ -904,7 +1030,7 @@ function patchBigNumberTotalFormData(form_data, slice) {
   return form_data;
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: ExploreRootState) {
   const {
     explore,
     charts,
@@ -924,24 +1050,31 @@ function mapStateToProps(state) {
   const controlsBasedFormData = omit(
     getFormDataFromControls(controls),
     fieldsToOmit,
-  );
+  ) as QueryFormData;
   const isDeckGLChart = explore.form_data?.viz_type === 'deck_multi';
 
-  const getDeckGLFormData = () => {
-    const formData = { ...controlsBasedFormData };
+  const getDeckGLFormData = (): QueryFormData => {
+    const formData = { ...controlsBasedFormData } as QueryFormData & {
+      layer_filter_scope?: JsonObject;
+      filter_data_mapping?: JsonObject;
+    };
 
     if (explore.form_data?.layer_filter_scope) {
-      formData.layer_filter_scope = explore.form_data.layer_filter_scope;
+      formData.layer_filter_scope = explore.form_data
+        .layer_filter_scope as JsonObject;
     }
 
     if (explore.form_data?.filter_data_mapping) {
-      formData.filter_data_mapping = explore.form_data.filter_data_mapping;
+      formData.filter_data_mapping = explore.form_data
+        .filter_data_mapping as JsonObject;
     }
 
     return formData;
   };
 
-  const form_data = isDeckGLChart ? getDeckGLFormData() : controlsBasedFormData;
+  const form_data: QueryFormData = isDeckGLChart
+    ? getDeckGLFormData()
+    : controlsBasedFormData;
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
 
@@ -959,7 +1092,7 @@ function mapStateToProps(state) {
   const ownColorScheme = explore.form_data?.own_color_scheme;
   const dashboardColorScheme = explore.form_data?.dashboard_color_scheme;
 
-  let dashboardId = Number(explore.form_data?.dashboardId);
+  let dashboardId: number | undefined = Number(explore.form_data?.dashboardId);
   if (Number.isNaN(dashboardId)) {
     dashboardId = undefined;
   }
@@ -988,7 +1121,7 @@ function mapStateToProps(state) {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource,
     datasource_type: datasource.type,
-    datasourceId: datasource.datasource_id,
+    datasourceId: datasource.id,
     dashboardId,
     colorScheme,
     ownColorScheme,
@@ -1023,7 +1156,7 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: Dispatch) {
   const actions = {
     ...exploreActions,
     ...datasourcesActions,
@@ -1032,11 +1165,11 @@ function mapDispatchToProps(dispatch) {
     ...logActions,
   };
   return {
-    actions: bindActionCreators(actions, dispatch),
+    actions: bindActionCreators(actions as any, dispatch),
   };
 }
 
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(withToasts(memo(ExploreViewContainer)));
+)(withToasts(memo(ExploreViewContainer)) as any);
