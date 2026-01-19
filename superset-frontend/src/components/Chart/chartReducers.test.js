@@ -32,13 +32,13 @@ describe('chart reducers', () => {
     charts = { [chartKey]: testChart };
   });
 
-  test('should update endtime on fail', () => {
+  it('should update endtime on fail', () => {
     const newState = chartReducer(charts, actions.chartUpdateStopped(chartKey));
     expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
     expect(newState[chartKey].chartStatus).toEqual('stopped');
   });
 
-  test('should update endtime on timeout', () => {
+  it('should update endtime on timeout', () => {
     const newState = chartReducer(
       charts,
       actions.chartUpdateFailed(

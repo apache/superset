@@ -42,7 +42,7 @@ describe('store', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).featureFlags = {};
 
-    test('applies default to formData if the key is missing', () => {
+    it('applies default to formData if the key is missing', () => {
       const inputFormData = {
         datasource: '11_table',
         viz_type: 'test-chart',
@@ -58,7 +58,7 @@ describe('store', () => {
       expect(outputFormData.row_limit).toEqual(888);
     });
 
-    test('keeps null if key is defined with null', () => {
+    it('keeps null if key is defined with null', () => {
       const inputFormData = {
         datasource: '11_table',
         viz_type: 'test-chart',

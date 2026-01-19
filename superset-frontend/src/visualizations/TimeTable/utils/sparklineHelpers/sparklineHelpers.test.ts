@@ -28,14 +28,14 @@ import {
 describe('sparklineHelpers', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getSparklineTextWidth', () => {
-    test('should return a positive number for text width', () => {
+    it('should return a positive number for text width', () => {
       const result = getSparklineTextWidth('123.45');
 
       expect(result).toBeGreaterThan(0);
       expect(typeof result).toBe('number');
     });
 
-    test('should handle empty string', () => {
+    it('should handle empty string', () => {
       const result = getSparklineTextWidth('');
       expect(result).toBeGreaterThan(0);
     });
@@ -43,14 +43,14 @@ describe('sparklineHelpers', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('isValidBoundValue', () => {
-    test('should return true for valid numbers', () => {
+    it('should return true for valid numbers', () => {
       expect(isValidBoundValue(0)).toBe(true);
       expect(isValidBoundValue(123)).toBe(true);
       expect(isValidBoundValue(-45)).toBe(true);
       expect(isValidBoundValue(0.5)).toBe(true);
     });
 
-    test('should return false for invalid values', () => {
+    it('should return false for invalid values', () => {
       expect(isValidBoundValue(null as any)).toBe(false);
       expect(isValidBoundValue(undefined)).toBe(false);
       expect(isValidBoundValue('')).toBe(false);
@@ -61,7 +61,7 @@ describe('sparklineHelpers', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getDataBounds', () => {
-    test('should return correct min and max for valid data', () => {
+    it('should return correct min and max for valid data', () => {
       const data = [10, 5, 20, 15];
       const [min, max] = getDataBounds(data);
 
@@ -69,7 +69,7 @@ describe('sparklineHelpers', () => {
       expect(max).toBe(20);
     });
 
-    test('should handle single value', () => {
+    it('should handle single value', () => {
       const data = [42];
       const [min, max] = getDataBounds(data);
 
@@ -77,7 +77,7 @@ describe('sparklineHelpers', () => {
       expect(max).toBe(42);
     });
 
-    test('should return [0, 0] for empty data', () => {
+    it('should return [0, 0] for empty data', () => {
       const data: number[] = [];
       const [min, max] = getDataBounds(data);
 
@@ -85,7 +85,7 @@ describe('sparklineHelpers', () => {
       expect(max).toBe(0);
     });
 
-    test('should handle negative numbers', () => {
+    it('should handle negative numbers', () => {
       const data = [-10, -5, -20];
       const [min, max] = getDataBounds(data);
 
@@ -96,7 +96,7 @@ describe('sparklineHelpers', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('createYScaleConfig', () => {
-    test('should use data bounds when no axis bounds provided', () => {
+    it('should use data bounds when no axis bounds provided', () => {
       const validData = [10, 20, 30];
       const result = createYScaleConfig(validData);
 
@@ -106,7 +106,7 @@ describe('sparklineHelpers', () => {
       expect(result.yScaleConfig.zero).toBe(false);
     });
 
-    test('should use provided bounds when valid', () => {
+    it('should use provided bounds when valid', () => {
       const validData = [10, 20, 30];
       const result = createYScaleConfig(validData, [0, 50]);
 
@@ -116,7 +116,7 @@ describe('sparklineHelpers', () => {
       expect(result.yScaleConfig.zero).toBe(true);
     });
 
-    test('should mix data and provided bounds', () => {
+    it('should mix data and provided bounds', () => {
       const validData = [10, 20, 30];
       const result = createYScaleConfig(validData, [5, undefined]);
 
@@ -125,7 +125,7 @@ describe('sparklineHelpers', () => {
       expect(result.yScaleConfig.domain).toEqual([5, 30]);
     });
 
-    test('should handle empty data', () => {
+    it('should handle empty data', () => {
       const validData: number[] = [];
       const result = createYScaleConfig(validData);
 
@@ -134,14 +134,14 @@ describe('sparklineHelpers', () => {
       expect(result.yScaleConfig.domain).toEqual([0, 0]);
     });
 
-    test('should set zero=true for negative min bound', () => {
+    it('should set zero=true for negative min bound', () => {
       const validData = [10, 20];
       const result = createYScaleConfig(validData, [-5, undefined]);
 
       expect(result.yScaleConfig.zero).toBe(true);
     });
 
-    test('should set zero=false for positive min bound', () => {
+    it('should set zero=false for positive min bound', () => {
       const validData = [10, 20];
       const result = createYScaleConfig(validData, [5, undefined]);
 
@@ -151,7 +151,7 @@ describe('sparklineHelpers', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('transformChartData', () => {
-    test('should transform data with indices', () => {
+    it('should transform data with indices', () => {
       const data = [10, 20, 30];
       const result = transformChartData(data);
 
@@ -162,7 +162,7 @@ describe('sparklineHelpers', () => {
       ]);
     });
 
-    test('should handle null values', () => {
+    it('should handle null values', () => {
       const data = [10, null, 30];
       const result = transformChartData(data);
 
@@ -173,14 +173,14 @@ describe('sparklineHelpers', () => {
       ]);
     });
 
-    test('should handle empty array', () => {
+    it('should handle empty array', () => {
       const data: Array<number | null> = [];
       const result = transformChartData(data);
 
       expect(result).toEqual([]);
     });
 
-    test('should handle mixed null and number values', () => {
+    it('should handle mixed null and number values', () => {
       const data = [null, 10, null, null, 20];
       const result = transformChartData(data);
 

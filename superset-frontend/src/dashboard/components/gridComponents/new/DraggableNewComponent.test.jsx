@@ -46,27 +46,27 @@ describe('DraggableNewComponent', () => {
     setup();
   });
 
-  test('should render a DragDroppable', () => {
+  it('should render a DragDroppable', () => {
     expect(screen.getByTestId('dragdroppable-object')).toBeInTheDocument();
   });
 
-  test('should pass component={ type, id } to DragDroppable', () => {
+  it('should pass component={ type, id } to DragDroppable', () => {
     const dragComponent = screen.getByTestId('dragdroppable-object');
     expect(dragComponent).toHaveClass(
       'dragdroppable dragdroppable--edit-mode dragdroppable-row',
     );
   });
 
-  test('should pass appropriate parent source and id to DragDroppable', () => {
+  it('should pass appropriate parent source and id to DragDroppable', () => {
     const dragComponent = screen.getByTestId('new-component');
     expect(dragComponent).toHaveAttribute('draggable', 'true');
   });
 
-  test('should render the passed label', () => {
+  it('should render the passed label', () => {
     expect(screen.getByText(props.label)).toBeInTheDocument();
   });
 
-  test('should add the passed className', () => {
+  it('should add the passed className', () => {
     const component = screen
       .getByTestId('new-component')
       .querySelector('.new-component-placeholder');

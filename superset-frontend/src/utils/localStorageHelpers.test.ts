@@ -32,13 +32,13 @@ describe('localStorageHelpers', () => {
     localStorage.clear();
   });
 
-  test('gets a value that was set', () => {
+  it('gets a value that was set', () => {
     setItem(LocalStorageKeys.IsDatapanelOpen, false);
 
     expect(getItem(LocalStorageKeys.IsDatapanelOpen, true)).toBe(false);
   });
 
-  test('returns the default value for an unset value', () => {
+  it('returns the default value for an unset value', () => {
     expect(getItem(LocalStorageKeys.IsDatapanelOpen, true)).toBe(true);
   });
 });

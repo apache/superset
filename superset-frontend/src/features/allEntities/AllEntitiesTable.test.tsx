@@ -92,7 +92,7 @@ describe('AllEntitiesTable', () => {
     jest.restoreAllMocks();
   });
 
-  test('renders when empty with button to tag if user has perm', () => {
+  it('renders when empty with button to tag if user has perm', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -110,7 +110,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Add tag to entities')).toBeInTheDocument();
   });
 
-  test('renders when empty without button to tag if user does not have perm', () => {
+  it('renders when empty without button to tag if user does not have perm', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -128,7 +128,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.queryByText('Add tag to entities')).not.toBeInTheDocument();
   });
 
-  test('renders the correct tags for each object type', () => {
+  it('renders the correct tags for each object type', () => {
     render(
       <AllEntitiesTable
         search=""
@@ -152,7 +152,7 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Engagement')).toBeInTheDocument();
   });
 
-  test('Only list asset types that have entities', () => {
+  it('Only list asset types that have entities', () => {
     const mockObjects = {
       dashboard: [],
       chart: [mockObjectsWithTags.chart[0]],

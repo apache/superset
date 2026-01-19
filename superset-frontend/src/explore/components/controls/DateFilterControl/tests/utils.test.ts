@@ -23,7 +23,7 @@ import { customTimeRangeEncode } from 'src/explore/components/controls/DateFilte
 describe('Custom TimeRange', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('customTimeRangeEncode', () => {
-    test('1) specific : specific', () => {
+    it('1) specific : specific', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: '2021-01-20T00:00:00',
@@ -40,7 +40,7 @@ describe('Custom TimeRange', () => {
       ).toEqual('2021-01-20T00:00:00 : 2021-01-27T00:00:00');
     });
 
-    test('2) specific : relative', () => {
+    it('2) specific : relative', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: '2021-01-20T00:00:00',
@@ -59,7 +59,7 @@ describe('Custom TimeRange', () => {
       );
     });
 
-    test('3) now : relative', () => {
+    it('3) now : relative', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: 'now',
@@ -76,7 +76,7 @@ describe('Custom TimeRange', () => {
       ).toEqual('now : DATEADD(DATETIME("now"), 7, day)');
     });
 
-    test('4) today : relative', () => {
+    it('4) today : relative', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: 'today',
@@ -93,7 +93,7 @@ describe('Custom TimeRange', () => {
       ).toEqual('today : DATEADD(DATETIME("today"), 7, day)');
     });
 
-    test('5) relative : specific', () => {
+    it('5) relative : specific', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: '2021-01-27T00:00:00',
@@ -112,7 +112,7 @@ describe('Custom TimeRange', () => {
       );
     });
 
-    test('6) relative : now', () => {
+    it('6) relative : now', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: 'now',
@@ -129,7 +129,7 @@ describe('Custom TimeRange', () => {
       ).toEqual('DATEADD(DATETIME("now"), -7, day) : now');
     });
 
-    test('7) relative : today', () => {
+    it('7) relative : today', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: 'today',
@@ -146,7 +146,7 @@ describe('Custom TimeRange', () => {
       ).toEqual('DATEADD(DATETIME("today"), -7, day) : today');
     });
 
-    test('8) relative : relative (now)', () => {
+    it('8) relative : relative (now)', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: 'now',
@@ -165,7 +165,7 @@ describe('Custom TimeRange', () => {
       );
     });
 
-    test('9) relative : relative (date/time)', () => {
+    it('9) relative : relative (date/time)', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: '2021-01-27T00:00:00',

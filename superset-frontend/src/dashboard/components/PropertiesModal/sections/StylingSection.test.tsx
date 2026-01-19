@@ -204,7 +204,7 @@ test('calls onShowChartTimestampsChange when switch is toggled', async () => {
 // CSS Template Tests
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CSS Template functionality', () => {
-  test('does not show CSS template select when feature flag is disabled', () => {
+  it('does not show CSS template select when feature flag is disabled', () => {
     mockIsFeatureEnabled.mockReturnValue(false);
     render(<StylingSection {...defaultProps} />);
 
@@ -213,7 +213,7 @@ describe('CSS Template functionality', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('fetches CSS templates on mount when feature enabled', async () => {
+  it('fetches CSS templates on mount when feature enabled', async () => {
     mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
     render(<StylingSection {...defaultProps} />);
 
@@ -224,7 +224,7 @@ describe('CSS Template functionality', () => {
     });
   });
 
-  test('shows CSS template select when feature flag is enabled and templates exist', async () => {
+  it('shows CSS template select when feature flag is enabled and templates exist', async () => {
     mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
     render(<StylingSection {...defaultProps} />);
 
@@ -239,7 +239,7 @@ describe('CSS Template functionality', () => {
     ).toBeInTheDocument();
   });
 
-  test('shows error toast when template fetch fails', async () => {
+  it('shows error toast when template fetch fails', async () => {
     mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
     const addDangerToast = jest.fn();
     mockSupersetClient.get.mockRejectedValueOnce(new Error('API Error'));
@@ -255,7 +255,7 @@ describe('CSS Template functionality', () => {
     });
   });
 
-  test('does not show CSS template select when no templates available', async () => {
+  it('does not show CSS template select when no templates available', async () => {
     mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
     mockSupersetClient.get.mockResolvedValueOnce({
       json: { result: [] },

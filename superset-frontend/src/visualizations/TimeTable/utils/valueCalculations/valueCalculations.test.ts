@@ -35,7 +35,7 @@ describe('valueCalculations', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('calculateTimeValue', () => {
-    test('should calculate diff comparison correctly', () => {
+    it('should calculate diff comparison correctly', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'time',
@@ -49,7 +49,7 @@ describe('valueCalculations', () => {
       expect(result.errorMsg).toBeUndefined();
     });
 
-    test('should skip null values when finding lagged data points', () => {
+    it('should skip null values when finding lagged data points', () => {
       const entriesWithNulls: Entry[] = [
         { time: '2023-01-05', sales: 500, price: 50 },
         { time: '2023-01-04', sales: null, price: null },
@@ -70,7 +70,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBe(300);
     });
 
-    test('should maintain consistency between filtered and unfiltered behavior', () => {
+    it('should maintain consistency between filtered and unfiltered behavior', () => {
       const unfilteredEntries: Entry[] = [
         { time: '2023-01-05', productA: 500, productB: null },
         { time: '2023-01-04', productA: null, productB: null },
@@ -109,7 +109,7 @@ describe('valueCalculations', () => {
       expect(unfilteredResult.value).toBe(300);
     });
 
-    test('should calculate perc comparison correctly', () => {
+    it('should calculate perc comparison correctly', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'time',
@@ -122,7 +122,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBe(1.5); // 300 / 200
     });
 
-    test('should calculate perc_change comparison correctly', () => {
+    it('should calculate perc_change comparison correctly', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'time',
@@ -135,7 +135,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBe(0.5); // (300 / 200) - 1
     });
 
-    test('should handle negative time lag', () => {
+    it('should handle negative time lag', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'time',
@@ -148,7 +148,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBe(200); // 300 - 100 (from end of array)
     });
 
-    test('should return error for excessive time lag', () => {
+    it('should return error for excessive time lag', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'time',
@@ -161,7 +161,7 @@ describe('valueCalculations', () => {
       expect(result.errorMsg).toContain('too large for the length of data');
     });
 
-    test('should return null for invalid values', () => {
+    it('should return null for invalid values', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'time',
@@ -174,7 +174,7 @@ describe('valueCalculations', () => {
       expect(result.errorMsg).toBeUndefined();
     });
 
-    test('should return lagged value when no comparison type', () => {
+    it('should return lagged value when no comparison type', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'time',
@@ -186,7 +186,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBe(200); // lagged value without comparison
     });
 
-    test('should handle multiple null values with different time lags', () => {
+    it('should handle multiple null values with different time lags', () => {
       const entriesWithGaps: Entry[] = [
         { time: '2023-01-07', sales: 700 },
         { time: '2023-01-06', sales: null },
@@ -228,7 +228,7 @@ describe('valueCalculations', () => {
       expect(result2.value).toBe(500);
     });
 
-    test('should work with perc and perc_change when nulls are present', () => {
+    it('should work with perc and perc_change when nulls are present', () => {
       const entriesWithNulls: Entry[] = [
         { time: '2023-01-04', sales: 400 },
         { time: '2023-01-03', sales: null },
@@ -267,7 +267,7 @@ describe('valueCalculations', () => {
       expect(percChangeResult.value).toBe(1);
     });
 
-    test('should return null when not enough non-null values for time lag', () => {
+    it('should return null when not enough non-null values for time lag', () => {
       const sparseEntries: Entry[] = [
         { time: '2023-01-03', sales: 300 },
         { time: '2023-01-02', sales: null },
@@ -289,24 +289,24 @@ describe('valueCalculations', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('calculateContribution', () => {
-    test('should calculate contribution correctly', () => {
+    it('should calculate contribution correctly', () => {
       const result = calculateContribution(300, mockEntries);
 
       expect(result.value).toBeCloseTo(0.909, 3);
       expect(result.errorMsg).toBeUndefined();
     });
 
-    test('should return null for null recent value', () => {
+    it('should return null for null recent value', () => {
       const result = calculateContribution(null, mockEntries);
       expect(result.value).toBeNull();
     });
 
-    test('should return null for empty entries', () => {
+    it('should return null for empty entries', () => {
       const result = calculateContribution(300, []);
       expect(result.value).toBeNull();
     });
 
-    test('should return null when total is zero', () => {
+    it('should return null when total is zero', () => {
       const zeroEntries: Entry[] = [{ time: '2023-01-01', sales: 0 }];
 
       const result = calculateContribution(100, zeroEntries);
@@ -317,7 +317,7 @@ describe('valueCalculations', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('calculateAverage', () => {
-    test('should calculate average correctly', () => {
+    it('should calculate average correctly', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'avg',
@@ -330,7 +330,7 @@ describe('valueCalculations', () => {
       expect(result.errorMsg).toBeUndefined();
     });
 
-    test('should handle null/undefined values', () => {
+    it('should handle null/undefined values', () => {
       const entriesWithNulls: Entry[] = [
         { time: '2023-01-03', sales: 300 },
         { time: '2023-01-02', sales: null },
@@ -348,7 +348,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBe(200);
     });
 
-    test('should return null for empty entries', () => {
+    it('should return null for empty entries', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'avg',
@@ -359,7 +359,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBeNull();
     });
 
-    test('should return null when all values are null', () => {
+    it('should return null when all values are null', () => {
       const entriesWithAllNulls: Entry[] = [
         { time: '2023-01-03', sales: null },
         { time: '2023-01-02', sales: undefined },
@@ -379,7 +379,7 @@ describe('valueCalculations', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('calculateCellValue', () => {
-    test('should route to time calculation', () => {
+    it('should route to time calculation', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'time',
@@ -392,7 +392,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBe(100); // 300 - 200
     });
 
-    test('should route to contribution calculation', () => {
+    it('should route to contribution calculation', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'contrib',
@@ -403,7 +403,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBeCloseTo(0.909, 3);
     });
 
-    test('should route to average calculation', () => {
+    it('should route to average calculation', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'avg',
@@ -415,7 +415,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBe(250);
     });
 
-    test('should return recent value for default case', () => {
+    it('should return recent value for default case', () => {
       const column: ColumnConfig = {
         key: 'test',
       };
@@ -425,7 +425,7 @@ describe('valueCalculations', () => {
       expect(result.value).toBe(300); // Recent value
     });
 
-    test('should return null for empty entries', () => {
+    it('should return null for empty entries', () => {
       const column: ColumnConfig = {
         key: 'test',
         colType: 'time',

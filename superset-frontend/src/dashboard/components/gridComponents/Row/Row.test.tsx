@@ -70,37 +70,43 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   ),
 }));
 
-jest.mock('src/dashboard/containers/DashboardComponent', () => {
-  return ({
-    availableColumnCount,
-    depth,
-  }: {
-    availableColumnCount: number;
-    depth: number;
-  }) => (
-    <div data-test="mock-dashboard-component" data-depth={depth}>
-      {availableColumnCount}
-    </div>
-  );
-});
+jest.mock(
+  'src/dashboard/containers/DashboardComponent',
+  () =>
+    ({
+      availableColumnCount,
+      depth,
+    }: {
+      availableColumnCount: number;
+      depth: number;
+    }) => (
+      <div data-test="mock-dashboard-component" data-depth={depth}>
+        {availableColumnCount}
+      </div>
+    ),
+);
 
-jest.mock('src/dashboard/components/menu/WithPopoverMenu', () => {
-  return ({ children }: { children: React.ReactNode }) => (
-    <div data-test="mock-with-popover-menu">{children}</div>
-  );
-});
+jest.mock(
+  'src/dashboard/components/menu/WithPopoverMenu',
+  () =>
+    ({ children }: { children: React.ReactNode }) => (
+      <div data-test="mock-with-popover-menu">{children}</div>
+    ),
+);
 
-jest.mock('src/dashboard/components/DeleteComponentButton', () => {
-  return ({ onDelete }: { onDelete: () => void }) => (
-    <button
-      type="button"
-      data-test="mock-delete-component-button"
-      onClick={onDelete}
-    >
-      Delete
-    </button>
-  );
-});
+jest.mock(
+  'src/dashboard/components/DeleteComponentButton',
+  () =>
+    ({ onDelete }: { onDelete: () => void }) => (
+      <button
+        type="button"
+        data-test="mock-delete-component-button"
+        onClick={onDelete}
+      >
+        Delete
+      </button>
+    ),
+);
 
 const rowWithoutChildren = {
   ...mockLayout.present.ROW_ID,
@@ -218,7 +224,7 @@ test.skip('should render a BackgroundStyleDropdown when focused', () => {
   expect(screen.queryByTestId('background-style-dropdown')).toBeFalsy();
 
   // we cannot set props on the Row because of the WithDragDropContext wrapper
-  rerender(<Row {...props} component={rowWithoutChildren} editMode={true} />);
+  rerender(<Row {...props} component={rowWithoutChildren} editMode />);
   const buttons = screen.getAllByRole('button');
   const settingsButton = buttons[1];
   fireEvent.click(settingsButton);
@@ -271,7 +277,7 @@ describe('visibility handling for intersection observers', () => {
     delete (window as any).IntersectionObserver;
   });
 
-  test('should handle visibility prop changes without crashing', () => {
+  it('should handle visibility prop changes without crashing', () => {
     const { rerender } = setup({ isComponentVisible: true });
 
     expect(setup).not.toThrow();
@@ -285,7 +291,7 @@ describe('visibility handling for intersection observers', () => {
     }).not.toThrow();
   });
 
-  test('should create intersection observers when feature is enabled', () => {
+  it('should create intersection observers when feature is enabled', () => {
     setup({ isComponentVisible: true });
 
     expect(mockIntersectionObserver).toHaveBeenCalledWith(
@@ -294,7 +300,7 @@ describe('visibility handling for intersection observers', () => {
     );
   });
 
-  test('should not create intersection observers when feature is disabled', () => {
+  it('should not create intersection observers when feature is disabled', () => {
     const coreMock = jest.requireMock('@superset-ui/core');
     coreMock.isFeatureEnabled.mockReturnValue(false);
 
@@ -306,7 +312,7 @@ describe('visibility handling for intersection observers', () => {
     coreMock.isFeatureEnabled.mockReturnValue(true);
   });
 
-  test('intersection observer callbacks handle entries without errors', () => {
+  it('intersection observer callbacks handle entries without errors', () => {
     const callback = ([entry]: [MockIntersectionObserverEntry]) => {
       if (entry.isIntersecting) return true;
 

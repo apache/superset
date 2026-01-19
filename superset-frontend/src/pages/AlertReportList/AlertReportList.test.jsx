@@ -102,22 +102,22 @@ describe('AlertList', () => {
     fetchMock.resetHistory();
   });
 
-  test('renders', async () => {
+  it('renders', async () => {
     renderAlertList();
     expect(await screen.findByText('Alerts & reports')).toBeInTheDocument();
   });
 
-  test('renders a SubMenu', async () => {
+  it('renders a SubMenu', async () => {
     renderAlertList();
     expect(await screen.findByRole('navigation')).toBeInTheDocument();
   });
 
-  test('renders a ListView', async () => {
+  it('renders a ListView', async () => {
     renderAlertList();
     expect(await screen.findByTestId('alerts-list-view')).toBeInTheDocument();
   });
 
-  test('renders switches', async () => {
+  it('renders switches', async () => {
     renderAlertList();
     // Wait for the list to load first
     await screen.findByTestId('alerts-list-view');
@@ -125,7 +125,7 @@ describe('AlertList', () => {
     expect(switches).toHaveLength(3);
   });
 
-  test('deletes', async () => {
+  it('deletes', async () => {
     renderAlertList();
 
     // Wait for list to load
@@ -149,7 +149,7 @@ describe('AlertList', () => {
     });
   }, 15000);
 
-  test('shows/hides bulk actions when bulk actions is clicked', async () => {
+  it('shows/hides bulk actions when bulk actions is clicked', async () => {
     renderAlertList();
 
     // Wait for list to load and initial state
@@ -168,7 +168,7 @@ describe('AlertList', () => {
     ).toBeInTheDocument();
   }, 15000);
 
-  test('hides bulk actions when switch between alert and report list', async () => {
+  it('hides bulk actions when switch between alert and report list', async () => {
     // Start with alert list
     renderAlertList();
 
@@ -234,7 +234,7 @@ describe('AlertList', () => {
     );
   }, 15000);
 
-  test('renders listview table correctly', async () => {
+  it('renders listview table correctly', async () => {
     renderAlertList();
     await screen.findByTestId('alerts-list-view');
 
@@ -243,7 +243,7 @@ describe('AlertList', () => {
     expect(table).toBeVisible();
   }, 15000);
 
-  test('renders correct column headers for alerts', async () => {
+  it('renders correct column headers for alerts', async () => {
     renderAlertList();
     await screen.findByTestId('alerts-list-view');
 
@@ -259,7 +259,7 @@ describe('AlertList', () => {
     expect(screen.getByTitle('Actions')).toBeInTheDocument();
   }, 15000);
 
-  test('renders correct column headers for reports', async () => {
+  it('renders correct column headers for reports', async () => {
     renderAlertList({ isReportEnabled: true });
     await screen.findByTestId('alerts-list-view');
 

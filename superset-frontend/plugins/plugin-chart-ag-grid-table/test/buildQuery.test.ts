@@ -1068,7 +1068,7 @@ describe('plugin-chart-ag-grid-table', () => {
   });
 
   describe('buildQuery - metrics handling in different query modes', () => {
-    test('should not include metrics in raw records mode', () => {
+    it('should not include metrics in raw records mode', () => {
       const query = buildQuery({
         viz_type: VizType.Table,
         datasource: '11__table',
@@ -1079,7 +1079,7 @@ describe('plugin-chart-ag-grid-table', () => {
       expect(query.metrics).toBeUndefined();
     });
 
-    test('should set metrics to empty array in aggregate mode when no metrics specified', () => {
+    it('should set metrics to empty array in aggregate mode when no metrics specified', () => {
       const query = buildQuery({
         viz_type: VizType.Table,
         datasource: '11__table',

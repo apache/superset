@@ -39,7 +39,7 @@ const zoomConfigValues = {
 describe('zoomUtil', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('computeConfigValues', () => {
-    test('computes fixed values', () => {
+    it('computes fixed values', () => {
       const height = 100;
       const width = 100;
 
@@ -62,7 +62,7 @@ describe('zoomUtil', () => {
       });
     });
 
-    test('computes linear values', () => {
+    it('computes linear values', () => {
       const height = 100;
       const width = 100;
 
@@ -87,7 +87,7 @@ describe('zoomUtil', () => {
       });
     });
 
-    test('computes exponential values', () => {
+    it('computes exponential values', () => {
       const height = 100;
       const width = 100;
 
@@ -116,7 +116,7 @@ describe('zoomUtil', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('zoomConfigsToData', () => {
-    test('returns correct output', () => {
+    it('returns correct output', () => {
       const result = zoomConfigsToData(zoomConfigValues);
 
       expect(result.length).toEqual(Object.keys(zoomConfigValues).length);
@@ -133,11 +133,11 @@ describe('zoomUtil', () => {
     };
     const result = toFixedConfig(configs);
 
-    test('has correct type', () => {
+    it('has correct type', () => {
       expect(result.type).toEqual('FIXED');
     });
 
-    test('returns correct result', () => {
+    it('returns correct result', () => {
       expect(result.values[4]).toEqual({
         width: 100,
         height: 100,
@@ -160,11 +160,11 @@ describe('zoomUtil', () => {
     };
     const result = toLinearConfig(configs);
 
-    test('has correct type', () => {
+    it('has correct type', () => {
       expect(result.type).toEqual('LINEAR');
     });
 
-    test('returns correct result', () => {
+    it('returns correct result', () => {
       expect(result.values[4]).toEqual({
         width: 98,
         height: 98,
@@ -187,10 +187,10 @@ describe('zoomUtil', () => {
     };
     // @ts-ignore
     const result = toExpConfig(configs);
-    test('has correct type', () => {
+    it('has correct type', () => {
       expect(result.type).toEqual('EXP');
     });
-    test('returns correct result', () => {
+    it('returns correct result', () => {
       expect(result.values[4]).toEqual({
         width: 93,
         height: 93,

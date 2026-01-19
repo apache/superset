@@ -110,12 +110,12 @@ describe('UsersList', () => {
     fetchMock.resetHistory();
   });
 
-  test('renders', async () => {
+  it('renders', async () => {
     await renderAndWait();
     expect(await screen.findByText('List Users')).toBeInTheDocument();
   });
 
-  test('fetches users on load', async () => {
+  it('fetches users on load', async () => {
     await renderAndWait();
     await waitFor(() => {
       const calls = fetchMock.calls(usersEndpoint);
@@ -123,7 +123,7 @@ describe('UsersList', () => {
     });
   });
 
-  test('fetches roles on load', async () => {
+  it('fetches roles on load', async () => {
     await renderAndWait();
     await waitFor(() => {
       const calls = fetchMock.calls(rolesEndpoint);
@@ -131,7 +131,7 @@ describe('UsersList', () => {
     });
   });
 
-  test('renders filters options', async () => {
+  it('renders filters options', async () => {
     await renderAndWait();
 
     const submenu = screen.queryAllByTestId('filters-select')[0];
@@ -146,7 +146,7 @@ describe('UsersList', () => {
     expect(within(submenu).getByText(/last login/i)).toBeInTheDocument();
   });
 
-  test('renders correct list columns', async () => {
+  it('renders correct list columns', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');
@@ -169,7 +169,7 @@ describe('UsersList', () => {
     expect(actionsColumn).toBeInTheDocument();
   });
 
-  test('opens add modal when Add User button is clicked', async () => {
+  it('opens add modal when Add User button is clicked', async () => {
     await renderAndWait();
 
     const addButton = screen.getByTestId('add-user-button');
@@ -178,7 +178,7 @@ describe('UsersList', () => {
     expect(screen.queryByTestId('Add User-modal')).toBeInTheDocument();
   });
 
-  test('open edit modal when edit button is clicked', async () => {
+  it('open edit modal when edit button is clicked', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');

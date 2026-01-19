@@ -63,15 +63,15 @@ describe('QueryAutoRefresh', () => {
     jest.useRealTimers();
   });
 
-  test('isQueryRunning returns true for valid running query', () => {
+  it('isQueryRunning returns true for valid running query', () => {
     expect(isQueryRunning(runningQuery)).toBe(true);
   });
 
-  test('isQueryRunning returns false for valid not-running query', () => {
+  it('isQueryRunning returns false for valid not-running query', () => {
     expect(isQueryRunning(successfulQuery)).toBe(false);
   });
 
-  test('isQueryRunning returns false for invalid query', () => {
+  it('isQueryRunning returns false for invalid query', () => {
     // @ts-ignore
     expect(isQueryRunning(null)).toBe(false);
     // @ts-ignore
@@ -82,15 +82,15 @@ describe('QueryAutoRefresh', () => {
     expect(isQueryRunning({ state: { badFormat: true } })).toBe(false);
   });
 
-  test('shouldCheckForQueries is true for valid running query', () => {
+  it('shouldCheckForQueries is true for valid running query', () => {
     expect(shouldCheckForQueries(runningQueries)).toBe(true);
   });
 
-  test('shouldCheckForQueries is false for valid completed query', () => {
+  it('shouldCheckForQueries is false for valid completed query', () => {
     expect(shouldCheckForQueries(successfulQueries)).toBe(false);
   });
 
-  test('shouldCheckForQueries is false for invalid inputs', () => {
+  it('shouldCheckForQueries is false for invalid inputs', () => {
     // @ts-ignore
     expect(shouldCheckForQueries(null)).toBe(false);
     // @ts-ignore
@@ -110,7 +110,7 @@ describe('QueryAutoRefresh', () => {
     ).toBe(false);
   });
 
-  test('Attempts to refresh when given pending query', async () => {
+  it('Attempts to refresh when given pending query', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, {
@@ -136,7 +136,7 @@ describe('QueryAutoRefresh', () => {
     );
   });
 
-  test('Attempts to clear inactive queries when updated queries are empty', async () => {
+  it('Attempts to clear inactive queries when updated queries are empty', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, { result: [] });
@@ -165,7 +165,7 @@ describe('QueryAutoRefresh', () => {
     expect(fetchMock.calls(refreshApi)).toHaveLength(1);
   });
 
-  test('Does not fail and attempts to refresh with mixed valid/invalid queries', async () => {
+  it('Does not fail and attempts to refresh with mixed valid/invalid queries', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, {
@@ -192,7 +192,7 @@ describe('QueryAutoRefresh', () => {
     );
   });
 
-  test('Does NOT Attempt to refresh when given only completed queries', async () => {
+  it('Does NOT Attempt to refresh when given only completed queries', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, {
@@ -220,7 +220,7 @@ describe('QueryAutoRefresh', () => {
     expect(fetchMock.calls(refreshApi)).toHaveLength(0);
   });
 
-  test('logs the failed error for async queries', async () => {
+  it('logs the failed error for async queries', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, {

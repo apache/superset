@@ -294,7 +294,7 @@ describe('Embedded mode behavior', () => {
     (isEmbedded as jest.Mock).mockReturnValue(false);
   });
 
-  test('should not render "Edit chart" button in embedded mode', async () => {
+  it('should not render "Edit chart" button in embedded mode', async () => {
     (isEmbedded as jest.Mock).mockReturnValue(true);
 
     await renderModal();
@@ -306,7 +306,7 @@ describe('Embedded mode behavior', () => {
     expect(footerCloseButton).toHaveTextContent('Close');
   });
 
-  test('should not call postFormData API in embedded mode', async () => {
+  it('should not call postFormData API in embedded mode', async () => {
     (isEmbedded as jest.Mock).mockReturnValue(true);
 
     await renderModal({
@@ -322,7 +322,7 @@ describe('Embedded mode behavior', () => {
     expect(fetchMock.called(FORM_DATA_KEY_ENDPOINT)).toBe(false);
   });
 
-  test('should render "Edit chart" button in non-embedded mode', async () => {
+  it('should render "Edit chart" button in non-embedded mode', async () => {
     (isEmbedded as jest.Mock).mockReturnValue(false);
 
     await renderModal();
@@ -332,7 +332,7 @@ describe('Embedded mode behavior', () => {
     ).toBeInTheDocument();
   });
 
-  test('should call postFormData API in non-embedded mode', async () => {
+  it('should call postFormData API in non-embedded mode', async () => {
     (isEmbedded as jest.Mock).mockReturnValue(false);
 
     await renderModal({
@@ -384,7 +384,7 @@ describe('Table view with pagination', () => {
     fetchMock.restore();
   });
 
-  test('should render table view when Table radio is selected', async () => {
+  it('should render table view when Table radio is selected', async () => {
     await renderModal({
       column: { column_name: 'state', verbose_name: null },
       drillByConfig: {
@@ -410,7 +410,7 @@ describe('Table view with pagination', () => {
     expect(paginationList).toBeInTheDocument();
   });
 
-  test('should handle pagination in table view', async () => {
+  it('should handle pagination in table view', async () => {
     await renderModal({
       column: { column_name: 'state', verbose_name: null },
       drillByConfig: {
@@ -443,7 +443,7 @@ describe('Table view with pagination', () => {
     });
   });
 
-  test('should maintain table state when switching between Chart and Table views', async () => {
+  it('should maintain table state when switching between Chart and Table views', async () => {
     await renderModal({
       column: { column_name: 'state', verbose_name: null },
       drillByConfig: {
@@ -474,7 +474,7 @@ describe('Table view with pagination', () => {
     });
   });
 
-  test('should not cause infinite re-renders with pagination', async () => {
+  it('should not cause infinite re-renders with pagination', async () => {
     // Mock console.error to catch potential infinite loop warnings
     const originalError = console.error;
     const consoleErrorSpy = jest.fn();
@@ -504,7 +504,7 @@ describe('Table view with pagination', () => {
     console.error = originalError;
   });
 
-  test('should handle empty results in table view', async () => {
+  it('should handle empty results in table view', async () => {
     // Mock empty dataset response
     fetchMock.post(
       CHART_DATA_ENDPOINT,
@@ -540,7 +540,7 @@ describe('Table view with pagination', () => {
     expect(screen.getByText('No data')).toBeInTheDocument();
   });
 
-  test('should handle sorting in table view', async () => {
+  it('should handle sorting in table view', async () => {
     await renderModal({
       column: { column_name: 'state', verbose_name: null },
       drillByConfig: {

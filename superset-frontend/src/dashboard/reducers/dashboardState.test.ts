@@ -57,7 +57,7 @@ const createMockDashboardState = (
 describe('DashboardState reducer', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('SET_ACTIVE_TAB', () => {
-    test('switches a single tab', () => {
+    it('switches a single tab', () => {
       const store = mockStore({
         dashboardState: { activeTabs: [] },
         dashboardLayout: { present: { tab1: { parents: [] } } },
@@ -89,7 +89,7 @@ describe('DashboardState reducer', () => {
       );
     });
 
-    test('switches a multi-depth tab', () => {
+    it('switches a multi-depth tab', () => {
       const initState = { activeTabs: ['TAB-1', 'TAB-A', 'TAB-__a'] };
       const store = mockStore({
         dashboardState: initState,
@@ -178,7 +178,7 @@ describe('DashboardState reducer', () => {
       );
     });
   });
-  test('SET_ACTIVE_TABS', () => {
+  it('SET_ACTIVE_TABS', () => {
     expect(
       typedDashboardStateReducer(
         createMockDashboardState({ activeTabs: [] }),

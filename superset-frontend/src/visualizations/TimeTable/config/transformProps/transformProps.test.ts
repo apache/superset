@@ -129,7 +129,7 @@ function createMockChartProps(
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TimeTable transformProps', () => {
-  test('should transform props correctly for metric rows', () => {
+  it('should transform props correctly for metric rows', () => {
     const props = createMockChartProps();
     const result = transformProps(props);
 
@@ -152,7 +152,7 @@ describe('TimeTable transformProps', () => {
     });
   });
 
-  test('should transform props correctly for column rows (groupby)', () => {
+  it('should transform props correctly for column rows (groupby)', () => {
     const props = createMockChartProps({
       formData: {
         columnCollection: [],
@@ -183,7 +183,7 @@ describe('TimeTable transformProps', () => {
     expect(result.rows.length).toBe(2);
   });
 
-  test('should handle string columns correctly', () => {
+  it('should handle string columns correctly', () => {
     const props = createMockChartProps({
       formData: {
         columnCollection: [],
@@ -211,7 +211,7 @@ describe('TimeTable transformProps', () => {
     expect(result.rows[1]).toEqual({ label: 'value' });
   });
 
-  test('should handle column collection with time lag conversion', () => {
+  it('should handle column collection with time lag conversion', () => {
     const props = createMockChartProps({
       formData: {
         columnCollection: [
@@ -245,7 +245,7 @@ describe('TimeTable transformProps', () => {
     expect(result.columnConfigs[2]).toHaveProperty('timeLag', '');
   });
 
-  test('should handle empty metrics array', () => {
+  it('should handle empty metrics array', () => {
     const props = createMockChartProps({
       formData: {
         columnCollection: [],
@@ -261,7 +261,7 @@ describe('TimeTable transformProps', () => {
     expect(result.rows.length).toBe(0);
   });
 
-  test('should handle missing metrics in datasource', () => {
+  it('should handle missing metrics in datasource', () => {
     const props = createMockChartProps({
       formData: {
         columnCollection: [],

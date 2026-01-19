@@ -39,7 +39,7 @@ describe('childChartsDidLoad', () => {
     jest.clearAllMocks();
   });
 
-  test('returns didLoad true when all charts are in completed states', () => {
+  it('returns didLoad true when all charts are in completed states', () => {
     const chartIds = [1, 2, 3];
     const layout: Layout = {};
     const chartQueries: Record<string, Partial<ChartState>> = {
@@ -64,7 +64,7 @@ describe('childChartsDidLoad', () => {
     });
   });
 
-  test('returns didLoad false when some charts are in loading state', () => {
+  it('returns didLoad false when some charts are in loading state', () => {
     const chartIds = [1, 2, 3];
     const layout: Layout = {};
     const chartQueries: Record<string, Partial<ChartState>> = {
@@ -85,7 +85,7 @@ describe('childChartsDidLoad', () => {
     expect(result.minQueryStartTime).toBe(100);
   });
 
-  test('handles missing chart queries gracefully', () => {
+  it('handles missing chart queries gracefully', () => {
     const chartIds = [1, 2, 3];
     const layout: Layout = {};
     const chartQueries: Record<string, Partial<ChartState>> = {
@@ -106,7 +106,7 @@ describe('childChartsDidLoad', () => {
     expect(result.minQueryStartTime).toBe(100);
   });
 
-  test('handles empty chart queries object', () => {
+  it('handles empty chart queries object', () => {
     const chartIds = [1, 2, 3];
     const layout: Layout = {};
     const chartQueries: Record<string, Partial<ChartState>> = {};
@@ -123,7 +123,7 @@ describe('childChartsDidLoad', () => {
     expect(result.minQueryStartTime).toBe(Infinity);
   });
 
-  test('handles empty chart IDs array', () => {
+  it('handles empty chart IDs array', () => {
     const chartIds: number[] = [];
     const layout: Layout = {};
     const chartQueries: Record<string, Partial<ChartState>> = {
@@ -142,7 +142,7 @@ describe('childChartsDidLoad', () => {
     expect(result.minQueryStartTime).toBe(Infinity);
   });
 
-  test('calculates minimum query start time correctly', () => {
+  it('calculates minimum query start time correctly', () => {
     const chartIds = [1, 2, 3, 4];
     const layout: Layout = {};
     const chartQueries: Record<string, Partial<ChartState>> = {
@@ -164,7 +164,7 @@ describe('childChartsDidLoad', () => {
     expect(result.minQueryStartTime).toBe(100);
   });
 
-  test('handles charts with missing chartUpdateStartTime', () => {
+  it('handles charts with missing chartUpdateStartTime', () => {
     const chartIds = [1, 2];
     const layout: Layout = {};
     const chartQueries: Record<string, Partial<ChartState>> = {
@@ -184,7 +184,7 @@ describe('childChartsDidLoad', () => {
     expect(result.minQueryStartTime).toBe(200);
   });
 
-  test('handles charts with null chartStatus', () => {
+  it('handles charts with null chartStatus', () => {
     const chartIds = [1, 2];
     const layout: Layout = {};
     const chartQueries: Record<string, Partial<ChartState>> = {
@@ -204,7 +204,7 @@ describe('childChartsDidLoad', () => {
     expect(result.minQueryStartTime).toBe(100);
   });
 
-  test('recognizes all valid completed chart states', () => {
+  it('recognizes all valid completed chart states', () => {
     const chartIds = [1, 2, 3];
     const layout: Layout = {};
     const chartQueries: Record<string, Partial<ChartState>> = {
@@ -225,7 +225,7 @@ describe('childChartsDidLoad', () => {
     expect(result.minQueryStartTime).toBe(100);
   });
 
-  test('does not recognize incomplete chart states', () => {
+  it('does not recognize incomplete chart states', () => {
     const chartIds = [1, 2];
     const layout: Layout = {};
     const chartQueries: Record<string, Partial<ChartState>> = {

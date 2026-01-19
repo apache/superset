@@ -20,7 +20,7 @@ import getDirectPathToTabIndex from './getDirectPathToTabIndex';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getDirectPathToTabIndex', () => {
-  test('builds path using parents, id, and child at index', () => {
+  it('builds path using parents, id, and child at index', () => {
     const tabs = {
       id: 'TABS_ID',
       parents: ['ROOT', 'ROW_1'],
@@ -34,7 +34,7 @@ describe('getDirectPathToTabIndex', () => {
     ]);
   });
 
-  test('handles missing parents', () => {
+  it('handles missing parents', () => {
     const tabs = {
       id: 'TABS_ID',
       children: ['TAB_A'],

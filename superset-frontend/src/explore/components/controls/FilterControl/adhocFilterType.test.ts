@@ -25,7 +25,7 @@ import { Clauses, ExpressionTypes } from './types';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('adhocFilterType', () => {
-  test('should accept simple adhoc filter type', () => {
+  it('should accept simple adhoc filter type', () => {
     const simpleFilter: AdhocFilterSimple = {
       expressionType: ExpressionTypes.Simple,
       clause: Clauses.Where,
@@ -39,7 +39,7 @@ describe('adhocFilterType', () => {
     expect(simpleFilter.comparator).toBe('test_value');
   });
 
-  test('should accept SQL adhoc filter type', () => {
+  it('should accept SQL adhoc filter type', () => {
     const sqlFilter: AdhocFilterSql = {
       expressionType: ExpressionTypes.Sql,
       clause: Clauses.Having,
@@ -51,7 +51,7 @@ describe('adhocFilterType', () => {
     expect(sqlFilter.sqlExpression).toBe('COUNT(*) > 5');
   });
 
-  test('should accept both simple and SQL filters as AdhocFilterType', () => {
+  it('should accept both simple and SQL filters as AdhocFilterType', () => {
     const simpleFilter: AdhocFilterType = {
       expressionType: ExpressionTypes.Simple,
       clause: Clauses.Where,
@@ -69,7 +69,7 @@ describe('adhocFilterType', () => {
     expect(sqlFilter.expressionType).toBe(ExpressionTypes.Sql);
   });
 
-  test('should handle array comparator for simple filters', () => {
+  it('should handle array comparator for simple filters', () => {
     const filterWithArrayComparator: AdhocFilterSimple = {
       expressionType: ExpressionTypes.Simple,
       clause: Clauses.Where,
@@ -81,7 +81,7 @@ describe('adhocFilterType', () => {
     expect(filterWithArrayComparator.comparator).toEqual(['A', 'B', 'C']);
   });
 
-  test('should handle optional properties', () => {
+  it('should handle optional properties', () => {
     const filterWithOptionalProps: AdhocFilterSimple = {
       expressionType: ExpressionTypes.Simple,
       clause: Clauses.Where,

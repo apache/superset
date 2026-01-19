@@ -73,7 +73,7 @@ describe('getFormDataWithExtraFilters', () => {
     allSliceIds: [chartId],
   };
 
-  test('should include filters from the passed filters', () => {
+  it('should include filters from the passed filters', () => {
     const result = getFormDataWithExtraFilters(mockArgs);
     expect(result.extra_filters).toHaveLength(2);
     expect(result.extra_filters[0]).toEqual({
@@ -88,13 +88,13 @@ describe('getFormDataWithExtraFilters', () => {
     });
   });
 
-  test('should compose extra control', () => {
+  it('should compose extra control', () => {
     const result: CachedFormDataWithExtraControls =
       getFormDataWithExtraFilters(mockArgs);
     expect(result.stack).toEqual('Stacked');
   });
 
-  test('should merge extraFormData from chart customizations', () => {
+  it('should merge extraFormData from chart customizations', () => {
     const customizationId = 'CHART_CUSTOMIZATION-1';
     const argsWithCustomization: GetFormDataWithExtraFiltersArguments = {
       ...mockArgs,
@@ -137,7 +137,7 @@ describe('getFormDataWithExtraFilters', () => {
     expect((result as any).time_grain_sqla).toEqual('PT1H');
   });
 
-  test('should merge both filters and customization extraFormData', () => {
+  it('should merge both filters and customization extraFormData', () => {
     const customizationId = 'CHART_CUSTOMIZATION-1';
     const argsWithBoth: GetFormDataWithExtraFiltersArguments = {
       ...mockArgs,
