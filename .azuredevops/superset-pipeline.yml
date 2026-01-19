@@ -108,32 +108,31 @@ stages:
                 artifact: $(artifactName)
 
               # -------------------------------------
+              # Login to ACR on deployment VM
+              # -------------------------------------
+              - task: Docker@2
+                displayName: Login to ACR
+                inputs:
+                  command: login
+                  containerRegistry: $(containerRegistry)
+
+              # -------------------------------------
               # Rehydrate & validate client config
               # -------------------------------------
               - task: PowerShell@2
                 displayName: 'Rehydrate & validate client config'
                 env:
-                  CLIENT_CONFIG: $(blue-dev-secret)  # Use the actual variable name from Key Vault
+                  CLIENT_CONFIG: $(blue-dev-secret)
                 inputs:
                   pwsh: true
                   targetType: inline
                   script: |
                     Write-Host "=== Starting config rehydration ==="
                     
-                    # Get the secret variable - note the variable name matches Key Vault secret name
+                    # Get the secret variable
                     $raw = $env:CLIENT_CONFIG
                     
-                    # Debug: Check if variable is set
                     if ([string]::IsNullOrEmpty($raw)) {
-                        Write-Host "##[error]CLIENT_CONFIG (blue-dev-secret) is empty or not set"
-                        Write-Host "##[error]Checking available environment variables..."
-                        Get-ChildItem env: | Where-Object { 
-                            $_.Name -like "*secret*" -or 
-                            $_.Name -like "*config*" -or 
-                            $_.Name -like "*blue*" 
-                        } | ForEach-Object {
-                            Write-Host "  $($_.Name)"
-                        }
                         throw "CLIENT_CONFIG (blue-dev-secret from Key Vault) is empty or not set"
                     }
                     
@@ -231,34 +230,55 @@ stages:
               # Create docker-compose env file
               # -------------------------------------
               - bash: |
+                  echo "Creating .env.deploy file..."
                   cat > .env.deploy << EOF
-                  SUPERSET_IMAGE=$(FULL_IMAGE_NAME)
-
-                  SUPERSET_SECRET_KEY=$(SUPERSET_SECRET_KEY)
-                  SUPERSET_ADMIN_USER=$(SUPERSET_ADMIN_USER)
-                  SUPERSET_ADMIN_PASSWORD=$(SUPERSET_ADMIN_PASSWORD)
-                  SUPERSET_PORT=$(SUPERSET_PORT)
-
-                  POSTGRES_HOST=$(DB_HOST)
-                  POSTGRES_PORT=$(DB_PORT)
-                  POSTGRES_DB=$(DB_NAME)
-                  POSTGRES_USER=$(DB_USER)
-                  POSTGRES_PASSWORD=$(DB_PASSWORD)
-
+                  SUPERSET_IMAGE=${FULL_IMAGE_NAME}
+                  
+                  SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+                  SUPERSET_ADMIN_USER=${SUPERSET_ADMIN_USER}
+                  SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
+                  SUPERSET_PORT=${SUPERSET_PORT}
+                  
+                  POSTGRES_HOST=${DB_HOST}
+                  POSTGRES_PORT=${DB_PORT}
+                  POSTGRES_DB=${DB_NAME}
+                  POSTGRES_USER=${DB_USER}
+                  POSTGRES_PASSWORD=${DB_PASSWORD}
+                  
                   REDIS_HOST=redis
                   REDIS_PORT=6379
-
-                  DOCKER_NETWORK=$(DOCKER_NETWORK)
+                  
+                  DOCKER_NETWORK=${DOCKER_NETWORK}
                   EOF
                   
-                  echo "Created .env.deploy file with the following variables:"
-                  echo "  SUPERSET_IMAGE: $(FULL_IMAGE_NAME)"
-                  echo "  SUPERSET_PORT: $(SUPERSET_PORT)"
-                  echo "  SUPERSET_ADMIN_USER: $(SUPERSET_ADMIN_USER)"
-                  echo "  POSTGRES_HOST: $(DB_HOST)"
-                  echo "  POSTGRES_PORT: $(DB_PORT)"
-                  echo "  POSTGRES_DB: $(DB_NAME)"
-                  echo "  POSTGRES_USER: $(DB_USER)"
+                  echo "✓ Created .env.deploy file"
+                  echo ""
+                  echo "Environment variables (non-sensitive):"
+                  echo "  SUPERSET_IMAGE: ${FULL_IMAGE_NAME}"
+                  echo "  SUPERSET_PORT: ${SUPERSET_PORT}"
+                  echo "  SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER}"
+                  echo "  POSTGRES_HOST: ${DB_HOST}"
+                  echo "  POSTGRES_PORT: ${DB_PORT}"
+                  echo "  POSTGRES_DB: ${DB_NAME}"
+                  echo "  POSTGRES_USER: ${DB_USER}"
+                  echo "  REDIS_HOST: redis"
+                  echo "  REDIS_PORT: 6379"
+                  echo "  DOCKER_NETWORK: ${DOCKER_NETWORK}"
+                  echo ""
+                  echo "Content of .env.deploy (with secrets masked):"
+                  cat .env.deploy | sed 's/PASSWORD=.*/PASSWORD=***masked***/g' | sed 's/SECRET_KEY=.*/SECRET_KEY=***masked***/g'
+                env:
+                  FULL_IMAGE_NAME: $(FULL_IMAGE_NAME)
+                  SUPERSET_SECRET_KEY: $(SUPERSET_SECRET_KEY)
+                  SUPERSET_ADMIN_USER: $(SUPERSET_ADMIN_USER)
+                  SUPERSET_ADMIN_PASSWORD: $(SUPERSET_ADMIN_PASSWORD)
+                  SUPERSET_PORT: $(SUPERSET_PORT)
+                  DB_HOST: $(DB_HOST)
+                  DB_PORT: $(DB_PORT)
+                  DB_NAME: $(DB_NAME)
+                  DB_USER: $(DB_USER)
+                  DB_PASSWORD: $(DB_PASSWORD)
+                  DOCKER_NETWORK: $(DOCKER_NETWORK)
                 displayName: Create .env.deploy
 
               # -------------------------------------
@@ -268,7 +288,10 @@ stages:
                   echo "Deploying Superset with docker-compose..."
                   docker compose -f docker-compose-deploy.yml --env-file .env.deploy up -d
                   
-                  echo "Deployment completed. Checking running containers..."
+                  echo ""
+                  echo "✓ Deployment completed"
+                  echo ""
+                  echo "Running containers:"
                   docker compose -f docker-compose-deploy.yml ps
                 displayName: Deploy Superset
 
@@ -277,6 +300,7 @@ stages:
               # -------------------------------------
               - bash: |
                   echo "Starting health check for Superset on port ${SUPERSET_PORT}..."
+                  echo ""
                   
                   for i in {1..60}; do
                     if curl -fs http://localhost:${SUPERSET_PORT}/health; then
@@ -290,7 +314,10 @@ stages:
                   
                   echo ""
                   echo "✗ Superset failed health check after 10 minutes"
+                  echo ""
                   echo "Container logs:"
                   docker compose -f docker-compose-deploy.yml logs --tail=50
                   exit 1
+                env:
+                  SUPERSET_PORT: $(SUPERSET_PORT)
                 displayName: Verify Health
