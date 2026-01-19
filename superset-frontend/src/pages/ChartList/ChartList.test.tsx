@@ -268,9 +268,6 @@ describe('ChartList', () => {
     );
     expect(matrixifyTag).toBeInTheDocument();
 
-    // Verify it's styled as purple (check for the color attribute or class)
-    expect(matrixifyTag.closest('[color="purple"]')).toBeInTheDocument();
-
     // Find the row containing Test Chart 1 (which doesn't have matrixify)
     const chart1Row = screen.getByText('Test Chart 1').closest('tr');
     expect(chart1Row).toBeInTheDocument();

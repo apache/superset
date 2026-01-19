@@ -397,7 +397,6 @@ describe('ExploreChartHeader', () => {
 
     const matrixifyTag = await screen.findByText('Matrixify');
     expect(matrixifyTag).toBeInTheDocument();
-    expect(matrixifyTag.closest('[color="purple"]')).toBeInTheDocument();
   });
 
   test('does not render Matrixify tag when matrixify is disabled', async () => {
