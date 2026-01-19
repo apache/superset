@@ -311,6 +311,14 @@ export default function transformProps(
           );
           return [];
         }
+        if (normalized && rankValue === undefined) {
+          logging.error(
+            `Heatmap: Skipping row due to missing rank value. xValue: ${xValue}, yValue: ${yValue}, metricValue: ${metricValue}`,
+            row,
+          );
+          return [];
+        }
+
         // Include rank as 4th dimension when normalized is enabled
         // This allows visualMap to use dimension: 3 to color by rank percentile
         if (normalized) {
