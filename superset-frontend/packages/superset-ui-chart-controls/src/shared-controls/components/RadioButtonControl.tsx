@@ -19,7 +19,7 @@
 import { ReactNode } from 'react';
 import { t } from '@apache-superset/core';
 import { JsonValue } from '@superset-ui/core';
-import {Radio, Tooltip, TooltipPlacement} from '@superset-ui/core/components';
+import { Radio, Tooltip, TooltipPlacement } from '@superset-ui/core/components';
 import { ControlHeader } from '../../components/ControlHeader';
 
 export interface RadioButtonOptionObject {
@@ -74,7 +74,13 @@ export default function RadioButtonControl({
           onChange={e => onChange(e.target.value)}
         >
           {normalizedOptions.map(
-            ({ value: val, label, disabled = false, tooltip, tooltipPlacement = 'top' }) => {
+            ({
+              value: val,
+              label,
+              disabled = false,
+              tooltip,
+              tooltipPlacement = 'top',
+            }) => {
               const button = (
                 <Radio.Button
                   key={JSON.stringify(val)}
