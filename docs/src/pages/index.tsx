@@ -779,7 +779,7 @@ export default function Home(): JSX.Element {
         </BlurredSection>
         <BlurredSection>
           <StyledIntegrations>
-            <SectionHeader level="h2" title="Supported Databases" />
+            <SectionHeader level="h2" title="Supported Databases" link="/docs/databases" />
             <div className="database-grid">
               {Databases.map(({ title, imgName, docPath }) => (
                 <div className="item" key={title}>
