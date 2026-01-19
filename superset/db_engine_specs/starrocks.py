@@ -131,6 +131,54 @@ class StarRocksEngineSpec(MySQLEngineSpec):
                 ),
                 "is_recommended": True,
             },
+            {
+                "name": "mysqlclient",
+                "pypi_package": "mysqlclient",
+                "connection_string": (
+                    "mysql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": "MySQL-compatible driver for StarRocks.",
+            },
+            {
+                "name": "PyMySQL",
+                "pypi_package": "pymysql",
+                "connection_string": (
+                    "mysql+pymysql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": "Pure Python MySQL driver, no compilation required.",
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "CelerData",
+                "description": (
+                    "CelerData is a fully-managed cloud analytics service built on "
+                    "StarRocks. It provides instant elasticity, automatic scaling, "
+                    "and enterprise features."
+                ),
+                "logo": "starrocks.png",
+                "homepage_url": "https://celerdata.com/",
+                "categories": [
+                    DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["starrocks"],
+                "connection_string": (
+                    "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}"
+                ),
+                "parameters": {
+                    "username": "CelerData username",
+                    "password": "CelerData password",
+                    "host": "CelerData cluster endpoint",
+                    "port": "Query port (default 9030)",
+                    "catalog": "Catalog name",
+                    "database": "Database name",
+                },
+                "docs_url": "https://docs.celerdata.com/",
+            },
         ],
     }
 

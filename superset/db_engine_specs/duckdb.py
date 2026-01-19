@@ -371,15 +371,43 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
 
 class MotherDuckEngineSpec(DuckDBEngineSpec):
-    """MotherDuck cloud analytics platform engine spec.
-
-    Note: Documentation is in DuckDBEngineSpec's compatible_databases section.
-    This spec exists for runtime support of the MotherDuck connector.
-    """
+    """MotherDuck cloud analytics platform engine spec."""
 
     engine = "motherduck"
     engine_name = "MotherDuck"
     engine_aliases: set[str] = {"duckdb"}
+
+    metadata = {
+        "description": (
+            "MotherDuck is a serverless cloud analytics platform "
+            "built on DuckDB. It combines the simplicity of DuckDB with "
+            "cloud-scale data sharing and collaboration."
+        ),
+        "logo": "motherduck.png",
+        "homepage_url": "https://motherduck.com/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["duckdb", "duckdb-engine"],
+        "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+        "parameters": {
+            "database": "MotherDuck database name",
+            "token": "Service token from MotherDuck dashboard",
+        },
+        "docs_url": "https://motherduck.com/docs/getting-started/",
+        "drivers": [
+            {
+                "name": "duckdb-engine",
+                "pypi_package": "duckdb-engine",
+                "connection_string": (
+                    "duckdb:///md:{database}?motherduck_token={token}"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
 
     supports_catalog = True
     supports_dynamic_catalog = True

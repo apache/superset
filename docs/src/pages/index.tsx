@@ -31,7 +31,9 @@ import type { DatabaseData } from '../components/databases/types';
 import '../styles/main.less';
 
 // Build database list from databases.json (databases with logos)
+// Deduplicate by logo filename to avoid showing the same logo twice
 const typedDatabaseData = databaseData as DatabaseData;
+const seenLogos = new Set<string>();
 const Databases = Object.entries(typedDatabaseData.databases)
   .filter(([, db]) => db.documentation?.logo && db.documentation?.homepage_url)
   .map(([name, db]) => ({
@@ -40,7 +42,12 @@ const Databases = Object.entries(typedDatabaseData.databases)
     imgName: db.documentation?.logo,
     docPath: `/docs/databases/${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
   }))
-  .sort((a, b) => a.title.localeCompare(b.title));
+  .sort((a, b) => a.title.localeCompare(b.title))
+  .filter((db) => {
+    if (seenLogos.has(db.imgName!)) return false;
+    seenLogos.add(db.imgName!);
+    return true;
+  });
 
 interface Organization {
   name: string;

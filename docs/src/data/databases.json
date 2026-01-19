@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-19T22:11:15.809Z",
+  "generated": "2026-01-19T22:20:58.621Z",
   "statistics": {
     "totalDatabases": 67,
     "withDocumentation": 67,
@@ -50,6 +50,7 @@
         "Cloudflare D1",
         "Databend",
         "Databricks",
+        "MotherDuck",
         "Firebolt",
         "Hologres",
         "Azure Synapse",
@@ -84,6 +85,7 @@
         "Ascend",
         "Cloudflare D1",
         "Databricks",
+        "MotherDuck",
         "Google Sheets"
       ],
       "Cloud - AWS": [
@@ -139,7 +141,6 @@
         "Apache Drill",
         "Apache Druid",
         "DuckDB",
-        "MotherDuck",
         "Elasticsearch",
         "Firebird",
         "Greenplum",
@@ -575,7 +576,47 @@
             "connection_string": "clickhousedb://localhost/default"
           }
         ],
-        "install_instructions": "echo \"clickhouse-connect>=0.6.8\" >> ./docker/requirements-local.txt"
+        "install_instructions": "echo \"clickhouse-connect>=0.6.8\" >> ./docker/requirements-local.txt",
+        "compatible_databases": [
+          {
+            "name": "ClickHouse Cloud",
+            "description": "ClickHouse Cloud is the official fully-managed cloud service for ClickHouse. It provides automatic scaling, built-in backups, and enterprise security features.",
+            "logo": "clickhouse.png",
+            "homepage_url": "https://clickhouse.cloud/",
+            "categories": [
+              "ANALYTICAL_DATABASES",
+              "CLOUD_DATA_WAREHOUSES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "clickhouse-connect>=0.6.8"
+            ],
+            "connection_string": "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true",
+            "parameters": {
+              "username": "ClickHouse Cloud username",
+              "password": "ClickHouse Cloud password",
+              "host": "Your ClickHouse Cloud hostname",
+              "database": "Database name (default)"
+            },
+            "docs_url": "https://clickhouse.com/docs/en/cloud"
+          },
+          {
+            "name": "Altinity.Cloud",
+            "description": "Altinity.Cloud is a managed ClickHouse service providing Kubernetes-native deployments with enterprise support.",
+            "logo": "clickhouse.png",
+            "homepage_url": "https://altinity.cloud/",
+            "categories": [
+              "ANALYTICAL_DATABASES",
+              "CLOUD_DATA_WAREHOUSES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "clickhouse-connect>=0.6.8"
+            ],
+            "connection_string": "clickhousedb://{username}:{password}@{host}/{database}?secure=true",
+            "docs_url": "https://docs.altinity.com/"
+          }
+        ]
       },
       "time_grains": {
         "SECOND": false,
@@ -1635,26 +1676,40 @@
       "engine_name": "MotherDuck",
       "module": "duckdb",
       "documentation": {
-        "description": "DuckDB is an in-process OLAP database designed for fast analytical queries on local data. Supports CSV, Parquet, JSON, and many other file formats.",
-        "logo": "duckdb.png",
-        "homepage_url": "https://duckdb.org/",
-        "categories": [
-          "ANALYTICAL_DATABASES",
-          "OPEN_SOURCE"
-        ],
+        "description": "MotherDuck is a serverless cloud analytics platform built on DuckDB. It combines the simplicity of DuckDB with cloud-scale data sharing and collaboration.",
+        "logo": "motherduck.png",
+        "homepage_url": "https://motherduck.com/",
         "pypi_packages": [
+          "duckdb-engine",
+          "duckdb",
           "duckdb-engine"
         ],
-        "connection_string": "duckdb:////path/to/duck.db",
+        "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
         "drivers": [
           {
             "name": "duckdb-engine",
             "pypi_package": "duckdb-engine",
             "connection_string": "duckdb:////path/to/duck.db",
             "is_recommended": true
+          },
+          {
+            "name": "duckdb-engine",
+            "pypi_package": "duckdb-engine",
+            "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+            "is_recommended": true
           }
         ],
-        "notes": "DuckDB supports both local file and in-memory databases. Use `:memory:` for in-memory database."
+        "notes": "DuckDB supports both local file and in-memory databases. Use `:memory:` for in-memory database.",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "CLOUD_DATA_WAREHOUSES",
+          "HOSTED_OPEN_SOURCE"
+        ],
+        "parameters": {
+          "database": "MotherDuck database name",
+          "token": "Service token from MotherDuck dashboard"
+        },
+        "docs_url": "https://motherduck.com/docs/getting-started/"
       },
       "time_grains": {},
       "score": 0,
@@ -1747,6 +1802,39 @@
             "connection_string": "odelasticsearch+https://{user}:{password}@{host}:9200/",
             "is_recommended": false,
             "notes": "For OpenDistro Elasticsearch or Amazon OpenSearch Service."
+          }
+        ],
+        "compatible_databases": [
+          {
+            "name": "Elastic Cloud",
+            "description": "Elastic Cloud is the official managed Elasticsearch service from Elastic. It includes Elasticsearch, Kibana, and enterprise features with automatic scaling.",
+            "logo": "elasticsearch.png",
+            "homepage_url": "https://www.elastic.co/cloud/",
+            "categories": [
+              "SEARCH_NOSQL",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "elasticsearch-dbapi"
+            ],
+            "connection_string": "elasticsearch+https://{user}:{password}@{deployment}.{region}.cloud.es.io:9243/",
+            "docs_url": "https://www.elastic.co/guide/en/cloud/current/"
+          },
+          {
+            "name": "Amazon OpenSearch Service",
+            "description": "Amazon OpenSearch Service (successor to Amazon Elasticsearch Service) is a managed search and analytics service on AWS.",
+            "logo": "elasticsearch.png",
+            "homepage_url": "https://aws.amazon.com/opensearch-service/",
+            "categories": [
+              "SEARCH_NOSQL",
+              "CLOUD_AWS",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "elasticsearch-dbapi"
+            ],
+            "connection_string": "odelasticsearch+https://{user}:{password}@{host}:443/",
+            "docs_url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/"
           }
         ]
       },
@@ -4032,11 +4120,51 @@
             "pypi_package": "starrocks",
             "connection_string": "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}",
             "is_recommended": true
+          },
+          {
+            "name": "mysqlclient",
+            "pypi_package": "mysqlclient",
+            "connection_string": "mysql://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": false,
+            "notes": "MySQL-compatible driver for StarRocks."
+          },
+          {
+            "name": "PyMySQL",
+            "pypi_package": "pymysql",
+            "connection_string": "mysql+pymysql://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": false,
+            "notes": "Pure Python MySQL driver, no compilation required."
           }
         ],
         "categories": [
           "ANALYTICAL_DATABASES",
           "OPEN_SOURCE"
+        ],
+        "compatible_databases": [
+          {
+            "name": "CelerData",
+            "description": "CelerData is a fully-managed cloud analytics service built on StarRocks. It provides instant elasticity, automatic scaling, and enterprise features.",
+            "logo": "starrocks.png",
+            "homepage_url": "https://celerdata.com/",
+            "categories": [
+              "ANALYTICAL_DATABASES",
+              "CLOUD_DATA_WAREHOUSES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "starrocks"
+            ],
+            "connection_string": "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}",
+            "parameters": {
+              "username": "CelerData username",
+              "password": "CelerData password",
+              "host": "CelerData cluster endpoint",
+              "port": "Query port (default 9030)",
+              "catalog": "Catalog name",
+              "database": "Database name"
+            },
+            "docs_url": "https://docs.celerdata.com/"
+          }
         ]
       },
       "time_grains": {
@@ -4371,6 +4499,46 @@
             "pypi_package": "trino",
             "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
             "is_recommended": true
+          }
+        ],
+        "compatible_databases": [
+          {
+            "name": "Starburst Galaxy",
+            "description": "Starburst Galaxy is a fully-managed cloud analytics platform built on Trino. It provides data lake analytics with enterprise security and governance.",
+            "logo": "trino.png",
+            "homepage_url": "https://www.starburst.io/platform/starburst-galaxy/",
+            "categories": [
+              "QUERY_ENGINES",
+              "CLOUD_DATA_WAREHOUSES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "trino"
+            ],
+            "connection_string": "trino://{username}:{password}@{host}:{port}/{catalog}",
+            "parameters": {
+              "username": "Starburst Galaxy username (email/role)",
+              "password": "Starburst Galaxy password or token",
+              "host": "Your Galaxy cluster hostname",
+              "port": "Port (default 443)",
+              "catalog": "Catalog name"
+            },
+            "docs_url": "https://docs.starburst.io/starburst-galaxy/"
+          },
+          {
+            "name": "Starburst Enterprise",
+            "description": "Starburst Enterprise is a self-managed Trino distribution with enterprise features, security, and support.",
+            "logo": "trino.png",
+            "homepage_url": "https://www.starburst.io/platform/starburst-enterprise/",
+            "categories": [
+              "QUERY_ENGINES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "trino"
+            ],
+            "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
+            "docs_url": "https://docs.starburst.io/"
           }
         ]
       },

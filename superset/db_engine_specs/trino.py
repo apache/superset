@@ -108,6 +108,53 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 "is_recommended": True,
             },
         ],
+        "compatible_databases": [
+            {
+                "name": "Starburst Galaxy",
+                "description": (
+                    "Starburst Galaxy is a fully-managed cloud analytics platform "
+                    "built on Trino. It provides data lake analytics with "
+                    "enterprise security and governance."
+                ),
+                "logo": "trino.png",
+                "homepage_url": "https://www.starburst.io/platform/starburst-galaxy/",
+                "categories": [
+                    DatabaseCategory.QUERY_ENGINES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["trino"],
+                "connection_string": (
+                    "trino://{username}:{password}@{host}:{port}/{catalog}"
+                ),
+                "parameters": {
+                    "username": "Starburst Galaxy username (email/role)",
+                    "password": "Starburst Galaxy password or token",
+                    "host": "Your Galaxy cluster hostname",
+                    "port": "Port (default 443)",
+                    "catalog": "Catalog name",
+                },
+                "docs_url": "https://docs.starburst.io/starburst-galaxy/",
+            },
+            {
+                "name": "Starburst Enterprise",
+                "description": (
+                    "Starburst Enterprise is a self-managed Trino distribution "
+                    "with enterprise features, security, and support."
+                ),
+                "logo": "trino.png",
+                "homepage_url": "https://www.starburst.io/platform/starburst-enterprise/",
+                "categories": [
+                    DatabaseCategory.QUERY_ENGINES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["trino"],
+                "connection_string": (
+                    "trino://{username}:{password}@{hostname}:{port}/{catalog}"
+                ),
+                "docs_url": "https://docs.starburst.io/",
+            },
+        ],
     }
 
     # OAuth 2.0

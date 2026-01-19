@@ -332,6 +332,53 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         "install_instructions": (
             'echo "clickhouse-connect>=0.6.8" >> ./docker/requirements-local.txt'
         ),
+        "compatible_databases": [
+            {
+                "name": "ClickHouse Cloud",
+                "description": (
+                    "ClickHouse Cloud is the official fully-managed cloud service "
+                    "for ClickHouse. It provides automatic scaling, built-in "
+                    "backups, and enterprise security features."
+                ),
+                "logo": "clickhouse.png",
+                "homepage_url": "https://clickhouse.cloud/",
+                "categories": [
+                    DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["clickhouse-connect>=0.6.8"],
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
+                ),
+                "parameters": {
+                    "username": "ClickHouse Cloud username",
+                    "password": "ClickHouse Cloud password",
+                    "host": "Your ClickHouse Cloud hostname",
+                    "database": "Database name (default)",
+                },
+                "docs_url": "https://clickhouse.com/docs/en/cloud",
+            },
+            {
+                "name": "Altinity.Cloud",
+                "description": (
+                    "Altinity.Cloud is a managed ClickHouse service providing "
+                    "Kubernetes-native deployments with enterprise support."
+                ),
+                "logo": "clickhouse.png",
+                "homepage_url": "https://altinity.cloud/",
+                "categories": [
+                    DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["clickhouse-connect>=0.6.8"],
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}/{database}?secure=true"
+                ),
+                "docs_url": "https://docs.altinity.com/",
+            },
+        ],
     }
 
     @classmethod

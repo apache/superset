@@ -74,6 +74,49 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
                 "notes": "For OpenDistro Elasticsearch or Amazon OpenSearch Service.",
             },
         ],
+        "compatible_databases": [
+            {
+                "name": "Elastic Cloud",
+                "description": (
+                    "Elastic Cloud is the official managed Elasticsearch service "
+                    "from Elastic. It includes Elasticsearch, Kibana, and "
+                    "enterprise features with automatic scaling."
+                ),
+                "logo": "elasticsearch.png",
+                "homepage_url": "https://www.elastic.co/cloud/",
+                "categories": [
+                    DatabaseCategory.SEARCH_NOSQL,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["elasticsearch-dbapi"],
+                "connection_string": (
+                    "elasticsearch+https://{user}:{password}@{deployment}.{region}"
+                    ".cloud.es.io:9243/"
+                ),
+                "docs_url": "https://www.elastic.co/guide/en/cloud/current/",
+            },
+            {
+                "name": "Amazon OpenSearch Service",
+                "description": (
+                    "Amazon OpenSearch Service (successor to Amazon Elasticsearch "
+                    "Service) is a managed search and analytics service on AWS."
+                ),
+                "logo": "elasticsearch.png",
+                "homepage_url": "https://aws.amazon.com/opensearch-service/",
+                "categories": [
+                    DatabaseCategory.SEARCH_NOSQL,
+                    DatabaseCategory.CLOUD_AWS,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["elasticsearch-dbapi"],
+                "connection_string": (
+                    "odelasticsearch+https://{user}:{password}@{host}:443/"
+                ),
+                "docs_url": (
+                    "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/"
+                ),
+            },
+        ],
     }
 
     _date_trunc_functions = {
