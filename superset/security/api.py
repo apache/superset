@@ -26,7 +26,7 @@ from flask_appbuilder.security.sqla.models import RegisterUser, Role
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from sqlalchemy import asc, desc
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
@@ -298,7 +298,9 @@ class RoleRestAPI(BaseSupersetApi):
             page_size = args.get("page_size", 10)
 
             query = db.session.query(Role).options(
-                joinedload(Role.permissions), joinedload(Role.user)
+                selectinload(Role.permissions),
+                selectinload(Role.user),
+                selectinload(Role.groups),
             )
 
             filters = args.get("filters", [])
@@ -318,6 +320,8 @@ class RoleRestAPI(BaseSupersetApi):
             if "name" in filter_dict:
                 query = query.filter(Role.name.ilike(f"%{filter_dict['name']}%"))
 
+            total_count = query.count()
+
             roles = (
                 query.order_by(order_by).offset(page * page_size).limit(page_size).all()
             )
@@ -334,7 +338,7 @@ class RoleRestAPI(BaseSupersetApi):
                     }
                     for role in roles
                 ],
-                count=query.count(),
+                count=total_count,
                 ids=[role.id for role in roles],
             )
         except ForbiddenError as e:
