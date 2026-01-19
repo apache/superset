@@ -17,7 +17,8 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@superset-ui/core/spec';
+import { fireEvent, render, screen, waitFor } from '@superset-ui/core/spec';
+import userEvent from '@testing-library/user-event';
 import RadioButtonControl, {
   RadioButtonControlProps,
   RadioButtonOption,
@@ -368,4 +369,52 @@ test('renders with hovered prop', () => {
   expect(
     container.querySelector('[data-test="info-tooltip-icon"]'),
   ).toBeInTheDocument();
+});
+
+test('renders tooltips for options with tooltip property', async () => {
+  const optionsWithTooltips: RadioButtonOption[] = [
+    { value: 'opt1', label: 'Option 1', tooltip: 'Tooltip for option 1' },
+    { value: 'opt2', label: 'Option 2' },
+    { value: 'opt3', label: 'Option 3', tooltip: 'Tooltip for option 3' },
+  ];
+
+  setup({ options: optionsWithTooltips });
+
+  expect(screen.getByText('Option 1')).toBeInTheDocument();
+  expect(screen.getByText('Option 2')).toBeInTheDocument();
+  expect(screen.getByText('Option 3')).toBeInTheDocument();
+
+  const option1 = screen.getByText('Option 1');
+  userEvent.hover(option1);
+
+  await waitFor(() => {
+    expect(screen.getByText('Tooltip for option 1')).toBeInTheDocument();
+  });
+
+  userEvent.unhover(option1);
+
+  const option3 = screen.getByText('Option 3');
+  userEvent.hover(option3);
+
+  await waitFor(() => {
+    expect(screen.getByText('Tooltip for option 3')).toBeInTheDocument();
+  });
+});
+
+test('wraps disabled buttons with tooltip in span', () => {
+  const optionsWithDisabledTooltip: RadioButtonOption[] = [
+    { value: 'opt1', label: 'Enabled with tooltip', tooltip: 'Tooltip text' },
+    {
+      value: 'opt2',
+      label: 'Disabled with tooltip',
+      disabled: true,
+      tooltip: 'Disabled tooltip',
+    },
+  ];
+
+  const { container } = setup({ options: optionsWithDisabledTooltip });
+
+  const disabledButton = container.querySelector('#tab-opt2');
+  expect(disabledButton).toHaveAttribute('disabled');
+  expect(disabledButton?.parentElement?.tagName).toBe('SPAN');
 });

@@ -94,6 +94,11 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
             value: 'metrics',
             label: t('Metrics'),
             disabled: isMetricsDisabled,
+            tooltip: isMetricsDisabled
+              ? t(
+                  "Metrics can't be used for both rows and columns at the same time",
+                )
+              : undefined,
           },
           { value: 'dimensions', label: t('Dimension members') },
         ],

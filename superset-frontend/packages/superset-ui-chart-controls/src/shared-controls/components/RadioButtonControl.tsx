@@ -19,13 +19,15 @@
 import { ReactNode } from 'react';
 import { t } from '@apache-superset/core';
 import { JsonValue } from '@superset-ui/core';
-import { Radio } from '@superset-ui/core/components';
+import {Radio, Tooltip, TooltipPlacement} from '@superset-ui/core/components';
 import { ControlHeader } from '../../components/ControlHeader';
 
 export interface RadioButtonOptionObject {
   value: JsonValue;
   label: Exclude<ReactNode, null | undefined | boolean>;
   disabled?: boolean;
+  tooltip?: string;
+  tooltipPlacement?: TooltipPlacement;
 }
 
 export type RadioButtonOption =
@@ -71,26 +73,44 @@ export default function RadioButtonControl({
           value={currentValue}
           onChange={e => onChange(e.target.value)}
         >
-          {normalizedOptions.map(({ value: val, label, disabled = false }) => (
-            <Radio.Button
-              key={JSON.stringify(val)}
-              value={val}
-              disabled={disabled}
-              aria-label={typeof label === 'string' ? label : undefined}
-              id={`tab-${val}`}
-              type="button"
-              aria-selected={val === currentValue}
-              className={`btn btn-default ${
-                val === currentValue ? 'active' : ''
-              }`}
-              onClick={e => {
-                e.currentTarget?.focus();
-                onChange(val);
-              }}
-            >
-              {label}
-            </Radio.Button>
-          ))}
+          {normalizedOptions.map(
+            ({ value: val, label, disabled = false, tooltip, tooltipPlacement = 'top' }) => {
+              const button = (
+                <Radio.Button
+                  key={JSON.stringify(val)}
+                  value={val}
+                  disabled={disabled}
+                  aria-label={typeof label === 'string' ? label : undefined}
+                  id={`tab-${val}`}
+                  type="button"
+                  aria-selected={val === currentValue}
+                  className={`btn btn-default ${
+                    val === currentValue ? 'active' : ''
+                  }`}
+                  onClick={e => {
+                    e.currentTarget?.focus();
+                    onChange(val);
+                  }}
+                >
+                  {label}
+                </Radio.Button>
+              );
+
+              if (tooltip) {
+                return (
+                  <Tooltip
+                    key={JSON.stringify(val)}
+                    title={tooltip}
+                    placement={tooltipPlacement}
+                  >
+                    {button}
+                  </Tooltip>
+                );
+              }
+
+              return button;
+            },
+          )}
         </Radio.Group>
       </div>
       <div
