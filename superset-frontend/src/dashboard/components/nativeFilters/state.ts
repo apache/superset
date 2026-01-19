@@ -229,11 +229,9 @@ export function useIsFilterInScope() {
         return isChartInScope;
       }
 
-      const isFilterInActiveTab =
-        filter.scope?.rootPath &&
-        filter.scope.rootPath.some(tab => activeTabs.includes(tab));
-
-      return isFilterInActiveTab;
+      return (
+        filter.scope?.rootPath?.some(tab => activeTabs.includes(tab)) ?? false
+      );
     },
     [selectChartTabParents, activeTabs],
   );
