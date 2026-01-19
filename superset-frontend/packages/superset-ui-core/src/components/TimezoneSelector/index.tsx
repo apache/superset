@@ -17,146 +17,149 @@
  * under the License.
  */
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core';
 import { Select } from '@superset-ui/core/components';
-import { isDST, extendedDayjs } from '../../utils/dates';
+import { extendedDayjs } from '../../utils/dates';
+import {
+  timezoneOptionsCache,
+  getOffsetKey,
+  DEFAULT_TIMEZONE,
+} from './TimezoneOptionsCache';
+import type { TimezoneOption } from './types';
 
-const DEFAULT_TIMEZONE = {
-  name: 'GMT Standard Time',
-  value: 'Africa/Abidjan', // timezones are deduped by the first alphabetical value
-};
-
-const MIN_SELECT_WIDTH = '400px';
-
-const offsetsToName = {
-  '-300-240': ['Eastern Standard Time', 'Eastern Daylight Time'],
-  '-360-300': ['Central Standard Time', 'Central Daylight Time'],
-  '-420-360': ['Mountain Standard Time', 'Mountain Daylight Time'],
-  '-420-420': [
-    'Mountain Standard Time - Phoenix',
-    'Mountain Standard Time - Phoenix',
-  ],
-  '-480-420': ['Pacific Standard Time', 'Pacific Daylight Time'],
-  '-540-480': ['Alaska Standard Time', 'Alaska Daylight Time'],
-  '-600-600': ['Hawaii Standard Time', 'Hawaii Daylight Time'],
-  '60120': ['Central European Time', 'Central European Daylight Time'],
-  '00': [DEFAULT_TIMEZONE.name, DEFAULT_TIMEZONE.name],
-  '060': ['GMT Standard Time - London', 'British Summer Time'],
-};
+// Import dayjs plugin types for TypeScript support
+import 'dayjs/plugin/timezone';
 
 export type TimezoneSelectorProps = {
   onTimezoneChange: (value: string) => void;
   timezone?: string | null;
   minWidth?: string;
+  placeholder?: string;
 };
+
+const MIN_SELECT_WIDTH = '400px';
+
+function findMatchingTimezone(
+  timezone: string | null | undefined,
+  options: TimezoneOption[],
+): string {
+  const targetTimezone = timezone || extendedDayjs.tz.guess();
+  const targetOffsetKey = getOffsetKey(targetTimezone);
+  let fallbackValue: string | undefined;
+
+  for (const option of options) {
+    if (
+      option.offsets === targetOffsetKey &&
+      option.timezoneName === targetTimezone
+    ) {
+      return option.value;
+    }
+    if (!fallbackValue && option.offsets === targetOffsetKey) {
+      fallbackValue = option.value;
+    }
+  }
+
+  return fallbackValue || DEFAULT_TIMEZONE.value;
+}
 
 export default function TimezoneSelector({
   onTimezoneChange,
   timezone,
-  minWidth = MIN_SELECT_WIDTH, // smallest size for current values
+  minWidth = MIN_SELECT_WIDTH,
+  placeholder,
   ...rest
 }: TimezoneSelectorProps) {
-  const { TIMEZONE_OPTIONS, TIMEZONE_OPTIONS_SORT_COMPARATOR, validTimezone } =
-    useMemo(() => {
-      const currentDate = extendedDayjs();
-      const JANUARY = extendedDayjs.tz('2021-01-01');
-      const JULY = extendedDayjs.tz('2021-07-01');
+  const [timezoneOptions, setTimezoneOptions] = useState<
+    TimezoneOption[] | null
+  >(timezoneOptionsCache.getOptions());
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+  const hasSetDefaultRef = useRef(false);
 
-      const getOffsetKey = (name: string) =>
-        JANUARY.tz(name).utcOffset().toString() +
-        JULY.tz(name).utcOffset().toString();
+  const handleOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen && !timezoneOptions && !isLoadingOptions) {
+        setIsLoadingOptions(true);
+        timezoneOptionsCache
+          .getOptionsAsync()
+          .then(options => {
+            setTimezoneOptions(options);
+          })
+          .finally(() => setIsLoadingOptions(false));
+      }
+    },
+    [timezoneOptions, isLoadingOptions],
+  );
 
-      const getTimezoneName = (name: string) => {
-        const offsets = getOffsetKey(name);
-        return (
-          (isDST(currentDate.tz(name), name)
-            ? offsetsToName[offsets as keyof typeof offsetsToName]?.[1]
-            : offsetsToName[offsets as keyof typeof offsetsToName]?.[0]) || name
-        );
-      };
+  const sortComparator = useMemo(() => {
+    if (!timezoneOptions) return undefined;
+    const currentDate = extendedDayjs();
+    const comparator = (a: TimezoneOption, b: TimezoneOption) =>
+      currentDate.tz(a.timezoneName).utcOffset() -
+      currentDate.tz(b.timezoneName).utcOffset();
+    return comparator;
+  }, [timezoneOptions]);
 
-      // TODO: remove this ts-ignore when typescript is upgraded to 5.1
-      // @ts-ignore
-      const ALL_ZONES: string[] = Intl.supportedValuesOf('timeZone');
-
-      const labels = new Set<string>();
-      const TIMEZONE_OPTIONS = ALL_ZONES.map(zone => {
-        const label = `GMT ${extendedDayjs
-          .tz(currentDate, zone)
-          .format('Z')} (${getTimezoneName(zone)})`;
-
-        if (labels.has(label)) {
-          return null; // Skip duplicates
-        }
-        labels.add(label);
-        return {
-          label,
-          value: zone,
-          offsets: getOffsetKey(zone),
-          timezoneName: zone,
-        };
-      }).filter(Boolean) as {
-        label: string;
-        value: string;
-        offsets: string;
-        timezoneName: string;
-      }[];
-
-      const TIMEZONE_OPTIONS_SORT_COMPARATOR = (
-        a: (typeof TIMEZONE_OPTIONS)[number],
-        b: (typeof TIMEZONE_OPTIONS)[number],
-      ) =>
-        extendedDayjs.tz(currentDate, a.timezoneName).utcOffset() -
-        extendedDayjs.tz(currentDate, b.timezoneName).utcOffset();
-
-      // pre-sort timezone options by time offset
-      TIMEZONE_OPTIONS.sort(TIMEZONE_OPTIONS_SORT_COMPARATOR);
-
-      const matchTimezoneToOptions = (timezone: string) => {
-        const offsetKey = getOffsetKey(timezone);
-        let fallbackValue: string | undefined;
-
-        for (const option of TIMEZONE_OPTIONS) {
-          if (
-            option.offsets === offsetKey &&
-            option.timezoneName === timezone
-          ) {
-            return option.value;
-          }
-          if (!fallbackValue && option.offsets === offsetKey) {
-            fallbackValue = option.value;
-          }
-        }
-        return fallbackValue || DEFAULT_TIMEZONE.value;
-      };
-
-      const validTimezone = matchTimezoneToOptions(
-        timezone || extendedDayjs.tz.guess(),
-      );
-
-      return {
-        TIMEZONE_OPTIONS,
-        TIMEZONE_OPTIONS_SORT_COMPARATOR,
-        validTimezone,
-      };
-    }, [timezone]);
-
-  // force trigger a timezone update if provided `timezone` is not invalid
-  useEffect(() => {
-    if (validTimezone && timezone !== validTimezone) {
-      onTimezoneChange(validTimezone);
+  const validTimezone = useMemo(() => {
+    let result: string | undefined;
+    if (!timezoneOptions) {
+      // Don't call tz.guess() synchronously to avoid blocking render
+      // Return timezone if provided, otherwise undefined (will be set after options load)
+      result = timezone || undefined;
+    } else {
+      result = findMatchingTimezone(timezone, timezoneOptions);
     }
-  }, [validTimezone, onTimezoneChange, timezone]);
+    return result;
+  }, [timezone, timezoneOptions]);
+
+  // Load timezone options asynchronously when component mounts
+  // Parent component (AlertReportModal) already delays mounting until panel opens
+  useEffect(() => {
+    if (timezoneOptions || isLoadingOptions) return;
+
+    setIsLoadingOptions(true);
+
+    timezoneOptionsCache
+      .getOptionsAsync()
+      .then(options => {
+        setTimezoneOptions(options);
+
+        // Set default value if no timezone is provided and we haven't set it yet
+        if (!timezone && !hasSetDefaultRef.current) {
+          const defaultTz = findMatchingTimezone(null, options);
+          onTimezoneChange(defaultTz);
+          hasSetDefaultRef.current = true;
+        }
+      })
+      .finally(() => {
+        setIsLoadingOptions(false);
+      });
+  }, [timezoneOptions, isLoadingOptions, timezone, onTimezoneChange]);
+
+  // Set default value when cached options are available on mount
+  useEffect(() => {
+    if (!timezoneOptions || timezone || hasSetDefaultRef.current) return;
+
+    const defaultTz = findMatchingTimezone(null, timezoneOptions);
+    onTimezoneChange(defaultTz);
+    hasSetDefaultRef.current = true;
+  }, [timezoneOptions, timezone, onTimezoneChange]);
+
+  const selectValue = timezoneOptions ? validTimezone : undefined;
 
   return (
     <Select
       ariaLabel={t('Timezone selector')}
-      onChange={tz => onTimezoneChange(tz as string)}
-      value={validTimezone}
-      options={TIMEZONE_OPTIONS}
-      sortComparator={TIMEZONE_OPTIONS_SORT_COMPARATOR}
-      {...rest}
+      onChange={tz => {
+        onTimezoneChange(tz as string);
+      }}
+      onOpenChange={handleOpenChange}
+      value={selectValue}
+      options={timezoneOptions || []}
+      sortComparator={sortComparator}
+      loading={isLoadingOptions}
+      placeholder={isLoadingOptions ? t('Loading timezones...') : placeholder}
+      {...{ placement: 'topLeft', ...rest }}
     />
   );
 }
