@@ -25,6 +25,7 @@ Following the Stack Overflow recommendation:
 """
 
 import logging
+import os
 
 from flask import Flask
 
@@ -42,37 +43,49 @@ try:
         logger.info("Reusing existing Flask app from appbuilder for MCP service")
         app = appbuilder.app
     else:
-        from superset.app import create_app
+        # Create a minimal Flask app for standalone MCP server.
+        # We avoid calling create_app() which would run full FAB initialization
+        # and could corrupt the shared appbuilder singleton if the main app starts later.
+        from superset.app import SupersetApp
         from superset.mcp_service.mcp_config import get_mcp_config
 
-        # Create a temporary context to avoid
-        # "Working outside of application context" errors.
-        _temp_app = create_app()
+        # Disable debug mode to avoid side-effects like file watchers
+        _mcp_app = SupersetApp(__name__)
+        _mcp_app.debug = False
 
-        # Push an application context and initialize core dependencies and extensions
-        with _temp_app.app_context():
-            # Apply MCP configuration - reads from app.config first, falls back to defaults
-            mcp_config = get_mcp_config(_temp_app.config)
-            _temp_app.config.update(mcp_config)
+        # Load configuration
+        config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
+        _mcp_app.config.from_object(config_module)
+
+        # Apply MCP-specific configuration
+        mcp_config = get_mcp_config(_mcp_app.config)
+        _mcp_app.config.update(mcp_config)
+
+        # Initialize only the minimal dependencies needed for MCP service
+        with _mcp_app.app_context():
             try:
-                from superset.initialization import SupersetAppInitializer
+                from superset.extensions import db
 
-                # Create initializer and run only dependency injection
-                # NOT the full init_app_in_ctx which includes web views
-                initializer = SupersetAppInitializer(_temp_app)
-                initializer.init_all_dependencies_and_extensions()
+                db.init_app(_mcp_app)
+
+                # Initialize only MCP-specific dependencies
+                # MCP tools import directly from superset.daos/models, so we only need
+                # the MCP decorator injection, not the full superset_core abstraction
+                from superset.core.mcp.core_mcp_injection import (
+                    initialize_core_mcp_dependencies,
+                )
+
+                initialize_core_mcp_dependencies()
 
                 logger.info(
-                    "Core dependencies and extensions initialized for MCP service"
+                    "Minimal MCP dependencies initialized for standalone MCP service"
                 )
             except Exception as e:
                 logger.warning(
                     "Failed to initialize dependencies for MCP service: %s", e
                 )
 
-        # Store the app instance for later use
-        app = _temp_app
-
+        app = _mcp_app
         logger.info("Minimal Flask app instance created successfully for MCP service")
 
 except Exception as e:
