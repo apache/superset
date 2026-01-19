@@ -53,30 +53,42 @@ export const ItemSeparator = styled.div<{
 `;
 
 export const TreeFolderContainer = styled(TreeItemContainer)<{
-  isDropTarget?: boolean;
   isForbiddenDropTarget?: boolean;
 }>`
-  ${({ theme, depth, isDropTarget, isForbiddenDropTarget, isOverlay }) => `
+  ${({ theme, depth, isForbiddenDropTarget, isOverlay }) => `
     margin-top: ${isOverlay ? 0 : theme.marginLG}px;
     margin-bottom: ${isOverlay ? 0 : theme.margin}px;
     margin-left: ${isOverlay ? 0 : depth * FOLDER_INDENTATION_WIDTH}px;
     border-radius: ${theme.borderRadius}px;
-    padding: 0 ${theme.paddingSM}px;
+    padding-left: ${theme.paddingSM}px;
+    padding-right: ${theme.paddingSM}px;
     margin-right: ${isOverlay ? 0 : theme.marginMD}px;
     transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    ${
-      isDropTarget && isForbiddenDropTarget
-        ? `
+
+    /* Drop target styles - controlled via data attributes for performance */
+    &[data-drop-target="true"] {
+      background-color: ${theme.colorPrimaryBg};
+      box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
+    }
+
+    &[data-drop-target="true"][data-forbidden-drop="true"],
+    &[data-drop-target="true"]${isForbiddenDropTarget ? '' : '[data-forbidden-drop="true"]'} {
       background-color: ${theme.colorErrorBg};
       box-shadow: inset 0 0 0 2px ${theme.colorError};
       cursor: not-allowed;
+    }
+
+    /* Also support prop-based forbidden styling for initial render */
+    ${
+      isForbiddenDropTarget
+        ? `
+      &[data-drop-target="true"] {
+        background-color: ${theme.colorErrorBg};
+        box-shadow: inset 0 0 0 2px ${theme.colorError};
+        cursor: not-allowed;
+      }
     `
-        : isDropTarget
-          ? `
-      background-color: ${theme.colorPrimaryBg};
-      box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
-    `
-          : ''
+        : ''
     }
   `}
 `;

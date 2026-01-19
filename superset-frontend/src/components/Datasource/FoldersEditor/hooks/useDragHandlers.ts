@@ -62,32 +62,98 @@ export function useDragHandlers({
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [dragOverlayWidth, setDragOverlayWidth] = useState<number | null>(null);
   const offsetLeftRef = useRef(0);
-  const [projectedParentId, setProjectedParentId] = useState<string | null>(
-    null,
-  );
+  // Use ref for projectedParentId to avoid re-renders during drag
+  const projectedParentIdRef = useRef<string | null>(null);
   const [draggedItemIds, setDraggedItemIds] = useState<Set<string>>(new Set());
 
-  const pendingParentIdRef = useRef<string | null>(null);
   const rafIdRef = useRef<number | null>(null);
+
+  // Store the flattened items at drag start to keep them stable during drag
+  // This prevents react-window from re-rendering due to flattenedItems reference changes
+  const dragStartFlattenedItemsRef = useRef<FlattenedTreeItem[] | null>(null);
+
+  // Update visual drop target indicators via DOM manipulation to avoid re-renders
+  const updateDropTargetVisuals = useCallback(
+    (newParentId: string | null) => {
+      const oldParentId = projectedParentIdRef.current;
+      if (oldParentId === newParentId) return;
+
+      // Remove highlight from old target
+      if (oldParentId) {
+        const oldElement = document.querySelector(
+          `[data-folder-id="${oldParentId}"]`,
+        );
+        if (oldElement) {
+          oldElement.removeAttribute('data-drop-target');
+          oldElement.removeAttribute('data-forbidden-drop');
+        }
+      }
+
+      // Add highlight to new target
+      if (newParentId) {
+        const newElement = document.querySelector(
+          `[data-folder-id="${newParentId}"]`,
+        );
+        if (newElement) {
+          newElement.setAttribute('data-drop-target', 'true');
+          // Check if it's a forbidden drop target
+          const draggedTypes = new Set<FoldersEditorItemType>();
+          draggedItemIds.forEach((id: string) => {
+            const item = fullFlattenedItems.find(i => i.uuid === id);
+            if (item) draggedTypes.add(item.type);
+          });
+
+          const isForbidden =
+            (newParentId === DEFAULT_COLUMNS_FOLDER_UUID &&
+              draggedTypes.has(FoldersEditorItemType.Metric)) ||
+            (newParentId === DEFAULT_METRICS_FOLDER_UUID &&
+              draggedTypes.has(FoldersEditorItemType.Column)) ||
+            ((newParentId === DEFAULT_COLUMNS_FOLDER_UUID ||
+              newParentId === DEFAULT_METRICS_FOLDER_UUID) &&
+              draggedTypes.has(FoldersEditorItemType.Folder));
+
+          if (isForbidden) {
+            newElement.setAttribute('data-forbidden-drop', 'true');
+          }
+        }
+      }
+
+      projectedParentIdRef.current = newParentId;
+    },
+    [draggedItemIds, fullFlattenedItems],
+  );
 
   const scheduleProjectedParentUpdate = useCallback(
     (newParentId: string | null) => {
-      pendingParentIdRef.current = newParentId;
-
       // Only schedule if not already scheduled
       if (rafIdRef.current === null) {
         rafIdRef.current = requestAnimationFrame(() => {
           rafIdRef.current = null;
-          setProjectedParentId(pendingParentIdRef.current);
+          updateDropTargetVisuals(newParentId);
         });
+      } else {
+        // Update pending value for next frame
+        projectedParentIdRef.current = newParentId;
       }
     },
-    [],
+    [updateDropTargetVisuals],
   );
 
-  const flattenedItems = useMemo(
+  // Compute flattened items, but during drag use the stable snapshot from drag start
+  // This prevents react-window from re-rendering/re-measuring when flattenedItems changes
+  const computedFlattenedItems = useMemo(
     () => computeFlattenedItems(activeId),
     [computeFlattenedItems, activeId],
+  );
+
+  // Use stable items during drag to prevent scroll jumping
+  // Memoize to avoid creating new array references on every render
+  const flattenedItems = useMemo(
+    () =>
+      activeId && dragStartFlattenedItemsRef.current
+        ? dragStartFlattenedItemsRef.current
+        : computedFlattenedItems,
+    [activeId, computedFlattenedItems],
   );
 
   const flattenedItemsIndexMap = useMemo(() => {
@@ -102,17 +168,23 @@ export function useDragHandlers({
     setActiveId(null);
     setOverId(null);
     offsetLeftRef.current = 0;
-    setProjectedParentId(null);
+    // Clear visual indicators
+    updateDropTargetVisuals(null);
     setDraggedItemIds(new Set());
     setDragOverlayWidth(null);
+    // Clear the stable snapshot so next render uses fresh computed items
+    dragStartFlattenedItemsRef.current = null;
     if (rafIdRef.current !== null) {
       cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     }
-    pendingParentIdRef.current = null;
-  }, []);
+  }, [updateDropTargetVisuals]);
 
   const handleDragStart = ({ active }: DragStartEvent) => {
+    // Capture the current flattened items BEFORE setting activeId
+    // This ensures the list stays stable during the entire drag operation
+    dragStartFlattenedItemsRef.current = computeFlattenedItems(null);
+
     setActiveId(active.id);
 
     const element = active.rect.current.initial;
@@ -543,8 +615,10 @@ export function useDragHandlers({
   }, [draggedItemIds, fullFlattenedItems]);
 
   return {
+    isDragging: activeId !== null,
+    activeId,
+    draggedItemIds,
     dragOverlayWidth,
-    projectedParentId,
     flattenedItems,
     dragOverlayItems,
     forbiddenDropFolderIds,
