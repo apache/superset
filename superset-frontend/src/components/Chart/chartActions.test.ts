@@ -350,7 +350,9 @@ describe('chart actions', () => {
     });
 
     test('should dispatch CHART_UPDATE_STARTED action before the query', () => {
-      const actionThunk = actions.postChartFormData({ viz_type: 'table' } as QueryFormData);
+      const actionThunk = actions.postChartFormData({
+        viz_type: 'table',
+      } as QueryFormData);
 
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
@@ -365,7 +367,9 @@ describe('chart actions', () => {
     });
 
     test('should dispatch TRIGGER_QUERY action with the query', () => {
-      const actionThunk = actions.postChartFormData({ viz_type: 'table' } as QueryFormData);
+      const actionThunk = actions.postChartFormData({
+        viz_type: 'table',
+      } as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
         mockGetState as unknown as () => actions.RootState,
@@ -379,7 +383,9 @@ describe('chart actions', () => {
     });
 
     test('should dispatch UPDATE_QUERY_FORM_DATA action with the query', () => {
-      const actionThunk = actions.postChartFormData({ viz_type: 'table' } as QueryFormData);
+      const actionThunk = actions.postChartFormData({
+        viz_type: 'table',
+      } as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
         mockGetState as unknown as () => actions.RootState,
@@ -393,7 +399,9 @@ describe('chart actions', () => {
     });
 
     test('should dispatch logEvent async action', () => {
-      const actionThunk = actions.postChartFormData({ viz_type: 'table' } as QueryFormData);
+      const actionThunk = actions.postChartFormData({
+        viz_type: 'table',
+      } as QueryFormData);
       return actionThunk(
         dispatch as unknown as actions.ChartThunkDispatch,
         mockGetState as unknown as () => actions.RootState,
