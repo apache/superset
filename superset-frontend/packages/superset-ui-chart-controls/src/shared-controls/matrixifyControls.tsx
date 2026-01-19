@@ -74,7 +74,8 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     mapStateToProps: ({ controls }) => {
       const otherAxisControlName = `matrixify_mode_${otherAxis}`;
 
-      const otherAxisValue = controls?.[otherAxisControlName]?.value ??
+      const otherAxisValue =
+        controls?.[otherAxisControlName]?.value ??
         (otherAxis === 'columns' ? 'metrics' : 'dimensions');
 
       const isMetricsDisabled = otherAxisValue === 'metrics';
@@ -87,8 +88,8 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
             disabled: isMetricsDisabled,
             tooltip: isMetricsDisabled
               ? t(
-                "Metrics can't be used for both rows and columns at the same time",
-              )
+                  "Metrics can't be used for both rows and columns at the same time",
+                )
               : undefined,
           },
           { value: 'dimensions', label: t('Dimension members') },
