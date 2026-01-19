@@ -2322,3 +2322,38 @@ def test_export_includes_configuration_method(
     # Assert configuration_method is present and correct
     assert "configuration_method" in db_yaml
     assert db_yaml["configuration_method"] == "dynamic_form"
+
+
+def test_import_includes_configuration_method(
+    client: Any, full_api_access: None
+) -> None:
+    """
+    Test that importing a database YAML with configuration_method
+    sets the value on the imported DB connection.
+    """
+    import os
+
+    fixture_path = os.path.join(
+        os.path.dirname(__file__),
+        "fixtures",
+        "database_export_with_configuration_method.zip",
+    )
+    with open(fixture_path, "rb") as f:
+        form_data = {"formData": (f, "database_export_with_configuration_method.zip")}
+        response = client.post(
+            "/api/v1/database/import/",
+            data=form_data,
+            content_type="multipart/form-data",
+        )
+    assert response.status_code == 200, response.data
+    get_resp = client.get(
+        "/api/v1/database/?q=(filters:!((col:database_name,opr:eq,value:'Test_Import_Configuration_Method')))"
+    )
+    assert get_resp.status_code == 200, get_resp.data
+    result = get_resp.json["result"]
+    assert result, "Database not found after import"
+    db_obj = result[0]
+    assert "configuration_method" in db_obj, (
+        f"'configuration_method' not found in database list response: {db_obj}"
+    )
+    assert db_obj["configuration_method"] == "dynamic_form"
