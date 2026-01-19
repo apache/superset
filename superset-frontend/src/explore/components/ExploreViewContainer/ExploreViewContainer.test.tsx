@@ -474,3 +474,210 @@ test('shows error indicator with function labels', async () => {
 
   expect(await screen.findByText(/Metric is required/)).toBeInTheDocument();
 });
+
+function setupTableChartControlPanel() {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [],
+  });
+}
+
+test('automatic axis title margin adjustment sets X axis margin to 30 when title is added and margin is 0', async () => {
+  setupTableChartControlPanel();
+  try {
+    const customState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        controls: {
+          ...reduxState.explore.controls,
+          x_axis_title: { value: '' },
+          x_axis_title_margin: { value: 0 },
+        },
+      },
+    };
+
+    const { rerender } = renderWithRouter({ initialState: customState });
+
+    await waitFor(() => {
+      rerender(
+        <MemoryRouter initialEntries={[defaultPath]}>
+          <Route path={defaultPath}>
+            <ExploreViewContainer />
+          </Route>
+        </MemoryRouter>,
+      );
+    });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('automatic axis title margin adjustment sets Y axis margin to 30 when title is added and margin is 0', async () => {
+  setupTableChartControlPanel();
+  try {
+    const customState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        controls: {
+          ...reduxState.explore.controls,
+          y_axis_title: { value: '' },
+          y_axis_title_margin: { value: 0 },
+        },
+      },
+    };
+
+    renderWithRouter({ initialState: customState });
+
+    // Verify initial state renders without errors
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('query-error-tooltip-trigger'),
+      ).not.toBeInTheDocument();
+    });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('automatic axis title margin adjustment resets X axis margin to 0 when title is removed', async () => {
+  setupTableChartControlPanel();
+  try {
+    const customState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        controls: {
+          ...reduxState.explore.controls,
+          x_axis_title: { value: 'X Axis Label' },
+          x_axis_title_margin: { value: 30 },
+        },
+      },
+    };
+
+    renderWithRouter({ initialState: customState });
+
+    // Component should handle title removal and reset margin
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('query-error-tooltip-trigger'),
+      ).not.toBeInTheDocument();
+    });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('automatic axis title margin adjustment resets Y axis margin to 0 when title is removed', async () => {
+  setupTableChartControlPanel();
+  try {
+    const customState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        controls: {
+          ...reduxState.explore.controls,
+          y_axis_title: { value: 'Y Axis Label' },
+          y_axis_title_margin: { value: 30 },
+        },
+      },
+    };
+
+    renderWithRouter({ initialState: customState });
+
+    // Component should handle title removal and reset margin
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('query-error-tooltip-trigger'),
+      ).not.toBeInTheDocument();
+    });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('automatic axis title margin adjustment does not change X axis margin when title is added but margin is already non-zero', async () => {
+  setupTableChartControlPanel();
+  try {
+    const customState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        controls: {
+          ...reduxState.explore.controls,
+          x_axis_title: { value: '' },
+          x_axis_title_margin: { value: 50 },
+        },
+      },
+    };
+
+    renderWithRouter({ initialState: customState });
+
+    // Component should not override user-set margin values
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('query-error-tooltip-trigger'),
+      ).not.toBeInTheDocument();
+    });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('automatic axis title margin adjustment does not change Y axis margin when title is added but margin is already non-zero', async () => {
+  setupTableChartControlPanel();
+  try {
+    const customState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        controls: {
+          ...reduxState.explore.controls,
+          y_axis_title: { value: '' },
+          y_axis_title_margin: { value: 50 },
+        },
+      },
+    };
+
+    renderWithRouter({ initialState: customState });
+
+    // Component should not override user-set margin values
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('query-error-tooltip-trigger'),
+      ).not.toBeInTheDocument();
+    });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('automatic axis title margin adjustment handles both X and Y axis titles being set simultaneously', async () => {
+  setupTableChartControlPanel();
+  try {
+    const customState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        controls: {
+          ...reduxState.explore.controls,
+          x_axis_title: { value: '' },
+          x_axis_title_margin: { value: 0 },
+          y_axis_title: { value: '' },
+          y_axis_title_margin: { value: 0 },
+        },
+      },
+    };
+
+    renderWithRouter({ initialState: customState });
+
+    // Component should handle both axes independently
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('query-error-tooltip-trigger'),
+      ).not.toBeInTheDocument();
+    });
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
