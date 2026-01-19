@@ -286,6 +286,11 @@ stages:
               # -------------------------------------
               - bash: |
                   echo "Deploying Superset with docker-compose..."
+                  echo "Loading environment variables from .env.deploy..."
+                  set -a  # Automatically export all variables
+                  source .env.deploy
+                  set +a
+                  
                   docker compose -f docker-compose-deploy.yml --env-file .env.deploy up -d
                   
                   echo ""
