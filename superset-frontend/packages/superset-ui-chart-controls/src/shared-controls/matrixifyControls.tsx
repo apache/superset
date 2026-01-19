@@ -74,8 +74,6 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     ],
     renderTrigger: true,
     tabOverride: 'matrixify',
-    description:
-      "Metrics can't be used for both rows and columns at the same time",
     visibility: ({ controls }) => isMatrixifyVisible(controls, axis),
     shouldMapStateToProps: (prevState, state) => {
       const otherAxisControlName = `matrixify_mode_${otherAxis}`;
