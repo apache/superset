@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { validateInteger, validateNonEmpty } from '@superset-ui/core';
+import {
+  validateInteger,
+  validateNonEmpty,
+  withLabel,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ControlPanelConfig,
@@ -66,7 +70,7 @@ const config: ControlPanelConfig = {
               default: 5,
               choices: formatSelectOptionsForRange(5, 20, 5),
               description: t('The number of bins for the histogram'),
-              validators: [validateInteger],
+              validators: [withLabel(validateInteger, t('Bins'))],
             },
           },
         ],

@@ -51,6 +51,7 @@ import {
   SMART_DATE_ID,
   validateMaxValue,
   validateServerPagination,
+  withLabel,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { isEmpty, last } from 'lodash';
@@ -384,7 +385,7 @@ const config: ControlPanelConfig = {
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
-              validators: [validateInteger],
+              validators: [withLabel(validateInteger, t('Server Page Length'))],
             },
           },
         ],
@@ -403,7 +404,7 @@ const config: ControlPanelConfig = {
                   state?.common?.conf?.SQL_MAX_ROW,
               }),
               validators: [
-                validateInteger,
+                withLabel(validateInteger, t('Row limit')),
                 (v, state) =>
                   validateMaxValue(
                     v,

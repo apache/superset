@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,21 +17,25 @@
  * under the License.
  */
 
-import { validateMaxValue } from '@superset-ui/core';
-import './setup';
-
-test('validateMaxValue returns the warning message if invalid', () => {
-  expect(validateMaxValue(10.1, 10)).toBeTruthy();
-  expect(validateMaxValue(1, 0)).toBeTruthy();
-  expect(validateMaxValue('2', 1)).toBeTruthy();
-});
-
-test('validateMaxValue returns false if the input is valid', () => {
-  expect(validateMaxValue(0, 1)).toBeFalsy();
-  expect(validateMaxValue(10, 10)).toBeFalsy();
-  expect(validateMaxValue(undefined, 1)).toBeFalsy();
-  expect(validateMaxValue(NaN, NaN)).toBeFalsy();
-  expect(validateMaxValue(null, 1)).toBeFalsy();
-  expect(validateMaxValue('1', 1)).toBeFalsy();
-  expect(validateMaxValue('a', 1)).toBeFalsy();
-});
+/**
+ * Wraps a validator function to prepend a label to its error message.
+ *
+ * @param validator - The validator function to wrap
+ * @param label - The label to prepend to error messages
+ * @returns A new validator function that includes the label in error messages
+ *
+ * @example
+ * validators: [
+ *   withLabel(validateInteger, t('Row limit')),
+ * ]
+ * // Returns: "Row limit is expected to be an integer"
+ */
+export default function withLabel(
+  validator: (v: unknown, state?: any) => string | false,
+  label: string,
+) {
+  return (v: unknown, state?: any) => {
+    const error = validator(v, state);
+    return error ? `${label} ${error}` : false;
+  };
+}
