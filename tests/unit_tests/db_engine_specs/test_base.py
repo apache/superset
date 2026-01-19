@@ -943,3 +943,123 @@ def test_get_oauth2_authorization_uri_standard_params(mocker: MockerFixture) -> 
     assert "prompt" not in query
     assert "access_type" not in query
     assert "include_granted_scopes" not in query
+
+    # Verify PKCE parameters are NOT included when code_verifier is not in state
+    assert "code_challenge" not in query
+    assert "code_challenge_method" not in query
+
+
+def test_get_oauth2_authorization_uri_with_pkce(mocker: MockerFixture) -> None:
+    """
+    Test that BaseEngineSpec.get_oauth2_authorization_uri includes PKCE parameters
+    when code_verifier is present in state (RFC 7636).
+    """
+    from urllib.parse import parse_qs, urlparse
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.superset_typing import OAuth2ClientConfig, OAuth2State
+    from superset.utils.oauth2 import generate_code_challenge, generate_code_verifier
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    code_verifier = generate_code_verifier()
+    state: OAuth2State = {
+        "database_id": 1,
+        "user_id": 1,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "1234",
+        "code_verifier": code_verifier,
+    }
+
+    url = BaseEngineSpec.get_oauth2_authorization_uri(config, state)
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+
+    # Verify PKCE parameters are included (RFC 7636)
+    assert "code_challenge" in query
+    assert query["code_challenge_method"][0] == "S256"
+    # Verify the code_challenge matches the expected value
+    expected_challenge = generate_code_challenge(code_verifier)
+    assert query["code_challenge"][0] == expected_challenge
+
+
+def test_get_oauth2_token_without_pkce(mocker: MockerFixture) -> None:
+    """
+    Test that BaseEngineSpec.get_oauth2_token works without PKCE code_verifier.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.superset_typing import OAuth2ClientConfig
+
+    mocker.patch(
+        "flask.current_app.config",
+        {"DATABASE_OAUTH2_TIMEOUT": mocker.MagicMock(total_seconds=lambda: 30)},
+    )
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.json.return_value = {
+        "access_token": "test-access-token",  # noqa: S105
+        "expires_in": 3600,
+    }
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    result = BaseEngineSpec.get_oauth2_token(config, "auth-code")
+
+    assert result["access_token"] == "test-access-token"  # noqa: S105
+    # Verify code_verifier is NOT in the request body
+    call_kwargs = mock_post.call_args
+    request_body = call_kwargs.kwargs.get("json") or call_kwargs.kwargs.get("data")
+    assert "code_verifier" not in request_body
+
+
+def test_get_oauth2_token_with_pkce(mocker: MockerFixture) -> None:
+    """
+    Test BaseEngineSpec.get_oauth2_token includes code_verifier when provided.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.superset_typing import OAuth2ClientConfig
+    from superset.utils.oauth2 import generate_code_verifier
+
+    mocker.patch(
+        "flask.current_app.config",
+        {"DATABASE_OAUTH2_TIMEOUT": mocker.MagicMock(total_seconds=lambda: 30)},
+    )
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.json.return_value = {
+        "access_token": "test-access-token",  # noqa: S105
+        "expires_in": 3600,
+    }
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    code_verifier = generate_code_verifier()
+    result = BaseEngineSpec.get_oauth2_token(config, "auth-code", code_verifier)
+
+    assert result["access_token"] == "test-access-token"  # noqa: S105
+    # Verify code_verifier IS in the request body (PKCE)
+    call_kwargs = mock_post.call_args
+    request_body = call_kwargs.kwargs.get("json") or call_kwargs.kwargs.get("data")
+    assert request_body["code_verifier"] == code_verifier

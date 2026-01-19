@@ -17,6 +17,9 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import secrets
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator, TYPE_CHECKING
@@ -36,6 +39,37 @@ if TYPE_CHECKING:
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
 JWT_EXPIRATION = timedelta(minutes=5)
+
+# PKCE code verifier length (RFC 7636 recommends 43-128 characters)
+PKCE_CODE_VERIFIER_LENGTH = 64
+
+
+def generate_code_verifier() -> str:
+    """
+    Generate a PKCE code verifier (RFC 7636).
+
+    The code verifier is a high-entropy cryptographic random string using
+    unreserved characters [A-Z] / [a-z] / [0-9] / "-" / "." / "_" / "~",
+    with a minimum length of 43 characters and a maximum length of 128.
+    """
+    # Generate random bytes and encode as URL-safe base64
+    random_bytes = secrets.token_bytes(PKCE_CODE_VERIFIER_LENGTH)
+    # Use URL-safe base64 encoding without padding
+    code_verifier = base64.urlsafe_b64encode(random_bytes).rstrip(b"=").decode("ascii")
+    return code_verifier
+
+
+def generate_code_challenge(code_verifier: str) -> str:
+    """
+    Generate a PKCE code challenge from a code verifier (RFC 7636).
+
+    Uses the S256 method: BASE64URL(SHA256(code_verifier))
+    """
+    # Compute SHA-256 hash of the code verifier
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    # Encode as URL-safe base64 without padding
+    code_challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return code_challenge
 
 
 @backoff.on_exception(
@@ -119,13 +153,17 @@ def encode_oauth2_state(state: OAuth2State) -> str:
     """
     Encode the OAuth2 state.
     """
-    payload = {
+    payload: dict[str, Any] = {
         "exp": datetime.now(tz=timezone.utc) + JWT_EXPIRATION,
         "database_id": state["database_id"],
         "user_id": state["user_id"],
         "default_redirect_uri": state["default_redirect_uri"],
         "tab_id": state["tab_id"],
     }
+    # Include PKCE code_verifier if present (RFC 7636)
+    if "code_verifier" in state:
+        payload["code_verifier"] = state["code_verifier"]
+
     encoded_state = jwt.encode(
         payload=payload,
         key=app.config["SECRET_KEY"],
@@ -143,6 +181,8 @@ class OAuth2StateSchema(Schema):
     user_id = fields.Int(required=True)
     default_redirect_uri = fields.Str(required=True)
     tab_id = fields.Str(required=True)
+    # PKCE code verifier (RFC 7636) - optional for backward compatibility
+    code_verifier = fields.Str(required=False, load_default=None)
 
     # pylint: disable=unused-argument
     @post_load
@@ -151,12 +191,16 @@ class OAuth2StateSchema(Schema):
         data: dict[str, Any],
         **kwargs: Any,
     ) -> OAuth2State:
-        return OAuth2State(
-            database_id=data["database_id"],
-            user_id=data["user_id"],
-            default_redirect_uri=data["default_redirect_uri"],
-            tab_id=data["tab_id"],
-        )
+        state: OAuth2State = {
+            "database_id": data["database_id"],
+            "user_id": data["user_id"],
+            "default_redirect_uri": data["default_redirect_uri"],
+            "tab_id": data["tab_id"],
+        }
+        # Include code_verifier if present (PKCE)
+        if data.get("code_verifier"):
+            state["code_verifier"] = data["code_verifier"]
+        return state
 
     class Meta:  # pylint: disable=too-few-public-methods
         # ignore `exp`

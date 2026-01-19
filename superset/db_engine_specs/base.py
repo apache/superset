@@ -83,7 +83,11 @@ from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
 from superset.utils.hashing import hash_from_str
 from superset.utils.json import redact_sensitive, reveal_sensitive
 from superset.utils.network import is_hostname_valid, is_port_open
-from superset.utils.oauth2 import encode_oauth2_state
+from superset.utils.oauth2 import (
+    encode_oauth2_state,
+    generate_code_challenge,
+    generate_code_verifier,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -474,9 +478,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         tab sends a message to the original tab informing that authorization was
         successful (or not), and then closes. The original tab will automatically
         re-run the query after authorization.
+
+        PKCE (RFC 7636) is used to protect against authorization code interception
+        attacks. A code_verifier is generated and stored in the state, while the
+        code_challenge (derived from the verifier) is sent to the authorization server.
         """
         tab_id = str(uuid4())
         default_redirect_uri = url_for("DatabaseRestApi.oauth2", _external=True)
+
+        # Generate PKCE code verifier (RFC 7636)
+        code_verifier = generate_code_verifier()
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then
@@ -499,6 +510,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # UUID to the original tab, and the second tab will use it when sending the
             # message.
             "tab_id": tab_id,
+            # PKCE code verifier stored in state to be retrieved during token exchange
+            "code_verifier": code_verifier,
         }
         oauth2_config = database.get_oauth2_config()
         if oauth2_config is None:
@@ -552,17 +565,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Return URI for initial OAuth2 request.
 
-        Uses standard OAuth 2.0 parameters only. Subclasses can override
-        to add provider-specific parameters (e.g., Google's prompt=consent).
+        Uses standard OAuth 2.0 parameters plus PKCE (RFC 7636) parameters.
+        Subclasses can override to add provider-specific parameters
+        (e.g., Google's prompt=consent).
         """
         uri = config["authorization_request_uri"]
-        params = {
+        params: dict[str, str] = {
             "scope": config["scope"],
             "response_type": "code",
             "state": encode_oauth2_state(state),
             "redirect_uri": config["redirect_uri"],
             "client_id": config["id"],
         }
+
+        # Add PKCE parameters (RFC 7636) if code_verifier is present in state
+        if "code_verifier" in state:
+            params["code_challenge"] = generate_code_challenge(state["code_verifier"])
+            params["code_challenge_method"] = "S256"
+
         return urljoin(uri, "?" + urlencode(params))
 
     @classmethod
@@ -570,19 +590,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         config: OAuth2ClientConfig,
         code: str,
+        code_verifier: str | None = None,
     ) -> OAuth2TokenResponse:
         """
         Exchange authorization code for refresh/access tokens.
+
+        If code_verifier is provided (PKCE flow), it will be included in the
+        token request per RFC 7636.
         """
         timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
-        req_body = {
+        req_body: dict[str, str] = {
             "code": code,
             "client_id": config["id"],
             "client_secret": config["secret"],
             "redirect_uri": config["redirect_uri"],
             "grant_type": "authorization_code",
         }
+
+        # Add PKCE code_verifier if present (RFC 7636)
+        if code_verifier:
+            req_body["code_verifier"] = code_verifier
+
         if config["request_content_type"] == "data":
             return requests.post(uri, data=req_body, timeout=timeout).json()
         return requests.post(uri, json=req_body, timeout=timeout).json()
