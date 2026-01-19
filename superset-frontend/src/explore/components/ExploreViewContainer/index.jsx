@@ -300,6 +300,14 @@ function ExploreViewContainer(props) {
     };
   }, [props.sliceName]);
 
+  // Cleanup BroadcastChannel on component unmount
+  useEffect(
+    () => () => {
+      saveModalActions.closeChartUpdateBroadcast();
+    },
+    [],
+  );
+
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
       const formData = props.dashboardId
