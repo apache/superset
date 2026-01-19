@@ -17,7 +17,13 @@
  * under the License.
  */
 const zlib = require('zlib');
-const { ZSTDDecompress } = require('simple-zstd');
+let ZSTDDecompress;
+try {
+  ({ ZSTDDecompress } = require('simple-zstd'));
+} catch (error) {
+  console.warn('simple-zstd not available, zstd compression will not be supported');
+  ZSTDDecompress = null;
+}
 
 const yargs = require('yargs');
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -93,6 +99,8 @@ function copyHeaders(originalResponse, response) {
       keys = keys.filter(
         key => key !== 'content-encoding' && key !== 'content-length',
       );
+      // 确保设置正确的字符集
+      response.setHeader('content-type', 'text/html; charset=utf-8');
     }
     keys.forEach(key => {
       let value = originalResponse.headers[key];
@@ -104,7 +112,9 @@ function copyHeaders(originalResponse, response) {
         // set redirects to use local URL
         value = (value || '').replace(backend, '');
       }
-      response.setHeader(key, value);
+      if (key !== 'content-type' || !isHTML(originalResponse)) {
+        response.setHeader(key, value);
+      }
     });
   } else {
     response.headers = originalResponse.headers;
@@ -128,7 +138,7 @@ function processHTML(proxyResponse, response) {
     uncompress = zlib.createBrotliDecompress();
   } else if (responseEncoding === 'deflate') {
     uncompress = zlib.createInflate();
-  } else if (responseEncoding === 'zstd') {
+  } else if (responseEncoding === 'zstd' && ZSTDDecompress) {
     uncompress = ZSTDDecompress();
   }
   if (uncompress) {
@@ -146,7 +156,8 @@ function processHTML(proxyResponse, response) {
       response.end(`Error fetching proxied request: ${error.message}`);
     })
     .on('end', () => {
-      response.end(toDevHTML(body.toString()));
+      const html = body.toString('utf-8');
+      response.end(toDevHTML(html));
     });
 }
 
