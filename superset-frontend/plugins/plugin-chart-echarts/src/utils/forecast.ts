@@ -26,6 +26,41 @@ import {
 } from '../types';
 import { sanitizeHtml } from './series';
 
+/**
+ * Enriches the verbose map by creating human-readable versions of compound field names.
+ *
+ * @param label_map — a mapping of compound keys to arrays of component labels (e.g., { "revenue_total_usd": ["revenue", "total", "usd"] })
+ * @param verboseMap — the existing mapping of field names to their display labels
+ * @returns an updated verbose map that includes human-readable versions of the compound keys
+ */
+export const addLabelMapToVerboseMap = (
+  label_map: Record<string, string[]>,
+  verboseMap: Record<string, string> = {},
+): Record<string, string> => {
+  /**
+   * Logic:
+   * 1. Iterates through each entry in label_map
+   * 2. For each compound key and its component labels, filters to only labels that have verbose mappings
+   * 3. Replaces each component label in the key with its verbose name from verboseMap
+   * 4. Stores the transformed key in a new map
+   * 5. Returns the original verboseMap merged with the new transformed entries
+   */
+  const newVerboseMap: Record<string, string> = {};
+
+  Object.entries(label_map).forEach(([key, labels]) => {
+    if (labels) {
+      labels
+        .filter(l => verboseMap[l])
+        .forEach(l => {
+          const newKey = key.replaceAll(l, verboseMap[l]);
+          newVerboseMap[key] = newKey;
+        });
+    }
+  });
+
+  return { ...verboseMap, ...newVerboseMap };
+};
+
 const seriesTypeRegex = new RegExp(
   `(.+)(${ForecastSeriesEnum.ForecastLower}|${ForecastSeriesEnum.ForecastTrend}|${ForecastSeriesEnum.ForecastUpper})$`,
 );
