@@ -777,8 +777,8 @@ async function main() {
     databases,
   };
 
-  // Write the JSON file
-  fs.writeFileSync(DATA_OUTPUT_FILE, JSON.stringify(output, null, 2));
+  // Write the JSON file (with trailing newline for POSIX compliance)
+  fs.writeFileSync(DATA_OUTPUT_FILE, JSON.stringify(output, null, 2) + '\n');
   console.log(`Generated: ${path.relative(DOCS_DIR, DATA_OUTPUT_FILE)}`);
 
 
