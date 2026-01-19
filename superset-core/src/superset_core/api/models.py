@@ -361,6 +361,59 @@ class KeyValue(CoreModel):
     changed_by_fk: int | None
 
 
+class Task(CoreModel):
+    """
+    Abstract Task model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+
+    This model represents async tasks in the Global Task Framework (GTF).
+    """
+
+    __abstract__ = True
+
+    # Type hints for expected attributes (no actual field definitions)
+    id: int
+    uuid: str
+    task_key: str
+    task_type: str
+    task_name: str | None
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    started_at: datetime | None
+    ended_at: datetime | None
+    created_by_fk: int | None
+    user_id: int | None
+    database_id: int | None
+    error_message: str | None
+    payload: str  # JSON serialized data
+    progress: float | None  # Progress 0.0-1.0, null by default
+
+    def get_payload(self) -> dict[str, Any]:
+        """
+        Get payload as parsed JSON.
+
+        Host implementations will replace this method during initialization
+        with concrete implementation providing actual functionality.
+
+        :returns: Dictionary containing payload data
+        """
+        raise NotImplementedError("Method will be replaced during initialization")
+
+    def set_payload(self, data: dict[str, Any]) -> None:
+        """
+        Update payload with new data (merges with existing).
+
+        Host implementations will replace this method during initialization
+        with concrete implementation providing actual functionality.
+
+        :param data: Dictionary of data to merge into payload
+        """
+        raise NotImplementedError("Method will be replaced during initialization")
+
+
 def get_session() -> scoped_session:
     """
     Retrieve the SQLAlchemy session to directly interface with the
@@ -384,6 +437,7 @@ __all__ = [
     "SavedQuery",
     "Tag",
     "KeyValue",
+    "Task",
     "CoreModel",
     "get_session",
 ]

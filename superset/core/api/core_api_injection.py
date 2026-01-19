@@ -52,6 +52,7 @@ def inject_dao_implementations() -> None:
         SavedQueryDAO as HostSavedQueryDAO,
     )
     from superset.daos.tag import TagDAO as HostTagDAO
+    from superset.daos.tasks import TaskDAO as HostTaskDAO
     from superset.daos.user import UserDAO as HostUserDAO
 
     # Replace abstract classes with concrete implementations
@@ -64,6 +65,7 @@ def inject_dao_implementations() -> None:
     core_dao_module.SavedQueryDAO = HostSavedQueryDAO  # type: ignore[assignment,misc]
     core_dao_module.TagDAO = HostTagDAO  # type: ignore[assignment,misc]
     core_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore[assignment,misc]
+    core_dao_module.TaskDAO = HostTaskDAO  # type: ignore[assignment,misc]
 
     core_dao_module.__all__ = [
         "DatasetDAO",
@@ -75,6 +77,7 @@ def inject_dao_implementations() -> None:
         "SavedQueryDAO",
         "TagDAO",
         "KeyValueDAO",
+        "TaskDAO",
     ]
 
 
@@ -94,6 +97,7 @@ def inject_model_implementations() -> None:
     from superset.models.dashboard import Dashboard as HostDashboard
     from superset.models.slice import Slice as HostChart
     from superset.models.sql_lab import Query as HostQuery, SavedQuery as HostSavedQuery
+    from superset.models.tasks import Task as HostTask
     from superset.tags.models import Tag as HostTag
 
     # In-place replacement - extensions will import concrete implementations
@@ -106,6 +110,7 @@ def inject_model_implementations() -> None:
     core_models_module.SavedQuery = HostSavedQuery  # type: ignore[misc]
     core_models_module.Tag = HostTag  # type: ignore[misc]
     core_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
+    core_models_module.Task = HostTask  # type: ignore[misc]
 
 
 def inject_query_implementations() -> None:
@@ -125,6 +130,38 @@ def inject_query_implementations() -> None:
 
     core_query_module.get_sqlglot_dialect = get_sqlglot_dialect
     core_query_module.__all__ = ["get_sqlglot_dialect"]
+
+
+def inject_task_implementations() -> None:
+    """
+    Replace abstract async task functions in superset_core.api.tasks with concrete
+    implementations from Superset.
+
+    Note: TaskOptions and TaskStatus are defined directly in superset-core
+    as they have no dependencies on Superset internals.
+    """
+    import superset_core.api.tasks as core_tasks_module
+
+    from superset.tasks.ambient_context import get_context
+    from superset.tasks.context import TaskContext
+    from superset.tasks.decorators import task
+
+    # Replace abstract classes and functions with concrete implementations
+    core_tasks_module.TaskContext = TaskContext  # type: ignore[assignment,misc]
+    core_tasks_module.task = task  # type: ignore[assignment]
+    core_tasks_module.get_context = get_context
+
+    # Note: create_async_task is not yet implemented in the concrete package,
+    # so we leave it as NotImplementedError for now
+
+    core_tasks_module.__all__ = [
+        "TaskStatus",
+        "TaskContext",
+        "TaskOptions",
+        "async_task",
+        "create_async_task",
+        "get_context",
+    ]
 
 
 def inject_rest_api_implementations() -> None:
@@ -177,4 +214,5 @@ def initialize_core_api_dependencies() -> None:
     inject_model_implementations()
     inject_model_session_implementation()
     inject_query_implementations()
+    inject_task_implementations()
     inject_rest_api_implementations()

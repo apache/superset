@@ -22,9 +22,11 @@ from typing import Any, Optional, Union
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
+from superset_core.api.tasks import TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.types import Executor, ExecutorType, FixedExecutor
+from superset.tasks.utils import get_active_dedup_key, get_finished_dedup_key
 
 FIXED_USER_ID = 1234
 FIXED_USERNAME = "admin"
@@ -330,3 +332,102 @@ def test_get_executor(
         )
         assert executor_type == expected_executor_type
         assert executor == expected_executor
+
+
+@pytest.mark.parametrize(
+    "scope,task_type,task_key,username,expected",
+    [
+        # Private tasks with TaskScope enum
+        (
+            TaskScope.PRIVATE,
+            "sql_execution",
+            "chart_123",
+            "user42",
+            "private|sql_execution|chart_123|user42",
+        ),
+        (
+            TaskScope.PRIVATE,
+            "thumbnail_gen",
+            "dash_456",
+            "user100",
+            "private|thumbnail_gen|dash_456|user100",
+        ),
+        # Private tasks with string scope
+        (
+            "private",
+            "api_call",
+            "endpoint_789",
+            "user200",
+            "private|api_call|endpoint_789|user200",
+        ),
+        # Shared tasks with TaskScope enum
+        (
+            TaskScope.SHARED,
+            "report_gen",
+            "monthly_report",
+            None,
+            "shared|report_gen|monthly_report",
+        ),
+        (
+            TaskScope.SHARED,
+            "export_csv",
+            "large_export",
+            "user999",  # username should be ignored for shared
+            "shared|export_csv|large_export",
+        ),
+        # Shared tasks with string scope
+        (
+            "shared",
+            "batch_process",
+            "batch_001",
+            "ignored_user",
+            "shared|batch_process|batch_001",
+        ),
+        # System tasks with TaskScope enum
+        (
+            TaskScope.SYSTEM,
+            "cleanup_task",
+            "daily_cleanup",
+            None,
+            "system|cleanup_task|daily_cleanup",
+        ),
+        (
+            TaskScope.SYSTEM,
+            "db_migration",
+            "version_123",
+            "admin",  # username should be ignored for system
+            "system|db_migration|version_123",
+        ),
+        # System tasks with string scope
+        (
+            "system",
+            "maintenance",
+            "nightly_job",
+            "root",
+            "system|maintenance|nightly_job",
+        ),
+    ],
+)
+def test_get_active_dedup_key(scope, task_type, task_key, username, expected, mocker):
+    """Test get_active_dedup_key generates correct format for all scopes"""
+    # Mock get_current_user to return the specified username
+    mocker.patch("superset.tasks.utils.get_current_user", return_value=username)
+
+    result = get_active_dedup_key(scope, task_type, task_key)
+    assert result == expected
+
+
+def test_get_active_dedup_key_private_requires_username(mocker):
+    """Test that private tasks require username from get_current_user()"""
+    # Mock get_current_user to return None
+    mocker.patch("superset.tasks.utils.get_current_user", return_value=None)
+
+    with pytest.raises(ValueError, match="username required for private tasks"):
+        get_active_dedup_key(TaskScope.PRIVATE, "test_type", "test_key")
+
+
+def test_get_finished_dedup_key():
+    """Test that finished tasks use UUID as dedup_key"""
+    test_uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    result = get_finished_dedup_key(test_uuid)
+    assert result == test_uuid

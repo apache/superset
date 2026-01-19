@@ -1,0 +1,343 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Concrete TaskContext implementation for GATF"""
+
+import logging
+from typing import Any, Callable, TYPE_CHECKING, TypeVar
+
+from flask import current_app
+from superset_core.api.tasks import TaskContext as CoreTaskContext, TaskStatus
+
+from superset.extensions import db
+from superset.utils.decorators import transaction
+
+if TYPE_CHECKING:
+    from superset.models.tasks import Task
+    from superset.tasks.manager import AbortListener
+
+logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
+
+
+class TaskContext(CoreTaskContext):
+    """
+    Concrete implementation of TaskContext for the Global Async Task Framework.
+
+    Provides write-only access to task state. Tasks use this context to update
+    their progress and payload, and check for cancellation. Tasks should not
+    need to read their own state - they are the source of state, not consumers.
+    """
+
+    def __init__(self, task_uuid: str) -> None:
+        """
+        Initialize TaskContext with a task UUID.
+
+        :param task_uuid: The UUID of the Task this context manages
+        """
+        self._task_uuid = task_uuid
+        self._cleanup_handlers: list[Callable[[], None]] = []
+        self._abort_handlers: list[Callable[[], None]] = []
+        self._abort_listener: "AbortListener | None" = None
+        self._abort_detected = False
+        self._abort_handlers_completed = False  # Track if all abort handlers finished
+
+        # Store Flask app reference for background thread database access
+        # Use _get_current_object() to get actual app, not proxy
+        try:
+            self._app = current_app._get_current_object()
+        except RuntimeError:
+            # Handle case where app context isn't available (e.g., tests)
+            self._app = None
+
+    @property
+    def _task(self) -> "Task":
+        """
+        Internal: Get the latest task entity from the metastore.
+
+        This is an internal property used by the framework. Task implementations
+        should use update_task() to modify state, not access this property directly.
+
+        :returns: Task entity with latest state
+        :raises ValueError: If task is not found
+        """
+        # Lazy import to avoid circular dependencies
+        from superset.daos.tasks import TaskDAO
+
+        task = TaskDAO.find_one_or_none(uuid=self._task_uuid)
+        if not task:
+            raise ValueError(f"Task {self._task_uuid} not found")
+        return task
+
+    @transaction()
+    def update_task(
+        self,
+        progress: float | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
+        """
+        Update task progress and/or payload atomically.
+
+        All parameters are optional. Payload is merged with existing data.
+        All updates occur in a single database transaction.
+
+        :param progress: Progress value (0.0-1.0), or None to leave unchanged
+        :param payload: Payload data to merge (dict), or None to leave unchanged
+        """
+        task = self._task
+
+        if progress is not None:
+            task.progress = progress
+
+        if payload is not None:
+            task.set_payload(payload)
+
+        db.session.merge(task)
+
+    def is_aborted(self) -> bool:
+        """
+        Check if the task has been aborted or is aborting.
+
+        Returns True if the task status is ABORTED or ABORTING. Fetches fresh
+        state from the database to ensure current status.
+
+        :returns: True if task is aborted or aborting, False otherwise
+        """
+        status = self._task.status
+        return status in [TaskStatus.ABORTED.value, TaskStatus.ABORTING.value]
+
+    def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
+        """
+        Register a cleanup handler that runs when the task ends.
+
+        Cleanup handlers are called when the task completes (success),
+        fails with an error, or is aborted. Multiple handlers can be
+        registered and will execute in LIFO order (last registered runs first).
+
+        Can be used as a decorator:
+            @ctx.on_cleanup
+            def cleanup():
+                logger.info("Task ended")
+
+        Or called directly:
+            ctx.on_cleanup(lambda: logger.info("Task ended"))
+
+        :param handler: Cleanup function to register
+        :returns: The handler (for decorator compatibility)
+        """
+        self._cleanup_handlers.append(handler)
+        return handler
+
+    def on_abort(self, handler: Callable[[], None]) -> Callable[[], None]:
+        """
+        Register abort handler with automatic background listening.
+
+        When the first handler is registered:
+        1. Sets is_abortable=true in the database (marks task as abortable)
+        2. Background abort listener starts automatically (pub/sub or polling)
+
+        The handler will be called automatically when an abort is detected.
+
+        :param handler: Callback function to execute when abort is detected
+        :returns: The handler (for decorator compatibility)
+
+        Example:
+            @ctx.on_abort
+            def handle_abort():
+                logger.info("Task was aborted!")
+                cleanup_partial_work()
+
+        Note:
+            The handler executes in a background thread when abort is detected.
+            The task code continues running unless the handler does something
+            to stop it (e.g., raises an exception, modifies shared state, etc.)
+        """
+        is_first_handler = len(self._abort_handlers) == 0
+        self._abort_handlers.append(handler)
+
+        if is_first_handler:
+            # Mark task as abortable in database
+            self._set_abortable()
+
+            # Auto-start abort listener when first handler is registered
+            interval = current_app.config["TASK_ABORT_POLLING_DEFAULT_INTERVAL"]
+            self._start_abort_listener(interval)
+
+        return handler
+
+    @transaction()
+    def _set_abortable(self) -> None:
+        """Mark the task as abortable (abort handler has been registered)."""
+        task = self._task
+        task.is_abortable = True
+        db.session.merge(task)
+
+    def _start_abort_listener(self, interval: float) -> None:
+        """
+        Start background abort listener via TaskManager.
+
+        Uses Redis pub/sub if available, otherwise falls back to database polling.
+        The implementation is encapsulated in TaskManager.
+        """
+        if self._abort_listener is not None:
+            return  # Already listening
+
+        from superset.tasks.manager import TaskManager
+
+        self._abort_listener = TaskManager.listen_for_abort(
+            task_uuid=self._task_uuid,
+            callback=self._on_abort_detected,
+            poll_interval=interval,
+            app=self._app,
+        )
+
+    def _on_abort_detected(self) -> None:
+        """
+        Callback invoked by TaskManager when abort is detected.
+
+        Triggers all registered abort handlers.
+        """
+        if self._abort_detected:
+            return  # Already handled
+
+        self._abort_detected = True
+        logger.info("Abort detected for task %s", self._task_uuid)
+        self._trigger_abort_handlers()
+
+    def start_abort_polling(self, interval: float | None = None) -> None:
+        """
+        Start background abort listener.
+
+        This method is kept for backwards compatibility. It now delegates
+        to _start_abort_listener which uses TaskManager.
+
+        :param interval: Polling interval in seconds (uses config default if None)
+        """
+        if interval is None:
+            interval = current_app.config["TASK_ABORT_POLLING_DEFAULT_INTERVAL"]
+        self._start_abort_listener(interval)
+
+    def _trigger_abort_handlers(self) -> None:
+        """
+        Execute all registered abort handlers (called by polling thread).
+
+        If any handler fails, the task is marked as FAILED instead of ABORTED.
+        """
+        handler_failed = False
+        for handler in reversed(self._abort_handlers):
+            try:
+                handler()
+            except Exception as ex:
+                logger.error(
+                    "Abort handler failed for task %s: %s",
+                    self._task_uuid,
+                    str(ex),
+                    exc_info=True,
+                )
+                handler_failed = True
+                # Mark task as FAILED since handler threw an exception
+                if self._app:
+                    with self._app.app_context():
+                        task = self._task
+                        task.set_status(TaskStatus.FAILURE)
+                        task.error_message = f"Abort handler failed: {str(ex)}"
+                        db.session.merge(task)
+                        db.session.commit()
+                break  # Stop processing handlers on first failure
+
+        if not handler_failed:
+            self._abort_handlers_completed = True
+
+    def stop_abort_polling(self) -> None:
+        """Stop the background abort listener."""
+        if self._abort_listener is not None:
+            self._abort_listener.stop()
+            self._abort_listener = None
+
+    @property
+    def abort_handlers_completed(self) -> bool:
+        """Check if all abort handlers have completed successfully."""
+        return self._abort_handlers_completed
+
+    def _run_cleanup(self) -> None:
+        """
+        Run cleanup handlers (called by executor in finally block).
+
+        This runs:
+        1. Abort handlers if task was aborting/aborted (but not yet detected)
+        2. All cleanup handlers (always)
+        """
+        # Stop abort listener
+        self.stop_abort_polling()
+
+        # If aborting/aborted but handlers haven't run yet, run them now
+        # (This catches the case where task ended before listener detected abort)
+        if self._app:
+            with self._app.app_context():
+                task = self._task
+                if (
+                    task.status in [TaskStatus.ABORTING.value, TaskStatus.ABORTED.value]
+                    and not self._abort_detected
+                ):
+                    self._trigger_abort_handlers()
+        else:
+            # Fallback without app context
+            try:
+                task = self._task
+                if (
+                    task.status in [TaskStatus.ABORTING.value, TaskStatus.ABORTED.value]
+                    and not self._abort_detected
+                ):
+                    self._trigger_abort_handlers()
+            except Exception as ex:
+                logger.warning(
+                    "Could not check abort status during cleanup for task %s: %s",
+                    self._task_uuid,
+                    str(ex),
+                )
+
+        # Always run cleanup handlers
+        for handler in reversed(self._cleanup_handlers):
+            try:
+                handler()
+            except Exception as ex:
+                logger.error(
+                    "Cleanup handler failed for task %s: %s",
+                    self._task_uuid,
+                    str(ex),
+                    exc_info=True,
+                )
+
+    def run(self, operation: Callable[[], T]) -> T | None:
+        """
+        Execute an operation if the task is not aborted.
+
+        Checks abort status before executing the operation. If the
+        task is aborted, returns None without executing. Cannot interrupt
+        an operation once it has started.
+
+        :param operation: Callable to execute
+        :returns: Operation result if not aborted, None if aborted
+
+        Example:
+            response = ctx.run(lambda: requests.get(url, timeout=60))
+            if response is None:
+                return  # Task was aborted
+        """
+        if self.is_aborted():
+            return None
+        return operation()

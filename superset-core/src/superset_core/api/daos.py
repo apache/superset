@@ -46,6 +46,7 @@ from superset_core.api.models import (
     Query,
     SavedQuery,
     Tag,
+    Task,
     User,
 )
 
@@ -248,6 +249,33 @@ class KeyValueDAO(BaseDAO[KeyValue]):
     id_column_name = "id"
 
 
+class TaskDAO(BaseDAO[Task]):
+    """
+    Abstract Task DAO interface.
+
+    Host implementations will replace this class during initialization
+    with a concrete implementation providing actual functionality.
+    """
+
+    # Class variables that will be set by host implementation
+    model_cls = None
+    base_filter = None
+    id_column_name = "id"
+    uuid_column_name = "uuid"
+
+    @classmethod
+    @abstractmethod
+    def find_by_task_key(cls, task_type: str, task_id: str) -> Task | None:
+        """
+        Find task by deduplication type and id.
+
+        :param task_type: Task type
+        :param task_id: Task identifier
+        :returns: Task instance or None if not found
+        """
+        ...
+
+
 __all__ = [
     "BaseDAO",
     "DatasetDAO",
@@ -259,4 +287,5 @@ __all__ = [
     "SavedQueryDAO",
     "TagDAO",
     "KeyValueDAO",
+    "TaskDAO",
 ]
