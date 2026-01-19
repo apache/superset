@@ -31,6 +31,7 @@ import {
 import { FilterElement } from './FilterBar/FilterControls/types';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import { DASHBOARD_ROOT_ID } from '../../util/constants';
 import { isChartCustomizationId } from './FiltersConfigModal/utils';
 
 const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
@@ -250,7 +251,20 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
         if (filterInScope) {
           filtersInScope.push(filter);
         } else {
-          filtersOutOfScope.push(filter);
+          // Skip adding tab-scoped filters to filtersOutOfScope if they're not in scope.
+          // Filters scoped to inactive tabs (or sub-tabs) should be completely hidden,
+          // not shown in "Filters out of scope" section.
+          // Only filters without explicit tab scope (rootPath is empty or contains only ROOT_ID)
+          // should be shown in "Filters out of scope" when they're not applicable.
+          const hasExplicitTabScope =
+            !isFilterDivider(filter) &&
+            filter.scope?.rootPath &&
+            filter.scope.rootPath.length > 0 &&
+            filter.scope.rootPath.some(id => id !== DASHBOARD_ROOT_ID);
+
+          if (!hasExplicitTabScope) {
+            filtersOutOfScope.push(filter);
+          }
         }
       });
     }
