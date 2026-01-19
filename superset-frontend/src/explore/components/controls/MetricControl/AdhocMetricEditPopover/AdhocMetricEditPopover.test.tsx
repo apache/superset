@@ -21,6 +21,7 @@ import {
   screen,
   selectOption,
   userEvent,
+  within,
 } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricEditPopover from '.';
@@ -249,21 +250,39 @@ test('Should render "Custom SQL" tab correctly', async () => {
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
 
-test('Should filter saved metrics by metric_name', async () => {
+test('Should filter saved metrics by metric_name and verbose_name', async () => {
   const props = {
     ...createProps(),
     savedMetricsOptions: [
       {
-        id: 64,
+        id: 1,
         metric_name: 'count',
         expression: 'COUNT(*)',
         verbose_name: 'Total Count',
       },
       {
-        id: 65,
+        id: 2,
         metric_name: 'revenue_sum',
         expression: 'sum(revenue)',
-        verbose_name: 'Total Sales Amount',
+        verbose_name: 'Gross Revenue',
+      },
+      {
+        id: 3,
+        metric_name: 'avg_price',
+        expression: 'AVG(price)',
+        verbose_name: 'Average Price',
+      },
+      {
+        id: 4,
+        metric_name: 'user_count',
+        expression: 'COUNT(DISTINCT user_id)',
+        verbose_name: 'Unique Users',
+      },
+      {
+        id: 5,
+        metric_name: 'total_quantity',
+        expression: 'SUM(quantity)',
+        verbose_name: 'Total Quantity',
       },
     ],
   };
@@ -274,58 +293,37 @@ test('Should filter saved metrics by metric_name', async () => {
   });
   userEvent.click(combobox);
 
-  // Search by metric_name - 'revenue' is only in metric_name, not in verbose_name
   await userEvent.type(combobox, 'revenue');
 
-  await selectOption('Total Sales Amount', 'Select saved metrics');
+  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  expect(within(dropdown).getByText('Gross Revenue')).toBeInTheDocument();
+  expect(within(dropdown).queryByText('Total Count')).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('Average Price')).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('Unique Users')).not.toBeInTheDocument();
+  expect(
+    within(dropdown).queryByText('Total Quantity'),
+  ).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
-  expect(props.onChange).toHaveBeenCalledTimes(1);
-  expect(props.onChange).toHaveBeenCalledWith(
-    expect.objectContaining({ metric_name: 'revenue_sum' }),
-    expect.anything(),
-  );
+  await userEvent.clear(combobox);
+  await userEvent.type(combobox, 'Unique');
+
+  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  expect(within(dropdown).getByText('Unique Users')).toBeInTheDocument();
+  expect(within(dropdown).queryByText('Total Count')).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('Gross Revenue')).not.toBeInTheDocument();
+
+  await userEvent.clear(combobox);
+  await userEvent.type(combobox, 'total');
+
+  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  expect(within(dropdown).getByText('Total Count')).toBeInTheDocument();
+  expect(within(dropdown).getByText('Total Quantity')).toBeInTheDocument();
+  expect(within(dropdown).queryByText('Gross Revenue')).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('Average Price')).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('Unique Users')).not.toBeInTheDocument();
 });
 
-test('Should filter saved metrics by verbose_name', async () => {
-  const props = {
-    ...createProps(),
-    savedMetricsOptions: [
-      {
-        id: 64,
-        metric_name: 'count',
-        expression: 'COUNT(*)',
-        verbose_name: 'Total Count',
-      },
-      {
-        id: 65,
-        metric_name: 'revenue_sum',
-        expression: 'sum(revenue)',
-        verbose_name: 'Total Sales Amount',
-      },
-    ],
-  };
-  render(<AdhocMetricEditPopover {...props} />);
-
-  const combobox = screen.getByRole('combobox', {
-    name: 'Select saved metrics',
-  });
-  userEvent.click(combobox);
-
-  // Search by verbose_name - 'Sales' is only in verbose_name, not in metric_name
-  await userEvent.type(combobox, 'Sales');
-
-  await selectOption('Total Sales Amount', 'Select saved metrics');
-
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
-  expect(props.onChange).toHaveBeenCalledTimes(1);
-  expect(props.onChange).toHaveBeenCalledWith(
-    expect.objectContaining({ metric_name: 'revenue_sum' }),
-    expect.anything(),
-  );
-});
-
-test('Should filter columns by column_name in Simple tab', async () => {
+test('Should filter columns by column_name and verbose_name in Simple tab', async () => {
   const props = {
     ...createProps(),
     columns: [
@@ -339,6 +337,24 @@ test('Should filter columns by column_name in Simple tab', async () => {
         id: 2,
         column_name: 'created_at',
         verbose_name: 'Creation Timestamp',
+        type: 'DATETIME',
+      },
+      {
+        id: 3,
+        column_name: 'order_total',
+        verbose_name: 'Order Amount',
+        type: 'DECIMAL',
+      },
+      {
+        id: 4,
+        column_name: 'product_name',
+        verbose_name: 'Product Title',
+        type: 'STRING',
+      },
+      {
+        id: 5,
+        column_name: 'updated_at',
+        verbose_name: 'Last Modified',
         type: 'DATETIME',
       },
     ],
@@ -355,48 +371,38 @@ test('Should filter columns by column_name in Simple tab', async () => {
     name: 'Select column',
   });
 
-  // Search by column_name - 'created' is only in column_name, not in verbose_name
-  await userEvent.type(columnCombobox, 'created');
+  await userEvent.type(columnCombobox, 'product');
 
-  await selectOption('Creation Timestamp', 'Select column');
+  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  expect(within(dropdown).getByText('Product Title')).toBeInTheDocument();
+  expect(
+    within(dropdown).queryByText('User Identifier'),
+  ).not.toBeInTheDocument();
+  expect(
+    within(dropdown).queryByText('Creation Timestamp'),
+  ).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('Order Amount')).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('Last Modified')).not.toBeInTheDocument();
 
-  expect(props.onChange).toHaveBeenCalledTimes(0);
-});
+  await userEvent.clear(columnCombobox);
+  await userEvent.type(columnCombobox, 'Modified');
 
-test('Should filter columns by verbose_name in Simple tab', async () => {
-  const props = {
-    ...createProps(),
-    columns: [
-      {
-        id: 1,
-        column_name: 'user_id',
-        verbose_name: 'User Identifier',
-        type: 'INTEGER',
-      },
-      {
-        id: 2,
-        column_name: 'created_at',
-        verbose_name: 'Creation Timestamp',
-        type: 'DATETIME',
-      },
-    ],
-  };
-  props.getCurrentTab.mockImplementation(tab => {
-    props.adhocMetric.expressionType = tab;
-  });
-  render(<AdhocMetricEditPopover {...props} />);
+  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  expect(within(dropdown).getByText('Last Modified')).toBeInTheDocument();
+  expect(
+    within(dropdown).queryByText('User Identifier'),
+  ).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('Product Title')).not.toBeInTheDocument();
 
-  const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
-  userEvent.click(tab);
+  await userEvent.clear(columnCombobox);
+  await userEvent.type(columnCombobox, '_at');
 
-  const columnCombobox = screen.getByRole('combobox', {
-    name: 'Select column',
-  });
-
-  // Search by verbose_name - 'Timestamp' is only in verbose_name, not in column_name
-  await userEvent.type(columnCombobox, 'Timestamp');
-
-  await selectOption('Creation Timestamp', 'Select column');
-
-  expect(props.onChange).toHaveBeenCalledTimes(0);
+  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  expect(within(dropdown).getByText('Creation Timestamp')).toBeInTheDocument();
+  expect(within(dropdown).getByText('Last Modified')).toBeInTheDocument();
+  expect(
+    within(dropdown).queryByText('User Identifier'),
+  ).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('Order Amount')).not.toBeInTheDocument();
+  expect(within(dropdown).queryByText('Product Title')).not.toBeInTheDocument();
 });
