@@ -383,13 +383,13 @@ function ChartList(props: ChartListProps) {
           <>
             {registry.get(vizType)?.name || vizType}
             {formData && isMatrixifyEnabled(formData) && (
-              <Tag
-                name="Matrixify"
-                color="purple"
+              <span
                 css={(theme: SupersetTheme) => css`
                   margin-left: ${theme.marginXS}px;
                 `}
-              />
+              >
+                <Tag name="Matrixify" color="purple" />
+              </span>
             )}
           </>
         ),
