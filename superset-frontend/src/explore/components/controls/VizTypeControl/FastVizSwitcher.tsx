@@ -54,9 +54,15 @@ export const FastVizSwitcher = memo(
       ) {
         vizTiles.unshift({
           name: currentSelection,
-          icon: (
-            <Icons.MonitorOutlined {...antdIconProps} aria-label="monitor" />
-          ),
+          icon:
+            currentSelection === 'deck_multi'
+              ? getMultiChartIcon()
+              : (
+                  <Icons.MonitorOutlined
+                    {...antdIconProps}
+                    aria-label="monitor"
+                  />
+                ),
         });
       }
       if (
