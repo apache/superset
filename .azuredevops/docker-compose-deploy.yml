@@ -21,6 +21,8 @@ services:
   db:
     image: postgres:17.4
     container_name: superset_db
+    env_file:
+      - .env.deploy
     shm_size: 1g
     user: postgres
     restart: unless-stopped
@@ -65,14 +67,6 @@ services:
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      
-      # OEE Data Source connection (external PostgreSQL)
-      # These will be used by Superset to connect to the actual data
-      OEE_DB_HOST: ${POSTGRES_HOST}
-      OEE_DB_PORT: ${POSTGRES_PORT}
-      OEE_DB_NAME: ${POSTGRES_DB}
-      OEE_DB_USER: ${POSTGRES_USER}
-      OEE_DB_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       redis:
         condition: service_healthy
@@ -111,12 +105,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       
-      # OEE Data Source connection (external PostgreSQL)
-      OEE_DB_HOST: ${POSTGRES_HOST}
-      OEE_DB_PORT: ${POSTGRES_PORT}
-      OEE_DB_NAME: ${POSTGRES_DB}
-      OEE_DB_USER: ${POSTGRES_USER}
-      OEE_DB_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       superset-init:
         condition: service_completed_successfully
