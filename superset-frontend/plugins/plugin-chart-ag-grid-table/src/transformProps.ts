@@ -24,13 +24,11 @@ import {
   DataRecord,
   ensureIsArray,
   extractTimegrain,
-  FeatureFlag,
   GenericDataType,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
   getTimeFormatterForGranularity,
-  isFeatureEnabled,
   NumberFormats,
   QueryMode,
   SMART_DATE_ID,
@@ -39,7 +37,7 @@ import {
   TimeFormatter,
 } from '@superset-ui/core';
 
-import { isEmpty, isEqual } from 'lodash';
+import { isEmpty, isEqual, merge } from 'lodash';
 import {
   ConditionalFormattingConfig,
   getColorFormatters,
@@ -466,7 +464,7 @@ const transformProps = (
   const {
     height,
     width,
-    rawFormData: formData,
+    rawFormData: originalFormData,
     queriesData = [],
     ownState: serverPaginationData,
     filterState,
@@ -474,6 +472,15 @@ const transformProps = (
     emitCrossFilters,
     theme,
   } = chartProps;
+
+  // Merge extra_form_data (dashboard filter overrides) into formData
+  // This ensures dashboard-level settings (like time_compare) override chart-level settings
+  // From PRs #33947 and #34014
+  const formData = merge(
+    {},
+    originalFormData,
+    originalFormData.extra_form_data,
+  );
 
   const {
     include_search: includeSearch = false,
@@ -500,8 +507,7 @@ const transformProps = (
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
     queryMode === QueryMode.Aggregate &&
-    comparison_type === ComparisonType.Values &&
-    isFeatureEnabled(FeatureFlag.TableV2TimeComparisonEnabled);
+    comparison_type === ComparisonType.Values;
 
   const nonCustomNorInheritShifts = ensureIsArray(formData.time_compare).filter(
     (shift: string) => shift !== 'custom' && shift !== 'inherit',
