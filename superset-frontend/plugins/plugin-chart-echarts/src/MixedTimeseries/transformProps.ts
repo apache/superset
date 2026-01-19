@@ -244,10 +244,8 @@ export default function transformProps(
     },
   );
 
-  const MetricDisplayNameA: string =
-    getMetricDisplayName(metrics[0], verboseMap) || '';
-  const MetricDisplayNameB: string =
-    getMetricDisplayName(metricsB[0], verboseMap) || '';
+  const MetricDisplayNameA = getMetricDisplayName(metrics[0], verboseMap);
+  const MetricDisplayNameB = getMetricDisplayName(metricsB[0], verboseMap);
 
   const dataTypes = getColtypesMapping(queriesData[0]);
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
@@ -402,12 +400,10 @@ export default function transformProps(
 
     if (groupby.length > 0) {
       // When we have groupby, format as "metric, dimension"
-      const metricPart: string = showQueryIdentifiers
+      const metricPart = showQueryIdentifiers
         ? `${MetricDisplayNameA} (Query A)`
         : MetricDisplayNameA;
-      displayName = entryName.includes(metricPart)
-        ? entryName
-        : `${metricPart}, ${entryName}`;
+      displayName = `${metricPart}, ${entryName}`;
     } else {
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
@@ -475,12 +471,10 @@ export default function transformProps(
 
     if (groupbyB.length > 0) {
       // When we have groupby, format as "metric, dimension"
-      const metricPart: string = showQueryIdentifiers
+      const metricPart = showQueryIdentifiers
         ? `${MetricDisplayNameB} (Query B)`
         : MetricDisplayNameB;
-      displayName = entryName.includes(metricPart)
-        ? entryName
-        : `${metricPart}, ${entryName}`;
+      displayName = `${metricPart}, ${entryName}`;
     } else {
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
