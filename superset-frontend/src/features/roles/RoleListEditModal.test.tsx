@@ -233,18 +233,16 @@ describe('RoleListEditModal', () => {
     expect(urlMatch).toBeTruthy();
 
     const decodedQuery = rison.decode(urlMatch[1]);
-    expect(decodedQuery).toEqual(
-      {
-        page_size: 100,
-        page: 0,
-        filters: [
-          {
-            col: 'roles',
-            opr: 'rel_m_m',
-            value: mockRole.id,
-          },
-        ],
-      }
-    );
+    expect(decodedQuery).toEqual({
+      page_size: 100,
+      page: 0,
+      filters: [
+        {
+          col: 'roles',
+          opr: 'rel_m_m',
+          value: mockRole.id,
+        },
+      ],
+    });
   });
 });
