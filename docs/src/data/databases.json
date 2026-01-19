@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-19T22:20:58.621Z",
+  "generated": "2026-01-19T22:27:38.283Z",
   "statistics": {
     "totalDatabases": 67,
     "withDocumentation": 67,
@@ -1548,7 +1548,25 @@
           "aggregations": "Define common aggregations in datasource edit view under List Druid Column tab.",
           "post_aggregations": "Create metrics with postagg as Metric Type and provide valid JSON post-aggregation definition."
         },
-        "notes": "A native Druid connector ships with Superset (behind DRUID_IS_ACTIVE flag) but SQLAlchemy connector via pydruid is preferred."
+        "notes": "A native Druid connector ships with Superset (behind DRUID_IS_ACTIVE flag) but SQLAlchemy connector via pydruid is preferred.",
+        "compatible_databases": [
+          {
+            "name": "Imply",
+            "description": "Imply is a fully-managed cloud platform and enterprise distribution built on Apache Druid. It provides real-time analytics with enterprise security and support.",
+            "logo": "druid.png",
+            "homepage_url": "https://imply.io/",
+            "categories": [
+              "TIME_SERIES",
+              "CLOUD_DATA_WAREHOUSES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "pydruid"
+            ],
+            "connection_string": "druid://{username}:{password}@{host}/druid/v2/sql",
+            "docs_url": "https://docs.imply.io/"
+          }
+        ]
       },
       "time_grains": {
         "SECOND": true,

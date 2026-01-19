@@ -94,6 +94,28 @@ class DruidEngineSpec(BaseEngineSpec):
             "(behind DRUID_IS_ACTIVE flag) but SQLAlchemy connector "
             "via pydruid is preferred."
         ),
+        "compatible_databases": [
+            {
+                "name": "Imply",
+                "description": (
+                    "Imply is a fully-managed cloud platform and enterprise "
+                    "distribution built on Apache Druid. It provides real-time "
+                    "analytics with enterprise security and support."
+                ),
+                "logo": "druid.png",
+                "homepage_url": "https://imply.io/",
+                "categories": [
+                    DatabaseCategory.TIME_SERIES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["pydruid"],
+                "connection_string": (
+                    "druid://{username}:{password}@{host}/druid/v2/sql"
+                ),
+                "docs_url": "https://docs.imply.io/",
+            },
+        ],
     }
 
     _time_grain_expressions = {
