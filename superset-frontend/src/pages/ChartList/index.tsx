@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t, SupersetTheme } from '@apache-superset/core';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -386,7 +386,7 @@ function ChartList(props: ChartListProps) {
               <Tag
                 name="Matrixify"
                 color="purple"
-                css={theme => css`
+                css={(theme: SupersetTheme) => css`
                   margin-left: ${theme.marginXS}px;
                 `}
               />
