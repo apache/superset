@@ -24,7 +24,7 @@ import { getChartKey } from 'src/explore/exploreUtils';
 import { ExplorePageState } from 'src/explore/types';
 import { FastVizSwitcherProps } from './types';
 import { VizTile } from './VizTile';
-import { FEATURED_CHARTS } from './constants';
+import { FEATURED_CHARTS, getMultiChartIcon } from './constants';
 
 export const antdIconProps = {
   iconSize: 'l' as const,
@@ -67,12 +67,15 @@ export const FastVizSwitcher = memo(
       ) {
         vizTiles.unshift({
           name: currentViz,
-          icon: (
-            <Icons.CheckSquareOutlined
-              {...antdIconProps}
-              aria-label="check-square"
-            />
-          ),
+          icon:
+            currentViz === 'deck_multi'
+              ? getMultiChartIcon()
+              : (
+                  <Icons.CheckSquareOutlined
+                    {...antdIconProps}
+                    aria-label="check-square"
+                  />
+                ),
         });
       }
       return vizTiles;

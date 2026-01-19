@@ -21,6 +21,9 @@ import { css } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { VizMeta } from './types';
 
+// Helper function for Multi Chart icon (only shown when selected)
+export const getMultiChartIcon = () => <Icons.Multiple iconSize="l" viewBox="5 4 15 20" />;
+
 export const FEATURED_CHARTS: VizMeta[] = [
   {
     name: VizType.Line,
