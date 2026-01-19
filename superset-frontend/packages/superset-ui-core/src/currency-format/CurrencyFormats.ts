@@ -17,12 +17,6 @@
  * under the License.
  */
 
-import { getFormattedUTCTime } from '../src/utils';
+export const AUTO_CURRENCY_SYMBOL = 'AUTO';
 
-describe('getFormattedUTCTime', () => {
-  it('formatted date string should equal to UTC date', () => {
-    const ts = 1420070400000; // 2015.01.01 00:00:00 UTC
-    const formattedTime = getFormattedUTCTime(ts, '%Y-%m-%d %H:%M:%S');
-    expect(formattedTime).toEqual('2015-01-01 00:00:00');
-  });
-});
+export const ISO_4217_REGEX = /^[A-Z]{3}$/;

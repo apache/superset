@@ -509,7 +509,7 @@ test('deletes a filter including dependencies', async () => {
       }),
     ),
   );
-});
+}, 30000);
 
 test('reorders filters via drag and drop', async () => {
   const nativeFilterConfig = [

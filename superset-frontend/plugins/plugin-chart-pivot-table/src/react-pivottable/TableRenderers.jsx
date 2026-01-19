@@ -749,7 +749,7 @@ export class TableRenderer extends Component {
           onContextMenu={e => this.props.onContextMenu(e, colKey, rowKey)}
           style={style}
         >
-          {displayCell(agg.format(aggValue), allowRenderHtml)}
+          {displayCell(agg.format(aggValue, agg), allowRenderHtml)}
         </td>
       );
     });
@@ -766,7 +766,7 @@ export class TableRenderer extends Component {
           onClick={rowTotalCallbacks[flatRowKey]}
           onContextMenu={e => this.props.onContextMenu(e, undefined, rowKey)}
         >
-          {displayCell(agg.format(aggValue), allowRenderHtml)}
+          {displayCell(agg.format(aggValue, agg), allowRenderHtml)}
         </td>
       );
     }
@@ -830,7 +830,7 @@ export class TableRenderer extends Component {
           onContextMenu={e => this.props.onContextMenu(e, colKey, undefined)}
           style={{ padding: '5px' }}
         >
-          {displayCell(agg.format(aggValue), this.props.allowRenderHtml)}
+          {displayCell(agg.format(aggValue, agg), this.props.allowRenderHtml)}
         </td>
       );
     });
@@ -847,7 +847,7 @@ export class TableRenderer extends Component {
           onClick={grandTotalCallback}
           onContextMenu={e => this.props.onContextMenu(e, undefined, undefined)}
         >
-          {displayCell(agg.format(aggValue), this.props.allowRenderHtml)}
+          {displayCell(agg.format(aggValue, agg), this.props.allowRenderHtml)}
         </td>
       );
     }
