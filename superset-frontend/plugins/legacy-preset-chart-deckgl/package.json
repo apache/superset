@@ -29,7 +29,7 @@
     "@deck.gl/extensions": "~9.2.5",
     "@deck.gl/geo-layers": "~9.2.5",
     "@deck.gl/layers": "~9.2.5",
-    "@deck.gl/mesh-layers": "~9.2.2",
+    "@deck.gl/mesh-layers": "~9.2.6",
     "@deck.gl/react": "~9.2.5",
     "@luma.gl/constants": "~9.2.4",
     "@luma.gl/core": "~9.2.2",
