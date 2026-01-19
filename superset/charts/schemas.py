@@ -1034,7 +1034,6 @@ class ChartDataExtrasSchema(Schema):
             "description": "If true, WHERE/HAVING clauses will be transpiled to the "
             "target database dialect using SQLGlot."
         },
-        load_default=False,
         allow_none=True,
     )
 
