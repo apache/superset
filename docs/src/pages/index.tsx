@@ -40,7 +40,7 @@ const Databases = Object.entries(typedDatabaseData.databases)
     title: name,
     href: db.documentation?.homepage_url,
     imgName: db.documentation?.logo,
-    docPath: `/docs/databases/${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
+    docPath: `/docs/databases/supported/${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
   }))
   .sort((a, b) => a.title.localeCompare(b.title))
   .filter((db) => {

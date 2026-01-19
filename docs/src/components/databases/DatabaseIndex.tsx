@@ -311,8 +311,8 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
 
         // Link to parent for compatible DBs, otherwise to own page
         const linkTarget = record.isCompatible && record.compatibleWith
-          ? `/docs/databases/${toSlug(record.compatibleWith)}`
-          : `/docs/databases/${toSlug(name)}`;
+          ? `/docs/databases/supported/${toSlug(record.compatibleWith)}`
+          : `/docs/databases/supported/${toSlug(name)}`;
 
         return (
           <div>

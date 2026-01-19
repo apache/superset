@@ -40,6 +40,7 @@ const DOCS_DIR = path.resolve(__dirname, '..');
 const DATA_OUTPUT_DIR = path.join(DOCS_DIR, 'src/data');
 const DATA_OUTPUT_FILE = path.join(DATA_OUTPUT_DIR, 'databases.json');
 const MDX_OUTPUT_DIR = path.join(DOCS_DIR, 'docs/databases');
+const MDX_SUPPORTED_DIR = path.join(MDX_OUTPUT_DIR, 'supported');
 
 /**
  * Try to run the full lib.py script with Flask context
@@ -782,14 +783,19 @@ async function main() {
   console.log(`Generated: ${path.relative(DOCS_DIR, DATA_OUTPUT_FILE)}`);
 
 
+  // Ensure supported directory exists
+  if (!fs.existsSync(MDX_SUPPORTED_DIR)) {
+    fs.mkdirSync(MDX_SUPPORTED_DIR, { recursive: true });
+  }
+
   // Clean up old MDX files that are no longer in the database list
-  console.log(`\nCleaning up old MDX files in ${path.relative(DOCS_DIR, MDX_OUTPUT_DIR)}/`);
-  const existingMdxFiles = fs.readdirSync(MDX_OUTPUT_DIR).filter(f => f.endsWith('.mdx') && f !== 'index.mdx');
+  console.log(`\nCleaning up old MDX files in ${path.relative(DOCS_DIR, MDX_SUPPORTED_DIR)}/`);
+  const existingMdxFiles = fs.readdirSync(MDX_SUPPORTED_DIR).filter(f => f.endsWith('.mdx'));
   const validSlugs = new Set(Object.keys(databases).map(name => `${toSlug(name)}.mdx`));
   let removedCount = 0;
   for (const file of existingMdxFiles) {
     if (!validSlugs.has(file)) {
-      fs.unlinkSync(path.join(MDX_OUTPUT_DIR, file));
+      fs.unlinkSync(path.join(MDX_SUPPORTED_DIR, file));
       removedCount++;
     }
   }
@@ -797,26 +803,26 @@ async function main() {
     console.log(`  Removed ${removedCount} outdated MDX files`);
   }
 
-  // Generate individual MDX files for each database
-  console.log(`\nGenerating MDX files in ${path.relative(DOCS_DIR, MDX_OUTPUT_DIR)}/`);
+  // Generate individual MDX files for each database in supported/ subdirectory
+  console.log(`\nGenerating MDX files in ${path.relative(DOCS_DIR, MDX_SUPPORTED_DIR)}/`);
 
   let mdxCount = 0;
   for (const [name, db] of Object.entries(databases)) {
     const slug = toSlug(name);
     const mdxContent = generateDatabaseMDX(name, db);
-    const mdxPath = path.join(MDX_OUTPUT_DIR, `${slug}.mdx`);
+    const mdxPath = path.join(MDX_SUPPORTED_DIR, `${slug}.mdx`);
     fs.writeFileSync(mdxPath, mdxContent);
     mdxCount++;
   }
   console.log(`  Generated ${mdxCount} database pages`);
 
-  // Generate index page
+  // Generate index page in parent databases/ directory
   const indexContent = generateIndexMDX(statistics, usedFlaskContext);
   const indexPath = path.join(MDX_OUTPUT_DIR, 'index.mdx');
   fs.writeFileSync(indexPath, indexContent);
   console.log(`  Generated index page`);
 
-  // Generate _category_.json for sidebar ordering
+  // Generate _category_.json for databases/ directory
   const categoryJson = {
     label: 'Databases',
     position: 1,
@@ -827,9 +833,21 @@ async function main() {
   };
   fs.writeFileSync(
     path.join(MDX_OUTPUT_DIR, '_category_.json'),
-    JSON.stringify(categoryJson, null, 2)
+    JSON.stringify(categoryJson, null, 2) + '\n'
   );
-  console.log(`  Generated _category_.json`);
+
+  // Generate _category_.json for supported/ subdirectory (collapsible)
+  const supportedCategoryJson = {
+    label: 'Supported Databases',
+    position: 2,
+    collapsed: true,
+    collapsible: true,
+  };
+  fs.writeFileSync(
+    path.join(MDX_SUPPORTED_DIR, '_category_.json'),
+    JSON.stringify(supportedCategoryJson, null, 2) + '\n'
+  );
+  console.log(`  Generated _category_.json files`);
 
   // Update README.md database logos (only when explicitly requested)
   if (process.env.UPDATE_README === 'true' || process.argv.includes('--update-readme')) {
