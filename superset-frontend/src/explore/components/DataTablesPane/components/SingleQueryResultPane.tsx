@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useCallback } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@superset-ui/core';
 import {
   TableView,
   TableSize,
@@ -39,6 +39,7 @@ export const SingleQueryResultPane = ({
   dataSize = 50,
   isVisible,
   canDownload,
+  isPaginationSticky = true,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
 
@@ -80,7 +81,7 @@ export const SingleQueryResultPane = ({
         noDataText={t('No results')}
         emptyWrapperType={EmptyWrapperType.Small}
         className="table-condensed"
-        isPaginationSticky
+        isPaginationSticky={isPaginationSticky}
         showRowCount={false}
         small
       />
