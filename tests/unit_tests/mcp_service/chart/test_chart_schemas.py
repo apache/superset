@@ -54,6 +54,59 @@ class TestTableChartConfig:
         )
         assert len(config.columns) == 2
 
+    def test_default_viz_type_is_table(self) -> None:
+        """Test that default viz_type is 'table'."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+        )
+        assert config.viz_type == "table"
+
+    def test_ag_grid_table_viz_type_accepted(self) -> None:
+        """Test that viz_type='ag-grid-table' is accepted for AG Grid table."""
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
+            ],
+        )
+        assert config.viz_type == "ag-grid-table"
+        assert len(config.columns) == 2
+
+    def test_ag_grid_table_with_all_options(self) -> None:
+        """Test AG Grid table with filters and sorting."""
+        from superset.mcp_service.chart.schemas import FilterConfig
+
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="quantity", aggregate="SUM", label="Total Quantity"),
+                ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
+            ],
+            filters=[FilterConfig(column="status", op="=", value="active")],
+            sort_by=["product_line"],
+        )
+        assert config.viz_type == "ag-grid-table"
+        assert len(config.columns) == 3
+        assert config.filters is not None
+        assert len(config.filters) == 1
+        assert config.sort_by == ["product_line"]
+
+    def test_invalid_viz_type_rejected(self) -> None:
+        """Test that invalid viz_type values are rejected."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            TableChartConfig(
+                chart_type="table",
+                viz_type="invalid-type",
+                columns=[ColumnRef(name="product")],
+            )
+
 
 class TestXYChartConfig:
     """Test XYChartConfig validation."""

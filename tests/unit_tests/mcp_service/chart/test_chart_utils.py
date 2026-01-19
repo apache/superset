@@ -152,6 +152,58 @@ class TestMapTableConfig:
         result = map_table_config(config)
         assert result["order_by_cols"] == ["product", "revenue"]
 
+    def test_map_table_config_ag_grid_table(self) -> None:
+        """Test table config mapping with AG Grid Interactive Table viz_type"""
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        # AG Grid tables use 'ag-grid-table' viz_type
+        assert result["viz_type"] == "ag-grid-table"
+        assert result["query_mode"] == "aggregate"
+        assert len(result["metrics"]) == 1
+        assert result["metrics"][0]["aggregate"] == "SUM"
+        # Non-aggregated columns should be in groupby
+        assert "groupby" in result
+        assert "product_line" in result["groupby"]
+
+    def test_map_table_config_ag_grid_raw_mode(self) -> None:
+        """Test AG Grid table with raw columns (no aggregates)"""
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="category"),
+                ColumnRef(name="region"),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["viz_type"] == "ag-grid-table"
+        assert result["query_mode"] == "raw"
+        assert result["all_columns"] == ["product_line", "category", "region"]
+        assert "metrics" not in result
+
+    def test_map_table_config_default_viz_type(self) -> None:
+        """Test that default viz_type is 'table' not 'ag-grid-table'"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+        )
+
+        result = map_table_config(config)
+
+        assert result["viz_type"] == "table"
+
 
 class TestMapXYConfig:
     """Test map_xy_config function"""

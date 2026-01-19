@@ -608,6 +608,14 @@ class TableChartConfig(BaseModel):
     chart_type: Literal["table"] = Field(
         ..., description="Chart type (REQUIRED: must be 'table')"
     )
+    viz_type: Literal["table", "ag-grid-table"] = Field(
+        "table",
+        description=(
+            "Visualization type: 'table' for standard table, 'ag-grid-table' for "
+            "AG Grid Interactive Table with advanced features like column resizing, "
+            "sorting, filtering, and server-side pagination"
+        ),
+    )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
