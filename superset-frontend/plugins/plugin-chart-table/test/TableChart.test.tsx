@@ -680,6 +680,61 @@ describe('plugin-chart-table', () => {
         expectValidAriaLabels(container);
       });
 
+      test('should align group headers correctly when some comparison columns are hidden (#37074)', () => {
+        // Test that group headers align correctly when columns have visible: false
+        // This reproduces issue #37074 where headers became misaligned
+        const props = transformProps(testData.comparisonWithHiddenColumns);
+
+        const { container } = render(<TableChart {...props} sticky={false} />);
+
+        // Get all header rows - first row contains group headers, second row contains column headers
+        const headerRows = container.querySelectorAll('thead tr');
+        expect(headerRows.length).toBe(2);
+
+        // Get group headers from the first row (th elements with colSpan > 1 or group headers)
+        const groupHeaderRow = headerRows[0];
+        const groupHeaders = groupHeaderRow.querySelectorAll('th');
+
+        // Extract group header text content (filter out empty placeholder headers)
+        const groupHeaderTexts = Array.from(groupHeaders)
+          .map(th => th.textContent?.trim())
+          .filter(text => text && text.length > 0);
+
+        // Verify metric_1 group header appears before metric_2
+        // With hidden columns: metric_1 has 2 visible columns (△, %), metric_2 has 4 (Main, #, △, %)
+        const metric1Index = groupHeaderTexts.findIndex(
+          text => text?.includes('metric_1') || text?.includes('Metric 1'),
+        );
+        const metric2Index = groupHeaderTexts.findIndex(
+          text => text?.includes('metric_2') || text?.includes('Metric 2'),
+        );
+
+        // Both headers should exist and metric_1 should come before metric_2
+        expect(metric1Index).toBeGreaterThanOrEqual(0);
+        expect(metric2Index).toBeGreaterThanOrEqual(0);
+        expect(metric1Index).toBeLessThan(metric2Index);
+
+        // Verify colSpan values match the number of visible columns
+        const metric1Header = Array.from(groupHeaders).find(
+          th =>
+            th.textContent?.includes('metric_1') ||
+            th.textContent?.includes('Metric 1'),
+        );
+        const metric2Header = Array.from(groupHeaders).find(
+          th =>
+            th.textContent?.includes('metric_2') ||
+            th.textContent?.includes('Metric 2'),
+        );
+
+        // metric_1 should span 2 columns (△ and % are visible, Main and # are hidden)
+        expect(metric1Header?.getAttribute('colspan')).toBe('2');
+        // metric_2 should span 4 columns (all visible)
+        expect(metric2Header?.getAttribute('colspan')).toBe('4');
+
+        // Verify ARIA labels are still valid after filtering
+        expectValidAriaLabels(container);
+      });
+
       test('should set meaningful header IDs for regular table columns', () => {
         // Test regular (non-time-comparison) columns have proper IDs
         // Uses fallback to column.key since originalLabel is undefined

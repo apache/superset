@@ -303,6 +303,81 @@ const comparisonWithConfig: TableChartProps = {
   emitCrossFilters: false,
 };
 
+/**
+ * Time comparison data with multiple metrics and some columns hidden.
+ * Used to test that group headers align correctly when filtering columns.
+ * Reproduces issue #37074.
+ */
+const comparisonWithHiddenColumns: TableChartProps = {
+  ...comparison,
+  height: 400,
+  width: 600,
+  rawFormData: {
+    ...comparison.rawFormData,
+    table_timestamp_format: 'smart_date',
+    metrics: ['metric_1', 'metric_2'],
+    percent_metrics: [],
+    column_config: {
+      // Hide Main and # columns for metric_1, only show △ and %
+      'Main metric_1': { visible: false },
+      '# metric_1': { visible: false },
+      '△ metric_1': { d3NumberFormat: '.0f' },
+      '% metric_1': { d3NumberFormat: '.2%' },
+      // Show all columns for metric_2
+      'Main metric_2': { d3NumberFormat: '.0f' },
+      '# metric_2': { d3NumberFormat: '.0f' },
+      '△ metric_2': { d3NumberFormat: '.0f' },
+      '% metric_2': { d3NumberFormat: '.2%' },
+    },
+    time_compare: ['1 year ago'],
+    comparison_color_enabled: true,
+    comparison_type: ComparisonType.Values,
+  },
+  datasource: {
+    ...comparison.datasource,
+    columnFormats: {},
+    currencyFormats: {},
+    verboseMap: { metric_1: 'Metric 1', metric_2: 'Metric 2' },
+  },
+  queriesData: [
+    {
+      ...basicQueryResult,
+      data: [
+        {
+          metric_1: 100,
+          'metric_1__1 year ago': 80,
+          metric_2: 200,
+          'metric_2__1 year ago': 150,
+        },
+      ],
+      colnames: [
+        'metric_1',
+        'metric_1__1 year ago',
+        'metric_2',
+        'metric_2__1 year ago',
+      ],
+      coltypes: [
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+    },
+    {
+      ...basicQueryResult,
+      data: [{ rowcount: 1 }],
+    },
+  ],
+  filterState: { filters: {} },
+  ownState: {},
+  hooks: {
+    onAddFilter: jest.fn(),
+    setDataMask: jest.fn(),
+    onContextMenu: jest.fn(),
+  },
+  emitCrossFilters: false,
+};
+
 const raw = {
   ...advanced,
   rawFormData: {
@@ -402,6 +477,7 @@ export default {
   advancedWithCurrency,
   comparison,
   comparisonWithConfig,
+  comparisonWithHiddenColumns,
   empty,
   raw,
   bigint,
