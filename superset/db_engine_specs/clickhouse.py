@@ -365,7 +365,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     "Altinity.Cloud is a managed ClickHouse service providing "
                     "Kubernetes-native deployments with enterprise support."
                 ),
-                "logo": "clickhouse.png",
+                "logo": "altinity.png",
                 "homepage_url": "https://altinity.cloud/",
                 "categories": [
                     DatabaseCategory.ANALYTICAL_DATABASES,

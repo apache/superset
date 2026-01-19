@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-19T22:27:38.283Z",
+  "generated": "2026-01-19T22:32:13.556Z",
   "statistics": {
     "totalDatabases": 67,
     "withDocumentation": 67,
@@ -603,7 +603,7 @@
           {
             "name": "Altinity.Cloud",
             "description": "Altinity.Cloud is a managed ClickHouse service providing Kubernetes-native deployments with enterprise support.",
-            "logo": "clickhouse.png",
+            "logo": "altinity.png",
             "homepage_url": "https://altinity.cloud/",
             "categories": [
               "ANALYTICAL_DATABASES",
@@ -1553,7 +1553,7 @@
           {
             "name": "Imply",
             "description": "Imply is a fully-managed cloud platform and enterprise distribution built on Apache Druid. It provides real-time analytics with enterprise security and support.",
-            "logo": "druid.png",
+            "logo": "imply.png",
             "homepage_url": "https://imply.io/",
             "categories": [
               "TIME_SERIES",
@@ -4162,7 +4162,7 @@
           {
             "name": "CelerData",
             "description": "CelerData is a fully-managed cloud analytics service built on StarRocks. It provides instant elasticity, automatic scaling, and enterprise features.",
-            "logo": "starrocks.png",
+            "logo": "celerdata.png",
             "homepage_url": "https://celerdata.com/",
             "categories": [
               "ANALYTICAL_DATABASES",
@@ -4523,7 +4523,7 @@
           {
             "name": "Starburst Galaxy",
             "description": "Starburst Galaxy is a fully-managed cloud analytics platform built on Trino. It provides data lake analytics with enterprise security and governance.",
-            "logo": "trino.png",
+            "logo": "starburst.png",
             "homepage_url": "https://www.starburst.io/platform/starburst-galaxy/",
             "categories": [
               "QUERY_ENGINES",
@@ -4546,7 +4546,7 @@
           {
             "name": "Starburst Enterprise",
             "description": "Starburst Enterprise is a self-managed Trino distribution with enterprise features, security, and support.",
-            "logo": "trino.png",
+            "logo": "starburst.png",
             "homepage_url": "https://www.starburst.io/platform/starburst-enterprise/",
             "categories": [
               "QUERY_ENGINES",

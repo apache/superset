@@ -460,22 +460,22 @@ const StyledIntegrations = styled('div')`
   padding: 0 20px;
   .database-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 14px;
-    max-width: 1160px;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 10px;
+    max-width: 1200px;
     margin: 25px auto 0;
     ${mq[1]} {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
     }
     ${mq[0]} {
-      grid-template-columns: repeat(1, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     & > .item {
       border: 1px solid var(--ifm-border-color);
-      border-radius: 10px;
+      border-radius: 8px;
       overflow: hidden;
-      height: 120px;
-      padding: 25px;
+      height: 80px;
+      padding: 14px;
       display: flex;
       align-items: center;
       justify-content: center;

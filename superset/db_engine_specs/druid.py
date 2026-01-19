@@ -102,7 +102,7 @@ class DruidEngineSpec(BaseEngineSpec):
                     "distribution built on Apache Druid. It provides real-time "
                     "analytics with enterprise security and support."
                 ),
-                "logo": "druid.png",
+                "logo": "imply.png",
                 "homepage_url": "https://imply.io/",
                 "categories": [
                     DatabaseCategory.TIME_SERIES,

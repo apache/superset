@@ -158,7 +158,7 @@ class StarRocksEngineSpec(MySQLEngineSpec):
                     "StarRocks. It provides instant elasticity, automatic scaling, "
                     "and enterprise features."
                 ),
-                "logo": "starrocks.png",
+                "logo": "celerdata.png",
                 "homepage_url": "https://celerdata.com/",
                 "categories": [
                     DatabaseCategory.ANALYTICAL_DATABASES,

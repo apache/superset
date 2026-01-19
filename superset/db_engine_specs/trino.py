@@ -116,7 +116,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                     "built on Trino. It provides data lake analytics with "
                     "enterprise security and governance."
                 ),
-                "logo": "trino.png",
+                "logo": "starburst.png",
                 "homepage_url": "https://www.starburst.io/platform/starburst-galaxy/",
                 "categories": [
                     DatabaseCategory.QUERY_ENGINES,
@@ -142,7 +142,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                     "Starburst Enterprise is a self-managed Trino distribution "
                     "with enterprise features, security, and support."
                 ),
-                "logo": "trino.png",
+                "logo": "starburst.png",
                 "homepage_url": "https://www.starburst.io/platform/starburst-enterprise/",
                 "categories": [
                     DatabaseCategory.QUERY_ENGINES,
