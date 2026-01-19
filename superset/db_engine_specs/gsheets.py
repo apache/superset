@@ -37,6 +37,7 @@ from sqlalchemy.engine.url import URL
 
 from superset import db, security_manager
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
@@ -103,6 +104,22 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     parameters_schema = GSheetsParametersSchema()
     default_driver = "apsw"
     sqlalchemy_uri_placeholder = "gsheets://"
+
+    metadata = {
+        "description": (
+            "Google Sheets allows querying spreadsheets as SQL tables via shillelagh."
+        ),
+        "logo": "google-sheets.svg",
+        "homepage_url": "https://www.google.com/sheets/about/",
+        "categories": [DatabaseCategory.CLOUD_GCP, DatabaseCategory.HOSTED_OPEN_SOURCE],
+        "pypi_packages": ["shillelagh[gsheetsapi]"],
+        "install_instructions": 'pip install "apache-superset[gsheets]"',
+        "connection_string": "gsheets://",
+        "notes": (
+            "Requires Google service account credentials or OAuth2 authentication. "
+            "See docs for setup instructions."
+        ),
+    }
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name

@@ -22,7 +22,7 @@ from packaging.version import Version
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
@@ -34,11 +34,47 @@ logger = logging.getLogger()
 
 class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "elasticsearch"
-    engine_name = "ElasticSearch (SQL API)"
+    engine_name = "Elasticsearch"
     time_groupby_inline = True
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
+
+    metadata = {
+        "description": (
+            "Elasticsearch is a distributed search and analytics engine. "
+            "Query data using Elasticsearch SQL or OpenSearch SQL syntax."
+        ),
+        "logo": "elasticsearch.png",
+        "homepage_url": "https://www.elastic.co/elasticsearch/",
+        "categories": [DatabaseCategory.SEARCH_NOSQL, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["elasticsearch-dbapi"],
+        "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
+        "default_port": 9243,
+        "parameters": {
+            "user": "Elasticsearch username",
+            "password": "Elasticsearch password",
+            "host": "Elasticsearch host",
+        },
+        "drivers": [
+            {
+                "name": "Elasticsearch SQL API (Recommended)",
+                "pypi_package": "elasticsearch-dbapi",
+                "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
+                "is_recommended": True,
+                "notes": (
+                    "For Elastic Cloud and self-hosted Elasticsearch with SQL enabled."
+                ),
+            },
+            {
+                "name": "OpenDistro / OpenSearch SQL",
+                "pypi_package": "elasticsearch-dbapi",
+                "connection_string": "odelasticsearch+https://{user}:{password}@{host}:9200/",
+                "is_recommended": False,
+                "notes": "For OpenDistro Elasticsearch or Amazon OpenSearch Service.",
+            },
+        ],
+    }
 
     _date_trunc_functions = {
         "DATETIME": "DATE_TRUNC",
@@ -101,6 +137,12 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
 
 class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+    """OpenDistro/OpenSearch SQL engine spec.
+
+    Note: Documentation is consolidated in ElasticSearchEngineSpec.
+    This spec exists for runtime support of the odelasticsearch driver.
+    """
+
     time_groupby_inline = True
     allows_joins = False
     allows_subqueries = True
@@ -117,7 +159,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     engine = "odelasticsearch"
-    engine_name = "ElasticSearch (OpenDistro SQL)"
+    engine_name = "OpenSearch (OpenDistro)"
 
     @classmethod
     def convert_dttm(

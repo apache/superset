@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 
 
@@ -24,3 +25,19 @@ class RisingWaveDbEngineSpec(PostgresEngineSpec):
     sqlalchemy_uri_placeholder = (
         "risingwave://user:password@host:port/dbname[?key=value&key=value...]"
     )
+
+    metadata = {
+        "description": "RisingWave is a distributed streaming database.",
+        "logo": "risingwave.png",
+        "homepage_url": "https://risingwave.com/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["sqlalchemy-risingwave"],
+        "connection_string": (
+            "risingwave://root@{hostname}:{port}/{database}?sslmode=disable"
+        ),
+        "default_port": 4566,
+        "docs_url": "https://github.com/risingwavelabs/sqlalchemy-risingwave",
+    }

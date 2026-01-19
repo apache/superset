@@ -2,6 +2,27 @@
 
 Apache Superset is a data visualization platform with Flask/Python backend and React/TypeScript frontend.
 
+## ⚠️ CRITICAL: Always Run Pre-commit Before Pushing
+
+**ALWAYS run `pre-commit run --all-files` before pushing commits.** CI will fail if pre-commit checks don't pass. This is non-negotiable.
+
+```bash
+# Stage your changes first
+git add .
+
+# Run pre-commit on all files
+pre-commit run --all-files
+
+# If there are auto-fixes, stage them and commit
+git add .
+git commit --amend  # or new commit
+```
+
+Common pre-commit failures:
+- **Formatting** - black, prettier, eslint will auto-fix
+- **Type errors** - mypy failures need manual fixes
+- **Linting** - ruff, pylint issues need manual fixes
+
 ## ⚠️ CRITICAL: Ongoing Refactors (What NOT to Do)
 
 **These migrations are actively happening - avoid deprecated patterns:**

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
 if TYPE_CHECKING:
@@ -35,6 +36,22 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
 
     allows_joins = True
     allows_subqueries = True
+
+    metadata = {
+        "description": (
+            "Shillelagh is a Python library that allows querying many data sources "
+            "using SQL, including Google Sheets, CSV files, and APIs."
+        ),
+        "logo": "shillelagh.png",
+        "homepage_url": "https://shillelagh.readthedocs.io/",
+        "categories": [DatabaseCategory.OTHER, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["shillelagh[gsheetsapi]"],
+        "connection_string": "shillelagh://",
+        "notes": (
+            "Shillelagh uses virtual tables to query external data sources. "
+            "Google Sheets requires OAuth credentials configured."
+        ),
+    }
 
     @classmethod
     def get_function_names(

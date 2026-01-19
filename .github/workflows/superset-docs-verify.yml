@@ -4,17 +4,23 @@ on:
   pull_request:
     paths:
       - "docs/**"
+      - "superset/db_engine_specs/**"
       - ".github/workflows/superset-docs-verify.yml"
     types: [synchronize, opened, reopened, ready_for_review]
+  workflow_run:
+    workflows: ["Python-Integration"]
+    types: [completed]
 
 # cancel previous workflow jobs for PRs
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   linkinator:
     # See docs here: https://github.com/marketplace/actions/linkinator
+    # Only run on pull_request, not workflow_run
+    if: github.event_name == 'pull_request'
     name: Link Checking
     runs-on: ubuntu-latest
     steps:
@@ -50,8 +56,11 @@ jobs:
             https://timbr.ai/,
             https://opensource.org/license/apache-2-0,
             https://www.plaidcloud.com/
-  build-deploy:
-    name: Build & Deploy
+
+  build-on-pr:
+    # Build docs when PR changes docs/** (uses committed databases.json)
+    if: github.event_name == 'pull_request'
+    name: Build (PR trigger)
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -69,6 +78,53 @@ jobs:
       - name: yarn install
         run: |
           yarn install --check-cache
+      - name: yarn typecheck
+        run: |
+          yarn typecheck
+      - name: yarn build
+        run: |
+          yarn build
+
+  build-after-tests:
+    # Build docs after integration tests complete (uses fresh diagnostics)
+    # Only runs if integration tests succeeded
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success'
+    name: Build (after integration tests)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - name: "Checkout PR head: ${{ github.event.workflow_run.head_sha }}"
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+          submodules: recursive
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: './docs/.nvmrc'
+      - name: yarn install
+        run: |
+          yarn install --check-cache
+      - name: Download database diagnostics from integration tests
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: superset-python-integrationtest.yml
+          run_id: ${{ github.event.workflow_run.id }}
+          name: database-diagnostics
+          path: docs/src/data/
+      - name: Use fresh diagnostics
+        run: |
+          if [ -f "src/data/databases-diagnostics.json" ]; then
+            echo "Using fresh diagnostics from integration tests"
+            mv src/data/databases-diagnostics.json src/data/databases.json
+          else
+            echo "Warning: No diagnostics artifact found, using committed data"
+          fi
       - name: yarn typecheck
         run: |
           yarn typecheck

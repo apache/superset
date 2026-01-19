@@ -1,6 +1,13 @@
 name: Docs Deployment
 
 on:
+  # Deploy after integration tests complete on master
+  workflow_run:
+    workflows: ["Python-Integration"]
+    types: [completed]
+    branches: [master]
+
+  # Also allow manual trigger and direct pushes to docs
   push:
     paths:
       - "docs/**"
@@ -30,9 +37,10 @@ jobs:
     name: Build & Deploy
     runs-on: ubuntu-24.04
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+      - name: "Checkout ${{ github.event.workflow_run.head_sha || github.sha }}"
         uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
@@ -58,6 +66,35 @@ jobs:
         working-directory: docs
         run: |
           yarn install --check-cache
+      - name: Download database diagnostics (if triggered by integration tests)
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: superset-python-integrationtest.yml
+          run_id: ${{ github.event.workflow_run.id }}
+          name: database-diagnostics
+          path: docs/src/data/
+      - name: Try to download latest diagnostics (for push/dispatch triggers)
+        if: github.event_name != 'workflow_run'
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: superset-python-integrationtest.yml
+          name: database-diagnostics
+          path: docs/src/data/
+          branch: master
+          search_artifacts: true
+          if_no_artifact_found: warn
+      - name: Use diagnostics artifact if available
+        working-directory: docs
+        run: |
+          if [ -f "src/data/databases-diagnostics.json" ]; then
+            echo "Using fresh diagnostics from integration tests"
+            mv src/data/databases-diagnostics.json src/data/databases.json
+          else
+            echo "Using committed databases.json (no artifact found)"
+          fi
       - name: yarn build
         working-directory: docs
         run: |
@@ -71,5 +108,5 @@ jobs:
           destination-github-username: "apache"
           destination-repository-name: "superset-site"
           target-branch: "asf-site"
-          commit-message: "deploying docs: ${{ github.event.head_commit.message }} (apache/superset@${{ github.sha }})"
+          commit-message: "deploying docs: ${{ github.event.head_commit.message || 'triggered by integration tests' }} (apache/superset@${{ github.event.workflow_run.head_sha || github.sha }})"
           user-email: dev@superset.apache.org
