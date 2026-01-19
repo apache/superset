@@ -376,7 +376,13 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
         const grains = getSupportedTimeGrains(record.time_grains);
         return (
           <Tooltip
-            title={grains.join(', ')}
+            title={
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: 280 }}>
+                {grains.map((grain) => (
+                  <Tag key={grain} style={{ margin: 0 }}>{grain}</Tag>
+                ))}
+              </div>
+            }
             placement="top"
           >
             <span style={{ cursor: 'help', borderBottom: '1px dotted #999' }}>
