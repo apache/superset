@@ -516,7 +516,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             allowClear
             allowNewOptions={!searchAllOptions && creatable !== false}
             allowSelectAll={!searchAllOptions}
-            value={filterState.value || []}
+            value={multiSelect ? filterState.value || [] : filterState.value}
             disabled={isDisabled}
             getPopupContainer={
               showOverflow
