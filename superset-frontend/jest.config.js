@@ -36,7 +36,13 @@ module.exports = {
     '^@apache-superset/core/(.*)$': '<rootDir>/packages/superset-core/src/$1',
   },
   testEnvironment: '<rootDir>/spec/helpers/jsDomWithFetchAPI.ts',
-  modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],
+  modulePathIgnorePatterns: [
+    '<rootDir>/packages/generator-superset',
+    '<rootDir>/packages/.*/esm',
+    '<rootDir>/packages/.*/lib',
+    '<rootDir>/plugins/.*/esm',
+    '<rootDir>/plugins/.*/lib',
+  ],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   snapshotSerializers: ['@emotion/jest/serializer'],
   testEnvironmentOptions: {
