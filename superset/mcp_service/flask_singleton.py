@@ -33,34 +33,47 @@ logger = logging.getLogger(__name__)
 logger.info("Creating Flask app instance for MCP service")
 
 try:
-    from superset.app import create_app
-    from superset.mcp_service.mcp_config import get_mcp_config
+    from superset.extensions import appbuilder
 
-    # Create a temporary context to avoid
-    # "Working outside of application context" errors.
-    _temp_app = create_app()
+    # Check if appbuilder is already initialized (main Superset app is running).
+    # If so, reuse that app to avoid corrupting the shared appbuilder singleton.
+    # Calling create_app() again would re-initialize appbuilder and break view endpoints.
+    if appbuilder.app is not None:
+        logger.info("Reusing existing Flask app from appbuilder for MCP service")
+        app = appbuilder.app
+    else:
+        from superset.app import create_app
+        from superset.mcp_service.mcp_config import get_mcp_config
 
-    # Push an application context and initialize core dependencies and extensions
-    with _temp_app.app_context():
-        # Apply MCP configuration - reads from app.config first, falls back to defaults
-        mcp_config = get_mcp_config(_temp_app.config)
-        _temp_app.config.update(mcp_config)
-        try:
-            from superset.initialization import SupersetAppInitializer
+        # Create a temporary context to avoid
+        # "Working outside of application context" errors.
+        _temp_app = create_app()
 
-            # Create initializer and run only dependency injection
-            # NOT the full init_app_in_ctx which includes web views
-            initializer = SupersetAppInitializer(_temp_app)
-            initializer.init_all_dependencies_and_extensions()
+        # Push an application context and initialize core dependencies and extensions
+        with _temp_app.app_context():
+            # Apply MCP configuration - reads from app.config first, falls back to defaults
+            mcp_config = get_mcp_config(_temp_app.config)
+            _temp_app.config.update(mcp_config)
+            try:
+                from superset.initialization import SupersetAppInitializer
 
-            logger.info("Core dependencies and extensions initialized for MCP service")
-        except Exception as e:
-            logger.warning("Failed to initialize dependencies for MCP service: %s", e)
+                # Create initializer and run only dependency injection
+                # NOT the full init_app_in_ctx which includes web views
+                initializer = SupersetAppInitializer(_temp_app)
+                initializer.init_all_dependencies_and_extensions()
 
-    # Store the app instance for later use
-    app = _temp_app
+                logger.info(
+                    "Core dependencies and extensions initialized for MCP service"
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to initialize dependencies for MCP service: %s", e
+                )
 
-    logger.info("Minimal Flask app instance created successfully for MCP service")
+        # Store the app instance for later use
+        app = _temp_app
+
+        logger.info("Minimal Flask app instance created successfully for MCP service")
 
 except Exception as e:
     logger.error("Failed to create Flask app: %s", e)
