@@ -176,8 +176,7 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
   const viewport = fd.viewport;
   if (viewport?.width && viewport?.height) {
     const estimatedCells =
-      (viewport.width / safeCellSize) *
-      (viewport.height / safeCellSize);
+      (viewport.width / safeCellSize) * (viewport.height / safeCellSize);
 
     if (estimatedCells > MAX_GRID_CELLS) {
       const scaleFactor = Math.sqrt(estimatedCells / MAX_GRID_CELLS);
