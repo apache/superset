@@ -89,11 +89,12 @@ stages:
 - stage: Deploy_blue_dev
   displayName: Deploy to blue-dev
   dependsOn: Build
+  variables:
+    - group: blue-dev-secret   # This loads the variable named "blue-dev-secret" from Key Vault
   
   jobs:
     - deployment: DeploySuperset
-      variables:
-        - group: blue-dev-secret   # contains BLUE_DEV_SECRET
+      displayName: Deploy Superset to blue-dev
       environment:
         name: ${{ parameters.targetEnvironment }}
         resourceType: VirtualMachine
@@ -111,17 +112,29 @@ stages:
               # -------------------------------------
               - task: PowerShell@2
                 displayName: 'Rehydrate & validate client config'
+                env:
+                  CLIENT_CONFIG: $(blue-dev-secret)  # Use the actual variable name from Key Vault
                 inputs:
                   pwsh: true
                   targetType: inline
                   script: |
                     Write-Host "=== Starting config rehydration ==="
                     
-                    # Get the secret variable
-                    $raw = $env:BLUE_DEV_SECRET
+                    # Get the secret variable - note the variable name matches Key Vault secret name
+                    $raw = $env:CLIENT_CONFIG
                     
+                    # Debug: Check if variable is set
                     if ([string]::IsNullOrEmpty($raw)) {
-                        throw "BLUE_DEV_SECRET is empty or not set"
+                        Write-Host "##[error]CLIENT_CONFIG (blue-dev-secret) is empty or not set"
+                        Write-Host "##[error]Checking available environment variables..."
+                        Get-ChildItem env: | Where-Object { 
+                            $_.Name -like "*secret*" -or 
+                            $_.Name -like "*config*" -or 
+                            $_.Name -like "*blue*" 
+                        } | ForEach-Object {
+                            Write-Host "  $($_.Name)"
+                        }
+                        throw "CLIENT_CONFIG (blue-dev-secret from Key Vault) is empty or not set"
                     }
                     
                     Write-Host "Retrieved config (length: $($raw.Length) chars)"
