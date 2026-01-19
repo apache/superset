@@ -38,14 +38,14 @@ try:
 
     # Check if appbuilder is already initialized (main Superset app is running).
     # If so, reuse that app to avoid corrupting the shared appbuilder singleton.
-    # Calling create_app() again would re-initialize appbuilder and break view endpoints.
+    # Calling create_app() again would re-initialize appbuilder and break views.
     if appbuilder.app is not None:
         logger.info("Reusing existing Flask app from appbuilder for MCP service")
         app = appbuilder.app
     else:
         # Create a minimal Flask app for standalone MCP server.
         # We avoid calling create_app() which would run full FAB initialization
-        # and could corrupt the shared appbuilder singleton if the main app starts later.
+        # and could corrupt the shared appbuilder singleton if main app starts.
         from superset.app import SupersetApp
         from superset.mcp_service.mcp_config import get_mcp_config
 
