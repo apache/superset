@@ -72,53 +72,17 @@ class URLPreviewStrategy(PreviewFormatStrategy):
     """Generate URL-based image preview."""
 
     def generate(self) -> URLPreview | ChartError:
-        try:
-            from flask import g
-
-            from superset.mcp_service.screenshot.pooled_screenshot import (
-                PooledChartScreenshot,
-            )
-            from superset.mcp_service.utils.url_utils import get_superset_base_url
-
-            # Check if chart.id is None
-            if self.chart.id is None:
-                return ChartError(
-                    error="Chart has no ID - cannot generate URL preview",
-                    error_type="InvalidChart",
-                )
-
-            # Use configured Superset base URL instead of Flask's url_for
-            # which may not respect SUPERSET_WEBSERVER_ADDRESS
-            base_url = get_superset_base_url()
-            chart_url = f"{base_url}/superset/slice/{self.chart.id}/"
-            screenshot = PooledChartScreenshot(chart_url, self.chart.digest)
-
-            window_size = (self.request.width or 800, self.request.height or 600)
-            image_data = screenshot.get_screenshot(user=g.user, window_size=window_size)
-
-            if image_data:
-                # Use the MCP service screenshot URL via centralized helper
-                from superset.mcp_service.utils.url_utils import (
-                    get_chart_screenshot_url,
-                )
-
-                preview_url = get_chart_screenshot_url(self.chart.id)
-
-                return URLPreview(
-                    preview_url=preview_url,
-                    width=self.request.width or 800,
-                    height=self.request.height or 600,
-                )
-            else:
-                return ChartError(
-                    error=f"Could not generate screenshot for chart {self.chart.id}",
-                    error_type="ScreenshotError",
-                )
-        except Exception as e:
-            logger.error("URL preview generation failed: %s", e)
-            return ChartError(
-                error=f"Failed to generate URL preview: {str(e)}", error_type="URLError"
-            )
+        # Screenshot-based URL previews are not supported.
+        # Users should use the explore_url to view the chart interactively,
+        # or use other preview formats like 'ascii', 'table', or 'vega_lite'.
+        return ChartError(
+            error=(
+                "URL-based screenshot previews are not supported. "
+                "Use the explore_url to view the chart interactively, "
+                "or try formats: 'ascii', 'table', or 'vega_lite'."
+            ),
+            error_type="UnsupportedFormat",
+        )
 
 
 # Base64 preview support removed - we never return base64 data
@@ -479,7 +443,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         except Exception as e:
             logger.warning("Error in field type analysis: %s", e)
             # Return nominal types for all fields as fallback
-            return {field: "nominal" for field in fields}
+            return dict.fromkeys(fields, "nominal")
 
         return field_types
 

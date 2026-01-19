@@ -38,10 +38,7 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartRequest,
 )
 from superset.mcp_service.utils.schema_utils import parse_request
-from superset.mcp_service.utils.url_utils import (
-    get_chart_screenshot_url,
-    get_superset_base_url,
-)
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -57,7 +54,6 @@ async def update_chart(
     IMPORTANT:
     - Chart must already be saved (from generate_chart with save_chart=True)
     - LLM clients MUST display updated chart URL to users
-    - Embed preview_url as image: ![Updated Chart](preview_url)
     - Use numeric ID or UUID string to identify the chart (NOT chart name)
     - MUST include chart_type in config (either 'xy' or 'table')
 
@@ -222,7 +218,6 @@ async def update_chart(
                 "data": (
                     f"{get_superset_base_url()}/api/v1/chart/{updated_chart.id}/data/"
                 ),
-                "preview": get_chart_screenshot_url(updated_chart.id),
                 "export": (
                     f"{get_superset_base_url()}/api/v1/chart/{updated_chart.id}/export/"
                 ),
