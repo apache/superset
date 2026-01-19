@@ -27,7 +27,11 @@ import {
   UnsavedChangesModal,
 } from '@superset-ui/core/components';
 import { AlteredSliceTag } from 'src/components';
-import { SupersetClient, isMatrixifyEnabled } from '@superset-ui/core';
+import {
+  SupersetClient,
+  isMatrixifyEnabled,
+  MatrixifyFormData,
+} from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
 import { css, t, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -293,7 +297,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
                 currentFormData={currentFormData as QueryFormData}
               />
             ) : null}
-            {formData && isMatrixifyEnabled(formData) && (
+            {formData && isMatrixifyEnabled(formData as MatrixifyFormData) && (
               <Tag name="Matrixified" color="purple" />
             )}
             {metadataBar}
