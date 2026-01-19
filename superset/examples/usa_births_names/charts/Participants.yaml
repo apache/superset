@@ -1,23 +1,7 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 cache_timeout: null
 certification_details: null
 certified_by: null
-dataset_uuid: 794691f9-51e9-4531-bb30-35cc756be1a6
+dataset_uuid: f1dc524d-a988-47f5-8860-9419410cc68c
 description: null
 params:
   compare_lag: '5'
@@ -32,6 +16,6 @@ params:
   viz_type: big_number
 query_context: null
 slice_name: Participants
-uuid: 39da6f90-d692-4d2a-9fcc-879088c1fe63
+uuid: 3817bbd9-bb9c-4310-afa0-249b742da773
 version: 1.0.0
 viz_type: big_number

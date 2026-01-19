@@ -1,19 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 certification_details: ''
 certified_by: ''
 css: ''
@@ -22,7 +6,19 @@ description: null
 metadata:
   chart_configuration: {}
   color_scheme: supersetAndPresetColors
-  color_scheme_domain: []
+  color_scheme_domain:
+  - '#004960'
+  - '#2893B3'
+  - '#20A7C9'
+  - '#5CC0DA'
+  - '#7DCDE1'
+  - '#A9D3E1'
+  - '#C6ECE1'
+  - '#AAE2D2'
+  - '#71CFB4'
+  - '#2FC096'
+  - '#178F7A'
+  - '#067162'
   cross_filters_enabled: true
   default_filters: '{}'
   expanded_slices: {}
@@ -31,14 +27,28 @@ metadata:
   map_label_colors: {}
   native_filter_configuration: []
   refresh_frequency: 0
-  shared_label_colors: []
+  shared_label_colors:
+  - '2003'
+  - '2004'
+  - '2005'
+  - Classic Cars
+  - Large
+  - Medium
+  - Motorcycles
+  - Planes
+  - Ships
+  - Small
+  - Trains
+  - Trucks and Buses
+  - Vintage Cars
+  - count
   timed_refresh_immune_slices: []
 position:
   CHART-2Z41H9ulKK:
     children: []
     id: CHART-2Z41H9ulKK
     meta:
-      chartId: 64
+      chartId: 95
       height: 50
       sliceName: Big Number with Trendline
       uuid: 281656a3-3d8d-4423-8b58-b050d59fadd9
@@ -52,7 +62,7 @@ position:
     children: []
     id: CHART-33vjmwrGX1
     meta:
-      chartId: 63
+      chartId: 88
       height: 50
       sliceName: Sunburst
       uuid: 47b26af7-19e0-4ca1-9cf6-b74b2f1f7e3c
@@ -66,7 +76,7 @@ position:
     children: []
     id: CHART-3tEC_8e-uS
     meta:
-      chartId: 56
+      chartId: 94
       height: 50
       sliceName: Table
       uuid: d0e7b367-f16f-4d7a-adde-7c7f455fa9bc
@@ -80,7 +90,7 @@ position:
     children: []
     id: CHART-4Zm6Q1VGY5
     meta:
-      chartId: 59
+      chartId: 110
       height: 50
       sliceName: Mixed
       uuid: bb394e7b-0cfc-47ba-b067-541964545752
@@ -94,7 +104,7 @@ position:
     children: []
     id: CHART-4iGGk_pxEN
     meta:
-      chartId: 61
+      chartId: 105
       height: 50
       sliceName: Big Number
       uuid: 5adc2abe-bfa3-4091-9838-4a470031208c
@@ -108,7 +118,7 @@ position:
     children: []
     id: CHART-A4qrvR24Ne
     meta:
-      chartId: 50
+      chartId: 111
       height: 50
       sliceName: Tree
       uuid: 57e7f05e-0c9a-4313-8a33-e6d0999824af
@@ -122,7 +132,7 @@ position:
     children: []
     id: CHART-AFzv0kyWG_
     meta:
-      chartId: 47
+      chartId: 103
       height: 50
       sliceName: Pie
       uuid: 02ed54c5-dc22-468c-9edf-729b5401b182
@@ -136,7 +146,7 @@ position:
     children: []
     id: CHART-CR0-igYucm
     meta:
-      chartId: 68
+      chartId: 108
       height: 50
       sliceName: Heatmap
       uuid: c99dbe37-50da-4067-837c-3a8e5b68aafd
@@ -150,7 +160,7 @@ position:
     children: []
     id: CHART-Df3UIo8Y9s
     meta:
-      chartId: 69
+      chartId: 107
       height: 50
       sliceName: Gantt
       uuid: c91c242e-ec16-43e4-84fd-1c69336e0a99
@@ -164,7 +174,7 @@ position:
     children: []
     id: CHART-DqaJJ8Fse6
     meta:
-      chartId: 53
+      chartId: 101
       height: 50
       sliceName: Treemap
       uuid: 36367ecc-e09a-4c9f-80df-5dbaf97f741f
@@ -178,7 +188,7 @@ position:
     children: []
     id: CHART-EpsTnvUMuW
     meta:
-      chartId: 66
+      chartId: 92
       height: 50
       sliceName: Line
       uuid: 79567e46-97f6-4cd2-8e98-4cd211389743
@@ -192,7 +202,7 @@ position:
     children: []
     id: CHART-Es5rxmzfgG
     meta:
-      chartId: 54
+      chartId: 90
       height: 50
       sliceName: Bar
       uuid: 7a37f7d8-6deb-4fd3-a150-01b0ff532dbd
@@ -206,7 +216,7 @@ position:
     children: []
     id: CHART-FVeZR4VUUl
     meta:
-      chartId: 46
+      chartId: 99
       height: 50
       sliceName: Box Plot
       uuid: cc8eea37-f890-4816-8df0-b1354d7cd553
@@ -220,7 +230,7 @@ position:
     children: []
     id: CHART-GoiTIYEOOF
     meta:
-      chartId: 49
+      chartId: 109
       height: 50
       sliceName: Bubble
       uuid: c2014499-6800-43f0-908f-a2633db3ade7
@@ -234,7 +244,7 @@ position:
     children: []
     id: CHART-KE7lk61Tbt
     meta:
-      chartId: 62
+      chartId: 89
       height: 50
       sliceName: Word Cloud
       uuid: d3967f7d-58ea-43fe-9961-7e061affdb1c
@@ -248,7 +258,7 @@ position:
     children: []
     id: CHART-SjTqfJNmup
     meta:
-      chartId: 55
+      chartId: 91
       height: 50
       sliceName: Graph
       uuid: be39bc2e-00c0-498b-96bf-858fe2361a89
@@ -262,7 +272,7 @@ position:
     children: []
     id: CHART-XwFZukVv8E
     meta:
-      chartId: 57
+      chartId: 112
       height: 50
       sliceName: Waterfall
       uuid: 97c77c60-0613-4066-aec7-a9c6a75ad8d8
@@ -276,7 +286,7 @@ position:
     children: []
     id: CHART-Yi0u5d9otw
     meta:
-      chartId: 60
+      chartId: 104
       height: 50
       sliceName: Sankey
       uuid: fead4d46-ecb9-4fd9-8b9c-420629269c02
@@ -290,7 +300,7 @@ position:
     children: []
     id: CHART-Z3IKOwHAnY
     meta:
-      chartId: 65
+      chartId: 96
       height: 50
       sliceName: Area
       uuid: 946cccb5-2101-44f5-98f8-501789a333cd
@@ -304,7 +314,7 @@ position:
     children: []
     id: CHART-gfrGP3BD76
     meta:
-      chartId: 58
+      chartId: 106
       height: 50
       sliceName: Funnel
       uuid: 7b90545c-1aac-447d-9175-a49f508f699d
@@ -318,7 +328,7 @@ position:
     children: []
     id: CHART-j2o9aZo4HY
     meta:
-      chartId: 67
+      chartId: 100
       height: 50
       sliceName: Scatter Plot
       uuid: 5b629855-f912-4e28-8444-56b9db83e5b3
@@ -332,7 +342,7 @@ position:
     children: []
     id: CHART-jC2_mEgWeL
     meta:
-      chartId: 48
+      chartId: 98
       height: 50
       sliceName: Gauge
       uuid: 57ccf0f1-d28a-4127-9581-7153c5a15b62
@@ -346,7 +356,7 @@ position:
     children: []
     id: CHART-jzyy9Sa3pS
     meta:
-      chartId: 52
+      chartId: 93
       height: 50
       sliceName: Pivot Table
       uuid: fcf2a0cf-0079-4f59-854f-d28297b07bf0
@@ -360,7 +370,7 @@ position:
     children: []
     id: CHART-qZh51tuuRH
     meta:
-      chartId: 51
+      chartId: 102
       height: 50
       sliceName: Radar
       uuid: 1be00870-89b8-4ba0-a451-1fe56ef89581
@@ -374,7 +384,7 @@ position:
     children: []
     id: CHART-t5t_tQe43g
     meta:
-      chartId: 70
+      chartId: 97
       height: 50
       sliceName: Histogram
       uuid: 2a89c19d-d0d2-4f5e-9007-e0fb65440e80

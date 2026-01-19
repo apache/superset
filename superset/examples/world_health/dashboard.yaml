@@ -1,19 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 certification_details: null
 certified_by: null
 css: null
@@ -31,7 +15,14 @@ metadata:
   map_label_colors: {}
   native_filter_configuration: []
   refresh_frequency: 0
-  shared_label_colors: []
+  shared_label_colors:
+  - East Asia & Pacific
+  - Europe & Central Asia
+  - Latin America & Caribbean
+  - Middle East & North Africa
+  - North America
+  - South Asia
+  - Sub-Saharan Africa
   timed_refresh_immune_slices: []
 position:
   CHART-0fd0d252:
@@ -41,7 +32,7 @@ position:
       chartId: 5
       height: 50
       sliceName: Life Expectancy VS Rural %
-      uuid: 45c636a5-bdfb-4153-a566-7cac71ace57e
+      uuid: 12ab0ea8-303f-42ae-b6ac-ad70ebbf3283
       width: 8
     type: CHART
   CHART-17e0f8d8:
@@ -51,7 +42,7 @@ position:
       chartId: 2
       height: 92
       sliceName: Most Populated Countries
-      uuid: 59336a75-ec51-48f3-99cd-a489cb4f117f
+      uuid: 4794cf92-ae2f-40e0-aab3-ac2b32d25890
       width: 3
     type: CHART
   CHART-2d5b6871:
@@ -61,7 +52,7 @@ position:
       chartId: 4
       height: 52
       sliceName: '% Rural'
-      uuid: b977d11c-f8f5-4f5a-a1d8-6fee9daab115
+      uuid: 91ca6ea2-4a08-4633-b98f-7b48f448af52
       width: 7
     type: CHART
   CHART-2ee52f30:
@@ -71,7 +62,7 @@ position:
       chartId: 3
       height: 38
       sliceName: Growth Rate
-      uuid: 2213ba90-69c5-4622-bff7-958390c607c6
+      uuid: 352d4760-26af-48eb-9741-defbc6d987ca
       width: 6
     type: CHART
   CHART-37982887:
@@ -81,7 +72,7 @@ position:
       chartId: 1
       height: 52
       sliceName: World's Population
-      uuid: 6dbb9e8d-a93b-4727-b8f7-0415efa65386
+      uuid: aeb9746f-10c3-47d2-83f1-4c064cc4e80c
       width: 2
     type: CHART
   CHART-97f4cb48:
@@ -91,7 +82,7 @@ position:
       chartId: 6
       height: 38
       sliceName: Rural Breakdown
-      uuid: 16139c6a-489d-4b6d-92ed-745777ee61ec
+      uuid: 74681dd9-10e6-439b-bd12-1f85bae2e864
       width: 3
     type: CHART
   CHART-a4808bba:
@@ -101,7 +92,7 @@ position:
       chartId: 9
       height: 50
       sliceName: Treemap
-      uuid: 7c14eec4-d072-44bd-aad7-e229757c5fd6
+      uuid: 71307f0a-87b6-44f8-8180-30efa01d4cb1
       width: 8
     type: CHART
   CHART-b5e05d6f:
@@ -111,7 +102,7 @@ position:
       chartId: 7
       height: 50
       sliceName: World's Pop Growth
-      uuid: b3d9beb1-dd34-40e0-b537-ae14e1aa3225
+      uuid: d8731aac-eb57-4b2e-9f22-14476630a282
       width: 4
     type: CHART
   CHART-e76e9f5f:
@@ -121,7 +112,7 @@ position:
       chartId: 8
       height: 50
       sliceName: Box plot
-      uuid: 863302a2-d35d-44af-a194-a63ef8067868
+      uuid: c7cff0dc-4e35-4cde-85fa-29bc7a587685
       width: 4
     type: CHART
   COLUMN-071bbbad:
@@ -201,5 +192,5 @@ position:
     type: ROW
 published: true
 slug: world_health
-uuid: 559ea2f4-140a-430a-8332-3f2b7e5472be
+uuid: 9d2aa93e-f8ba-4ccd-a9c2-45aa2f2e3359
 version: 1.0.0

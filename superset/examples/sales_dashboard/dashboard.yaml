@@ -1,19 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 certification_details: ''
 certified_by: ''
 css: ''
@@ -427,7 +411,7 @@ position:
     children: []
     id: CHART-1NOOLm5YPs
     meta:
-      chartId: 90
+      chartId: 41
       height: 25
       sliceName: Items Sold
       sliceNameOverride: Total Products Sold
@@ -444,7 +428,7 @@ position:
     children: []
     id: CHART-AYpv8gFi_q
     meta:
-      chartId: 82
+      chartId: 42
       height: 70
       sliceName: Number of Deals (for each Combination)
       uuid: bd20fc69-dd51-46c1-99b5-09e37a434bf1
@@ -459,7 +443,7 @@ position:
     children: []
     id: CHART-KKT9BsnUst
     meta:
-      chartId: 87
+      chartId: 45
       height: 50
       sliceName: Quarterly Sales (By Product Line)
       sliceNameOverride: Quarterly Revenue (By Product Line)
@@ -475,7 +459,7 @@ position:
     children: []
     id: CHART-OJ9aWDmn1q
     meta:
-      chartId: 88
+      chartId: 46
       height: 70
       sliceName: Proportion of Revenue by Product Line
       sliceNameOverride: Proportion of Monthly Revenue by Product Line
@@ -491,7 +475,7 @@ position:
     children: []
     id: CHART-YFg-9wHE7s
     meta:
-      chartId: 85
+      chartId: 47
       height: 49
       sliceName: Seasonality of Revenue (per Product Line)
       uuid: cf0da099-b3ab-4d94-ab62-cf353ac3c611
@@ -506,7 +490,7 @@ position:
     children: []
     id: CHART-_LMKI0D3tj
     meta:
-      chartId: 86
+      chartId: 44
       height: 49
       sliceName: Revenue by Deal Size
       sliceNameOverride: Monthly Revenue by Deal SIze
@@ -522,7 +506,7 @@ position:
     children: []
     id: CHART-id4RGv80N-
     meta:
-      chartId: 83
+      chartId: 40
       height: 50
       sliceName: Items by Product Line
       sliceNameOverride: Products Sold By Product Line
@@ -539,7 +523,7 @@ position:
     children: []
     id: CHART-j24u8ve41b
     meta:
-      chartId: 91
+      chartId: 43
       height: 50
       sliceName: Overall Sales (By Product Line)
       sliceNameOverride: Total Revenue By Product
@@ -555,7 +539,7 @@ position:
     children: []
     id: CHART-lFanAaYKBK
     meta:
-      chartId: 89
+      chartId: 39
       height: 26
       sliceName: Total Revenue
       uuid: 7b12a243-88e0-4dc5-ac33-9a840bb0ac5a
@@ -571,7 +555,7 @@ position:
     children: []
     id: CHART-vomBOiI7U9
     meta:
-      chartId: 84
+      chartId: 48
       height: 53
       sliceName: Quarterly Sales
       sliceNameOverride: Quarterly Revenue

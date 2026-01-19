@@ -1,32 +1,24 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-certification_details: null
-certified_by: null
-css: null
+certification_details: ''
+certified_by: ''
+css: ''
 dashboard_title: Misc Charts
 description: null
 metadata:
   chart_configuration: {}
   color_scheme: ''
   color_scheme_domain: []
-  cross_filters_enabled: false
+  cross_filters_enabled: true
   default_filters: '{}'
   expanded_slices: {}
-  global_chart_configuration: {}
+  global_chart_configuration:
+    chartsInScope:
+    - 9fd9ed3b-52b2-4c5f-b1e5-cad375af286d
+    - b1286583-f6cb-4956-ba3a-a3a7fbe8d47e
+    - 19907ede-27ed-4a9e-b0ae-3b3d2db40b1d
+    scope:
+      excluded: []
+      rootPath:
+      - ROOT_ID
   label_colors: {}
   map_label_colors: {}
   native_filter_configuration: []
@@ -34,21 +26,6 @@ metadata:
   shared_label_colors: []
   timed_refresh_immune_slices: []
 position:
-  CHART-HJOYVMV0E7:
-    children: []
-    id: CHART-HJOYVMV0E7
-    meta:
-      chartId: 30
-      height: 69
-      sliceName: OSM Long/Lat
-      uuid: ac40df8c-d95b-4c0b-8c2b-8aeeffe588e9
-      width: 4
-    parents:
-    - ROOT_ID
-    - GRID_ID
-    - ROW-S1MK4M4A4X
-    - COLUMN-ByUFVf40EQ
-    type: CHART
   CHART-S1WYNz4AVX:
     children: []
     id: CHART-S1WYNz4AVX
@@ -56,12 +33,26 @@ position:
       chartId: 10
       height: 69
       sliceName: Parallel Coordinates
-      uuid: e7e7c711-8dd2-4e50-a8eb-2ee4ae7e13d1
+      uuid: 9fd9ed3b-52b2-4c5f-b1e5-cad375af286d
       width: 4
     parents:
     - ROOT_ID
     - GRID_ID
     - ROW-SytNzNA4X
+    type: CHART
+  CHART-explore-122-1:
+    children: []
+    id: CHART-explore-122-1
+    meta:
+      chartId: 122
+      height: 69
+      sliceName: Unicode Cloud
+      uuid: 19907ede-27ed-4a9e-b0ae-3b3d2db40b1d
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-GhyWm6Q7gqfzBCuxsiKGr
     type: CHART
   CHART-rkgF4G4A4X:
     children: []
@@ -70,7 +61,7 @@ position:
       chartId: 31
       height: 69
       sliceName: Birth in France by department in 2016
-      uuid: f5a6cebe-8857-4433-9563-11203197adb7
+      uuid: b1286583-f6cb-4956-ba3a-a3a7fbe8d47e
       width: 4
     parents:
     - ROOT_ID
@@ -99,7 +90,7 @@ position:
     children:
     - CHART-rkgF4G4A4X
     - CHART-S1WYNz4AVX
-    - CHART-HJOYVMV0E7
+    - CHART-explore-122-1
     id: ROW-SytNzNA4X
     meta:
       background: BACKGROUND_TRANSPARENT
@@ -109,5 +100,5 @@ position:
     type: ROW
 published: false
 slug: misc_charts
-uuid: 9ed921dc-45e2-4b22-b248-be73b3a173c6
+uuid: 35b68b8a-d195-4567-a30d-c4251d3246e2
 version: 1.0.0

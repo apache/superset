@@ -1,19 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 certification_details: ''
 certified_by: ''
 css: ''
@@ -83,14 +67,15 @@ metadata:
   map_label_colors: {}
   native_filter_configuration: []
   refresh_frequency: 0
-  shared_label_colors: []
+  shared_label_colors:
+  - count
   timed_refresh_immune_slices: []
 position:
   CHART-7mKdnU7OUJ:
     children: []
     id: CHART-7mKdnU7OUJ
     meta:
-      chartId: 79
+      chartId: 57
       height: 55
       sliceName: Games per Genre
       uuid: 0499bdec-0837-44f3-ae8a-8c670de81afd
@@ -105,7 +90,7 @@ position:
     children: []
     id: CHART-8OG3UJX-Tn
     meta:
-      chartId: 78
+      chartId: 65
       height: 54
       sliceName: '# of Games That Hit 100k in Sales By Release Year'
       sliceNameOverride: 'Top 10 Consoles, by # of Hit Games'
@@ -121,7 +106,7 @@ position:
     children: []
     id: CHART-W02beJK7ms
     meta:
-      chartId: 71
+      chartId: 60
       height: 54
       sliceName: Publishers With Most Titles
       sliceNameOverride: Top 10 Games (by Global Sales)
@@ -137,7 +122,7 @@ position:
     children: []
     id: CHART-XFag0yZdLk
     meta:
-      chartId: 77
+      chartId: 59
       height: 54
       sliceName: Most Dominant Platforms
       sliceNameOverride: Publishers of Top 25 Games
@@ -153,7 +138,7 @@ position:
     children: []
     id: CHART-XRvRfsMsaQ
     meta:
-      chartId: 75
+      chartId: 61
       height: 62
       sliceName: 'Top 10 Games: Proportion of Sales in Markets'
       uuid: a40879d5-653a-42fe-9314-bbe88ad26e92
@@ -168,7 +153,7 @@ position:
     children: []
     id: CHART-XVIYTeubZh
     meta:
-      chartId: 80
+      chartId: 62
       height: 80
       sliceName: Games
       uuid: 2a5e562b-ab37-1b9b-1de3-1be4335c8e83
@@ -183,7 +168,7 @@ position:
     children: []
     id: CHART-_sx22yawJO
     meta:
-      chartId: 72
+      chartId: 58
       height: 62
       sliceName: Popular Genres Across Platforms
       uuid: 326fc7e5-b7f1-448e-8a6f-80d0e7ce0b64
@@ -198,7 +183,7 @@ position:
     children: []
     id: CHART-nYns6xr4Ft
     meta:
-      chartId: 76
+      chartId: 64
       height: 80
       sliceName: Total Sales per Market (Grouped by Genre)
       uuid: d8bf948e-46fd-4380-9f9c-a950c34bcc92

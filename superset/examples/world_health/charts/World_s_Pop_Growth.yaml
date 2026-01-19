@@ -1,23 +1,7 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 cache_timeout: null
 certification_details: null
 certified_by: null
-dataset_uuid: 2c6e1db3-3f2f-44c5-8794-4b4300266a8b
+dataset_uuid: 69935018-2dcf-489a-8147-83e68926c88d
 description: null
 params:
   compare_lag: '10'
@@ -39,6 +23,6 @@ params:
   viz_type: echarts_area
 query_context: null
 slice_name: World's Pop Growth
-uuid: b3d9beb1-dd34-40e0-b537-ae14e1aa3225
+uuid: d8731aac-eb57-4b2e-9f22-14476630a282
 version: 1.0.0
 viz_type: echarts_area

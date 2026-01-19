@@ -1,19 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 certification_details: null
 certified_by: null
 css: null
@@ -41,7 +25,7 @@ position:
       chartId: 34
       height: 50
       sliceName: Deck.gl Hexagons
-      uuid: 5d4136ae-6900-4517-a1c0-f94a1b8bc839
+      uuid: a4b93a46-4c28-4fe8-9e0c-fb0c6157acac
       width: 6
     type: CHART
   CHART-2673431d:
@@ -51,7 +35,7 @@ position:
       chartId: 36
       height: 50
       sliceName: Deck.gl Polygons
-      uuid: 28b564aa-2a8d-480a-8ca6-5b5ad7cc83f8
+      uuid: 498c3651-dfe8-49e4-8f2c-6a6114b37af5
       width: 6
     type: CHART
   CHART-2b87513c:
@@ -61,7 +45,7 @@ position:
       chartId: 38
       height: 50
       sliceName: Deck.gl Path
-      uuid: 8e500e21-2432-4c5e-a438-1f48a11ac03d
+      uuid: 631b9f42-cb73-4368-9197-9a65e4d90c8c
       width: 6
     type: CHART
   CHART-2ee7fa5e:
@@ -71,7 +55,7 @@ position:
       chartId: 33
       height: 50
       sliceName: Deck.gl Screen grid
-      uuid: 37d85a65-980e-4e01-b3f4-4576367d0d8d
+      uuid: 76d8bcca-c27e-440e-9601-337c86642709
       width: 6
     type: CHART
   CHART-3afd9d70:
@@ -81,7 +65,7 @@ position:
       chartId: 32
       height: 50
       sliceName: Deck.gl Scatterplot
-      uuid: 18f874a7-a093-49cc-8ac5-fa04f73054e6
+      uuid: 567412de-5bb2-43e2-b79a-9c03658106a0
       width: 6
     type: CHART
   CHART-85265a60:
@@ -91,7 +75,7 @@ position:
       chartId: 37
       height: 50
       sliceName: Deck.gl Arcs
-      uuid: 1b55c712-e7ef-45b2-8d17-112b6aa37a40
+      uuid: f10e6064-9b20-45f2-9411-97aac5a53e59
       width: 6
     type: CHART
   CHART-d02f6c40:
@@ -101,7 +85,7 @@ position:
       chartId: 35
       height: 50
       sliceName: Deck.gl Grid
-      uuid: 3b3fb27c-ec65-41a6-9f8a-c832d76bafcb
+      uuid: b3cf1dbd-2b70-4db6-8a71-ae973cfadc39
       width: 6
     type: CHART
   DASHBOARD_VERSION_KEY: v2
@@ -156,5 +140,5 @@ position:
     type: ROW
 published: true
 slug: deck
-uuid: 9636033a-094e-4ed2-8d45-a5e4778cc626
+uuid: 2fae560d-de94-4929-a6b5-da038ac0140e
 version: 1.0.0

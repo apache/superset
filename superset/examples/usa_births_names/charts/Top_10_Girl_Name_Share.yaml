@@ -1,23 +1,7 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 cache_timeout: null
 certification_details: null
 certified_by: null
-dataset_uuid: 794691f9-51e9-4531-bb30-35cc756be1a6
+dataset_uuid: f1dc524d-a988-47f5-8860-9419410cc68c
 description: null
 params:
   adhoc_filters:
@@ -50,6 +34,6 @@ params:
   x_axis_forma: smart_date
 query_context: null
 slice_name: Top 10 Girl Name Share
-uuid: 9d4f7cb6-e193-435b-909a-0b801c2ff664
+uuid: 28f36cf3-2ab9-47a4-b324-c3bc084fb0d4
 version: 1.0.0
 viz_type: echarts_area

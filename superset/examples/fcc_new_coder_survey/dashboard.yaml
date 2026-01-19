@@ -1,19 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 certification_details: ''
 certified_by: ''
 css: ''
@@ -22,7 +6,27 @@ description: null
 metadata:
   chart_configuration: {}
   color_scheme: supersetColors
-  color_scheme_domain: []
+  color_scheme_domain:
+  - '#1FA8C9'
+  - '#454E7C'
+  - '#5AC189'
+  - '#FF7F44'
+  - '#666666'
+  - '#E04355'
+  - '#FCC700'
+  - '#A868B7'
+  - '#3CCCCB'
+  - '#A38F79'
+  - '#8FD3E4'
+  - '#A1A6BD'
+  - '#ACE1C4'
+  - '#FEC0A1'
+  - '#B2B2B2'
+  - '#EFA1AA'
+  - '#FDE380'
+  - '#D3B3DA'
+  - '#9EE5E5'
+  - '#D1C6BC'
   cross_filters_enabled: false
   default_filters: '{}'
   expanded_slices: {}
@@ -69,14 +73,20 @@ metadata:
   map_label_colors: {}
   native_filter_configuration: []
   refresh_frequency: 0
-  shared_label_colors: []
+  shared_label_colors:
+  - Female
+  - Male
+  - No Answer
+  - No, not an ethnic minority
+  - Prefer not to say
+  - Yes, an ethnic minority
   timed_refresh_immune_slices: []
 position:
   CHART--0GPGmD-pO:
     children: []
     id: CHART--0GPGmD-pO
     meta:
-      chartId: 105
+      chartId: 86
       height: 56
       sliceName: 'Current Developers: Is this your first development job?'
       sliceNameOverride: Is this your first development job?
@@ -93,7 +103,7 @@ position:
     children: []
     id: CHART--w_Br1tPP3
     meta:
-      chartId: 99
+      chartId: 76
       height: 51
       sliceName: ✈️ Relocation ability
       uuid: a6dd2d5a-2cdc-c8ec-f30c-85920f4f8a65
@@ -109,7 +119,7 @@ position:
     children: []
     id: CHART-0-zzTwBINh
     meta:
-      chartId: 95
+      chartId: 75
       height: 55
       sliceName: Last Year Income Distribution
       uuid: a2ec5256-94b4-43c4-b8c7-b83f70c5d4df
@@ -125,7 +135,7 @@ position:
     children: []
     id: CHART-37fu7fO6Z0
     meta:
-      chartId: 107
+      chartId: 85
       height: 69
       sliceName: Degrees vs Income
       uuid: 02f546ae-1bf4-bd26-8bc2-14b9279c8a62
@@ -141,7 +151,7 @@ position:
     children: []
     id: CHART-5QwNlSbXYU
     meta:
-      chartId: 96
+      chartId: 81
       height: 69
       sliceName: Commute Time
       uuid: 097c05c9-2dd2-481d-813d-d6c0c12b4a3d
@@ -157,7 +167,7 @@ position:
     children: []
     id: CHART-FKuVqq4kaA
     meta:
-      chartId: 112
+      chartId: 77
       height: 50
       sliceName: Work Location Preference
       sliceNameOverride: Work Location Preference
@@ -174,7 +184,7 @@ position:
     children: []
     id: CHART-JnpdZOhVer
     meta:
-      chartId: 97
+      chartId: 68
       height: 50
       sliceName: Highest degree held
       uuid: 9f7d2b9c-6b3a-69f9-f03e-d3a141514639
@@ -191,7 +201,7 @@ position:
     children: []
     id: CHART-LjfhrUkEef
     meta:
-      chartId: 94
+      chartId: 78
       height: 68
       sliceName: First Time Developer & Commute Time
       uuid: 067c4a1e-ae03-4c0c-8e2a-d2c0f4bf43c3
@@ -207,7 +217,7 @@ position:
     children: []
     id: CHART-Q3pbwsH3id
     meta:
-      chartId: 93
+      chartId: 74
       height: 50
       sliceName: Are you an ethnic minority in your city?
       sliceNameOverride: Minority Status (in their city)
@@ -224,7 +234,7 @@ position:
     children: []
     id: CHART-QVql08s5Bv
     meta:
-      chartId: 100
+      chartId: 84
       height: 56
       sliceName: First Time Developer?
       uuid: edc75073-8f33-4123-a28d-cd6dfb33cade
@@ -240,7 +250,7 @@ position:
     children: []
     id: CHART-UtSaz4pfV6
     meta:
-      chartId: 102
+      chartId: 82
       height: 50
       sliceName: Age distribution of respondents
       uuid: 5f1ea868-604e-f69d-a241-5daa83ff33be
@@ -257,7 +267,7 @@ position:
     children: []
     id: CHART-VvFbGxi3X_
     meta:
-      chartId: 103
+      chartId: 71
       height: 62
       sliceName: Top 15 Languages Spoken at Home
       uuid: 03a74c97-52fc-cf87-233c-d4275f8c550c
@@ -274,7 +284,7 @@ position:
     children: []
     id: CHART-XHncHuS5pZ
     meta:
-      chartId: 109
+      chartId: 79
       height: 41
       sliceName: Number of Aspiring Developers
       sliceNameOverride: What type of work would you prefer?
@@ -291,7 +301,7 @@ position:
     children: []
     id: CHART-YSzS5GOOLf
     meta:
-      chartId: 108
+      chartId: 80
       height: 54
       sliceName: Ethnic Minority & Gender
       uuid: 4880e4f4-b701-4be0-86f3-e7e89432e83b
@@ -307,7 +317,7 @@ position:
     children: []
     id: CHART-ZECnzPz8Bi
     meta:
-      chartId: 101
+      chartId: 72
       height: 74
       sliceName: Location of Current Developers
       uuid: 5596e0f6-78a9-465d-8325-7139c794a06a
@@ -323,7 +333,7 @@ position:
     children: []
     id: CHART-aytwlT4GAq
     meta:
-      chartId: 104
+      chartId: 69
       height: 30
       sliceName: Breakdown of Developer Type
       uuid: b8386be8-f44e-6535-378c-2aa2ba461286
@@ -339,7 +349,7 @@ position:
     children: []
     id: CHART-fLpTSAHpAO
     meta:
-      chartId: 110
+      chartId: 87
       height: 118
       sliceName: Country of Citizenship
       uuid: 2ba66056-a756-d6a3-aaec-0c243fb7062e
@@ -355,7 +365,7 @@ position:
     children: []
     id: CHART-lQVSAw0Or3
     meta:
-      chartId: 106
+      chartId: 83
       height: 100
       sliceName: How do you prefer to work?
       sliceNameOverride: Preferred Employment Style vs Degree
@@ -372,7 +382,7 @@ position:
     children: []
     id: CHART-o-JPAWMZK-
     meta:
-      chartId: 111
+      chartId: 70
       height: 50
       sliceName: Gender
       uuid: 0f6b447c-828c-e71c-87ac-211bc412b214
@@ -388,7 +398,7 @@ position:
     children: []
     id: CHART-v22McUFMtx
     meta:
-      chartId: 98
+      chartId: 67
       height: 52
       sliceName: How much do you expect to earn? ($0 - 100k)
       sliceNameOverride: 💲Expected Income (excluding outliers)
@@ -406,7 +416,7 @@ position:
     children: []
     id: CHART-wxWVtlajRF
     meta:
-      chartId: 92
+      chartId: 73
       height: 104
       sliceName: Preferred Employment Style
       uuid: bff88053-ccc4-92f2-d6f5-de83e950e8cd

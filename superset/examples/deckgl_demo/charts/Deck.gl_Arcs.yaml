@@ -1,23 +1,7 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 cache_timeout: null
 certification_details: null
 certified_by: null
-dataset_uuid: bbb0f892-b1ea-424c-8fe6-7b101e196f46
+dataset_uuid: e4bb97f4-4686-4476-8297-48583f0361a3
 description: null
 params:
   color_picker:
@@ -59,6 +43,6 @@ params:
   viz_type: deck_arc
 query_context: null
 slice_name: Deck.gl Arcs
-uuid: 1b55c712-e7ef-45b2-8d17-112b6aa37a40
+uuid: f10e6064-9b20-45f2-9411-97aac5a53e59
 version: 1.0.0
 viz_type: deck_arc
