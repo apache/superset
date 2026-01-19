@@ -120,6 +120,15 @@ const GridRow = styled.div<{ editMode: boolean }>`
     &.grid-row--empty {
       min-height: ${theme.sizeUnit * 25}px;
     }
+
+    @media (max-width: 767px) {
+      flex-direction: column;
+
+      & > :not(.hover-menu) {
+        width: 100% !important;
+        margin-right: 0 !important;
+      }
+    }
   `}
 `;
 

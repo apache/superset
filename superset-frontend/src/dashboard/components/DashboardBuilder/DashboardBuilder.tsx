@@ -23,7 +23,13 @@ import { t } from '@apache-superset/core';
 import { addAlpha, JsonObject, useElementOnScreen } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
-import { EmptyState, Loading } from '@superset-ui/core/components';
+import {
+  Button,
+  Drawer,
+  EmptyState,
+  Grid,
+  Loading,
+} from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
@@ -364,6 +370,8 @@ const DashboardBuilder = () => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const theme = useTheme();
+  const { md: isNotMobile } = Grid.useBreakpoint();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const dashboardId = useSelector<RootState, string>(
     ({ dashboardInfo }) => `${dashboardInfo.id}`,
@@ -454,13 +462,14 @@ const DashboardBuilder = () => {
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
+    hasFilters,
   } = useNativeFilters();
 
   const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>(
     ELEMENT_ON_SCREEN_OPTIONS,
   );
 
-  const showFilterBar = !editMode && nativeFiltersEnabled;
+  const showFilterBar = isNotMobile && !editMode && nativeFiltersEnabled;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
@@ -472,6 +481,7 @@ const DashboardBuilder = () => {
   const draggableStyle = useMemo(
     () => ({
       marginLeft:
+        !isNotMobile ||
         dashboardFiltersOpen ||
         editMode ||
         !nativeFiltersEnabled ||
@@ -480,6 +490,7 @@ const DashboardBuilder = () => {
           : -32,
     }),
     [
+      isNotMobile,
       dashboardFiltersOpen,
       editMode,
       filterBarOrientation,
@@ -511,7 +522,15 @@ const DashboardBuilder = () => {
   const renderDraggableContent = useCallback(
     ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
       <div>
-        {!hideDashboardHeader && <DashboardHeader />}
+        {!hideDashboardHeader && (
+          <DashboardHeader
+            onOpenMobileFilters={
+              !isNotMobile && nativeFiltersEnabled && hasFilters
+                ? () => setMobileFiltersOpen(true)
+                : undefined
+            }
+          />
+        )}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <FilterBar
@@ -549,6 +568,7 @@ const DashboardBuilder = () => {
     ),
     [
       nativeFiltersEnabled,
+      hasFilters,
       filterBarOrientation,
       editMode,
       handleChangeTab,
@@ -557,6 +577,8 @@ const DashboardBuilder = () => {
       isReport,
       topLevelTabs,
       uiConfig.hideNav,
+      isNotMobile,
+      theme,
     ],
   );
 
@@ -718,6 +740,89 @@ const DashboardBuilder = () => {
             }
           `}
         />
+      )}
+      {/* Mobile filters drawer */}
+      {!isNotMobile && nativeFiltersEnabled && (
+        <Drawer
+          title={t('Filters')}
+          placement="left"
+          onClose={() => setMobileFiltersOpen(false)}
+          open={mobileFiltersOpen}
+          width="85vw"
+          styles={{
+            body: {
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            },
+          }}
+          css={css`
+            /* Mobile filter drawer overrides */
+
+            /* Hide the Header component (contains Actions title, settings, collapse button) */
+            /* Target the parent div that contains the collapse button using :has() */
+            div:has([data-test='filter-bar-collapse-button']) {
+              display: none !important;
+            }
+
+            /* Hide the collapsed bar */
+            [data-test='filter-bar-collapsable'] {
+              display: none !important;
+            }
+
+            /* Action buttons: side by side, not fixed position */
+            [data-test='filterbar-action-buttons'] {
+              position: relative !important;
+              flex-direction: row !important;
+              width: 100% !important;
+              padding: ${theme.sizeUnit * 4}px !important;
+              background: ${theme.colorBgContainer} !important;
+              border-top: 1px solid ${theme.colorBorderSecondary} !important;
+              gap: ${theme.sizeUnit * 2}px !important;
+              bottom: auto !important;
+              left: auto !important;
+
+              .filter-apply-button {
+                margin-bottom: 0 !important;
+                flex: 1;
+              }
+              .filter-clear-all-button {
+                flex: 1;
+              }
+            }
+
+            /* Remove border-right and make full width */
+            [data-test='filter-bar'] {
+              position: relative;
+              width: 100% !important;
+              height: 100%;
+              border-right: none;
+
+              & > .open {
+                position: relative;
+                width: 100% !important;
+                height: 100%;
+                min-height: 100%;
+                border-right: none !important;
+                border-bottom: none !important;
+                display: flex;
+                flex-direction: column;
+              }
+            }
+          `}
+        >
+          <FilterBar
+            orientation={FilterBarOrientation.Vertical}
+            verticalConfig={{
+              filtersOpen: true,
+              toggleFiltersBar: () => {},
+              width: 300,
+              height: '100%',
+              offset: 0,
+            }}
+            hidden={false}
+          />
+        </Drawer>
       )}
     </DashboardWrapper>
   );
