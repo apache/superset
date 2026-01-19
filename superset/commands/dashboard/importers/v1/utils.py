@@ -75,7 +75,9 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     metadata = fixed.get("metadata", {})
     if "timed_refresh_immune_slices" in metadata:
         metadata["timed_refresh_immune_slices"] = [
-            id_map[old_id] for old_id in metadata["timed_refresh_immune_slices"]
+            id_map[old_id]
+            for old_id in metadata["timed_refresh_immune_slices"]
+            if old_id in id_map
         ]
 
     if "filter_scopes" in metadata:
@@ -100,6 +102,7 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
         metadata["expanded_slices"] = {
             str(id_map[int(old_id)]): value
             for old_id, value in metadata["expanded_slices"].items()
+            if int(old_id) in id_map
         }
 
     if "default_filters" in metadata:
