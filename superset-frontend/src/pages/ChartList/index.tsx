@@ -25,7 +25,7 @@ import {
   SupersetClient,
   isMatrixifyEnabled,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/ui';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
@@ -386,7 +386,9 @@ function ChartList(props: ChartListProps) {
               <Tag
                 name="Matrixify"
                 color="purple"
-                style={{ marginLeft: 8 }}
+                css={theme => css`
+                  margin-left: ${theme.marginXS}px;
+                `}
               />
             )}
           </>
