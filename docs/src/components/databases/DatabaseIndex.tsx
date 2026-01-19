@@ -49,6 +49,11 @@ interface TableEntry {
   supports_dynamic_schema?: boolean;
   supports_catalog?: boolean;
   ssh_tunneling?: boolean;
+  supports_file_upload?: boolean;
+  query_cancelation?: boolean;
+  query_cost_estimation?: boolean;
+  user_impersonation?: boolean;
+  sql_validation?: boolean;
   documentation?: DatabaseInfo['documentation'];
   // For compatible databases
   isCompatible?: boolean;
@@ -395,13 +400,18 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
     {
       title: 'Features',
       key: 'features',
-      width: 200,
+      width: 280,
       filters: [
         { text: 'JOINs', value: 'joins' },
         { text: 'Subqueries', value: 'subqueries' },
         { text: 'Dynamic Schema', value: 'dynamic_schema' },
         { text: 'Catalog', value: 'catalog' },
         { text: 'SSH Tunneling', value: 'ssh' },
+        { text: 'File Upload', value: 'file_upload' },
+        { text: 'Query Cancel', value: 'query_cancel' },
+        { text: 'Cost Estimation', value: 'cost_estimation' },
+        { text: 'User Impersonation', value: 'impersonation' },
+        { text: 'SQL Validation', value: 'sql_validation' },
       ],
       onFilter: (value: React.Key | boolean, record: TableEntry) => {
         switch (value) {
@@ -415,6 +425,16 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
             return Boolean(record.supports_catalog);
           case 'ssh':
             return Boolean(record.ssh_tunneling);
+          case 'file_upload':
+            return Boolean(record.supports_file_upload);
+          case 'query_cancel':
+            return Boolean(record.query_cancelation);
+          case 'cost_estimation':
+            return Boolean(record.query_cost_estimation);
+          case 'impersonation':
+            return Boolean(record.user_impersonation);
+          case 'sql_validation':
+            return Boolean(record.sql_validation);
           default:
             return true;
         }
@@ -426,6 +446,11 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
           {record.supports_dynamic_schema && <Tag color="blue">Dynamic Schema</Tag>}
           {record.supports_catalog && <Tag color="purple">Catalog</Tag>}
           {record.ssh_tunneling && <Tag color="cyan">SSH</Tag>}
+          {record.supports_file_upload && <Tag color="orange">File Upload</Tag>}
+          {record.query_cancelation && <Tag color="volcano">Query Cancel</Tag>}
+          {record.query_cost_estimation && <Tag color="gold">Cost Est.</Tag>}
+          {record.user_impersonation && <Tag color="magenta">Impersonation</Tag>}
+          {record.sql_validation && <Tag color="lime">SQL Validation</Tag>}
         </div>
       ),
     },
