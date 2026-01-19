@@ -93,7 +93,7 @@ stages:
   jobs:
     - deployment: DeploySuperset
       variables:
-        - group: blue-dev-secret   # contains raw JSON in BLUE_DEV_SECRET
+        - group: blue-dev-secret   # contains BLUE_DEV_SECRET
       environment:
         name: ${{ parameters.targetEnvironment }}
         resourceType: VirtualMachine
@@ -115,52 +115,95 @@ stages:
                   pwsh: true
                   targetType: inline
                   script: |
+                    Write-Host "=== Starting config rehydration ==="
+                    
                     # Get the secret variable
                     $raw = $env:BLUE_DEV_SECRET
-                    Write-Host "Retrieved client config"
-
-                    # Check if it's base64-encoded (common pattern: starts with standard base64 chars)
-                    # Try to decode if it looks like base64
-                    try {
-                        $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($raw))
-                        Write-Host "Config appears to be base64-encoded, decoded successfully"
-                        $raw = $decoded
-                    } catch {
-                        Write-Host "Config is not base64-encoded, using as-is"
+                    
+                    if ([string]::IsNullOrEmpty($raw)) {
+                        throw "BLUE_DEV_SECRET is empty or not set"
                     }
-
+                    
+                    Write-Host "Retrieved config (length: $($raw.Length) chars)"
+                    
+                    # Detect and decode base64 if applicable
+                    $jsonContent = $raw
+                    
+                    try {
+                        $bytes = [System.Convert]::FromBase64String($raw)
+                        $decoded = [System.Text.Encoding]::UTF8.GetString($bytes)
+                        
+                        if ($decoded.TrimStart().StartsWith('{') -or $decoded.TrimStart().StartsWith('[')) {
+                            Write-Host "✓ Config decoded from base64"
+                            $jsonContent = $decoded
+                        }
+                    } catch {
+                        Write-Host "Config is not base64-encoded, using as raw JSON"
+                    }
+                    
                     # Write to temp file
                     $out = Join-Path "$(Agent.TempDirectory)" "blue-dev-config.json"
-                    Set-Content -Path $out -Value $raw -Encoding UTF8
-                    Write-Host "Config written to: $out"
+                    Set-Content -Path $out -Value $jsonContent -Encoding UTF8 -NoNewline
+                    Write-Host "✓ Config written to: $out"
                     Write-Host "##vso[task.setvariable variable=cfgPath]$out"
-
+                    
                     # Parse JSON
                     try { 
-                        $cfg = Get-Content -Raw -Path $out | ConvertFrom-Json 
-                        Write-Host "JSON parsed successfully"
+                        $cfg = Get-Content -Raw -Path $out | ConvertFrom-Json
+                        Write-Host "✓ JSON parsed successfully"
                     } catch { 
-                        # Output first 100 chars for debugging (without exposing full secret)
-                        $preview = if ($raw.Length -gt 100) { $raw.Substring(0,100) + "..." } else { $raw }
-                        Write-Host "##[error]First 100 chars of config: $preview"
                         throw "Config is not valid JSON: $($_.Exception.Message)" 
                     }
-
-                    # Extract Superset and Postgres info
-                    $explorer = $cfg.'app-suite'[0].explorer
-                    $pg = $cfg.'app-suite'[0].postgres
-
-                    # Superset (Explorer)
+                    
+                    # Validate structure
+                    if (-not $cfg.'app-suite') {
+                        throw "Config missing 'app-suite' property"
+                    }
+                    
+                    if ($cfg.'app-suite'.Count -eq 0) {
+                        throw "Config 'app-suite' array is empty"
+                    }
+                    
+                    # Extract Superset (Explorer) and Postgres info
+                    $appSuite = $cfg.'app-suite'[0]
+                    
+                    if (-not $appSuite.explorer) {
+                        throw "Config missing 'explorer' section in app-suite[0]"
+                    }
+                    
+                    if (-not $appSuite.postgres) {
+                        throw "Config missing 'postgres' section in app-suite[0]"
+                    }
+                    
+                    $explorer = $appSuite.explorer
+                    $pg = $appSuite.postgres
+                    
+                    Write-Host "✓ Config structure validated"
+                    
+                    # Superset (Explorer) variables
+                    Write-Host "Setting Superset variables..."
+                    Write-Host "  Port: $($explorer.port)"
+                    Write-Host "  Admin User: $($explorer.'admin-user')"
+                    
                     Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($explorer.port)"
                     Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($explorer.'admin-user')"
                     Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($explorer.'admin-password')"
-
-                    # Postgres
+                    
+                    # Postgres variables
+                    Write-Host "Setting Postgres variables..."
+                    Write-Host "  Host: oee-postgres"
+                    Write-Host "  Port: 5432"
+                    Write-Host "  Database: $($pg.database)"
+                    Write-Host "  User: $($pg.admin.user)"
+                    
                     Write-Host "##vso[task.setvariable variable=DB_HOST]oee-postgres"
                     Write-Host "##vso[task.setvariable variable=DB_PORT]5432"
                     Write-Host "##vso[task.setvariable variable=DB_NAME]$($pg.database)"
                     Write-Host "##vso[task.setvariable variable=DB_USER]$($pg.admin.user)"
                     Write-Host "##vso[task.setvariable variable=DB_PASSWORD;issecret=true]$($pg.admin.password)"
+                    
+                    Write-Host "✓ All variables set successfully"
+                    Write-Host "=== Config rehydration completed ==="
 
               # -------------------------------------
               # Load deployment artifact
@@ -195,28 +238,46 @@ stages:
                   DOCKER_NETWORK=$(DOCKER_NETWORK)
                   EOF
                   
-                  echo "Created .env.deploy file"
+                  echo "Created .env.deploy file with the following variables:"
+                  echo "  SUPERSET_IMAGE: $(FULL_IMAGE_NAME)"
+                  echo "  SUPERSET_PORT: $(SUPERSET_PORT)"
+                  echo "  SUPERSET_ADMIN_USER: $(SUPERSET_ADMIN_USER)"
+                  echo "  POSTGRES_HOST: $(DB_HOST)"
+                  echo "  POSTGRES_PORT: $(DB_PORT)"
+                  echo "  POSTGRES_DB: $(DB_NAME)"
+                  echo "  POSTGRES_USER: $(DB_USER)"
                 displayName: Create .env.deploy
 
               # -------------------------------------
               # Deploy Superset
               # -------------------------------------
               - bash: |
+                  echo "Deploying Superset with docker-compose..."
                   docker compose -f docker-compose-deploy.yml --env-file .env.deploy up -d
+                  
+                  echo "Deployment completed. Checking running containers..."
+                  docker compose -f docker-compose-deploy.yml ps
                 displayName: Deploy Superset
 
               # -------------------------------------
               # Health check
               # -------------------------------------
               - bash: |
+                  echo "Starting health check for Superset on port ${SUPERSET_PORT}..."
+                  
                   for i in {1..60}; do
                     if curl -fs http://localhost:${SUPERSET_PORT}/health; then
-                      echo "Superset is healthy"
+                      echo ""
+                      echo "✓ Superset is healthy and responding"
                       exit 0
                     fi
-                    echo "Attempt $i: Waiting for Superset to be ready..."
+                    echo "Attempt $i/60: Waiting for Superset to be ready..."
                     sleep 10
                   done
-                  echo "Superset failed health check after 10 minutes"
+                  
+                  echo ""
+                  echo "✗ Superset failed health check after 10 minutes"
+                  echo "Container logs:"
+                  docker compose -f docker-compose-deploy.yml logs --tail=50
                   exit 1
                 displayName: Verify Health
