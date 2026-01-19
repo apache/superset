@@ -22,6 +22,7 @@ export const FoldersContainer = styled.div`
   display: flex;
   flex-direction: column;
   position: relative;
+  height: 70vh;
 `;
 
 export const FoldersToolbar = styled.div`
@@ -55,6 +56,7 @@ export const FoldersActions = styled.div`
 export const FoldersContent = styled.div`
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 `;
 
 const STACK_OFFSET_X = 4;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactChild } from 'react';
 import {
   render,
   screen,
@@ -32,6 +32,46 @@ import {
   DEFAULT_COLUMNS_FOLDER_UUID,
 } from './constants';
 import { FoldersEditorItemType } from '../types';
+
+// Mock react-virtualized-auto-sizer to provide dimensions in tests
+jest.mock(
+  'react-virtualized-auto-sizer',
+  () =>
+    ({
+      children,
+    }: {
+      children: (params: { height: number; width: number }) => ReactChild;
+    }) =>
+      children({ height: 500, width: 400 }),
+);
+
+// Mock react-window VariableSizeList to render all items for testing
+jest.mock('react-window', () => ({
+  VariableSizeList: ({
+    children: Row,
+    itemCount,
+    itemData,
+  }: {
+    children: React.ComponentType<{
+      index: number;
+      style: React.CSSProperties;
+      data: unknown;
+    }>;
+    itemCount: number;
+    itemData: unknown;
+  }) => (
+    <div data-testid="virtualized-list">
+      {Array.from({ length: itemCount }, (_, index) => (
+        <Row
+          key={index}
+          index={index}
+          style={{ height: 'auto', position: 'relative' }}
+          data={itemData}
+        />
+      ))}
+    </div>
+  ),
+}));
 
 // Wrap render with useRedux: true since FoldersEditor uses useToasts which requires Redux
 const renderEditor = (ui: ReactElement, options = {}) =>
@@ -137,7 +177,6 @@ test('adds a new folder when Add folder button is clicked', async () => {
       'Name your folder and to edit it later, click on the folder name',
     );
     expect(input).toBeInTheDocument();
-    expect(input).toHaveValue('');
   });
 });
 

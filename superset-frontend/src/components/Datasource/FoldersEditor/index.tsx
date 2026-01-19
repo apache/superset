@@ -19,6 +19,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { debounce } from 'lodash';
+import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   DndContext,
   DragOverlay,
@@ -32,7 +33,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { FoldersEditorItemType } from '../types';
-import { TreeItem as TreeItemType, isDefaultFolder } from './constants';
+import { TreeItem as TreeItemType } from './constants';
 import {
   flattenTree,
   buildTree,
@@ -46,17 +47,23 @@ import {
   ensureDefaultFolders,
   filterItemsBySearch,
 } from './folderOperations';
-import { pointerSensorOptions, measuringConfig } from './sensors';
-import { TreeItem } from './TreeItem';
+import {
+  pointerSensorOptions,
+  measuringConfig,
+  autoScrollConfig,
+} from './sensors';
 import { FoldersContainer, FoldersContent } from './styles';
 import { FoldersEditorProps } from './types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useDragHandlers } from './hooks/useDragHandlers';
+import { useItemHeights } from './hooks/useItemHeights';
+import { useHeightCache } from './hooks/useHeightCache';
 import {
   FoldersToolbarComponent,
   ResetConfirmModal,
   DragOverlayContent,
 } from './components';
+import { VirtualizedTreeList } from './VirtualizedTreeList';
 
 export default function FoldersEditor({
   folders: initialFolders,
@@ -65,6 +72,8 @@ export default function FoldersEditor({
   onChange,
 }: FoldersEditorProps) {
   const { addWarningToast } = useToasts();
+  const itemHeights = useItemHeights();
+  const heightCache = useHeightCache();
 
   const [items, setItems] = useState<TreeItemType[]>(() => {
     const ensured = ensureDefaultFolders(initialFolders, metrics, columns);
@@ -133,8 +142,10 @@ export default function FoldersEditor({
   );
 
   const {
+    isDragging,
+    activeId,
+    draggedItemIds,
     dragOverlayWidth,
-    projectedParentId,
     flattenedItems,
     dragOverlayItems,
     forbiddenDropFolderIds,
@@ -362,6 +373,7 @@ export default function FoldersEditor({
         <DndContext
           sensors={sensors}
           measuring={measuringConfig}
+          autoScroll={autoScrollConfig}
           onDragStart={handleDragStart}
           onDragMove={handleDragMove}
           onDragOver={handleDragOver}
@@ -372,45 +384,33 @@ export default function FoldersEditor({
             items={sortableItemIds}
             strategy={verticalListSortingStrategy}
           >
-            {flattenedItems.map(item => {
-              const isFolder = item.type === FoldersEditorItemType.Folder;
-              const childCount = isFolder
-                ? (folderChildCounts.get(item.uuid) ?? 0)
-                : 0;
-              const showEmptyState = isFolder && childCount === 0;
-
-              // Hide items that don't match search (unless they're folders)
-              if (!isFolder && searchTerm && !visibleItemIds.has(item.uuid)) {
-                return null;
-              }
-
-              return (
-                <TreeItem
-                  key={item.uuid}
-                  id={item.uuid}
-                  type={item.type}
-                  name={item.name}
-                  depth={item.depth}
-                  isFolder={isFolder}
-                  isCollapsed={collapsedIds.has(item.uuid)}
-                  isSelected={selectedItemIds.has(item.uuid)}
-                  isEditing={editingFolderId === item.uuid}
-                  isDefaultFolder={isDefaultFolder(item.uuid)}
-                  showEmptyState={showEmptyState}
-                  separatorType={itemSeparatorInfo.get(item.uuid)}
-                  isDropTarget={isFolder && item.uuid === projectedParentId}
-                  isForbiddenDrop={
-                    isFolder && forbiddenDropFolderIds.has(item.uuid)
-                  }
-                  onToggleCollapse={isFolder ? handleToggleCollapse : undefined}
-                  onSelect={isFolder ? undefined : handleSelect}
-                  onStartEdit={isFolder ? handleStartEdit : undefined}
-                  onFinishEdit={isFolder ? handleFinishEdit : undefined}
-                  metric={metricsMap.get(item.uuid)}
-                  column={columnsMap.get(item.uuid)}
+            <AutoSizer>
+              {({ height, width }) => (
+                <VirtualizedTreeList
+                  width={width}
+                  height={height}
+                  flattenedItems={flattenedItems}
+                  itemHeights={itemHeights}
+                  heightCache={heightCache}
+                  collapsedIds={collapsedIds}
+                  selectedItemIds={selectedItemIds}
+                  editingFolderId={editingFolderId}
+                  folderChildCounts={folderChildCounts}
+                  itemSeparatorInfo={itemSeparatorInfo}
+                  visibleItemIds={visibleItemIds}
+                  searchTerm={searchTerm}
+                  metricsMap={metricsMap}
+                  columnsMap={columnsMap}
+                  isDragging={isDragging}
+                  activeId={activeId}
+                  forbiddenDropFolderIds={forbiddenDropFolderIds}
+                  onToggleCollapse={handleToggleCollapse}
+                  onSelect={handleSelect}
+                  onStartEdit={handleStartEdit}
+                  onFinishEdit={handleFinishEdit}
                 />
-              );
-            })}
+              )}
+            </AutoSizer>
           </SortableContext>
 
           <DragOverlay>

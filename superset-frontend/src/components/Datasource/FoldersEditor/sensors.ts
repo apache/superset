@@ -32,10 +32,21 @@ export const pointerSensorOptions: PointerSensorOptions = {
 
 export const createPointerSensor = () => PointerSensor;
 
+// Use BeforeDragging strategy to measure items once at drag start rather than continuously.
+// This is critical for virtualized lists where items get unmounted during scroll.
+// MeasuringStrategy.Always causes issues because dnd-kit loses track of items
+// that are unmounted by react-window during auto-scroll.
 export const measuringConfig: MeasuringConfiguration = {
   droppable: {
-    strategy: MeasuringStrategy.Always,
+    strategy: MeasuringStrategy.BeforeDragging,
   },
+};
+
+// Disable auto-scroll because it conflicts with virtualization.
+// When auto-scroll moves the viewport, react-window unmounts items that scroll out of view,
+// which causes dnd-kit to lose track of the dragged item and reset the drag operation.
+export const autoScrollConfig = {
+  enabled: false,
 };
 
 export const sensorConfig = {
