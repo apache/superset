@@ -125,12 +125,12 @@ HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
             "src",
             "width",
             "height",
-            "frameborder",
             "allow",
             "allowfullscreen",
             "title",
             "referrerpolicy",
             "sandbox",
+            "loading",
         ],
     },
     "protocols": {
