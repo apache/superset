@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { screen, waitFor, fireEvent } from 'spec/helpers/testing-library';
+import { screen, waitFor, fireEvent, within } from 'spec/helpers/testing-library';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
   API_ENDPOINTS,
@@ -243,6 +243,33 @@ describe('ChartList', () => {
       },
       { timeout: 1000 },
     );
+  });
+
+  test('displays Matrixify tag for charts with matrixify enabled', async () => {
+    renderChartList(mockUser);
+    
+    // Wait for the chart list to load
+    await waitFor(() => {
+      expect(screen.getByText('Test Chart 0')).toBeInTheDocument();
+    });
+    
+    // Find the row containing Test Chart 0 (which has matrixify enabled)
+    const chart0Row = screen.getByText('Test Chart 0').closest('tr');
+    expect(chart0Row).toBeInTheDocument();
+    
+    // Check that the Matrixify tag is present in this row
+    const matrixifyTag = within(chart0Row as HTMLElement).getByText('Matrixify');
+    expect(matrixifyTag).toBeInTheDocument();
+    
+    // Verify it's styled as purple (check for the color attribute or class)
+    expect(matrixifyTag.closest('[color="purple"]')).toBeInTheDocument();
+    
+    // Find the row containing Test Chart 1 (which doesn't have matrixify)
+    const chart1Row = screen.getByText('Test Chart 1').closest('tr');
+    expect(chart1Row).toBeInTheDocument();
+    
+    // Check that the Matrixify tag is NOT present in this row
+    expect(within(chart1Row as HTMLElement).queryByText('Matrixify')).not.toBeInTheDocument();
   });
 
   test('handles API errors gracefully', async () => {

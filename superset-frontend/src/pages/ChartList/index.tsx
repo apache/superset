@@ -23,6 +23,7 @@ import {
   getChartMetadataRegistry,
   JsonResponse,
   SupersetClient,
+  isMatrixifyEnabled,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { useState, useMemo, useCallback } from 'react';
@@ -78,6 +79,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { Tag } from 'src/components/Tag';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -375,9 +377,20 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: { viz_type: vizType },
+            original: { viz_type: vizType, form_data: formData },
           },
-        }: any) => registry.get(vizType)?.name || vizType,
+        }: any) => (
+          <>
+            {registry.get(vizType)?.name || vizType}
+            {formData && isMatrixifyEnabled(formData) && (
+              <Tag
+                name="Matrixify"
+                color="purple"
+                style={{ marginLeft: 8 }}
+              />
+            )}
+          </>
+        ),
         Header: t('Type'),
         accessor: 'viz_type',
         id: 'viz_type',
