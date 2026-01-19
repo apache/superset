@@ -94,33 +94,48 @@ describe('logger middleware', () => {
   });
 
   test('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
-    const fetchLog = (logger as Function)(mockStore)(next);
-    fetchLog({
-      type: LOG_EVENT,
-      payload: {
-        eventName: LOG_ACTIONS_SPA_NAVIGATION,
-        eventData: { path: `/dashboard/${dashboardId}/` },
-      },
-    });
-    timeSandbox.clock.tick(2000);
-    fetchLog(action);
-    timeSandbox.clock.tick(2000);
-    expect(postStub.callCount).toBe(2);
-    const { events } = postStub.getCall(1).args[0].postPayload;
-    const mockEventdata = action.payload.eventData;
-    const mockEventname = action.payload.eventName;
-    expect(events[0]).toMatchObject({
-      key: mockEventdata.key,
-      event_name: mockEventname,
-      impression_id: mockStore.getState().impressionId,
-      source: 'dashboard',
-      source_id: mockStore.getState().dashboardInfo.id,
-      event_type: 'timing',
-      dashboard_id: mockStore.getState().dashboardInfo.id,
+    // Set window.location to include /dashboard/ so the middleware adds dashboard context
+    const originalHref = window.location.href;
+    Object.defineProperty(window, 'location', {
+      value: { href: `http://localhost/dashboard/${dashboardId}/` },
+      writable: true,
     });
 
-    expect(typeof events[0].ts).toBe('number');
-    expect(typeof events[0].start_offset).toBe('number');
+    try {
+      const fetchLog = (logger as Function)(mockStore)(next);
+      fetchLog({
+        type: LOG_EVENT,
+        payload: {
+          eventName: LOG_ACTIONS_SPA_NAVIGATION,
+          eventData: { path: `/dashboard/${dashboardId}/` },
+        },
+      });
+      timeSandbox.clock.tick(2000);
+      fetchLog(action);
+      timeSandbox.clock.tick(2000);
+      expect(postStub.callCount).toBe(2);
+      const { events } = postStub.getCall(1).args[0].postPayload;
+      const mockEventdata = action.payload.eventData;
+      const mockEventname = action.payload.eventName;
+      expect(events[0]).toMatchObject({
+        key: mockEventdata.key,
+        event_name: mockEventname,
+        impression_id: mockStore.getState().impressionId,
+        source: 'dashboard',
+        source_id: mockStore.getState().dashboardInfo.id,
+        event_type: 'timing',
+        dashboard_id: mockStore.getState().dashboardInfo.id,
+      });
+
+      expect(typeof events[0].ts).toBe('number');
+      expect(typeof events[0].start_offset).toBe('number');
+    } finally {
+      // Restore original location
+      Object.defineProperty(window, 'location', {
+        value: { href: originalHref },
+        writable: true,
+      });
+    }
   });
 
   test('should debounce a few log requests to one', () => {
