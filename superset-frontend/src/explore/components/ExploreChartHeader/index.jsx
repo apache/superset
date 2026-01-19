@@ -27,7 +27,13 @@ import {
   UnsavedChangesModal,
 } from '@superset-ui/core/components';
 import { AlteredSliceTag } from 'src/components';
-import { css, logging, SupersetClient, t } from '@superset-ui/core';
+import {
+  css,
+  isMatrixifyEnabled,
+  logging,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -40,6 +46,7 @@ import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
+import { Tag } from 'src/components/Tag';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -270,6 +277,9 @@ export const ExploreChartHeader = ({
                 currentFormData={currentFormData}
               />
             ) : null}
+            {formData && isMatrixifyEnabled(formData) && (
+              <Tag name="Matrixify" color="purple" />
+            )}
             {metadataBar}
           </div>
         }
