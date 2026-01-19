@@ -44,7 +44,6 @@ import TableSelector from 'src/components/TableSelector';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
-import SelectControl from 'src/explore/components/controls/SelectControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
@@ -61,6 +60,7 @@ import {
   Icons,
   Loading,
   Row,
+  Select,
   Typography,
   Label,
 } from '@superset-ui/core/components';
@@ -314,12 +314,13 @@ function ColumnCollectionTable({
                 fieldKey="type"
                 label={t('Data type')}
                 control={
-                  <SelectControl
+                  <Select
                     ariaLabel={t('Data type')}
+                    header={<FormLabel>{t('Data type')}</FormLabel>}
                     options={DATA_TYPES}
                     name="type"
-                    freeForm
-                    clearable
+                    allowNewOptions
+                    allowClear
                   />
                 }
               />
