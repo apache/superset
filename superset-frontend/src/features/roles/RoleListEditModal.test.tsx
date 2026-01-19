@@ -225,7 +225,7 @@ describe('RoleListEditModal', () => {
       expect(mockGet).toHaveBeenCalled();
     });
 
-    // Verify the API was called with the correct filter
+    // verify the endpoint and query parameters
     const callArgs = mockGet.mock.calls[0][0];
     expect(callArgs.endpoint).toContain('/api/v1/security/users/');
 
