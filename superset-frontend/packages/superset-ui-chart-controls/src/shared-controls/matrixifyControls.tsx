@@ -95,7 +95,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
         ],
       };
     },
-    rerender: [`matrixify_mode_${otherAxis}`],
+    rerender: [`matrixify_mode_${otherAxis}`, `matrixify_dimension_${axis}`],
   };
 
   matrixifyControls[`matrixify_${axis}`] = {
