@@ -358,9 +358,10 @@ interface StateProps {
 
 // Combined actions from all action modules used in Explore
 // Note: These modules export both action creators AND action type constants,
-// so we use Record<string, unknown> to accommodate the mixed exports
+// Using a callable signature to allow TypeScript to understand these are functions
 interface DispatchProps {
-  actions: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  actions: Record<string, (...args: any[]) => any>;
 }
 
 type ExploreViewContainerProps = StateProps & DispatchProps & OwnProps;
