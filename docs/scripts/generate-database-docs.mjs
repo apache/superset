@@ -399,13 +399,33 @@ function buildStatistics(databases) {
     totalScore += db.score || 0;
     if (db.max_score > stats.maxScore) stats.maxScore = db.max_score;
 
-    // Use category from documentation metadata (computed by Python)
-    // This eliminates the need for duplicate categorization logic in JS
-    const category = docs.category || 'Other Databases';
-    if (!stats.byCategory[category]) {
-      stats.byCategory[category] = [];
+    // Use categories from documentation metadata (computed by Python)
+    // Each database can belong to multiple categories
+    const categories = docs.categories || ['OTHER'];
+    for (const cat of categories) {
+      // Map category constant names to display names
+      const categoryDisplayNames = {
+        'CLOUD_AWS': 'Cloud - AWS',
+        'CLOUD_GCP': 'Cloud - Google',
+        'CLOUD_AZURE': 'Cloud - Azure',
+        'CLOUD_DATA_WAREHOUSES': 'Cloud Data Warehouses',
+        'APACHE_PROJECTS': 'Apache Projects',
+        'TRADITIONAL_RDBMS': 'Traditional RDBMS',
+        'ANALYTICAL_DATABASES': 'Analytical Databases',
+        'SEARCH_NOSQL': 'Search & NoSQL',
+        'QUERY_ENGINES': 'Query Engines',
+        'TIME_SERIES': 'Time Series Databases',
+        'OTHER': 'Other Databases',
+        'OPEN_SOURCE': 'Open Source',
+        'HOSTED_OPEN_SOURCE': 'Hosted Open Source',
+        'PROPRIETARY': 'Proprietary',
+      };
+      const displayName = categoryDisplayNames[cat] || cat;
+      if (!stats.byCategory[displayName]) {
+        stats.byCategory[displayName] = [];
+      }
+      stats.byCategory[displayName].push(name);
     }
-    stats.byCategory[category].push(name);
   }
 
   stats.averageScore = Math.round(totalScore / stats.totalDatabases);

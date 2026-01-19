@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-17T20:10:18.584Z",
+  "generated": "2026-01-19T02:12:31.420Z",
   "statistics": {
     "totalDatabases": 67,
     "withDocumentation": 67,
@@ -15,41 +15,190 @@
     "byCategory": {
       "Other Databases": [
         "Arc",
+        "Google Sheets",
+        "Shillelagh",
+        "Superset meta database",
+        "Superset meta database"
+      ],
+      "Proprietary": [
+        "Arc",
+        "Amazon Athena",
+        "Google BigQuery",
+        "Databend",
+        "IBM Db2",
+        "Denodo",
+        "Dremio",
+        "Amazon DynamoDB",
+        "Exasol",
+        "Firebolt",
+        "SAP HANA",
+        "Hologres",
+        "IBM Db2 for i",
+        "Azure Data Explorer",
+        "Microsoft SQL Server",
+        "Azure Synapse",
+        "Azure Synapse",
+        "IBM Netezza Performance Server",
+        "Ocient",
+        "Oracle",
+        "Amazon Redshift",
+        "SingleStore",
+        "Snowflake",
+        "SAP Sybase",
+        "SAP Sybase",
+        "Teradata",
+        "Vertica"
+      ],
+      "Apache Projects": [
+        "Ascend",
+        "Databricks Interactive Cluster",
+        "Apache Doris",
+        "Apache Drill",
+        "Apache Druid",
+        "Apache Hive",
+        "Apache Impala",
+        "Apache Kylin",
+        "Apache Pinot",
+        "Apache Solr",
+        "Apache Spark SQL",
+        "Apache Spark SQL"
+      ],
+      "Query Engines": [
         "Ascend",
         "Amazon Athena",
+        "Databricks Interactive Cluster",
+        "Databricks Interactive Cluster",
+        "Denodo",
+        "Dremio",
+        "Apache Drill",
+        "Apache Hive",
+        "Apache Hive",
+        "Apache Impala",
+        "Presto",
+        "Apache Spark SQL",
+        "Apache Spark SQL",
+        "Apache Spark SQL",
+        "Trino"
+      ],
+      "Open Source": [
+        "Ascend",
         "Aurora MySQL (Data API)",
         "Aurora PostgreSQL (Data API)",
-        "Google BigQuery",
         "ClickHouse",
+        "CockroachDB",
         "CockroachDB",
         "Couchbase",
         "CrateDB",
         "Cloudflare D1",
-        "Databend",
         "Databricks Interactive Cluster",
-        "Databricks",
-        "IBM Db2",
-        "Denodo",
+        "Databricks Interactive Cluster",
         "Apache Doris",
-        "Dremio",
+        "Apache Doris",
         "Apache Drill",
         "Apache Druid",
         "DuckDB",
         "MotherDuck",
-        "Amazon DynamoDB",
         "Elasticsearch",
-        "Exasol",
         "Firebird",
+        "Greenplum",
+        "Greenplum",
+        "Google Sheets",
+        "Google Sheets",
+        "Apache Hive",
+        "Apache Hive",
+        "Apache Impala",
+        "Apache Kylin",
+        "MariaDB",
+        "MariaDB",
+        "MonetDB",
+        "MySQL",
+        "OceanBase",
+        "OceanBase",
+        "Parseable",
+        "Apache Pinot",
+        "PostgreSQL",
+        "Presto",
+        "RisingWave",
+        "RisingWave",
+        "Shillelagh",
+        "Shillelagh",
+        "Apache Solr",
+        "Apache Spark SQL",
+        "Apache Spark SQL",
+        "Apache Spark SQL",
+        "SQLite",
+        "StarRocks",
+        "StarRocks",
+        "Superset meta database",
+        "Superset meta database",
+        "TDengine",
+        "TimescaleDB",
+        "Trino",
+        "YDB",
+        "YugabyteDB"
+      ],
+      "Cloud Data Warehouses": [
+        "Ascend",
+        "Cloudflare D1",
+        "Databend",
+        "Databricks",
         "Firebolt",
+        "Hologres",
+        "Azure Synapse",
+        "Snowflake",
+        "YugabyteDB"
+      ],
+      "Analytical Databases": [
+        "Ascend",
+        "Google BigQuery",
+        "ClickHouse",
+        "Databend",
+        "Databricks",
+        "Apache Doris",
+        "DuckDB",
+        "MotherDuck",
+        "Exasol",
+        "Firebolt",
+        "Hologres",
+        "Azure Data Explorer",
+        "Apache Kylin",
+        "Azure Synapse",
+        "Ocient",
+        "Amazon Redshift",
+        "RisingWave",
+        "SingleStore",
+        "Snowflake",
+        "StarRocks",
+        "TimescaleDB",
+        "Vertica"
+      ],
+      "Hosted Open Source": [
+        "Ascend",
+        "Cloudflare D1",
+        "Databricks",
+        "Google Sheets"
+      ],
+      "Cloud - AWS": [
+        "Amazon Athena",
+        "Amazon DynamoDB",
+        "Amazon Redshift"
+      ],
+      "Traditional RDBMS": [
+        "Aurora MySQL (Data API)",
+        "Aurora PostgreSQL (Data API)",
+        "CockroachDB",
+        "CockroachDB",
+        "Cloudflare D1",
+        "Cloudflare D1",
+        "IBM Db2",
+        "Apache Doris",
+        "Firebird",
+        "Greenplum",
         "Greenplum",
         "Google Sheets",
         "SAP HANA",
-        "Apache Hive",
-        "Hologres",
         "IBM Db2 for i",
-        "Apache Impala",
-        "Azure Data Explorer",
-        "Apache Kylin",
+        "MariaDB",
         "MariaDB",
         "MonetDB",
         "Microsoft SQL Server",
@@ -57,30 +206,39 @@
         "MySQL",
         "IBM Netezza Performance Server",
         "OceanBase",
-        "Ocient",
+        "OceanBase",
         "Oracle",
-        "Parseable",
-        "Apache Pinot",
         "PostgreSQL",
-        "Presto",
-        "Amazon Redshift",
         "RisingWave",
         "Shillelagh",
-        "SingleStore",
-        "Snowflake",
-        "Apache Solr",
-        "Apache Spark SQL",
         "SQLite",
         "StarRocks",
         "Superset meta database",
         "SAP Sybase",
-        "TDengine",
+        "SAP Sybase",
         "Teradata",
-        "TimescaleDB",
-        "Trino",
-        "Vertica",
         "YDB",
         "YugabyteDB"
+      ],
+      "Cloud - Google": [
+        "Google BigQuery",
+        "Google Sheets"
+      ],
+      "Search & NoSQL": [
+        "Couchbase",
+        "Amazon DynamoDB",
+        "Elasticsearch",
+        "Parseable",
+        "Apache Solr"
+      ],
+      "Time Series Databases": [
+        "CrateDB",
+        "Apache Druid",
+        "Apache Pinot",
+        "TDengine"
+      ],
+      "Cloud - Azure": [
+        "Azure Data Explorer"
       ]
     }
   },
@@ -92,7 +250,8 @@
       "documentation": {
         "description": "Arc is a data platform with multiple connection options.",
         "categories": [
-          "OTHER"
+          "OTHER",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "arc-superset-arrow"
@@ -147,8 +306,10 @@
         "categories": [
           "APACHE_PROJECTS",
           "QUERY_ENGINES",
+          "OPEN_SOURCE",
           "CLOUD_DATA_WAREHOUSES",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "HOSTED_OPEN_SOURCE"
         ],
         "pypi_packages": [
           "impyla",
@@ -182,7 +343,8 @@
         "homepage_url": "https://aws.amazon.com/athena/",
         "categories": [
           "CLOUD_AWS",
-          "QUERY_ENGINES"
+          "QUERY_ENGINES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "pyathena[pandas]"
@@ -241,7 +403,8 @@
         "logo": "mysql.png",
         "homepage_url": "https://www.mysql.com/",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "mysqlclient"
@@ -313,7 +476,8 @@
         "logo": "postgresql.svg",
         "homepage_url": "https://www.postgresql.org/",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "psycopg2"
@@ -366,7 +530,8 @@
         "homepage_url": "https://cloud.google.com/bigquery/",
         "categories": [
           "CLOUD_GCP",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "sqlalchemy-bigquery"
@@ -421,7 +586,8 @@
         "logo": "clickhouse.png",
         "homepage_url": "https://clickhouse.com/",
         "categories": [
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "clickhouse-connect>=0.6.8"
@@ -503,7 +669,9 @@
         "homepage_url": "https://www.cockroachlabs.com/",
         "categories": [
           "TRADITIONAL_RDBMS",
-          "TRADITIONAL_RDBMS"
+          "OPEN_SOURCE",
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "psycopg2",
@@ -578,7 +746,8 @@
         "logo": "couchbase.svg",
         "homepage_url": "https://www.couchbase.com/",
         "categories": [
-          "SEARCH_NOSQL"
+          "SEARCH_NOSQL",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "couchbase-sqlalchemy"
@@ -647,7 +816,8 @@
         "logo": "cratedb.png",
         "homepage_url": "https://crate.io/",
         "categories": [
-          "TIME_SERIES"
+          "TIME_SERIES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "crate",
@@ -715,8 +885,10 @@
         "homepage_url": "https://developers.cloudflare.com/d1/",
         "categories": [
           "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE",
           "CLOUD_DATA_WAREHOUSES",
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "HOSTED_OPEN_SOURCE"
         ],
         "pypi_packages": [
           "superset-engine-d1"
@@ -755,7 +927,8 @@
         "homepage_url": "https://www.databend.com/",
         "categories": [
           "CLOUD_DATA_WAREHOUSES",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "databend-sqlalchemy"
@@ -817,8 +990,10 @@
         "homepage_url": "https://hive.apache.org/",
         "categories": [
           "QUERY_ENGINES",
+          "OPEN_SOURCE",
           "APACHE_PROJECTS",
-          "QUERY_ENGINES"
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "pyhive",
@@ -866,7 +1041,8 @@
         "homepage_url": "https://www.databricks.com/",
         "categories": [
           "CLOUD_DATA_WAREHOUSES",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "HOSTED_OPEN_SOURCE"
         ],
         "pypi_packages": [
           "apache-superset[databricks]"
@@ -934,7 +1110,8 @@
         "logo": "ibm-db2.svg",
         "homepage_url": "https://www.ibm.com/db2",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "ibm_db_sa"
@@ -970,7 +1147,10 @@
               "host": "IBM i system host",
               "database": "Library/schema name"
             },
-            "docs_url": "https://github.com/IBM/sqlalchemy-ibmi"
+            "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
+            "categories": [
+              "PROPRIETARY"
+            ]
           }
         ],
         "docs_url": "https://github.com/ibmdb/python-ibmdbsa"
@@ -1021,7 +1201,8 @@
         "logo": "denodo.png",
         "homepage_url": "https://www.denodo.com/",
         "categories": [
-          "QUERY_ENGINES"
+          "QUERY_ENGINES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "psycopg2"
@@ -1092,8 +1273,10 @@
         "homepage_url": "https://doris.apache.org/",
         "categories": [
           "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE",
           "APACHE_PROJECTS",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "mysqlclient",
@@ -1190,7 +1373,8 @@
         "logo": "dremio.png",
         "homepage_url": "https://www.dremio.com/",
         "categories": [
-          "QUERY_ENGINES"
+          "QUERY_ENGINES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "sqlalchemy_dremio"
@@ -1262,7 +1446,8 @@
         "homepage_url": "https://drill.apache.org/",
         "categories": [
           "APACHE_PROJECTS",
-          "QUERY_ENGINES"
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "sqlalchemy-drill"
@@ -1346,7 +1531,8 @@
         "homepage_url": "https://druid.apache.org/",
         "categories": [
           "APACHE_PROJECTS",
-          "TIME_SERIES"
+          "TIME_SERIES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "pydruid"
@@ -1422,7 +1608,8 @@
         "logo": "duckdb.png",
         "homepage_url": "https://duckdb.org/",
         "categories": [
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "duckdb-engine"
@@ -1452,7 +1639,10 @@
               "database": "MotherDuck database name",
               "motherduck_token": "Service token from MotherDuck dashboard"
             },
-            "notes": "Cloud-hosted DuckDB with collaboration features."
+            "notes": "Cloud-hosted DuckDB with collaboration features.",
+            "categories": [
+              "HOSTED_OPEN_SOURCE"
+            ]
           }
         ]
       },
@@ -1502,7 +1692,8 @@
         "logo": "duckdb.png",
         "homepage_url": "https://duckdb.org/",
         "categories": [
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "duckdb-engine"
@@ -1543,7 +1734,8 @@
         "homepage_url": "https://aws.amazon.com/dynamodb/",
         "categories": [
           "CLOUD_AWS",
-          "SEARCH_NOSQL"
+          "SEARCH_NOSQL",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "pydynamodb"
@@ -1581,7 +1773,8 @@
         "logo": "elasticsearch.png",
         "homepage_url": "https://www.elastic.co/elasticsearch/",
         "categories": [
-          "SEARCH_NOSQL"
+          "SEARCH_NOSQL",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "elasticsearch-dbapi"
@@ -1634,7 +1827,8 @@
         "logo": "exasol.png",
         "homepage_url": "https://www.exasol.com/",
         "categories": [
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "sqlalchemy-exasol"
@@ -1716,7 +1910,8 @@
         "logo": "firebird.png",
         "homepage_url": "https://firebirdsql.org/",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "sqlalchemy-firebird"
@@ -1778,7 +1973,8 @@
         "homepage_url": "https://www.firebolt.io/",
         "categories": [
           "CLOUD_DATA_WAREHOUSES",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "firebolt-sqlalchemy"
@@ -1847,7 +2043,9 @@
         "homepage_url": "https://greenplum.org/",
         "categories": [
           "TRADITIONAL_RDBMS",
-          "TRADITIONAL_RDBMS"
+          "OPEN_SOURCE",
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "psycopg2",
@@ -1902,8 +2100,11 @@
         "homepage_url": "https://www.google.com/sheets/about/",
         "categories": [
           "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE",
           "OTHER",
-          "CLOUD_GCP"
+          "OPEN_SOURCE",
+          "CLOUD_GCP",
+          "HOSTED_OPEN_SOURCE"
         ],
         "pypi_packages": [
           "shillelagh[gsheetsapi]",
@@ -1959,7 +2160,8 @@
         "logo": "sap-hana.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/hana.html",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "hdbcli",
@@ -2017,8 +2219,10 @@
         "homepage_url": "https://hive.apache.org/",
         "categories": [
           "QUERY_ENGINES",
+          "OPEN_SOURCE",
           "APACHE_PROJECTS",
-          "QUERY_ENGINES"
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "pyhive",
@@ -2088,7 +2292,8 @@
         "homepage_url": "https://www.alibabacloud.com/product/hologres",
         "categories": [
           "CLOUD_DATA_WAREHOUSES",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "psycopg2"
@@ -2128,7 +2333,8 @@
         "logo": "ibm-db2.svg",
         "homepage_url": "https://www.ibm.com/db2",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "ibm_db_sa"
@@ -2175,7 +2381,8 @@
         "homepage_url": "https://impala.apache.org/",
         "categories": [
           "APACHE_PROJECTS",
-          "QUERY_ENGINES"
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "impyla"
@@ -2230,7 +2437,8 @@
         "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
         "categories": [
           "CLOUD_AZURE",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "sqlalchemy-kusto"
@@ -2285,7 +2493,8 @@
         "homepage_url": "https://kylin.apache.org/",
         "categories": [
           "APACHE_PROJECTS",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "kylinpy"
@@ -2340,7 +2549,9 @@
         "homepage_url": "https://mariadb.org/",
         "categories": [
           "TRADITIONAL_RDBMS",
-          "TRADITIONAL_RDBMS"
+          "OPEN_SOURCE",
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "mysqlclient",
@@ -2436,7 +2647,8 @@
         "logo": "monet-db.png",
         "homepage_url": "https://www.monetdb.org/",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "sqlalchemy-monetdb",
@@ -2477,7 +2689,8 @@
         "logo": "msql.png",
         "homepage_url": "https://www.microsoft.com/en-us/sql-server",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "pymssql"
@@ -2548,8 +2761,10 @@
         "homepage_url": "https://azure.microsoft.com/en-us/products/synapse-analytics/",
         "categories": [
           "TRADITIONAL_RDBMS",
+          "PROPRIETARY",
           "CLOUD_DATA_WAREHOUSES",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "pymssql",
@@ -2598,7 +2813,8 @@
         "logo": "mysql.png",
         "homepage_url": "https://www.mysql.com/",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "mysqlclient"
@@ -2654,7 +2870,10 @@
             "pypi_packages": [
               "mysqlclient"
             ],
-            "connection_string": "mysql://{username}:{password}@{host}:{port}/{database}"
+            "connection_string": "mysql://{username}:{password}@{host}:{port}/{database}",
+            "categories": [
+              "OPEN_SOURCE"
+            ]
           },
           {
             "name": "Amazon Aurora MySQL",
@@ -2673,7 +2892,11 @@
               "secret_arn": "Secrets Manager ARN for credentials",
               "region_name": "AWS region (e.g., us-east-1)"
             },
-            "notes": "Uses the Data API for serverless access. Standard MySQL connections also work with mysqlclient."
+            "notes": "Uses the Data API for serverless access. Standard MySQL connections also work with mysqlclient.",
+            "categories": [
+              "CLOUD_AWS",
+              "HOSTED_OPEN_SOURCE"
+            ]
           }
         ]
       },
@@ -2723,7 +2946,8 @@
         "logo": "netezza.png",
         "homepage_url": "https://www.ibm.com/products/netezza",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "nzalchemy"
@@ -2756,7 +2980,9 @@
         "homepage_url": "https://www.oceanbase.com/",
         "categories": [
           "TRADITIONAL_RDBMS",
-          "TRADITIONAL_RDBMS"
+          "OPEN_SOURCE",
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "mysqlclient",
@@ -2827,7 +3053,8 @@
       "documentation": {
         "description": "Ocient is a hyperscale data analytics database.",
         "categories": [
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "sqlalchemy-ocient"
@@ -2881,7 +3108,8 @@
         "logo": "oraclelogo.png",
         "homepage_url": "https://www.oracle.com/database/",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "oracledb"
@@ -2935,7 +3163,8 @@
       "documentation": {
         "description": "Parseable is a distributed log analytics database with SQL-like query interface.",
         "categories": [
-          "SEARCH_NOSQL"
+          "SEARCH_NOSQL",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "sqlalchemy-parseable"
@@ -2997,7 +3226,8 @@
         "homepage_url": "https://pinot.apache.org/",
         "categories": [
           "APACHE_PROJECTS",
-          "TIME_SERIES"
+          "TIME_SERIES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "pinotdb"
@@ -3069,7 +3299,8 @@
         "logo": "postgresql.svg",
         "homepage_url": "https://www.postgresql.org/",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "psycopg2"
@@ -3112,7 +3343,10 @@
               "host": "Public endpoint of the Hologres instance",
               "port": "Port number of the Hologres instance",
               "database": "Name of the Hologres database"
-            }
+            },
+            "categories": [
+              "PROPRIETARY"
+            ]
           },
           {
             "name": "TimescaleDB",
@@ -3130,7 +3364,10 @@
               }
             ],
             "notes": "psycopg2 comes bundled with Superset Docker images.",
-            "docs_url": "https://docs.timescale.com/"
+            "docs_url": "https://docs.timescale.com/",
+            "categories": [
+              "OPEN_SOURCE"
+            ]
           },
           {
             "name": "YugabyteDB",
@@ -3142,7 +3379,10 @@
             ],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "notes": "psycopg2 comes bundled with Superset Docker images.",
-            "docs_url": "https://www.yugabyte.com/"
+            "docs_url": "https://www.yugabyte.com/",
+            "categories": [
+              "OPEN_SOURCE"
+            ]
           },
           {
             "name": "Amazon Aurora PostgreSQL",
@@ -3161,7 +3401,11 @@
               "secret_arn": "Secrets Manager ARN for credentials",
               "region_name": "AWS region (e.g., us-east-1)"
             },
-            "notes": "Uses the Data API for serverless access. Standard PostgreSQL connections also work with psycopg2."
+            "notes": "Uses the Data API for serverless access. Standard PostgreSQL connections also work with psycopg2.",
+            "categories": [
+              "CLOUD_AWS",
+              "HOSTED_OPEN_SOURCE"
+            ]
           }
         ]
       },
@@ -3211,7 +3455,8 @@
         "logo": "presto-og.png",
         "homepage_url": "https://prestodb.io/",
         "categories": [
-          "QUERY_ENGINES"
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "pyhive"
@@ -3280,7 +3525,8 @@
         "homepage_url": "https://aws.amazon.com/redshift/",
         "categories": [
           "CLOUD_AWS",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "sqlalchemy-redshift"
@@ -3367,7 +3613,9 @@
         "homepage_url": "https://risingwave.com/",
         "categories": [
           "TRADITIONAL_RDBMS",
-          "ANALYTICAL_DATABASES"
+          "OPEN_SOURCE",
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "psycopg2",
@@ -3443,7 +3691,9 @@
         "homepage_url": "https://shillelagh.readthedocs.io/",
         "categories": [
           "TRADITIONAL_RDBMS",
-          "OTHER"
+          "OPEN_SOURCE",
+          "OTHER",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "shillelagh[gsheetsapi]"
@@ -3475,7 +3725,8 @@
         "logo": "singlestore.png",
         "homepage_url": "https://www.singlestore.com/",
         "categories": [
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "singlestoredb"
@@ -3545,7 +3796,8 @@
         "homepage_url": "https://www.snowflake.com/",
         "categories": [
           "CLOUD_DATA_WAREHOUSES",
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "snowflake-sqlalchemy"
@@ -3620,7 +3872,8 @@
         "homepage_url": "https://solr.apache.org/",
         "categories": [
           "APACHE_PROJECTS",
-          "SEARCH_NOSQL"
+          "SEARCH_NOSQL",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "sqlalchemy-solr"
@@ -3675,10 +3928,13 @@
         "homepage_url": "https://spark.apache.org/sql/",
         "categories": [
           "QUERY_ENGINES",
+          "OPEN_SOURCE",
           "APACHE_PROJECTS",
           "QUERY_ENGINES",
+          "OPEN_SOURCE",
           "APACHE_PROJECTS",
-          "QUERY_ENGINES"
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "pyhive",
@@ -3748,7 +4004,8 @@
         "logo": "sqlite.png",
         "homepage_url": "https://www.sqlite.org/",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [],
         "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",
@@ -3801,7 +4058,9 @@
         "homepage_url": "https://www.starrocks.io/",
         "categories": [
           "TRADITIONAL_RDBMS",
-          "ANALYTICAL_DATABASES"
+          "OPEN_SOURCE",
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "mysqlclient",
@@ -3905,7 +4164,9 @@
         "homepage_url": "https://superset.apache.org/",
         "categories": [
           "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE",
           "OTHER",
+          "OPEN_SOURCE",
           "OTHER"
         ],
         "pypi_packages": [
@@ -3939,7 +4200,9 @@
         "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
         "categories": [
           "TRADITIONAL_RDBMS",
-          "TRADITIONAL_RDBMS"
+          "PROPRIETARY",
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "pymssql",
@@ -3995,7 +4258,8 @@
         "logo": "tdengine.png",
         "homepage_url": "https://tdengine.com/",
         "categories": [
-          "TIME_SERIES"
+          "TIME_SERIES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "taospy",
@@ -4057,7 +4321,8 @@
         "logo": "teradata.png",
         "homepage_url": "https://www.teradata.com/",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "teradatasqlalchemy"
@@ -4127,7 +4392,8 @@
         "logo": "timescale.png",
         "homepage_url": "https://www.timescale.com/",
         "categories": [
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "psycopg2"
@@ -4167,7 +4433,8 @@
         "logo": "trino.png",
         "homepage_url": "https://trino.io/",
         "categories": [
-          "QUERY_ENGINES"
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "trino"
@@ -4237,7 +4504,8 @@
         "logo": "vertica.png",
         "homepage_url": "https://www.vertica.com/",
         "categories": [
-          "ANALYTICAL_DATABASES"
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
         ],
         "pypi_packages": [
           "sqlalchemy-vertica-python"
@@ -4300,7 +4568,8 @@
         "logo": "ydb.svg",
         "homepage_url": "https://ydb.tech/",
         "categories": [
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "ydb-sqlalchemy"
@@ -4398,7 +4667,8 @@
         "homepage_url": "https://www.yugabyte.com/",
         "categories": [
           "CLOUD_DATA_WAREHOUSES",
-          "TRADITIONAL_RDBMS"
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "pypi_packages": [
           "psycopg2"

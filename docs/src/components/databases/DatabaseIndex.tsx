@@ -36,7 +36,7 @@ interface DatabaseIndexProps {
 // Type for table entries (includes both regular DBs and compatible DBs)
 interface TableEntry {
   name: string;
-  category: string;
+  categories: string[];  // Multiple categories supported
   score: number;
   max_score: number;
   timeGrainCount: number;
@@ -55,6 +55,24 @@ interface TableEntry {
   compatibleDescription?: string;
 }
 
+// Map category constant names to display names
+const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+  'CLOUD_AWS': 'Cloud - AWS',
+  'CLOUD_GCP': 'Cloud - Google',
+  'CLOUD_AZURE': 'Cloud - Azure',
+  'CLOUD_DATA_WAREHOUSES': 'Cloud Data Warehouses',
+  'APACHE_PROJECTS': 'Apache Projects',
+  'TRADITIONAL_RDBMS': 'Traditional RDBMS',
+  'ANALYTICAL_DATABASES': 'Analytical Databases',
+  'SEARCH_NOSQL': 'Search & NoSQL',
+  'QUERY_ENGINES': 'Query Engines',
+  'TIME_SERIES': 'Time Series Databases',
+  'OTHER': 'Other Databases',
+  'OPEN_SOURCE': 'Open Source',
+  'HOSTED_OPEN_SOURCE': 'Hosted Open Source',
+  'PROPRIETARY': 'Proprietary',
+};
+
 // Category colors for visual distinction
 const CATEGORY_COLORS: Record<string, string> = {
   'Cloud - AWS': 'orange',
@@ -66,61 +84,71 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Analytical Databases': 'magenta',
   'Search & NoSQL': 'gold',
   'Query Engines': 'lime',
+  'Time Series Databases': 'volcano',
   'Other Databases': 'default',
+  // Licensing categories
+  'Open Source': 'geekblue',
+  'Hosted Open Source': 'cyan',
+  'Proprietary': 'default',
 };
 
-// Get category for a database - uses category from metadata when available
-// Falls back to name-based inference for compatible databases without category
-function getCategory(
+// Convert category constant to display name
+function getCategoryDisplayName(cat: string): string {
+  return CATEGORY_DISPLAY_NAMES[cat] || cat;
+}
+
+// Get categories for a database - uses categories from metadata when available
+// Falls back to name-based inference for compatible databases without categories
+function getCategories(
   name: string,
-  documentationCategory?: string
-): string {
-  // Prefer category from documentation metadata (computed by Python)
-  if (documentationCategory) {
-    return documentationCategory;
+  documentationCategories?: string[]
+): string[] {
+  // Prefer categories from documentation metadata (computed by Python)
+  if (documentationCategories && documentationCategories.length > 0) {
+    return documentationCategories.map(getCategoryDisplayName);
   }
 
-  // Fallback: infer from name (for compatible databases without category)
+  // Fallback: infer from name (for compatible databases without categories)
   const nameLower = name.toLowerCase();
 
   if (nameLower.includes('aws') || nameLower.includes('amazon'))
-    return 'Cloud - AWS';
+    return ['Cloud - AWS'];
   if (nameLower.includes('google') || nameLower.includes('bigquery'))
-    return 'Cloud - Google';
+    return ['Cloud - Google'];
   if (nameLower.includes('azure') || nameLower.includes('microsoft'))
-    return 'Cloud - Azure';
+    return ['Cloud - Azure'];
   if (nameLower.includes('snowflake') || nameLower.includes('databricks'))
-    return 'Cloud Data Warehouses';
+    return ['Cloud Data Warehouses'];
   if (
     nameLower.includes('apache') ||
     nameLower.includes('druid') ||
     nameLower.includes('hive') ||
     nameLower.includes('spark')
   )
-    return 'Apache Projects';
+    return ['Apache Projects'];
   if (
     nameLower.includes('postgres') ||
     nameLower.includes('mysql') ||
     nameLower.includes('sqlite') ||
     nameLower.includes('mariadb')
   )
-    return 'Traditional RDBMS';
+    return ['Traditional RDBMS'];
   if (
     nameLower.includes('clickhouse') ||
     nameLower.includes('vertica') ||
     nameLower.includes('starrocks')
   )
-    return 'Analytical Databases';
+    return ['Analytical Databases'];
   if (
     nameLower.includes('elastic') ||
     nameLower.includes('solr') ||
     nameLower.includes('couchbase')
   )
-    return 'Search & NoSQL';
+    return ['Search & NoSQL'];
   if (nameLower.includes('trino') || nameLower.includes('presto'))
-    return 'Query Engines';
+    return ['Query Engines'];
 
-  return 'Other Databases';
+  return ['Other Databases'];
 }
 
 // Count supported time grains
@@ -141,11 +169,11 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
 
     Object.entries(databases).forEach(([name, db]) => {
       // Add the main database
-      // Use category from documentation metadata (computed by Python) when available
+      // Use categories from documentation metadata (computed by Python) when available
       entries.push({
         ...db,
         name,
-        category: getCategory(name, db.documentation?.category),
+        categories: getCategories(name, db.documentation?.categories),
         timeGrainCount: countTimeGrains(db),
         hasDrivers: (db.documentation?.drivers?.length ?? 0) > 0,
         hasAuthMethods: (db.documentation?.authentication_methods?.length ?? 0) > 0,
@@ -165,10 +193,10 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
         );
 
         if (!existsAsMain) {
-          // Compatible databases: use their category if defined, or infer from name
+          // Compatible databases: use their categories if defined, or infer from name
           entries.push({
             name: compat.name,
-            category: getCategory(compat.name, compat.category),
+            categories: getCategories(compat.name, compat.categories),
             // Compatible DBs inherit scores from parent
             score: db.score,
             max_score: db.max_score,
@@ -207,7 +235,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
           db.documentation?.description
             ?.toLowerCase()
             .includes(searchText.toLowerCase());
-        const matchesCategory = !categoryFilter || db.category === categoryFilter;
+        const matchesCategory = !categoryFilter || db.categories.includes(categoryFilter);
         return matchesSearch && matchesCategory;
       })
       .sort((a, b) => b.score - a.score);
@@ -217,7 +245,10 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
   const { categories, categoryCounts } = useMemo(() => {
     const counts: Record<string, number> = {};
     databaseList.forEach((db) => {
-      counts[db.category] = (counts[db.category] || 0) + 1;
+      // Count each category the database belongs to
+      db.categories.forEach((cat) => {
+        counts[cat] = (counts[cat] || 0) + 1;
+      });
     });
     return {
       categories: Object.keys(counts).sort(),
@@ -264,15 +295,19 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       },
     },
     {
-      title: 'Category',
-      dataIndex: 'category',
-      key: 'category',
-      width: 160,
+      title: 'Categories',
+      dataIndex: 'categories',
+      key: 'categories',
+      width: 220,
       filters: categories.map((cat) => ({ text: cat, value: cat })),
       onFilter: (value: React.Key | boolean, record: TableEntry) =>
-        record.category === value,
-      render: (category: string) => (
-        <Tag color={CATEGORY_COLORS[category] || 'default'}>{category}</Tag>
+        record.categories.includes(value as string),
+      render: (cats: string[]) => (
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+          {cats.map((cat) => (
+            <Tag key={cat} color={CATEGORY_COLORS[cat] || 'default'}>{cat}</Tag>
+          ))}
+        </div>
       ),
     },
     {
