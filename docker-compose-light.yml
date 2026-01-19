@@ -111,13 +111,22 @@ services:
     depends_on:
       superset-init-light:
         condition: service_completed_successfully
+      superset-node-light:
+        condition: service_healthy
     volumes: *superset-volumes
+    healthcheck:
+      test: ["CMD-SHELL", "/app/docker/docker-healthcheck.sh"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
     environment:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
+      FLASK_RUN_HOST: 0.0.0.0
       GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
       GITHUB_SHA: ${GITHUB_SHA:-}
 
@@ -154,6 +163,12 @@ services:
         # it'll mount and watch local files and rebuild as you update them
         DEV_MODE: "true"
         BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
+    healthcheck:
+      test: ["CMD-SHELL", "/app/docker/docker-healthcheck-node.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
@@ -163,7 +178,7 @@ services:
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset-light:8088"
       # Webpack dev server configuration
-      WEBPACK_DEVSERVER_HOST: "${WEBPACK_DEVSERVER_HOST:-127.0.0.1}"
+      WEBPACK_DEVSERVER_HOST: "${WEBPACK_DEVSERVER_HOST:-0.0.0.0}"
       WEBPACK_DEVSERVER_PORT: "${WEBPACK_DEVSERVER_PORT:-9000}"
     ports:
       - "${NODE_PORT:-9001}:9000"  # Parameterized port, accessible on all interfaces
