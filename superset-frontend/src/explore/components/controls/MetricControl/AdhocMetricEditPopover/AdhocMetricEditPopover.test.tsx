@@ -248,3 +248,155 @@ test('Should render "Custom SQL" tab correctly', async () => {
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
+
+test('Should filter saved metrics by metric_name', async () => {
+  const props = {
+    ...createProps(),
+    savedMetricsOptions: [
+      {
+        id: 64,
+        metric_name: 'count',
+        expression: 'COUNT(*)',
+        verbose_name: 'Total Count',
+      },
+      {
+        id: 65,
+        metric_name: 'revenue_sum',
+        expression: 'sum(revenue)',
+        verbose_name: 'Total Sales Amount',
+      },
+    ],
+  };
+  render(<AdhocMetricEditPopover {...props} />);
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Select saved metrics',
+  });
+  userEvent.click(combobox);
+
+  // Search by metric_name - 'revenue' is only in metric_name, not in verbose_name
+  await userEvent.type(combobox, 'revenue');
+
+  await selectOption('Total Sales Amount', 'Select saved metrics');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(props.onChange).toHaveBeenCalledTimes(1);
+  expect(props.onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ metric_name: 'revenue_sum' }),
+    expect.anything(),
+  );
+});
+
+test('Should filter saved metrics by verbose_name', async () => {
+  const props = {
+    ...createProps(),
+    savedMetricsOptions: [
+      {
+        id: 64,
+        metric_name: 'count',
+        expression: 'COUNT(*)',
+        verbose_name: 'Total Count',
+      },
+      {
+        id: 65,
+        metric_name: 'revenue_sum',
+        expression: 'sum(revenue)',
+        verbose_name: 'Total Sales Amount',
+      },
+    ],
+  };
+  render(<AdhocMetricEditPopover {...props} />);
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Select saved metrics',
+  });
+  userEvent.click(combobox);
+
+  // Search by verbose_name - 'Sales' is only in verbose_name, not in metric_name
+  await userEvent.type(combobox, 'Sales');
+
+  await selectOption('Total Sales Amount', 'Select saved metrics');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(props.onChange).toHaveBeenCalledTimes(1);
+  expect(props.onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ metric_name: 'revenue_sum' }),
+    expect.anything(),
+  );
+});
+
+test('Should filter columns by column_name in Simple tab', async () => {
+  const props = {
+    ...createProps(),
+    columns: [
+      {
+        id: 1,
+        column_name: 'user_id',
+        verbose_name: 'User Identifier',
+        type: 'INTEGER',
+      },
+      {
+        id: 2,
+        column_name: 'created_at',
+        verbose_name: 'Creation Timestamp',
+        type: 'DATETIME',
+      },
+    ],
+  };
+  props.getCurrentTab.mockImplementation(tab => {
+    props.adhocMetric.expressionType = tab;
+  });
+  render(<AdhocMetricEditPopover {...props} />);
+
+  const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
+  userEvent.click(tab);
+
+  const columnCombobox = screen.getByRole('combobox', {
+    name: 'Select column',
+  });
+
+  // Search by column_name - 'created' is only in column_name, not in verbose_name
+  await userEvent.type(columnCombobox, 'created');
+
+  await selectOption('Creation Timestamp', 'Select column');
+
+  expect(props.onChange).toHaveBeenCalledTimes(0);
+});
+
+test('Should filter columns by verbose_name in Simple tab', async () => {
+  const props = {
+    ...createProps(),
+    columns: [
+      {
+        id: 1,
+        column_name: 'user_id',
+        verbose_name: 'User Identifier',
+        type: 'INTEGER',
+      },
+      {
+        id: 2,
+        column_name: 'created_at',
+        verbose_name: 'Creation Timestamp',
+        type: 'DATETIME',
+      },
+    ],
+  };
+  props.getCurrentTab.mockImplementation(tab => {
+    props.adhocMetric.expressionType = tab;
+  });
+  render(<AdhocMetricEditPopover {...props} />);
+
+  const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
+  userEvent.click(tab);
+
+  const columnCombobox = screen.getByRole('combobox', {
+    name: 'Select column',
+  });
+
+  // Search by verbose_name - 'Timestamp' is only in verbose_name, not in column_name
+  await userEvent.type(columnCombobox, 'Timestamp');
+
+  await selectOption('Creation Timestamp', 'Select column');
+
+  expect(props.onChange).toHaveBeenCalledTimes(0);
+});

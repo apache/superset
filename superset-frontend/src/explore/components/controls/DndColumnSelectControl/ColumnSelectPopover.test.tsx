@@ -17,7 +17,13 @@
  * under the License.
  */
 
-import { render, fireEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  fireEvent,
+  screen,
+  userEvent,
+  selectOption,
+} from 'spec/helpers/testing-library';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import ColumnSelectPopover, {
@@ -115,4 +121,128 @@ test('open with Custom SQL tab selected when there is a custom SQL selected', ()
   expect(getByText('Saved')).toHaveAttribute('aria-selected', 'false');
   expect(getByText('Simple')).toHaveAttribute('aria-selected', 'false');
   expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'true');
+});
+
+test('Should filter simple columns by column_name and select', async () => {
+  const mockOnChange = jest.fn();
+  renderPopover({
+    columns: [
+      { column_name: 'revenue_amount', verbose_name: 'Total Sales' },
+      { column_name: 'user_id', verbose_name: 'User Identifier' },
+    ],
+    editedColumn: undefined,
+    getCurrentTab: jest.fn(),
+    onChange: mockOnChange,
+  });
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Columns and metrics',
+  });
+  // Search by column_name - 'revenue' is only in column_name, not in verbose_name
+  await userEvent.type(combobox, 'revenue');
+  await selectOption('Total Sales');
+
+  fireEvent.click(screen.getByText('Save'));
+  expect(mockOnChange).toHaveBeenCalledWith(
+    expect.objectContaining({ column_name: 'revenue_amount' }),
+  );
+});
+
+test('Should filter simple columns by verbose_name and select', async () => {
+  const mockOnChange = jest.fn();
+  renderPopover({
+    columns: [
+      { column_name: 'revenue_amount', verbose_name: 'Total Sales' },
+      { column_name: 'user_id', verbose_name: 'User Identifier' },
+    ],
+    editedColumn: undefined,
+    getCurrentTab: jest.fn(),
+    onChange: mockOnChange,
+  });
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Columns and metrics',
+  });
+  // Search by verbose_name - 'Identifier' is only in verbose_name, not in column_name
+  await userEvent.type(combobox, 'Identifier');
+  await selectOption('User Identifier');
+
+  fireEvent.click(screen.getByText('Save'));
+  expect(mockOnChange).toHaveBeenCalledWith(
+    expect.objectContaining({ column_name: 'user_id' }),
+  );
+});
+
+test('Should filter saved expressions by column_name and select', async () => {
+  const mockOnChange = jest.fn();
+  const { container } = renderPopover({
+    columns: [
+      {
+        column_name: 'calculated_revenue',
+        verbose_name: 'Total Sales Calculation',
+        expression: 'price * quantity',
+      },
+      {
+        column_name: 'calculated_tax',
+        verbose_name: 'Tax Amount',
+        expression: 'price * 0.1',
+      },
+    ],
+    editedColumn: undefined,
+    getCurrentTab: jest.fn(),
+    onChange: mockOnChange,
+  });
+
+  const savedTab = container.querySelector('#adhoc-metric-edit-tabs-tab-saved');
+  expect(savedTab).not.toBeNull();
+  fireEvent.click(savedTab!);
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Saved expressions',
+  });
+  // Search by column_name - 'revenue' is only in column_name, not in verbose_name
+  await userEvent.type(combobox, 'revenue');
+  await selectOption('Total Sales Calculation');
+
+  fireEvent.click(screen.getByText('Save'));
+  expect(mockOnChange).toHaveBeenCalledWith(
+    expect.objectContaining({ column_name: 'calculated_revenue' }),
+  );
+});
+
+test('Should filter saved expressions by verbose_name and select', async () => {
+  const mockOnChange = jest.fn();
+  const { container } = renderPopover({
+    columns: [
+      {
+        column_name: 'calculated_revenue',
+        verbose_name: 'Total Sales Calculation',
+        expression: 'price * quantity',
+      },
+      {
+        column_name: 'calculated_tax',
+        verbose_name: 'Tax Amount',
+        expression: 'price * 0.1',
+      },
+    ],
+    editedColumn: undefined,
+    getCurrentTab: jest.fn(),
+    onChange: mockOnChange,
+  });
+
+  const savedTab = container.querySelector('#adhoc-metric-edit-tabs-tab-saved');
+  expect(savedTab).not.toBeNull();
+  fireEvent.click(savedTab!);
+
+  const combobox = screen.getByRole('combobox', {
+    name: 'Saved expressions',
+  });
+  // Search by verbose_name - 'Amount' is only in verbose_name, not in column_name
+  await userEvent.type(combobox, 'Amount');
+  await selectOption('Tax Amount');
+
+  fireEvent.click(screen.getByText('Save'));
+  expect(mockOnChange).toHaveBeenCalledWith(
+    expect.objectContaining({ column_name: 'calculated_tax' }),
+  );
 });
