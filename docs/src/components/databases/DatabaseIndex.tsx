@@ -18,7 +18,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Card, Row, Col, Statistic, Table, Tag, Input, Select } from 'antd';
+import { Card, Row, Col, Statistic, Table, Tag, Input, Select, Tooltip } from 'antd';
 import {
   DatabaseOutlined,
   CheckCircleOutlined,
@@ -27,7 +27,7 @@ import {
   SearchOutlined,
   LinkOutlined,
 } from '@ant-design/icons';
-import type { DatabaseData, DatabaseInfo } from './types';
+import type { DatabaseData, DatabaseInfo, TimeGrains } from './types';
 
 interface DatabaseIndexProps {
   data: DatabaseData;
@@ -40,6 +40,7 @@ interface TableEntry {
   score: number;
   max_score: number;
   timeGrainCount: number;
+  time_grains?: TimeGrains;
   hasDrivers: boolean;
   hasAuthMethods: boolean;
   hasConnectionString: boolean;
@@ -155,6 +156,42 @@ function getCategories(
 function countTimeGrains(db: DatabaseInfo): number {
   if (!db.time_grains) return 0;
   return Object.values(db.time_grains).filter(Boolean).length;
+}
+
+// Format time grain name for display (e.g., FIVE_MINUTES -> "5 min")
+function formatTimeGrain(grain: string): string {
+  const mapping: Record<string, string> = {
+    SECOND: 'Second',
+    FIVE_SECONDS: '5 sec',
+    THIRTY_SECONDS: '30 sec',
+    MINUTE: 'Minute',
+    FIVE_MINUTES: '5 min',
+    TEN_MINUTES: '10 min',
+    FIFTEEN_MINUTES: '15 min',
+    THIRTY_MINUTES: '30 min',
+    HALF_HOUR: '30 min',
+    HOUR: 'Hour',
+    SIX_HOURS: '6 hours',
+    DAY: 'Day',
+    WEEK: 'Week',
+    WEEK_STARTING_SUNDAY: 'Week (Sun)',
+    WEEK_STARTING_MONDAY: 'Week (Mon)',
+    WEEK_ENDING_SATURDAY: 'Week (→Sat)',
+    WEEK_ENDING_SUNDAY: 'Week (→Sun)',
+    MONTH: 'Month',
+    QUARTER: 'Quarter',
+    QUARTER_YEAR: 'Quarter',
+    YEAR: 'Year',
+  };
+  return mapping[grain] || grain;
+}
+
+// Get list of supported time grains for tooltip
+function getSupportedTimeGrains(timeGrains?: TimeGrains): string[] {
+  if (!timeGrains) return [];
+  return Object.entries(timeGrains)
+    .filter(([, supported]) => supported)
+    .map(([grain]) => formatTimeGrain(grain));
 }
 
 const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
@@ -334,9 +371,20 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       key: 'timeGrainCount',
       width: 100,
       sorter: (a: TableEntry, b: TableEntry) => a.timeGrainCount - b.timeGrainCount,
-      render: (count: number) => (
-        <span>{count > 0 ? `${count} grains` : '-'}</span>
-      ),
+      render: (count: number, record: TableEntry) => {
+        if (count === 0) return <span>-</span>;
+        const grains = getSupportedTimeGrains(record.time_grains);
+        return (
+          <Tooltip
+            title={grains.join(', ')}
+            placement="top"
+          >
+            <span style={{ cursor: 'help', borderBottom: '1px dotted #999' }}>
+              {count} grains
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Features',
