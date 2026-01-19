@@ -37,6 +37,10 @@ import {
 } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
+import {
+  migrateChartCustomizationArray,
+  isLegacyChartCustomizationFormat,
+} from 'src/dashboard/util/migrateChartCustomization';
 import { isEqual } from 'lodash';
 import {
   AnyDataMaskAction,
@@ -216,8 +220,16 @@ const dataMaskReducer = produce(
           loadedDataMask,
         );
 
-        const chartCustomizationConfig =
+        const rawChartCustomizationConfig =
           metadata?.chart_customization_config || [];
+
+        const hasLegacyFormat = rawChartCustomizationConfig.some(item =>
+          isLegacyChartCustomizationFormat(item),
+        );
+
+        const chartCustomizationConfig = hasLegacyFormat
+          ? migrateChartCustomizationArray(rawChartCustomizationConfig)
+          : (rawChartCustomizationConfig as ChartCustomization[]);
 
         chartCustomizationConfig.forEach(item => {
           if (!isChartCustomizationItem(item)) {
