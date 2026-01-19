@@ -37,7 +37,7 @@
     "@mihkeleidast/storybook-addon-source": "^1.0.1",
     "@react-icons/all-files": "^4.1.0",
     "@storybook/addon-actions": "8.6.14",
-    "@storybook/addon-controls": "8.6.14",
+    "@storybook/addon-controls": "9.0.8",
     "@storybook/addon-links": "8.6.14",
     "@storybook/react": "8.6.14",
     "@storybook/types": "8.6.14",
