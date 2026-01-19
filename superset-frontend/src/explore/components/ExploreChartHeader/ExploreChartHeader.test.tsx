@@ -184,24 +184,33 @@ describe('ExploreChartHeader', () => {
       await screen.findByDisplayValue(prevChartName ?? ''),
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    userEvent.click(screen.getByText('Edit chart properties'));
+    await userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    await userEvent.click(screen.getByText('Edit chart properties'));
 
     const nameInput = await screen.findByRole('textbox', { name: 'Name' });
 
-    userEvent.clear(nameInput);
-    userEvent.type(nameInput, newChartName);
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, newChartName);
 
     expect(screen.getByDisplayValue(newChartName)).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    userEvent.click(screen.getByText('Edit chart properties'));
+    // Wait for the modal to close
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('textbox', { name: 'Name' }),
+      ).not.toBeInTheDocument();
+    });
 
-    expect(
-      await screen.findByDisplayValue(prevChartName ?? ''),
-    ).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    await userEvent.click(screen.getByText('Edit chart properties'));
+
+    // Wait for the modal to reopen and verify the name was reset
+    const reopenedNameInput = await screen.findByRole('textbox', {
+      name: 'Name',
+    });
+    expect(reopenedNameInput).toHaveValue(prevChartName ?? '');
   });
 
   test('renders the metadata bar when saved', async () => {
