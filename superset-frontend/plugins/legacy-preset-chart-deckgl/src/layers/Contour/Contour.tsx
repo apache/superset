@@ -159,11 +159,45 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
     return baseTooltipContent(o);
   };
 
+  const MIN_CELL_SIZE = 10;
+  const MAX_CELL_SIZE = 5000;
+  const MAX_GRID_CELLS = 1_000_000;
+
+  let parsedCellSize = Number(cellSize || 200);
+  if (!Number.isFinite(parsedCellSize)) {
+    parsedCellSize = 200;
+  }
+
+  let safeCellSize = Math.min(
+    MAX_CELL_SIZE,
+    Math.max(MIN_CELL_SIZE, parsedCellSize),
+  );
+
+  const viewport = fd.viewport;
+  if (viewport?.width && viewport?.height) {
+    const estimatedCells =
+      (viewport.width / safeCellSize) *
+      (viewport.height / safeCellSize);
+
+    if (estimatedCells > MAX_GRID_CELLS) {
+      const scaleFactor = Math.sqrt(estimatedCells / MAX_GRID_CELLS);
+      const adjusted = Math.ceil(safeCellSize * scaleFactor);
+
+      console.warn(
+        `[DeckGL Contour] cellSize=${safeCellSize} would create ~${Math.round(
+          estimatedCells,
+        )} cells. Auto-adjusted to ${adjusted} to prevent WebGL crash.`,
+      );
+
+      safeCellSize = adjusted;
+    }
+  }
+
   return new ContourLayer({
     id: `contourLayer-${fd.slice_id}`,
     data,
     contours,
-    cellSize: Number(cellSize || '200'),
+    cellSize: safeCellSize,
     aggregation: aggregation.toUpperCase(),
     getPosition: (d: { position: number[]; weight: number }) =>
       d.position as Position,
