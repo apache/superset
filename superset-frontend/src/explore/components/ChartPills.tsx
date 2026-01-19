@@ -43,6 +43,11 @@ export type ChartPillsProps = {
   refreshCachedQuery: () => void;
   rowLimit?: string | number;
   hideRowCount?: boolean;
+  formData?: {
+    viz_type?: string;
+    server_pagination?: boolean;
+    [key: string]: unknown;
+  };
 };
 
 export const ChartPills = forwardRef(
@@ -55,11 +60,24 @@ export const ChartPills = forwardRef(
       refreshCachedQuery,
       rowLimit,
       hideRowCount = false,
+      formData,
     }: ChartPillsProps,
     ref: RefObject<HTMLDivElement>,
   ) => {
     const isLoading = chartStatus === 'loading';
     const firstQueryResponse = queriesResponse?.[0];
+
+    // For table charts with server pagination, check second query for total count
+    const isTableChart = formData?.viz_type === 'table';
+    const hasCountQuery = queriesResponse && queriesResponse.length > 1;
+    const countFromSecondQuery = hasCountQuery
+      ? queriesResponse[1]?.data?.[0]?.rowcount
+      : null;
+    
+    const actualRowCount =
+      isTableChart && countFromSecondQuery != null
+        ? countFromSecondQuery
+        : Number(firstQueryResponse?.sql_rowcount ?? 0);
 
     return (
       <div ref={ref}>
@@ -72,7 +90,7 @@ export const ChartPills = forwardRef(
         >
           {!isLoading && !hideRowCount && firstQueryResponse && (
             <RowCountLabel
-              rowcount={Number(firstQueryResponse.sql_rowcount) || 0}
+              rowcount={actualRowCount}
               limit={Number(rowLimit ?? 0)}
             />
           )}
