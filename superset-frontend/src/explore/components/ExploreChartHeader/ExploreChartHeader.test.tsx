@@ -394,7 +394,7 @@ describe('ExploreChartHeader', () => {
       },
     });
     render(<ExploreHeader {...props} />, { useRedux: true });
-    
+
     const matrixifyTag = await screen.findByText('Matrixify');
     expect(matrixifyTag).toBeInTheDocument();
     expect(matrixifyTag.closest('[color="purple"]')).toBeInTheDocument();
@@ -407,7 +407,7 @@ describe('ExploreChartHeader', () => {
       },
     });
     render(<ExploreHeader {...props} />, { useRedux: true });
-    
+
     await waitFor(() => {
       expect(screen.queryByText('Matrixify')).not.toBeInTheDocument();
     });
