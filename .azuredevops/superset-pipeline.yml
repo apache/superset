@@ -115,11 +115,19 @@ stages:
                   pwsh: true
                   targetType: inline
                   script: |
-                    # Use secret variable directly
+                    # Get the secret variable
                     $raw = $env:BLUE_DEV_SECRET
                     Write-Host "Retrieved client config"
-                    Write-Host "Length of secret: $($raw.Length)"
-                    Write-Host "First 20 chars (masked): $($raw.Substring(0, [Math]::Min(20, $raw.Length)))"
+
+                    # Check if it's base64-encoded (common pattern: starts with standard base64 chars)
+                    # Try to decode if it looks like base64
+                    try {
+                        $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($raw))
+                        Write-Host "Config appears to be base64-encoded, decoded successfully"
+                        $raw = $decoded
+                    } catch {
+                        Write-Host "Config is not base64-encoded, using as-is"
+                    }
 
                     # Write to temp file
                     $out = Join-Path "$(Agent.TempDirectory)" "blue-dev-config.json"
@@ -130,7 +138,11 @@ stages:
                     # Parse JSON
                     try { 
                         $cfg = Get-Content -Raw -Path $out | ConvertFrom-Json 
+                        Write-Host "JSON parsed successfully"
                     } catch { 
+                        # Output first 100 chars for debugging (without exposing full secret)
+                        $preview = if ($raw.Length -gt 100) { $raw.Substring(0,100) + "..." } else { $raw }
+                        Write-Host "##[error]First 100 chars of config: $preview"
                         throw "Config is not valid JSON: $($_.Exception.Message)" 
                     }
 
@@ -149,6 +161,15 @@ stages:
                     Write-Host "##vso[task.setvariable variable=DB_NAME]$($pg.database)"
                     Write-Host "##vso[task.setvariable variable=DB_USER]$($pg.admin.user)"
                     Write-Host "##vso[task.setvariable variable=DB_PASSWORD;issecret=true]$($pg.admin.password)"
+
+              # -------------------------------------
+              # Load deployment artifact
+              # -------------------------------------
+              - bash: |
+                  source $(Pipeline.Workspace)/$(artifactName)/deployment.env
+                  echo "##vso[task.setvariable variable=FULL_IMAGE_NAME]$FULL_IMAGE_NAME"
+                  echo "Using image: $FULL_IMAGE_NAME"
+                displayName: Load Deployment Variables
 
               # -------------------------------------
               # Create docker-compose env file
@@ -173,6 +194,8 @@ stages:
 
                   DOCKER_NETWORK=$(DOCKER_NETWORK)
                   EOF
+                  
+                  echo "Created .env.deploy file"
                 displayName: Create .env.deploy
 
               # -------------------------------------
@@ -191,8 +214,9 @@ stages:
                       echo "Superset is healthy"
                       exit 0
                     fi
+                    echo "Attempt $i: Waiting for Superset to be ready..."
                     sleep 10
                   done
-                  echo "Superset failed health check"
+                  echo "Superset failed health check after 10 minutes"
                   exit 1
                 displayName: Verify Health
