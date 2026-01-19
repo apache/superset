@@ -61,12 +61,12 @@ services:
       DATABASE_HOST: db
       DATABASE_PASSWORD: superset
       DATABASE_USER: superset
-      DATABASE_PORT: "5432"
+      DATABASE_PORT: 5432
       DATABASE_DIALECT: postgresql
       
       # Redis
       REDIS_HOST: redis
-      REDIS_PORT: "6379"
+      REDIS_PORT: 6379
     depends_on:
       redis:
         condition: service_healthy
@@ -86,7 +86,7 @@ services:
       - superset-network
       - oeeintellisuite
     ports:
-      - "${SUPERSET_PORT}:5760"
+      - "${SUPERSET_PORT:-5760}:5760"
     env_file:
       - .env.deploy
     environment:
@@ -98,7 +98,7 @@ services:
       DATABASE_HOST: db
       DATABASE_PASSWORD: superset
       DATABASE_USER: superset
-      DATABASE_PORT: "5432"
+      DATABASE_PORT: 5432
       DATABASE_DIALECT: postgresql
       
       # Redis
