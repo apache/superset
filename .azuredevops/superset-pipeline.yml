@@ -290,6 +290,9 @@ stages:
                   set -a  # Automatically export all variables
                   source .env.deploy
                   set +a
+                  echo ""
+                  echo "Checking shell environment:"
+                  env | grep -E "SUPERSET|DATABASE|POSTGRES|REDIS|DOCKER_NETWORK" | sort
                   
                   docker compose -f docker-compose-deploy.yml --env-file .env.deploy up -d
                   
