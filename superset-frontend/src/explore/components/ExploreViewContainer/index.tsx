@@ -1207,9 +1207,9 @@ function mapDispatchToProps(dispatch: Dispatch): DispatchProps {
   };
 }
 
-// withToasts HOC expects ComponentType<any>, requiring type assertion
-// The connected component properly handles StateProps & DispatchProps & OwnProps
+// withToasts provides toast functions (OwnProps), and connect provides StateProps & DispatchProps
+// The final exported component doesn't require any external props
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(withToasts(memo(ExploreViewContainer)) as ComponentType<OwnProps>);
+)(withToasts(memo(ExploreViewContainer)) as ComponentType<Record<string, never>>);
