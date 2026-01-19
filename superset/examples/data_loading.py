@@ -25,8 +25,6 @@ import yaml
 # Import loaders that have custom logic (dashboards, CSS, etc.)
 from superset.cli.test_loaders import load_big_data
 
-from .css_templates import load_css_templates
-
 # Import generic loader for Parquet datasets
 from .generic_loader import create_generic_loader
 from .utils import load_examples_from_configs
@@ -175,7 +173,6 @@ globals().update(_auto_loaders)
 __all__ = [
     # Custom loaders (always included)
     "load_big_data",
-    "load_css_templates",
     "load_examples_from_configs",
     # Auto-discovered loaders
     *sorted(_auto_loaders.keys()),

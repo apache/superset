@@ -31,7 +31,7 @@ def _should_skip_loader(
 ) -> bool:
     """Check if a loader should be skipped."""
     # Skip special loaders that aren't datasets
-    if loader_name in ["load_css_templates", "load_examples_from_configs"]:
+    if loader_name == "load_examples_from_configs":
         return True
 
     # Skip big data if not requested or when only metadata is requested
@@ -78,9 +78,6 @@ def load_examples_run(
 
     # pylint: disable=import-outside-toplevel
     import superset.examples.data_loading as examples
-
-    # Always load CSS templates
-    examples.load_css_templates()
 
     # Auto-discover and load all datasets
     for loader_name in dir(examples):
