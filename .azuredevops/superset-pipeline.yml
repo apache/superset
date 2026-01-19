@@ -118,6 +118,8 @@ stages:
                     # Use secret variable directly
                     $raw = $env:BLUE_DEV_SECRET
                     Write-Host "Retrieved client config"
+                    Write-Host "Length of secret: $($raw.Length)"
+                    Write-Host "First 20 chars (masked): $($raw.Substring(0, [Math]::Min(20, $raw.Length)))"
 
                     # Write to temp file
                     $out = Join-Path "$(Agent.TempDirectory)" "blue-dev-config.json"
