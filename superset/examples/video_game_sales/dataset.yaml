@@ -157,7 +157,7 @@ normalize_columns: false
 offset: 0
 params: null
 schema: null
-sql: ''
+sql: null
 table_name: video_game_sales
 template_params: null
 uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283

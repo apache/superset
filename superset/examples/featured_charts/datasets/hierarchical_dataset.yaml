@@ -73,29 +73,7 @@ normalize_columns: false
 offset: 0
 params: null
 schema: null
-sql: 'SELECT 1 as "id", null as "parent", ''USA'' as "name", 1 as "count"
-
-  UNION SELECT 2, 1, ''CA'', 10
-
-  UNION SELECT 3, 1, ''NY'', 15
-
-  UNION SELECT 4, 1, ''TX'', 20
-
-  UNION SELECT 5, 1, ''FL'', 12
-
-  UNION SELECT 6, 2, ''Los Angeles'', 5
-
-  UNION SELECT 7, 2, ''San Francisco'', 8
-
-  UNION SELECT 8, 3, ''New York City'', 18
-
-  UNION SELECT 9, 3, ''Buffalo'', 3
-
-  UNION SELECT 10, 4, ''Houston'', 14
-
-  UNION SELECT 11, 4, ''Dallas'', 9
-
-  UNION SELECT 12, 5, ''Miami'', 6'
+sql: null
 table_name: hierarchical_dataset
 template_params: null
 uuid: f710a997-c65e-4aa6-aaed-b7d6998565ae

@@ -49,8 +49,7 @@ normalize_columns: false
 offset: 0
 params: null
 schema: null
-sql: SELECT date, total_membership - lag(total_membership) OVER (ORDER BY date) AS
-  new_members FROM exported_stats
+sql: null
 table_name: new_members_daily
 template_params: null
 uuid: 9dd99cda-ff6b-4575-9a74-684d06e871ab

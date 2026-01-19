@@ -49,8 +49,7 @@ normalize_columns: false
 offset: 0
 params: null
 schema: null
-sql: SELECT c.name AS channel_name, u.name AS member_name FROM channel_members cm
-  JOIN channels c ON cm.channel_id = c.id JOIN users u ON cm.user_id = u.id
+sql: null
 table_name: members_channels_2
 template_params: null
 uuid: 3d9c0054-b31b-4102-92de-b1ef9f9e5e77

@@ -71,7 +71,7 @@ def export_dataset_yaml(
         "cache_timeout": dataset.cache_timeout,
         "catalog": dataset.catalog,
         "schema": None,  # Don't export - use target database's default schema
-        "sql": dataset.sql,
+        "sql": None,  # Convert virtual datasets to physical - data is in parquet
         "params": None,  # Don't export - contains stale import metadata
         "template_params": dataset.template_params,
         "filter_select_enabled": dataset.filter_select_enabled,

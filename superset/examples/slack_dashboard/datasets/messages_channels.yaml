@@ -61,8 +61,7 @@ normalize_columns: false
 offset: 0
 params: null
 schema: null
-sql: SELECT m.ts, c.name, m.text FROM messages m JOIN channels c ON m.channel_id =
-  c.id
+sql: null
 table_name: messages_channels
 template_params: null
 uuid: 6e533506-fce6-4f6a-b116-d139df6dbdea

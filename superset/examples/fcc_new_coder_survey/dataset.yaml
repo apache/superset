@@ -1737,7 +1737,7 @@ normalize_columns: false
 offset: 0
 params: null
 schema: null
-sql: ''
+sql: null
 table_name: FCC 2018 Survey
 template_params: null
 uuid: d95a2865-53ce-1f82-a53d-8e3c89331469
