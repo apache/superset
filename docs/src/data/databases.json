@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-19T02:12:31.420Z",
+  "generated": "2026-01-19T02:21:47.663Z",
   "statistics": {
     "totalDatabases": 67,
     "withDocumentation": 67,
@@ -15,9 +15,7 @@
     "byCategory": {
       "Other Databases": [
         "Arc",
-        "Google Sheets",
         "Shillelagh",
-        "Superset meta database",
         "Superset meta database"
       ],
       "Proprietary": [
@@ -37,7 +35,6 @@
         "Azure Data Explorer",
         "Microsoft SQL Server",
         "Azure Synapse",
-        "Azure Synapse",
         "IBM Netezza Performance Server",
         "Ocient",
         "Oracle",
@@ -45,97 +42,8 @@
         "SingleStore",
         "Snowflake",
         "SAP Sybase",
-        "SAP Sybase",
         "Teradata",
         "Vertica"
-      ],
-      "Apache Projects": [
-        "Ascend",
-        "Databricks Interactive Cluster",
-        "Apache Doris",
-        "Apache Drill",
-        "Apache Druid",
-        "Apache Hive",
-        "Apache Impala",
-        "Apache Kylin",
-        "Apache Pinot",
-        "Apache Solr",
-        "Apache Spark SQL",
-        "Apache Spark SQL"
-      ],
-      "Query Engines": [
-        "Ascend",
-        "Amazon Athena",
-        "Databricks Interactive Cluster",
-        "Databricks Interactive Cluster",
-        "Denodo",
-        "Dremio",
-        "Apache Drill",
-        "Apache Hive",
-        "Apache Hive",
-        "Apache Impala",
-        "Presto",
-        "Apache Spark SQL",
-        "Apache Spark SQL",
-        "Apache Spark SQL",
-        "Trino"
-      ],
-      "Open Source": [
-        "Ascend",
-        "Aurora MySQL (Data API)",
-        "Aurora PostgreSQL (Data API)",
-        "ClickHouse",
-        "CockroachDB",
-        "CockroachDB",
-        "Couchbase",
-        "CrateDB",
-        "Cloudflare D1",
-        "Databricks Interactive Cluster",
-        "Databricks Interactive Cluster",
-        "Apache Doris",
-        "Apache Doris",
-        "Apache Drill",
-        "Apache Druid",
-        "DuckDB",
-        "MotherDuck",
-        "Elasticsearch",
-        "Firebird",
-        "Greenplum",
-        "Greenplum",
-        "Google Sheets",
-        "Google Sheets",
-        "Apache Hive",
-        "Apache Hive",
-        "Apache Impala",
-        "Apache Kylin",
-        "MariaDB",
-        "MariaDB",
-        "MonetDB",
-        "MySQL",
-        "OceanBase",
-        "OceanBase",
-        "Parseable",
-        "Apache Pinot",
-        "PostgreSQL",
-        "Presto",
-        "RisingWave",
-        "RisingWave",
-        "Shillelagh",
-        "Shillelagh",
-        "Apache Solr",
-        "Apache Spark SQL",
-        "Apache Spark SQL",
-        "Apache Spark SQL",
-        "SQLite",
-        "StarRocks",
-        "StarRocks",
-        "Superset meta database",
-        "Superset meta database",
-        "TDengine",
-        "TimescaleDB",
-        "Trino",
-        "YDB",
-        "YugabyteDB"
       ],
       "Cloud Data Warehouses": [
         "Ascend",
@@ -183,40 +91,78 @@
         "Amazon DynamoDB",
         "Amazon Redshift"
       ],
+      "Query Engines": [
+        "Amazon Athena",
+        "Databricks Interactive Cluster",
+        "Denodo",
+        "Dremio",
+        "Apache Drill",
+        "Apache Hive",
+        "Apache Impala",
+        "Presto",
+        "Apache Spark SQL",
+        "Trino"
+      ],
       "Traditional RDBMS": [
         "Aurora MySQL (Data API)",
         "Aurora PostgreSQL (Data API)",
         "CockroachDB",
-        "CockroachDB",
-        "Cloudflare D1",
         "Cloudflare D1",
         "IBM Db2",
-        "Apache Doris",
         "Firebird",
         "Greenplum",
-        "Greenplum",
-        "Google Sheets",
         "SAP HANA",
         "IBM Db2 for i",
         "MariaDB",
-        "MariaDB",
         "MonetDB",
         "Microsoft SQL Server",
-        "Azure Synapse",
         "MySQL",
         "IBM Netezza Performance Server",
         "OceanBase",
-        "OceanBase",
         "Oracle",
         "PostgreSQL",
-        "RisingWave",
-        "Shillelagh",
         "SQLite",
-        "StarRocks",
-        "Superset meta database",
-        "SAP Sybase",
         "SAP Sybase",
         "Teradata",
+        "YDB",
+        "YugabyteDB"
+      ],
+      "Open Source": [
+        "Aurora MySQL (Data API)",
+        "Aurora PostgreSQL (Data API)",
+        "ClickHouse",
+        "CockroachDB",
+        "Couchbase",
+        "CrateDB",
+        "Databricks Interactive Cluster",
+        "Apache Doris",
+        "Apache Drill",
+        "Apache Druid",
+        "DuckDB",
+        "MotherDuck",
+        "Elasticsearch",
+        "Firebird",
+        "Greenplum",
+        "Apache Hive",
+        "Apache Impala",
+        "Apache Kylin",
+        "MariaDB",
+        "MonetDB",
+        "MySQL",
+        "OceanBase",
+        "Parseable",
+        "Apache Pinot",
+        "PostgreSQL",
+        "Presto",
+        "RisingWave",
+        "Shillelagh",
+        "Apache Solr",
+        "Apache Spark SQL",
+        "SQLite",
+        "StarRocks",
+        "TDengine",
+        "TimescaleDB",
+        "Trino",
         "YDB",
         "YugabyteDB"
       ],
@@ -236,6 +182,18 @@
         "Apache Druid",
         "Apache Pinot",
         "TDengine"
+      ],
+      "Apache Projects": [
+        "Databricks Interactive Cluster",
+        "Apache Doris",
+        "Apache Drill",
+        "Apache Druid",
+        "Apache Hive",
+        "Apache Impala",
+        "Apache Kylin",
+        "Apache Pinot",
+        "Apache Solr",
+        "Apache Spark SQL"
       ],
       "Cloud - Azure": [
         "Azure Data Explorer"
@@ -303,20 +261,17 @@
         "description": "Ascend.io is a data automation platform for building data pipelines.",
         "logo": "ascend.webp",
         "homepage_url": "https://www.ascend.io/",
-        "categories": [
-          "APACHE_PROJECTS",
-          "QUERY_ENGINES",
-          "OPEN_SOURCE",
-          "CLOUD_DATA_WAREHOUSES",
-          "ANALYTICAL_DATABASES",
-          "HOSTED_OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "impyla",
           "impyla"
         ],
         "connection_string": "ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true",
-        "default_port": 21050
+        "default_port": 21050,
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "ANALYTICAL_DATABASES",
+          "HOSTED_OPEN_SOURCE"
+        ]
       },
       "time_grains": {},
       "score": 0,
@@ -667,12 +622,6 @@
         "description": "CockroachDB is a distributed SQL database built for cloud applications.",
         "logo": "cockroachdb.png",
         "homepage_url": "https://www.cockroachlabs.com/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "psycopg2",
           "cockroachdb"
@@ -698,7 +647,11 @@
           }
         ],
         "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",
-        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html"
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ]
       },
       "time_grains": {
         "SECOND": true,
@@ -883,18 +836,16 @@
         "description": "Cloudflare D1 is a serverless SQLite database.",
         "logo": "cloudflare.png",
         "homepage_url": "https://developers.cloudflare.com/d1/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "CLOUD_DATA_WAREHOUSES",
-          "TRADITIONAL_RDBMS",
-          "HOSTED_OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "superset-engine-d1"
         ],
         "connection_string": "d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}",
         "notes": "No additional library needed. SQLite is bundled with Python.",
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "TRADITIONAL_RDBMS",
+          "HOSTED_OPEN_SOURCE"
+        ],
         "parameters": {
           "cloudflare_account_id": "Cloudflare account ID",
           "cloudflare_api_token": "Cloudflare API token",
@@ -988,13 +939,6 @@
         "description": "Apache Hive is a data warehouse infrastructure built on Hadoop.",
         "logo": "apache-hive.svg",
         "homepage_url": "https://hive.apache.org/",
-        "categories": [
-          "QUERY_ENGINES",
-          "OPEN_SOURCE",
-          "APACHE_PROJECTS",
-          "QUERY_ENGINES",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "pyhive",
           "pyhive"
@@ -1014,6 +958,11 @@
             "connection_string": "presto://{hostname}:{port}/{database}",
             "is_recommended": true
           }
+        ],
+        "categories": [
+          "APACHE_PROJECTS",
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
         ]
       },
       "time_grains": {},
@@ -1271,13 +1220,6 @@
         "description": "Apache Doris is a high-performance real-time analytical database.",
         "logo": "doris.png",
         "homepage_url": "https://doris.apache.org/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "APACHE_PROJECTS",
-          "ANALYTICAL_DATABASES",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "mysqlclient",
           "pydoris"
@@ -1325,6 +1267,11 @@
             "is_recommended": false,
             "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
           }
+        ],
+        "categories": [
+          "APACHE_PROJECTS",
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
         ]
       },
       "time_grains": {
@@ -2041,12 +1988,6 @@
         "description": "VMware Greenplum is a massively parallel processing (MPP) database built on PostgreSQL.",
         "logo": "greenplum.png",
         "homepage_url": "https://greenplum.org/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "psycopg2",
           "sqlalchemy-greenplum",
@@ -2073,7 +2014,11 @@
           }
         ],
         "docs_url": "https://docs.vmware.com/en/VMware-Greenplum/",
-        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html"
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ]
       },
       "time_grains": {},
       "score": 0,
@@ -2098,20 +2043,16 @@
         "description": "Google Sheets allows querying spreadsheets as SQL tables via shillelagh.",
         "logo": "google-sheets.svg",
         "homepage_url": "https://www.google.com/sheets/about/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "OTHER",
-          "OPEN_SOURCE",
-          "CLOUD_GCP",
-          "HOSTED_OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "shillelagh[gsheetsapi]",
           "shillelagh[gsheetsapi]"
         ],
         "connection_string": "gsheets://",
         "notes": "Requires Google service account credentials or OAuth2 authentication. See docs for setup instructions.",
+        "categories": [
+          "CLOUD_GCP",
+          "HOSTED_OPEN_SOURCE"
+        ],
         "install_instructions": "pip install \"apache-superset[gsheets]\""
       },
       "time_grains": {
@@ -2217,13 +2158,6 @@
         "description": "Apache Hive is a data warehouse infrastructure built on Hadoop.",
         "logo": "apache-hive.svg",
         "homepage_url": "https://hive.apache.org/",
-        "categories": [
-          "QUERY_ENGINES",
-          "OPEN_SOURCE",
-          "APACHE_PROJECTS",
-          "QUERY_ENGINES",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "pyhive",
           "pyhive"
@@ -2243,6 +2177,11 @@
             "connection_string": "presto://{hostname}:{port}/{database}",
             "is_recommended": true
           }
+        ],
+        "categories": [
+          "APACHE_PROJECTS",
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
         ]
       },
       "time_grains": {
@@ -2547,12 +2486,6 @@
         "description": "MariaDB is a community-developed fork of MySQL.",
         "logo": "mariadb.png",
         "homepage_url": "https://mariadb.org/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "mysqlclient",
           "mysqlclient"
@@ -2598,6 +2531,10 @@
             "is_recommended": false,
             "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
           }
+        ],
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ],
         "notes": "Uses the MySQL driver. Fully compatible with MySQL connector."
       },
@@ -2759,13 +2696,6 @@
         "description": "Azure Synapse Analytics is a cloud-based enterprise data warehouse from Microsoft that combines big data and data warehousing.",
         "logo": "azure.svg",
         "homepage_url": "https://azure.microsoft.com/en-us/products/synapse-analytics/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "PROPRIETARY",
-          "CLOUD_DATA_WAREHOUSES",
-          "ANALYTICAL_DATABASES",
-          "PROPRIETARY"
-        ],
         "pypi_packages": [
           "pymssql",
           "pymssql"
@@ -2787,7 +2717,12 @@
             "notes": "Connection string must be URL-encoded. Special characters like @ need encoding."
           }
         ],
-        "docs_url": "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"
+        "docs_url": "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords",
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ]
       },
       "time_grains": {},
       "score": 0,
@@ -2978,12 +2913,6 @@
         "description": "OceanBase is a distributed relational database.",
         "logo": "oceanbase.svg",
         "homepage_url": "https://www.oceanbase.com/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "mysqlclient",
           "oceanbase_py"
@@ -3029,6 +2958,10 @@
             "is_recommended": false,
             "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
           }
+        ],
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
         ]
       },
       "time_grains": {},
@@ -3611,12 +3544,6 @@
         "description": "RisingWave is a distributed streaming database.",
         "logo": "risingwave.png",
         "homepage_url": "https://risingwave.com/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "ANALYTICAL_DATABASES",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "psycopg2",
           "sqlalchemy-risingwave"
@@ -3642,7 +3569,11 @@
           }
         ],
         "docs_url": "https://github.com/risingwavelabs/sqlalchemy-risingwave",
-        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html"
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ]
       },
       "time_grains": {
         "SECOND": true,
@@ -3689,17 +3620,15 @@
         "description": "Shillelagh is a Python library that allows querying many data sources using SQL, including Google Sheets, CSV files, and APIs.",
         "logo": "shillelagh.png",
         "homepage_url": "https://shillelagh.readthedocs.io/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "OTHER",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "shillelagh[gsheetsapi]"
         ],
         "connection_string": "shillelagh://",
-        "notes": "Shillelagh uses virtual tables to query external data sources. Google Sheets requires OAuth credentials configured."
+        "notes": "Shillelagh uses virtual tables to query external data sources. Google Sheets requires OAuth credentials configured.",
+        "categories": [
+          "OTHER",
+          "OPEN_SOURCE"
+        ]
       },
       "time_grains": {},
       "score": 0,
@@ -3926,16 +3855,6 @@
         "description": "Apache Spark SQL is a module for structured data processing.",
         "logo": "apache-spark.png",
         "homepage_url": "https://spark.apache.org/sql/",
-        "categories": [
-          "QUERY_ENGINES",
-          "OPEN_SOURCE",
-          "APACHE_PROJECTS",
-          "QUERY_ENGINES",
-          "OPEN_SOURCE",
-          "APACHE_PROJECTS",
-          "QUERY_ENGINES",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "pyhive",
           "pyhive",
@@ -3956,6 +3875,11 @@
             "connection_string": "presto://{hostname}:{port}/{database}",
             "is_recommended": true
           }
+        ],
+        "categories": [
+          "APACHE_PROJECTS",
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
         ]
       },
       "time_grains": {
@@ -4056,12 +3980,6 @@
         "description": "StarRocks is a high-performance analytical database for real-time analytics.",
         "logo": "starrocks.png",
         "homepage_url": "https://www.starrocks.io/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "ANALYTICAL_DATABASES",
-          "OPEN_SOURCE"
-        ],
         "pypi_packages": [
           "mysqlclient",
           "starrocks"
@@ -4115,6 +4033,10 @@
             "connection_string": "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}",
             "is_recommended": true
           }
+        ],
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
         ]
       },
       "time_grains": {
@@ -4162,18 +4084,14 @@
         "description": "Superset meta database is an experimental feature that enables querying across multiple configured databases using a single connection.",
         "logo": "superset.svg",
         "homepage_url": "https://superset.apache.org/",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "OPEN_SOURCE",
-          "OTHER",
-          "OPEN_SOURCE",
-          "OTHER"
-        ],
         "pypi_packages": [
           "shillelagh[gsheetsapi]"
         ],
         "connection_string": "superset://",
-        "notes": "This is an internal Superset feature. Enable with ENABLE_SUPERSET_META_DB feature flag. Allows cross-database queries using virtual tables."
+        "notes": "This is an internal Superset feature. Enable with ENABLE_SUPERSET_META_DB feature flag. Allows cross-database queries using virtual tables.",
+        "categories": [
+          "OTHER"
+        ]
       },
       "time_grains": {},
       "score": 0,
@@ -4198,12 +4116,6 @@
         "description": "SAP ASE (formerly Sybase) is an enterprise relational database.",
         "logo": "sybase.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
-        "categories": [
-          "TRADITIONAL_RDBMS",
-          "PROPRIETARY",
-          "TRADITIONAL_RDBMS",
-          "PROPRIETARY"
-        ],
         "pypi_packages": [
           "pymssql",
           "sqlalchemy-sybase",
@@ -4227,6 +4139,10 @@
           }
         ],
         "docs_url": "https://help.sap.com/docs/SAP_ASE",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
+        ],
         "parameters": {
           "username": "Database username",
           "password": "Database password",

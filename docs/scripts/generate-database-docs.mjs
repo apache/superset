@@ -146,7 +146,9 @@ def deep_merge(base, override):
         return override
 
     # Fields that should NOT be inherited from parent classes
-    NON_INHERITABLE_FIELDS = {'compatible_databases'}
+    # - compatible_databases: Each class defines its own compatible DBs
+    # - categories: Each class defines its own categories (not extended from parent)
+    NON_INHERITABLE_FIELDS = {'compatible_databases', 'categories'}
 
     result = base.copy()
     # Remove non-inheritable fields from base (they should only come from the class that defines them)
