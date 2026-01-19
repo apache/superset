@@ -1,6 +1,5 @@
 # Docker Compose for Superset Deployment
 # This file is used by Azure DevOps pipeline for production deployments
-
 x-superset-volumes: &superset-volumes
   - superset_home:/app/superset_home
 
@@ -27,16 +26,61 @@ services:
     restart: unless-stopped
     networks:
       - superset-network
-    env_file:
-      - .env.deploy
+    environment:
+      # Metadata DB credentials (internal to Superset)
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_DB: superset
     volumes:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER --dbname=$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U superset --dbname=superset"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  superset-init:
+    image: ${SUPERSET_IMAGE}
+    container_name: superset_init
+    command: ["/app/docker/docker-init.sh"]
+    user: "root"
+    networks:
+      - superset-network
+      - oeeintellisuite
+    env_file:
+      - .env.deploy
+    environment:
+      # Superset configuration
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      
+      # Metadata database (internal PostgreSQL)
+      DATABASE_DB: superset
+      DATABASE_HOST: db
+      DATABASE_PASSWORD: superset
+      DATABASE_USER: superset
+      DATABASE_PORT: 5432
+      DATABASE_DIALECT: postgresql
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # OEE Data Source connection (external PostgreSQL)
+      # These will be used by Superset to connect to the actual data
+      OEE_DB_HOST: ${POSTGRES_HOST}
+      OEE_DB_PORT: ${POSTGRES_PORT}
+      OEE_DB_NAME: ${POSTGRES_DB}
+      OEE_DB_USER: ${POSTGRES_USER}
+      OEE_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
 
   superset:
     image: ${SUPERSET_IMAGE}
@@ -52,36 +96,36 @@ services:
     env_file:
       - .env.deploy
     environment:
+      # Superset configuration
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      
+      # Metadata database (internal PostgreSQL)
+      DATABASE_DB: superset
+      DATABASE_HOST: db
+      DATABASE_PASSWORD: superset
+      DATABASE_USER: superset
+      DATABASE_PORT: 5432
+      DATABASE_DIALECT: postgresql
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # OEE Data Source connection (external PostgreSQL)
+      OEE_DB_HOST: ${POSTGRES_HOST}
+      OEE_DB_PORT: ${POSTGRES_PORT}
+      OEE_DB_NAME: ${POSTGRES_DB}
+      OEE_DB_USER: ${POSTGRES_USER}
+      OEE_DB_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       superset-init:
         condition: service_completed_successfully
     volumes: *superset-volumes
 
-  superset-init:
-    image: ${SUPERSET_IMAGE}
-    container_name: superset_init
-    command: ["/app/docker/docker-init.sh"]
-    user: "root"
-    networks:
-      - superset-network
-      - oeeintellisuite
-    env_file:
-      - .env.deploy
-    environment:
-      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
-    depends_on:
-      redis:
-        condition: service_healthy
-    volumes: *superset-volumes
-    healthcheck:
-      disable: true
-
 networks:
   superset-network:
     name: ${DOCKER_NETWORK}
     external: false
-
   oeeintellisuite:
     name: oeeintellisuite
     external: true
