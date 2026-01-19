@@ -3009,8 +3009,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def register_views(self) -> None:
         from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
-
-        self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
+        from superset.extensions import feature_flag_manager
+        if feature_flag_manager.is_feature_enabled("OAUTH_SKIP_PROVIDER_SELECTION"):
+            from superset.views.oauth import SupersetOAuthView
+            self.auth_view = self.appbuilder.add_view_no_menu(SupersetOAuthView)
+        else:
+            self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
         self.registeruser_view = self.appbuilder.add_view_no_menu(
             SupersetRegisterUserView
         )
