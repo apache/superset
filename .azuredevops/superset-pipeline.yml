@@ -242,30 +242,31 @@ stages:
                     
                     $explorer = $appSuite.explorer
                     $pg = $appSuite.postgres
-                    
+
+                    # Validate required Explorer fields
+                    $requiredExplorerFields = @('port', 'admin-user', 'admin-password', 'secret-key')
+                    foreach ($field in $requiredExplorerFields) {
+                        if (-not $explorer.$field) {
+                            throw "Config missing required Explorer field: '$field'"
+                        }
+                    }
+
                     Write-Host "✓ Config structure validated"
-                    
+
                     # Superset (Explorer) variables
                     Write-Host "Setting Superset variables..."
                     Write-Host "  Port: $($explorer.port)"
                     Write-Host "  Admin User: $($explorer.'admin-user')"
+                    Write-Host "  Secret Key: ***"
                     
                     Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($explorer.port)"
                     Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($explorer.'admin-user')"
                     Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($explorer.'admin-password')"
-                    
-                    # Postgres variables
-                    Write-Host "Setting Postgres variables..."
-                    Write-Host "  Host: oee-postgres"
-                    Write-Host "  Port: 5432"
-                    Write-Host "  Database: $($pg.database)"
-                    Write-Host "  User: $($pg.admin.user)"
-                    
-                    Write-Host "##vso[task.setvariable variable=DB_HOST]oee-postgres"
-                    Write-Host "##vso[task.setvariable variable=DB_PORT]5432"
-                    Write-Host "##vso[task.setvariable variable=DB_NAME]$($pg.database)"
-                    Write-Host "##vso[task.setvariable variable=DB_USER]$($pg.admin.user)"
-                    Write-Host "##vso[task.setvariable variable=DB_PASSWORD;issecret=true]$($pg.admin.password)"
+                    Write-Host "##vso[task.setvariable variable=SUPERSET_SECRET_KEY;issecret=true]$($explorer.'secret-key')"
+
+                    # Docker network
+                    Write-Host "Setting Docker network..."
+                    Write-Host "##vso[task.setvariable variable=DOCKER_NETWORK]superset-network"
                     
                     Write-Host "✓ All variables set successfully"
                     Write-Host "=== Config rehydration completed ==="
@@ -298,12 +299,6 @@ stages:
                   SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
                   SUPERSET_PORT=${SUPERSET_PORT}
 
-                  POSTGRES_HOST=${DB_HOST}
-                  POSTGRES_PORT=${DB_PORT}
-                  POSTGRES_DB=${DB_NAME}
-                  POSTGRES_USER=${DB_USER}
-                  POSTGRES_PASSWORD=${DB_PASSWORD}
-
                   REDIS_HOST=redis
                   REDIS_PORT=6379
 
@@ -317,10 +312,6 @@ stages:
                   echo "  SUPERSET_IMAGE: ${FULL_IMAGE_NAME}"
                   echo "  SUPERSET_PORT: ${SUPERSET_PORT}"
                   echo "  SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER}"
-                  echo "  POSTGRES_HOST: ${DB_HOST}"
-                  echo "  POSTGRES_PORT: ${DB_PORT}"
-                  echo "  POSTGRES_DB: ${DB_NAME}"
-                  echo "  POSTGRES_USER: ${DB_USER}"
                   echo "  REDIS_HOST: redis"
                   echo "  REDIS_PORT: 6379"
                   echo "  DOCKER_NETWORK: ${DOCKER_NETWORK}"
@@ -334,11 +325,6 @@ stages:
                   SUPERSET_ADMIN_USER: $(SUPERSET_ADMIN_USER)
                   SUPERSET_ADMIN_PASSWORD: $(SUPERSET_ADMIN_PASSWORD)
                   SUPERSET_PORT: $(SUPERSET_PORT)
-                  DB_HOST: $(DB_HOST)
-                  DB_PORT: $(DB_PORT)
-                  DB_NAME: $(DB_NAME)
-                  DB_USER: $(DB_USER)
-                  DB_PASSWORD: $(DB_PASSWORD)
                   DOCKER_NETWORK: $(DOCKER_NETWORK)
                   DOCKER_INITDB_DIR: $(DOCKER_INITDB_DIR)
                 displayName: Create .env.deploy
