@@ -89,8 +89,12 @@ def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
     try:
         from fastmcp.server.event_store import EventStore
 
-        # Reuse _create_redis_store with wrap=False for raw RedisStore
-        redis_store = _create_redis_store(config, wrap=False)
+        # Get prefix from config (allows Preset to customize for multi-tenancy)
+        # Default prefix prevents key collisions in shared Redis environments
+        prefix = config.get("event_store_prefix", "mcp_events_")
+
+        # Create wrapped Redis store with prefix for key namespacing
+        redis_store = _create_redis_store(config, prefix=prefix, wrap=True)
         if redis_store is None:
             logging.warning("Failed to create Redis store, falling back to in-memory")
             return None
