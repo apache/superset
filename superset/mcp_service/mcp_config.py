@@ -126,12 +126,22 @@ MCP_FACTORY_CONFIG = {
 # =============================================================================
 
 # MCP Store Configuration - shared Redis infrastructure for all MCP storage needs
-# (caching, auth, events, etc.). Only used when a consumer explicitly requests it.
+# (caching, auth, events, session state, etc.).
+#
+# When CACHE_REDIS_URL is set:
+# - Response caching uses Redis (if MCP_CACHE_CONFIG enabled)
+# - EventStore uses Redis for multi-pod session management
+#
+# For multi-pod/Kubernetes deployments, setting CACHE_REDIS_URL automatically
+# enables Redis-backed EventStore to share session state across pods.
 MCP_STORE_CONFIG: Dict[str, Any] = {
     "enabled": False,  # Disabled by default - caching uses in-memory store
     "CACHE_REDIS_URL": None,  # Redis URL, e.g., "redis://localhost:6379/0"
     # Wrapper class that prefixes all keys. Each consumer provides their own prefix.
     "WRAPPER_TYPE": "key_value.aio.wrappers.prefix_keys.PrefixKeysWrapper",
+    # EventStore settings (for multi-pod session management)
+    "event_store_max_events": 100,  # Keep last 100 events per session
+    "event_store_ttl": 3600,  # Events expire after 1 hour
 }
 
 # MCP Response Caching Configuration - controls caching behavior and TTLs
