@@ -60,13 +60,15 @@ function handleFilterChangesComplete(
   state: NativeFiltersState,
   filters: Filter[],
 ) {
-  const modifiedFilters = { ...state.filters };
+  // Create new filters object from backend response (deleted filters won't be included)
+  const newFilters: Record<string, Filter | Divider> = {};
+
   filters.forEach(filter => {
+    const existingFilter = state.filters[filter.id];
     if (filter.chartsInScope != null && filter.tabsInScope != null) {
-      modifiedFilters[filter.id] = filter;
+      newFilters[filter.id] = filter;
     } else {
-      const existingFilter = modifiedFilters[filter.id];
-      modifiedFilters[filter.id] = {
+      newFilters[filter.id] = {
         ...filter,
         chartsInScope: filter.chartsInScope ?? existingFilter?.chartsInScope,
         tabsInScope: filter.tabsInScope ?? existingFilter?.tabsInScope,
@@ -76,7 +78,7 @@ function handleFilterChangesComplete(
 
   return {
     ...state,
-    filters: modifiedFilters,
+    filters: newFilters,
   } as NativeFiltersState;
 }
 

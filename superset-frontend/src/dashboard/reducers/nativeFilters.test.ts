@@ -160,3 +160,103 @@ test('SET_NATIVE_FILTERS_CONFIG_COMPLETE treats empty arrays as valid scope prop
   expect(result.filters.filter1.chartsInScope).toEqual([]);
   expect(result.filters.filter1.tabsInScope).toEqual([]);
 });
+
+test('SET_NATIVE_FILTERS_CONFIG_COMPLETE removes deleted filters from state', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+      filter2: createMockFilter('filter2', [3, 4], ['tab2']),
+      filter3: createMockFilter('filter3', [5, 6], ['tab3']),
+    },
+  };
+
+  // Backend response only includes filter1 and filter3 (filter2 was deleted)
+  const action = {
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE as typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: [
+      createMockFilter('filter1', [1, 2], ['tab1']),
+      createMockFilter('filter3', [5, 6], ['tab3']),
+    ],
+  };
+
+  const result = nativeFilterReducer(initialState, action);
+
+  // filter2 should be removed from state
+  expect(result.filters.filter1).toBeDefined();
+  expect(result.filters.filter2).toBeUndefined();
+  expect(result.filters.filter3).toBeDefined();
+  expect(Object.keys(result.filters)).toHaveLength(2);
+});
+
+test('SET_NATIVE_FILTERS_CONFIG_COMPLETE removes all filters when backend returns empty array', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+      filter2: createMockFilter('filter2', [3, 4], ['tab2']),
+    },
+  };
+
+  const action = {
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE as typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: [],
+  };
+
+  const result = nativeFilterReducer(initialState, action);
+
+  expect(Object.keys(result.filters)).toHaveLength(0);
+  expect(result.filters).toEqual({});
+});
+
+test('SET_NATIVE_FILTERS_CONFIG_COMPLETE adds new filters while removing deleted ones', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+      filter2: createMockFilter('filter2', [3, 4], ['tab2']),
+    },
+  };
+
+  // Backend response: keep filter1, delete filter2, add filter3
+  const action = {
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE as typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: [
+      createMockFilter('filter1', [1, 2], ['tab1']),
+      createMockFilter('filter3', [5, 6], ['tab3']),
+    ],
+  };
+
+  const result = nativeFilterReducer(initialState, action);
+
+  expect(result.filters.filter1).toBeDefined();
+  expect(result.filters.filter2).toBeUndefined();
+  expect(result.filters.filter3).toBeDefined();
+  expect(result.filters.filter3.chartsInScope).toEqual([5, 6]);
+  expect(Object.keys(result.filters)).toHaveLength(2);
+});
+
+test('SET_NATIVE_FILTERS_CONFIG_COMPLETE treats backend response as source of truth', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+      filter2: createMockFilter('filter2', [3, 4], ['tab2']),
+      filter3: createMockFilter('filter3', [5, 6], ['tab3']),
+    },
+  };
+
+  // Backend only returns filter2
+  const action = {
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE as typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: [createMockFilter('filter2', [10, 11], ['tab5'])],
+  };
+
+  const result = nativeFilterReducer(initialState, action);
+
+  // Only filter2 should remain
+  expect(result.filters.filter1).toBeUndefined();
+  expect(result.filters.filter2).toBeDefined();
+  expect(result.filters.filter3).toBeUndefined();
+  expect(Object.keys(result.filters)).toHaveLength(1);
+
+  // Values should be from backend response
+  expect(result.filters.filter2.chartsInScope).toEqual([10, 11]);
+  expect(result.filters.filter2.tabsInScope).toEqual(['tab5']);
+});
