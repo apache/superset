@@ -127,14 +127,22 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
         return False  # Deny access on error
 
 
-def _setup_user_context() -> User:
+def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
 
     Returns:
-        User object with roles and groups loaded
+        User object with roles and groups loaded, or None if no Flask context
     """
-    user = get_user_from_request()
+    try:
+        user = get_user_from_request()
+    except RuntimeError as e:
+        # No Flask application context (e.g., prompts before middleware runs)
+        # This is expected for some FastMCP operations - return None gracefully
+        if "application context" in str(e):
+            logger.debug("No Flask app context available for user setup")
+            return None
+        raise
 
     # Validate user has necessary relationships loaded
     # (Force access to ensure they're loaded if lazy)
@@ -212,6 +220,15 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
             with _get_app_context_manager():
                 user = _setup_user_context()
 
+                # No Flask context - this is a FastMCP internal operation
+                # (e.g., tool discovery, prompt listing) that doesn't require auth
+                if user is None:
+                    logger.debug(
+                        "MCP internal call without Flask context: tool=%s",
+                        tool_func.__name__,
+                    )
+                    return await tool_func(*args, **kwargs)
+
                 try:
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
@@ -234,6 +251,15 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             with _get_app_context_manager():
                 user = _setup_user_context()
+
+                # No Flask context - this is a FastMCP internal operation
+                # (e.g., tool discovery, prompt listing) that doesn't require auth
+                if user is None:
+                    logger.debug(
+                        "MCP internal call without Flask context: tool=%s",
+                        tool_func.__name__,
+                    )
+                    return tool_func(*args, **kwargs)
 
                 try:
                     logger.debug(
