@@ -26,6 +26,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict
 
+from superset.commands.exceptions import CommandException
 from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
@@ -201,8 +202,9 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         # Return URL with just the form_data_key
         return f"{base_url}/explore/?form_data_key={form_data_key}"
 
-    except (CommandException, SQLAlchemyError, ValueError, AttributeError):
+    except (CommandException, SQLAlchemyError, ValueError, AttributeError) as e:
         # Fallback to basic explore URL with numeric ID if available
+        logger.debug("Explore link generation fallback due to: %s", e)
         if numeric_dataset_id is not None:
             return (
                 f"{base_url}/explore/?datasource_type=table"

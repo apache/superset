@@ -25,6 +25,8 @@ from typing import Any, Dict, List, Protocol
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.commands.exceptions import CommandException
+from superset.exceptions import SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
@@ -177,7 +179,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 height=self.request.ascii_height or 20,
             )
 
-        except Exception as e:
+        except (CommandException, SupersetException, ValueError, KeyError) as e:
             logger.error("ASCII preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate ASCII preview: {str(e)}",
@@ -238,7 +240,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 row_count=len(data),
             )
 
-        except Exception as e:
+        except (CommandException, SupersetException, ValueError, KeyError) as e:
             logger.error("Table preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate table preview: {str(e)}",
@@ -257,7 +259,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
                 return utils_json.loads(self.chart.params)
             return None
-        except Exception:
+        except (ValueError, TypeError):
             return None
 
     def generate(self) -> VegaLitePreview | ChartError:
@@ -346,7 +348,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 supports_streaming=False,
             )
 
-        except Exception as e:
+        except (CommandException, SupersetException, ValueError, KeyError) as e:
             logger.exception(
                 "Error generating Vega-Lite preview for chart %s", self.chart.id
             )
@@ -456,11 +458,11 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     field_type = self._determine_field_type(sample_values)
                     field_types[field] = field_type
 
-                except Exception as e:
+                except (TypeError, ValueError, KeyError, AttributeError) as e:
                     logger.warning("Error analyzing field '%s': %s", field, e)
                     field_types[field] = "nominal"  # Safe default
 
-        except Exception as e:
+        except (TypeError, ValueError, KeyError, AttributeError) as e:
             logger.warning("Error in field type analysis: %s", e)
             # Return nominal types for all fields as fallback
             return dict.fromkeys(fields, "nominal")
@@ -946,7 +948,7 @@ def generate_ascii_chart(
                 "Unsupported chart type '%s', falling back to table", chart_type
             )
             return _generate_ascii_table(data, width)
-    except Exception as e:
+    except (TypeError, ValueError, KeyError, IndexError) as e:
         logger.error("ASCII chart generation failed: %s", e)
         import traceback
 
@@ -1867,7 +1869,7 @@ async def _get_chart_preview_internal(  # noqa: C901
                                     self.uuid = None
 
                             chart = TransientChart(form_data)
-                    except (ValueError, KeyError, AttributeError, TypeError) as e:
+                    except (CommandException, ValueError, KeyError, AttributeError, TypeError) as e:
                         # Form data key not found or invalid
                         logger.debug(
                             "Failed to get form data for key %s: %s",
@@ -2009,7 +2011,7 @@ async def _get_chart_preview_internal(  # noqa: C901
 
         return result
 
-    except Exception as e:
+    except (CommandException, SupersetException, ValueError, KeyError) as e:
         await ctx.error(
             "Chart preview generation failed: identifier=%s, format=%s, error=%s, "
             "error_type=%s"
@@ -2074,7 +2076,7 @@ async def get_chart_preview(
             )
 
         return result
-    except Exception as e:
+    except (CommandException, SupersetException, ValueError, KeyError) as e:
         await ctx.error(
             "Chart preview generation failed: identifier=%s, error=%s, error_type=%s"
             % (
