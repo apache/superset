@@ -2325,13 +2325,19 @@ def test_export_includes_configuration_method(
 
 
 def test_import_includes_configuration_method(
-    client: Any, full_api_access: None
+    session: Session, client: Any, full_api_access: None
 ) -> None:
     """
     Test that importing a database YAML with configuration_method
     sets the value on the imported DB connection.
     """
     import os
+
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+    Database.metadata.create_all(session.get_bind())
 
     fixture_path = os.path.join(
         os.path.dirname(__file__),
