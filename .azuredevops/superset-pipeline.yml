@@ -383,22 +383,43 @@ stages:
               # Deploy Superset
               # -------------------------------------
               - bash: |
-                  echo "Deploying Superset with docker-compose..."
+                  echo "=== DEBUG: Deploy Superset ==="
+                  echo "Current working directory: $(pwd)"
+                  echo "Pipeline.Workspace: $(Pipeline.Workspace)"
+                  echo ""
+                  echo "Checking for .env.deploy file..."
+                  if [ -f ".env.deploy" ]; then
+                    echo "✓ .env.deploy exists in current directory"
+                    ls -la .env.deploy
+                  else
+                    echo "✗ ERROR: .env.deploy NOT found in current directory"
+                    echo ""
+                    echo "Searching for .env.deploy in workspace..."
+                    find "$(Pipeline.Workspace)" -name ".env.deploy" -type f 2>/dev/null || echo "No .env.deploy file found anywhere"
+                    exit 1
+                  fi
+                  echo ""
+
                   echo "Loading environment variables from .env.deploy..."
                   set -a  # Automatically export all variables
                   source .env.deploy
                   set +a
+                  echo "✓ Sourced .env.deploy"
                   echo ""
                   echo "Checking shell environment:"
                   env | grep -E "SUPERSET|DATABASE|POSTGRES|REDIS|DOCKER_NETWORK" | sort
-                  
+                  echo ""
+
+                  echo "Deploying with docker-compose..."
                   docker compose -f docker-compose-deploy.yml --env-file .env.deploy up -d
-                  
+
                   echo ""
                   echo "✓ Deployment completed"
                   echo ""
                   echo "Running containers:"
                   docker compose -f docker-compose-deploy.yml ps
+                  echo ""
+                  echo "=== END DEBUG ==="
                 displayName: Deploy Superset
 
               # -------------------------------------
