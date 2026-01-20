@@ -71,16 +71,8 @@ const createNestedTabsLayout = (): LayoutItem[] => {
       'TABS-nested',
       'TAB-P1_Child2',
     ]),
-    createChartLayoutItem('CHART-5', 5, [
-      'ROOT_ID',
-      'TABS-1',
-      'TAB-Parent2',
-    ]),
-    createChartLayoutItem('CHART-6', 6, [
-      'ROOT_ID',
-      'TABS-1',
-      'TAB-Parent2',
-    ]),
+    createChartLayoutItem('CHART-5', 5, ['ROOT_ID', 'TABS-1', 'TAB-Parent2']),
+    createChartLayoutItem('CHART-6', 6, ['ROOT_ID', 'TABS-1', 'TAB-Parent2']),
   ];
 };
 
