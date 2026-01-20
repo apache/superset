@@ -230,6 +230,12 @@ stages:
                   echo "Using image: $FULL_IMAGE_NAME"
                 displayName: Load Deployment Variables
 
+              - bash: |
+                  echo "Setting DOCKER_INITDB_DIR to workspace path..."
+                  echo "##vso[task.setvariable variable=DOCKER_INITDB_DIR]$(Pipeline.Workspace)/s/docker/docker-entrypoint-initdb.d"
+                  echo "✓ DOCKER_INITDB_DIR set to: $(Pipeline.Workspace)/s/docker/docker-entrypoint-initdb.d"
+                displayName: Set Docker InitDB Directory Path
+
               # -------------------------------------
               # Create docker-compose env file
               # -------------------------------------
