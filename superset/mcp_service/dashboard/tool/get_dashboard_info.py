@@ -30,6 +30,7 @@ from superset_core.mcp import tool
 
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue
+from superset.exceptions import SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
@@ -160,7 +161,7 @@ async def get_dashboard_info(
 
         return result
 
-    except Exception as e:
+    except SupersetException as e:
         await ctx.error(
             "Dashboard information retrieval failed: identifier=%s, error=%s, "
             "error_type=%s" % (request.identifier, str(e), type(e).__name__)

@@ -30,10 +30,6 @@ from superset_core.mcp import tool
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
-from superset.commands.chart.exceptions import (
-    ChartDataCacheLoadError,
-    ChartDataQueryFailedError,
-)
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.exceptions import SupersetException
@@ -548,11 +544,7 @@ async def get_chart_data(  # noqa: C901
                 cache_status=cache_status,
             )
 
-        except (
-            ChartDataCacheLoadError,
-            ChartDataQueryFailedError,
-            SupersetException,
-        ) as data_error:
+        except (CommandException, SupersetException) as data_error:
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
                 % (
