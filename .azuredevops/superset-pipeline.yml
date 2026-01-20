@@ -39,6 +39,39 @@ stages:
           persistCredentials: true
 
         - bash: |
+            echo "=== Validating workspace structure ==="
+            echo "Current directory: $(pwd)"
+            echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"
+            echo ""
+            echo "Checking docker directory..."
+            if [ -d "$(Build.SourcesDirectory)/docker" ]; then
+              echo "✓ docker directory exists"
+              ls -la "$(Build.SourcesDirectory)/docker"
+            else
+              echo "✗ docker directory NOT found"
+              exit 1
+            fi
+            echo ""
+            echo "Checking docker-entrypoint-initdb.d..."
+            if [ -d "$(Build.SourcesDirectory)/docker/docker-entrypoint-initdb.d" ]; then
+              echo "✓ docker-entrypoint-initdb.d exists"
+              ls -la "$(Build.SourcesDirectory)/docker/docker-entrypoint-initdb.d"
+            else
+              echo "✗ docker-entrypoint-initdb.d NOT found"
+              exit 1
+            fi
+            echo ""
+            echo "Checking submodules..."
+            if [ -d "$(Build.SourcesDirectory)/.github/actions" ]; then
+              echo "✓ .github/actions exists"
+              ls -la "$(Build.SourcesDirectory)/.github/actions"
+            else
+              echo "✗ .github/actions NOT found"
+            fi
+            echo "=== Workspace validation completed ==="
+          displayName: Validate Workspace Structure
+
+        - bash: |
             BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
             SHORT_SHA=$(echo "$(Build.SourceVersion)" | cut -c1-7)
             SEMANTIC_TAG="$(Build.BuildId)-$SHORT_SHA"
@@ -107,6 +140,23 @@ stages:
             steps:
               - checkout: self
                 submodules: true
+
+              - bash: |
+                  echo "=== Validating deployment workspace ==="
+                  echo "Pipeline.Workspace: $(Pipeline.Workspace)"
+                  echo ""
+                  echo "Checking docker-entrypoint-initdb.d..."
+                  if [ -d "$(Pipeline.Workspace)/s/docker/docker-entrypoint-initdb.d" ]; then
+                    echo "✓ docker-entrypoint-initdb.d exists"
+                    ls -la "$(Pipeline.Workspace)/s/docker/docker-entrypoint-initdb.d"
+                  else
+                    echo "✗ docker-entrypoint-initdb.d NOT found at $(Pipeline.Workspace)/s/docker/"
+                    echo "Available directories in workspace root:"
+                    ls -la "$(Pipeline.Workspace)/s/"
+                    exit 1
+                  fi
+                  echo "=== Deployment workspace validation completed ==="
+                displayName: Validate Deployment Workspace
 
               - download: current
                 artifact: $(artifactName)
