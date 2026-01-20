@@ -220,11 +220,11 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
             with _get_app_context_manager():
                 user = _setup_user_context()
 
-                # If no Flask context, execute without user context
-                # (middleware will provide context later for tools)
+                # No Flask context - this is a FastMCP internal operation
+                # (e.g., tool discovery, prompt listing) that doesn't require auth
                 if user is None:
                     logger.debug(
-                        "MCP call without Flask context: tool=%s",
+                        "MCP internal call without Flask context: tool=%s",
                         tool_func.__name__,
                     )
                     return await tool_func(*args, **kwargs)
@@ -252,11 +252,11 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
             with _get_app_context_manager():
                 user = _setup_user_context()
 
-                # If no Flask context, execute without user context
-                # (middleware will provide context later for tools)
+                # No Flask context - this is a FastMCP internal operation
+                # (e.g., tool discovery, prompt listing) that doesn't require auth
                 if user is None:
                     logger.debug(
-                        "MCP call without Flask context: tool=%s",
+                        "MCP internal call without Flask context: tool=%s",
                         tool_func.__name__,
                     )
                     return tool_func(*args, **kwargs)
