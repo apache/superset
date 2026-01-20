@@ -19,6 +19,7 @@
 import { Filter, NativeFilterType } from '@superset-ui/core';
 import nativeFilterReducer from './nativeFilters';
 import { SET_NATIVE_FILTERS_CONFIG_COMPLETE } from '../actions/nativeFilters';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 const createMockFilter = (
   id: string,
@@ -159,4 +160,80 @@ test('SET_NATIVE_FILTERS_CONFIG_COMPLETE treats empty arrays as valid scope prop
 
   expect(result.filters.filter1.chartsInScope).toEqual([]);
   expect(result.filters.filter1.tabsInScope).toEqual([]);
+});
+
+test('HYDRATE_DASHBOARD preserves existing chartsInScope and tabsInScope from state', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2, 3], ['tab1', 'tab2']),
+    },
+  };
+
+  const incomingFilterWithoutScopes: Filter = {
+    ...createMockFilter('filter1'),
+    chartsInScope: undefined,
+    tabsInScope: undefined,
+  };
+
+  const action = {
+    type: HYDRATE_DASHBOARD as typeof HYDRATE_DASHBOARD,
+    data: {
+      nativeFilters: {
+        filters: {
+          filter1: incomingFilterWithoutScopes,
+        },
+      },
+    },
+  };
+
+  const result = nativeFilterReducer(initialState, action as any);
+
+  expect(result.filters.filter1.chartsInScope).toEqual([1, 2, 3]);
+  expect(result.filters.filter1.tabsInScope).toEqual(['tab1', 'tab2']);
+});
+
+test('HYDRATE_DASHBOARD uses incoming scopes when provided', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2, 3], ['tab1', 'tab2']),
+    },
+  };
+
+  const action = {
+    type: HYDRATE_DASHBOARD as typeof HYDRATE_DASHBOARD,
+    data: {
+      nativeFilters: {
+        filters: {
+          filter1: createMockFilter('filter1', [4, 5], ['tab3']),
+        },
+      },
+    },
+  };
+
+  const result = nativeFilterReducer(initialState, action as any);
+
+  expect(result.filters.filter1.chartsInScope).toEqual([4, 5]);
+  expect(result.filters.filter1.tabsInScope).toEqual(['tab3']);
+});
+
+test('HYDRATE_DASHBOARD handles new filters without existing state', () => {
+  const initialState = {
+    filters: {},
+  };
+
+  const action = {
+    type: HYDRATE_DASHBOARD as typeof HYDRATE_DASHBOARD,
+    data: {
+      nativeFilters: {
+        filters: {
+          filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+        },
+      },
+    },
+  };
+
+  const result = nativeFilterReducer(initialState, action as any);
+
+  expect(result.filters.filter1.chartsInScope).toEqual([1, 2]);
+  expect(result.filters.filter1.tabsInScope).toEqual(['tab1']);
 });
