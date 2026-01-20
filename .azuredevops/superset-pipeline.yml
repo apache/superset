@@ -312,6 +312,13 @@ stages:
               # Create docker-compose env file
               # -------------------------------------
               - bash: |
+                  echo "=== DEBUG: .env.deploy Creation ==="
+                  echo "Current working directory: $(pwd)"
+                  echo "Pipeline.Workspace: $(Pipeline.Workspace)"
+                  echo ""
+                  echo "Files in current directory:"
+                  ls -la
+                  echo ""
                   echo "Creating .env.deploy file..."
 
                   # Generate SUPERSET_SECRET_KEY (Flask secret key for session encryption)
@@ -348,6 +355,9 @@ stages:
 
                   echo "✓ Created .env.deploy file"
                   echo ""
+                  echo ".env.deploy file location:"
+                  ls -la .env.deploy
+                  echo ""
                   echo "Environment variables (non-sensitive):"
                   echo "  SUPERSET_IMAGE: ${FULL_IMAGE_NAME}"
                   echo "  SUPERSET_PORT: ${SUPERSET_PORT}"
@@ -359,6 +369,8 @@ stages:
                   echo ""
                   echo "Content of .env.deploy (with secrets masked):"
                   cat .env.deploy | sed 's/PASSWORD=.*/PASSWORD=***masked***/g' | sed 's/SECRET_KEY=.*/SECRET_KEY=***masked***/g'
+                  echo ""
+                  echo "=== END DEBUG ==="
                 env:
                   FULL_IMAGE_NAME: $(FULL_IMAGE_NAME)
                   SUPERSET_ADMIN_USER: $(SUPERSET_ADMIN_USER)
