@@ -96,9 +96,16 @@ export default function getDetailedComponentWidth({
     (component.children || []).forEach(childId => {
       // rows don't have widths, so find the width of its children
       if (components[childId]?.type === ROW_TYPE) {
+        const childWidth = getTotalChildWidth({ id: childId, components });
+
         result.minimumWidth = Math.max(
           result.minimumWidth ?? GRID_MIN_COLUMN_COUNT,
-          getTotalChildWidth({ id: childId, components }),
+          childWidth,
+        );
+
+        result.occupiedWidth = Math.max(
+          result.occupiedWidth ?? 0,
+          childWidth,
         );
       }
     });
