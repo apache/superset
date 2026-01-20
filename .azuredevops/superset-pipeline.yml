@@ -260,13 +260,11 @@ stages:
 
                     Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($explorer.port)"
                     Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($explorer.'admin-user')"
-                    Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($explorer.'admin-password')"
 
-                    # Generate SECRET_KEY (Flask secret key for session encryption)
-                    Write-Host "Generating SUPERSET_SECRET_KEY..."
-                    $secretKey = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 64 | % {[char]$_})
-                    Write-Host "  Generated: $($secretKey.Substring(0,10))..."
-                    Write-Host "##vso[task.setvariable variable=SUPERSET_SECRET_KEY;issecret=true]$secretKey"
+                    # Write admin password to temp file (secret variables not passed to bash)
+                    $adminPasswordFile = Join-Path "$(Agent.TempDirectory)" "superset-admin-password.txt"
+                    Set-Content -Path $adminPasswordFile -Value $explorer.'admin-password' -NoNewline
+                    Write-Host "✓ Admin password written to temp file"
 
                     # Docker network
                     Write-Host "Setting Docker network..."
@@ -315,6 +313,24 @@ stages:
               # -------------------------------------
               - bash: |
                   echo "Creating .env.deploy file..."
+
+                  # Generate SUPERSET_SECRET_KEY (Flask secret key for session encryption)
+                  # Secret variables are not passed to bash, so we generate it directly
+                  SUPERSET_SECRET_KEY=$(openssl rand -base64 48 | tr -d '=+/' | cut -c1-64)
+                  echo "✓ Generated SUPERSET_SECRET_KEY (64 chars)"
+
+                  # Read admin password from temp file (written by PowerShell step)
+                  # Secret variables are not passed to bash, so we use a file
+                  ADMIN_PASSWORD_FILE="$(Agent.TempDirectory)/superset-admin-password.txt"
+                  if [ -f "$ADMIN_PASSWORD_FILE" ]; then
+                    SUPERSET_ADMIN_PASSWORD=$(cat "$ADMIN_PASSWORD_FILE")
+                    echo "✓ Read admin password from temp file"
+                  else
+                    echo "✗ ERROR: Admin password file not found: $ADMIN_PASSWORD_FILE"
+                    exit 1
+                  fi
+
+                  # Create .env.deploy file
                   cat > .env.deploy << EOF
                   SUPERSET_IMAGE=${FULL_IMAGE_NAME}
 
@@ -345,9 +361,7 @@ stages:
                   cat .env.deploy | sed 's/PASSWORD=.*/PASSWORD=***masked***/g' | sed 's/SECRET_KEY=.*/SECRET_KEY=***masked***/g'
                 env:
                   FULL_IMAGE_NAME: $(FULL_IMAGE_NAME)
-                  SUPERSET_SECRET_KEY: $(SUPERSET_SECRET_KEY)
                   SUPERSET_ADMIN_USER: $(SUPERSET_ADMIN_USER)
-                  SUPERSET_ADMIN_PASSWORD: $(SUPERSET_ADMIN_PASSWORD)
                   SUPERSET_PORT: $(SUPERSET_PORT)
                   DOCKER_NETWORK: $(DOCKER_NETWORK)
                   DOCKER_INITDB_DIR: $(DOCKER_INITDB_DIR)
