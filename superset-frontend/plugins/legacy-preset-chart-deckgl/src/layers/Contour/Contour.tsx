@@ -174,21 +174,21 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
   );
 
   const viewport = fd.viewport;
-  if (viewport?.width && viewport?.height) {
+  if (viewport && viewport.width > 0 && viewport.height > 0) {
     const estimatedCells =
       (viewport.width / safeCellSize) * (viewport.height / safeCellSize);
 
     if (estimatedCells > MAX_GRID_CELLS) {
       const scaleFactor = Math.sqrt(estimatedCells / MAX_GRID_CELLS);
-      const adjusted = Math.ceil(safeCellSize * scaleFactor);
+      const adjustedCellSize = Math.ceil(safeCellSize * scaleFactor);
 
       console.warn(
         `[DeckGL Contour] cellSize=${safeCellSize} would create ~${Math.round(
           estimatedCells,
-        )} cells. Auto-adjusted to ${adjusted} to prevent WebGL crash.`,
+        )} cells. Auto-adjusted to ${adjustedCellSize} to prevent WebGL crash.`,
       );
 
-      safeCellSize = adjusted;
+      safeCellSize = Math.min(MAX_CELL_SIZE, adjustedCellSize);
     }
   }
 
