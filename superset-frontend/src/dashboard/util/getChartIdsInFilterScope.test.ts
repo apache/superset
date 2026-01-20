@@ -20,133 +20,68 @@ import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
 import { CHART_TYPE } from './componentTypes';
 import { LayoutItem } from '../types';
 
-interface TestLayoutItem {
-  id: string;
-  type: string;
-  children: string[];
-  parents: string[];
-  meta?: { chartId?: number; text?: string };
-}
+/**
+ * Creates a minimal valid LayoutItem for testing.
+ * Only includes fields required by the type and used by getChartIdsInFilterScope.
+ */
+const createChartLayoutItem = (
+  id: string,
+  chartId: number,
+  parents: string[],
+): LayoutItem => ({
+  id,
+  type: CHART_TYPE,
+  children: [],
+  parents,
+  meta: {
+    chartId,
+    height: 100,
+    width: 100,
+    uuid: `test-uuid-${id}`,
+  },
+});
 
 const createNestedTabsLayout = (): LayoutItem[] => {
-  const layout: Record<string, TestLayoutItem> = {
-    ROOT_ID: {
-      id: 'ROOT_ID',
-      type: 'ROOT',
-      children: ['TABS-1'],
-      parents: [],
-    },
-    'TABS-1': {
-      id: 'TABS-1',
-      type: 'TABS',
-      children: ['TAB-Parent1', 'TAB-Parent2'],
-      parents: ['ROOT_ID'],
-    },
-    'TAB-Parent1': {
-      id: 'TAB-Parent1',
-      type: 'TAB',
-      children: ['TABS-nested'],
-      parents: ['ROOT_ID', 'TABS-1'],
-      meta: { text: 'Parent1' },
-    },
-    'TABS-nested': {
-      id: 'TABS-nested',
-      type: 'TABS',
-      children: ['TAB-P1_Child1', 'TAB-P1_Child2'],
-      parents: ['ROOT_ID', 'TABS-1', 'TAB-Parent1'],
-    },
-    'TAB-P1_Child1': {
-      id: 'TAB-P1_Child1',
-      type: 'TAB',
-      children: ['CHART-1', 'CHART-2'],
-      parents: ['ROOT_ID', 'TABS-1', 'TAB-Parent1', 'TABS-nested'],
-      meta: { text: 'P1_Child1' },
-    },
-    'TAB-P1_Child2': {
-      id: 'TAB-P1_Child2',
-      type: 'TAB',
-      children: ['CHART-3', 'CHART-4'],
-      parents: ['ROOT_ID', 'TABS-1', 'TAB-Parent1', 'TABS-nested'],
-      meta: { text: 'P1_Child2' },
-    },
-    'TAB-Parent2': {
-      id: 'TAB-Parent2',
-      type: 'TAB',
-      children: ['CHART-5', 'CHART-6'],
-      parents: ['ROOT_ID', 'TABS-1'],
-      meta: { text: 'Parent2' },
-    },
-    'CHART-1': {
-      id: 'CHART-1',
-      type: CHART_TYPE,
-      children: [],
-      parents: [
-        'ROOT_ID',
-        'TABS-1',
-        'TAB-Parent1',
-        'TABS-nested',
-        'TAB-P1_Child1',
-      ],
-      meta: { chartId: 1 },
-    },
-    'CHART-2': {
-      id: 'CHART-2',
-      type: CHART_TYPE,
-      children: [],
-      parents: [
-        'ROOT_ID',
-        'TABS-1',
-        'TAB-Parent1',
-        'TABS-nested',
-        'TAB-P1_Child1',
-      ],
-      meta: { chartId: 2 },
-    },
-    'CHART-3': {
-      id: 'CHART-3',
-      type: CHART_TYPE,
-      children: [],
-      parents: [
-        'ROOT_ID',
-        'TABS-1',
-        'TAB-Parent1',
-        'TABS-nested',
-        'TAB-P1_Child2',
-      ],
-      meta: { chartId: 3 },
-    },
-    'CHART-4': {
-      id: 'CHART-4',
-      type: CHART_TYPE,
-      children: [],
-      parents: [
-        'ROOT_ID',
-        'TABS-1',
-        'TAB-Parent1',
-        'TABS-nested',
-        'TAB-P1_Child2',
-      ],
-      meta: { chartId: 4 },
-    },
-    'CHART-5': {
-      id: 'CHART-5',
-      type: CHART_TYPE,
-      children: [],
-      parents: ['ROOT_ID', 'TABS-1', 'TAB-Parent2'],
-      meta: { chartId: 5 },
-    },
-    'CHART-6': {
-      id: 'CHART-6',
-      type: CHART_TYPE,
-      children: [],
-      parents: ['ROOT_ID', 'TABS-1', 'TAB-Parent2'],
-      meta: { chartId: 6 },
-    },
-  };
-
-  return Object.values(layout).filter(
-    item => item.type === CHART_TYPE,
-  ) as unknown as LayoutItem[];
+  return [
+    createChartLayoutItem('CHART-1', 1, [
+      'ROOT_ID',
+      'TABS-1',
+      'TAB-Parent1',
+      'TABS-nested',
+      'TAB-P1_Child1',
+    ]),
+    createChartLayoutItem('CHART-2', 2, [
+      'ROOT_ID',
+      'TABS-1',
+      'TAB-Parent1',
+      'TABS-nested',
+      'TAB-P1_Child1',
+    ]),
+    createChartLayoutItem('CHART-3', 3, [
+      'ROOT_ID',
+      'TABS-1',
+      'TAB-Parent1',
+      'TABS-nested',
+      'TAB-P1_Child2',
+    ]),
+    createChartLayoutItem('CHART-4', 4, [
+      'ROOT_ID',
+      'TABS-1',
+      'TAB-Parent1',
+      'TABS-nested',
+      'TAB-P1_Child2',
+    ]),
+    createChartLayoutItem('CHART-5', 5, [
+      'ROOT_ID',
+      'TABS-1',
+      'TAB-Parent2',
+    ]),
+    createChartLayoutItem('CHART-6', 6, [
+      'ROOT_ID',
+      'TABS-1',
+      'TAB-Parent2',
+    ]),
+  ];
 };
 
 const allChartIds = [1, 2, 3, 4, 5, 6];
@@ -406,4 +341,38 @@ test('filter with selectedLayers and rootPath should combine both correctly', ()
   );
 
   expect(chartsInScope.sort()).toEqual([1, 5, 6]);
+});
+
+test('filter with selectedLayers should include charts even if they are in excluded array', () => {
+  const chartLayoutItems = createNestedTabsLayout();
+  const filterScope = {
+    rootPath: ['ROOT_ID'],
+    excluded: [1, 2],
+    selectedLayers: ['chart-1-layer-0', 'chart-2-layer-0'],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    allChartIds,
+    chartLayoutItems,
+  );
+
+  expect(chartsInScope.sort()).toEqual([1, 2, 3, 4, 5, 6]);
+});
+
+test('filter with selectedLayers and excluded should exclude regular charts but include layer-selected charts', () => {
+  const chartLayoutItems = createNestedTabsLayout();
+  const filterScope = {
+    rootPath: ['TAB-Parent2'],
+    excluded: [5],
+    selectedLayers: ['chart-1-layer-0'],
+  };
+
+  const chartsInScope = getChartIdsInFilterScope(
+    filterScope,
+    allChartIds,
+    chartLayoutItems,
+  );
+
+  expect(chartsInScope.sort()).toEqual([1, 6]);
 });
