@@ -471,3 +471,343 @@ test('should handle chartId changes', async () => {
     expect(mockChartClient.loadFormData).toHaveBeenCalledTimes(2);
   });
 });
+
+test('should NOT refetch data when string-based renderTrigger control (zoomable) changes', async () => {
+  // Control panel with zoomable as a string reference (like ['zoomable'] in control panels)
+  const controlPanelConfig = {
+    controlPanelSections: [
+      {
+        controlSetRows: [
+          ['zoomable'], // String reference to shared control
+          [
+            {
+              name: 'metrics',
+              config: {
+                renderTrigger: false,
+              },
+            },
+          ],
+        ],
+      },
+    ],
+  };
+
+  (getChartControlPanelRegistry as any).mockReturnValue({
+    get: jest.fn().mockReturnValue(controlPanelConfig),
+  });
+
+  const formDataWithZoom = {
+    ...mockFormData,
+    zoomable: false,
+  };
+
+  const { rerender, getByTestId } = render(
+    <StatefulChart formData={formDataWithZoom} chartType="test_chart" />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+
+  // Toggle zoomable (string-based shared control with renderTrigger: true)
+  const updatedFormData = {
+    ...formDataWithZoom,
+    zoomable: true,
+  };
+
+  rerender(<StatefulChart formData={updatedFormData} chartType="test_chart" />);
+
+  await waitFor(() => {
+    // Should NOT refetch data - zoomable is a renderTrigger control
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+    // But should re-render with new formData
+    expect(getByTestId('super-chart')).toHaveTextContent(
+      JSON.stringify(updatedFormData),
+    );
+  });
+});
+
+test('should NOT refetch data when other string-based renderTrigger controls change', async () => {
+  // Test other controls in RENDER_TRIGGER_SHARED_CONTROLS set
+  const controlPanelConfig = {
+    controlPanelSections: [
+      {
+        controlSetRows: [
+          ['color_scheme'], // String reference
+          ['y_axis_format'], // String reference
+          ['currency_format'], // String reference
+          ['time_shift_color'], // String reference
+        ],
+      },
+    ],
+  };
+
+  (getChartControlPanelRegistry as any).mockReturnValue({
+    get: jest.fn().mockReturnValue(controlPanelConfig),
+  });
+
+  const { rerender, getByTestId } = render(
+    <StatefulChart formData={mockFormData} chartType="test_chart" />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+
+  // Change multiple string-based renderTrigger controls
+  const updatedFormData = {
+    ...mockFormData,
+    color_scheme: 'new_scheme',
+    y_axis_format: '.2f',
+  };
+
+  rerender(<StatefulChart formData={updatedFormData} chartType="test_chart" />);
+
+  await waitFor(() => {
+    // Should NOT refetch data
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+    // But should re-render
+    expect(getByTestId('super-chart')).toHaveTextContent(
+      JSON.stringify(updatedFormData),
+    );
+  });
+});
+
+test('should refetch when string control is NOT in RENDER_TRIGGER_SHARED_CONTROLS', async () => {
+  // Control panel with a string control that is NOT in the renderTrigger set
+  const controlPanelConfig = {
+    controlPanelSections: [
+      {
+        controlSetRows: [
+          ['some_unknown_control'], // Not in RENDER_TRIGGER_SHARED_CONTROLS
+        ],
+      },
+    ],
+  };
+
+  (getChartControlPanelRegistry as any).mockReturnValue({
+    get: jest.fn().mockReturnValue(controlPanelConfig),
+  });
+
+  const { rerender } = render(
+    <StatefulChart formData={mockFormData} chartType="test_chart" />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+
+  // Change the unknown control
+  const updatedFormData = {
+    ...mockFormData,
+    some_unknown_control: 'new_value',
+  };
+
+  rerender(<StatefulChart formData={updatedFormData} chartType="test_chart" />);
+
+  await waitFor(() => {
+    // Should refetch because the control is not recognized as renderTrigger
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(2);
+  });
+});
+
+test('should handle mixed string and object controls correctly', async () => {
+  // Control panel with both string references and object definitions
+  const controlPanelConfig = {
+    controlPanelSections: [
+      {
+        controlSetRows: [
+          ['zoomable'], // String reference (in RENDER_TRIGGER_SHARED_CONTROLS)
+          [
+            {
+              name: 'minorTicks',
+              config: {
+                renderTrigger: true,
+              },
+            },
+          ], // Object definition
+        ],
+      },
+    ],
+  };
+
+  (getChartControlPanelRegistry as any).mockReturnValue({
+    get: jest.fn().mockReturnValue(controlPanelConfig),
+  });
+
+  const formDataWithControls = {
+    ...mockFormData,
+    zoomable: false,
+    minorTicks: false,
+  };
+
+  const { rerender, getByTestId } = render(
+    <StatefulChart formData={formDataWithControls} chartType="test_chart" />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+
+  // Change both string-based and object-based renderTrigger controls
+  const updatedFormData = {
+    ...formDataWithControls,
+    zoomable: true,
+    minorTicks: true,
+  };
+
+  rerender(<StatefulChart formData={updatedFormData} chartType="test_chart" />);
+
+  await waitFor(() => {
+    // Should NOT refetch - both are renderTrigger controls
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+    // But should re-render
+    expect(getByTestId('super-chart')).toHaveTextContent(
+      JSON.stringify(updatedFormData),
+    );
+  });
+});
+
+test('should refetch when mixing renderTrigger string control with non-renderTrigger change', async () => {
+  const controlPanelConfig = {
+    controlPanelSections: [
+      {
+        controlSetRows: [
+          ['zoomable'], // String reference (renderTrigger)
+          [
+            {
+              name: 'metrics',
+              config: {
+                renderTrigger: false,
+              },
+            },
+          ],
+        ],
+      },
+    ],
+  };
+
+  (getChartControlPanelRegistry as any).mockReturnValue({
+    get: jest.fn().mockReturnValue(controlPanelConfig),
+  });
+
+  const formDataWithZoom = {
+    ...mockFormData,
+    zoomable: false,
+    metrics: ['metric1'],
+  };
+
+  const { rerender } = render(
+    <StatefulChart formData={formDataWithZoom} chartType="test_chart" />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+
+  // Change both zoomable (renderTrigger) and metrics (non-renderTrigger)
+  const updatedFormData = {
+    ...formDataWithZoom,
+    zoomable: true,
+    metrics: ['metric2'],
+  };
+
+  rerender(<StatefulChart formData={updatedFormData} chartType="test_chart" />);
+
+  await waitFor(() => {
+    // Should refetch because metrics changed (non-renderTrigger)
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(2);
+  });
+});
+
+test('should display error message when HTTP request fails with Response object', async () => {
+  const errorBody = JSON.stringify({ message: 'Error: division by zero' });
+  const mockResponse = new Response(errorBody, {
+    status: 400,
+    statusText: 'Bad Request',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  mockChartClient.client.post.mockRejectedValue(mockResponse);
+
+  const onError = jest.fn();
+  const { findByText } = render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      onError={onError}
+    />,
+  );
+
+  const errorElement = await findByText(/Error: division by zero/i);
+  expect(errorElement).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    expect(onError.mock.calls[0][0].message).toBe('Error: division by zero');
+  });
+});
+
+test('should display error message when HTTP request fails with errors array', async () => {
+  const errorBody = JSON.stringify({
+    errors: [
+      {
+        message: 'Query failed: column "invalid_col" does not exist',
+        error_type: 'COLUMN_DOES_NOT_EXIST_ERROR',
+      },
+    ],
+  });
+  const mockResponse = new Response(errorBody, {
+    status: 422,
+    statusText: 'Unprocessable Entity',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  mockChartClient.client.post.mockRejectedValue(mockResponse);
+
+  const { findByText } = render(
+    <StatefulChart formData={mockFormData} chartType="test_chart" />,
+  );
+
+  const errorElement = await findByText(
+    /Query failed: column "invalid_col" does not exist/i,
+  );
+  expect(errorElement).toBeInTheDocument();
+});
+
+test('should display generic error message for network failures', async () => {
+  const networkError = new TypeError('Failed to fetch');
+  mockChartClient.client.post.mockRejectedValue(networkError);
+
+  const { findByText } = render(
+    <StatefulChart formData={mockFormData} chartType="test_chart" />,
+  );
+
+  const errorElement = await findByText(/Network error/i);
+  expect(errorElement).toBeInTheDocument();
+});
+
+test('should pass error to custom errorComponent when provided', async () => {
+  const errorBody = JSON.stringify({ message: 'Custom error message' });
+  const mockResponse = new Response(errorBody, {
+    status: 400,
+    statusText: 'Bad Request',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  mockChartClient.client.post.mockRejectedValue(mockResponse);
+
+  const CustomErrorComponent = ({ error }: { error: Error }) => (
+    <div data-test="custom-error">Custom: {error.message}</div>
+  );
+
+  const { findByTestId } = render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      errorComponent={CustomErrorComponent}
+    />,
+  );
+
+  const customError = await findByTestId('custom-error');
+  expect(customError).toBeInTheDocument();
+  expect(customError).toHaveTextContent('Custom: Custom error message');
+});
