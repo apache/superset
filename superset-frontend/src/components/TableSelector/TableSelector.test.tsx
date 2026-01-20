@@ -39,6 +39,7 @@ const createProps = (props = {}) => ({
   },
   schema: 'test_schema',
   handleError: jest.fn(),
+  sqlLabMode: false,
   ...props,
 });
 

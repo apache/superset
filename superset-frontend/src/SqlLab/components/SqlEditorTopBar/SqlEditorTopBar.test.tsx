@@ -22,6 +22,50 @@ import SqlEditorTopBar, {
   SqlEditorTopBarProps,
 } from 'src/SqlLab/components/SqlEditorTopBar';
 
+jest.mock('src/components/DatabaseSelector', () => ({
+  __esModule: true,
+  DatabaseSelector: ({ sqlLabMode }: { sqlLabMode?: boolean }) => (
+    <div data-test="mock-database-selector" data-sqllab-mode={sqlLabMode}>
+      Mock DatabaseSelector
+    </div>
+  ),
+}));
+
+jest.mock('./useDatabaseSelector', () => ({
+  __esModule: true,
+  default: () => ({
+    db: { id: 1, database_name: 'test_db' },
+    catalog: null,
+    schema: 'public',
+    handleError: jest.fn(),
+    onDbChange: jest.fn(),
+    onCatalogChange: jest.fn(),
+    onSchemaChange: jest.fn(),
+  }),
+}));
+
+jest.mock('src/components/DatabaseSelector', () => ({
+  __esModule: true,
+  DatabaseSelector: ({ sqlLabMode }: { sqlLabMode?: boolean }) => (
+    <div data-test="mock-database-selector" data-sqllab-mode={sqlLabMode}>
+      Mock DatabaseSelector
+    </div>
+  ),
+}));
+
+jest.mock('./useDatabaseSelector', () => ({
+  __esModule: true,
+  default: () => ({
+    db: { id: 1, database_name: 'test_db' },
+    catalog: null,
+    schema: 'public',
+    handleError: jest.fn(),
+    onDbChange: jest.fn(),
+    onCatalogChange: jest.fn(),
+    onSchemaChange: jest.fn(),
+  }),
+}));
+
 jest.mock('src/components/PanelToolbar', () => ({
   __esModule: true,
   default: ({

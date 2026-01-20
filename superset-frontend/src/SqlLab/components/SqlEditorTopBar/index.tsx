@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Flex } from '@superset-ui/core/components';
-import { styled } from '@apache-superset/core/ui';
+import { EmptyState, Flex } from '@superset-ui/core/components';
+import { css, styled } from '@apache-superset/core/ui';
 import { MenuItemType } from '@superset-ui/core/components/Menu';
 import { ViewContribution } from 'src/SqlLab/contributions';
 import PanelToolbar from 'src/components/PanelToolbar';
+import { DatabaseSelector } from 'src/components';
+import useDatabaseSelector from './useDatabaseSelector';
 
 const StyledFlex = styled(Flex)`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
@@ -34,18 +36,38 @@ export interface SqlEditorTopBarProps {
 }
 
 const SqlEditorTopBar = ({
+  queryEditorId,
   defaultPrimaryActions,
   defaultSecondaryActions,
-}: SqlEditorTopBarProps) => (
-  <StyledFlex justify="space-between" gap="small" id="js-sql-toolbar">
-    <Flex flex={1} gap="small" align="center">
-      <PanelToolbar
-        viewId={ViewContribution.Editor}
-        defaultPrimaryActions={defaultPrimaryActions}
-        defaultSecondaryActions={defaultSecondaryActions}
-      />
-    </Flex>
-  </StyledFlex>
-);
+}: SqlEditorTopBarProps) => {
+  const dbSelectorProps = useDatabaseSelector(queryEditorId);
+  return (
+    <StyledFlex justify="space-between" gap="small" id="js-sql-toolbar">
+      <Flex gap="small" align="center">
+        <Flex gap="small" align="center">
+          <PanelToolbar
+            viewId={ViewContribution.Editor}
+            defaultPrimaryActions={defaultPrimaryActions}
+            defaultSecondaryActions={defaultSecondaryActions}
+          />
+        </Flex>
+      </Flex>
+      <Flex
+        flex={1}
+        justify="end"
+        css={css`
+          min-width: 0;
+          overflow: hidden;
+        `}
+      >
+        <DatabaseSelector
+          {...dbSelectorProps}
+          emptyState={<EmptyState />}
+          sqlLabMode
+        />
+      </Flex>
+    </StyledFlex>
+  );
+};
 
 export default SqlEditorTopBar;

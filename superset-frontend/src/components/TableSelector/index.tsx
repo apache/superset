@@ -25,10 +25,17 @@ import {
 } from 'react';
 import type { SelectValue } from '@superset-ui/core/components';
 
-import { t } from '@apache-superset/core';
+import { t, css } from '@apache-superset/core';
 import { SupersetError } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { CertifiedBadge, Select } from '@superset-ui/core/components';
+import {
+  Breadcrumb,
+  CertifiedBadge,
+  Select,
+  Flex,
+  Modal,
+  Button,
+} from '@superset-ui/core/components';
 import { DatabaseSelector, ErrorMessageWithStackTrace } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
@@ -183,6 +190,18 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [tableSelectValue, setTableSelectValue] = useState<
     SelectValue | undefined
   >(undefined);
+  const [isDatabaseSelectorModalOpen, setIsDatabaseSelectorModalOpen] =
+    useState(false);
+  // Local state for modal selections (to prevent closing on each change)
+  const [modalDb, setModalDb] = useState<DatabaseObject | null | undefined>(
+    database,
+  );
+  const [modalCatalog, setModalCatalog] = useState<string | null | undefined>(
+    currentCatalog,
+  );
+  const [modalSchema, setModalSchema] = useState<string | undefined>(
+    currentSchema,
+  );
   const [errorPayload, setErrorPayload] = useState<SupersetError | null>(null);
   const {
     currentData: data,
@@ -294,6 +313,28 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     setTableSelectValue(value);
   };
 
+  const openDatabaseSelectorModal = () => {
+    // Reset modal state to current values when opening
+    setModalDb(database);
+    setModalCatalog(currentCatalog);
+    setModalSchema(currentSchema);
+    setIsDatabaseSelectorModalOpen(true);
+  };
+
+  const handleModalOk = () => {
+    // Apply all modal selections to actual state
+    if (modalDb && modalDb !== database) {
+      internalDbChange(modalDb);
+    }
+    if (modalCatalog !== currentCatalog) {
+      internalCatalogChange(modalCatalog);
+    }
+    if (modalSchema !== currentSchema) {
+      internalSchemaChange(modalSchema);
+    }
+    setIsDatabaseSelectorModalOpen(false);
+  };
+
   const handleFilterOption = useMemo(
     () => (search: string, option: TableOption) => {
       const searchValue = search.trim().toLowerCase();
@@ -302,6 +343,69 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     },
     [],
   );
+
+  function renderBreadcrumb() {
+    const items: { title: string }[] = [];
+
+    if (database?.database_name) {
+      items.push({ title: database.database_name });
+    }
+
+    if (database?.allow_multi_catalog && currentCatalog) {
+      items.push({ title: currentCatalog });
+    }
+
+    if (currentSchema) {
+      items.push({ title: currentSchema });
+    }
+
+    return (
+      <>
+        <Flex align="center" gap="small">
+          {items.length > 0 && (
+            <Breadcrumb items={items} separator={<Icons.RightOutlined />} />
+          )}
+          {!readOnly && (
+            <Button
+              buttonStyle="link"
+              size="small"
+              onClick={openDatabaseSelectorModal}
+            >
+              {t('Change')}
+            </Button>
+          )}
+        </Flex>
+        <Modal
+          title={t('Select Database and Schema')}
+          show={isDatabaseSelectorModalOpen}
+          onHide={() => setIsDatabaseSelectorModalOpen(false)}
+          onHandledPrimaryAction={handleModalOk}
+          css={css`
+            .ant-modal-body {
+              overflow: visible;
+            }
+          `}
+        >
+          <DatabaseSelector
+            db={modalDb}
+            emptyState={emptyState}
+            formMode={formMode}
+            getDbList={getDbList}
+            handleError={handleError}
+            onDbChange={setModalDb}
+            onEmptyResults={onEmptyResults}
+            onCatalogChange={setModalCatalog}
+            catalog={modalCatalog}
+            onSchemaChange={setModalSchema}
+            schema={modalSchema}
+            sqlLabMode={false}
+            isDatabaseSelectEnabled={isDatabaseSelectEnabled}
+            readOnly={false}
+          />
+        </Modal>
+      </>
+    );
+  }
 
   function renderTableSelect() {
     const disabled = (currentSchema && !formMode && readOnly) || !currentSchema;
@@ -352,23 +456,26 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
   return (
     <TableSelectorWrapper>
-      <DatabaseSelector
-        db={database}
-        emptyState={emptyState}
-        formMode={formMode}
-        getDbList={getDbList}
-        handleError={handleError}
-        onDbChange={readOnly ? undefined : internalDbChange}
-        onEmptyResults={onEmptyResults}
-        onCatalogChange={readOnly ? undefined : internalCatalogChange}
-        catalog={currentCatalog}
-        onSchemaChange={readOnly ? undefined : internalSchemaChange}
-        schema={currentSchema}
-        sqlLabMode={sqlLabMode}
-        isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
-        readOnly={readOnly}
-      />
-      {sqlLabMode && !formMode && <div className="divider" />}
+      {sqlLabMode ? (
+        renderBreadcrumb()
+      ) : (
+        <DatabaseSelector
+          db={database}
+          emptyState={emptyState}
+          formMode={formMode}
+          getDbList={getDbList}
+          handleError={handleError}
+          onDbChange={readOnly ? undefined : internalDbChange}
+          onEmptyResults={onEmptyResults}
+          onCatalogChange={readOnly ? undefined : internalCatalogChange}
+          catalog={currentCatalog}
+          onSchemaChange={readOnly ? undefined : internalSchemaChange}
+          schema={currentSchema}
+          sqlLabMode={sqlLabMode}
+          isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
+          readOnly={readOnly}
+        />
+      )}
       {renderError()}
       {renderTableSelect()}
     </TableSelectorWrapper>

@@ -16,18 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { noop } from 'lodash';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { css, styled } from '@apache-superset/core';
+import { css, styled, t } from '@apache-superset/core';
 import { useComponentDidUpdate } from '@superset-ui/core';
-import { Grid } from '@superset-ui/core/components';
+import { Flex, Grid, Icons, Layout, Menu } from '@superset-ui/core/components';
+import type { MenuProps } from '@superset-ui/core/components';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import { Splitter } from 'src/components/Splitter';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
   SQL_EDITOR_LEFTBAR_WIDTH,
+  SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH,
   SQL_EDITOR_RIGHTBAR_WIDTH,
 } from 'src/SqlLab/constants';
 import { ViewContribution } from 'src/SqlLab/contributions';
@@ -51,9 +54,24 @@ const StyledContainer = styled.div`
   }
 `;
 
-const StyledSidebar = styled.div`
-  position: relative;
+const StyledSidebarWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+`;
+
+const StyledMenu = styled(Menu)`
+  ${({ theme }) => css`
+    height: 100%;
+    background-color: ${theme.colorBgElevated};
+  `}
+`;
+
+const StyledSidebarContent = styled(Flex)`
+  flex: 1;
+  height: 100%;
   padding: ${({ theme }) => theme.sizeUnit * 2.5}px;
+  background-color: ${({ theme }) => theme.colorBgBase};
 `;
 
 const ContentWrapper = styled.div`
@@ -74,9 +92,31 @@ const AppLayout: React.FC = ({ children }) => {
     'sqllab:rightbar',
     SQL_EDITOR_RIGHTBAR_WIDTH,
   );
+
+  const toggleSidebar = useCallback(() => {
+    if (leftWidth <= SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH) {
+      setLeftWidth(SQL_EDITOR_LEFTBAR_WIDTH);
+    } else {
+      setLeftWidth(SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH);
+    }
+  }, [leftWidth, setLeftWidth]);
+
+  const collapsedMenuItems: MenuProps['items'] = useMemo(
+    () => [
+      {
+        key: 'database',
+        icon: <Icons.DatabaseOutlined />,
+        label: t('Explore table schema'),
+        onClick: toggleSidebar,
+      },
+      // TODO: Add extension items for left sidebar here
+    ],
+    [toggleSidebar],
+  );
+
   const autoHide = useEffectEvent(() => {
-    if (leftWidth > 0) {
-      setLeftWidth(0);
+    if (leftWidth > SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH) {
+      setLeftWidth(SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH);
     }
   });
   useComponentDidUpdate(() => {
@@ -86,7 +126,7 @@ const AppLayout: React.FC = ({ children }) => {
   }, [md]);
   const onSidebarChange = (sizes: number[]) => {
     const [updatedWidth, _, possibleRightWidth] = sizes;
-    setLeftWidth(updatedWidth);
+    setLeftWidth(updatedWidth + SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH);
 
     if (typeof possibleRightWidth === 'number') {
       setRightWidth(possibleRightWidth);
@@ -99,47 +139,59 @@ const AppLayout: React.FC = ({ children }) => {
 
   return (
     <StyledContainer>
-      <Splitter
-        css={css`
-          flex: 1;
-        `}
-        lazy
-        onResizeEnd={onSidebarChange}
-        onResize={noop}
-      >
-        <Splitter.Panel
-          collapsible={{
-            start: true,
-            end: true,
-            showCollapsibleIcon: true,
-          }}
-          size={leftWidth}
-          min={SQL_EDITOR_LEFTBAR_WIDTH}
+      <StyledSidebarWrapper>
+        <Layout.Sider
+          collapsed
+          collapsedWidth={SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH}
         >
-          <StyledSidebar>
-            <SqlEditorLeftBar
-              key={queryEditorId}
-              queryEditorId={queryEditorId}
-            />
-          </StyledSidebar>
-        </Splitter.Panel>
-        <Splitter.Panel className="sqllab-body">{children}</Splitter.Panel>
-        {contributions.length > 0 && (
+          <StyledMenu
+            mode="vertical"
+            items={collapsedMenuItems}
+            selectable={false}
+          />
+        </Layout.Sider>
+        <Splitter
+          css={css`
+            flex: 1;
+          `}
+          lazy
+          onResizeEnd={onSidebarChange}
+          onResize={noop}
+        >
           <Splitter.Panel
             collapsible={{
               start: true,
               end: true,
               showCollapsibleIcon: true,
             }}
-            size={rightWidth}
-            min={SQL_EDITOR_RIGHTBAR_WIDTH}
+            size={leftWidth - SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH}
+            min={SQL_EDITOR_LEFTBAR_WIDTH - SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH}
           >
-            <ContentWrapper>
-              <ViewListExtension viewId={ViewContribution.RightSidebar} />
-            </ContentWrapper>
+            <StyledSidebarContent vertical>
+              <SqlEditorLeftBar
+                key={queryEditorId}
+                queryEditorId={queryEditorId}
+              />
+            </StyledSidebarContent>
           </Splitter.Panel>
-        )}
-      </Splitter>
+          <Splitter.Panel className="sqllab-body">{children}</Splitter.Panel>
+          {contributions.length > 0 && (
+            <Splitter.Panel
+              collapsible={{
+                start: true,
+                end: true,
+                showCollapsibleIcon: true,
+              }}
+              size={rightWidth}
+              min={SQL_EDITOR_RIGHTBAR_WIDTH}
+            >
+              <ContentWrapper>
+                <ViewListExtension viewId={ViewContribution.RightSidebar} />
+              </ContentWrapper>
+            </Splitter.Panel>
+          )}
+        </Splitter>
+      </StyledSidebarWrapper>
       <StatusBar />
     </StyledContainer>
   );

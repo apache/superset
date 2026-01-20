@@ -72,6 +72,18 @@ const Fade = styled.div`
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
+const StyledCollapse = styled(Collapse)`
+  & .ant-collapse-header {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  & .ant-collapse-content-box {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+`;
+
 const TableElement = ({ table, ...props }: TableElementProps) => {
   const { dbId, catalog, schema, name, expanded, id } = table;
   const theme = useTheme();
@@ -384,7 +396,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     }
 
     const metadata = (
-      <div data-test="table-element" css={{ paddingTop: 6 }}>
+      <div data-test="table-element">
         {renderWell()}
         <div>
           {cols?.map(col => (
@@ -401,7 +413,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       activeKey={props.activeKey}
       expandIconPosition="end"
       onChange={props.onChange}
-      ghost
+      bordered
       items={[
         {
           key: id,
@@ -410,8 +422,21 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           extra: renderControls(),
           onMouseEnter: () => setHover(true),
           onMouseLeave: () => setHover(false),
+          styles: {
+            header: {
+              paddingTop: theme.paddingContentVerticalSM,
+              paddingBottom: theme.paddingContentVerticalSM,
+            },
+            body: {
+              paddingTop: theme.paddingContentVerticalSM,
+              paddingBottom: theme.paddingContentVerticalSM,
+            },
+          },
         },
       ]}
+      style={{
+        marginBottom: theme.paddingContentVerticalSM,
+      }}
     />
   );
 };

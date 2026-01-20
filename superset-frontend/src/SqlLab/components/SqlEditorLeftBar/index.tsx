@@ -27,7 +27,12 @@ import {
   expandTable,
   resetState,
 } from 'src/SqlLab/actions/sqlLab';
-import { Button, EmptyState, Icons } from '@superset-ui/core/components';
+import {
+  Button,
+  EmptyState,
+  Icons,
+  Segmented,
+} from '@superset-ui/core/components';
 import { t } from '@apache-superset/core';
 import { styled, css } from '@apache-superset/core/ui';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
@@ -35,6 +40,7 @@ import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { noop } from 'lodash';
 import TableElement from '../TableElement';
 import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
+import TableExploreTree from '../TableExploreTree';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
@@ -46,6 +52,10 @@ const StyledScrollbarContainer = styled.div`
 `;
 
 const LeftBarStyles = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+
   ${({ theme }) => css`
     height: 100%;
     display: flex;
@@ -53,12 +63,15 @@ const LeftBarStyles = styled.div`
 
     .divider {
       border-bottom: 1px solid ${theme.colorSplit};
-      margin: ${theme.sizeUnit * 4}px 0;
+      margin: ${theme.sizeUnit * 1}px 0;
     }
   `}
 `;
 
+type ViewType = 'TreeView' | 'SelectView';
+
 const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
+  const [viewType, setViewType] = useState<ViewType>('TreeView');
   const { db: userSelectedDb, ...dbSelectorProps } =
     useDatabaseSelector(queryEditorId);
   const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
@@ -142,28 +155,48 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
 
   return (
     <LeftBarStyles data-test="sql-editor-left-bar">
-      <TableSelectorMultiple
-        {...dbSelectorProps}
-        onEmptyResults={onEmptyResults}
-        emptyState={<EmptyState />}
-        database={userSelectedDb}
-        onTableSelectChange={onTablesChange}
-        tableValue={selectedTableNames}
-        sqlLabMode
-      />
-      <div className="divider" />
-      <StyledScrollbarContainer>
-        {tables.map(table => (
-          <TableElement
-            table={table}
-            key={table.id}
-            activeKey={tables
-              .filter(({ expanded }) => expanded)
-              .map(({ id }) => id)}
-            onChange={onToggleTable}
+      <div
+        css={css`
+          text-align: center;
+        `}
+      >
+        <Segmented
+          value={viewType}
+          onChange={value => setViewType(value as ViewType)}
+          options={[
+            { value: 'TreeView', icon: <Icons.PartitionOutlined /> },
+            { value: 'SelectView', icon: <Icons.ProfileOutlined /> },
+          ]}
+        />
+      </div>
+      {viewType === 'TreeView' ? (
+        <TableExploreTree queryEditorId={queryEditorId} />
+      ) : (
+        <>
+          <TableSelectorMultiple
+            {...dbSelectorProps}
+            onEmptyResults={onEmptyResults}
+            emptyState={<EmptyState />}
+            database={userSelectedDb}
+            onTableSelectChange={onTablesChange}
+            tableValue={selectedTableNames}
+            sqlLabMode
           />
-        ))}
-      </StyledScrollbarContainer>
+          <div className="divider" />
+          <StyledScrollbarContainer>
+            {tables.map(table => (
+              <TableElement
+                table={table}
+                key={table.id}
+                activeKey={tables
+                  .filter(({ expanded }) => expanded)
+                  .map(({ id }) => id)}
+                onChange={onToggleTable}
+              />
+            ))}
+          </StyledScrollbarContainer>
+        </>
+      )}
       {shouldShowReset && (
         <Button
           buttonSize="small"
