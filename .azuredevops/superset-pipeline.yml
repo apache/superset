@@ -133,12 +133,29 @@ stages:
       environment:
         name: ${{ parameters.targetEnvironment }}
         resourceType: VirtualMachine
+      workspace:
+        clean: all
       strategy:
         runOnce:
           deploy:
             steps:
               - checkout: self
                 submodules: true
+
+              - bash: |
+                  echo "=== DEBUG: Setting Working Directory ==="
+                  echo "Current directory: $(pwd)"
+                  echo "Pipeline.Workspace: $(Pipeline.Workspace)"
+                  echo ""
+                  echo "Changing to Pipeline.Workspace/s..."
+                  cd "$(Pipeline.Workspace)/s" || { echo "Failed to cd to $(Pipeline.Workspace)/s"; exit 1; }
+                  echo "✓ Changed directory to: $(pwd)"
+                  echo ""
+                  echo "Contents of current directory:"
+                  ls -la
+                  echo ""
+                  echo "=== END DEBUG ==="
+                displayName: Set Working Directory
 
               - bash: |
                   echo "=== Validating deployment workspace ==="
