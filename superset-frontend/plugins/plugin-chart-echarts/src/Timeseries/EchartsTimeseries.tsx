@@ -259,6 +259,18 @@ export default function EchartsTimeseries({
             ? getCrossFilterDataMask(seriesName)
             : undefined,
         });
+
+        // Restore tooltip visibility after the drill menu closes
+        const restoreTooltip = () => {
+          const instance = echartRef.current?.getEchartInstance?.();
+          if (instance) {
+            instance.setOption({ tooltip: { show: true } }, false);
+          }
+        };
+        window.addEventListener('mousedown', restoreTooltip, {
+          once: true,
+          capture: true,
+        });
       }
     },
   };
