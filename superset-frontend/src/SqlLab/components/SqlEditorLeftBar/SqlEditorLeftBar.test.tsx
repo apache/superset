@@ -258,7 +258,7 @@ describe('SelectView', () => {
     expect(header).toBeInTheDocument();
 
     if (header) {
-      userEvent.click(header);
+      await userEvent.click(header);
     }
 
     await waitFor(() =>

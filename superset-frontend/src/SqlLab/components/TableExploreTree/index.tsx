@@ -54,7 +54,6 @@ import {
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { addTable } from 'src/SqlLab/actions/sqlLab';
 import IconButton from 'src/dashboard/components/IconButton';
-import ButtonCell from '@superset-ui/core/components/Table/cell-renderers/ButtonCell';
 
 type Props = {
   queryEditorId: string;
@@ -191,8 +190,9 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     isFetching,
     refetch,
   } = useSchemas({ dbId, catalog: catalog || undefined });
-  const [tableData, setTableData] =
-    useState<Record<string, { options: Table[] }>>();
+  const [tableData, setTableData] = useState<
+    Record<string, { options: Table[] }>
+  >({});
   const [tableSchemaData, setTableSchemaData] = useState<
     Record<string, TableMetaData>
   >({});

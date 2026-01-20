@@ -18,4 +18,4 @@
  */
 import type { SegmentedProps } from 'antd/es/segmented';
 
-export { SegmentedProps };
+export type { SegmentedProps };

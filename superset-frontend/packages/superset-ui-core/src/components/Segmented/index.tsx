@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SegmentedProps } from './types';
+import type { SegmentedProps } from './types';
 
 export { Segmented } from 'antd';
 export type { SegmentedProps };
