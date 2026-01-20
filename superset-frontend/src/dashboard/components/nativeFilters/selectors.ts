@@ -256,7 +256,7 @@ export const selectIndicatorsForChart = (
   return indicators;
 };
 
-const getStatus = ({
+export const getStatus = ({
   label,
   column,
   type = DataMaskType.NativeFilters,
@@ -281,8 +281,19 @@ const getStatus = ({
   }
   if (column && rejectedColumns?.has(column))
     return IndicatorStatus.Incompatible;
-  if (column && appliedColumns?.has(column) && hasValue) {
-    return APPLIED_STATUS;
+  // If filter has a value and column is not rejected, show as applied
+  // This works even when chart hasn't loaded yet (appliedColumns is empty)
+  // The dataMask state is the source of truth for filter application
+  if (column && hasValue && !rejectedColumns?.has(column)) {
+    // If chart has loaded and confirmed this column was applied, use that
+    if (appliedColumns?.has(column)) {
+      return APPLIED_STATUS;
+    }
+    // If chart hasn't loaded yet but we have a value, assume it's applied
+    // This allows showing filter indicators before query response is available
+    if (!appliedColumns || appliedColumns.size === 0) {
+      return APPLIED_STATUS;
+    }
   }
   return IndicatorStatus.Unset;
 };

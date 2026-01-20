@@ -34,6 +34,7 @@ import {
   DataMaskStateWithId,
   Filters,
   JsonObject,
+  NativeFilterType,
   usePrevious,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
@@ -217,10 +218,43 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       dataMask !== prevDataMask ||
       prevChartConfig !== chartConfiguration;
 
+    // Check if there are any filters in dataMask that target this chart
+    // This allows showing indicators even before chart finishes loading
+    const hasFiltersInDataMask = (): boolean => {
+      // Check native filters
+      if (nativeFilters && dataMask) {
+        const hasNativeFilters = Object.values(nativeFilters).some(filter => {
+          if (filter.type !== NativeFilterType.NativeFilter) return false;
+          if (!filter.chartsInScope?.includes(chartId)) return false;
+          const filterState = dataMask[filter.id]?.filterState;
+          return (
+            filterState?.value !== null && filterState?.value !== undefined
+          );
+        });
+        if (hasNativeFilters) return true;
+      }
+      // Check cross-filters from chart configuration
+      if (chartConfiguration && dataMask) {
+        const hasCrossFilters = Object.values(chartConfiguration).some(
+          chartConfig => {
+            const inScope =
+              chartConfig.crossFilters?.chartsInScope?.includes(chartId);
+            if (!inScope) return false;
+            const filterState = dataMask[chartConfig.id]?.filterState;
+            return (
+              filterState?.value !== null && filterState?.value !== undefined
+            );
+          },
+        );
+        if (hasCrossFilters) return true;
+      }
+      return false;
+    };
+
     if (shouldReset) {
       setNativeIndicators(indicatorsInitialState);
     } else if (
-      showIndicators &&
+      (showIndicators || hasFiltersInDataMask()) &&
       (shouldRecalculate || nativeIndicators.length === 0)
     ) {
       const newIndicators = selectNativeIndicatorsForChart(
