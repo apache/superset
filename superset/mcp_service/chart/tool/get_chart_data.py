@@ -29,6 +29,8 @@ from superset_core.mcp import tool
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.commands.exceptions import CommandException
+from superset.exceptions import SupersetException
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -447,7 +449,7 @@ async def get_chart_data(  # noqa: C901
                 cache_status=cache_status,
             )
 
-        except Exception as data_error:
+        except (CommandException, SupersetException, ValueError) as data_error:
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
                 % (
@@ -462,7 +464,7 @@ async def get_chart_data(  # noqa: C901
                 error_type="DataError",
             )
 
-    except Exception as e:
+    except (CommandException, SupersetException, ValueError, KeyError) as e:
         await ctx.error(
             "Chart data retrieval failed: identifier=%s, error=%s, error_type=%s"
             % (

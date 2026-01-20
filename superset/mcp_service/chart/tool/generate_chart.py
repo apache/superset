@@ -25,6 +25,8 @@ from urllib.parse import parse_qs, urlparse
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.commands.exceptions import CommandException
+from superset.exceptions import SupersetException
 from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -294,7 +296,7 @@ async def generate_chart(  # noqa: C901
                 # Add any validation warnings (e.g., virtual dataset warnings)
                 response_warnings.extend(validation_result.warnings)
 
-            except Exception as e:
+            except CommandException as e:
                 logger.error("Chart creation failed: %s", e)
                 await ctx.error("Chart creation failed: error=%s" % (str(e),))
                 raise
@@ -329,7 +331,7 @@ async def generate_chart(  # noqa: C901
                     "Generated form_data_key for saved chart: form_data_key=%s"
                     % (form_data_key,)
                 )
-            except Exception as fdk_error:
+            except CommandException as fdk_error:
                 logger.warning(
                     "Failed to generate form_data_key for saved chart: %s", fdk_error
                 )
@@ -444,7 +446,7 @@ async def generate_chart(  # noqa: C901
                             if not hasattr(preview_result, "error"):
                                 previews[format_type] = preview_result
 
-            except Exception as e:
+            except (CommandException, ValueError, KeyError) as e:
                 # Log warning but don't fail the entire request
                 await ctx.warning("Preview generation failed: error=%s" % (str(e),))
                 logger.warning("Preview generation failed: %s", e)
@@ -510,7 +512,7 @@ async def generate_chart(  # noqa: C901
         )
         return GenerateChartResponse.model_validate(result)
 
-    except Exception as e:
+    except (CommandException, SupersetException, ValueError, KeyError) as e:
         await ctx.error(
             "Chart generation failed: error=%s, execution_time_ms=%s"
             % (
@@ -527,7 +529,7 @@ async def generate_chart(  # noqa: C901
         try:
             if hasattr(request, "config") and hasattr(request.config, "chart_type"):
                 chart_type = request.config.chart_type
-        except Exception as extract_error:
+        except AttributeError as extract_error:
             # Ignore errors when extracting chart type for error context
             logger.debug("Could not extract chart type: %s", extract_error)
 
