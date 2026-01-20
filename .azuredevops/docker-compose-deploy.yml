@@ -57,16 +57,17 @@ services:
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:?SUPERSET_SECRET_KEY environment variable is not set or empty}
 
       # Metadata database (internal PostgreSQL)
-      DATABASE_DB: superset
-      DATABASE_HOST: db
-      DATABASE_PASSWORD: superset
-      DATABASE_USER: superset
-      DATABASE_PORT: 5432
+      # These must be set as environment variables for superset_config.py
       DATABASE_DIALECT: postgresql
+      DATABASE_USER: superset
+      DATABASE_PASSWORD: superset
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_DB: superset
 
       # Redis
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: "6379"
     depends_on:
       redis:
         condition: service_healthy
@@ -94,12 +95,13 @@ services:
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:?SUPERSET_SECRET_KEY environment variable is not set or empty}
 
       # Metadata database (internal PostgreSQL)
-      DATABASE_DB: superset
-      DATABASE_HOST: db
-      DATABASE_PASSWORD: superset
-      DATABASE_USER: superset
-      DATABASE_PORT: 5432
+      # These must be set as environment variables for superset_config.py
       DATABASE_DIALECT: postgresql
+      DATABASE_USER: superset
+      DATABASE_PASSWORD: superset
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_DB: superset
 
       # Redis
       REDIS_HOST: redis
