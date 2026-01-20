@@ -34,6 +34,9 @@ stages:
       steps:
         - checkout: self
           clean: true
+          fetchDepth: 0
+          submodules: true
+          persistCredentials: true
 
         - bash: |
             BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -103,6 +106,7 @@ stages:
           deploy:
             steps:
               - checkout: self
+                submodules: true
 
               - download: current
                 artifact: $(artifactName)
