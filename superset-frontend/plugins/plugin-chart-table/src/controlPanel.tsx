@@ -420,7 +420,8 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Row limit'),
               clearable: false,
-              mapStateToProps: state => ({
+              mapStateToProps: (state, controlState) => ({
+                value: controlState?.value ?? 10000,
                 maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
                 server_pagination: state?.form_data?.server_pagination,
                 maxValueWithoutServerPagination:
