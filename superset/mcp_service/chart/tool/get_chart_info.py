@@ -24,6 +24,8 @@ import logging
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.commands.exceptions import CommandException
+from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     ChartError,
@@ -43,12 +45,11 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
     Returns the JSON string of form_data if found, None otherwise.
     """
     from superset.commands.explore.form_data.get import GetFormDataCommand
-    from superset.commands.explore.form_data.parameters import CommandParameters
 
     try:
         cmd_params = CommandParameters(key=form_data_key)
         return GetFormDataCommand(cmd_params).run()
-    except Exception as e:
+    except (KeyError, ValueError, CommandException) as e:
         logger.warning("Failed to retrieve form_data from cache: %s", e)
         return None
 
@@ -134,7 +135,7 @@ async def get_chart_info(
                     await ctx.info(
                         "Chart form_data overridden with unsaved state from cache"
                     )
-                except Exception as e:
+                except (TypeError, ValueError) as e:
                     await ctx.warning(
                         "Failed to parse cached form_data: %s. "
                         "Using saved chart configuration." % (str(e),)

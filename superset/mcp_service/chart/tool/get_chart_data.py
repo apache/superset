@@ -20,6 +20,7 @@ MCP tool: get_chart_data
 """
 
 import logging
+import time
 from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
@@ -29,6 +30,8 @@ from superset_core.mcp import tool
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.commands.exceptions import CommandException
+from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -49,12 +52,11 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
     Returns the JSON string of form_data if found, None otherwise.
     """
     from superset.commands.explore.form_data.get import GetFormDataCommand
-    from superset.commands.explore.form_data.parameters import CommandParameters
 
     try:
         cmd_params = CommandParameters(key=form_data_key)
         return GetFormDataCommand(cmd_params).run()
-    except Exception as e:
+    except (KeyError, ValueError, CommandException) as e:
         logger.warning("Failed to retrieve form_data from cache: %s", e)
         return None
 
@@ -145,8 +147,6 @@ async def get_chart_data(  # noqa: C901
         )
         logger.info("Getting data for chart %s: %s", chart.id, chart.slice_name)
 
-        import time
-
         start_time = time.time()
 
         # Track whether we're using unsaved state
@@ -164,9 +164,7 @@ async def get_chart_data(  # noqa: C901
                     "Retrieving unsaved chart state from cache: form_data_key=%s"
                     % (request.form_data_key,)
                 )
-                cached_form_data = _get_cached_form_data(request.form_data_key)
-
-                if cached_form_data:
+                if cached_form_data := _get_cached_form_data(request.form_data_key):
                     try:
                         cached_form_data_dict = utils_json.loads(cached_form_data)
                         using_unsaved_state = True

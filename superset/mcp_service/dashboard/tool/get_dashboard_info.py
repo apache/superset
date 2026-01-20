@@ -24,11 +24,12 @@ about a specific dashboard.
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict
 
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
+from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
@@ -42,7 +43,7 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-def _get_permalink_state(permalink_key: str) -> Dict[str, Any] | None:
+def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
     """Retrieve dashboard filter state from permalink.
 
     Returns the permalink value containing dashboardId and state if found,
@@ -51,10 +52,8 @@ def _get_permalink_state(permalink_key: str) -> Dict[str, Any] | None:
     from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 
     try:
-        result = GetDashboardPermalinkCommand(permalink_key).run()
-        # Convert TypedDict to regular dict for type compatibility
-        return dict(result) if result else None
-    except Exception as e:
+        return GetDashboardPermalinkCommand(permalink_key).run()
+    except DashboardPermalinkGetFailedError as e:
         logger.warning("Failed to retrieve permalink state: %s", e)
         return None
 
