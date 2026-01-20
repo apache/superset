@@ -261,7 +261,7 @@
     "@swc/plugin-transform-imports": "^10.0.0",
     "@testing-library/dom": "^8.20.1",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^12.1.5",
+    "@testing-library/react": "^16.3.2",
     "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/user-event": "^12.8.3",
     "@types/content-disposition": "^0.5.9",
