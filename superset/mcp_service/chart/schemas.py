@@ -211,13 +211,13 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
 
-    # Generate MCP service screenshot URL instead of chart's native URL
-    from superset.mcp_service.utils.url_utils import get_chart_screenshot_url
+    # Use the chart's native URL (explore URL) instead of screenshot URL
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
 
     chart_id = getattr(chart, "id", None)
-    screenshot_url = None
+    chart_url = None
     if chart_id:
-        screenshot_url = get_chart_screenshot_url(chart_id)
+        chart_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
 
     return ChartInfo(
         id=chart_id,
@@ -225,7 +225,7 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         viz_type=getattr(chart, "viz_type", None),
         datasource_name=getattr(chart, "datasource_name", None),
         datasource_type=getattr(chart, "datasource_type", None),
-        url=screenshot_url,
+        url=chart_url,
         description=getattr(chart, "description", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
         form_data=getattr(chart, "form_data", None),
