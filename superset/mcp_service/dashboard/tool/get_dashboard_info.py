@@ -123,7 +123,8 @@ async def get_dashboard_info(
 
                 if permalink_value:
                     # Extract the state from permalink value
-                    permalink_state = permalink_value.get("state", {})
+                    # Cast to dict for Pydantic compatibility
+                    permalink_state = dict(permalink_value.get("state", {}))
                     result.permalink_key = request.permalink_key
                     result.filter_state = permalink_state
                     result.is_permalink_state = True
