@@ -43,7 +43,7 @@ services:
       retries: 5
 
   superset-init:
-    image: ${SUPERSET_IMAGE}
+    image: ${SUPERSET_IMAGE:?SUPERSET_IMAGE environment variable is not set or empty}
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
     user: "root"
@@ -54,8 +54,8 @@ services:
       - .env.deploy
     environment:
       # Superset configuration
-      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
-      
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:?SUPERSET_SECRET_KEY environment variable is not set or empty}
+
       # Metadata database (internal PostgreSQL)
       DATABASE_DB: superset
       DATABASE_HOST: db
@@ -63,7 +63,7 @@ services:
       DATABASE_USER: superset
       DATABASE_PORT: 5432
       DATABASE_DIALECT: postgresql
-      
+
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -77,7 +77,7 @@ services:
       disable: true
 
   superset:
-    image: ${SUPERSET_IMAGE}
+    image: ${SUPERSET_IMAGE:?SUPERSET_IMAGE environment variable is not set or empty}
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
     user: "root"
@@ -91,8 +91,8 @@ services:
       - .env.deploy
     environment:
       # Superset configuration
-      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
-      
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:?SUPERSET_SECRET_KEY environment variable is not set or empty}
+
       # Metadata database (internal PostgreSQL)
       DATABASE_DB: superset
       DATABASE_HOST: db
@@ -100,7 +100,7 @@ services:
       DATABASE_USER: superset
       DATABASE_PORT: 5432
       DATABASE_DIALECT: postgresql
-      
+
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: "6379"
