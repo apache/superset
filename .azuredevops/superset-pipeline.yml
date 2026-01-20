@@ -291,6 +291,26 @@ stages:
                 displayName: Set Docker InitDB Directory Path
 
               # -------------------------------------
+              # Debug: Print all available variables
+              # -------------------------------------
+              - bash: |
+                  echo "=== DEBUGGING: Printing all pipeline variables ==="
+                  echo ""
+                  echo "Pipeline variables (Azure DevOps syntax):"
+                  echo "  FULL_IMAGE_NAME: '$(FULL_IMAGE_NAME)'"
+                  echo "  SUPERSET_SECRET_KEY: '$(SUPERSET_SECRET_KEY)'"
+                  echo "  SUPERSET_ADMIN_USER: '$(SUPERSET_ADMIN_USER)'"
+                  echo "  SUPERSET_PORT: '$(SUPERSET_PORT)'"
+                  echo "  DOCKER_NETWORK: '$(DOCKER_NETWORK)'"
+                  echo "  DOCKER_INITDB_DIR: '$(DOCKER_INITDB_DIR)'"
+                  echo ""
+                  echo "Environment variables in this shell:"
+                  env | grep -E "FULL_IMAGE_NAME|SUPERSET|DOCKER_NETWORK|DOCKER_INITDB_DIR" || echo "  (none found)"
+                  echo ""
+                  echo "=== END DEBUGGING ==="
+                displayName: Debug Variables
+
+              # -------------------------------------
               # Create docker-compose env file
               # -------------------------------------
               - bash: |
