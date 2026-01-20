@@ -366,6 +366,8 @@ stages:
                   REDIS_HOST=redis
                   REDIS_PORT=6379
 
+                  SQLALCHEMY_DATABASE_URI=postgresql://superset:superset@db:5432/superset
+
                   DOCKER_NETWORK=${DOCKER_NETWORK}
                   DOCKER_INITDB_DIR=${DOCKER_INITDB_DIR}
                   EOF
