@@ -371,7 +371,7 @@ class TestSecurityRolesApi(SupersetTestCase):
         Security API: Test roles endpoint with specific test data
         """
         self.login(ADMIN_USERNAME)
-        response = self.client.get(self.show_uri)
+        response = self.client.get(f"{self.show_uri}?q=(page_size:100)")
         self.assert200(response)
 
         data = json.loads(response.data.decode("utf-8"))
@@ -380,7 +380,10 @@ class TestSecurityRolesApi(SupersetTestCase):
         api_roles_by_name = {role["name"]: role for role in data["result"]}
 
         # Verify test_role_1
-        assert "test_role_1" in api_roles_by_name
+        assert "test_role_1" in api_roles_by_name, (
+            f"test_role_1 not found in API response. "
+            f"Available roles: {list(api_roles_by_name.keys())}"
+        )
         role1_api = api_roles_by_name["test_role_1"]
         role1_expected = self.test_roles_data["test_role_1"]
 
@@ -389,7 +392,10 @@ class TestSecurityRolesApi(SupersetTestCase):
         assert sorted(role1_api["group_ids"]) == role1_expected["group_ids"]
 
         # Verify test_role_2
-        assert "test_role_2" in api_roles_by_name
+        assert "test_role_2" in api_roles_by_name, (
+            f"test_role_2 not found in API response. "
+            f"Available roles: {list(api_roles_by_name.keys())}"
+        )
         role2_api = api_roles_by_name["test_role_2"]
         role2_expected = self.test_roles_data["test_role_2"]
 
