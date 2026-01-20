@@ -43,10 +43,10 @@ export const LocationProvider: FC = ({ children }: { children: ReactNode }) => {
     const name = queryParams.get('name');
     const schema = queryParams.get('schema');
     const autorun = queryParams.get('autorun') === 'true';
-
+    const isDataset = queryParams.get('isDataset') === 'true';
     const queryParamsState = {
       requestedQuery: { dbid, sql, name, schema, autorun },
-      isDataset: true,
+      isDataset,
     } as LocationState;
     return <Provider value={queryParamsState}>{children}</Provider>;
   }
