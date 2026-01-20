@@ -37,6 +37,7 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
+  resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
   NumberFormats,
 } from '@superset-ui/core';
@@ -134,10 +135,14 @@ export default function transformProps(
     verboseMap = {},
     columnFormats = {},
     currencyFormats = {},
+    currencyCodeColumn,
   } = datasource;
   const [queryData] = queriesData;
-  const { data = [], label_map = {} } =
-    queryData as TimeseriesChartDataResponseResult;
+  const {
+    data = [],
+    label_map = {},
+    detected_currency: backendDetectedCurrency,
+  } = queryData as TimeseriesChartDataResponseResult;
 
   const dataTypes = getColtypesMapping(queryData);
   const annotationData = getAnnotationData(chartProps);
@@ -275,15 +280,29 @@ export default function transformProps(
   const percentFormatter = forcePercentFormatter
     ? getPercentFormatter(yAxisFormat)
     : getPercentFormatter(NumberFormats.PERCENT_2_POINT);
-  const defaultFormatter = currencyFormat?.symbol
-    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
+
+  // Resolve currency for AUTO mode (backend detection takes precedence)
+  const resolvedCurrency = resolveAutoCurrency(
+    currencyFormat,
+    backendDetectedCurrency,
+    data,
+    currencyCodeColumn,
+  );
+
+  const defaultFormatter = resolvedCurrency?.symbol
+    ? new CurrencyFormatter({
+        d3Format: yAxisFormat,
+        currency: resolvedCurrency,
+      })
     : getNumberFormatter(yAxisFormat);
   const customFormatters = buildCustomFormatters(
     metrics,
     currencyFormats,
     columnFormats,
     yAxisFormat,
-    currencyFormat,
+    resolvedCurrency,
+    data,
+    currencyCodeColumn,
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
@@ -532,6 +551,10 @@ export default function transformProps(
       formatter: xAxisFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
+      ...(xAxisType === AxisType.Time && {
+        showMaxLabel: true,
+        alignMaxLabel: 'right',
+      }),
     },
     minorTick: { show: minorTicks },
     minInterval:

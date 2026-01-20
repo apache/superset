@@ -209,3 +209,36 @@ def test_join_offset_dfs_with_month_granularity():
     )
 
     assert_frame_equal(expected, result)
+
+
+def test_join_offset_dfs_totals_query_no_dimensions():
+    """
+    Test time offset join for totals query with no dimension columns.
+
+    This simulates a table chart totals query where:
+    - columns=[] (no dimensions, only metrics)
+    - time_offsets=["1 month ago"]
+    - The dataframes only contain metric columns (no datetime column)
+
+    The join should use the __temp_join_key__ fallback mechanism
+    to properly join the offset data.
+    """
+    # Main totals query result - only has metric column, no datetime
+    df = DataFrame({"Total Cost": [54211.76]})
+
+    # Offset query result - renamed metric column
+    offset_df = DataFrame({"Total Cost__1 month ago": [48000.50]})
+
+    offset_dfs = {"1 month ago": offset_df}
+    time_grain = "P1D"  # Daily grain from extras
+    join_keys = []  # No dimension columns for totals query
+
+    expected = DataFrame(
+        {"Total Cost": [54211.76], "Total Cost__1 month ago": [48000.50]}
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain, join_keys
+    )
+
+    assert_frame_equal(expected, result)
