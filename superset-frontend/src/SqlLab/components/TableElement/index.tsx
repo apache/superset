@@ -72,18 +72,6 @@ const Fade = styled.div`
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
-const StyledCollapse = styled(Collapse)`
-  & .ant-collapse-header {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-
-  & .ant-collapse-content-box {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-`;
-
 const TableElement = ({ table, ...props }: TableElementProps) => {
   const { dbId, catalog, schema, name, expanded, id } = table;
   const theme = useTheme();
