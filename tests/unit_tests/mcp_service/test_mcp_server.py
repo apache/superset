@@ -67,8 +67,10 @@ def test_create_event_store_creates_event_store_with_redis():
 
             # Verify EventStore was created
             assert result is mock_event_store
-            # Verify _create_redis_store was called with wrap=False
-            mock_create_store.assert_called_once_with(config, wrap=False)
+            # Verify _create_redis_store was called with prefix wrapper
+            mock_create_store.assert_called_once_with(
+                config, prefix="mcp_events_", wrap=True
+            )
             # Verify EventStore was initialized with correct params
             mock_event_store_class.assert_called_once_with(
                 storage=mock_redis_store,
