@@ -290,6 +290,10 @@ def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
         "metrics": metrics,
     }
 
+    # Add time grain if specified (for temporal x-axis columns)
+    if config.time_grain:
+        form_data["time_grain_sqla"] = config.time_grain
+
     # CRITICAL FIX: For time series charts, handle groupby carefully to avoid duplicates
     # The x_axis field already tells Superset which column to use for time grouping
     groupby_columns = []
