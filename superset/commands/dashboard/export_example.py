@@ -43,6 +43,26 @@ logger = logging.getLogger(__name__)
 # Canonical UUID for the examples database
 EXAMPLES_DATABASE_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
 
+# ASF license header for generated YAML files
+YAML_LICENSE_HEADER = """\
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""
+
 
 def sanitize_filename(name: str) -> str:
     """Convert a name to a safe filename."""
@@ -367,10 +387,9 @@ def export_dashboard_yaml(
 
 
 def _make_yaml_generator(config: dict[str, Any]) -> Callable[[], bytes]:
-    """Create a generator function for YAML content."""
-    return lambda: yaml.safe_dump(
-        config, default_flow_style=False, allow_unicode=True
-    ).encode("utf-8")
+    """Create a generator function for YAML content with ASF license header."""
+    yaml_content = yaml.safe_dump(config, default_flow_style=False, allow_unicode=True)
+    return lambda: (YAML_LICENSE_HEADER + yaml_content).encode("utf-8")
 
 
 def _make_bytes_generator(data: bytes) -> Callable[[], bytes]:
