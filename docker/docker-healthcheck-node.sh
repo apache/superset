@@ -16,5 +16,20 @@
 # limitations under the License.
 #
 
-# Health check for webpack dev server
-curl -f "http://localhost:${WEBPACK_DEVSERVER_PORT:-9000}/" || exit 1
+# Health check for webpack dev server using Node.js HTTP module
+node -e "
+const http = require('http');
+const req = http.request({
+  hostname: 'localhost',
+  port: ${WEBPACK_DEVSERVER_PORT:-9000},
+  path: '/',
+  method: 'HEAD',
+  timeout: 3000
+}, (res) => {
+  res.resume();
+  process.exit(0);
+});
+req.on('error', () => process.exit(1));
+req.on('timeout', () => { req.destroy(); process.exit(1); });
+req.end();
+" || exit 1
