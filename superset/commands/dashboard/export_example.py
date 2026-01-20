@@ -38,6 +38,8 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
+from superset.sql.parse import SQLStatement, Table
+
 logger = logging.getLogger(__name__)
 
 # Canonical UUID for the examples database
@@ -72,18 +74,98 @@ def sanitize_filename(name: str) -> str:
     return safe.strip("_")
 
 
+def get_referenced_tables(sql: str, engine: str = "base") -> set[Table]:
+    """Extract table references from SQL using Superset's SQL parser.
+
+    Args:
+        sql: The SQL query to parse
+        engine: The database engine/dialect (e.g., "postgresql", "mysql")
+
+    Returns:
+        Set of Table objects referenced in the SQL
+    """
+    try:
+        statement = SQLStatement(sql, engine=engine)
+        return statement.tables
+    except Exception as e:
+        logger.warning("Could not parse SQL to extract tables: %s", e)
+        return set()
+
+
+def is_virtual_dataset(dataset: SqlaTable) -> bool:
+    """Check if a dataset is virtual (SQL-based) vs physical (table-based)."""
+    return bool(dataset.sql)
+
+
+def can_preserve_virtual_dataset(
+    dataset: SqlaTable,
+    physical_tables: set[str],
+    engine: str = "base",
+) -> bool:
+    """Check if a virtual dataset can be preserved (all dependencies are in export).
+
+    A virtual dataset can be preserved if all tables it references are
+    physical tables that will be exported as Parquet files.
+
+    Args:
+        dataset: The virtual dataset to check
+        physical_tables: Set of physical table names being exported
+        engine: The database engine/dialect for SQL parsing
+
+    Returns:
+        True if the virtual dataset can be preserved with its SQL intact
+    """
+    if not dataset.sql:
+        return False  # Not a virtual dataset
+
+    referenced = get_referenced_tables(dataset.sql, engine)
+    if not referenced:
+        # Couldn't parse SQL or no tables found - safer to materialize
+        logger.info(
+            "Could not determine dependencies for %s, will materialize",
+            dataset.table_name,
+        )
+        return False
+
+    # Check if all referenced tables are in our physical tables set
+    for table in referenced:
+        # Match by table name (ignore schema since we normalize to default schema)
+        if table.table not in physical_tables:
+            logger.info(
+                "Virtual dataset %s references external table %s, will materialize",
+                dataset.table_name,
+                table.table,
+            )
+            return False
+
+    logger.info(
+        "Virtual dataset %s can be preserved (references: %s)",
+        dataset.table_name,
+        ", ".join(t.table for t in referenced),
+    )
+    return True
+
+
 def export_dataset_yaml(
-    dataset: SqlaTable, data_file: str | None = None
+    dataset: SqlaTable,
+    data_file: str | None = None,
+    preserve_virtual: bool = False,
 ) -> dict[str, Any]:
     """Export a dataset to YAML format.
 
     Args:
         dataset: The dataset to export
-        data_file: Optional explicit parquet filename (for deduplication)
+        data_file: Optional explicit parquet filename (for physical datasets)
+        preserve_virtual: If True and dataset is virtual, preserve the SQL query
+                         instead of converting to physical with data_file
     """
+    # Determine if this is a preserved virtual dataset
+    is_preserved_virtual = preserve_virtual and dataset.sql
+
     dataset_config: dict[str, Any] = {
         "table_name": dataset.table_name,
-        "data_file": data_file,  # Explicit reference to parquet file
+        # Virtual datasets don't have data files - they query other tables
+        "data_file": None if is_preserved_virtual else data_file,
         "main_dttm_col": dataset.main_dttm_col,
         "description": dataset.description,
         "default_endpoint": dataset.default_endpoint,
@@ -91,7 +173,8 @@ def export_dataset_yaml(
         "cache_timeout": dataset.cache_timeout,
         "catalog": dataset.catalog,
         "schema": None,  # Don't export - use target database's default schema
-        "sql": None,  # Convert virtual datasets to physical - data is in parquet
+        # Preserve SQL for virtual datasets, None for physical (data is in parquet)
+        "sql": dataset.sql if is_preserved_virtual else None,
         "params": None,  # Don't export - contains stale import metadata
         "template_params": dataset.template_params,
         "filter_select_enabled": dataset.filter_select_enabled,
@@ -456,6 +539,52 @@ class ExportExampleCommand(BaseCommand):
 
         logger.info("Found %d charts and %d datasets", len(charts), len(datasets))
 
+        # Classify datasets: physical vs virtual
+        # Physical datasets need Parquet export; virtual datasets with all
+        # dependencies in the export can preserve their SQL
+        physical_datasets: dict[int, SqlaTable] = {}
+        virtual_datasets: dict[int, SqlaTable] = {}
+
+        for ds_id, dataset in datasets.items():
+            if is_virtual_dataset(dataset):
+                virtual_datasets[ds_id] = dataset
+            else:
+                physical_datasets[ds_id] = dataset
+
+        # Get the set of physical table names for dependency checking
+        physical_table_names = {ds.table_name for ds in physical_datasets.values()}
+
+        # Determine which virtual datasets can be preserved vs need materialization
+        # A virtual dataset can be preserved if all its referenced tables are
+        # physical datasets in this export
+        preserved_virtual: dict[int, SqlaTable] = {}
+        materialized_virtual: dict[int, SqlaTable] = {}
+
+        # Get database engine for SQL parsing (use first dataset's database)
+        db_engine = "base"
+        if datasets:
+            first_dataset = next(iter(datasets.values()))
+            if first_dataset.database:
+                db_engine = first_dataset.database.backend or "base"
+
+        for ds_id, dataset in virtual_datasets.items():
+            if can_preserve_virtual_dataset(dataset, physical_table_names, db_engine):
+                preserved_virtual[ds_id] = dataset
+            else:
+                materialized_virtual[ds_id] = dataset
+
+        # Log classification summary
+        logger.info(
+            "Dataset classification: %d physical, %d virtual preserved, "
+            "%d virtual materialized",
+            len(physical_datasets),
+            len(preserved_virtual),
+            len(materialized_virtual),
+        )
+
+        # Datasets that need Parquet export = physical + materialized virtual
+        datasets_needing_data = {**physical_datasets, **materialized_virtual}
+
         # Build unique filenames for datasets (handle table_name collisions)
         dataset_filenames: dict[int, str] = {}
         seen_table_names: dict[str, int] = {}  # table_name -> first dataset_id
@@ -481,17 +610,23 @@ class ExportExampleCommand(BaseCommand):
             # Multiple datasets: use datasets/ and data/ folders
             for ds_id, dataset in datasets.items():
                 filename = dataset_filenames[ds_id]
-                data_file = f"{filename}.parquet"
+                needs_data = ds_id in datasets_needing_data
+                is_preserved = ds_id in preserved_virtual
+                data_file = f"{filename}.parquet" if needs_data else None
 
-                # Export YAML with explicit data_file reference
-                dataset_config = export_dataset_yaml(dataset, data_file=data_file)
+                # Export YAML
+                dataset_config = export_dataset_yaml(
+                    dataset,
+                    data_file=data_file,
+                    preserve_virtual=is_preserved,
+                )
                 yield (
                     f"datasets/{filename}.yaml",
                     _make_yaml_generator(dataset_config),
                 )
 
-                # Export data
-                if self._export_data:
+                # Export data only for datasets that need it
+                if self._export_data and needs_data:
                     data = export_dataset_data(dataset, self._sample_rows)
                     if data:
                         yield (
@@ -501,15 +636,23 @@ class ExportExampleCommand(BaseCommand):
 
         elif len(datasets) == 1:
             # Single dataset: use dataset.yaml and data.parquet at root
-            dataset = list(datasets.values())[0]
-            data_file = "data.parquet"
-            dataset_config = export_dataset_yaml(dataset, data_file=data_file)
+            ds_id = next(iter(datasets.keys()))
+            dataset = datasets[ds_id]
+            needs_data = ds_id in datasets_needing_data
+            is_preserved = ds_id in preserved_virtual
+            data_file = "data.parquet" if needs_data else None
+
+            dataset_config = export_dataset_yaml(
+                dataset,
+                data_file=data_file,
+                preserve_virtual=is_preserved,
+            )
             yield ("dataset.yaml", _make_yaml_generator(dataset_config))
 
-            if self._export_data:
+            if self._export_data and needs_data:
                 data = export_dataset_data(dataset, self._sample_rows)
                 if data:
-                    yield (data_file, _make_bytes_generator(data))
+                    yield ("data.parquet", _make_bytes_generator(data))
 
         # Export charts
         for chart in charts:
