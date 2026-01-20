@@ -81,9 +81,6 @@ COPY superset-frontend /app/superset-frontend
 ######################################################################
 FROM superset-node-ci AS superset-node
 
-# Install curl for healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
-
 # Build the frontend if not in dev mode
 RUN --mount=type=cache,target=/root/.npm \
     if [ "${DEV_MODE}" = "false" ]; then \
