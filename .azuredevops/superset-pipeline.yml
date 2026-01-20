@@ -244,7 +244,7 @@ stages:
                     $pg = $appSuite.postgres
 
                     # Validate required Explorer fields
-                    $requiredExplorerFields = @('port', 'admin-user', 'admin-password', 'secret-key')
+                    $requiredExplorerFields = @('port', 'admin-user', 'admin-password')
                     foreach ($field in $requiredExplorerFields) {
                         if (-not $explorer.$field) {
                             throw "Config missing required Explorer field: '$field'"
@@ -257,12 +257,16 @@ stages:
                     Write-Host "Setting Superset variables..."
                     Write-Host "  Port: $($explorer.port)"
                     Write-Host "  Admin User: $($explorer.'admin-user')"
-                    Write-Host "  Secret Key: ***"
-                    
+
                     Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($explorer.port)"
                     Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($explorer.'admin-user')"
                     Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($explorer.'admin-password')"
-                    Write-Host "##vso[task.setvariable variable=SUPERSET_SECRET_KEY;issecret=true]$($explorer.'secret-key')"
+
+                    # Generate SECRET_KEY (Flask secret key for session encryption)
+                    Write-Host "Generating SUPERSET_SECRET_KEY..."
+                    $secretKey = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 64 | % {[char]$_})
+                    Write-Host "  Generated: $($secretKey.Substring(0,10))..."
+                    Write-Host "##vso[task.setvariable variable=SUPERSET_SECRET_KEY;issecret=true]$secretKey"
 
                     # Docker network
                     Write-Host "Setting Docker network..."
