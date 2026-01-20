@@ -50,6 +50,7 @@ import {
   InfoTooltip,
   Input,
   InputNumber,
+  Loading,
   Select,
   Switch,
   TreeSelect,
@@ -57,6 +58,7 @@ import {
 } from '@superset-ui/core/components';
 
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
+import { timezoneOptionsCache } from '@superset-ui/core/components/TimezoneSelector/TimezoneOptionsCache';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import {
@@ -92,6 +94,7 @@ import { NotificationMethod } from './components/NotificationMethod';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;
+const COLLAPSE_ANIMATION_DURATION = 220;
 const TEXT_BASED_VISUALIZATION_TYPES = [
   VizType.PivotTable,
   'table',
@@ -494,6 +497,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [currentAlert, setCurrentAlert] =
     useState<Partial<AlertObject> | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
+
+  const [activeCollapsePanel, setActiveCollapsePanel] = useState<
+    string | string[]
+  >('general');
+  // Only delay TimezoneSelector for new alerts; render immediately for existing ones
+  const [shouldRenderTimezoneSelector, setShouldRenderTimezoneSelector] =
+    useState<boolean>(false);
+
   const [contentType, setContentType] = useState<string>('dashboard');
   const [reportFormat, setReportFormat] = useState<string>(
     DEFAULT_NOTIFICATION_FORMAT,
@@ -1859,6 +1870,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   useEffect(() => {
     if (resource) {
+      // Render TimezoneSelector immediately in edit mode (data is already loaded)
+      setShouldRenderTimezoneSelector(true);
+
       // Add native filter settings
       if (resource.extra?.dashboard?.nativeFilters) {
         const filters = resource.extra.dashboard.nativeFilters;
@@ -2025,7 +2039,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       <div css={AdditionalStyles}>
         <Collapse
           expandIconPosition="end"
-          defaultActiveKey="general"
+          activeKey={activeCollapsePanel}
+          onChange={key => {
+            setActiveCollapsePanel(key);
+            // Delay rendering TimezoneSelector until after panel animation completes
+            // Skip delay if options are already cached (instant render on subsequent opens)
+            const isSchedulePanel = Array.isArray(key)
+              ? key.includes('schedule')
+              : key === 'schedule';
+            if (isSchedulePanel) {
+              const isCached = timezoneOptionsCache.isCached();
+              if (isCached) {
+                // Options are cached, render immediately
+                setShouldRenderTimezoneSelector(true);
+              } else {
+                // First time, delay to avoid blocking panel animation
+                setTimeout(() => {
+                  setShouldRenderTimezoneSelector(true);
+                }, COLLAPSE_ANIMATION_DURATION); // Match Collapse animation duration
+              }
+            }
+          }}
           accordion
           modalMode
           items={[
@@ -2530,11 +2564,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <div className="control-label">
                       {t('Timezone')} <span className="required">*</span>
                     </div>
-                    <TimezoneSelector
-                      onTimezoneChange={onTimezoneChange}
-                      timezone={currentAlert?.timezone}
-                      minWidth="100%"
-                    />
+                    {shouldRenderTimezoneSelector ? (
+                      <TimezoneSelector
+                        onTimezoneChange={onTimezoneChange}
+                        timezone={currentAlert?.timezone}
+                        minWidth="100%"
+                      />
+                    ) : (
+                      <Loading size="s" muted position="normal" />
+                    )}
                   </StyledInputContainer>
                   <StyledInputContainer>
                     <div className="control-label">
