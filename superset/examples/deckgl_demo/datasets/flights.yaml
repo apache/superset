@@ -21,7 +21,7 @@ columns:
 - advanced_data_type: null
   column_name: YEAR
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -33,7 +33,7 @@ columns:
 - advanced_data_type: null
   column_name: MONTH
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -45,7 +45,7 @@ columns:
 - advanced_data_type: null
   column_name: DAY
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -57,7 +57,7 @@ columns:
 - advanced_data_type: null
   column_name: DAY_OF_WEEK
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -69,7 +69,7 @@ columns:
 - advanced_data_type: null
   column_name: AIRLINE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -81,7 +81,7 @@ columns:
 - advanced_data_type: null
   column_name: FLIGHT_NUMBER
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -93,7 +93,7 @@ columns:
 - advanced_data_type: null
   column_name: TAIL_NUMBER
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -105,7 +105,7 @@ columns:
 - advanced_data_type: null
   column_name: ORIGIN_AIRPORT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -117,7 +117,7 @@ columns:
 - advanced_data_type: null
   column_name: DESTINATION_AIRPORT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -129,7 +129,7 @@ columns:
 - advanced_data_type: null
   column_name: SCHEDULED_DEPARTURE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -141,7 +141,7 @@ columns:
 - advanced_data_type: null
   column_name: DEPARTURE_TIME
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -153,7 +153,7 @@ columns:
 - advanced_data_type: null
   column_name: DEPARTURE_DELAY
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -165,7 +165,7 @@ columns:
 - advanced_data_type: null
   column_name: TAXI_OUT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -177,7 +177,7 @@ columns:
 - advanced_data_type: null
   column_name: WHEELS_OFF
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -189,7 +189,7 @@ columns:
 - advanced_data_type: null
   column_name: SCHEDULED_TIME
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -201,7 +201,7 @@ columns:
 - advanced_data_type: null
   column_name: ELAPSED_TIME
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -213,7 +213,7 @@ columns:
 - advanced_data_type: null
   column_name: AIR_TIME
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -225,7 +225,7 @@ columns:
 - advanced_data_type: null
   column_name: DISTANCE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -237,7 +237,7 @@ columns:
 - advanced_data_type: null
   column_name: WHEELS_ON
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -249,7 +249,7 @@ columns:
 - advanced_data_type: null
   column_name: TAXI_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -261,7 +261,7 @@ columns:
 - advanced_data_type: null
   column_name: SCHEDULED_ARRIVAL
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -273,7 +273,7 @@ columns:
 - advanced_data_type: null
   column_name: ARRIVAL_TIME
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -285,7 +285,7 @@ columns:
 - advanced_data_type: null
   column_name: ARRIVAL_DELAY
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -297,7 +297,7 @@ columns:
 - advanced_data_type: null
   column_name: DIVERTED
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -309,7 +309,7 @@ columns:
 - advanced_data_type: null
   column_name: CANCELLED
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -321,7 +321,7 @@ columns:
 - advanced_data_type: null
   column_name: CANCELLATION_REASON
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -333,7 +333,7 @@ columns:
 - advanced_data_type: null
   column_name: AIR_SYSTEM_DELAY
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -345,7 +345,7 @@ columns:
 - advanced_data_type: null
   column_name: SECURITY_DELAY
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -357,7 +357,7 @@ columns:
 - advanced_data_type: null
   column_name: AIRLINE_DELAY
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -369,7 +369,7 @@ columns:
 - advanced_data_type: null
   column_name: LATE_AIRCRAFT_DELAY
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -381,7 +381,7 @@ columns:
 - advanced_data_type: null
   column_name: WEATHER_DELAY
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -393,7 +393,7 @@ columns:
 - advanced_data_type: null
   column_name: ds
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -405,7 +405,7 @@ columns:
 - advanced_data_type: null
   column_name: AIRPORT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -417,7 +417,7 @@ columns:
 - advanced_data_type: null
   column_name: CITY
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -429,7 +429,7 @@ columns:
 - advanced_data_type: null
   column_name: STATE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -441,7 +441,7 @@ columns:
 - advanced_data_type: null
   column_name: COUNTRY
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -453,7 +453,7 @@ columns:
 - advanced_data_type: null
   column_name: LATITUDE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -465,7 +465,7 @@ columns:
 - advanced_data_type: null
   column_name: LONGITUDE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -477,7 +477,7 @@ columns:
 - advanced_data_type: null
   column_name: AIRPORT_DEST
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -489,7 +489,7 @@ columns:
 - advanced_data_type: null
   column_name: CITY_DEST
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -501,7 +501,7 @@ columns:
 - advanced_data_type: null
   column_name: STATE_DEST
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -513,7 +513,7 @@ columns:
 - advanced_data_type: null
   column_name: COUNTRY_DEST
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -525,7 +525,7 @@ columns:
 - advanced_data_type: null
   column_name: LATITUDE_DEST
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -537,7 +537,7 @@ columns:
 - advanced_data_type: null
   column_name: LONGITUDE_DEST
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -572,5 +572,5 @@ schema: null
 sql: null
 table_name: flights
 template_params: null
-uuid: e4bb97f4-4686-4476-8297-48583f0361a3
+uuid: b474edce-88e2-4ac4-be63-272a9f1dabe7
 version: 1.0.0

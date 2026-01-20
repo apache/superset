@@ -21,7 +21,7 @@ columns:
 - advanced_data_type: null
   column_name: country_name
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -33,7 +33,7 @@ columns:
 - advanced_data_type: null
   column_name: country_code
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -45,7 +45,7 @@ columns:
 - advanced_data_type: null
   column_name: region
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -57,7 +57,7 @@ columns:
 - advanced_data_type: null
   column_name: year
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -69,7 +69,7 @@ columns:
 - advanced_data_type: null
   column_name: NY_GNP_PCAP_CD
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -81,7 +81,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_ADT_1524_LT_FM_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -93,7 +93,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_ADT_1524_LT_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -105,7 +105,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_ADT_1524_LT_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -117,7 +117,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_ADT_LITR_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -129,7 +129,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_ADT_LITR_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -141,7 +141,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_ADT_LITR_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -153,7 +153,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_ENR_ORPH
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -165,7 +165,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_PRM_CMPT_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -177,7 +177,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_PRM_CMPT_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -189,7 +189,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_PRM_CMPT_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -201,7 +201,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_PRM_ENRR
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -213,7 +213,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_PRM_ENRR_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -225,7 +225,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_PRM_ENRR_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -237,7 +237,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_PRM_NENR
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -249,7 +249,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_PRM_NENR_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -261,7 +261,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_PRM_NENR_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -273,7 +273,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_SEC_ENRR
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -285,7 +285,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_SEC_ENRR_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -297,7 +297,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_SEC_ENRR_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -309,7 +309,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_SEC_NENR
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -321,7 +321,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_SEC_NENR_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -333,7 +333,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_SEC_NENR_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -345,7 +345,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_TER_ENRR
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -357,7 +357,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_TER_ENRR_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -369,7 +369,7 @@ columns:
 - advanced_data_type: null
   column_name: SE_XPD_TOTL_GD_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -381,7 +381,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_ANM_CHLD_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -393,7 +393,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_ANM_NPRG_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -405,7 +405,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_CON_1524_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -417,7 +417,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_CON_1524_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -429,7 +429,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_CON_AIDS_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -441,7 +441,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_CON_AIDS_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -453,7 +453,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DTH_COMM_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -465,7 +465,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DTH_IMRT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -477,7 +477,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DTH_INJR_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -489,7 +489,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DTH_MORT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -501,7 +501,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DTH_NCOM_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -513,7 +513,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DTH_NMRT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -525,7 +525,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DYN_AIDS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -537,7 +537,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DYN_AIDS_DH
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -549,7 +549,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DYN_AIDS_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -561,7 +561,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DYN_AIDS_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -573,7 +573,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DYN_MORT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -585,7 +585,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DYN_MORT_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -597,7 +597,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DYN_MORT_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -609,7 +609,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_DYN_NMRT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -621,7 +621,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_FPL_SATI_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -633,7 +633,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_H2O_SAFE_RU_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -645,7 +645,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_H2O_SAFE_UR_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -657,7 +657,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_H2O_SAFE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -669,7 +669,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_HIV_0014
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -681,7 +681,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_HIV_1524_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -693,7 +693,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_HIV_1524_KW_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -705,7 +705,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_HIV_1524_KW_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -717,7 +717,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_HIV_1524_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -729,7 +729,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_HIV_ARTC_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -741,7 +741,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_HIV_KNOW_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -753,7 +753,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_HIV_KNOW_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -765,7 +765,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_HIV_ORPH
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -777,7 +777,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_HIV_TOTL
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -789,7 +789,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_IMM_HEPB
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -801,7 +801,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_IMM_HIB3
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -813,7 +813,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_IMM_IBCG
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -825,7 +825,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_IMM_IDPT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -837,7 +837,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_IMM_MEAS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -849,7 +849,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_IMM_POL3
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -861,7 +861,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MED_BEDS_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -873,7 +873,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MED_CMHW_P3
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -885,7 +885,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MED_NUMW_P3
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -897,7 +897,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MED_PHYS_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -909,7 +909,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MLR_NETS_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -921,7 +921,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MLR_PREG_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -933,7 +933,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MLR_SPF2_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -945,7 +945,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MLR_TRET_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -957,7 +957,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MMR_DTHS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -969,7 +969,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MMR_LEVE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -981,7 +981,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MMR_RISK
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -993,7 +993,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MMR_RISK_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1005,7 +1005,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_MMR_WAGE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1017,7 +1017,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_PRG_ANEM
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1029,7 +1029,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_PRG_ARTC_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1041,7 +1041,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_PRG_SYPH_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1053,7 +1053,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_PRV_SMOK_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1065,7 +1065,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_PRV_SMOK_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1077,7 +1077,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_ACSN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1089,7 +1089,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_ACSN_RU
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1101,7 +1101,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_ACSN_UR
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1113,7 +1113,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_ANV4_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1125,7 +1125,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_ANVC_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1137,7 +1137,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_ARIC_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1149,7 +1149,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_BFED_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1161,7 +1161,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_BRTC_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1173,7 +1173,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_BRTW_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1185,7 +1185,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_DIAB_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1197,7 +1197,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_IYCF_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1209,7 +1209,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_MALN_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1221,7 +1221,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_MALN_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1233,7 +1233,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_MALN_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1245,7 +1245,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_MALR
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1257,7 +1257,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_MMRT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1269,7 +1269,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_MMRT_NE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1281,7 +1281,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_ORCF_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1293,7 +1293,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_ORTH
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1305,7 +1305,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_OW15_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1317,7 +1317,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_OW15_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1329,7 +1329,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_OW15_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1341,7 +1341,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_OWGH_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1353,7 +1353,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_OWGH_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1365,7 +1365,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_OWGH_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1377,7 +1377,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_PNVC_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1389,7 +1389,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_STNT_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1401,7 +1401,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_STNT_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1413,7 +1413,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_STNT_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1425,7 +1425,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_WAST_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1437,7 +1437,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_WAST_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1449,7 +1449,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_STA_WAST_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1461,7 +1461,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_SVR_WAST_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1473,7 +1473,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_SVR_WAST_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1485,7 +1485,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_SVR_WAST_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1497,7 +1497,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_TBS_CURE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1509,7 +1509,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_TBS_DTEC_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1521,7 +1521,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_TBS_INCD
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1533,7 +1533,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_TBS_MORT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1545,7 +1545,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_TBS_PREV
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1557,7 +1557,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_VAC_TTNS_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1569,7 +1569,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_EXTR_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1581,7 +1581,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_OOPC_TO_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1593,7 +1593,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_OOPC_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1605,7 +1605,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_PCAP
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1617,7 +1617,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_PCAP_PP_KD
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1629,7 +1629,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_PRIV
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1641,7 +1641,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_PRIV_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1653,7 +1653,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_PUBL
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1665,7 +1665,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_PUBL_GX_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1677,7 +1677,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_PUBL_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1689,7 +1689,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_TOTL_CD
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1701,7 +1701,7 @@ columns:
 - advanced_data_type: null
   column_name: SH_XPD_TOTL_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1713,7 +1713,7 @@ columns:
 - advanced_data_type: null
   column_name: SI_POV_NAHC
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1725,7 +1725,7 @@ columns:
 - advanced_data_type: null
   column_name: SI_POV_RUHC
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1737,7 +1737,7 @@ columns:
 - advanced_data_type: null
   column_name: SI_POV_URHC
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1749,7 +1749,7 @@ columns:
 - advanced_data_type: null
   column_name: SL_EMP_INSV_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1761,7 +1761,7 @@ columns:
 - advanced_data_type: null
   column_name: SL_TLF_TOTL_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1773,7 +1773,7 @@ columns:
 - advanced_data_type: null
   column_name: SL_TLF_TOTL_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1785,7 +1785,7 @@ columns:
 - advanced_data_type: null
   column_name: SL_UEM_TOTL_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1797,7 +1797,7 @@ columns:
 - advanced_data_type: null
   column_name: SL_UEM_TOTL_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1809,7 +1809,7 @@ columns:
 - advanced_data_type: null
   column_name: SL_UEM_TOTL_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1821,7 +1821,7 @@ columns:
 - advanced_data_type: null
   column_name: SM_POP_NETM
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1833,7 +1833,7 @@ columns:
 - advanced_data_type: null
   column_name: SN_ITK_DEFC
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1845,7 +1845,7 @@ columns:
 - advanced_data_type: null
   column_name: SN_ITK_DEFC_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1857,7 +1857,7 @@ columns:
 - advanced_data_type: null
   column_name: SN_ITK_SALT_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1869,7 +1869,7 @@ columns:
 - advanced_data_type: null
   column_name: SN_ITK_VITA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1881,7 +1881,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_ADO_TFRT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1893,7 +1893,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_AMRT_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1905,7 +1905,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_AMRT_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1917,7 +1917,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_CBRT_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1929,7 +1929,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_CDRT_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1941,7 +1941,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_CONU_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1953,7 +1953,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_IMRT_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1965,7 +1965,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_IMRT_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1977,7 +1977,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_IMRT_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -1989,7 +1989,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_LE00_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2001,7 +2001,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_LE00_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2013,7 +2013,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_LE00_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2025,7 +2025,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_SMAM_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2037,7 +2037,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_SMAM_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2049,7 +2049,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_TFRT_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2061,7 +2061,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_TO65_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2073,7 +2073,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_TO65_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2085,7 +2085,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_DYN_WFRT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2097,7 +2097,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_HOU_FEMA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2109,7 +2109,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_MTR_1519_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2121,7 +2121,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0004_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2133,7 +2133,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0004_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2145,7 +2145,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0004_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2157,7 +2157,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0004_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2169,7 +2169,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0014_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2181,7 +2181,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0014_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2193,7 +2193,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0014_TO
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2205,7 +2205,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0014_TO_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2217,7 +2217,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0509_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2229,7 +2229,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0509_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2241,7 +2241,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0509_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2253,7 +2253,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_0509_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2265,7 +2265,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1014_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2277,7 +2277,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1014_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2289,7 +2289,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1014_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2301,7 +2301,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1014_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2313,7 +2313,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1519_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2325,7 +2325,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1519_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2337,7 +2337,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1519_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2349,7 +2349,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1519_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2361,7 +2361,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1564_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2373,7 +2373,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1564_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2385,7 +2385,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1564_TO
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2397,7 +2397,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_1564_TO_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2409,7 +2409,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_2024_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2421,7 +2421,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_2024_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2433,7 +2433,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_2024_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2445,7 +2445,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_2024_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2457,7 +2457,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_2529_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2469,7 +2469,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_2529_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2481,7 +2481,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_2529_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2493,7 +2493,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_2529_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2505,7 +2505,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_3034_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2517,7 +2517,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_3034_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2529,7 +2529,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_3034_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2541,7 +2541,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_3034_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2553,7 +2553,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_3539_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2565,7 +2565,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_3539_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2577,7 +2577,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_3539_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2589,7 +2589,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_3539_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2601,7 +2601,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_4044_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2613,7 +2613,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_4044_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2625,7 +2625,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_4044_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2637,7 +2637,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_4044_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2649,7 +2649,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_4549_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2661,7 +2661,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_4549_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2673,7 +2673,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_4549_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2685,7 +2685,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_4549_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2697,7 +2697,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_5054_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2709,7 +2709,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_5054_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2721,7 +2721,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_5054_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2733,7 +2733,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_5054_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2745,7 +2745,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_5559_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2757,7 +2757,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_5559_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2769,7 +2769,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_5559_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2781,7 +2781,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_5559_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2793,7 +2793,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_6064_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2805,7 +2805,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_6064_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2817,7 +2817,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_6064_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2829,7 +2829,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_6064_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2841,7 +2841,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_6569_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2853,7 +2853,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_6569_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2865,7 +2865,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_6569_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2877,7 +2877,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_6569_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2889,7 +2889,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_65UP_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2901,7 +2901,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_65UP_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2913,7 +2913,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_65UP_TO
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2925,7 +2925,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_65UP_TO_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2937,7 +2937,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_7074_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2949,7 +2949,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_7074_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2961,7 +2961,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_7074_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2973,7 +2973,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_7074_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2985,7 +2985,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_7579_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -2997,7 +2997,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_7579_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3009,7 +3009,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_7579_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3021,7 +3021,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_7579_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3033,7 +3033,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_80UP_FE
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3045,7 +3045,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_80UP_FE_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3057,7 +3057,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_80UP_MA
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3069,7 +3069,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_80UP_MA_5Y
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3081,7 +3081,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG00_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3093,7 +3093,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG00_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3105,7 +3105,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG01_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3117,7 +3117,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG01_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3129,7 +3129,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG02_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3141,7 +3141,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG02_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3153,7 +3153,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG03_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3165,7 +3165,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG03_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3177,7 +3177,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG04_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3189,7 +3189,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG04_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3201,7 +3201,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG05_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3213,7 +3213,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG05_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3225,7 +3225,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG06_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3237,7 +3237,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG06_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3249,7 +3249,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG07_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3261,7 +3261,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG07_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3273,7 +3273,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG08_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3285,7 +3285,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG08_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3297,7 +3297,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG09_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3309,7 +3309,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG09_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3321,7 +3321,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG10_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3333,7 +3333,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG10_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3345,7 +3345,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG11_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3357,7 +3357,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG11_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3369,7 +3369,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG12_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3381,7 +3381,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG12_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3393,7 +3393,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG13_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3405,7 +3405,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG13_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3417,7 +3417,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG14_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3429,7 +3429,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG14_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3441,7 +3441,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG15_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3453,7 +3453,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG15_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3465,7 +3465,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG16_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3477,7 +3477,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG16_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3489,7 +3489,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG17_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3501,7 +3501,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG17_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3513,7 +3513,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG18_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3525,7 +3525,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG18_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3537,7 +3537,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG19_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3549,7 +3549,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG19_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3561,7 +3561,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG20_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3573,7 +3573,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG20_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3585,7 +3585,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG21_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3597,7 +3597,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG21_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3609,7 +3609,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG22_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3621,7 +3621,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG22_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3633,7 +3633,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG23_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3645,7 +3645,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG23_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3657,7 +3657,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG24_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3669,7 +3669,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG24_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3681,7 +3681,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG25_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3693,7 +3693,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_AG25_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3705,7 +3705,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_BRTH_MF
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3717,7 +3717,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_DPND
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3729,7 +3729,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_DPND_OL
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3741,7 +3741,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_DPND_YG
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3753,7 +3753,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_GROW
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3765,7 +3765,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_TOTL
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3777,7 +3777,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_TOTL_FE_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3789,7 +3789,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_TOTL_FE_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3801,7 +3801,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_TOTL_MA_IN
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3813,7 +3813,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_POP_TOTL_MA_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3825,7 +3825,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_REG_BRTH_RU_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3837,7 +3837,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_REG_BRTH_UR_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3849,7 +3849,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_REG_BRTH_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3861,7 +3861,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_REG_DTHS_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3873,7 +3873,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_RUR_TOTL
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3885,7 +3885,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_RUR_TOTL_ZG
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3897,7 +3897,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_RUR_TOTL_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3909,7 +3909,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_URB_GROW
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3921,7 +3921,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_URB_TOTL
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3933,7 +3933,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_URB_TOTL_IN_ZS
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -3945,7 +3945,7 @@ columns:
 - advanced_data_type: null
   column_name: SP_UWT_TFRT
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -4315,5 +4315,5 @@ schema: null
 sql: null
 table_name: wb_health_population
 template_params: null
-uuid: 69935018-2dcf-489a-8147-83e68926c88d
+uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
 version: 1.0.0

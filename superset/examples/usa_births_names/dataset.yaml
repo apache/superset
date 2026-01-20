@@ -19,9 +19,21 @@ cache_timeout: null
 catalog: null
 columns:
 - advanced_data_type: null
+  column_name: num_california
+  description: null
+  expression: CASE WHEN state = 'CA' THEN num ELSE 0 END
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: null
+  verbose_name: null
+- advanced_data_type: null
   column_name: ds
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -33,7 +45,7 @@ columns:
 - advanced_data_type: null
   column_name: gender
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -45,7 +57,7 @@ columns:
 - advanced_data_type: null
   column_name: name
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -57,7 +69,7 @@ columns:
 - advanced_data_type: null
   column_name: num
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -69,7 +81,7 @@ columns:
 - advanced_data_type: null
   column_name: state
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -81,7 +93,7 @@ columns:
 - advanced_data_type: null
   column_name: num_boys
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -93,7 +105,7 @@ columns:
 - advanced_data_type: null
   column_name: num_girls
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -101,18 +113,6 @@ columns:
   is_dttm: false
   python_date_format: null
   type: BIGINT
-  verbose_name: null
-- advanced_data_type: null
-  column_name: num_california
-  description: null
-  expression: CASE WHEN state = 'CA' THEN num ELSE 0 END
-  extra: null
-  filterable: true
-  groupby: true
-  is_active: true
-  is_dttm: false
-  python_date_format: null
-  type: null
   verbose_name: null
 data_file: data.parquet
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
@@ -149,5 +149,5 @@ schema: null
 sql: null
 table_name: birth_names
 template_params: null
-uuid: f1dc524d-a988-47f5-8860-9419410cc68c
+uuid: 14f48794-ebfa-4f60-a26a-582c49132f1b
 version: 1.0.0

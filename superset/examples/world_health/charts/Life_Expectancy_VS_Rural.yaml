@@ -17,7 +17,7 @@
 cache_timeout: null
 certification_details: null
 certified_by: null
-dataset_uuid: 69935018-2dcf-489a-8147-83e68926c88d
+dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
 description: null
 params:
   adhoc_filters:
@@ -62,6 +62,6 @@ params:
   y: sum__SP_DYN_LE00_IN
 query_context: null
 slice_name: Life Expectancy VS Rural %
-uuid: 12ab0ea8-303f-42ae-b6ac-ad70ebbf3283
+uuid: c18faec9-ec43-4d36-8b66-4c8b1372020f
 version: 1.0.0
 viz_type: bubble

@@ -28,15 +28,56 @@ metadata:
   expanded_slices: {}
   global_chart_configuration:
     chartsInScope:
-    - 9fd9ed3b-52b2-4c5f-b1e5-cad375af286d
-    - b1286583-f6cb-4956-ba3a-a3a7fbe8d47e
-    - 19907ede-27ed-4a9e-b0ae-3b3d2db40b1d
+    - 48bf196c-f5fe-4e6c-b8ed-166e36b6648b
+    - fe23db78-c168-4ce2-86b0-38d82bb37d88
+    - ed3032d8-7961-4576-8fc4-2a61639a38bf
     scope:
       excluded: []
       rootPath:
       - ROOT_ID
   label_colors: {}
-  map_label_colors: {}
+  map_label_colors:
+    A ligeira: '#EFA1AA'
+    A rápida r: '#FF7F44'
+    Agera vulp: '#A38F79'
+    Egy hűtlen: '#A38F79'
+    El veloz m: '#9EE5E5'
+    En god sti: '#454E7C'
+    Eĥoŝanĝo ĉ: '#666666'
+    Flygande b: '#A1A6BD'
+    Franz jagt: '#D1C6BC'
+    Kŕdeľ šťas: '#8FD3E4'
+    Ma la volp: '#FCC700'
+    Pa’s wijze: '#ACE1C4'
+    Pchnąć w t: '#ACE1C4'
+    Pijamalı h: '#FEC0A1'
+    Portez ce: '#EFA1AA'
+    Příliš žlu: '#FF7F44'
+    Quizdeltag: '#454E7C'
+    Sarkanās j: '#454E7C'
+    Saya lihat: '#E04355'
+    See väike: '#A1A6BD'
+    V kožuščku: '#E04355'
+    Viekas ket: '#FDE380'
+    Voix ambig: '#666666'
+    Zebras cao: '#D3B3DA'
+    Zwölf Boxk: '#B2B2B2'
+    Árvíztűrő: '#B2B2B2'
+    Češće ceđe: '#FCC700'
+    Θέλει αρετ: '#D3B3DA'
+    Ο καλύμνιο: '#8FD3E4'
+    Под южно д: '#1FA8C9'
+    Съешь ещё: '#3CCCCB'
+    Чешће цeђе: '#D1C6BC'
+    דג סקרן שט: '#D1C6BC'
+    ئاۋۇ بىر ج: '#5AC189'
+    زۆھرەگۈل ئ: '#A868B7'
+    เป็นมนุษย์: '#FDE380'
+    いろはにほへと ちり: '#A868B7'
+    中国智造，慧及全球: '#FEC0A1'
+    微風迎客，軟語伴茶: '#9EE5E5'
+    視野無限廣，窗外有藍: '#5AC189'
+    다람쥐 헌 쳇바퀴에: '#3CCCCB'
   native_filter_configuration: []
   refresh_frequency: 0
   shared_label_colors: []
@@ -46,38 +87,38 @@ position:
     children: []
     id: CHART-S1WYNz4AVX
     meta:
-      chartId: 10
+      chartId: 131
       height: 69
       sliceName: Parallel Coordinates
-      uuid: 9fd9ed3b-52b2-4c5f-b1e5-cad375af286d
+      uuid: 48bf196c-f5fe-4e6c-b8ed-166e36b6648b
       width: 4
     parents:
     - ROOT_ID
     - GRID_ID
     - ROW-SytNzNA4X
     type: CHART
-  CHART-explore-122-1:
+  CHART-explore-160-1:
     children: []
-    id: CHART-explore-122-1
+    id: CHART-explore-160-1
     meta:
-      chartId: 122
+      chartId: 160
       height: 69
       sliceName: Unicode Cloud
-      uuid: 19907ede-27ed-4a9e-b0ae-3b3d2db40b1d
+      uuid: ed3032d8-7961-4576-8fc4-2a61639a38bf
       width: 4
     parents:
     - ROOT_ID
     - GRID_ID
-    - ROW-GhyWm6Q7gqfzBCuxsiKGr
+    - ROW-jcftwdQAVlnpQ5SkYkA2K
     type: CHART
   CHART-rkgF4G4A4X:
     children: []
     id: CHART-rkgF4G4A4X
     meta:
-      chartId: 31
+      chartId: 152
       height: 69
       sliceName: Birth in France by department in 2016
-      uuid: b1286583-f6cb-4956-ba3a-a3a7fbe8d47e
+      uuid: fe23db78-c168-4ce2-86b0-38d82bb37d88
       width: 4
     parents:
     - ROOT_ID
@@ -106,7 +147,7 @@ position:
     children:
     - CHART-rkgF4G4A4X
     - CHART-S1WYNz4AVX
-    - CHART-explore-122-1
+    - CHART-explore-160-1
     id: ROW-SytNzNA4X
     meta:
       background: BACKGROUND_TRANSPARENT
@@ -116,5 +157,5 @@ position:
     type: ROW
 published: false
 slug: misc_charts
-uuid: 35b68b8a-d195-4567-a30d-c4251d3246e2
+uuid: b388a396-cbca-4299-a443-3e41e870e2c2
 version: 1.0.0

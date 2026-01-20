@@ -21,7 +21,7 @@ columns:
 - advanced_data_type: null
   column_name: zipcode
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -33,7 +33,7 @@ columns:
 - advanced_data_type: null
   column_name: population
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -45,7 +45,7 @@ columns:
 - advanced_data_type: null
   column_name: area
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -57,7 +57,7 @@ columns:
 - advanced_data_type: null
   column_name: contour
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -92,5 +92,5 @@ schema: null
 sql: null
 table_name: sf_population_polygons
 template_params: null
-uuid: ff186536-fcde-4bc4-bec3-8475367677cb
+uuid: c8f4035a-0771-4f93-b204-9b9581c555ec
 version: 1.0.0

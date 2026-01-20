@@ -22,19 +22,7 @@ description: null
 metadata:
   chart_configuration: {}
   color_scheme: supersetAndPresetColors
-  color_scheme_domain:
-  - '#004960'
-  - '#2893B3'
-  - '#20A7C9'
-  - '#5CC0DA'
-  - '#7DCDE1'
-  - '#A9D3E1'
-  - '#C6ECE1'
-  - '#AAE2D2'
-  - '#71CFB4'
-  - '#2FC096'
-  - '#178F7A'
-  - '#067162'
+  color_scheme_domain: []
   cross_filters_enabled: true
   default_filters: '{}'
   expanded_slices: {}
@@ -43,21 +31,7 @@ metadata:
   map_label_colors: {}
   native_filter_configuration: []
   refresh_frequency: 0
-  shared_label_colors:
-  - '2003'
-  - '2004'
-  - '2005'
-  - Classic Cars
-  - Large
-  - Medium
-  - Motorcycles
-  - Planes
-  - Ships
-  - Small
-  - Trains
-  - Trucks and Buses
-  - Vintage Cars
-  - count
+  shared_label_colors: []
   timed_refresh_immune_slices: []
 position:
   CHART-2Z41H9ulKK:

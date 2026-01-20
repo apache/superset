@@ -38,70 +38,70 @@ position:
     children: []
     id: CHART-201f7715
     meta:
-      chartId: 34
+      chartId: 155
       height: 50
       sliceName: Deck.gl Hexagons
-      uuid: a4b93a46-4c28-4fe8-9e0c-fb0c6157acac
+      uuid: 7487e265-39d8-4ccd-b8f4-51f8b32ce073
       width: 6
     type: CHART
   CHART-2673431d:
     children: []
     id: CHART-2673431d
     meta:
-      chartId: 36
+      chartId: 157
       height: 50
       sliceName: Deck.gl Polygons
-      uuid: 498c3651-dfe8-49e4-8f2c-6a6114b37af5
+      uuid: 1964e7e3-6836-42f5-9218-026fd194d6c2
       width: 6
     type: CHART
   CHART-2b87513c:
     children: []
     id: CHART-2b87513c
     meta:
-      chartId: 38
+      chartId: 159
       height: 50
       sliceName: Deck.gl Path
-      uuid: 631b9f42-cb73-4368-9197-9a65e4d90c8c
+      uuid: e871563b-6b80-4629-b606-ab9054da1fbf
       width: 6
     type: CHART
   CHART-2ee7fa5e:
     children: []
     id: CHART-2ee7fa5e
     meta:
-      chartId: 33
+      chartId: 154
       height: 50
       sliceName: Deck.gl Screen grid
-      uuid: 76d8bcca-c27e-440e-9601-337c86642709
+      uuid: f3adb73f-1c57-4a0c-86fb-8b1f81cfc427
       width: 6
     type: CHART
   CHART-3afd9d70:
     children: []
     id: CHART-3afd9d70
     meta:
-      chartId: 32
+      chartId: 153
       height: 50
       sliceName: Deck.gl Scatterplot
-      uuid: 567412de-5bb2-43e2-b79a-9c03658106a0
+      uuid: 36706f55-dec0-46d8-9dab-50842690d8d8
       width: 6
     type: CHART
   CHART-85265a60:
     children: []
     id: CHART-85265a60
     meta:
-      chartId: 37
+      chartId: 158
       height: 50
       sliceName: Deck.gl Arcs
-      uuid: f10e6064-9b20-45f2-9411-97aac5a53e59
+      uuid: 8663e6d2-5589-49f6-889a-335e8dc15119
       width: 6
     type: CHART
   CHART-d02f6c40:
     children: []
     id: CHART-d02f6c40
     meta:
-      chartId: 35
+      chartId: 156
       height: 50
       sliceName: Deck.gl Grid
-      uuid: b3cf1dbd-2b70-4db6-8a71-ae973cfadc39
+      uuid: 5a42df97-80a7-49ee-8985-fcb7fc0bf281
       width: 6
     type: CHART
   DASHBOARD_VERSION_KEY: v2
@@ -156,5 +156,5 @@ position:
     type: ROW
 published: true
 slug: deck
-uuid: 2fae560d-de94-4929-a6b5-da038ac0140e
+uuid: aec4bc9e-0502-40b6-a189-850cd630410d
 version: 1.0.0

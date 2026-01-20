@@ -19,6 +19,31 @@ cache_timeout: null
 catalog: null
 columns:
 - advanced_data_type: null
+  column_name: willing_to_relocate
+  description: null
+  expression: "CASE \nWHEN job_relocate = 0 THEN 'No: Not Willing to' \nWHEN job_relocate\
+    \ = 1 THEN 'Yes: Willing To'\nELSE 'No Answer'\nEND"
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: Willing To Relocate
+- advanced_data_type: null
+  column_name: age
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: BIGINT
+  verbose_name: null
+- advanced_data_type: null
   column_name: highest_degree_earned
   description: Highest Degree Earned
   expression: "CASE \n  WHEN school_degree = 'no high school (secondary school)' THEN\
@@ -36,7 +61,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: STRING
@@ -51,7 +76,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: null
@@ -65,24 +90,11 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
-  is_dttm: false
+  is_active: null
+  is_dttm: null
   python_date_format: null
   type: STRING
   verbose_name: Ethnic Minority
-- advanced_data_type: null
-  column_name: willing_to_relocate
-  description: null
-  expression: "CASE \nWHEN job_relocate = 0 THEN 'No: Not Willing to' \nWHEN job_relocate\
-    \ = 1 THEN 'Yes: Willing To'\nELSE 'No Answer'\nEND"
-  extra: null
-  filterable: true
-  groupby: true
-  is_active: true
-  is_dttm: false
-  python_date_format: null
-  type: STRING
-  verbose_name: Willing To Relocate
 - advanced_data_type: null
   column_name: developer_type
   description: null
@@ -91,7 +103,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: STRING
@@ -104,7 +116,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: null
@@ -117,7 +129,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: STRING
@@ -129,7 +141,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -141,7 +153,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -153,7 +165,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -165,7 +177,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -177,7 +189,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -189,7 +201,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -201,7 +213,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -213,7 +225,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -225,7 +237,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -237,7 +249,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -249,7 +261,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -261,7 +273,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -273,7 +285,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -285,7 +297,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -297,7 +309,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -309,7 +321,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -321,7 +333,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -333,7 +345,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -345,7 +357,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -357,7 +369,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -369,7 +381,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -381,7 +393,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -393,7 +405,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -405,7 +417,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -417,7 +429,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -429,7 +441,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -441,7 +453,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -453,7 +465,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -465,7 +477,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -477,7 +489,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -489,7 +501,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -501,7 +513,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -513,7 +525,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -525,7 +537,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -537,7 +549,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -549,7 +561,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -561,7 +573,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -573,7 +585,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -585,7 +597,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -597,7 +609,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -609,7 +621,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -621,7 +633,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -633,7 +645,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -645,7 +657,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -657,7 +669,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -669,7 +681,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -681,7 +693,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -693,7 +705,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -705,7 +717,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -717,7 +729,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -729,7 +741,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -741,7 +753,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -753,7 +765,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -765,7 +777,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -777,7 +789,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -789,7 +801,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -801,7 +813,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -813,7 +825,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -825,7 +837,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -837,7 +849,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -849,7 +861,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -861,7 +873,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -873,7 +885,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -885,7 +897,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -897,7 +909,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -909,7 +921,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -921,7 +933,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -933,7 +945,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -945,7 +957,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -957,7 +969,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -969,7 +981,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -981,7 +993,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -993,7 +1005,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1005,7 +1017,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1017,7 +1029,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1029,7 +1041,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1041,7 +1053,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1053,7 +1065,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1065,7 +1077,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1077,7 +1089,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1089,7 +1101,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1101,7 +1113,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1113,7 +1125,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1125,7 +1137,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1137,7 +1149,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1149,7 +1161,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1161,7 +1173,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1173,7 +1185,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1185,7 +1197,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1197,7 +1209,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1209,7 +1221,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1221,7 +1233,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1233,7 +1245,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1245,7 +1257,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1257,7 +1269,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1269,7 +1281,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1281,7 +1293,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1293,7 +1305,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1305,7 +1317,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1317,7 +1329,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1329,7 +1341,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1341,7 +1353,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1353,7 +1365,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1365,7 +1377,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1377,7 +1389,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: DOUBLE PRECISION
@@ -1389,7 +1401,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: true
   python_date_format: null
   type: DATETIME
@@ -1401,7 +1413,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: BIGINT
@@ -1413,19 +1425,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
-  is_dttm: false
-  python_date_format: null
-  type: BIGINT
-  verbose_name: null
-- advanced_data_type: null
-  column_name: age
-  description: null
-  expression: null
-  extra: null
-  filterable: true
-  groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: BIGINT
@@ -1437,7 +1437,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1449,7 +1449,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1461,7 +1461,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1473,7 +1473,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1485,7 +1485,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1497,7 +1497,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1509,7 +1509,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1521,7 +1521,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1533,7 +1533,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1545,7 +1545,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1557,7 +1557,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1569,7 +1569,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1581,7 +1581,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1593,7 +1593,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1605,7 +1605,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1617,7 +1617,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1629,7 +1629,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1641,7 +1641,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1653,7 +1653,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1665,7 +1665,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1677,7 +1677,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1689,7 +1689,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1701,7 +1701,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT
@@ -1713,7 +1713,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: TEXT

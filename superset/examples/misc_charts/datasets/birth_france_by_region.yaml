@@ -21,7 +21,7 @@ columns:
 - advanced_data_type: null
   column_name: DEPT_ID
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -33,7 +33,7 @@ columns:
 - advanced_data_type: null
   column_name: '2003'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -45,7 +45,7 @@ columns:
 - advanced_data_type: null
   column_name: '2004'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -57,7 +57,7 @@ columns:
 - advanced_data_type: null
   column_name: '2005'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -69,7 +69,7 @@ columns:
 - advanced_data_type: null
   column_name: '2006'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -81,7 +81,7 @@ columns:
 - advanced_data_type: null
   column_name: '2007'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -93,7 +93,7 @@ columns:
 - advanced_data_type: null
   column_name: '2008'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -105,7 +105,7 @@ columns:
 - advanced_data_type: null
   column_name: '2009'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -117,7 +117,7 @@ columns:
 - advanced_data_type: null
   column_name: '2010'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -129,7 +129,7 @@ columns:
 - advanced_data_type: null
   column_name: '2011'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -141,7 +141,7 @@ columns:
 - advanced_data_type: null
   column_name: '2012'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -153,7 +153,7 @@ columns:
 - advanced_data_type: null
   column_name: '2013'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -165,7 +165,7 @@ columns:
 - advanced_data_type: null
   column_name: '2014'
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -177,7 +177,7 @@ columns:
 - advanced_data_type: null
   column_name: dttm
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -221,5 +221,5 @@ schema: null
 sql: null
 table_name: birth_france_by_region
 template_params: null
-uuid: 0a42e7e4-2420-4f41-8612-fb041f2f46a9
+uuid: 6ee06b3e-eccf-4c3d-9cc6-2955e4cb9a62
 version: 1.0.0

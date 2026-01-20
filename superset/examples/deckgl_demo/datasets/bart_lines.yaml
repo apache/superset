@@ -21,7 +21,7 @@ columns:
 - advanced_data_type: null
   column_name: name
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -33,7 +33,7 @@ columns:
 - advanced_data_type: null
   column_name: color
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -45,7 +45,7 @@ columns:
 - advanced_data_type: null
   column_name: path_json
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -57,7 +57,7 @@ columns:
 - advanced_data_type: null
   column_name: polyline
   description: null
-  expression: null
+  expression: ''
   extra: null
   filterable: true
   groupby: true
@@ -92,5 +92,5 @@ schema: null
 sql: null
 table_name: bart_lines
 template_params: null
-uuid: d7412f3a-340e-4f60-9a5c-2c3015a5a659
+uuid: 56a8f963-1298-42a5-99d8-24fd90ab012d
 version: 1.0.0

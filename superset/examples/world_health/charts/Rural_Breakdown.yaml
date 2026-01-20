@@ -17,7 +17,7 @@
 cache_timeout: null
 certification_details: null
 certified_by: null
-dataset_uuid: 69935018-2dcf-489a-8147-83e68926c88d
+dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
 description: null
 params:
   columns:
@@ -49,6 +49,6 @@ params:
   viz_type: sunburst_v2
 query_context: null
 slice_name: Rural Breakdown
-uuid: 74681dd9-10e6-439b-bd12-1f85bae2e864
+uuid: cdac97d6-28a2-4cff-a1d0-c8b81dcf29a6
 version: 1.0.0
 viz_type: sunburst_v2

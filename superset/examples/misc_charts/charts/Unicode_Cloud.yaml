@@ -28,7 +28,7 @@ params:
     subject: dttm
   dashboards:
   - 3
-  datasource: 20__table
+  datasource: 21__table
   extra_form_data: {}
   matrixify_charts_per_row: 4
   matrixify_dimension_columns:
@@ -64,6 +64,6 @@ params:
   viz_type: word_cloud
 query_context: null
 slice_name: Unicode Cloud
-uuid: 19907ede-27ed-4a9e-b0ae-3b3d2db40b1d
+uuid: ed3032d8-7961-4576-8fc4-2a61639a38bf
 version: 1.0.0
 viz_type: word_cloud

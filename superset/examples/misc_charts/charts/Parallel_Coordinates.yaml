@@ -17,7 +17,7 @@
 cache_timeout: null
 certification_details: null
 certified_by: null
-dataset_uuid: 69935018-2dcf-489a-8147-83e68926c88d
+dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
 description: null
 params:
   compare_lag: '10'
@@ -42,6 +42,6 @@ params:
   viz_type: para
 query_context: null
 slice_name: Parallel Coordinates
-uuid: 9fd9ed3b-52b2-4c5f-b1e5-cad375af286d
+uuid: 48bf196c-f5fe-4e6c-b8ed-166e36b6648b
 version: 1.0.0
 viz_type: para

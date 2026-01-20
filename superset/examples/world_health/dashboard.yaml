@@ -31,104 +31,97 @@ metadata:
   map_label_colors: {}
   native_filter_configuration: []
   refresh_frequency: 0
-  shared_label_colors:
-  - East Asia & Pacific
-  - Europe & Central Asia
-  - Latin America & Caribbean
-  - Middle East & North Africa
-  - North America
-  - South Asia
-  - Sub-Saharan Africa
+  shared_label_colors: []
   timed_refresh_immune_slices: []
 position:
   CHART-0fd0d252:
     children: []
     id: CHART-0fd0d252
     meta:
-      chartId: 5
+      chartId: 126
       height: 50
       sliceName: Life Expectancy VS Rural %
-      uuid: 12ab0ea8-303f-42ae-b6ac-ad70ebbf3283
+      uuid: c18faec9-ec43-4d36-8b66-4c8b1372020f
       width: 8
     type: CHART
   CHART-17e0f8d8:
     children: []
     id: CHART-17e0f8d8
     meta:
-      chartId: 2
+      chartId: 123
       height: 92
       sliceName: Most Populated Countries
-      uuid: 4794cf92-ae2f-40e0-aab3-ac2b32d25890
+      uuid: ef1d1d69-4da6-4654-adc5-c78586b07c92
       width: 3
     type: CHART
   CHART-2d5b6871:
     children: []
     id: CHART-2d5b6871
     meta:
-      chartId: 4
+      chartId: 125
       height: 52
       sliceName: '% Rural'
-      uuid: 91ca6ea2-4a08-4633-b98f-7b48f448af52
+      uuid: ba225b63-1ae2-4bf5-b995-1d83740365c1
       width: 7
     type: CHART
   CHART-2ee52f30:
     children: []
     id: CHART-2ee52f30
     meta:
-      chartId: 3
+      chartId: 124
       height: 38
       sliceName: Growth Rate
-      uuid: 352d4760-26af-48eb-9741-defbc6d987ca
+      uuid: 6cf742ee-281a-4673-a37c-587d6f29726a
       width: 6
     type: CHART
   CHART-37982887:
     children: []
     id: CHART-37982887
     meta:
-      chartId: 1
+      chartId: 122
       height: 52
       sliceName: World's Population
-      uuid: aeb9746f-10c3-47d2-83f1-4c064cc4e80c
+      uuid: 78422cf9-f149-4491-b552-2ab0e3afffcf
       width: 2
     type: CHART
   CHART-97f4cb48:
     children: []
     id: CHART-97f4cb48
     meta:
-      chartId: 6
+      chartId: 127
       height: 38
       sliceName: Rural Breakdown
-      uuid: 74681dd9-10e6-439b-bd12-1f85bae2e864
+      uuid: cdac97d6-28a2-4cff-a1d0-c8b81dcf29a6
       width: 3
     type: CHART
   CHART-a4808bba:
     children: []
     id: CHART-a4808bba
     meta:
-      chartId: 9
+      chartId: 130
       height: 50
       sliceName: Treemap
-      uuid: 71307f0a-87b6-44f8-8180-30efa01d4cb1
+      uuid: 71a12856-38a5-4978-be65-d0f4fde98aae
       width: 8
     type: CHART
   CHART-b5e05d6f:
     children: []
     id: CHART-b5e05d6f
     meta:
-      chartId: 7
+      chartId: 128
       height: 50
       sliceName: World's Pop Growth
-      uuid: d8731aac-eb57-4b2e-9f22-14476630a282
+      uuid: 6f7e8cc4-c850-4992-85a4-b161a782abc6
       width: 4
     type: CHART
   CHART-e76e9f5f:
     children: []
     id: CHART-e76e9f5f
     meta:
-      chartId: 8
+      chartId: 129
       height: 50
       sliceName: Box plot
-      uuid: c7cff0dc-4e35-4cde-85fa-29bc7a587685
+      uuid: 53c450c6-98bf-435a-8ebb-2a237bccfd09
       width: 4
     type: CHART
   COLUMN-071bbbad:
@@ -208,5 +201,5 @@ position:
     type: ROW
 published: true
 slug: world_health
-uuid: 9d2aa93e-f8ba-4ccd-a9c2-45aa2f2e3359
+uuid: be064106-05ab-4501-9695-c2f11547bddc
 version: 1.0.0

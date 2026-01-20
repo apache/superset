@@ -35,74 +35,17 @@ metadata:
   map_label_colors: {}
   native_filter_configuration: []
   refresh_frequency: 0
-  shared_label_colors:
-  - Alex
-  - Alexis
-  - Amanda
-  - Andrew
-  - Angel
-  - Anna
-  - Anthony
-  - Ashley
-  - Austin
-  - Brian
-  - Christopher
-  - Cody
-  - Dana
-  - Daniel
-  - David
-  - Dylan
-  - Elizabeth
-  - Emily
-  - Emma
-  - Erica
-  - Ethan
-  - Hunter
-  - Jacob
-  - James
-  - Jamie
-  - Jason
-  - Jennifer
-  - Jessica
-  - John
-  - Joseph
-  - Joshua
-  - Julia
-  - Kelly
-  - Kevin
-  - Kim
-  - Kimberly
-  - Lauren
-  - Leslie
-  - Logan
-  - Madison
-  - Matthew
-  - Melissa
-  - Michael
-  - Michelle
-  - Nicholas
-  - Robert
-  - Ryan
-  - Sarah
-  - Shannon
-  - Shawn
-  - Stephanie
-  - Taylor
-  - Terry
-  - Thomas
-  - Tracy
-  - Tyler
-  - William
+  shared_label_colors: []
   timed_refresh_immune_slices: []
 position:
   CHART-6GdlekVise:
     children: []
     id: CHART-6GdlekVise
     meta:
-      chartId: 19
+      chartId: 140
       height: 50
       sliceName: Top 10 Girl Name Share
-      uuid: 28f36cf3-2ab9-47a4-b324-c3bc084fb0d4
+      uuid: 44c4c16f-216d-44c8-b033-6876b8c51fd2
       width: 5
     parents:
     - ROOT_ID
@@ -113,10 +56,10 @@ position:
     children: []
     id: CHART-6n9jxb30JG
     meta:
-      chartId: 14
+      chartId: 135
       height: 36
       sliceName: Genders by State
-      uuid: 5e24f93a-7b77-412a-b452-9922a0a194b9
+      uuid: b092147d-6068-41b5-a4a4-acc789ce5ebe
       width: 5
     parents:
     - ROOT_ID
@@ -127,10 +70,10 @@ position:
     children: []
     id: CHART-Jj9qh1ol-N
     meta:
-      chartId: 18
+      chartId: 139
       height: 50
       sliceName: Boy Name Cloud
-      uuid: eae9452d-6432-40fa-82b1-9a3944120d9b
+      uuid: d5dfa616-9542-4012-a5bc-9270985f471e
       width: 4
     parents:
     - ROOT_ID
@@ -141,10 +84,10 @@ position:
     children: []
     id: CHART-ODvantb_bF
     meta:
-      chartId: 20
+      chartId: 141
       height: 50
       sliceName: Top 10 Boy Name Share
-      uuid: 4744bf31-75a1-44d7-a620-0ab12b238cec
+      uuid: 26a9bde8-eb06-4de3-91f0-5e04d448403a
       width: 5
     parents:
     - ROOT_ID
@@ -155,10 +98,10 @@ position:
     children: []
     id: CHART-PAXUUqwmX9
     meta:
-      chartId: 12
+      chartId: 133
       height: 34
       sliceName: Genders
-      uuid: 4952e06b-7a81-43e4-a7b8-8ebaf2473bf0
+      uuid: 7460bdcb-4963-4f1e-9b61-4bbf609273c1
       width: 3
     parents:
     - ROOT_ID
@@ -169,10 +112,10 @@ position:
     children: []
     id: CHART-_T6n_K9iQN
     meta:
-      chartId: 13
+      chartId: 134
       height: 36
       sliceName: Trends
-      uuid: ef2b3f33-75c2-4ca9-8329-d540b35a5eab
+      uuid: e7f37c36-35b4-45f5-a323-9c1d1ff69d04
       width: 7
     parents:
     - ROOT_ID
@@ -183,10 +126,10 @@ position:
     children: []
     id: CHART-eNY0tcE_ic
     meta:
-      chartId: 11
+      chartId: 132
       height: 34
       sliceName: Participants
-      uuid: 3817bbd9-bb9c-4310-afa0-249b742da773
+      uuid: a20d8fff-79b1-4419-83bf-3080f93d6908
       width: 3
     parents:
     - ROOT_ID
@@ -197,10 +140,10 @@ position:
     children: []
     id: CHART-g075mMgyYb
     meta:
-      chartId: 15
+      chartId: 136
       height: 50
       sliceName: Girls
-      uuid: f666a9a0-ce92-4df5-a23a-203521ccbf3c
+      uuid: 13be7d94-ead6-465e-97ef-a5d419621c29
       width: 3
     parents:
     - ROOT_ID
@@ -211,10 +154,10 @@ position:
     children: []
     id: CHART-n-zGGE6S1y
     meta:
-      chartId: 16
+      chartId: 137
       height: 50
       sliceName: Girl Name Cloud
-      uuid: 40ae6934-5ddb-420c-a0da-aeacccb19130
+      uuid: 19eb5db6-5ec5-4f18-b3c8-b66a035e430d
       width: 4
     parents:
     - ROOT_ID
@@ -225,10 +168,10 @@ position:
     children: []
     id: CHART-vJIPjmcbD3
     meta:
-      chartId: 17
+      chartId: 138
       height: 50
       sliceName: Boys
-      uuid: 4c7484f2-3c8a-4328-ad91-55f6366035bf
+      uuid: 2a58a195-f5eb-4a08-a061-cbe49168eb24
       width: 3
     parents:
     - ROOT_ID
@@ -318,5 +261,5 @@ position:
     type: ROW
 published: true
 slug: births
-uuid: adbfe7cb-f566-4d6d-98c5-8896ca961018
+uuid: 02543e07-662c-46be-bb04-fe5afbe1a86c
 version: 1.0.0

@@ -83,8 +83,7 @@ metadata:
   map_label_colors: {}
   native_filter_configuration: []
   refresh_frequency: 0
-  shared_label_colors:
-  - count
+  shared_label_colors: []
   timed_refresh_immune_slices: []
 position:
   CHART-7mKdnU7OUJ:

@@ -19,25 +19,13 @@ cache_timeout: null
 catalog: null
 columns:
 - advanced_data_type: null
-  column_name: name
-  description: null
-  expression: null
-  extra: null
-  filterable: true
-  groupby: true
-  is_active: true
-  is_dttm: false
-  python_date_format: null
-  type: STRING
-  verbose_name: null
-- advanced_data_type: null
   column_name: year
   description: null
   expression: null
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: true
   python_date_format: '%Y'
   type: BIGINT
@@ -49,7 +37,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: FLOAT64
@@ -61,7 +49,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: FLOAT64
@@ -73,7 +61,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: FLOAT64
@@ -85,7 +73,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: FLOAT64
@@ -97,7 +85,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: FLOAT64
@@ -109,7 +97,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: BIGINT
@@ -121,7 +109,19 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: null
+- advanced_data_type: null
+  column_name: name
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: STRING
@@ -133,7 +133,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: STRING
@@ -145,7 +145,7 @@ columns:
   extra: null
   filterable: true
   groupby: true
-  is_active: true
+  is_active: null
   is_dttm: false
   python_date_format: null
   type: STRING

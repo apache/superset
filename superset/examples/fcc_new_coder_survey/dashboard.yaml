@@ -22,27 +22,7 @@ description: null
 metadata:
   chart_configuration: {}
   color_scheme: supersetColors
-  color_scheme_domain:
-  - '#1FA8C9'
-  - '#454E7C'
-  - '#5AC189'
-  - '#FF7F44'
-  - '#666666'
-  - '#E04355'
-  - '#FCC700'
-  - '#A868B7'
-  - '#3CCCCB'
-  - '#A38F79'
-  - '#8FD3E4'
-  - '#A1A6BD'
-  - '#ACE1C4'
-  - '#FEC0A1'
-  - '#B2B2B2'
-  - '#EFA1AA'
-  - '#FDE380'
-  - '#D3B3DA'
-  - '#9EE5E5'
-  - '#D1C6BC'
+  color_scheme_domain: []
   cross_filters_enabled: false
   default_filters: '{}'
   expanded_slices: {}
@@ -89,13 +69,7 @@ metadata:
   map_label_colors: {}
   native_filter_configuration: []
   refresh_frequency: 0
-  shared_label_colors:
-  - Female
-  - Male
-  - No Answer
-  - No, not an ethnic minority
-  - Prefer not to say
-  - Yes, an ethnic minority
+  shared_label_colors: []
   timed_refresh_immune_slices: []
 position:
   CHART--0GPGmD-pO:
