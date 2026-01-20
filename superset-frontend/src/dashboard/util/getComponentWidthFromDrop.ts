@@ -16,25 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ComponentType, DashboardLayout, LayoutItem } from '../types';
 import { NEW_COMPONENTS_SOURCE_ID } from './constants';
 import findParentId from './findParentId';
 import getDetailedComponentWidth from './getDetailedComponentWidth';
 import newComponentFactory from './newComponentFactory';
 
+type DropLocation = {
+  id: string;
+  index: number;
+  type?: ComponentType;
+};
+
+type DropResult = {
+  source: DropLocation;
+  destination: DropLocation;
+  dragging: {
+    id: string;
+    type: ComponentType;
+  };
+};
+
 export default function getComponentWidthFromDrop({
   dropResult,
   layout: components,
-}) {
+}: {
+  dropResult: DropResult;
+  layout: DashboardLayout;
+}): number | undefined {
   const { source, destination, dragging } = dropResult;
 
   const isNewComponent = source.id === NEW_COMPONENTS_SOURCE_ID;
-  const component = isNewComponent
+  const component: LayoutItem | undefined = isNewComponent
     ? newComponentFactory(dragging.type)
-    : components[dragging.id] || {};
+    : components[dragging.id];
 
-  // moving a component within the same container shouldn't change its width
+  if (!component) {
+    return undefined;
+  }
+
   if (source.id === destination.id) {
-    return component.meta.width;
+    return component.meta?.width;
   }
 
   const { width: draggingWidth, minimumWidth: minDraggingWidth } =
@@ -49,19 +71,24 @@ export default function getComponentWidthFromDrop({
       components,
     });
 
-  let destinationCapacity = Number(destinationWidth - draggingOccupiedWidth);
+  let destinationCapacity = Number(
+    (destinationWidth ?? 0) - (draggingOccupiedWidth ?? 0),
+  );
 
   if (Number.isNaN(destinationCapacity)) {
+    const parentId = findParentId({
+      childId: destination.id,
+      layout: components,
+    });
     const { width: grandparentWidth, occupiedWidth: grandparentOccupiedWidth } =
       getDetailedComponentWidth({
-        id: findParentId({
-          childId: destination.id,
-          layout: components,
-        }),
+        id: parentId ?? undefined,
         components,
       });
 
-    destinationCapacity = Number(grandparentWidth - grandparentOccupiedWidth);
+    destinationCapacity = Number(
+      (grandparentWidth ?? 0) - (grandparentOccupiedWidth ?? 0),
+    );
   }
 
   if (
@@ -70,10 +97,10 @@ export default function getComponentWidthFromDrop({
   ) {
     return draggingWidth;
   }
-  if (destinationCapacity >= draggingWidth) {
+  if (destinationCapacity >= (draggingWidth ?? 0)) {
     return draggingWidth;
   }
-  if (destinationCapacity >= minDraggingWidth) {
+  if (destinationCapacity >= (minDraggingWidth ?? 0)) {
     return destinationCapacity;
   }
 

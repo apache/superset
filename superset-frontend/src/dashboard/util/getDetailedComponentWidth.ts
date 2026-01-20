@@ -25,8 +25,21 @@ import {
   CHART_TYPE,
   DYNAMIC_TYPE,
 } from './componentTypes';
+import { DashboardLayout, LayoutItem } from '../types';
 
-function getTotalChildWidth({ id, components }) {
+interface ComponentWidthInfo {
+  width?: number;
+  occupiedWidth?: number;
+  minimumWidth?: number;
+}
+
+function getTotalChildWidth({
+  id,
+  components,
+}: {
+  id: string;
+  components: DashboardLayout;
+}): number {
   const component = components[id];
   if (!component) return 0;
 
@@ -45,14 +58,18 @@ export default function getDetailedComponentWidth({
   id,
   component: passedComponent,
   components = {},
-}) {
-  const result = {
+}: {
+  id?: string;
+  component?: LayoutItem;
+  components?: DashboardLayout;
+}): ComponentWidthInfo {
+  const result: ComponentWidthInfo = {
     width: undefined,
     occupiedWidth: undefined,
     minimumWidth: undefined,
   };
 
-  const component = passedComponent || components[id];
+  const component = passedComponent || (id ? components[id] : undefined);
   if (!component) return result;
 
   // note these remain as undefined if the component has no defined width
@@ -61,12 +78,13 @@ export default function getDetailedComponentWidth({
 
   if (component.type === ROW_TYPE) {
     // not all rows have width 12, e
+    const parentId = findParentId({
+      childId: component.id,
+      layout: components,
+    });
     result.width =
       getDetailedComponentWidth({
-        id: findParentId({
-          childId: component.id,
-          layout: components,
-        }),
+        id: parentId ?? undefined,
         components,
       }).width || GRID_COLUMN_COUNT;
     result.occupiedWidth = getTotalChildWidth({ id: component.id, components });
@@ -77,9 +95,9 @@ export default function getDetailedComponentWidth({
     result.occupiedWidth = 0;
     (component.children || []).forEach(childId => {
       // rows don't have widths, so find the width of its children
-      if (components[childId].type === ROW_TYPE) {
+      if (components[childId]?.type === ROW_TYPE) {
         result.minimumWidth = Math.max(
-          result.minimumWidth,
+          result.minimumWidth ?? GRID_MIN_COLUMN_COUNT,
           getTotalChildWidth({ id: childId, components }),
         );
       }
