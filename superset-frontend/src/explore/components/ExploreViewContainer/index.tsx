@@ -1212,4 +1212,8 @@ function mapDispatchToProps(dispatch: Dispatch): DispatchProps {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(withToasts(memo(ExploreViewContainer)) as ComponentType<Record<string, never>>);
+)(
+  withToasts(memo(ExploreViewContainer)) as ComponentType<
+    Record<string, never>
+  >,
+);
