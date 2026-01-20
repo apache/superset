@@ -26,7 +26,7 @@ import { Modal, Input } from '../core';
 export class ImportDatasetModal extends Modal {
   private static readonly SELECTORS = {
     FILE_INPUT: '[data-test="model-file-input"]',
-    OVERWRITE_INPUT: 'input[placeholder*="OVERWRITE"]',
+    OVERWRITE_INPUT: '[data-test="overwrite-modal-input"]',
   };
 
   /**
