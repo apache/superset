@@ -112,6 +112,9 @@ import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
 import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import AceEditorWrapper from '../AceEditorWrapper';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewContribution } from 'src/SqlLab/contributions';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 import KeyboardShortcutButton, {
@@ -907,15 +910,23 @@ const SqlEditor: FC<Props> = ({
             <AutoSizer disableWidth>
               {({ height }) =>
                 isActive && (
-                  <AceEditorWrapper
-                    autocomplete={autocompleteEnabled}
-                    onBlur={onSqlChanged}
-                    onChange={onSqlChanged}
-                    queryEditorId={queryEditor.id}
-                    onCursorPositionChange={handleCursorPositionChange}
-                    height={`${height}px`}
-                    hotkeys={hotkeys}
-                  />
+                  <>
+                    {ExtensionsManager.getInstance().getViewContributions(
+                      ViewContribution.Editor,
+                    )?.length ? (
+                      <ViewListExtension viewId={ViewContribution.Editor} />
+                    ) : (
+                      <AceEditorWrapper
+                        autocomplete={autocompleteEnabled}
+                        onBlur={onSqlChanged}
+                        onChange={onSqlChanged}
+                        queryEditorId={queryEditor.id}
+                        onCursorPositionChange={handleCursorPositionChange}
+                        height={`${height}px`}
+                        hotkeys={hotkeys}
+                      />
+                    )}
+                  </>
                 )
               }
             </AutoSizer>
