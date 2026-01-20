@@ -33,7 +33,6 @@ stages:
         vmImage: ubuntu-latest
       steps:
         - checkout: self
-          clean: true
           fetchDepth: 0
           submodules: true
           persistCredentials: true
