@@ -243,24 +243,25 @@ stages:
                   echo "Creating .env.deploy file..."
                   cat > .env.deploy << EOF
                   SUPERSET_IMAGE=${FULL_IMAGE_NAME}
-                  
+
                   SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
                   SUPERSET_ADMIN_USER=${SUPERSET_ADMIN_USER}
                   SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
                   SUPERSET_PORT=${SUPERSET_PORT}
-                  
+
                   POSTGRES_HOST=${DB_HOST}
                   POSTGRES_PORT=${DB_PORT}
                   POSTGRES_DB=${DB_NAME}
                   POSTGRES_USER=${DB_USER}
                   POSTGRES_PASSWORD=${DB_PASSWORD}
-                  
+
                   REDIS_HOST=redis
                   REDIS_PORT=6379
-                  
+
                   DOCKER_NETWORK=${DOCKER_NETWORK}
+                  DOCKER_INITDB_DIR=${DOCKER_INITDB_DIR}
                   EOF
-                  
+
                   echo "✓ Created .env.deploy file"
                   echo ""
                   echo "Environment variables (non-sensitive):"
@@ -274,6 +275,7 @@ stages:
                   echo "  REDIS_HOST: redis"
                   echo "  REDIS_PORT: 6379"
                   echo "  DOCKER_NETWORK: ${DOCKER_NETWORK}"
+                  echo "  DOCKER_INITDB_DIR: ${DOCKER_INITDB_DIR}"
                   echo ""
                   echo "Content of .env.deploy (with secrets masked):"
                   cat .env.deploy | sed 's/PASSWORD=.*/PASSWORD=***masked***/g' | sed 's/SECRET_KEY=.*/SECRET_KEY=***masked***/g'
@@ -289,6 +291,7 @@ stages:
                   DB_USER: $(DB_USER)
                   DB_PASSWORD: $(DB_PASSWORD)
                   DOCKER_NETWORK: $(DOCKER_NETWORK)
+                  DOCKER_INITDB_DIR: $(DOCKER_INITDB_DIR)
                 displayName: Create .env.deploy
 
               # -------------------------------------
