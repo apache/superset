@@ -24,6 +24,7 @@ import type {
   Filter,
   Filters,
   DataMask,
+  NativeFilterTarget,
 } from '@superset-ui/core';
 
 function makeFilter(
@@ -61,13 +62,13 @@ test('dataMask reducer: preserves other native filters when one is modified (tar
 
   const oldFilters: Filters = {
     'NATIVE_FILTER-1': makeFilter('NATIVE_FILTER-1', {
-      targets: [{ column: { name: 'col_a' } }],
+      targets: [{ column: { name: 'col_a' } }] as [Partial<NativeFilterTarget>],
       defaultDataMask: {
         filterState: { value: undefined },
       } as unknown as DataMask,
     }),
     'NATIVE_FILTER-2': makeFilter('NATIVE_FILTER-2', {
-      targets: [{ column: { name: 'col_b' } }],
+      targets: [{ column: { name: 'col_b' } }] as [Partial<NativeFilterTarget>],
       defaultDataMask: {
         filterState: { value: undefined },
       } as unknown as DataMask,
@@ -81,7 +82,9 @@ test('dataMask reducer: preserves other native filters when one is modified (tar
       deleted: [],
       modified: [
         makeFilter('NATIVE_FILTER-1', {
-          targets: [{ column: { name: 'col_changed' } }], // targets changed
+          targets: [{ column: { name: 'col_changed' } }] as [
+            Partial<NativeFilterTarget>,
+          ], // targets changed
           defaultDataMask: { filterState: { value: undefined } } as DataMask,
         }),
       ],
@@ -110,7 +113,7 @@ test('dataMask reducer: preserves modified filter state when targets unchanged a
 
   const oldFilters: Filters = {
     'NATIVE_FILTER-1': makeFilter('NATIVE_FILTER-1', {
-      targets: [{ column: { name: 'col_a' } }],
+      targets: [{ column: { name: 'col_a' } }] as [Partial<NativeFilterTarget>],
       controlValues: { enableEmptyFilter: true },
       defaultDataMask: { filterState: { value: undefined } } as DataMask,
     }),
@@ -123,7 +126,9 @@ test('dataMask reducer: preserves modified filter state when targets unchanged a
       deleted: [],
       modified: [
         makeFilter('NATIVE_FILTER-1', {
-          targets: [{ column: { name: 'col_a' } }], // targets unchanged
+          targets: [{ column: { name: 'col_a' } }] as [
+            Partial<NativeFilterTarget>,
+          ], // targets unchanged
           controlValues: { enableEmptyFilter: true },
           defaultDataMask: { filterState: { value: undefined } } as DataMask,
         }),
