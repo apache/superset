@@ -133,7 +133,7 @@ def validate_chart_dataset(
             error=None,
         )
 
-    except Exception as e:
+    except (AttributeError, ValueError, RuntimeError) as e:
         logger.warning("Error validating chart dataset %s: %s", datasource_id, e)
         return DatasetValidationResult(
             is_valid=False,
