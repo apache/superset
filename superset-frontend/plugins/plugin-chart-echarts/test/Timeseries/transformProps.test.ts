@@ -34,6 +34,7 @@ import {
   EchartsTimeseriesSeriesType,
   OrientationType,
 } from '../../src/Timeseries/types';
+import { BASE_TIMESTAMP, createTestData } from './helpers';
 
 type YAxisFormatter = (value: number, index: number) => string;
 
@@ -59,10 +60,13 @@ const formData: SqlaFormData = {
 };
 const queriesData = [
   {
-    data: [
-      { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
-      { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
-    ],
+    data: createTestData(
+      [
+        { 'San Francisco': 1, 'New York': 2 },
+        { 'San Francisco': 3, 'New York': 4 },
+      ],
+      { intervalMs: 300000000 },
+    ),
   },
 ];
 const chartPropsConfig = {
@@ -87,15 +91,15 @@ describe('EchartsTimeseries transformProps', () => {
           series: expect.arrayContaining([
             expect.objectContaining({
               data: [
-                [599616000000, 1],
-                [599916000000, 3],
+                [BASE_TIMESTAMP, 1],
+                [BASE_TIMESTAMP + 300000000, 3],
               ],
               name: 'San Francisco',
             }),
             expect.objectContaining({
               data: [
-                [599616000000, 2],
-                [599916000000, 4],
+                [BASE_TIMESTAMP, 2],
+                [BASE_TIMESTAMP + 300000000, 4],
               ],
               name: 'New York',
             }),
@@ -124,15 +128,15 @@ describe('EchartsTimeseries transformProps', () => {
           series: expect.arrayContaining([
             expect.objectContaining({
               data: [
-                [1, 599616000000],
-                [3, 599916000000],
+                [1, BASE_TIMESTAMP],
+                [3, BASE_TIMESTAMP + 300000000],
               ],
               name: 'San Francisco',
             }),
             expect.objectContaining({
               data: [
-                [2, 599616000000],
-                [4, 599916000000],
+                [2, BASE_TIMESTAMP],
+                [4, BASE_TIMESTAMP + 300000000],
               ],
               name: 'New York',
             }),
@@ -169,22 +173,22 @@ describe('EchartsTimeseries transformProps', () => {
           series: expect.arrayContaining([
             expect.objectContaining({
               data: [
-                [599616000000, 1],
-                [599916000000, 3],
+                [BASE_TIMESTAMP, 1],
+                [BASE_TIMESTAMP + 300000000, 3],
               ],
               name: 'San Francisco',
             }),
             expect.objectContaining({
               data: [
-                [599616000000, 2],
-                [599916000000, 4],
+                [BASE_TIMESTAMP, 2],
+                [BASE_TIMESTAMP + 300000000, 4],
               ],
               name: 'New York',
             }),
             expect.objectContaining({
               data: [
-                [599616000000, 599616000001],
-                [599916000000, 599916000001],
+                [BASE_TIMESTAMP, BASE_TIMESTAMP + 1],
+                [BASE_TIMESTAMP + 300000000, BASE_TIMESTAMP + 300000000 + 1],
               ],
               name: 'My Formula',
             }),
@@ -307,64 +311,60 @@ describe('EchartsTimeseries transformProps', () => {
   it('Should add a baseline series for stream graph', () => {
     const streamQueriesData = [
       {
-        data: [
-          {
-            'San Francisco': 120,
-            'New York': 220,
-            Boston: 150,
-            Miami: 270,
-            Denver: 800,
-            __timestamp: 599616000000,
-          },
-          {
-            'San Francisco': 150,
-            'New York': 190,
-            Boston: 240,
-            Miami: 350,
-            Denver: 700,
-            __timestamp: 599616000001,
-          },
-          {
-            'San Francisco': 130,
-            'New York': 300,
-            Boston: 250,
-            Miami: 410,
-            Denver: 650,
-            __timestamp: 599616000002,
-          },
-          {
-            'San Francisco': 90,
-            'New York': 340,
-            Boston: 300,
-            Miami: 480,
-            Denver: 590,
-            __timestamp: 599616000003,
-          },
-          {
-            'San Francisco': 260,
-            'New York': 200,
-            Boston: 420,
-            Miami: 490,
-            Denver: 760,
-            __timestamp: 599616000004,
-          },
-          {
-            'San Francisco': 250,
-            'New York': 250,
-            Boston: 380,
-            Miami: 360,
-            Denver: 400,
-            __timestamp: 599616000005,
-          },
-          {
-            'San Francisco': 160,
-            'New York': 210,
-            Boston: 330,
-            Miami: 440,
-            Denver: 580,
-            __timestamp: 599616000006,
-          },
-        ],
+        data: createTestData(
+          [
+            {
+              'San Francisco': 120,
+              'New York': 220,
+              Boston: 150,
+              Miami: 270,
+              Denver: 800,
+            },
+            {
+              'San Francisco': 150,
+              'New York': 190,
+              Boston: 240,
+              Miami: 350,
+              Denver: 700,
+            },
+            {
+              'San Francisco': 130,
+              'New York': 300,
+              Boston: 250,
+              Miami: 410,
+              Denver: 650,
+            },
+            {
+              'San Francisco': 90,
+              'New York': 340,
+              Boston: 300,
+              Miami: 480,
+              Denver: 590,
+            },
+            {
+              'San Francisco': 260,
+              'New York': 200,
+              Boston: 420,
+              Miami: 490,
+              Denver: 760,
+            },
+            {
+              'San Francisco': 250,
+              'New York': 250,
+              Boston: 380,
+              Miami: 360,
+              Denver: 400,
+            },
+            {
+              'San Francisco': 160,
+              'New York': 210,
+              Boston: 330,
+              Miami: 440,
+              Denver: 580,
+            },
+          ],
+          { intervalMs: 1 },
+        ),
       },
     ];
     const streamFormData = { ...formData, stack: 'Stream' };
@@ -399,13 +399,13 @@ describe('EchartsTimeseries transformProps', () => {
       },
       type: 'line',
       data: [
-        [599616000000, -415.7692307692308],
-        [599616000001, -403.6219915054271],
-        [599616000002, -476.32314093071443],
-        [599616000003, -514.2120298196033],
-        [599616000004, -485.7378514158475],
-        [599616000005, -419.6402904402378],
-        [599616000006, -442.9833136960517],
+        [BASE_TIMESTAMP, -415.7692307692308],
+        [BASE_TIMESTAMP + 1, -403.6219915054271],
+        [BASE_TIMESTAMP + 2, -476.32314093071443],
+        [BASE_TIMESTAMP + 3, -514.2120298196033],
+        [BASE_TIMESTAMP + 4, -485.7378514158475],
+        [BASE_TIMESTAMP + 5, -419.6402904402378],
+        [BASE_TIMESTAMP + 6, -442.9833136960517],
       ],
     });
   });
@@ -438,32 +438,31 @@ describe('Does transformProps transform series correctly', () => {
   };
   const queriesData = [
     {
-      data: [
-        {
-          'San Francisco': 1,
-          'New York': 2,
-          Boston: 1,
-          __timestamp: 599616000000,
-        },
-        {
-          'San Francisco': 3,
-          'New York': 4,
-          Boston: 1,
-          __timestamp: 599916000000,
-        },
-        {
-          'San Francisco': 5,
-          'New York': 8,
-          Boston: 6,
-          __timestamp: 600216000000,
-        },
-        {
-          'San Francisco': 2,
-          'New York': 7,
-          Boston: 2,
-          __timestamp: 600516000000,
-        },
-      ],
+      data: createTestData(
+        [
+          {
+            'San Francisco': 1,
+            'New York': 2,
+            Boston: 1,
+          },
+          {
+            'San Francisco': 3,
+            'New York': 4,
+            Boston: 1,
+          },
+          {
+            'San Francisco': 5,
+            'New York': 8,
+            Boston: 6,
+          },
+          {
+            'San Francisco': 2,
+            'New York': 7,
+            Boston: 2,
+          },
+        ],
+        { intervalMs: 300000000 },
+      ),
     },
   ];
   const chartPropsConfig = {
@@ -647,36 +646,35 @@ describe('Does transformProps transform series correctly', () => {
 describe('legend sorting', () => {
   const legendSortData = [
     {
-      data: [
-        {
-          Milton: 40,
-          'San Francisco': 1,
-          'New York': 2,
-          Boston: 1,
-          __timestamp: 599616000000,
-        },
-        {
-          Milton: 20,
-          'San Francisco': 3,
-          'New York': 4,
-          Boston: 1,
-          __timestamp: 599916000000,
-        },
-        {
-          Milton: 60,
-          'San Francisco': 5,
-          'New York': 8,
-          Boston: 6,
-          __timestamp: 600216000000,
-        },
-        {
-          Milton: 10,
-          'San Francisco': 2,
-          'New York': 7,
-          Boston: 2,
-          __timestamp: 600516000000,
-        },
-      ],
+      data: createTestData(
+        [
+          {
+            Milton: 40,
+            'San Francisco': 1,
+            'New York': 2,
+            Boston: 1,
+          },
+          {
+            Milton: 20,
+            'San Francisco': 3,
+            'New York': 4,
+            Boston: 1,
+          },
+          {
+            Milton: 60,
+            'San Francisco': 5,
+            'New York': 8,
+            Boston: 6,
+          },
+          {
+            Milton: 10,
+            'San Francisco': 2,
+            'New York': 7,
+            Boston: 2,
+          },
+        ],
+        { intervalMs: 300000000 },
+      ),
     },
   ];
 
@@ -876,11 +874,10 @@ const baseFormDataHorizontalBar: SqlaFormData = {
 test('should set yAxis max to actual data max for horizontal bar charts', () => {
   const queriesData = [
     {
-      data: [
-        { 'Series A': 15000, __timestamp: 599616000000 },
-        { 'Series A': 20000, __timestamp: 599916000000 },
-        { 'Series A': 18000, __timestamp: 600216000000 },
-      ],
+      data: createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
     },
   ];
 
@@ -904,11 +901,10 @@ test('should set yAxis max to actual data max for horizontal bar charts', () => 
 test('should set yAxis min and max for diverging horizontal bar charts', () => {
   const queriesData = [
     {
-      data: [
-        { 'Series A': -21000, __timestamp: 599616000000 },
-        { 'Series A': 20000, __timestamp: 599916000000 },
-        { 'Series A': 18000, __timestamp: 600216000000 },
-      ],
+      data: createTestData(
+        [{ 'Series A': -21000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
     },
   ];
 
@@ -933,11 +929,10 @@ test('should set yAxis min and max for diverging horizontal bar charts', () => {
 test('should not override explicit yAxisBounds for horizontal bar charts', () => {
   const queriesData = [
     {
-      data: [
-        { 'Series A': 15000, __timestamp: 599616000000 },
-        { 'Series A': 20000, __timestamp: 599916000000 },
-        { 'Series A': 18000, __timestamp: 600216000000 },
-      ],
+      data: createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
     },
   ];
 
@@ -965,11 +960,10 @@ test('should not override explicit yAxisBounds for horizontal bar charts', () =>
 test('should not apply axis bounds calculation when truncateYAxis is false for horizontal bar charts', () => {
   const queriesData = [
     {
-      data: [
-        { 'Series A': 15000, __timestamp: 599616000000 },
-        { 'Series A': 20000, __timestamp: 599916000000 },
-        { 'Series A': 18000, __timestamp: 600216000000 },
-      ],
+      data: createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
     },
   ];
 
@@ -997,11 +991,10 @@ test('should not apply axis bounds calculation when truncateYAxis is false for h
 test('should not apply axis bounds calculation when seriesType is not Bar for horizontal charts', () => {
   const queriesData = [
     {
-      data: [
-        { 'Series A': 15000, __timestamp: 599616000000 },
-        { 'Series A': 20000, __timestamp: 599916000000 },
-        { 'Series A': 18000, __timestamp: 600216000000 },
-      ],
+      data: createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
     },
   ];
 
