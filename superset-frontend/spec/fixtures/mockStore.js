@@ -168,3 +168,56 @@ export const stateWithoutNativeFilters = {
   dataMask: {},
   nativeFilters: { filters: {} },
 };
+
+export const stateWithNativeFiltersButNoValues = {
+  ...mockState,
+  nativeFilters,
+  // dataMask with filters but no values (null/undefined)
+  dataMask: {
+    'NATIVE_FILTER-e7Q8zKixx': {
+      id: 'NATIVE_FILTER-e7Q8zKixx',
+      ownState: {},
+      extraFormData: {},
+      filterState: {
+        value: null,
+      },
+    },
+    'NATIVE_FILTER-x9QPw0so1': {
+      id: 'NATIVE_FILTER-x9QPw0so1',
+      ownState: {},
+      extraFormData: {},
+      filterState: {},
+    },
+  },
+  charts: {
+    ...mockState.charts,
+    [sliceIdWithAppliedFilter]: {
+      ...mockState.charts[sliceId],
+      queryResponse: {
+        status: 'success',
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    },
+    [sliceIdWithRejectedFilter]: {
+      ...mockState.charts[sliceId],
+      queryResponse: {
+        status: 'success',
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    },
+  },
+  dashboardInfo: {
+    filterBarOrientation: FilterBarOrientation.Vertical,
+    metadata: {
+      chart_configuration: {},
+    },
+  },
+};
+
+export const getMockStoreWithNativeFiltersButNoValues = () =>
+  setupStore({
+    disableDebugger: true,
+    initialState: stateWithNativeFiltersButNoValues,
+  });
