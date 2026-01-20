@@ -32,6 +32,7 @@ import { pick } from 'lodash';
 import {
   Button,
   ButtonGroup,
+  Divider,
   Tooltip,
   Input,
   Label,
@@ -151,7 +152,6 @@ const ReturnedRows = styled.div`
 const ResultSetButtons = styled.div`
   display: grid;
   grid-auto-flow: column;
-  padding-right: ${({ theme }) => 2 * theme.sizeUnit}px;
 `;
 
 const GAP = 8;
@@ -680,29 +680,39 @@ const ResultSet = ({
                 display: flex;
                 align-items: center;
                 gap: ${GAP}px;
+
+                & .ant-divider {
+                  height: ${theme.sizeUnit * 6}px;
+                  margin: 0 ${theme.sizeUnit * 2}px 0 0;
+                }
               `}
             >
               {renderControls()}
+              <Divider type="vertical" />
               {showSql && (
-                <div
-                  css={css`
-                    flex: 1;
-                    min-width: 100px;
-                    overflow: hidden;
+                <>
+                  <div
+                    css={css`
+                      flex: 0 1 auto;
+                      min-width: 0;
+                      overflow: hidden;
+                      margin-right: ${theme.sizeUnit}px;
 
-                    & * {
-                      overflow: hidden !important;
-                      white-space: nowrap !important;
-                      text-overflow: ellipsis !important;
-                    }
+                      & * {
+                        overflow: hidden !important;
+                        white-space: nowrap !important;
+                        text-overflow: ellipsis !important;
+                      }
 
-                    pre {
-                      margin: 0 !important;
-                    }
-                  `}
-                >
-                  {sql}
-                </div>
+                      pre {
+                        margin: 0 !important;
+                      }
+                    `}
+                  >
+                    {sql}
+                  </div>
+                  <Divider type="vertical" />
+                </>
               )}
               {renderRowsReturned()}
               {search && (
