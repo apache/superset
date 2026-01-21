@@ -17,7 +17,7 @@
 """Create tasks and task_subscriber tables for Global Task Framework (GTF)
 
 Revision ID: 4b2a8c9d3e1f
-Revises: f5b5f88d8526
+Revises: 9787190b3d89
 Create Date: 2025-12-18 02:20:00.000000
 
 """
@@ -44,7 +44,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "4b2a8c9d3e1f"
-down_revision = "f5b5f88d8526"
+down_revision = "9787190b3d89"
 
 TASKS_TABLE = "tasks"
 TASK_SUBSCRIBERS_TABLE = "task_subscribers"
