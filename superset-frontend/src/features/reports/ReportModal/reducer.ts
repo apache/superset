@@ -85,11 +85,14 @@ export default function reportsReducer(
     [ADD_REPORT]() {
       const { result, id } = (action as AddReportAction).json;
       const report: ReportObject = { ...result, id } as ReportObject;
-      const reportTypeId = report.dashboard ?? report.chart;
       const creationMethod = report.creation_method as ReportCreationMethod;
-      // this is the id of either the chart or the dashboard associated with the report.
+      // For alerts_reports, use the report id; otherwise use the dashboard/chart id
+      const key =
+        creationMethod === 'alerts_reports'
+          ? report.id
+          : (report.dashboard ?? report.chart);
 
-      if (reportTypeId === undefined) {
+      if (key === undefined) {
         return state;
       }
 
@@ -97,7 +100,7 @@ export default function reportsReducer(
         ...state,
         [creationMethod]: {
           ...state[creationMethod],
-          [reportTypeId]: report,
+          [key]: report,
         },
       };
     },
@@ -108,10 +111,14 @@ export default function reportsReducer(
         ...actionTyped.json.result,
         id: actionTyped.json.id,
       } as ReportObject;
-      const reportTypeId = report.dashboard ?? report.chart;
       const creationMethod = report.creation_method as ReportCreationMethod;
+      // For alerts_reports, use the report id; otherwise use the dashboard/chart id
+      const key =
+        creationMethod === 'alerts_reports'
+          ? report.id
+          : (report.dashboard ?? report.chart);
 
-      if (reportTypeId === undefined) {
+      if (key === undefined) {
         return state;
       }
 
@@ -119,26 +126,28 @@ export default function reportsReducer(
         ...state,
         [creationMethod]: {
           ...state[creationMethod],
-          [reportTypeId]: report,
+          [key]: report,
         },
       };
     },
 
     [DELETE_REPORT]() {
       const { report } = action as DeleteReportAction;
-      const reportTypeId = report.dashboard ?? report.chart;
       const creationMethod = report.creation_method as ReportCreationMethod;
+      // For alerts_reports, use the report id; otherwise use the dashboard/chart id
+      const key =
+        creationMethod === 'alerts_reports'
+          ? report.id
+          : (report.dashboard ?? report.chart);
 
-      if (reportTypeId === undefined) {
+      if (key === undefined) {
         return state;
       }
 
       const methodState = state[creationMethod];
       return {
         ...state,
-        [creationMethod]: methodState
-          ? omit(methodState, reportTypeId)
-          : undefined,
+        [creationMethod]: methodState ? omit(methodState, key) : undefined,
       };
     },
   };
