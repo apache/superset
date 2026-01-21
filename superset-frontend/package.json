@@ -382,6 +382,7 @@
     "core-js": "^3.38.1",
     "d3-color": "^3.1.0",
     "puppeteer": "^22.4.1",
+    "remark-gfm": "^3.0.1",
     "underscore": "^1.13.7",
     "jspdf": "^3.0.2",
     "nwsapi": "^2.2.13",
