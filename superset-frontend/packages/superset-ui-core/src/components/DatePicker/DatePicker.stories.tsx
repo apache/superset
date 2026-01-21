@@ -80,11 +80,17 @@ export const InteractiveDatePicker: any = (args: DatePickerProps) => (
 InteractiveDatePicker.args = {
   ...commonArgs,
   placeholder: 'Placeholder',
-  showToday: true,
+  showNow: true,
   showTime: { format: 'hh:mm a', needConfirm: false },
 };
 
-InteractiveDatePicker.argTypes = interactiveTypes;
+InteractiveDatePicker.argTypes = {
+  ...interactiveTypes,
+  showNow: {
+    description: 'Show "Now" button to select current date and time.',
+    control: 'boolean',
+  },
+};
 
 InteractiveDatePicker.parameters = {
   actions: {
@@ -104,7 +110,6 @@ InteractiveDatePicker.parameters = {
       placement: 'bottomLeft',
       size: 'middle',
       showNow: true,
-      showToday: true,
       placeholder: 'Select date',
       showTime: { format: 'hh:mm a', needConfirm: false },
     },
@@ -113,7 +118,7 @@ InteractiveDatePicker.parameters = {
     <DatePicker
       placeholder="Select date"
       format="YYYY-MM-DD hh:mm a"
-      showToday
+      showNow
       showTime={{ format: 'hh:mm a', needConfirm: false }}
     />
   );
