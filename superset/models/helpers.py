@@ -2119,6 +2119,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ] = None,  # fix(hughhh): Optional[Type[BaseEngineSpec]]
         db_extra: Optional[dict[str, Any]] = None,
     ) -> Optional[FilterValues]:
+        # DSPM: SO-82
         is_list_target = bool(is_list_target)
         if values is None:
             return None
@@ -3025,6 +3026,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
+                # DSPM: SO-82
                 is_list_target = op in (
                     utils.FilterOperator.IN,
                     utils.FilterOperator.NOT_IN,
@@ -3102,6 +3104,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         cond = sqla_col.in_(eq)
                     if op == utils.FilterOperator.NOT_IN:
                         cond = ~cond
+                    # DSPM: SO-82
                     elif op in {
                         utils.FilterOperator.CONTAINS,
                         utils.FilterOperator.NOT_CONTAINS,

@@ -531,6 +531,7 @@ def test_get_view_names_excludes_materialized_views() -> None:
     assert "MATERIALIZED VIEW" not in executed_query
 
 
+# DSPM: SO-82
 def test_handle_array_filter_bigquery() -> None:
     """
     Test handle_array_filter for BigQuery array columns and all supported operators.

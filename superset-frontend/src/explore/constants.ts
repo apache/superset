@@ -45,6 +45,7 @@ export enum Operators {
   IsTrue = 'IS_TRUE',
   IsFalse = 'IS_FALSE',
   TemporalRange = 'TEMPORAL_RANGE',
+  // DSPM: SO-82
   Contains = 'CONTAINS',
   NotContains = 'NOT_CONTAINS',
 }
@@ -91,6 +92,7 @@ export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
     display: t('TEMPORAL_RANGE'),
     operation: 'TEMPORAL_RANGE',
   },
+  // DSPM: SO-82
   [Operators.Contains]: { display: t('Contains'), operation: 'CONTAINS' },
   [Operators.NotContains]: {
     display: t("Doesn't Contain"),

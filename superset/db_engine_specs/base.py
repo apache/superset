@@ -1280,6 +1280,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         else:
             raise ValueError(f"Invalid comparison filter operator: {op}")
 
+    # DSPM: SO-82
     @classmethod
     def handle_array_filter_big_query(
         cls, sqla_col: Any, op: utils.FilterOperator, value: list[Any]
@@ -1346,6 +1347,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         else:
             raise Exception(f"Unsupported array filter operator: {op}")
 
+    # DSPM: SO-82
     @classmethod
     def handle_array_filter(
         cls, sqla_col: Any, op: utils.FilterOperator, value: list[Any]
