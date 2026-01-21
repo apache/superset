@@ -339,6 +339,10 @@ stages:
                   echo "Current working directory: $(pwd)"
                   echo "Pipeline.Workspace: $(Pipeline.Workspace)"
                   echo ""
+                  echo "Changing to deployment directory..."
+                  cd "$(Pipeline.Workspace)/s" || { echo "✗ ERROR: Failed to cd to $(Pipeline.Workspace)/s"; exit 1; }
+                  echo "✓ Changed directory to: $(pwd)"
+                  echo ""
                   echo "Files in current directory:"
                   ls -la
                   echo ""
@@ -452,6 +456,10 @@ stages:
                   echo "Current working directory: $(pwd)"
                   echo "Pipeline.Workspace: $(Pipeline.Workspace)"
                   echo ""
+                  echo "Changing to deployment directory..."
+                  cd "$(Pipeline.Workspace)/s" || { echo "✗ ERROR: Failed to cd to $(Pipeline.Workspace)/s"; exit 1; }
+                  echo "✓ Changed directory to: $(pwd)"
+                  echo ""
                   echo "Checking for .env.deploy file..."
                   if [ -f ".env.deploy" ]; then
                     echo "✓ .env.deploy exists in current directory"
@@ -476,13 +484,13 @@ stages:
                   echo ""
 
                   echo "Deploying with docker-compose..."
-                  docker compose -f docker-compose-deploy.yml --project-name azuredevops --env-file .env.deploy up -d
+                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops --env-file .env.deploy up -d
 
                   echo ""
                   echo "✓ Deployment completed"
                   echo ""
                   echo "Running containers:"
-                  docker compose -f docker-compose-deploy.yml --project-name azuredevops ps
+                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops ps
                   echo ""
                   echo "=== END DEBUG ==="
                 displayName: Deploy Superset
@@ -502,7 +510,7 @@ stages:
 
                   # First check if containers are running
                   echo "Checking container status..."
-                  docker compose -f docker-compose-deploy.yml --project-name azuredevops ps
+                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops ps
                   echo ""
 
                   for i in {1..60}; do
@@ -519,7 +527,7 @@ stages:
                   echo "✗ Superset failed health check after 10 minutes"
                   echo ""
                   echo "Container logs:"
-                  docker compose -f docker-compose-deploy.yml --project-name azuredevops logs --tail=50
+                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops logs --tail=50
                   exit 1
                 env:
                   SUPERSET_PORT: $(SUPERSET_PORT)
