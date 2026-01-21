@@ -120,6 +120,11 @@ class Slice(  # pylint: disable=too-many-public-methods
         remote_side="SqlaTable.id",
         lazy="subquery",
     )
+    embedded = relationship(
+        "EmbeddedChart",
+        back_populates="chart",
+        cascade="all, delete-orphan",
+    )
 
     token = ""
 

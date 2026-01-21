@@ -559,6 +559,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # This feature flag is stil in beta and is not recommended for production use.
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,
+    # Enables the "Embed code" and "Embed chart" options in the Share menu
+    "EMBEDDABLE_CHARTS": True,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     "ALERT_REPORT_TABS": False,
@@ -591,8 +593,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "CACHE_IMPERSONATION": False,
     # Enable caching per user key for Superset cache (not database cache impersonation)
     "CACHE_QUERY_BY_USER": False,
-    # Enable sharing charts with embedding
-    "EMBEDDABLE_CHARTS": True,
     "DRILL_TO_DETAIL": True,  # deprecated
     "DRILL_BY": True,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,

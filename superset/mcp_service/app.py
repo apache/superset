@@ -316,6 +316,9 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     get_dataset_info,
     list_datasets,
 )
+from superset.mcp_service.embedded_chart.tool import (  # noqa: F401, E402
+    get_embeddable_chart,
+)
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
 )
