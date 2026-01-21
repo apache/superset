@@ -216,7 +216,7 @@
     "use-immer": "^0.11.0",
     "use-query-params": "^1.1.9",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "yargs": "^17.7.2"
+    "yargs": "^18.0.0"
   },
   "devDependencies": {
     "@applitools/eyes-storybook": "^3.63.9",
