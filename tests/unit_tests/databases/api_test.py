@@ -2388,6 +2388,13 @@ def test_import_includes_configuration_method(
         .filter_by(database_name="Test_Import_Configuration_Method")
         .first()
     )
+    print("[DEBUG] DB object after import:", db_obj)
+    print("[DEBUG] DB object fields:", {
+        "id": getattr(db_obj, "id", None),
+        "uuid": getattr(db_obj, "uuid", None),
+        "configuration_method": getattr(db_obj, "configuration_method", None),
+        "database_name": getattr(db_obj, "database_name", None),
+    })
     assert db_obj is not None, "Database not found in SQLAlchemy session after import"
     assert hasattr(db_obj, "configuration_method"), (
         "'configuration_method' not found on model"
@@ -2398,6 +2405,7 @@ def test_import_includes_configuration_method(
     )
 
     user = getattr(g, "user", None)
+    print("[DEBUG] g.user:", user)
     if user and getattr(user, "is_authenticated", False) and hasattr(user, "id"):
         db_obj.created_by = security_manager.get_user_by_id(user.id)
         db.session.commit()
@@ -2405,10 +2413,17 @@ def test_import_includes_configuration_method(
     get_resp = client.get(
         "/api/v1/database/?q=(filters:!((col:database_name,opr:eq,value:'Test_Import_Configuration_Method')))"
     )
-    assert get_resp.status_code == 200, get_resp.data
+    print("[DEBUG] API response status:", get_resp.status_code)
+    print("[DEBUG] API response data:", get_resp.data)
+    try:
+        print("[DEBUG] API response JSON:", get_resp.json)
+    except Exception as e:
+        print("[DEBUG] Failed to parse API response JSON:", e)
     result = get_resp.json["result"]
+    print("[DEBUG] API result list:", result)
     assert result, "No database returned from API after import."
     db_obj_api = result[0]
+    print("[DEBUG] API DB object fields:", db_obj_api)
     assert "configuration_method" in db_obj_api, (
         f"'configuration_method' not found in database list response: {db_obj_api}"
     )
