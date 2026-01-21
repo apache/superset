@@ -295,8 +295,7 @@ function TableCollection<T extends object>({
       size={size}
       data-test="listview-table"
       pagination={paginationConfig}
-      scroll={{ x: 'max-content' }}
-      tableLayout="auto"
+      tableLayout="fixed"
       rowKey="rowId"
       rowSelection={rowSelection}
       locale={{ emptyText: null }}
