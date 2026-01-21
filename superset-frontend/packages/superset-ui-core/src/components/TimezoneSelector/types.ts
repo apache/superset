@@ -16,19 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatePicker as AntdDatePicker } from 'antd';
-import { css } from '@apache-superset/core/ui';
-import type { DatePickerProps, RangePickerProps } from './types';
 
-export const DatePicker = (props: DatePickerProps) => (
-  <AntdDatePicker
-    css={css`
-      width: 100%;
-    `}
-    {...props}
-  />
-);
+export type TimezoneOption = {
+  label: string;
+  value: string;
+  offsets: string;
+  timezoneName: string;
+};
 
-export const { RangePicker } = AntdDatePicker;
+export type OffsetsToName = Record<string, [string, string]>;
 
-export type { DatePickerProps, RangePickerProps };
+export type GetOffsetKeyFn = (timezoneName: string) => string;

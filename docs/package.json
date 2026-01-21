@@ -51,7 +51,7 @@
     "@storybook/preview-api": "^8.6.11",
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
-    "antd": "^6.2.0",
+    "antd": "^6.2.1",
     "caniuse-lite": "^1.0.30001764",
     "docusaurus-plugin-less": "^2.0.2",
     "js-yaml": "^4.1.1",
@@ -87,7 +87,7 @@
     "globals": "^17.0.0",
     "prettier": "^3.8.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.53.0",
+    "typescript-eslint": "^8.53.1",
     "webpack": "^5.104.1"
   },
   "browserslist": {
