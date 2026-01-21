@@ -32,7 +32,13 @@ The EmptyState component from Superset's UI library.
 
 <StoryWithControls
   component="EmptyState"
-  props={{}}
+  props={{
+  size: "medium",
+  title: "No Data Available",
+  description: "There is no data to display at this time.",
+  image: "empty",
+  buttonText: ""
+}}
   controls={[
   {
     name: "size",
@@ -43,7 +49,38 @@ The EmptyState component from Superset's UI library.
       "medium",
       "large"
     ],
-    description: "Size of the Empty State components"
+    description: "Size of the empty state component."
+  },
+  {
+    name: "title",
+    label: "Title",
+    type: "text",
+    description: "Main title text."
+  },
+  {
+    name: "description",
+    label: "Description",
+    type: "text",
+    description: "Description text below the title."
+  },
+  {
+    name: "image",
+    label: "Image",
+    type: "select",
+    options: [
+      "empty",
+      "error",
+      "filter",
+      "document",
+      "chart"
+    ],
+    description: "Predefined image to display."
+  },
+  {
+    name: "buttonText",
+    label: "Button Text",
+    type: "text",
+    description: "Text for optional action button."
   }
 ]}
 />
@@ -56,13 +93,26 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <EmptyState
-      // Add props here
+      size="medium"
+      title="No Results Found"
+      description="Try adjusting your filters or search terms."
+      image="filter"
+      buttonText="Clear Filters"
+      buttonAction={() => alert('Filters cleared!')}
     />
   );
 }
 ```
 
+## Props
 
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `size` | `string` | `"medium"` | Size of the empty state component. |
+| `title` | `string` | `"No Data Available"` | Main title text. |
+| `description` | `string` | `"There is no data to display at this time."` | Description text below the title. |
+| `image` | `string` | `"empty"` | Predefined image to display. |
+| `buttonText` | `string` | `""` | Text for optional action button. |
 
 ## Import
 
