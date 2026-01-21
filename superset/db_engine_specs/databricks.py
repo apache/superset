@@ -28,7 +28,7 @@ from sqlalchemy import types
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-
+from flask import current_app as app, g
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
@@ -44,11 +44,14 @@ if TYPE_CHECKING:
 
 try:
     from databricks.sql.utils import ParamEscaper
+    from databricks.sql.exc import RequestError
 except ImportError:
 
     class ParamEscaper:  # type: ignore
         """Dummy class."""
 
+    class RequestError(Exception):  # type: ignore
+        """Dummy class."""
 
 class DatabricksStringType(types.TypeDecorator):
     impl = types.String
@@ -109,7 +112,12 @@ class DatabricksBaseSchema(Schema):
     dynamic form.
     """
 
-    access_token = fields.Str(required=True)
+    access_token = fields.Str(
+        required=False,
+        metadata={
+            "description": __("Access token (leave empty for OAuth2 authentication)")},
+        allow_none=True,
+    )
     host = fields.Str(required=True)
     port = fields.Integer(
         required=True,
@@ -120,6 +128,7 @@ class DatabricksBaseSchema(Schema):
         required=False,
         metadata={"description": __("Use an encrypted connection to the database")},
     )
+
 
 
 class DatabricksBaseParametersType(TypedDict):
@@ -218,43 +227,225 @@ time_grain_expressions: dict[str | None, str] = {
 
 
 class DatabricksHiveEngineSpec(HiveEngineSpec):
-    engine_name = "Databricks Interactive Cluster"
+    """
+    Engine spec for Databricks Interactive Cluster using PyHive.
+    Note: This inherits from HiveEngineSpec, not DatabricksBaseEngineSpec,
+    to preserve Hive-specific functionality.
+    """
 
+    engine_name = "Databricks Interactive Cluster"
     engine = "databricks"
     drivers = {"pyhive": "Hive driver for Interactive Cluster"}
     default_driver = "pyhive"
 
     _show_functions_column = "function"
-
     _time_grain_expressions = time_grain_expressions
+
+    # OAuth 2.0 support - replicate from DatabricksBaseEngineSpec since we inherit from HiveEngineSpec
+    allows_user_impersonation = True
+    supports_oauth2 = True
+    oauth2_scope = "all-apis offline_access"
+    oauth2_exception = RequestError
+
+    @classmethod
+    def is_oauth2_enabled(cls) -> bool:
+        """Check if OAuth2 is enabled for this engine."""
+        try:
+            clients = app.config.get("DATABASE_OAUTH2_CLIENTS", {})
+        except RuntimeError:
+            # No app context available; treat OAuth2 as disabled in this context
+            return False
+        return cls.supports_oauth2 and cls.engine_name in clients
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """Check if the exception indicates that OAuth2 authentication is needed."""
+        if not (g and hasattr(g, "user")):
+            return False
+
+        error_msg = str(ex).lower()
+        auth_error_patterns = [
+            "credential was not sent",
+            "unsupported type for this api",
+            "no valid authentication settings",
+            "authentication failed",
+            "invalid access token",
+            "token expired",
+            "unauthorized",
+            "401",
+            "403",
+        ]
+        return any(pattern in error_msg for pattern in auth_error_patterns)
+
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: "Database",
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """Update the connection to use OAuth2 access token."""
+        if user_token:
+            url = url.set(password=user_token)
+        return url, engine_kwargs
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: "Database", params: dict[str, Any]
+    ) -> None:
+        """Remove OAuth2 client info from engine params."""
+        HiveEngineSpec.update_params_from_encrypted_extra(database, params)
+        if "oauth2_client_info" in params:
+            del params["oauth2_client_info"]
 
 
 class DatabricksBaseEngineSpec(BaseEngineSpec):
+    """
+    Base class for all Databricks engine specifications.
+    Contains common OAuth2 and configuration logic shared across all Databricks connectors.
+    """
+
     _time_grain_expressions = time_grain_expressions
+
+    # OAuth 2.0 support - common configuration for all Databricks engines
+    allows_user_impersonation = True
+    supports_oauth2 = True
+    oauth2_scope = "all-apis offline_access"
+    oauth2_exception = RequestError
+
+    @classmethod
+    def is_oauth2_enabled(cls) -> bool:
+        """Check if OAuth2 is enabled for this engine."""
+        try:
+            clients = app.config.get("DATABASE_OAUTH2_CLIENTS", {})
+        except RuntimeError:
+            # No app context available; treat OAuth2 as disabled in this context
+            return False
+        return cls.supports_oauth2 and cls.engine_name in clients
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Check if the exception indicates that OAuth2 authentication is needed.
+        
+        :param ex: Exception raised during connection or query
+        :return: True if OAuth2 is required, False otherwise
+        """
+        if not (g and hasattr(g, "user")):
+            return False
+
+        error_msg = str(ex).lower()
+        auth_error_patterns = [
+            "credential was not sent",
+            "unsupported type for this api",
+            "no valid authentication settings",
+            "authentication failed",
+            "invalid access token",
+            "token expired",
+            "unauthorized",
+            "401",
+            "403",
+        ]
+        return any(pattern in error_msg for pattern in auth_error_patterns)
+
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: "Database",
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Update the connection to use OAuth2 access token for user impersonation.
+        
+        :param database: Database model
+        :param username: Username (may be unused for OAuth2)
+        :param user_token: OAuth2 access token
+        :param url: SQLAlchemy URL
+        :param engine_kwargs: Engine keyword arguments
+        :return: Updated URL and engine kwargs
+        """
+        if user_token:
+            url = url.set(password=user_token)
+        return url, engine_kwargs
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: "Database", params: dict[str, Any]
+    ) -> None:
+        """
+        Remove unsupported keys from `encrypted_extra` before passing engine kwargs
+        to SQLAlchemy. In particular, keep OAuth2 client config out of the
+        `create_engine(**engine_kwargs)` call.
+        """
+        BaseEngineSpec.update_params_from_encrypted_extra(database, params)
+
+        # Strip OAuth2 client info so it does not become an unexpected kwarg
+        # to `create_engine`.
+        if "oauth2_client_info" in params:
+            del params["oauth2_client_info"]
+
+    @classmethod
+    def get_oauth2_authorization_uri(cls, database: "Database") -> str:
+        """
+        Return the OAuth2 authorization URI for this Databricks workspace.
+        Dynamically generated from the database host.
+        """
+        host = cls.get_parameters_from_uri(database.sqlalchemy_uri).get("host")
+        if not host:
+            url = make_url_safe(database.sqlalchemy_uri)
+            host = url.host
+        return f"https://{host}/oidc/v1/authorize"
+
+    @classmethod
+    def get_oauth2_token_uri(cls, database: "Database") -> str:
+        """
+        Return the OAuth2 token URI for this Databricks workspace.
+        Dynamically generated from the database host.
+        """
+        host = cls.get_parameters_from_uri(database.sqlalchemy_uri).get("host")
+        if not host:
+            url = make_url_safe(database.sqlalchemy_uri)
+            host = url.host
+        return f"https://{host}/oidc/v1/token"
 
     @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
     ) -> str | None:
+        """Convert datetime to database-specific format."""
         return HiveEngineSpec.convert_dttm(target_type, dttm, db_extra=db_extra)
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
+        """Convert epoch to datetime expression."""
         return HiveEngineSpec.epoch_to_dttm()
 
-
 class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
-    engine_name = "Databricks SQL Endpoint"
+    """
+    Engine spec for Databricks SQL Endpoint using ODBC.
+    Inherits OAuth2 support from DatabricksBaseEngineSpec.
+    """
 
+    engine_name = "Databricks SQL Endpoint"
     engine = "databricks"
     drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
     default_driver = "pyodbc"
 
 
 class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngineSpec):
+    """
+    Base class for dynamic parameter-based Databricks connections.
+    Inherits OAuth2 support from DatabricksBaseEngineSpec.
+    """
+
     default_driver = ""
     encryption_parameters = {"ssl": "1"}
-    required_parameters = {"access_token", "host", "port"}
+    required_parameters = {"host", "port"}  # access_token is optional for OAuth2
     context_key_mapping = {
         "access_token": "password",
         "host": "hostname",
@@ -426,6 +617,12 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
 
 class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
+    """
+    Engine spec for Databricks using the native connector (legacy driver).
+    Supports Unity Catalog with three-level namespace (catalog.schema.table).
+    Inherits OAuth2 support from DatabricksBaseEngineSpec.
+    """
+
     engine = "databricks"
     engine_name = "Databricks (legacy)"
     drivers = {"connector": "Native all-purpose driver"}
@@ -564,6 +761,12 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
 
 
 class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
+    """
+    Engine spec for Databricks using the Python SQL connector.
+    This is the modern, recommended connector for Databricks SQL.
+    Inherits OAuth2 support from DatabricksBaseEngineSpec.
+    """
+
     engine = "databricks"
     engine_name = "Databricks"
     default_driver = "databricks-sql-python"
