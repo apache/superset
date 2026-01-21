@@ -26,6 +26,7 @@ interface DashboardInfo {
   userId: string | undefined;
   dash_edit_perm: boolean;
   dash_save_perm: boolean;
+  dash_export_perm?: boolean;
   metadata?: Record<string, any>;
   common?: { conf: Record<string, any> };
   theme?: {
@@ -58,6 +59,7 @@ export interface HeaderDropdownProps {
   userCanSave: boolean;
   userCanShare: boolean;
   userCanCurate: boolean;
+  userCanExport: boolean;
   manageEmbedded: () => void;
   dataMask?: any;
   lastModifiedTime: number;

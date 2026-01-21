@@ -1,0 +1,4799 @@
+{
+  "generated": "2026-01-19T22:38:23.768Z",
+  "statistics": {
+    "totalDatabases": 67,
+    "withDocumentation": 67,
+    "withConnectionString": 67,
+    "withDrivers": 34,
+    "withAuthMethods": 4,
+    "supportsJoins": 63,
+    "supportsSubqueries": 64,
+    "supportsDynamicSchema": 15,
+    "supportsCatalog": 9,
+    "averageScore": 34,
+    "maxScore": 201,
+    "byCategory": {
+      "Other Databases": [
+        "Arc",
+        "Shillelagh",
+        "Superset meta database"
+      ],
+      "Proprietary": [
+        "Arc",
+        "Amazon Athena",
+        "Google BigQuery",
+        "Databend",
+        "IBM Db2",
+        "Denodo",
+        "Dremio",
+        "Amazon DynamoDB",
+        "Exasol",
+        "Firebolt",
+        "SAP HANA",
+        "Hologres",
+        "IBM Db2 for i",
+        "Azure Data Explorer",
+        "Microsoft SQL Server",
+        "Azure Synapse",
+        "IBM Netezza Performance Server",
+        "Ocient",
+        "Oracle",
+        "Amazon Redshift",
+        "SingleStore",
+        "Snowflake",
+        "SAP Sybase",
+        "Teradata",
+        "Vertica"
+      ],
+      "Cloud Data Warehouses": [
+        "Ascend",
+        "Cloudflare D1",
+        "Databend",
+        "Databricks",
+        "MotherDuck",
+        "Firebolt",
+        "Hologres",
+        "Azure Synapse",
+        "Snowflake",
+        "YugabyteDB"
+      ],
+      "Analytical Databases": [
+        "Ascend",
+        "Google BigQuery",
+        "ClickHouse",
+        "Databend",
+        "Databricks",
+        "Apache Doris",
+        "DuckDB",
+        "MotherDuck",
+        "Exasol",
+        "Firebolt",
+        "Hologres",
+        "Azure Data Explorer",
+        "Apache Kylin",
+        "Azure Synapse",
+        "Ocient",
+        "Amazon Redshift",
+        "RisingWave",
+        "SingleStore",
+        "Snowflake",
+        "StarRocks",
+        "TimescaleDB",
+        "Vertica"
+      ],
+      "Hosted Open Source": [
+        "Ascend",
+        "Cloudflare D1",
+        "Databricks",
+        "MotherDuck",
+        "Google Sheets"
+      ],
+      "Cloud - AWS": [
+        "Amazon Athena",
+        "Amazon DynamoDB",
+        "Amazon Redshift"
+      ],
+      "Query Engines": [
+        "Amazon Athena",
+        "Databricks Interactive Cluster",
+        "Denodo",
+        "Dremio",
+        "Apache Drill",
+        "Apache Hive",
+        "Apache Impala",
+        "Presto",
+        "Apache Spark SQL",
+        "Trino"
+      ],
+      "Traditional RDBMS": [
+        "Aurora MySQL (Data API)",
+        "Aurora PostgreSQL (Data API)",
+        "CockroachDB",
+        "Cloudflare D1",
+        "IBM Db2",
+        "Firebird",
+        "Greenplum",
+        "SAP HANA",
+        "IBM Db2 for i",
+        "MariaDB",
+        "MonetDB",
+        "Microsoft SQL Server",
+        "MySQL",
+        "IBM Netezza Performance Server",
+        "OceanBase",
+        "Oracle",
+        "PostgreSQL",
+        "SQLite",
+        "SAP Sybase",
+        "Teradata",
+        "YDB",
+        "YugabyteDB"
+      ],
+      "Open Source": [
+        "Aurora MySQL (Data API)",
+        "Aurora PostgreSQL (Data API)",
+        "ClickHouse",
+        "CockroachDB",
+        "Couchbase",
+        "CrateDB",
+        "Databricks Interactive Cluster",
+        "Apache Doris",
+        "Apache Drill",
+        "Apache Druid",
+        "DuckDB",
+        "Elasticsearch",
+        "Firebird",
+        "Greenplum",
+        "Apache Hive",
+        "Apache Impala",
+        "Apache Kylin",
+        "MariaDB",
+        "MonetDB",
+        "MySQL",
+        "OceanBase",
+        "Parseable",
+        "Apache Pinot",
+        "PostgreSQL",
+        "Presto",
+        "RisingWave",
+        "Shillelagh",
+        "Apache Solr",
+        "Apache Spark SQL",
+        "SQLite",
+        "StarRocks",
+        "TDengine",
+        "TimescaleDB",
+        "Trino",
+        "YDB",
+        "YugabyteDB"
+      ],
+      "Cloud - Google": [
+        "Google BigQuery",
+        "Google Sheets"
+      ],
+      "Search & NoSQL": [
+        "Couchbase",
+        "Amazon DynamoDB",
+        "Elasticsearch",
+        "Parseable",
+        "Apache Solr"
+      ],
+      "Time Series Databases": [
+        "CrateDB",
+        "Apache Druid",
+        "Apache Pinot",
+        "TDengine"
+      ],
+      "Apache Projects": [
+        "Databricks Interactive Cluster",
+        "Apache Doris",
+        "Apache Drill",
+        "Apache Druid",
+        "Apache Hive",
+        "Apache Impala",
+        "Apache Kylin",
+        "Apache Pinot",
+        "Apache Solr",
+        "Apache Spark SQL"
+      ],
+      "Cloud - Azure": [
+        "Azure Data Explorer"
+      ]
+    }
+  },
+  "databases": {
+    "Arc": {
+      "engine": "arc",
+      "engine_name": "Arc",
+      "module": "arc",
+      "documentation": {
+        "description": "Arc is a data platform with multiple connection options.",
+        "categories": [
+          "OTHER",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "arc-superset-arrow"
+        ],
+        "connection_string": "arc+arrow://{api_key}@{hostname}:{port}/{database}",
+        "parameters": {
+          "api_key": "Arc API key",
+          "hostname": "Arc hostname",
+          "port": "Arc port",
+          "database": "Database name"
+        },
+        "drivers": [
+          {
+            "name": "Apache Arrow (Recommended)",
+            "pypi_package": "arc-superset-arrow",
+            "connection_string": "arc+arrow://{api_key}@{hostname}:{port}/{database}",
+            "is_recommended": true,
+            "notes": "Recommended for production. Provides 3-5x better performance using Apache Arrow IPC."
+          },
+          {
+            "name": "JSON",
+            "pypi_package": "arc-superset-dialect",
+            "connection_string": "arc+json://{api_key}@{hostname}:{port}/{database}",
+            "is_recommended": false
+          }
+        ],
+        "notes": "Arc supports multiple databases (schemas) within a single instance. Each Arc database appears as a schema in SQL Lab."
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Ascend": {
+      "engine": "ascend",
+      "engine_name": "Ascend",
+      "module": "ascend",
+      "documentation": {
+        "description": "Ascend.io is a data automation platform for building data pipelines.",
+        "logo": "ascend.webp",
+        "homepage_url": "https://www.ascend.io/",
+        "pypi_packages": [
+          "impyla",
+          "impyla"
+        ],
+        "connection_string": "ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true",
+        "default_port": 21050,
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "ANALYTICAL_DATABASES",
+          "HOSTED_OPEN_SOURCE"
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Amazon Athena": {
+      "engine": "amazon_athena",
+      "engine_name": "Amazon Athena",
+      "module": "athena",
+      "documentation": {
+        "description": "Amazon Athena is an interactive query service for analyzing data in S3 using SQL.",
+        "logo": "amazon-athena.jpg",
+        "homepage_url": "https://aws.amazon.com/athena/",
+        "categories": [
+          "CLOUD_AWS",
+          "QUERY_ENGINES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "pyathena[pandas]"
+        ],
+        "connection_string": "awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}",
+        "drivers": [
+          {
+            "name": "PyAthena (REST)",
+            "pypi_package": "pyathena[pandas]",
+            "connection_string": "awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}",
+            "is_recommended": true,
+            "notes": "No Java required. URL-encode special characters (e.g., s3:// -> s3%3A//)."
+          },
+          {
+            "name": "PyAthenaJDBC",
+            "pypi_package": "PyAthenaJDBC",
+            "connection_string": "awsathena+jdbc://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}",
+            "is_recommended": false,
+            "notes": "Requires Amazon Athena JDBC driver."
+          }
+        ],
+        "engine_parameters": [
+          {
+            "name": "IAM Role Assumption",
+            "description": "Assume a specific IAM role for queries",
+            "json": {
+              "connect_args": {
+                "role_arn": "<role arn>"
+              }
+            }
+          }
+        ],
+        "notes": "URL-encode special characters in s3_staging_dir (e.g., s3:// becomes s3%3A//)."
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Aurora MySQL (Data API)": {
+      "engine": "aurora_mysql_(data_api)",
+      "engine_name": "Aurora MySQL (Data API)",
+      "module": "aurora",
+      "documentation": {
+        "description": "MySQL is a popular open-source relational database.",
+        "logo": "mysql.png",
+        "homepage_url": "https://www.mysql.com/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "mysqlclient"
+        ],
+        "connection_string": "mysql://{username}:{password}@{host}/{database}",
+        "default_port": 3306,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "localhost, 127.0.0.1, IP address, or hostname",
+          "database": "Database name"
+        },
+        "host_examples": [
+          {
+            "platform": "Localhost",
+            "host": "localhost or 127.0.0.1"
+          },
+          {
+            "platform": "Docker on Linux",
+            "host": "172.18.0.1"
+          },
+          {
+            "platform": "Docker on macOS",
+            "host": "docker.for.mac.host.internal"
+          },
+          {
+            "platform": "On-premise",
+            "host": "IP address or hostname"
+          }
+        ],
+        "drivers": [
+          {
+            "name": "mysqlclient",
+            "pypi_package": "mysqlclient",
+            "connection_string": "mysql://{username}:{password}@{host}/{database}",
+            "is_recommended": true,
+            "notes": "Recommended driver. May fail with caching_sha2_password auth."
+          },
+          {
+            "name": "mysql-connector-python",
+            "pypi_package": "mysql-connector-python",
+            "connection_string": "mysql+mysqlconnector://{username}:{password}@{host}/{database}",
+            "is_recommended": false,
+            "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
+          }
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Aurora PostgreSQL (Data API)": {
+      "engine": "aurora_postgresql_(data_api)",
+      "engine_name": "Aurora PostgreSQL (Data API)",
+      "module": "aurora",
+      "documentation": {
+        "description": "PostgreSQL is an advanced open-source relational database.",
+        "logo": "postgresql.svg",
+        "homepage_url": "https://www.postgresql.org/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "psycopg2"
+        ],
+        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 5432,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "For localhost: localhost or 127.0.0.1. For AWS: endpoint URL",
+          "port": "Default 5432",
+          "database": "Database name"
+        },
+        "notes": "The psycopg2 library comes bundled with Superset Docker images.",
+        "connection_examples": [
+          {
+            "description": "Basic connection",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}"
+          },
+          {
+            "description": "With SSL required",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"
+          }
+        ],
+        "docs_url": "https://www.postgresql.org/docs/",
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Google BigQuery": {
+      "engine": "google_bigquery",
+      "engine_name": "Google BigQuery",
+      "module": "bigquery",
+      "documentation": {
+        "description": "Google BigQuery is a serverless, highly scalable data warehouse.",
+        "logo": "google-big-query.svg",
+        "homepage_url": "https://cloud.google.com/bigquery/",
+        "categories": [
+          "CLOUD_GCP",
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-bigquery"
+        ],
+        "connection_string": "bigquery://{project_id}",
+        "install_instructions": "echo \"sqlalchemy-bigquery\" >> ./docker/requirements-local.txt",
+        "authentication_methods": [
+          {
+            "name": "Service Account JSON",
+            "description": "Upload service account credentials JSON or paste in Secure Extra",
+            "secure_extra": {
+              "credentials_info": {
+                "type": "service_account",
+                "project_id": "...",
+                "private_key_id": "...",
+                "private_key": "...",
+                "client_email": "...",
+                "client_id": "...",
+                "auth_uri": "...",
+                "token_uri": "..."
+              }
+            }
+          }
+        ],
+        "notes": "Create a Service Account via GCP console with access to BigQuery datasets. For CSV/Excel uploads, also install pandas_gbq.",
+        "warnings": [
+          "Google BigQuery Python SDK is not compatible with gevent. Use a worker type other than gevent when deploying with gunicorn."
+        ],
+        "docs_url": "https://github.com/googleapis/python-bigquery-sqlalchemy"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "ClickHouse": {
+      "engine": "clickhouse",
+      "engine_name": "ClickHouse",
+      "module": "clickhouse",
+      "documentation": {
+        "description": "ClickHouse is an open-source column-oriented database for real-time analytics using SQL. It's known for extremely fast query performance on large datasets.",
+        "logo": "clickhouse.png",
+        "homepage_url": "https://clickhouse.com/",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "clickhouse-connect>=0.6.8"
+        ],
+        "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 8123,
+        "drivers": [
+          {
+            "name": "clickhouse-connect (Recommended)",
+            "pypi_package": "clickhouse-connect>=0.6.8",
+            "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": true,
+            "notes": "Official ClickHouse Python driver with native protocol support."
+          },
+          {
+            "name": "clickhouse-sqlalchemy (Legacy)",
+            "pypi_package": "clickhouse-sqlalchemy",
+            "connection_string": "clickhouse://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": false,
+            "notes": "Older driver using HTTP interface. Use clickhouse-connect for new deployments."
+          }
+        ],
+        "connection_examples": [
+          {
+            "description": "Altinity Cloud",
+            "connection_string": "clickhousedb://demo:demo@github.demo.trial.altinity.cloud/default?secure=true"
+          },
+          {
+            "description": "Local (no auth, no SSL)",
+            "connection_string": "clickhousedb://localhost/default"
+          }
+        ],
+        "install_instructions": "echo \"clickhouse-connect>=0.6.8\" >> ./docker/requirements-local.txt",
+        "compatible_databases": [
+          {
+            "name": "ClickHouse Cloud",
+            "description": "ClickHouse Cloud is the official fully-managed cloud service for ClickHouse. It provides automatic scaling, built-in backups, and enterprise security features.",
+            "logo": "clickhouse.png",
+            "homepage_url": "https://clickhouse.cloud/",
+            "categories": [
+              "ANALYTICAL_DATABASES",
+              "CLOUD_DATA_WAREHOUSES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "clickhouse-connect>=0.6.8"
+            ],
+            "connection_string": "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true",
+            "parameters": {
+              "username": "ClickHouse Cloud username",
+              "password": "ClickHouse Cloud password",
+              "host": "Your ClickHouse Cloud hostname",
+              "database": "Database name (default)"
+            },
+            "docs_url": "https://clickhouse.com/docs/en/cloud"
+          },
+          {
+            "name": "Altinity.Cloud",
+            "description": "Altinity.Cloud is a managed ClickHouse service providing Kubernetes-native deployments with enterprise support.",
+            "logo": "altinity.png",
+            "homepage_url": "https://altinity.cloud/",
+            "categories": [
+              "ANALYTICAL_DATABASES",
+              "CLOUD_DATA_WAREHOUSES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "clickhouse-connect>=0.6.8"
+            ],
+            "connection_string": "clickhousedb://{username}:{password}@{host}/{database}?secure=true",
+            "docs_url": "https://docs.altinity.com/"
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": false,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 51,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "CockroachDB": {
+      "engine": "cockroachdb",
+      "engine_name": "CockroachDB",
+      "module": "cockroachdb",
+      "documentation": {
+        "description": "CockroachDB is a distributed SQL database built for cloud applications.",
+        "logo": "cockroachdb.png",
+        "homepage_url": "https://www.cockroachlabs.com/",
+        "pypi_packages": [
+          "psycopg2",
+          "cockroachdb"
+        ],
+        "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
+        "default_port": 26257,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "For localhost: localhost or 127.0.0.1. For AWS: endpoint URL",
+          "port": "Default 5432",
+          "database": "Database name"
+        },
+        "notes": "The psycopg2 library comes bundled with Superset Docker images.",
+        "connection_examples": [
+          {
+            "description": "Basic connection",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}"
+          },
+          {
+            "description": "With SSL required",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"
+          }
+        ],
+        "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": true,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 94,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": true,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": true,
+      "sql_validation": false
+    },
+    "Couchbase": {
+      "engine": "couchbase",
+      "engine_name": "Couchbase",
+      "module": "couchbase",
+      "documentation": {
+        "description": "Couchbase is a distributed NoSQL document database with SQL++ support.",
+        "logo": "couchbase.svg",
+        "homepage_url": "https://www.couchbase.com/",
+        "categories": [
+          "SEARCH_NOSQL",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "couchbase-sqlalchemy"
+        ],
+        "connection_string": "couchbase://{username}:{password}@{host}:{port}?ssl=true",
+        "default_port": 8091,
+        "parameters": {
+          "username": "Couchbase username",
+          "password": "Couchbase password",
+          "host": "Couchbase host or connection string for cloud",
+          "port": "Couchbase port (default 8091)",
+          "database": "Couchbase database/bucket name"
+        },
+        "drivers": [
+          {
+            "name": "couchbase-sqlalchemy",
+            "pypi_package": "couchbase-sqlalchemy",
+            "connection_string": "couchbase://{username}:{password}@{host}:{port}?ssl=true",
+            "is_recommended": true
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": false,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 27,
+      "max_score": 201,
+      "joins": false,
+      "subqueries": false,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "CrateDB": {
+      "engine": "cratedb",
+      "engine_name": "CrateDB",
+      "module": "crate",
+      "documentation": {
+        "description": "CrateDB is a distributed SQL database for machine data and IoT workloads.",
+        "logo": "cratedb.png",
+        "homepage_url": "https://crate.io/",
+        "categories": [
+          "TIME_SERIES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "crate",
+          "sqlalchemy-cratedb"
+        ],
+        "connection_string": "crate://{host}:{port}",
+        "default_port": 4200,
+        "parameters": {
+          "host": "CrateDB host",
+          "port": "CrateDB HTTP port (default 4200)"
+        },
+        "drivers": [
+          {
+            "name": "crate",
+            "pypi_package": "crate[sqlalchemy]",
+            "connection_string": "crate://{host}:{port}",
+            "is_recommended": true
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 28,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Cloudflare D1": {
+      "engine": "cloudflare_d1",
+      "engine_name": "Cloudflare D1",
+      "module": "d1",
+      "documentation": {
+        "description": "Cloudflare D1 is a serverless SQLite database.",
+        "logo": "cloudflare.png",
+        "homepage_url": "https://developers.cloudflare.com/d1/",
+        "pypi_packages": [
+          "superset-engine-d1"
+        ],
+        "connection_string": "d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}",
+        "notes": "No additional library needed. SQLite is bundled with Python.",
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "TRADITIONAL_RDBMS",
+          "HOSTED_OPEN_SOURCE"
+        ],
+        "parameters": {
+          "cloudflare_account_id": "Cloudflare account ID",
+          "cloudflare_api_token": "Cloudflare API token",
+          "cloudflare_d1_database_id": "D1 database ID"
+        },
+        "install_instructions": "pip install superset-engine-d1"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Databend": {
+      "engine": "databend",
+      "engine_name": "Databend",
+      "module": "databend",
+      "documentation": {
+        "description": "Databend is a modern cloud-native data warehouse with instant elasticity and pay-as-you-go pricing. Built in Rust for high performance.",
+        "logo": "databend.png",
+        "homepage_url": "https://www.databend.com/",
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "databend-sqlalchemy"
+        ],
+        "connection_string": "databend://{username}:{password}@{host}:{port}/{database}?secure=true",
+        "default_port": 443,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "Databend host",
+          "port": "Databend port (default 443 for HTTPS)",
+          "database": "Database name"
+        }
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 51,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Databricks Interactive Cluster": {
+      "engine": "databricks_interactive_cluster",
+      "engine_name": "Databricks Interactive Cluster",
+      "module": "databricks",
+      "documentation": {
+        "description": "Apache Hive is a data warehouse infrastructure built on Hadoop.",
+        "logo": "apache-hive.svg",
+        "homepage_url": "https://hive.apache.org/",
+        "pypi_packages": [
+          "pyhive",
+          "pyhive"
+        ],
+        "install_instructions": "pip install \"apache-superset[presto]\"",
+        "connection_string": "hive://hive@{hostname}:{port}/{database}",
+        "default_port": 10000,
+        "parameters": {
+          "hostname": "Presto coordinator hostname",
+          "port": "Presto coordinator port (default 8080)",
+          "database": "Catalog name"
+        },
+        "drivers": [
+          {
+            "name": "PyHive",
+            "pypi_package": "pyhive",
+            "connection_string": "presto://{hostname}:{port}/{database}",
+            "is_recommended": true
+          }
+        ],
+        "categories": [
+          "APACHE_PROJECTS",
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Databricks": {
+      "engine": "databricks",
+      "engine_name": "Databricks",
+      "module": "databricks",
+      "documentation": {
+        "description": "Databricks is a unified analytics platform built on Apache Spark, providing data engineering, data science, and machine learning capabilities in the cloud. Use the Python Connector for SQL warehouses and clusters.",
+        "logo": "databricks.png",
+        "homepage_url": "https://www.databricks.com/",
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "ANALYTICAL_DATABASES",
+          "HOSTED_OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "apache-superset[databricks]"
+        ],
+        "install_instructions": "pip install apache-superset[databricks]",
+        "connection_string": "databricks://token:{access_token}@{host}:{port}?http_path={http_path}&catalog={catalog}&schema={schema}",
+        "parameters": {
+          "access_token": "Personal access token from Settings > User Settings",
+          "host": "Server hostname from cluster JDBC/ODBC settings",
+          "port": "Port (default 443)",
+          "http_path": "HTTP path from cluster JDBC/ODBC settings"
+        },
+        "drivers": [
+          {
+            "name": "Databricks Python Connector (Recommended)",
+            "pypi_package": "databricks-sql-connector",
+            "connection_string": "databricks://token:{access_token}@{host}:{port}?http_path={http_path}&catalog={catalog}&schema={schema}",
+            "is_recommended": true,
+            "notes": "Official Databricks connector. Best for SQL warehouses and clusters."
+          },
+          {
+            "name": "Hive Connector (Interactive Clusters)",
+            "pypi_package": "databricks-dbapi[sqlalchemy]",
+            "connection_string": "databricks+pyhive://token:{access_token}@{host}:{port}/{database}",
+            "is_recommended": false,
+            "notes": "For Interactive Clusters. Requires http_path in engine parameters."
+          },
+          {
+            "name": "ODBC (SQL Endpoints)",
+            "pypi_package": "pyodbc",
+            "connection_string": "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}",
+            "is_recommended": false,
+            "notes": "Requires ODBC driver. For serverless SQL warehouses."
+          },
+          {
+            "name": "databricks-dbapi (Legacy)",
+            "pypi_package": "databricks-dbapi[sqlalchemy]",
+            "connection_string": "databricks+connector://token:{access_token}@{host}:{port}/{database}",
+            "is_recommended": false,
+            "notes": "Legacy connector. Use Python Connector for new deployments."
+          }
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "IBM Db2": {
+      "engine": "ibm_db2",
+      "engine_name": "IBM Db2",
+      "module": "db2",
+      "documentation": {
+        "description": "IBM Db2 is a family of data management products for enterprise workloads, available on-premises, in containers, and across cloud platforms.",
+        "logo": "ibm-db2.svg",
+        "homepage_url": "https://www.ibm.com/db2",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "ibm_db_sa"
+        ],
+        "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+        "default_port": 50000,
+        "drivers": [
+          {
+            "name": "ibm_db_sa (with LIMIT)",
+            "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+            "is_recommended": true
+          },
+          {
+            "name": "ibm_db_sa (without LIMIT syntax)",
+            "connection_string": "ibm_db_sa://{username}:{password}@{hostname}:{port}/{database}",
+            "is_recommended": false,
+            "notes": "Use for older DB2 versions without LIMIT [n] syntax. Recommended for SQL Lab."
+          }
+        ],
+        "compatible_databases": [
+          {
+            "name": "IBM Db2 for i (AS/400)",
+            "description": "Db2 for i is a fully integrated database engine on IBM i (AS/400) systems. Uses a different SQLAlchemy driver optimized for IBM i.",
+            "logo": "ibm-db2.svg",
+            "homepage_url": "https://www.ibm.com/products/db2-for-i",
+            "pypi_packages": [
+              "sqlalchemy-ibmi"
+            ],
+            "connection_string": "ibmi://{username}:{password}@{host}/{database}",
+            "parameters": {
+              "username": "IBM i username",
+              "password": "IBM i password",
+              "host": "IBM i system host",
+              "database": "Library/schema name"
+            },
+            "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
+            "categories": [
+              "PROPRIETARY"
+            ]
+          }
+        ],
+        "docs_url": "https://github.com/ibmdb/python-ibmdbsa"
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 38,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Denodo": {
+      "engine": "denodo",
+      "engine_name": "Denodo",
+      "module": "denodo",
+      "documentation": {
+        "description": "Denodo is a data virtualization platform for logical data management.",
+        "logo": "denodo.png",
+        "homepage_url": "https://www.denodo.com/",
+        "categories": [
+          "QUERY_ENGINES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "psycopg2"
+        ],
+        "connection_string": "denodo://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 9996,
+        "parameters": {
+          "username": "Denodo username",
+          "password": "Denodo password",
+          "host": "Denodo VDP server hostname",
+          "port": "ODBC port (default 9996)",
+          "database": "Virtual database name"
+        },
+        "drivers": [
+          {
+            "name": "psycopg2",
+            "pypi_package": "psycopg2",
+            "connection_string": "denodo://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": true,
+            "notes": "Uses PostgreSQL wire protocol."
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": false,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 27,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Apache Doris": {
+      "engine": "apache_doris",
+      "engine_name": "Apache Doris",
+      "module": "doris",
+      "documentation": {
+        "description": "Apache Doris is a high-performance real-time analytical database.",
+        "logo": "doris.png",
+        "homepage_url": "https://doris.apache.org/",
+        "pypi_packages": [
+          "mysqlclient",
+          "pydoris"
+        ],
+        "connection_string": "doris://{username}:{password}@{host}:{port}/{catalog}.{database}",
+        "default_port": 9030,
+        "parameters": {
+          "username": "User name",
+          "password": "Password",
+          "host": "Doris FE Host",
+          "database": "Database name",
+          "port": "Doris FE port",
+          "catalog": "Catalog name"
+        },
+        "host_examples": [
+          {
+            "platform": "Localhost",
+            "host": "localhost or 127.0.0.1"
+          },
+          {
+            "platform": "Docker on Linux",
+            "host": "172.18.0.1"
+          },
+          {
+            "platform": "Docker on macOS",
+            "host": "docker.for.mac.host.internal"
+          },
+          {
+            "platform": "On-premise",
+            "host": "IP address or hostname"
+          }
+        ],
+        "drivers": [
+          {
+            "name": "mysqlclient",
+            "pypi_package": "mysqlclient",
+            "connection_string": "mysql://{username}:{password}@{host}/{database}",
+            "is_recommended": true,
+            "notes": "Recommended driver. May fail with caching_sha2_password auth."
+          },
+          {
+            "name": "mysql-connector-python",
+            "pypi_package": "mysql-connector-python",
+            "connection_string": "mysql+mysqlconnector://{username}:{password}@{host}/{database}",
+            "is_recommended": false,
+            "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
+          }
+        ],
+        "categories": [
+          "APACHE_PROJECTS",
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": true,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 79,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": true,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Dremio": {
+      "engine": "dremio",
+      "engine_name": "Dremio",
+      "module": "dremio",
+      "documentation": {
+        "description": "Dremio is a data lakehouse platform for fast, self-service analytics.",
+        "logo": "dremio.png",
+        "homepage_url": "https://www.dremio.com/",
+        "categories": [
+          "QUERY_ENGINES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "sqlalchemy_dremio"
+        ],
+        "connection_string": "dremio+flight://data.dremio.cloud:443/?Token={token}&UseEncryption=true",
+        "parameters": {
+          "token": "Personal Access Token (PAT) or API token"
+        },
+        "drivers": [
+          {
+            "name": "Arrow Flight (Recommended)",
+            "pypi_package": "sqlalchemy_dremio",
+            "connection_string": "dremio+flight://data.dremio.cloud:443/?Token={token}&UseEncryption=true",
+            "is_recommended": true
+          },
+          {
+            "name": "ODBC",
+            "pypi_package": "sqlalchemy_dremio",
+            "connection_string": "dremio+pyodbc://{token}@{host}:31010/dremio",
+            "is_recommended": false,
+            "notes": "Requires Dremio ODBC drivers installed."
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 28,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Apache Drill": {
+      "engine": "apache_drill",
+      "engine_name": "Apache Drill",
+      "module": "drill",
+      "documentation": {
+        "description": "Apache Drill is a schema-free SQL query engine for Hadoop and NoSQL.",
+        "logo": "apache-drill.png",
+        "homepage_url": "https://drill.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-drill"
+        ],
+        "connection_string": "drill+sadrill://{username}:{password}@{host}:{port}/{storage_plugin}?use_ssl=True",
+        "default_port": 8047,
+        "drivers": [
+          {
+            "name": "SQLAlchemy (REST)",
+            "pypi_package": "sqlalchemy-drill",
+            "connection_string": "drill+sadrill://{username}:{password}@{host}:{port}/{storage_plugin}?use_ssl=True",
+            "is_recommended": true
+          },
+          {
+            "name": "JDBC",
+            "pypi_package": "sqlalchemy-drill",
+            "connection_string": "drill+jdbc://{username}:{password}@{host}:{port}",
+            "is_recommended": false,
+            "notes": "Requires Drill JDBC Driver installation.",
+            "docs_url": "https://drill.apache.org/docs/using-the-jdbc-driver/"
+          },
+          {
+            "name": "ODBC",
+            "pypi_package": "sqlalchemy-drill",
+            "is_recommended": false,
+            "notes": "See Apache Drill documentation for ODBC setup.",
+            "docs_url": "https://drill.apache.org/docs/installing-the-driver-on-linux/"
+          }
+        ],
+        "connection_examples": [
+          {
+            "description": "Local embedded mode",
+            "connection_string": "drill+sadrill://localhost:8047/dfs?use_ssl=False"
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 50,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": true,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Apache Druid": {
+      "engine": "apache_druid",
+      "engine_name": "Apache Druid",
+      "module": "druid",
+      "documentation": {
+        "description": "Apache Druid is a high performance real-time analytics database.",
+        "logo": "druid.png",
+        "homepage_url": "https://druid.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "TIME_SERIES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "pydruid"
+        ],
+        "connection_string": "druid://{username}:{password}@{host}:{port}/druid/v2/sql",
+        "default_port": 9088,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "IP address or URL of the host",
+          "port": "Default 9088"
+        },
+        "ssl_configuration": {
+          "custom_certificate": "Add certificate in Root Certificate field. pydruid will automatically use https.",
+          "disable_ssl_verification": {
+            "engine_params": {
+              "connect_args": {
+                "scheme": "https",
+                "ssl_verify_cert": false
+              }
+            }
+          }
+        },
+        "advanced_features": {
+          "aggregations": "Define common aggregations in datasource edit view under List Druid Column tab.",
+          "post_aggregations": "Create metrics with postagg as Metric Type and provide valid JSON post-aggregation definition."
+        },
+        "notes": "A native Druid connector ships with Superset (behind DRUID_IS_ACTIVE flag) but SQLAlchemy connector via pydruid is preferred.",
+        "compatible_databases": [
+          {
+            "name": "Imply",
+            "description": "Imply is a fully-managed cloud platform and enterprise distribution built on Apache Druid. It provides real-time analytics with enterprise security and support.",
+            "logo": "imply.png",
+            "homepage_url": "https://imply.io/",
+            "categories": [
+              "TIME_SERIES",
+              "CLOUD_DATA_WAREHOUSES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "pydruid"
+            ],
+            "connection_string": "druid://{username}:{password}@{host}/druid/v2/sql",
+            "docs_url": "https://docs.imply.io/"
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": true,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": true,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": true,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": true,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 47,
+      "max_score": 201,
+      "joins": false,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "DuckDB": {
+      "engine": "duckdb",
+      "engine_name": "DuckDB",
+      "module": "duckdb",
+      "documentation": {
+        "description": "DuckDB is an in-process OLAP database designed for fast analytical queries on local data. Supports CSV, Parquet, JSON, and many other file formats.",
+        "logo": "duckdb.png",
+        "homepage_url": "https://duckdb.org/",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "duckdb-engine"
+        ],
+        "connection_string": "duckdb:////path/to/duck.db",
+        "drivers": [
+          {
+            "name": "duckdb-engine",
+            "pypi_package": "duckdb-engine",
+            "connection_string": "duckdb:////path/to/duck.db",
+            "is_recommended": true
+          }
+        ],
+        "notes": "DuckDB supports both local file and in-memory databases. Use `:memory:` for in-memory database.",
+        "compatible_databases": [
+          {
+            "name": "MotherDuck",
+            "description": "MotherDuck is a serverless cloud analytics platform built on DuckDB, offering collaborative data sharing and cloud-native scalability.",
+            "logo": "motherduck.png",
+            "homepage_url": "https://motherduck.com/",
+            "pypi_packages": [
+              "duckdb",
+              "duckdb-engine"
+            ],
+            "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+            "parameters": {
+              "database": "MotherDuck database name",
+              "motherduck_token": "Service token from MotherDuck dashboard"
+            },
+            "notes": "Cloud-hosted DuckDB with collaboration features.",
+            "categories": [
+              "HOSTED_OPEN_SOURCE"
+            ]
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 38,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "MotherDuck": {
+      "engine": "motherduck",
+      "engine_name": "MotherDuck",
+      "module": "duckdb",
+      "documentation": {
+        "description": "MotherDuck is a serverless cloud analytics platform built on DuckDB. It combines the simplicity of DuckDB with cloud-scale data sharing and collaboration.",
+        "logo": "motherduck.png",
+        "homepage_url": "https://motherduck.com/",
+        "pypi_packages": [
+          "duckdb-engine",
+          "duckdb",
+          "duckdb-engine"
+        ],
+        "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+        "drivers": [
+          {
+            "name": "duckdb-engine",
+            "pypi_package": "duckdb-engine",
+            "connection_string": "duckdb:////path/to/duck.db",
+            "is_recommended": true
+          },
+          {
+            "name": "duckdb-engine",
+            "pypi_package": "duckdb-engine",
+            "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+            "is_recommended": true
+          }
+        ],
+        "notes": "DuckDB supports both local file and in-memory databases. Use `:memory:` for in-memory database.",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "CLOUD_DATA_WAREHOUSES",
+          "HOSTED_OPEN_SOURCE"
+        ],
+        "parameters": {
+          "database": "MotherDuck database name",
+          "token": "Service token from MotherDuck dashboard"
+        },
+        "docs_url": "https://motherduck.com/docs/getting-started/"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Amazon DynamoDB": {
+      "engine": "amazon_dynamodb",
+      "engine_name": "Amazon DynamoDB",
+      "module": "dynamodb",
+      "documentation": {
+        "description": "Amazon DynamoDB is a serverless NoSQL database with SQL via PartiQL.",
+        "logo": "aws.png",
+        "homepage_url": "https://aws.amazon.com/dynamodb/",
+        "categories": [
+          "CLOUD_AWS",
+          "SEARCH_NOSQL",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "pydynamodb"
+        ],
+        "connection_string": "dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region}.amazonaws.com:443?connector=superset",
+        "parameters": {
+          "aws_access_key_id": "AWS access key ID",
+          "aws_secret_access_key": "AWS secret access key",
+          "region": "AWS region (e.g., us-east-1)"
+        },
+        "notes": "Uses PartiQL for SQL queries. Requires connector=superset parameter.",
+        "docs_url": "https://github.com/passren/PyDynamoDB"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Elasticsearch": {
+      "engine": "elasticsearch",
+      "engine_name": "Elasticsearch",
+      "module": "elasticsearch",
+      "documentation": {
+        "description": "Elasticsearch is a distributed search and analytics engine. Query data using Elasticsearch SQL or OpenSearch SQL syntax.",
+        "logo": "elasticsearch.png",
+        "homepage_url": "https://www.elastic.co/elasticsearch/",
+        "categories": [
+          "SEARCH_NOSQL",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "elasticsearch-dbapi"
+        ],
+        "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
+        "default_port": 9243,
+        "parameters": {
+          "user": "Elasticsearch username",
+          "password": "Elasticsearch password",
+          "host": "Elasticsearch host"
+        },
+        "drivers": [
+          {
+            "name": "Elasticsearch SQL API (Recommended)",
+            "pypi_package": "elasticsearch-dbapi",
+            "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
+            "is_recommended": true,
+            "notes": "For Elastic Cloud and self-hosted Elasticsearch with SQL enabled."
+          },
+          {
+            "name": "OpenDistro / OpenSearch SQL",
+            "pypi_package": "elasticsearch-dbapi",
+            "connection_string": "odelasticsearch+https://{user}:{password}@{host}:9200/",
+            "is_recommended": false,
+            "notes": "For OpenDistro Elasticsearch or Amazon OpenSearch Service."
+          }
+        ],
+        "compatible_databases": [
+          {
+            "name": "Elastic Cloud",
+            "description": "Elastic Cloud is the official managed Elasticsearch service from Elastic. It includes Elasticsearch, Kibana, and enterprise features with automatic scaling.",
+            "logo": "elasticsearch.png",
+            "homepage_url": "https://www.elastic.co/cloud/",
+            "categories": [
+              "SEARCH_NOSQL",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "elasticsearch-dbapi"
+            ],
+            "connection_string": "elasticsearch+https://{user}:{password}@{deployment}.{region}.cloud.es.io:9243/",
+            "docs_url": "https://www.elastic.co/guide/en/cloud/current/"
+          },
+          {
+            "name": "Amazon OpenSearch Service",
+            "description": "Amazon OpenSearch Service (successor to Amazon Elasticsearch Service) is a managed search and analytics service on AWS.",
+            "logo": "elasticsearch.png",
+            "homepage_url": "https://aws.amazon.com/opensearch-service/",
+            "categories": [
+              "SEARCH_NOSQL",
+              "CLOUD_AWS",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "elasticsearch-dbapi"
+            ],
+            "connection_string": "odelasticsearch+https://{user}:{password}@{host}:443/",
+            "docs_url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/"
+          }
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Exasol": {
+      "engine": "exasol",
+      "engine_name": "Exasol",
+      "module": "exasol",
+      "documentation": {
+        "description": "Exasol is a high-performance, in-memory, MPP analytical database.",
+        "logo": "exasol.png",
+        "homepage_url": "https://www.exasol.com/",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-exasol"
+        ],
+        "connection_string": "exa+pyodbc://{username}:{password}@{dsn}",
+        "default_port": 8563,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "dsn": "DSN name configured in odbc.ini"
+        },
+        "drivers": [
+          {
+            "name": "pyodbc",
+            "pypi_package": "sqlalchemy-exasol",
+            "connection_string": "exa+pyodbc://{username}:{password}@{dsn}",
+            "is_recommended": true,
+            "notes": "Requires ODBC driver and DSN configuration."
+          },
+          {
+            "name": "turbodbc",
+            "pypi_package": "sqlalchemy-exasol[turbodbc]",
+            "connection_string": "exa+turbodbc://{username}:{password}@{dsn}",
+            "is_recommended": false,
+            "notes": "Faster but requires additional dependencies."
+          },
+          {
+            "name": "websocket",
+            "pypi_package": "sqlalchemy-exasol[websocket]",
+            "connection_string": "exa+websocket://{username}:{password}@{host}:{port}/{schema}",
+            "is_recommended": false,
+            "notes": "Pure Python, no ODBC required."
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 28,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Firebird": {
+      "engine": "firebird",
+      "engine_name": "Firebird",
+      "module": "firebird",
+      "documentation": {
+        "description": "Firebird is an open-source relational database.",
+        "logo": "firebird.png",
+        "homepage_url": "https://firebirdsql.org/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-firebird"
+        ],
+        "version_requirements": "sqlalchemy-firebird>=0.7.0,<0.8",
+        "connection_string": "firebird+fdb://{username}:{password}@{host}:{port}//{path_to_db_file}",
+        "default_port": 3050,
+        "connection_examples": [
+          {
+            "description": "Local database",
+            "connection_string": "firebird+fdb://SYSDBA:masterkey@192.168.86.38:3050//Library/Frameworks/Firebird.framework/Versions/A/Resources/examples/empbuild/employee.fdb"
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": false,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": false,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 26,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Firebolt": {
+      "engine": "firebolt",
+      "engine_name": "Firebolt",
+      "module": "firebolt",
+      "documentation": {
+        "description": "Firebolt is a cloud data warehouse designed for high-performance analytics.",
+        "logo": "firebolt.png",
+        "homepage_url": "https://www.firebolt.io/",
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "firebolt-sqlalchemy"
+        ],
+        "connection_string": "firebolt://{client_id}:{client_secret}@{database}/{engine_name}?account_name={account_name}",
+        "parameters": {
+          "client_id": "Service account client ID",
+          "client_secret": "Service account client secret",
+          "database": "Database name",
+          "engine_name": "Engine name",
+          "account_name": "Account name"
+        },
+        "drivers": [
+          {
+            "name": "firebolt-sqlalchemy",
+            "pypi_package": "firebolt-sqlalchemy",
+            "connection_string": "firebolt://{client_id}:{client_secret}@{database}/{engine_name}?account_name={account_name}",
+            "is_recommended": true
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 28,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Greenplum": {
+      "engine": "greenplum",
+      "engine_name": "Greenplum",
+      "module": "greenplum",
+      "documentation": {
+        "description": "VMware Greenplum is a massively parallel processing (MPP) database built on PostgreSQL.",
+        "logo": "greenplum.png",
+        "homepage_url": "https://greenplum.org/",
+        "pypi_packages": [
+          "psycopg2",
+          "sqlalchemy-greenplum",
+          "psycopg2"
+        ],
+        "connection_string": "greenplum://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 5432,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "Greenplum coordinator host",
+          "port": "Default 5432",
+          "database": "Database name"
+        },
+        "notes": "The psycopg2 library comes bundled with Superset Docker images.",
+        "connection_examples": [
+          {
+            "description": "Basic connection",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}"
+          },
+          {
+            "description": "With SSL required",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"
+          }
+        ],
+        "docs_url": "https://docs.vmware.com/en/VMware-Greenplum/",
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Google Sheets": {
+      "engine": "google_sheets",
+      "engine_name": "Google Sheets",
+      "module": "gsheets",
+      "documentation": {
+        "description": "Google Sheets allows querying spreadsheets as SQL tables via shillelagh.",
+        "logo": "google-sheets.svg",
+        "homepage_url": "https://www.google.com/sheets/about/",
+        "pypi_packages": [
+          "shillelagh[gsheetsapi]",
+          "shillelagh[gsheetsapi]"
+        ],
+        "connection_string": "gsheets://",
+        "notes": "Requires Google service account credentials or OAuth2 authentication. See docs for setup instructions.",
+        "categories": [
+          "CLOUD_GCP",
+          "HOSTED_OPEN_SOURCE"
+        ],
+        "install_instructions": "pip install \"apache-superset[gsheets]\""
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": true,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": true,
+        "HOUR": true,
+        "SIX_HOURS": true,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": true,
+        "WEEK_STARTING_MONDAY": true,
+        "WEEK_ENDING_SATURDAY": true,
+        "WEEK_ENDING_SUNDAY": true,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": true,
+        "YEAR": true
+      },
+      "score": 61,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": true,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "SAP HANA": {
+      "engine": "sap_hana",
+      "engine_name": "SAP HANA",
+      "module": "hana",
+      "documentation": {
+        "description": "SAP HANA is an in-memory relational database and application platform.",
+        "logo": "sap-hana.png",
+        "homepage_url": "https://www.sap.com/products/technology-platform/hana.html",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "hdbcli",
+          "sqlalchemy-hana"
+        ],
+        "install_instructions": "pip install apache_superset[hana]",
+        "connection_string": "hana://{username}:{password}@{host}:{port}",
+        "default_port": 30015,
+        "docs_url": "https://github.com/SAP/sqlalchemy-hana"
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": false,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 27,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Apache Hive": {
+      "engine": "apache_hive",
+      "engine_name": "Apache Hive",
+      "module": "hive",
+      "documentation": {
+        "description": "Apache Hive is a data warehouse infrastructure built on Hadoop.",
+        "logo": "apache-hive.svg",
+        "homepage_url": "https://hive.apache.org/",
+        "pypi_packages": [
+          "pyhive",
+          "pyhive"
+        ],
+        "install_instructions": "pip install \"apache-superset[presto]\"",
+        "connection_string": "hive://hive@{hostname}:{port}/{database}",
+        "default_port": 10000,
+        "parameters": {
+          "hostname": "Presto coordinator hostname",
+          "port": "Presto coordinator port (default 8080)",
+          "database": "Catalog name"
+        },
+        "drivers": [
+          {
+            "name": "PyHive",
+            "pypi_package": "pyhive",
+            "connection_string": "presto://{hostname}:{port}/{database}",
+            "is_recommended": true
+          }
+        ],
+        "categories": [
+          "APACHE_PROJECTS",
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": true,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": true,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 140,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": true,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": true,
+      "query_cost_estimation": true,
+      "sql_validation": false
+    },
+    "Hologres": {
+      "engine": "hologres",
+      "engine_name": "Hologres",
+      "module": "hologres",
+      "documentation": {
+        "description": "Alibaba Cloud Hologres is a real-time interactive analytics service, fully compatible with PostgreSQL 11.",
+        "logo": "hologres.png",
+        "homepage_url": "https://www.alibabacloud.com/product/hologres",
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "psycopg2"
+        ],
+        "connection_string": "postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}",
+        "parameters": {
+          "username": "AccessKey ID of your Alibaba Cloud account",
+          "password": "AccessKey secret of your Alibaba Cloud account",
+          "host": "Public endpoint of the Hologres instance",
+          "port": "Port number of the Hologres instance",
+          "database": "Name of the Hologres database"
+        },
+        "default_port": 80,
+        "notes": "Uses the PostgreSQL driver. psycopg2 comes bundled with Superset."
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "IBM Db2 for i": {
+      "engine": "ibm_db2_for_i",
+      "engine_name": "IBM Db2 for i",
+      "module": "ibmi",
+      "documentation": {
+        "description": "IBM Db2 is a family of data management products for enterprise workloads, available on-premises, in containers, and across cloud platforms.",
+        "logo": "ibm-db2.svg",
+        "homepage_url": "https://www.ibm.com/db2",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "ibm_db_sa"
+        ],
+        "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+        "default_port": 50000,
+        "drivers": [
+          {
+            "name": "ibm_db_sa (with LIMIT)",
+            "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+            "is_recommended": true
+          },
+          {
+            "name": "ibm_db_sa (without LIMIT syntax)",
+            "connection_string": "ibm_db_sa://{username}:{password}@{hostname}:{port}/{database}",
+            "is_recommended": false,
+            "notes": "Use for older DB2 versions without LIMIT [n] syntax. Recommended for SQL Lab."
+          }
+        ],
+        "docs_url": "https://github.com/ibmdb/python-ibmdbsa"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Apache Impala": {
+      "engine": "apache_impala",
+      "engine_name": "Apache Impala",
+      "module": "impala",
+      "documentation": {
+        "description": "Apache Impala is an open-source massively parallel processing SQL query engine.",
+        "logo": "apache-impala.png",
+        "homepage_url": "https://impala.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "impyla"
+        ],
+        "connection_string": "impala://{hostname}:{port}/{database}",
+        "default_port": 21050
+      },
+      "time_grains": {
+        "SECOND": false,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 37,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Azure Data Explorer": {
+      "engine": "azure_data_explorer",
+      "engine_name": "Azure Data Explorer",
+      "module": "kusto",
+      "documentation": {
+        "description": "Azure Data Explorer (Kusto) is a fast, fully managed data analytics service from Microsoft Azure. Query data using SQL or native KQL syntax.",
+        "logo": "kusto.png",
+        "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
+        "categories": [
+          "CLOUD_AZURE",
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-kusto"
+        ],
+        "connection_string": "kustosql+https://{cluster}.kusto.windows.net/{database}?msi=False&azure_ad_client_id={client_id}&azure_ad_client_secret={client_secret}&azure_ad_tenant_id={tenant_id}",
+        "parameters": {
+          "cluster": "Azure Data Explorer cluster name",
+          "database": "Database name",
+          "client_id": "Azure AD application (client) ID",
+          "client_secret": "Azure AD application secret",
+          "tenant_id": "Azure AD tenant ID"
+        },
+        "drivers": [
+          {
+            "name": "SQL Interface (Recommended)",
+            "pypi_package": "sqlalchemy-kusto",
+            "connection_string": "kustosql+https://{cluster}.kusto.windows.net/{database}?msi=False&azure_ad_client_id={client_id}&azure_ad_client_secret={client_secret}&azure_ad_tenant_id={tenant_id}",
+            "is_recommended": true,
+            "notes": "Use familiar SQL syntax to query Azure Data Explorer."
+          },
+          {
+            "name": "KQL (Kusto Query Language)",
+            "pypi_package": "sqlalchemy-kusto",
+            "connection_string": "kustokql+https://{cluster}.kusto.windows.net/{database}?msi=False&azure_ad_client_id={client_id}&azure_ad_client_secret={client_secret}&azure_ad_tenant_id={tenant_id}",
+            "is_recommended": false,
+            "notes": "Use native Kusto Query Language for advanced analytics."
+          }
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Apache Kylin": {
+      "engine": "apache_kylin",
+      "engine_name": "Apache Kylin",
+      "module": "kylin",
+      "documentation": {
+        "description": "Apache Kylin is an open-source OLAP engine for big data.",
+        "logo": "apache-kylin.png",
+        "homepage_url": "https://kylin.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "kylinpy"
+        ],
+        "connection_string": "kylin://{username}:{password}@{hostname}:{port}/{project}?{param1}={value1}&{param2}={value2}",
+        "default_port": 7070
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 28,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "MariaDB": {
+      "engine": "mariadb",
+      "engine_name": "MariaDB",
+      "module": "mariadb",
+      "documentation": {
+        "description": "MariaDB is a community-developed fork of MySQL.",
+        "logo": "mariadb.png",
+        "homepage_url": "https://mariadb.org/",
+        "pypi_packages": [
+          "mysqlclient",
+          "mysqlclient"
+        ],
+        "connection_string": "mysql://{username}:{password}@{host}/{database}",
+        "default_port": 3306,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "localhost, 127.0.0.1, IP address, or hostname",
+          "database": "Database name"
+        },
+        "host_examples": [
+          {
+            "platform": "Localhost",
+            "host": "localhost or 127.0.0.1"
+          },
+          {
+            "platform": "Docker on Linux",
+            "host": "172.18.0.1"
+          },
+          {
+            "platform": "Docker on macOS",
+            "host": "docker.for.mac.host.internal"
+          },
+          {
+            "platform": "On-premise",
+            "host": "IP address or hostname"
+          }
+        ],
+        "drivers": [
+          {
+            "name": "mysqlclient",
+            "pypi_package": "mysqlclient",
+            "connection_string": "mysql://{username}:{password}@{host}/{database}",
+            "is_recommended": true,
+            "notes": "Recommended driver. May fail with caching_sha2_password auth."
+          },
+          {
+            "name": "mysql-connector-python",
+            "pypi_package": "mysql-connector-python",
+            "connection_string": "mysql+mysqlconnector://{username}:{password}@{host}/{database}",
+            "is_recommended": false,
+            "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
+          }
+        ],
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "notes": "Uses the MySQL driver. Fully compatible with MySQL connector."
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": true,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 59,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "MonetDB": {
+      "engine": "monetdb",
+      "engine_name": "MonetDB",
+      "module": "monetdb",
+      "documentation": {
+        "description": "MonetDB is an open-source column-oriented relational database for high-performance analytics.",
+        "logo": "monet-db.png",
+        "homepage_url": "https://www.monetdb.org/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-monetdb",
+          "pymonetdb"
+        ],
+        "connection_string": "monetdb://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 50000,
+        "parameters": {
+          "username": "Database username (default: monetdb)",
+          "password": "Database password (default: monetdb)",
+          "host": "MonetDB server host",
+          "port": "Default 50000",
+          "database": "Database name"
+        },
+        "docs_url": "https://www.monetdb.org/documentation/"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Microsoft SQL Server": {
+      "engine": "microsoft_sql_server",
+      "engine_name": "Microsoft SQL Server",
+      "module": "mssql",
+      "documentation": {
+        "description": "Microsoft SQL Server is a relational database management system.",
+        "logo": "msql.png",
+        "homepage_url": "https://www.microsoft.com/en-us/sql-server",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "pymssql"
+        ],
+        "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 1433,
+        "drivers": [
+          {
+            "name": "pymssql",
+            "pypi_package": "pymssql",
+            "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": true
+          },
+          {
+            "name": "pyodbc",
+            "pypi_package": "pyodbc",
+            "connection_string": "mssql+pyodbc:///?odbc_connect=Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3BServer%3Dtcp%3A%3C{host}%3E%2C1433%3BDatabase%3D{database}%3BUid%3D{username}%3BPwd%3D{password}%3BEncrypt%3Dyes%3BConnection+Timeout%3D30",
+            "is_recommended": false,
+            "notes": "Connection string must be URL-encoded. Special characters like @ need encoding."
+          }
+        ],
+        "docs_url": "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": true,
+        "WEEK_STARTING_MONDAY": true,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 44,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Azure Synapse": {
+      "engine": "azure_synapse",
+      "engine_name": "Azure Synapse",
+      "module": "mssql",
+      "documentation": {
+        "description": "Azure Synapse Analytics is a cloud-based enterprise data warehouse from Microsoft that combines big data and data warehousing.",
+        "logo": "azure.svg",
+        "homepage_url": "https://azure.microsoft.com/en-us/products/synapse-analytics/",
+        "pypi_packages": [
+          "pymssql",
+          "pymssql"
+        ],
+        "connection_string": "mssql+pymssql://{username}@{server}:{password}@{server}.database.windows.net:1433/{database}",
+        "default_port": 1433,
+        "drivers": [
+          {
+            "name": "pymssql",
+            "pypi_package": "pymssql",
+            "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": true
+          },
+          {
+            "name": "pyodbc",
+            "pypi_package": "pyodbc",
+            "connection_string": "mssql+pyodbc:///?odbc_connect=Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3BServer%3Dtcp%3A%3C{host}%3E%2C1433%3BDatabase%3D{database}%3BUid%3D{username}%3BPwd%3D{password}%3BEncrypt%3Dyes%3BConnection+Timeout%3D30",
+            "is_recommended": false,
+            "notes": "Connection string must be URL-encoded. Special characters like @ need encoding."
+          }
+        ],
+        "docs_url": "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords",
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "MySQL": {
+      "engine": "mysql",
+      "engine_name": "MySQL",
+      "module": "mysql",
+      "documentation": {
+        "description": "MySQL is a popular open-source relational database.",
+        "logo": "mysql.png",
+        "homepage_url": "https://www.mysql.com/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "mysqlclient"
+        ],
+        "connection_string": "mysql://{username}:{password}@{host}/{database}",
+        "default_port": 3306,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "localhost, 127.0.0.1, IP address, or hostname",
+          "database": "Database name"
+        },
+        "host_examples": [
+          {
+            "platform": "Localhost",
+            "host": "localhost or 127.0.0.1"
+          },
+          {
+            "platform": "Docker on Linux",
+            "host": "172.18.0.1"
+          },
+          {
+            "platform": "Docker on macOS",
+            "host": "docker.for.mac.host.internal"
+          },
+          {
+            "platform": "On-premise",
+            "host": "IP address or hostname"
+          }
+        ],
+        "drivers": [
+          {
+            "name": "mysqlclient",
+            "pypi_package": "mysqlclient",
+            "connection_string": "mysql://{username}:{password}@{host}/{database}",
+            "is_recommended": true,
+            "notes": "Recommended driver. May fail with caching_sha2_password auth."
+          },
+          {
+            "name": "mysql-connector-python",
+            "pypi_package": "mysql-connector-python",
+            "connection_string": "mysql+mysqlconnector://{username}:{password}@{host}/{database}",
+            "is_recommended": false,
+            "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
+          }
+        ],
+        "compatible_databases": [
+          {
+            "name": "MariaDB",
+            "description": "MariaDB is a community-developed fork of MySQL, fully compatible with MySQL.",
+            "logo": "mariadb.png",
+            "homepage_url": "https://mariadb.org/",
+            "pypi_packages": [
+              "mysqlclient"
+            ],
+            "connection_string": "mysql://{username}:{password}@{host}:{port}/{database}",
+            "categories": [
+              "OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Amazon Aurora MySQL",
+            "description": "Amazon Aurora MySQL is a fully managed, MySQL-compatible relational database with up to 5x the throughput of standard MySQL.",
+            "logo": "aws-aurora.jpg",
+            "homepage_url": "https://aws.amazon.com/rds/aurora/",
+            "pypi_packages": [
+              "sqlalchemy-aurora-data-api"
+            ],
+            "connection_string": "mysql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/{database_name}?aurora_cluster_arn={aurora_cluster_arn}&secret_arn={secret_arn}&region_name={region_name}",
+            "parameters": {
+              "aws_access_id": "AWS Access Key ID",
+              "aws_secret_access_key": "AWS Secret Access Key",
+              "database_name": "Database name",
+              "aurora_cluster_arn": "Aurora cluster ARN",
+              "secret_arn": "Secrets Manager ARN for credentials",
+              "region_name": "AWS region (e.g., us-east-1)"
+            },
+            "notes": "Uses the Data API for serverless access. Standard MySQL connections also work with mysqlclient.",
+            "categories": [
+              "CLOUD_AWS",
+              "HOSTED_OPEN_SOURCE"
+            ]
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": true,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 59,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "IBM Netezza Performance Server": {
+      "engine": "ibm_netezza_performance_server",
+      "engine_name": "IBM Netezza Performance Server",
+      "module": "netezza",
+      "documentation": {
+        "description": "IBM Netezza Performance Server is a data warehouse appliance.",
+        "logo": "netezza.png",
+        "homepage_url": "https://www.ibm.com/products/netezza",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "nzalchemy"
+        ],
+        "connection_string": "netezza+nzpy://{username}:{password}@{hostname}:{port}/{database}",
+        "default_port": 5480
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "OceanBase": {
+      "engine": "oceanbase",
+      "engine_name": "OceanBase",
+      "module": "oceanbase",
+      "documentation": {
+        "description": "OceanBase is a distributed relational database.",
+        "logo": "oceanbase.svg",
+        "homepage_url": "https://www.oceanbase.com/",
+        "pypi_packages": [
+          "mysqlclient",
+          "oceanbase_py"
+        ],
+        "connection_string": "oceanbase://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 3306,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "localhost, 127.0.0.1, IP address, or hostname",
+          "database": "Database name"
+        },
+        "host_examples": [
+          {
+            "platform": "Localhost",
+            "host": "localhost or 127.0.0.1"
+          },
+          {
+            "platform": "Docker on Linux",
+            "host": "172.18.0.1"
+          },
+          {
+            "platform": "Docker on macOS",
+            "host": "docker.for.mac.host.internal"
+          },
+          {
+            "platform": "On-premise",
+            "host": "IP address or hostname"
+          }
+        ],
+        "drivers": [
+          {
+            "name": "mysqlclient",
+            "pypi_package": "mysqlclient",
+            "connection_string": "mysql://{username}:{password}@{host}/{database}",
+            "is_recommended": true,
+            "notes": "Recommended driver. May fail with caching_sha2_password auth."
+          },
+          {
+            "name": "mysql-connector-python",
+            "pypi_package": "mysql-connector-python",
+            "connection_string": "mysql+mysqlconnector://{username}:{password}@{host}/{database}",
+            "is_recommended": false,
+            "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
+          }
+        ],
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Ocient": {
+      "engine": "ocient",
+      "engine_name": "Ocient",
+      "module": "ocient",
+      "documentation": {
+        "description": "Ocient is a hyperscale data analytics database.",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-ocient"
+        ],
+        "connection_string": "ocient://{username}:{password}@{host}:{port}/{database}",
+        "install_instructions": "pip install sqlalchemy-ocient"
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": false,
+        "QUARTER_YEAR": true,
+        "YEAR": true
+      },
+      "score": 38,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Oracle": {
+      "engine": "oracle",
+      "engine_name": "Oracle",
+      "module": "oracle",
+      "documentation": {
+        "description": "Oracle Database is a multi-model database management system.",
+        "logo": "oraclelogo.png",
+        "homepage_url": "https://www.oracle.com/database/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "oracledb"
+        ],
+        "connection_string": "oracle://{username}:{password}@{hostname}:{port}",
+        "default_port": 1521,
+        "notes": "Previously used cx_Oracle, now uses oracledb.",
+        "docs_url": "https://cx-oracle.readthedocs.io/en/latest/user_guide/installation.html"
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 28,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Parseable": {
+      "engine": "parseable",
+      "engine_name": "Parseable",
+      "module": "parseable",
+      "documentation": {
+        "description": "Parseable is a distributed log analytics database with SQL-like query interface.",
+        "categories": [
+          "SEARCH_NOSQL",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-parseable"
+        ],
+        "connection_string": "parseable://{username}:{password}@{hostname}:{port}/{stream_name}",
+        "connection_examples": [
+          {
+            "description": "Example connection",
+            "connection_string": "parseable://admin:admin@demo.parseable.com:443/ingress-nginx"
+          }
+        ],
+        "notes": "Stream name in URI represents the Parseable logstream to query. Supports HTTP (80) and HTTPS (443).",
+        "docs_url": "https://www.parseable.io"
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 28,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Apache Pinot": {
+      "engine": "apache_pinot",
+      "engine_name": "Apache Pinot",
+      "module": "pinot",
+      "documentation": {
+        "description": "Apache Pinot is a real-time distributed OLAP datastore.",
+        "logo": "apache-pinot.svg",
+        "homepage_url": "https://pinot.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "TIME_SERIES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "pinotdb"
+        ],
+        "connection_string": "pinot+http://{broker_host}:{broker_port}/query?controller=http://{controller_host}:{controller_port}/",
+        "default_port": 8099,
+        "connection_examples": [
+          {
+            "description": "With authentication",
+            "connection_string": "pinot://{username}:{password}@{broker_host}:{broker_port}/query/sql?controller=http://{controller_host}:{controller_port}/verify_ssl=true"
+          }
+        ],
+        "engine_parameters": [
+          {
+            "name": "Multi-stage Query Engine",
+            "description": "Enable for Explore view, joins, window functions",
+            "json": {
+              "connect_args": {
+                "use_multistage_engine": "true"
+              }
+            },
+            "docs_url": "https://docs.pinot.apache.org/reference/multi-stage-engine"
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 32,
+      "max_score": 201,
+      "joins": false,
+      "subqueries": false,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "PostgreSQL": {
+      "engine": "postgresql",
+      "engine_name": "PostgreSQL",
+      "module": "postgres",
+      "documentation": {
+        "description": "PostgreSQL is an advanced open-source relational database.",
+        "logo": "postgresql.svg",
+        "homepage_url": "https://www.postgresql.org/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "psycopg2"
+        ],
+        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 5432,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "For localhost: localhost or 127.0.0.1. For AWS: endpoint URL",
+          "port": "Default 5432",
+          "database": "Database name"
+        },
+        "notes": "The psycopg2 library comes bundled with Superset Docker images.",
+        "connection_examples": [
+          {
+            "description": "Basic connection",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}"
+          },
+          {
+            "description": "With SSL required",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"
+          }
+        ],
+        "docs_url": "https://www.postgresql.org/docs/",
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html",
+        "compatible_databases": [
+          {
+            "name": "Hologres",
+            "description": "Alibaba Cloud real-time interactive analytics service, fully compatible with PostgreSQL 11.",
+            "logo": "hologres.png",
+            "homepage_url": "https://www.alibabacloud.com/product/hologres",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}",
+            "parameters": {
+              "username": "AccessKey ID of your Alibaba Cloud account",
+              "password": "AccessKey secret of your Alibaba Cloud account",
+              "host": "Public endpoint of the Hologres instance",
+              "port": "Port number of the Hologres instance",
+              "database": "Name of the Hologres database"
+            },
+            "categories": [
+              "PROPRIETARY"
+            ]
+          },
+          {
+            "name": "TimescaleDB",
+            "description": "Open-source relational database for time-series and analytics, built on PostgreSQL.",
+            "logo": "timescale.png",
+            "homepage_url": "https://www.timescale.com/",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+            "connection_examples": [
+              {
+                "description": "Timescale Cloud (SSL required)",
+                "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"
+              }
+            ],
+            "notes": "psycopg2 comes bundled with Superset Docker images.",
+            "docs_url": "https://docs.timescale.com/",
+            "categories": [
+              "OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "YugabyteDB",
+            "description": "Distributed SQL database built on top of PostgreSQL.",
+            "logo": "yugabyte.png",
+            "homepage_url": "https://www.yugabyte.com/",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+            "notes": "psycopg2 comes bundled with Superset Docker images.",
+            "docs_url": "https://www.yugabyte.com/",
+            "categories": [
+              "OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Amazon Aurora PostgreSQL",
+            "description": "Amazon Aurora PostgreSQL is a fully managed, PostgreSQL-compatible relational database with up to 5x the throughput of standard PostgreSQL.",
+            "logo": "aws-aurora.jpg",
+            "homepage_url": "https://aws.amazon.com/rds/aurora/",
+            "pypi_packages": [
+              "sqlalchemy-aurora-data-api"
+            ],
+            "connection_string": "postgresql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/{database_name}?aurora_cluster_arn={aurora_cluster_arn}&secret_arn={secret_arn}&region_name={region_name}",
+            "parameters": {
+              "aws_access_id": "AWS Access Key ID",
+              "aws_secret_access_key": "AWS Secret Access Key",
+              "database_name": "Database name",
+              "aurora_cluster_arn": "Aurora cluster ARN",
+              "secret_arn": "Secrets Manager ARN for credentials",
+              "region_name": "AWS region (e.g., us-east-1)"
+            },
+            "notes": "Uses the Data API for serverless access. Standard PostgreSQL connections also work with psycopg2.",
+            "categories": [
+              "CLOUD_AWS",
+              "HOSTED_OPEN_SOURCE"
+            ]
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": true,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 104,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": true,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": true,
+      "sql_validation": true
+    },
+    "Presto": {
+      "engine": "presto",
+      "engine_name": "Presto",
+      "module": "presto",
+      "documentation": {
+        "description": "Presto is a distributed SQL query engine for big data.",
+        "logo": "presto-og.png",
+        "homepage_url": "https://prestodb.io/",
+        "categories": [
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "pyhive"
+        ],
+        "install_instructions": "pip install \"apache-superset[presto]\"",
+        "connection_string": "presto://{hostname}:{port}/{database}",
+        "default_port": 8080,
+        "parameters": {
+          "hostname": "Presto coordinator hostname",
+          "port": "Presto coordinator port (default 8080)",
+          "database": "Catalog name"
+        },
+        "drivers": [
+          {
+            "name": "PyHive",
+            "pypi_package": "pyhive",
+            "connection_string": "presto://{hostname}:{port}/{database}",
+            "is_recommended": true
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": true,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": true,
+        "HOUR": true,
+        "SIX_HOURS": true,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": true,
+        "WEEK_STARTING_MONDAY": true,
+        "WEEK_ENDING_SATURDAY": true,
+        "WEEK_ENDING_SUNDAY": true,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 159,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": true,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": true,
+      "query_cost_estimation": true,
+      "sql_validation": true
+    },
+    "Amazon Redshift": {
+      "engine": "amazon_redshift",
+      "engine_name": "Amazon Redshift",
+      "module": "redshift",
+      "documentation": {
+        "description": "Amazon Redshift is a fully managed data warehouse service.",
+        "logo": "redshift.png",
+        "homepage_url": "https://aws.amazon.com/redshift/",
+        "categories": [
+          "CLOUD_AWS",
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-redshift"
+        ],
+        "connection_string": "redshift+psycopg2://{username}:{password}@{host}:5439/{database}",
+        "default_port": 5439,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "AWS Endpoint",
+          "port": "Default 5439",
+          "database": "Database name"
+        },
+        "drivers": [
+          {
+            "name": "psycopg2",
+            "pypi_package": "psycopg2",
+            "connection_string": "redshift+psycopg2://{username}:{password}@{host}:5439/{database}",
+            "is_recommended": true
+          },
+          {
+            "name": "redshift_connector",
+            "pypi_package": "redshift_connector",
+            "connection_string": "redshift+redshift_connector://{username}:{password}@{host}:5439/{database}",
+            "is_recommended": false,
+            "notes": "Supports IAM-based credentials for clusters and serverless."
+          }
+        ],
+        "authentication_methods": [
+          {
+            "name": "IAM Credentials (Cluster)",
+            "description": "Use IAM-based temporary database credentials for Redshift clusters",
+            "requirements": "IAM role must have redshift:GetClusterCredentials permission",
+            "connection_string": "redshift+redshift_connector://",
+            "engine_parameters": {
+              "connect_args": {
+                "iam": true,
+                "database": "<database>",
+                "cluster_identifier": "<cluster_identifier>",
+                "db_user": "<db_user>"
+              }
+            }
+          },
+          {
+            "name": "IAM Credentials (Serverless)",
+            "description": "Use IAM-based credentials for Redshift Serverless",
+            "requirements": "IAM role must have redshift-serverless:GetCredentials and redshift-serverless:GetWorkgroup permissions",
+            "connection_string": "redshift+redshift_connector://",
+            "engine_parameters": {
+              "connect_args": {
+                "iam": true,
+                "is_serverless": true,
+                "serverless_acct_id": "<aws account number>",
+                "serverless_work_group": "<redshift work group>",
+                "database": "<database>",
+                "user": "IAMR:<superset iam role name>"
+              }
+            }
+          }
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "RisingWave": {
+      "engine": "risingwave",
+      "engine_name": "RisingWave",
+      "module": "risingwave",
+      "documentation": {
+        "description": "RisingWave is a distributed streaming database.",
+        "logo": "risingwave.png",
+        "homepage_url": "https://risingwave.com/",
+        "pypi_packages": [
+          "psycopg2",
+          "sqlalchemy-risingwave"
+        ],
+        "connection_string": "risingwave://root@{hostname}:{port}/{database}?sslmode=disable",
+        "default_port": 4566,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "For localhost: localhost or 127.0.0.1. For AWS: endpoint URL",
+          "port": "Default 5432",
+          "database": "Database name"
+        },
+        "notes": "The psycopg2 library comes bundled with Superset Docker images.",
+        "connection_examples": [
+          {
+            "description": "Basic connection",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}"
+          },
+          {
+            "description": "With SSL required",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"
+          }
+        ],
+        "docs_url": "https://github.com/risingwavelabs/sqlalchemy-risingwave",
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": true,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 94,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": true,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": true,
+      "sql_validation": false
+    },
+    "Shillelagh": {
+      "engine": "shillelagh",
+      "engine_name": "Shillelagh",
+      "module": "shillelagh",
+      "documentation": {
+        "description": "Shillelagh is a Python library that allows querying many data sources using SQL, including Google Sheets, CSV files, and APIs.",
+        "logo": "shillelagh.png",
+        "homepage_url": "https://shillelagh.readthedocs.io/",
+        "pypi_packages": [
+          "shillelagh[gsheetsapi]"
+        ],
+        "connection_string": "shillelagh://",
+        "notes": "Shillelagh uses virtual tables to query external data sources. Google Sheets requires OAuth credentials configured.",
+        "categories": [
+          "OTHER",
+          "OPEN_SOURCE"
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "SingleStore": {
+      "engine": "singlestore",
+      "engine_name": "SingleStore",
+      "module": "singlestore",
+      "documentation": {
+        "description": "SingleStore is a distributed SQL database for real-time analytics and transactions.",
+        "logo": "singlestore.png",
+        "homepage_url": "https://www.singlestore.com/",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "singlestoredb"
+        ],
+        "connection_string": "singlestoredb://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 3306,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "SingleStore host",
+          "port": "SingleStore port (default 3306)",
+          "database": "Database name"
+        },
+        "drivers": [
+          {
+            "name": "singlestoredb",
+            "pypi_package": "singlestoredb",
+            "connection_string": "singlestoredb://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": true
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 68,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Snowflake": {
+      "engine": "snowflake",
+      "engine_name": "Snowflake",
+      "module": "snowflake",
+      "documentation": {
+        "description": "Snowflake is a cloud-native data warehouse.",
+        "logo": "snowflake.svg",
+        "homepage_url": "https://www.snowflake.com/",
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "snowflake-sqlalchemy"
+        ],
+        "connection_string": "snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}",
+        "install_instructions": "echo \"snowflake-sqlalchemy\" >> ./docker/requirements-local.txt",
+        "connection_examples": [
+          {
+            "description": "With role and warehouse",
+            "connection_string": "snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}"
+          },
+          {
+            "description": "With defaults (role/warehouse optional)",
+            "connection_string": "snowflake://{user}:{password}@{account}.{region}/{database}"
+          }
+        ],
+        "authentication_methods": [
+          {
+            "name": "Key Pair Authentication",
+            "description": "Use RSA key pair instead of password",
+            "requirements": "Key pair must be generated and public key registered in Snowflake",
+            "notes": "Merge multi-line private key to one line with \\n between lines."
+          }
+        ],
+        "notes": "Schema is not required in connection string. Ensure user has privileges for all databases/schemas/tables/views/warehouses.",
+        "docs_url": "https://docs.snowflake.com/en/user-guide/key-pair-auth.html"
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 72,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": true,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Apache Solr": {
+      "engine": "apache_solr",
+      "engine_name": "Apache Solr",
+      "module": "solr",
+      "documentation": {
+        "description": "Apache Solr is an open-source enterprise search platform.",
+        "logo": "apache-solr.png",
+        "homepage_url": "https://solr.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "SEARCH_NOSQL",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-solr"
+        ],
+        "connection_string": "solr://{username}:{password}@{host}:{port}/{server_path}/{collection}[/?use_ssl=true|false]",
+        "default_port": 8983
+      },
+      "time_grains": {
+        "SECOND": false,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": false,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": false,
+        "SIX_HOURS": false,
+        "DAY": false,
+        "WEEK": false,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": false,
+        "QUARTER": false,
+        "QUARTER_YEAR": false,
+        "YEAR": false
+      },
+      "score": 20,
+      "max_score": 201,
+      "joins": false,
+      "subqueries": false,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Apache Spark SQL": {
+      "engine": "apache_spark_sql",
+      "engine_name": "Apache Spark SQL",
+      "module": "spark",
+      "documentation": {
+        "description": "Apache Spark SQL is a module for structured data processing.",
+        "logo": "apache-spark.png",
+        "homepage_url": "https://spark.apache.org/sql/",
+        "pypi_packages": [
+          "pyhive",
+          "pyhive",
+          "pyhive"
+        ],
+        "install_instructions": "pip install \"apache-superset[presto]\"",
+        "connection_string": "hive://hive@{hostname}:{port}/{database}",
+        "default_port": 10000,
+        "parameters": {
+          "hostname": "Presto coordinator hostname",
+          "port": "Presto coordinator port (default 8080)",
+          "database": "Catalog name"
+        },
+        "drivers": [
+          {
+            "name": "PyHive",
+            "pypi_package": "pyhive",
+            "connection_string": "presto://{hostname}:{port}/{database}",
+            "is_recommended": true
+          }
+        ],
+        "categories": [
+          "APACHE_PROJECTS",
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": true,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": true,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 140,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": true,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": true,
+      "query_cost_estimation": true,
+      "sql_validation": false
+    },
+    "SQLite": {
+      "engine": "sqlite",
+      "engine_name": "SQLite",
+      "module": "sqlite",
+      "documentation": {
+        "description": "SQLite is a self-contained, serverless SQL database engine.",
+        "logo": "sqlite.png",
+        "homepage_url": "https://www.sqlite.org/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [],
+        "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",
+        "notes": "No additional library needed. SQLite is bundled with Python."
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": true,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": true,
+        "HOUR": true,
+        "SIX_HOURS": true,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": true,
+        "WEEK_STARTING_MONDAY": true,
+        "WEEK_ENDING_SATURDAY": true,
+        "WEEK_ENDING_SUNDAY": true,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": true,
+        "YEAR": true
+      },
+      "score": 41,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "StarRocks": {
+      "engine": "starrocks",
+      "engine_name": "StarRocks",
+      "module": "starrocks",
+      "documentation": {
+        "description": "StarRocks is a high-performance analytical database for real-time analytics.",
+        "logo": "starrocks.png",
+        "homepage_url": "https://www.starrocks.io/",
+        "pypi_packages": [
+          "mysqlclient",
+          "starrocks"
+        ],
+        "connection_string": "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}",
+        "default_port": 9030,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "StarRocks FE host",
+          "database": "Database name",
+          "port": "Query port (default 9030)",
+          "catalog": "Catalog name"
+        },
+        "host_examples": [
+          {
+            "platform": "Localhost",
+            "host": "localhost or 127.0.0.1"
+          },
+          {
+            "platform": "Docker on Linux",
+            "host": "172.18.0.1"
+          },
+          {
+            "platform": "Docker on macOS",
+            "host": "docker.for.mac.host.internal"
+          },
+          {
+            "platform": "On-premise",
+            "host": "IP address or hostname"
+          }
+        ],
+        "drivers": [
+          {
+            "name": "mysqlclient",
+            "pypi_package": "mysqlclient",
+            "connection_string": "mysql://{username}:{password}@{host}/{database}",
+            "is_recommended": true,
+            "notes": "Recommended driver. May fail with caching_sha2_password auth."
+          },
+          {
+            "name": "mysql-connector-python",
+            "pypi_package": "mysql-connector-python",
+            "connection_string": "mysql+mysqlconnector://{username}:{password}@{host}/{database}",
+            "is_recommended": false,
+            "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
+          },
+          {
+            "name": "starrocks",
+            "pypi_package": "starrocks",
+            "connection_string": "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}",
+            "is_recommended": true
+          },
+          {
+            "name": "mysqlclient",
+            "pypi_package": "mysqlclient",
+            "connection_string": "mysql://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": false,
+            "notes": "MySQL-compatible driver for StarRocks."
+          },
+          {
+            "name": "PyMySQL",
+            "pypi_package": "pymysql",
+            "connection_string": "mysql+pymysql://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": false,
+            "notes": "Pure Python MySQL driver, no compilation required."
+          }
+        ],
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ],
+        "compatible_databases": [
+          {
+            "name": "CelerData",
+            "description": "CelerData is a fully-managed cloud analytics service built on StarRocks. It provides instant elasticity, automatic scaling, and enterprise features.",
+            "logo": "celerdata.png",
+            "homepage_url": "https://celerdata.com/",
+            "categories": [
+              "ANALYTICAL_DATABASES",
+              "CLOUD_DATA_WAREHOUSES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "starrocks"
+            ],
+            "connection_string": "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}",
+            "parameters": {
+              "username": "CelerData username",
+              "password": "CelerData password",
+              "host": "CelerData cluster endpoint",
+              "port": "Query port (default 9030)",
+              "catalog": "Catalog name",
+              "database": "Database name"
+            },
+            "docs_url": "https://docs.celerdata.com/"
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": true,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 69,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": true,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Superset meta database": {
+      "engine": "superset_meta_database",
+      "engine_name": "Superset meta database",
+      "module": "superset",
+      "documentation": {
+        "description": "Superset meta database is an experimental feature that enables querying across multiple configured databases using a single connection.",
+        "logo": "superset.svg",
+        "homepage_url": "https://superset.apache.org/",
+        "pypi_packages": [
+          "shillelagh[gsheetsapi]"
+        ],
+        "connection_string": "superset://",
+        "notes": "This is an internal Superset feature. Enable with ENABLE_SUPERSET_META_DB feature flag. Allows cross-database queries using virtual tables.",
+        "categories": [
+          "OTHER"
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "SAP Sybase": {
+      "engine": "sap_sybase",
+      "engine_name": "SAP Sybase",
+      "module": "sybase",
+      "documentation": {
+        "description": "SAP ASE (formerly Sybase) is an enterprise relational database.",
+        "logo": "sybase.png",
+        "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
+        "pypi_packages": [
+          "pymssql",
+          "sqlalchemy-sybase",
+          "pyodbc"
+        ],
+        "connection_string": "sybase+pyodbc://{username}:{password}@{dsn}",
+        "default_port": 1433,
+        "drivers": [
+          {
+            "name": "pymssql",
+            "pypi_package": "pymssql",
+            "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
+            "is_recommended": true
+          },
+          {
+            "name": "pyodbc",
+            "pypi_package": "pyodbc",
+            "connection_string": "mssql+pyodbc:///?odbc_connect=Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3BServer%3Dtcp%3A%3C{host}%3E%2C1433%3BDatabase%3D{database}%3BUid%3D{username}%3BPwd%3D{password}%3BEncrypt%3Dyes%3BConnection+Timeout%3D30",
+            "is_recommended": false,
+            "notes": "Connection string must be URL-encoded. Special characters like @ need encoding."
+          }
+        ],
+        "docs_url": "https://help.sap.com/docs/SAP_ASE",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
+        ],
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "dsn": "ODBC Data Source Name configured for SAP ASE"
+        },
+        "notes": "Requires SAP ASE ODBC driver installed and configured as a DSN."
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "TDengine": {
+      "engine": "tdengine",
+      "engine_name": "TDengine",
+      "module": "tdengine",
+      "documentation": {
+        "description": "TDengine is a high-performance time-series database for IoT.",
+        "logo": "tdengine.png",
+        "homepage_url": "https://tdengine.com/",
+        "categories": [
+          "TIME_SERIES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "taospy",
+          "taos-ws-py"
+        ],
+        "connection_string": "taosws://{user}:{password}@{host}:{port}",
+        "default_port": 6041,
+        "connection_examples": [
+          {
+            "description": "Local connection",
+            "connection_string": "taosws://root:taosdata@127.0.0.1:6041"
+          }
+        ],
+        "docs_url": "https://www.tdengine.com"
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": false,
+        "QUARTER": false,
+        "QUARTER_YEAR": false,
+        "YEAR": false
+      },
+      "score": 25,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Teradata": {
+      "engine": "teradata",
+      "engine_name": "Teradata",
+      "module": "teradata",
+      "documentation": {
+        "description": "Teradata is an enterprise data warehouse platform.",
+        "logo": "teradata.png",
+        "homepage_url": "https://www.teradata.com/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "teradatasqlalchemy"
+        ],
+        "connection_string": "teradatasql://{user}:{password}@{host}",
+        "default_port": 1025,
+        "drivers": [
+          {
+            "name": "teradatasqlalchemy (Recommended)",
+            "pypi_package": "teradatasqlalchemy",
+            "connection_string": "teradatasql://{user}:{password}@{host}",
+            "is_recommended": true,
+            "notes": "No ODBC drivers required."
+          },
+          {
+            "name": "sqlalchemy-teradata (ODBC)",
+            "pypi_package": "sqlalchemy-teradata",
+            "is_recommended": false,
+            "notes": "Requires ODBC driver installation.",
+            "docs_url": "https://downloads.teradata.com/download/connectivity/odbc-driver/linux"
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": false,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": false,
+        "MINUTE": true,
+        "FIVE_MINUTES": false,
+        "TEN_MINUTES": false,
+        "FIFTEEN_MINUTES": false,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 27,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "TimescaleDB": {
+      "engine": "timescaledb",
+      "engine_name": "TimescaleDB",
+      "module": "timescaledb",
+      "documentation": {
+        "description": "TimescaleDB is an open-source relational database for time-series and analytics, built on PostgreSQL.",
+        "logo": "timescale.png",
+        "homepage_url": "https://www.timescale.com/",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "psycopg2"
+        ],
+        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 5432,
+        "connection_examples": [
+          {
+            "description": "Timescale Cloud (SSL required)",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"
+          }
+        ],
+        "notes": "Uses the PostgreSQL driver. psycopg2 comes bundled with Superset.",
+        "docs_url": "https://docs.timescale.com/"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Trino": {
+      "engine": "trino",
+      "engine_name": "Trino",
+      "module": "trino",
+      "documentation": {
+        "description": "Trino is a distributed SQL query engine for big data analytics.",
+        "logo": "trino.png",
+        "homepage_url": "https://trino.io/",
+        "categories": [
+          "QUERY_ENGINES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "trino"
+        ],
+        "install_instructions": "pip install \"apache-superset[trino]\"",
+        "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
+        "default_port": 8080,
+        "parameters": {
+          "username": "Trino username",
+          "password": "Trino password (if authentication is enabled)",
+          "hostname": "Trino coordinator hostname",
+          "port": "Trino coordinator port (default 8080)",
+          "catalog": "Catalog name"
+        },
+        "drivers": [
+          {
+            "name": "trino",
+            "pypi_package": "trino",
+            "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
+            "is_recommended": true
+          }
+        ],
+        "compatible_databases": [
+          {
+            "name": "Starburst Galaxy",
+            "description": "Starburst Galaxy is a fully-managed cloud analytics platform built on Trino. It provides data lake analytics with enterprise security and governance.",
+            "logo": "starburst.png",
+            "homepage_url": "https://www.starburst.io/platform/starburst-galaxy/",
+            "categories": [
+              "QUERY_ENGINES",
+              "CLOUD_DATA_WAREHOUSES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "trino"
+            ],
+            "connection_string": "trino://{username}:{password}@{host}:{port}/{catalog}",
+            "parameters": {
+              "username": "Starburst Galaxy username (email/role)",
+              "password": "Starburst Galaxy password or token",
+              "host": "Your Galaxy cluster hostname",
+              "port": "Port (default 443)",
+              "catalog": "Catalog name"
+            },
+            "docs_url": "https://docs.starburst.io/starburst-galaxy/"
+          },
+          {
+            "name": "Starburst Enterprise",
+            "description": "Starburst Enterprise is a self-managed Trino distribution with enterprise features, security, and support.",
+            "logo": "starburst.png",
+            "homepage_url": "https://www.starburst.io/platform/starburst-enterprise/",
+            "categories": [
+              "QUERY_ENGINES",
+              "HOSTED_OPEN_SOURCE"
+            ],
+            "pypi_packages": [
+              "trino"
+            ],
+            "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
+            "docs_url": "https://docs.starburst.io/"
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": true,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": false,
+        "HALF_HOUR": true,
+        "HOUR": true,
+        "SIX_HOURS": true,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": true,
+        "WEEK_STARTING_MONDAY": true,
+        "WEEK_ENDING_SATURDAY": true,
+        "WEEK_ENDING_SUNDAY": true,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 149,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": true,
+      "supports_catalog": true,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": true,
+      "supports_file_upload": true,
+      "user_impersonation": true,
+      "query_cost_estimation": true,
+      "sql_validation": false
+    },
+    "Vertica": {
+      "engine": "vertica",
+      "engine_name": "Vertica",
+      "module": "vertica",
+      "documentation": {
+        "description": "Vertica is a column-oriented analytics database.",
+        "logo": "vertica.png",
+        "homepage_url": "https://www.vertica.com/",
+        "categories": [
+          "ANALYTICAL_DATABASES",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "sqlalchemy-vertica-python"
+        ],
+        "connection_string": "vertica+vertica_python://{username}:{password}@{host}/{database}",
+        "default_port": 5433,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "localhost, IP address, or hostname (cloud or on-prem)",
+          "database": "Database name",
+          "port": "Default 5433"
+        },
+        "notes": "Supports load balancer backup host configuration.",
+        "docs_url": "http://www.vertica.com/"
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": true,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 34,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": true,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "YDB": {
+      "engine": "ydb",
+      "engine_name": "YDB",
+      "module": "ydb",
+      "documentation": {
+        "description": "YDB is a distributed SQL database by Yandex.",
+        "logo": "ydb.svg",
+        "homepage_url": "https://ydb.tech/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "ydb-sqlalchemy"
+        ],
+        "connection_string": "ydb://{host}:{port}/{database_name}",
+        "default_port": 2135,
+        "engine_parameters": [
+          {
+            "name": "Protocol",
+            "description": "Specify connection protocol (default: grpc)",
+            "secure_extra": {
+              "protocol": "grpcs"
+            }
+          }
+        ],
+        "authentication_methods": [
+          {
+            "name": "Static Credentials",
+            "description": "Username/password authentication",
+            "secure_extra": {
+              "credentials": {
+                "username": "...",
+                "password": "..."
+              }
+            }
+          },
+          {
+            "name": "Access Token",
+            "description": "Token-based authentication",
+            "secure_extra": {
+              "credentials": {
+                "token": "..."
+              }
+            }
+          },
+          {
+            "name": "Service Account",
+            "description": "Service account JSON credentials",
+            "secure_extra": {
+              "credentials": {
+                "service_account_json": {
+                  "id": "...",
+                  "service_account_id": "...",
+                  "private_key": "..."
+                }
+              }
+            }
+          }
+        ]
+      },
+      "time_grains": {
+        "SECOND": true,
+        "FIVE_SECONDS": false,
+        "THIRTY_SECONDS": true,
+        "MINUTE": true,
+        "FIVE_MINUTES": true,
+        "TEN_MINUTES": true,
+        "FIFTEEN_MINUTES": true,
+        "THIRTY_MINUTES": true,
+        "HALF_HOUR": false,
+        "HOUR": true,
+        "SIX_HOURS": false,
+        "DAY": true,
+        "WEEK": true,
+        "WEEK_STARTING_SUNDAY": false,
+        "WEEK_STARTING_MONDAY": false,
+        "WEEK_ENDING_SATURDAY": false,
+        "WEEK_ENDING_SUNDAY": false,
+        "MONTH": true,
+        "QUARTER": true,
+        "QUARTER_YEAR": false,
+        "YEAR": true
+      },
+      "score": 23,
+      "max_score": 201,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": true,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "YugabyteDB": {
+      "engine": "yugabytedb",
+      "engine_name": "YugabyteDB",
+      "module": "yugabytedb",
+      "documentation": {
+        "description": "YugabyteDB is a distributed SQL database built on top of PostgreSQL.",
+        "logo": "yugabyte.png",
+        "homepage_url": "https://www.yugabyte.com/",
+        "categories": [
+          "CLOUD_DATA_WAREHOUSES",
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "psycopg2"
+        ],
+        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 5433,
+        "notes": "Uses the PostgreSQL driver. psycopg2 comes bundled with Superset.",
+        "docs_url": "https://docs.yugabyte.com/"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    }
+  }
+}

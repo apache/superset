@@ -433,8 +433,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_time_range", "Api"),
         ("can_query_form_data", "Api"),
         ("can_query", "Api"),
-        # CSS for dashboard styling
+        # CSS and themes for dashboard styling
         ("can_read", "CssTemplate"),
+        ("can_read", "Theme"),
         # Embedded dashboard support
         ("can_read", "EmbeddedDashboard"),
         # Datasource metadata for chart rendering

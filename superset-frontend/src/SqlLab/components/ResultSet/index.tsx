@@ -32,8 +32,8 @@ import { pick } from 'lodash';
 import {
   Button,
   ButtonGroup,
+  Divider,
   Tooltip,
-  Card,
   Input,
   Label,
   Loading,
@@ -91,6 +91,8 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
+import PanelToolbar from 'src/components/PanelToolbar';
+import { ViewContribution } from 'src/SqlLab/contributions';
 
 enum LimitingFactor {
   Query = 'QUERY',
@@ -147,29 +149,11 @@ const ReturnedRows = styled.div`
   line-height: 1;
 `;
 
-const ResultSetControls = styled.div`
-  display: flex;
-  justify-content: space-between;
-`;
-
 const ResultSetButtons = styled.div`
   display: grid;
   grid-auto-flow: column;
-  padding-right: ${({ theme }) => 2 * theme.sizeUnit}px;
 `;
 
-const CopyStyledButton = styled(Button)`
-  &:hover {
-    color: ${({ theme }) => theme.colorPrimary};
-    text-decoration: unset;
-  }
-
-  span > :first-of-type {
-    margin: 0;
-  }
-`;
-
-const ROWS_CHIP_WIDTH = 100;
 const GAP = 8;
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -389,8 +373,71 @@ const ResultSet = ({
         }
       };
 
+      const defaultPrimaryActions = (
+        <>
+          {visualize && database?.allows_virtual_table_explore && (
+            <ExploreResultsButton
+              database={database}
+              onClick={createExploreResultsOnClick}
+            />
+          )}
+          {csv && canExportData && (
+            <Button
+              buttonSize="small"
+              variant="text"
+              color="primary"
+              icon={<Icons.DownloadOutlined iconSize="m" />}
+              tooltip={t('Download to CSV')}
+              aria-label={t('Download to CSV')}
+              {...(!shouldUseStreamingExport() && {
+                href: getExportCsvUrl(query.id),
+              })}
+              data-test="export-csv-button"
+              onClick={e => {
+                const useStreaming = shouldUseStreamingExport();
+
+                if (useStreaming) {
+                  e.preventDefault();
+                  setShowStreamingModal(true);
+
+                  startExport({
+                    url: makeUrl('/api/v1/sqllab/export_streaming/'),
+                    payload: { client_id: query.id },
+                    exportType: 'csv',
+                    expectedRows: rows,
+                  });
+                } else {
+                  handleDownloadCsv(e);
+                }
+              }}
+            />
+          )}
+          {canExportData && (
+            <CopyToClipboard
+              text={prepareCopyToClipboardTabularData(data, columns)}
+              wrapped={false}
+              copyNode={
+                <Button
+                  buttonSize="small"
+                  variant="text"
+                  color="primary"
+                  icon={<Icons.CopyOutlined iconSize="m" />}
+                  tooltip={t('Copy to Clipboard')}
+                  aria-label={t('Copy to Clipboard')}
+                  data-test="copy-to-clipboard-button"
+                />
+              }
+              hideTooltip
+              onCopyEnd={() =>
+                logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
+              }
+            />
+          )}
+        </>
+      );
+
       return (
-        <ResultSetControls>
+        <ResultSetButtons>
           <SaveDatasetModal
             visible={showSaveDatasetModal}
             onHide={() => setShowSaveDatasetModal(false)}
@@ -401,98 +448,21 @@ const ResultSet = ({
             )}
             datasource={datasource}
           />
-          <ResultSetButtons>
-            {visualize && database?.allows_virtual_table_explore && (
-              <ExploreResultsButton
-                database={database}
-                onClick={createExploreResultsOnClick}
-              />
-            )}
-            {csv && canExportData && (
-              <CopyStyledButton
-                buttonSize="small"
-                buttonStyle="secondary"
-                {...(!shouldUseStreamingExport() && {
-                  href: getExportCsvUrl(query.id),
-                })}
-                data-test="export-csv-button"
-                onClick={e => {
-                  const useStreaming = shouldUseStreamingExport();
-
-                  if (useStreaming) {
-                    e.preventDefault();
-                    setShowStreamingModal(true);
-
-                    startExport({
-                      url: makeUrl('/api/v1/sqllab/export_streaming/'),
-                      payload: { client_id: query.id },
-                      exportType: 'csv',
-                      expectedRows: rows,
-                    });
-                  } else {
-                    handleDownloadCsv(e);
-                  }
-                }}
-              >
-                <Icons.DownloadOutlined iconSize="m" /> {t('Download to CSV')}
-              </CopyStyledButton>
-            )}
-            {canExportData && (
-              <CopyToClipboard
-                text={prepareCopyToClipboardTabularData(data, columns)}
-                wrapped={false}
-                copyNode={
-                  <CopyStyledButton
-                    buttonSize="small"
-                    buttonStyle="secondary"
-                    data-test="copy-to-clipboard-button"
-                  >
-                    <Icons.CopyOutlined iconSize="s" /> {t('Copy to Clipboard')}
-                  </CopyStyledButton>
-                }
-                hideTooltip
-                onCopyEnd={() =>
-                  logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
-                }
-              />
-            )}
-          </ResultSetButtons>
-          {search && (
-            <Input
-              onChange={changeSearch}
-              value={searchText}
-              className="form-control input-sm"
-              placeholder={t('Filter results')}
-            />
-          )}
-        </ResultSetControls>
+          <PanelToolbar
+            viewId={ViewContribution.Results}
+            defaultPrimaryActions={defaultPrimaryActions}
+          />
+        </ResultSetButtons>
       );
     }
-    return <div />;
+    return null;
   };
 
-  const renderRowsReturned = (alertMessage: boolean) => {
+  const renderRowsReturned = () => {
     const { results, rows, queryLimit, limitingFactor } = query;
     let limitMessage = '';
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
-    const isAdmin = !!user?.roles?.Admin;
-    const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
-
-    const displayMaxRowsReachedMessage = {
-      withAdmin: t(
-        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. ' +
-          'Please add additional limits/filters or download to csv to see more rows up to ' +
-          'the %(limit)d limit.',
-        { rows: rowsCount, limit },
-      ),
-      withoutAdmin: t(
-        'The number of results displayed is limited to %(rows)d. ' +
-          'Please add additional limits/filters, download to csv, or contact an admin ' +
-          'to see more rows up to the %(limit)d limit.',
-        { rows: rowsCount, limit },
-      ),
-    };
     const shouldUseDefaultDropdownAlert =
       limit === defaultQueryLimit && limitingFactor === LimitingFactor.Dropdown;
 
@@ -514,76 +484,53 @@ const ResultSet = ({
         'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
         { rows },
       );
+    } else if (shouldUseDefaultDropdownAlert) {
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the dropdown.',
+        { rows },
+      );
+    } else if (limitReached) {
+      limitMessage = t(
+        'The number of results displayed is limited to %(rows)d.',
+        { rows },
+      );
     }
+
     const formattedRowCount = getNumberFormatter()(rows);
     const rowsReturnedMessage = t('%(rows)d rows returned', {
       rows,
     });
 
-    const tooltipText = `${rowsReturnedMessage}. ${limitMessage}`;
-
-    if (alertMessage) {
-      return (
-        <>
-          {!limitReached && shouldUseDefaultDropdownAlert && (
-            <div>
-              <Alert
-                closable
-                type="warning"
-                message={t(
-                  'The number of rows displayed is limited to %(rows)d by the dropdown.',
-                  { rows },
-                )}
-              />
-            </div>
-          )}
-          {limitReached && (
-            <div>
-              <Alert
-                closable
-                type="warning"
-                message={
-                  isAdmin
-                    ? displayMaxRowsReachedMessage.withAdmin
-                    : displayMaxRowsReachedMessage.withoutAdmin
-                }
-              />
-            </div>
-          )}
-        </>
-      );
-    }
-    const showRowsReturned =
-      showSqlInline || (!limitReached && !shouldUseDefaultDropdownAlert);
+    const hasWarning = !!limitMessage;
+    const tooltipText = hasWarning
+      ? `${rowsReturnedMessage}. ${limitMessage}`
+      : rowsReturnedMessage;
 
     return (
-      <>
-        {showRowsReturned && (
-          <ReturnedRows>
-            <Tooltip
-              id="sqllab-rowcount-tooltip"
-              title={tooltipText}
-              placement="left"
-            >
-              <Label
+      <ReturnedRows>
+        <Tooltip
+          id="sqllab-rowcount-tooltip"
+          title={tooltipText}
+          placement="left"
+        >
+          <Label
+            css={css`
+              line-height: ${theme.fontSizeLG}px;
+            `}
+          >
+            {hasWarning && (
+              <Icons.WarningOutlined
                 css={css`
-                  line-height: ${theme.fontSizeLG}px;
+                  font-size: ${theme.fontSize}px;
+                  margin-right: ${theme.sizeUnit}px;
+                  color: ${theme.colorWarning};
                 `}
-              >
-                {limitMessage && (
-                  <Icons.ExclamationCircleOutlined
-                    css={css`
-                      font-size: ${theme.fontSize}px;
-                      margin-right: ${theme.sizeUnit}px;
-                    `}
-                  />
-                )}
-                {tn('%s row', '%s rows', rows, formattedRowCount)}
-              </Label>
-            </Tooltip>
-          </ReturnedRows>
-        )}
-      </>
+              />
+            )}
+            {tn('%s row', '%s rows', rows, formattedRowCount)}
+          </Label>
+        </Tooltip>
+      </ReturnedRows>
     );
   };
 
@@ -728,45 +675,58 @@ const ResultSet = ({
       return (
         <>
           <ResultContainer>
-            {renderControls()}
-            {showSql && showSqlInline ? (
-              <>
-                <div
-                  css={css`
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: ${GAP}px;
-                  `}
-                >
-                  <Card
-                    css={[
-                      css`
-                        height: 28px;
-                        width: calc(100% - ${ROWS_CHIP_WIDTH + GAP}px);
-                        code {
-                          width: 100%;
-                          overflow: hidden;
-                          white-space: nowrap !important;
-                          text-overflow: ellipsis;
-                          display: block;
-                        }
-                      `,
-                    ]}
+            <div
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: ${GAP}px;
+
+                & .ant-divider {
+                  height: ${theme.sizeUnit * 6}px;
+                  margin: 0 ${theme.sizeUnit * 2}px 0 0;
+                }
+              `}
+            >
+              {renderControls()}
+              <Divider type="vertical" />
+              {showSql && (
+                <>
+                  <div
+                    css={css`
+                      flex: 0 1 auto;
+                      min-width: 0;
+                      overflow: hidden;
+                      margin-right: ${theme.sizeUnit}px;
+
+                      & * {
+                        overflow: hidden !important;
+                        white-space: nowrap !important;
+                        text-overflow: ellipsis !important;
+                      }
+
+                      pre {
+                        margin: 0 !important;
+                      }
+                    `}
                   >
                     {sql}
-                  </Card>
-                  {renderRowsReturned(false)}
-                </div>
-                {renderRowsReturned(true)}
-              </>
-            ) : (
-              <>
-                {renderRowsReturned(false)}
-                {renderRowsReturned(true)}
-                {sql}
-              </>
-            )}
+                  </div>
+                  <Divider type="vertical" />
+                </>
+              )}
+              {renderRowsReturned()}
+              {search && (
+                <Input
+                  css={css`
+                    flex: none;
+                    width: 200px;
+                  `}
+                  onChange={changeSearch}
+                  value={searchText}
+                  placeholder={t('Filter results')}
+                />
+              )}
+            </div>
             {useFixedHeight && height !== undefined ? (
               <ResultTable {...tableProps} height={height} />
             ) : (
