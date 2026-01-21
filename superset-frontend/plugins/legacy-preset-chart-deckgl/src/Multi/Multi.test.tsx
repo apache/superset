@@ -80,7 +80,14 @@ const baseMockProps = {
       ],
       features: {
         deck_scatter: [{ position: [0, 0] }],
-        deck_polygon: [{ polygon: [[1, 1], [2, 2]] }],
+        deck_polygon: [
+          {
+            polygon: [
+              [1, 1],
+              [2, 2],
+            ],
+          },
+        ],
         deck_path: [],
         deck_grid: [],
         deck_contour: [],
@@ -121,7 +128,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     });
   });
 
-  test('should NOT apply autozoom when autozoom is false', () => {
+  it('should NOT apply autozoom when autozoom is false', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
     const props = {
@@ -140,7 +147,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  test('should apply autozoom when autozoom is true', () => {
+  it('should apply autozoom when autozoom is true', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: -122.4,
@@ -175,7 +182,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  test('should use adjusted viewport when autozoom is enabled', () => {
+  it('should use adjusted viewport when autozoom is enabled', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     const adjustedViewport = {
       longitude: -122.4,
@@ -206,7 +213,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  test('should set zoom to 0 when calculated zoom is negative', () => {
+  it('should set zoom to 0 when calculated zoom is negative', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: 0,
@@ -235,7 +242,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  test('should handle empty features gracefully when autozoom is enabled', () => {
+  it('should handle empty features gracefully when autozoom is enabled', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
     const props = {
@@ -272,7 +279,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  test('should collect points from all layer types when autozoom is enabled', () => {
+  it('should collect points from all layer types when autozoom is enabled', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: 0,
@@ -292,10 +299,15 @@ describe('DeckMulti Autozoom Functionality', () => {
           ...baseMockProps.payload.data,
           features: {
             deck_scatter: [{ position: [1, 1] }, { position: [2, 2] }],
-            deck_polygon: [{ polygon: [[3, 3], [4, 4]] }],
-            deck_arc: [
-              { sourcePosition: [5, 5], targetPosition: [6, 6] },
+            deck_polygon: [
+              {
+                polygon: [
+                  [3, 3],
+                  [4, 4],
+                ],
+              },
             ],
+            deck_arc: [{ sourcePosition: [5, 5], targetPosition: [6, 6] }],
             deck_path: [],
             deck_grid: [],
             deck_contour: [],
@@ -312,7 +324,7 @@ describe('DeckMulti Autozoom Functionality', () => {
 
     expect(fitViewportSpy).toHaveBeenCalled();
     const callArgs = fitViewportSpy.mock.calls[0];
-    const points = callArgs[1].points;
+    const { points } = callArgs[1];
 
     // Should have points from scatter (2), polygon (2), and arc (2) = 6 points total
     expect(points.length).toBeGreaterThan(0);
@@ -320,7 +332,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  test('should use original viewport when autozoom is disabled', () => {
+  it('should use original viewport when autozoom is disabled', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
     const originalViewport = { longitude: -100, latitude: 40, zoom: 5 };
@@ -364,7 +376,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  test('should render DeckGLContainer', () => {
+  it('should render DeckGLContainer', () => {
     const { getByTestId } = renderWithProviders(
       <DeckMulti {...baseMockProps} />,
     );
@@ -372,7 +384,7 @@ describe('DeckMulti Component Rendering', () => {
     expect(getByTestId('deckgl-container')).toBeInTheDocument();
   });
 
-  test('should pass correct props to DeckGLContainer', () => {
+  it('should pass correct props to DeckGLContainer', () => {
     const { getByTestId } = renderWithProviders(
       <DeckMulti {...baseMockProps} />,
     );
@@ -389,7 +401,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  test('should handle viewport changes', async () => {
+  it('should handle viewport changes', async () => {
     const { getByTestId, rerender } = renderWithProviders(
       <DeckMulti {...baseMockProps} />,
     );

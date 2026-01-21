@@ -115,7 +115,7 @@ const DeckMulti = (props: DeckMultiProps) => {
 
   const getAdjustedViewport = useCallback(() => {
     let viewport = { ...props.viewport };
-    
+
     // Only apply auto zoom if the autozoom setting is enabled
     if (props.formData.autozoom) {
       const points = [
@@ -128,7 +128,9 @@ const DeckMulti = (props: DeckMultiProps) => {
         ...getPointsHex(props.payload.data.features.deck_hex || []),
         ...getPointsArc(props.payload.data.features.deck_arc || []),
         ...getPointsGeojson(props.payload.data.features.deck_geojson || []),
-        ...getPointsScreengrid(props.payload.data.features.deck_screengrid || []),
+        ...getPointsScreengrid(
+          props.payload.data.features.deck_screengrid || [],
+        ),
       ];
 
       if (props.formData && points.length > 0) {
@@ -139,7 +141,7 @@ const DeckMulti = (props: DeckMultiProps) => {
         });
       }
     }
-    
+
     if (viewport.zoom < 0) {
       viewport.zoom = 0;
     }
