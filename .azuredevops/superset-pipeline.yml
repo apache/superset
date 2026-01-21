@@ -476,9 +476,20 @@ stages:
               # Health check
               # -------------------------------------
               - bash: |
+                  echo "=== DEBUG: Verify Health ==="
+                  echo "Current working directory: $(pwd)"
+                  echo "Changing to deployment directory..."
+                  cd "$(Pipeline.Workspace)/s" || { echo "Failed to cd to $(Pipeline.Workspace)/s"; exit 1; }
+                  echo "✓ Changed directory to: $(pwd)"
+                  echo ""
                   echo "Starting health check for Superset on port ${SUPERSET_PORT}..."
                   echo ""
-                  
+
+                  # First check if containers are running
+                  echo "Checking container status..."
+                  docker compose -f docker-compose-deploy.yml --project-name azuredevops ps
+                  echo ""
+
                   for i in {1..60}; do
                     if curl -fs http://localhost:${SUPERSET_PORT}/health; then
                       echo ""
@@ -488,12 +499,12 @@ stages:
                     echo "Attempt $i/60: Waiting for Superset to be ready..."
                     sleep 10
                   done
-                  
+
                   echo ""
                   echo "✗ Superset failed health check after 10 minutes"
                   echo ""
                   echo "Container logs:"
-                  docker compose -f docker-compose-deploy.yml logs --tail=50
+                  docker compose -f docker-compose-deploy.yml --project-name azuredevops logs --tail=50
                   exit 1
                 env:
                   SUPERSET_PORT: $(SUPERSET_PORT)
