@@ -66,6 +66,7 @@ export default function EchartsTimeseries({
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
+
   useEffect(() => {
     const element = extraControlRef.current;
     if (!element) {
@@ -258,18 +259,6 @@ export default function EchartsTimeseries({
           crossFilter: hasDimensions
             ? getCrossFilterDataMask(seriesName)
             : undefined,
-        });
-
-        // Restore tooltip visibility after the drill menu closes
-        const restoreTooltip = () => {
-          const instance = echartRef.current?.getEchartInstance?.();
-          if (instance) {
-            instance.setOption({ tooltip: { show: true } }, false);
-          }
-        };
-        window.addEventListener('mousedown', restoreTooltip, {
-          once: true,
-          capture: true,
         });
       }
     },
