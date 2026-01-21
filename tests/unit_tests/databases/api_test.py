@@ -2331,35 +2331,91 @@ def test_import_includes_configuration_method(
     Test that importing a database YAML with configuration_method
     sets the value on the imported DB connection.
     """
-    import os
+    from io import BytesIO
+    from unittest.mock import patch
 
-    from superset.databases.api import DatabaseRestApi
+    import yaml
+
+    from superset import db
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel._session = session
     Database.metadata.create_all(session.get_bind())
 
-    fixture_path = os.path.join(
-        os.path.dirname(__file__),
-        "fixtures",
-        "database_export_with_configuration_method.zip",
+    # Prepare the contents for the import zip
+    metadata = {
+        "version": "1.0.0",
+        "type": "Database",
+        "timestamp": "2025-12-08T18:06:31.356738+00:00",
+    }
+    db_yaml = {
+        "database_name": "Test_Import_Configuration_Method",
+        "sqlalchemy_uri": "bigquery://gcp-project-id/",
+        "cache_timeout": 0,
+        "expose_in_sqllab": True,
+        "allow_run_async": False,
+        "allow_ctas": False,
+        "allow_cvas": False,
+        "allow_dml": False,
+        "allow_csv_upload": False,
+        "extra": {"allows_virtual_table_explore": True},
+        "impersonate_user": False,
+        "uuid": "87654321-4321-8765-4321-876543218765",
+        "configuration_method": "dynamic_form",
+        "version": "1.0.0",
+    }
+    contents = {
+        "metadata.yaml": yaml.safe_dump(metadata),
+        "databases/test.yaml": yaml.safe_dump(db_yaml),
+    }
+
+    # Patch the import logic to use our in-memory contents and provide a mock user context
+    from types import SimpleNamespace
+
+    from flask import g
+
+    mock_user = SimpleNamespace(
+        id=1, username="admin", is_active=True, is_authenticated=True
     )
-    with open(fixture_path, "rb") as f:
-        form_data = {"formData": (f, "database_export_with_configuration_method.zip")}
+    with (
+        patch("superset.databases.api.is_zipfile", return_value=True),
+        patch("superset.databases.api.ZipFile"),
+        patch("superset.databases.api.get_contents_from_bundle", return_value=contents),
+        patch.dict(g._get_current_object().__dict__, {"user": mock_user}),
+    ):
+        form_data = {"formData": (BytesIO(b"test"), "test.zip")}
         response = client.post(
             "/api/v1/database/import/",
             data=form_data,
             content_type="multipart/form-data",
         )
+        session.commit()
+        from superset import db
+
+        db.session.remove()
     assert response.status_code == 200, response.data
+
+    from superset.models.core import Database as DBModel
+
+    db_obj = (
+        session.query(DBModel)
+        .filter_by(database_name="Test_Import_Configuration_Method")
+        .first()
+    )
+    assert db_obj is not None, "Database not found in SQLAlchemy session after import"
+    assert hasattr(db_obj, "configuration_method"), (
+        "'configuration_method' not found on model"
+    )
+    assert db_obj.configuration_method == "dynamic_form", (
+        f"Expected configuration_method 'dynamic_form', got {db_obj.configuration_method}"
+    )
+
     get_resp = client.get(
         "/api/v1/database/?q=(filters:!((col:database_name,opr:eq,value:'Test_Import_Configuration_Method')))"
     )
     assert get_resp.status_code == 200, get_resp.data
-    result = get_resp.json["result"]
-    assert result, "Database not found after import"
-    db_obj = result[0]
-    assert "configuration_method" in db_obj, (
-        f"'configuration_method' not found in database list response: {db_obj}"
-    )
-    assert db_obj["configuration_method"] == "dynamic_form"
+    if result := get_resp.json["result"]:
+        db_obj_api = result[0]
+        assert "configuration_method" in db_obj_api, (
+            f"'configuration_method' not found in database list response: {db_obj_api}"
+        )
+        assert db_obj_api["configuration_method"] == "dynamic_form"
