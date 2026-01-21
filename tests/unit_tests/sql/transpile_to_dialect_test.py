@@ -349,7 +349,7 @@ def test_sqlglot_generation_error_raises_exception() -> None:
 
 # Tests for source_engine parameter
 @pytest.mark.parametrize(
-    "sql,source_engine,target_engine,expected",
+    ("sql", "source_engine", "target_engine", "expected"),
     [
         # PostgreSQL to MySQL - should convert :: casting to CAST()
         (
