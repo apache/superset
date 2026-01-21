@@ -36,7 +36,7 @@ export const hasTimeOffset = (
   timeCompare: string[],
 ): boolean =>
   typeof series.name === 'string'
-    ? !!getTimeOffset(series, timeCompare)
+    ? !!getTimeOffset(series, timeCompare) || timeCompare.includes(series.name)
     : false;
 
 export const getOriginalSeries = (

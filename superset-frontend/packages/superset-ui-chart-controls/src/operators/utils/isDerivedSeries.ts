@@ -17,22 +17,14 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import {
-  ensureIsArray,
-  JsonObject,
-  QueryFormData,
-  ComparisonType,
-} from '@superset-ui/core';
+import { ensureIsArray } from '@superset-ui/core';
+import type { JsonObject, QueryFormData } from '@superset-ui/core';
 import { hasTimeOffset } from './timeOffset';
 
 export const isDerivedSeries = (
   series: JsonObject,
   formData: QueryFormData,
 ): boolean => {
-  const comparisonType = formData.comparison_type;
-  if (comparisonType !== ComparisonType.Values) {
-    return false;
-  }
-  const timeCompare: string[] = ensureIsArray(formData?.time_compare);
+  const timeCompare = ensureIsArray(formData?.time_compare).filter((v): v is string => typeof v === 'string');
   return hasTimeOffset(series, timeCompare);
 };
