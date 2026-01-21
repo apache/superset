@@ -2392,7 +2392,8 @@ def test_import_includes_configuration_method(
         "'configuration_method' not found on model"
     )
     assert db_obj.configuration_method == "dynamic_form", (
-        f"Expected configuration_method 'dynamic_form', got {db_obj.configuration_method}"
+        "Expected configuration_method 'dynamic_form', got "
+        f"{db_obj.configuration_method}"
     )
 
     get_resp = client.get(
