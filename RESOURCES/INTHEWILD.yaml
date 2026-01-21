@@ -438,7 +438,7 @@ categories:
 
     - name: Tech Solution
       url: https://www.tech-solution.com.ar/
-      contributors: ["@danteGiuliano" , "@zeo-return-null", "@LeandroVallejos" , "@McJaben" , "@xJeree"]
+      contributors: ["@danteGiuliano", "@LeandroVallejos", "@McJaben", "@xJeree", "@zeo-return-null"]
 
   Media & Entertainment:
     - name: 6play
