@@ -39,6 +39,7 @@ import {
   BookOutlined,
   EditOutlined,
   GithubOutlined,
+  BugOutlined,
 } from '@ant-design/icons';
 import type { DatabaseInfo } from './types';
 
@@ -414,6 +415,132 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
     );
   };
 
+  // Render troubleshooting / custom errors section
+  const renderTroubleshooting = () => {
+    if (!docs?.custom_errors?.length) return null;
+
+    // Group errors by category
+    const errorsByCategory: Record<string, typeof docs.custom_errors> = {};
+    for (const error of docs.custom_errors) {
+      const category = error.category || 'General';
+      if (!errorsByCategory[category]) {
+        errorsByCategory[category] = [];
+      }
+      errorsByCategory[category].push(error);
+    }
+
+    // Define category order for consistent display
+    const categoryOrder = [
+      'Authentication',
+      'Connection',
+      'Permissions',
+      'Query',
+      'Configuration',
+      'General',
+    ];
+
+    const sortedCategories = Object.keys(errorsByCategory).sort((a, b) => {
+      const aIdx = categoryOrder.indexOf(a);
+      const bIdx = categoryOrder.indexOf(b);
+      if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
+      if (aIdx === -1) return 1;
+      if (bIdx === -1) return -1;
+      return aIdx - bIdx;
+    });
+
+    // Category colors
+    const categoryColors: Record<string, string> = {
+      Authentication: 'orange',
+      Connection: 'red',
+      Permissions: 'purple',
+      Query: 'blue',
+      Configuration: 'cyan',
+      General: 'default',
+    };
+
+    return (
+      <Card
+        title={
+          <>
+            <BugOutlined /> Troubleshooting
+          </>
+        }
+        style={{ marginBottom: 16 }}
+      >
+        <Paragraph type="secondary">
+          Common error messages you may encounter when connecting to or querying{' '}
+          {name}, along with their causes and solutions.
+        </Paragraph>
+        <Collapse accordion>
+          {sortedCategories.map((category) => (
+            <Panel
+              header={
+                <span>
+                  <Tag color={categoryColors[category] || 'default'}>
+                    {category}
+                  </Tag>
+                  {errorsByCategory[category].length} error
+                  {errorsByCategory[category].length !== 1 ? 's' : ''}
+                </span>
+              }
+              key={category}
+            >
+              {errorsByCategory[category].map((error, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    marginBottom:
+                      idx < errorsByCategory[category].length - 1 ? 16 : 0,
+                    paddingBottom:
+                      idx < errorsByCategory[category].length - 1 ? 16 : 0,
+                    borderBottom:
+                      idx < errorsByCategory[category].length - 1
+                        ? '1px solid var(--ifm-color-emphasis-200)'
+                        : 'none',
+                  }}
+                >
+                  <div style={{ marginBottom: 8 }}>
+                    <Text strong>{error.description || error.error_type}</Text>
+                  </div>
+                  <Alert
+                    message={error.message_template}
+                    type="error"
+                    style={{ marginBottom: 8 }}
+                  />
+                  {error.invalid_fields && error.invalid_fields.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <Text type="secondary">Check these fields: </Text>
+                      {error.invalid_fields.map((field) => (
+                        <Tag key={field} color="warning">
+                          {field}
+                        </Tag>
+                      ))}
+                    </div>
+                  )}
+                  {error.issue_codes && error.issue_codes.length > 0 && (
+                    <div>
+                      <Text type="secondary">Related issue codes: </Text>
+                      {error.issue_codes.map((code) => (
+                        <Tag key={code}>
+                          <a
+                            href={`/docs/using-superset/issue-codes#issue-${code}`}
+                            style={{ color: 'inherit' }}
+                          >
+                            Issue {code}
+                          </a>
+                        </Tag>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </Panel>
+          ))}
+        </Collapse>
+      </Card>
+    );
+  };
+
   return (
     <div
       className="database-page"
@@ -555,6 +682,9 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
 
       {/* Time Grains */}
       {renderTimeGrains()}
+
+      {/* Troubleshooting / Custom Errors */}
+      {renderTroubleshooting()}
 
       {/* Compatible Databases */}
       {renderCompatibleDatabases()}
