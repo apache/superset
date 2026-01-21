@@ -102,10 +102,12 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <>
-      <p>Horizontal divider separates sections:</p>
-      <Divider />
-      <p>Vertical divider separates inline elements:</p>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <p>Horizontal divider with title (orientationMargin applies here):</p>
+      <Divider orientation="left" orientationMargin={0}>Left Title</Divider>
+      <Divider orientation="right" orientationMargin={50}>Right Title</Divider>
+      <Divider>Center Title</Divider>
+      <p>Vertical divider (use container gap for spacing):</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <span>Link</span>
         <Divider type="vertical" />
         <span>Link</span>
