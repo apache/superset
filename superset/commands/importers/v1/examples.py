@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Any, Optional
 
 from marshmallow import Schema
 from sqlalchemy.exc import MultipleResultsFound
 
+from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.importers.v1 import ImportChartsCommand
 from superset.commands.chart.importers.v1.utils import import_chart
@@ -41,8 +43,54 @@ from superset.daos.base import BaseDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.exceptions import QueryClauseValidationException
+from superset.models.core import Database
+from superset.sql.parse import transpile_to_dialect
 from superset.utils.core import get_example_default_schema
 from superset.utils.decorators import transaction
+
+logger = logging.getLogger(__name__)
+
+
+def transpile_virtual_dataset_sql(config: dict[str, Any], database_id: int) -> None:
+    """
+    Transpile virtual dataset SQL to the target database dialect.
+
+    This ensures that virtual datasets exported from one database type
+    (e.g., PostgreSQL) can be loaded into a different database type
+    (e.g., MySQL, DuckDB, SQLite).
+
+    Args:
+        config: Dataset configuration dict (modified in place)
+        database_id: ID of the target database
+    """
+    sql = config.get("sql")
+    if not sql:
+        return
+
+    database = db.session.query(Database).get(database_id)
+    if not database:
+        logger.warning("Database %s not found, skipping SQL transpilation", database_id)
+        return
+
+    target_engine = database.db_engine_spec.engine
+    try:
+        transpiled_sql = transpile_to_dialect(sql, target_engine)
+        if transpiled_sql != sql:
+            logger.info(
+                "Transpiled virtual dataset SQL for '%s' to %s dialect",
+                config.get("table_name", "unknown"),
+                target_engine,
+            )
+            config["sql"] = transpiled_sql
+    except QueryClauseValidationException as ex:
+        logger.warning(
+            "Could not transpile SQL for dataset '%s' to %s: %s. "
+            "Using original SQL which may not be compatible.",
+            config.get("table_name", "unknown"),
+            target_engine,
+            ex,
+        )
 
 
 class ImportExamplesCommand(ImportModelsCommand):
@@ -118,6 +166,9 @@ class ImportExamplesCommand(ImportModelsCommand):
                 # set schema
                 if config["schema"] is None:
                     config["schema"] = get_example_default_schema()
+
+                # transpile virtual dataset SQL to target database dialect
+                transpile_virtual_dataset_sql(config, config["database_id"])
 
                 try:
                     dataset = import_dataset(
