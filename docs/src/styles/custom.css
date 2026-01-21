@@ -333,84 +333,82 @@ ul.dropdown__menu svg {
    These components render outside .storybook-example via portals
    ============================================ */
 
-/* DatePicker, TimePicker dropdown panels - reset all Infima table styles */
-.ant-picker-dropdown table,
-.ant-picker-dropdown thead,
-.ant-picker-dropdown tbody,
-.ant-picker-dropdown tr,
-.ant-picker-dropdown th,
-.ant-picker-dropdown td {
-  border: none !important;
-  background: none !important;
-  background-color: transparent !important;
+/* DatePicker, TimePicker dropdown panels - reset Infima table styles
+   Using doubled selectors for higher specificity than Infima's defaults */
+.ant-picker-dropdown.ant-picker-dropdown table,
+.ant-picker-dropdown.ant-picker-dropdown thead,
+.ant-picker-dropdown.ant-picker-dropdown tbody,
+.ant-picker-dropdown.ant-picker-dropdown tr,
+.ant-picker-dropdown.ant-picker-dropdown th,
+.ant-picker-dropdown.ant-picker-dropdown td {
+  border: none;
+  background: none;
+  background-color: transparent;
 }
 
-.ant-picker-dropdown table {
+.ant-picker-dropdown.ant-picker-dropdown table {
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
   display: table;
 }
 
-.ant-picker-dropdown tr {
-  background: none !important;
+/* Override Infima's zebra striping with higher specificity */
+.ant-picker-dropdown.ant-picker-dropdown tr:nth-child(2n),
+.ant-picker-dropdown.ant-picker-dropdown tbody tr:nth-child(2n) {
+  background: none;
+  background-color: transparent;
 }
 
-/* Override Infima's zebra striping */
-.ant-picker-dropdown tr:nth-child(2n) {
-  background: none !important;
-  background-color: transparent !important;
-}
-
-.ant-picker-dropdown th,
-.ant-picker-dropdown td {
+.ant-picker-dropdown.ant-picker-dropdown th,
+.ant-picker-dropdown.ant-picker-dropdown td {
   padding: 0;
 }
 
 /* Select, Dropdown, Popover portals */
-.ant-select-dropdown table,
-.ant-select-dropdown thead,
-.ant-select-dropdown tbody,
-.ant-select-dropdown tr,
-.ant-select-dropdown th,
-.ant-select-dropdown td,
-.ant-dropdown table,
-.ant-dropdown thead,
-.ant-dropdown tbody,
-.ant-dropdown tr,
-.ant-dropdown th,
-.ant-dropdown td,
-.ant-popover table,
-.ant-popover thead,
-.ant-popover tbody,
-.ant-popover tr,
-.ant-popover th,
-.ant-popover td {
-  border: none !important;
-  background: none !important;
-  background-color: transparent !important;
+.ant-select-dropdown.ant-select-dropdown table,
+.ant-select-dropdown.ant-select-dropdown thead,
+.ant-select-dropdown.ant-select-dropdown tbody,
+.ant-select-dropdown.ant-select-dropdown tr,
+.ant-select-dropdown.ant-select-dropdown th,
+.ant-select-dropdown.ant-select-dropdown td,
+.ant-dropdown.ant-dropdown table,
+.ant-dropdown.ant-dropdown thead,
+.ant-dropdown.ant-dropdown tbody,
+.ant-dropdown.ant-dropdown tr,
+.ant-dropdown.ant-dropdown th,
+.ant-dropdown.ant-dropdown td,
+.ant-popover.ant-popover table,
+.ant-popover.ant-popover thead,
+.ant-popover.ant-popover tbody,
+.ant-popover.ant-popover tr,
+.ant-popover.ant-popover th,
+.ant-popover.ant-popover td {
+  border: none;
+  background: none;
+  background-color: transparent;
 }
 
-.ant-select-dropdown tr:nth-child(2n),
-.ant-dropdown tr:nth-child(2n),
-.ant-popover tr:nth-child(2n) {
-  background: none !important;
-  background-color: transparent !important;
+.ant-select-dropdown.ant-select-dropdown tr:nth-child(2n),
+.ant-dropdown.ant-dropdown tr:nth-child(2n),
+.ant-popover.ant-popover tr:nth-child(2n) {
+  background: none;
+  background-color: transparent;
 }
 
 /* Modal portals */
-.ant-modal table,
-.ant-modal thead,
-.ant-modal tbody,
-.ant-modal tr,
-.ant-modal th,
-.ant-modal td {
-  border: none !important;
-  background: none !important;
-  background-color: transparent !important;
+.ant-modal.ant-modal table,
+.ant-modal.ant-modal thead,
+.ant-modal.ant-modal tbody,
+.ant-modal.ant-modal tr,
+.ant-modal.ant-modal th,
+.ant-modal.ant-modal td {
+  border: none;
+  background: none;
+  background-color: transparent;
 }
 
-.ant-modal tr:nth-child(2n) {
-  background: none !important;
-  background-color: transparent !important;
+.ant-modal.ant-modal tr:nth-child(2n) {
+  background: none;
+  background-color: transparent;
 }
