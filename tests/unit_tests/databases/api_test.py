@@ -2335,8 +2335,9 @@ def test_import_includes_configuration_method(
     from unittest.mock import patch
 
     import yaml
+    from flask import g
 
-    from superset import db
+    from superset import db, security_manager
     from superset.models.core import Database
 
     Database.metadata.create_all(db.session.get_bind())
@@ -2395,6 +2396,11 @@ def test_import_includes_configuration_method(
         "Expected configuration_method 'dynamic_form', got "
         f"{db_obj.configuration_method}"
     )
+
+    user = getattr(g, "user", None)
+    if user and getattr(user, "is_authenticated", False) and hasattr(user, "id"):
+        db_obj.created_by = security_manager.get_user_by_id(user.id)
+        db.session.commit()
 
     get_resp = client.get(
         "/api/v1/database/?q=(filters:!((col:database_name,opr:eq,value:'Test_Import_Configuration_Method')))"
