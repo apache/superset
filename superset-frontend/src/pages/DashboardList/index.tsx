@@ -363,7 +363,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Status'),
         accessor: 'published',
-        size: 'sm',
+        size: 'xl',
         id: 'published',
         className: 'no-ellipsis',
       },
@@ -393,6 +393,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        size: 'xxl',
         id: 'tags',
       },
       {
@@ -404,6 +405,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
+        size: 'xl',
         id: 'owners',
       },
       {
@@ -417,6 +419,7 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
+        size: 'xl',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -504,6 +507,7 @@ function DashboardList(props: DashboardListProps) {
         id: 'actions',
         hidden: !canEdit && !canDelete && !canExport,
         disableSortBy: true,
+        size: 'xl',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,
