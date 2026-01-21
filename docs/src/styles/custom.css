@@ -327,3 +327,48 @@ ul.dropdown__menu svg {
 .storybook-example .ant-breadcrumb a:hover {
   color: rgba(0, 0, 0, 0.85);
 }
+
+/* ============================================
+   Ant Design Popup/Portal Isolation
+   These components render outside .storybook-example via portals
+   ============================================ */
+
+/* DatePicker, TimePicker dropdown panels */
+.ant-picker-dropdown table,
+.ant-picker-dropdown th,
+.ant-picker-dropdown td {
+  border: none;
+  background: transparent;
+}
+
+.ant-picker-dropdown table {
+  border-collapse: collapse;
+  width: auto;
+}
+
+.ant-picker-dropdown th,
+.ant-picker-dropdown td {
+  padding: 0;
+}
+
+/* Select, Dropdown, Popover portals */
+.ant-select-dropdown table,
+.ant-select-dropdown th,
+.ant-select-dropdown td,
+.ant-dropdown table,
+.ant-dropdown th,
+.ant-dropdown td,
+.ant-popover table,
+.ant-popover th,
+.ant-popover td {
+  border: none;
+  background: transparent;
+}
+
+/* Modal portals */
+.ant-modal table,
+.ant-modal th,
+.ant-modal td {
+  border: none;
+  background: transparent;
+}
