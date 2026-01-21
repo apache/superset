@@ -18,21 +18,115 @@
 """
 Centralized sanitization utilities for MCP service user inputs.
 
-This module provides a single source of truth for sanitizing user-provided
-text inputs across all MCP tools and schemas.
+This module uses the nh3 library (Rust-based HTML sanitizer) to strip malicious
+HTML tags and protocols from user inputs. nh3 is faster and safer than manual
+regex-based sanitization.
 
-IMPORTANT: This module intentionally does NOT use html.escape() because:
-1. Data is stored in a database and returned via JSON API
-2. React handles its own XSS escaping when rendering text content
-3. Using html.escape() causes characters like '&' to display as '&amp;' in the UI
-4. The security checks here (blocking script tags, JS URLs, event handlers)
-   are sufficient for preventing XSS attacks
+Key features:
+- Strips all HTML tags using nh3.clean() with no allowed tags
+- Blocks dangerous URL schemes (javascript:, vbscript:, data:)
+- Preserves safe text content (e.g., '&' stays as '&', not '&amp;')
+- Additional SQL injection protection for database-facing inputs
 """
 
+import html
 import re
 
+import nh3
 
-def sanitize_user_input(  # noqa: C901
+
+def _strip_html_tags(value: str) -> str:
+    """
+    Strip all HTML tags from the input using nh3, then unescape HTML entities.
+
+    Uses nh3's Rust-based sanitizer with no allowed tags, which is
+    faster and safer than manual regex-based tag stripping.
+
+    Since nh3.clean() produces HTML-safe output (escaping & to &amp;, etc.),
+    we use html.unescape() afterward to restore the original characters.
+    This ensures text like "A & B" stays as "A & B", not "A &amp; B".
+
+    Args:
+        value: The input string that may contain HTML
+
+    Returns:
+        String with all HTML tags removed and entities unescaped
+    """
+    # nh3.clean with tags=set() strips ALL HTML tags
+    # url_schemes=set() blocks all URL schemes in any remaining attributes
+    cleaned = nh3.clean(value, tags=set(), url_schemes=set())
+
+    # Unescape HTML entities so & doesn't become &amp;
+    return html.unescape(cleaned)
+
+
+def _check_dangerous_patterns(value: str, field_name: str) -> None:
+    """
+    Check for dangerous patterns that nh3 doesn't catch.
+
+    This includes URL schemes in plain text (not in HTML attributes),
+    event handler patterns, and dangerous Unicode characters.
+
+    Args:
+        value: The input string to check
+        field_name: Name of the field (for error messages)
+
+    Raises:
+        ValueError: If dangerous patterns are found
+    """
+    # Block dangerous URL schemes in plain text (word boundary check)
+    if re.search(r"\b(javascript|vbscript|data):", value, re.IGNORECASE):
+        raise ValueError(f"{field_name} contains potentially malicious URL scheme")
+
+    # Block event handler patterns (onclick=, onerror=, etc.)
+    if re.search(r"on\w+\s*=", value, re.IGNORECASE):
+        raise ValueError(f"{field_name} contains potentially malicious event handler")
+
+
+def _check_sql_patterns(value: str, field_name: str) -> None:
+    """
+    Check for SQL injection patterns.
+
+    Args:
+        value: The input string to check
+        field_name: Name of the field (for error messages)
+
+    Raises:
+        ValueError: If SQL injection patterns are found
+    """
+    # Check for dangerous SQL keywords
+    if re.search(
+        r"\b(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
+        value,
+        re.IGNORECASE,
+    ):
+        raise ValueError(f"{field_name} contains potentially unsafe SQL keywords")
+
+    # Check for shell metacharacters and SQL comments
+    if re.search(r"[;|&$`]|--", value):
+        raise ValueError(f"{field_name} contains potentially unsafe characters")
+
+    # Check for SQL comment start
+    if "/*" in value:
+        raise ValueError(f"{field_name} contains potentially unsafe SQL comment syntax")
+
+
+def _remove_dangerous_unicode(value: str) -> str:
+    """
+    Remove dangerous Unicode characters (zero-width, control chars).
+
+    Args:
+        value: The input string
+
+    Returns:
+        String with dangerous Unicode characters removed
+    """
+    return re.sub(
+        r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", value
+    )
+
+
+def sanitize_user_input(
     value: str | None,
     field_name: str,
     max_length: int = 255,
@@ -42,8 +136,7 @@ def sanitize_user_input(  # noqa: C901
     """
     Centralized sanitization for user-provided text inputs.
 
-    Performs security validation without html.escape() to prevent
-    display issues like '&' becoming '&amp;'.
+    Uses nh3 to strip HTML tags and performs additional security checks.
 
     Args:
         value: The input string to sanitize
@@ -59,10 +152,10 @@ def sanitize_user_input(  # noqa: C901
         ValueError: If value fails security validation
 
     Security checks performed:
-        - Dangerous HTML tags (<script>, <iframe>, <object>, <embed>, etc.)
-        - JavaScript/VBScript/data URL schemes
-        - Event handlers (onclick=, onerror=, etc.)
-        - Dangerous Unicode characters (zero-width, control chars)
+        - Strips all HTML tags using nh3 (Rust-based sanitizer)
+        - Blocks JavaScript/VBScript/data URL schemes
+        - Blocks event handlers (onclick=, onerror=, etc.)
+        - Removes dangerous Unicode characters (zero-width, control chars)
         - SQL keywords and shell metacharacters (when check_sql_keywords=True)
     """
     if value is None:
@@ -84,64 +177,23 @@ def sanitize_user_input(  # noqa: C901
             f"Maximum allowed length is {max_length} characters."
         )
 
-    v_lower = value.lower()
+    # Strip all HTML tags using nh3
+    value = _strip_html_tags(value)
 
-    # Block dangerous HTML tags using substring checks (safe, no regex)
-    dangerous_tags = [
-        "<script",
-        "</script>",
-        "<iframe",
-        "</iframe>",
-        "<object",
-        "</object>",
-        "<embed",
-        "</embed>",
-        "<link",
-        "<meta",
-    ]
-    for tag in dangerous_tags:
-        if tag in v_lower:
-            raise ValueError(
-                f"{field_name} contains potentially malicious content. "
-                f"HTML tags are not allowed."
-            )
-
-    # Block dangerous URL schemes with word boundaries
-    if re.search(r"\b(javascript|vbscript|data):", value, re.IGNORECASE):
-        raise ValueError(f"{field_name} contains potentially malicious URL scheme")
-
-    # Block event handlers
-    if re.search(r"on\w+\s*=", value, re.IGNORECASE):
-        raise ValueError(f"{field_name} contains potentially malicious event handler")
+    # Check for dangerous patterns (URL schemes, event handlers)
+    _check_dangerous_patterns(value, field_name)
 
     # SQL keyword and shell metacharacter checks (for column names, etc.)
     if check_sql_keywords:
-        # Check for SQL keywords
-        if re.search(
-            r"\b(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
-            value,
-            re.IGNORECASE,
-        ):
-            raise ValueError(f"{field_name} contains potentially unsafe SQL keywords")
-        # Check for shell metacharacters and SQL comments
-        if re.search(r"[;|&$`]|--", value):
-            raise ValueError(f"{field_name} contains potentially unsafe characters")
-        # Check for SQL comment start
-        if "/*" in value:
-            raise ValueError(
-                f"{field_name} contains potentially unsafe SQL comment syntax"
-            )
+        _check_sql_patterns(value, field_name)
 
-    # Remove dangerous Unicode characters (zero-width, control chars)
-    value = re.sub(
-        r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", value
-    )
+    # Remove dangerous Unicode characters
+    value = _remove_dangerous_unicode(value)
 
-    # Return sanitized value WITHOUT html.escape()
     return value
 
 
-def sanitize_filter_value(  # noqa: C901
+def sanitize_filter_value(
     value: str | int | float | bool,
     max_length: int = 1000,
 ) -> str | int | float | bool:
@@ -149,7 +201,7 @@ def sanitize_filter_value(  # noqa: C901
     Sanitize filter values which can be strings or other types.
 
     For non-string values, returns as-is (no sanitization needed).
-    For strings, applies security validation without html.escape().
+    For strings, uses nh3 to strip HTML and applies security validation.
 
     Args:
         value: The filter value (string, int, float, or bool)
@@ -173,30 +225,18 @@ def sanitize_filter_value(  # noqa: C901
             f"Maximum allowed length is {max_length} characters."
         )
 
+    # Strip all HTML tags using nh3
+    value = _strip_html_tags(value)
+
+    # Check for dangerous patterns
+    _check_dangerous_patterns(value, "Filter value")
+
+    # Check for dangerous SQL procedures (filter-specific)
     v_lower = value.lower()
+    if "xp_cmdshell" in v_lower or "sp_executesql" in v_lower:
+        raise ValueError("Filter value contains potentially malicious SQL procedures.")
 
-    # Check for dangerous HTML tags and SQL procedures
-    dangerous_substrings = [
-        "<script",
-        "</script>",
-        "<iframe",
-        "<object",
-        "<embed",
-        "xp_cmdshell",
-        "sp_executesql",
-    ]
-    for substring in dangerous_substrings:
-        if substring in v_lower:
-            raise ValueError(
-                "Filter value contains potentially malicious content. "
-                "HTML tags and JavaScript are not allowed."
-            )
-
-    # Check URL schemes
-    if re.search(r"\b(javascript|vbscript|data):", value, re.IGNORECASE):
-        raise ValueError("Filter value contains potentially malicious URL scheme")
-
-    # SQL injection patterns
+    # SQL injection patterns specific to filter values
     sql_patterns = [
         r";\s*(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
         r"'\s*OR\s*'",
@@ -211,22 +251,17 @@ def sanitize_filter_value(  # noqa: C901
                 "Filter value contains potentially malicious SQL patterns."
             )
 
-    # Check for shell metacharacters
-    if re.search(r"[;&|`$()]", value):
+    # Check for shell metacharacters that could indicate injection attempts
+    # Note: We allow '&' alone as it's common in text ("A & B") and is only
+    # dangerous in shell contexts, not in database queries
+    if re.search(r"[;|`$()]", value):
         raise ValueError("Filter value contains potentially unsafe shell characters.")
-
-    # Check for event handlers
-    if re.search(r"on\w+\s*=", value, re.IGNORECASE):
-        raise ValueError("Filter value contains potentially malicious event handlers.")
 
     # Check for hex encoding
     if re.search(r"\\x[0-9a-fA-F]{2}", value):
         raise ValueError("Filter value contains hex encoding which is not allowed.")
 
     # Remove dangerous Unicode characters
-    value = re.sub(
-        r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", value
-    )
+    value = _remove_dangerous_unicode(value)
 
-    # Return WITHOUT html.escape()
     return value
