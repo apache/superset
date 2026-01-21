@@ -410,6 +410,121 @@ def test_get_all_catalog_names_needs_oauth2(mocker: MockerFixture) -> None:
     assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
 
 
+def test_get_all_table_names_in_schema_needs_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_table_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_table_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_table_names_in_schema(catalog=None, schema="public")
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_view_names_in_schema_needs_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_view_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_view_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_view_names_in_schema(catalog=None, schema="public")
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_materialized_view_names_in_schema_needs_oauth2(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `get_all_materialized_view_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_materialized_view_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_materialized_view_names_in_schema(
+            catalog=None, schema="public"
+        )
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
 def test_get_sqla_engine(mocker: MockerFixture) -> None:
     """
     Test `_get_sqla_engine`.
