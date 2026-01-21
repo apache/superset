@@ -18,16 +18,41 @@ from __future__ import annotations
 
 from collections.abc import Hashable, Sequence
 from datetime import datetime
-from typing import Any, Literal, TYPE_CHECKING, TypeAlias, TypedDict
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    Literal,
+    TYPE_CHECKING,
+    TypeAlias,
+    TypedDict,
+)
 
+from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
 from typing_extensions import NotRequired
 from werkzeug.wrappers import Response
 
 if TYPE_CHECKING:
-    from superset.utils.core import GenericDataType, QueryObjectFilterClause
+    from superset.models.core import Database
+    from superset.utils.core import (
+        GenericDataType,
+        QueryObjectFilterClause,
+        QuerySource,
+    )
 
 SQLType: TypeAlias = TypeEngine | type[TypeEngine]
+
+# Type alias for database connection mutator function
+DBConnectionMutator: TypeAlias = Callable[
+    [URL, dict[str, Any], str | None, Any, "QuerySource | None"],
+    tuple[URL, dict[str, Any]],
+]
+
+# Type alias for engine context manager
+EngineContextManager: TypeAlias = Callable[
+    ["Database", str | None, str | None], ContextManager[None]
+]
 
 
 class LegacyMetric(TypedDict):
@@ -365,3 +390,46 @@ class OAuth2State(TypedDict):
     user_id: int
     default_redirect_uri: str
     tab_id: str
+
+
+# Pool class name literals for engine configuration
+PoolClassName = Literal["queue", "singleton", "assertion", "null", "static"]
+
+
+class EngineParams(TypedDict, total=False):
+    """
+    SQLAlchemy engine parameters passed to create_engine().
+
+    This TypedDict represents the structure of engine_params in database extra config.
+    The connect_args field is engine-specific and varies by database type.
+
+    Example database extra config:
+        {
+            "engine_params": {
+                "poolclass": "queue",
+                "pool_size": 5,
+                "connect_args": {
+                    "ssl": {"ca": "/path/to/ca.pem"},
+                    "http_path": "/sql/1.0/warehouses/abc123"
+                }
+            }
+        }
+    """
+
+    # Pool configuration - poolclass can be a string name or actual pool class
+    poolclass: PoolClassName | type[Any]
+    pool_size: int
+    pool_recycle: int
+    pool_timeout: int
+    max_overflow: int
+    pool_pre_ping: bool
+
+    # Connection arguments passed to the underlying DBAPI driver
+    # This is engine-specific (e.g., ssl config, http_path for Databricks, etc.)
+    connect_args: dict[str, Any]
+
+    # Echo SQL statements for debugging
+    echo: bool
+
+    # Execution options
+    execution_options: dict[str, Any]
