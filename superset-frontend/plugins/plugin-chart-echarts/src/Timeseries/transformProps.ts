@@ -55,6 +55,7 @@ import type { SeriesOption } from 'echarts';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
+  EchartsTimeseriesSeriesType,
   OrientationType,
   TimeseriesChartTransformedProps,
 } from './types';
@@ -288,6 +289,14 @@ export default function transformProps(
 
   let patternIncrement = 0;
 
+  // For horizontal bar charts, calculate min/max from data to avoid cutting off labels
+  const shouldCalculateDataBounds =
+    isHorizontal &&
+    seriesType === EchartsTimeseriesSeriesType.Bar &&
+    truncateYAxis;
+  let dataMax: number | undefined;
+  let dataMin: number | undefined;
+
   rawSeries.forEach(entry => {
     const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
     const lineStyle: LineStyleOption = {};
@@ -300,6 +309,21 @@ export default function transformProps(
 
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
+
+    // Calculate min/max from data for horizontal bar charts
+    if (shouldCalculateDataBounds && entry.data && Array.isArray(entry.data)) {
+      (entry.data as [number, any][]).forEach((datum: [number, any]) => {
+        const value = datum[0];
+        if (typeof value === 'number' && !Number.isNaN(value)) {
+          if (dataMax === undefined || value > dataMax) {
+            dataMax = value;
+          }
+          if (dataMin === undefined || value < dataMin) {
+            dataMin = value;
+          }
+        }
+      });
+    }
 
     let colorScaleKey = getOriginalSeries(seriesName, array);
 
@@ -476,6 +500,18 @@ export default function transformProps(
     yAxisMin = calculateLowerLogTick(minPositiveValue);
   }
 
+  // For horizontal bar charts, set max/min from calculated data bounds
+  if (shouldCalculateDataBounds) {
+    // Set max to actual data max to avoid gaps and ensure labels are visible
+    if (dataMax !== undefined && yAxisMax === undefined) {
+      yAxisMax = dataMax;
+    }
+    // Set min to actual data min for diverging bars
+    if (dataMin !== undefined && yAxisMin === undefined && dataMin < 0) {
+      yAxisMin = dataMin;
+    }
+  }
+
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
       ? getTooltipTimeFormatter(tooltipTimeFormat)
@@ -573,6 +609,13 @@ export default function transformProps(
   if (isHorizontal) {
     [xAxis, yAxis] = [yAxis, xAxis];
     [padding.bottom, padding.left] = [padding.left, padding.bottom];
+    // Increase right padding for horizontal bar charts to ensure value labels are visible
+    if (seriesType === EchartsTimeseriesSeriesType.Bar && showValue) {
+      padding.right = Math.max(
+        padding.right || 0,
+        TIMESERIES_CONSTANTS.horizontalBarLabelRightPadding,
+      );
+    }
   }
 
   const echartOptions: EChartsCoreOption = {
