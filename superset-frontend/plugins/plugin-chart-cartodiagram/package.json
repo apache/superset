@@ -40,7 +40,7 @@
     "@superset-ui/core": "*",
     "@apache-superset/core": "*",
     "@types/react-redux": "*",
-    "geostyler": "^14.1.3",
+    "geostyler": "^14.1.3 || ^18.0.0",
     "geostyler-data": "^1.0.0",
     "geostyler-openlayers-parser": "^4.0.0",
     "geostyler-style": "^7.2.0",
