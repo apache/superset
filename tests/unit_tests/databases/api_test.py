@@ -2325,7 +2325,7 @@ def test_export_includes_configuration_method(
 
 
 def test_import_includes_configuration_method(
-    session: Session, client: Any, full_api_access: None
+    client: Any, full_api_access: None
 ) -> None:
     """
     Test that importing a database YAML with configuration_method
@@ -2339,9 +2339,8 @@ def test_import_includes_configuration_method(
     from superset import db
     from superset.models.core import Database
 
-    Database.metadata.create_all(session.get_bind())
+    Database.metadata.create_all(db.session.get_bind())
 
-    # Prepare the contents for the import zip
     metadata = {
         "version": "1.0.0",
         "type": "Database",
@@ -2368,19 +2367,10 @@ def test_import_includes_configuration_method(
         "databases/test.yaml": yaml.safe_dump(db_yaml),
     }
 
-    # Patch the import logic to use our in-memory contents and provide a mock user context
-    from types import SimpleNamespace
-
-    from flask import g
-
-    mock_user = SimpleNamespace(
-        id=1, username="admin", is_active=True, is_authenticated=True
-    )
     with (
         patch("superset.databases.api.is_zipfile", return_value=True),
         patch("superset.databases.api.ZipFile"),
         patch("superset.databases.api.get_contents_from_bundle", return_value=contents),
-        patch.dict(g._get_current_object().__dict__, {"user": mock_user}),
     ):
         form_data = {"formData": (BytesIO(b"test"), "test.zip")}
         response = client.post(
@@ -2388,16 +2378,12 @@ def test_import_includes_configuration_method(
             data=form_data,
             content_type="multipart/form-data",
         )
-        session.commit()
-        from superset import db
-
+        db.session.commit()
         db.session.remove()
     assert response.status_code == 200, response.data
 
-    from superset.models.core import Database as DBModel
-
     db_obj = (
-        session.query(DBModel)
+        db.session.query(Database)
         .filter_by(database_name="Test_Import_Configuration_Method")
         .first()
     )
@@ -2413,9 +2399,10 @@ def test_import_includes_configuration_method(
         "/api/v1/database/?q=(filters:!((col:database_name,opr:eq,value:'Test_Import_Configuration_Method')))"
     )
     assert get_resp.status_code == 200, get_resp.data
-    if result := get_resp.json["result"]:
-        db_obj_api = result[0]
-        assert "configuration_method" in db_obj_api, (
-            f"'configuration_method' not found in database list response: {db_obj_api}"
-        )
-        assert db_obj_api["configuration_method"] == "dynamic_form"
+    result = get_resp.json["result"]
+    assert result, "No database returned from API after import."
+    db_obj_api = result[0]
+    assert "configuration_method" in db_obj_api, (
+        f"'configuration_method' not found in database list response: {db_obj_api}"
+    )
+    assert db_obj_api["configuration_method"] == "dynamic_form"
