@@ -33,8 +33,21 @@ The DatePicker component from Superset's UI library.
 <StoryWithControls
   component="DatePicker"
   props={{
-  placeholder: "Placeholder",
-  showToday: true
+  placeholder: "Select date",
+  showToday: true,
+  allowClear: false,
+  autoFocus: true,
+  disabled: false,
+  format: "YYYY-MM-DD hh:mm a",
+  inputReadOnly: false,
+  picker: "date",
+  placement: "bottomLeft",
+  size: "middle",
+  showNow: true,
+  showTime: {
+    format: "hh:mm a",
+    needConfirm: false
+  }
 }}
   controls={[
   {
@@ -58,8 +71,10 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <DatePicker
-      placeholder="Placeholder"
+      placeholder="Select date"
+      format="YYYY-MM-DD hh:mm a"
       showToday
+      showTime={{ format: 'hh:mm a', needConfirm: false }}
     />
   );
 }
@@ -71,6 +86,16 @@ function Demo() {
 |------|------|---------|-------------|
 | `placeholder` | `string` | `"Placeholder"` | - |
 | `showToday` | `boolean` | `true` | - |
+| `allowClear` | `boolean` | `false` | - |
+| `autoFocus` | `boolean` | `true` | - |
+| `disabled` | `boolean` | `false` | - |
+| `format` | `string` | `"YYYY-MM-DD hh:mm a"` | - |
+| `inputReadOnly` | `boolean` | `false` | - |
+| `picker` | `string` | `"date"` | - |
+| `placement` | `string` | `"bottomLeft"` | - |
+| `size` | `string` | `"middle"` | - |
+| `showNow` | `boolean` | `true` | - |
+| `showTime` | `any` | `{"format":"hh:mm a","needConfirm":false}` | - |
 
 ## Import
 
