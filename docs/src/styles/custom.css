@@ -333,17 +333,33 @@ ul.dropdown__menu svg {
    These components render outside .storybook-example via portals
    ============================================ */
 
-/* DatePicker, TimePicker dropdown panels */
+/* DatePicker, TimePicker dropdown panels - reset all Infima table styles */
 .ant-picker-dropdown table,
+.ant-picker-dropdown thead,
+.ant-picker-dropdown tbody,
+.ant-picker-dropdown tr,
 .ant-picker-dropdown th,
 .ant-picker-dropdown td {
-  border: none;
-  background: transparent;
+  border: none !important;
+  background: none !important;
+  background-color: transparent !important;
 }
 
 .ant-picker-dropdown table {
-  border-collapse: collapse;
-  width: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  display: table;
+}
+
+.ant-picker-dropdown tr {
+  background: none !important;
+}
+
+/* Override Infima's zebra striping */
+.ant-picker-dropdown tr:nth-child(2n) {
+  background: none !important;
+  background-color: transparent !important;
 }
 
 .ant-picker-dropdown th,
@@ -353,22 +369,48 @@ ul.dropdown__menu svg {
 
 /* Select, Dropdown, Popover portals */
 .ant-select-dropdown table,
+.ant-select-dropdown thead,
+.ant-select-dropdown tbody,
+.ant-select-dropdown tr,
 .ant-select-dropdown th,
 .ant-select-dropdown td,
 .ant-dropdown table,
+.ant-dropdown thead,
+.ant-dropdown tbody,
+.ant-dropdown tr,
 .ant-dropdown th,
 .ant-dropdown td,
 .ant-popover table,
+.ant-popover thead,
+.ant-popover tbody,
+.ant-popover tr,
 .ant-popover th,
 .ant-popover td {
-  border: none;
-  background: transparent;
+  border: none !important;
+  background: none !important;
+  background-color: transparent !important;
+}
+
+.ant-select-dropdown tr:nth-child(2n),
+.ant-dropdown tr:nth-child(2n),
+.ant-popover tr:nth-child(2n) {
+  background: none !important;
+  background-color: transparent !important;
 }
 
 /* Modal portals */
 .ant-modal table,
+.ant-modal thead,
+.ant-modal tbody,
+.ant-modal tr,
 .ant-modal th,
 .ant-modal td {
-  border: none;
-  background: transparent;
+  border: none !important;
+  background: none !important;
+  background-color: transparent !important;
+}
+
+.ant-modal tr:nth-child(2n) {
+  background: none !important;
+  background-color: transparent !important;
 }
