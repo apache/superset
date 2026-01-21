@@ -166,7 +166,11 @@ def discover_datasets() -> Dict[str, Callable[..., None]]:
 
 
 # Auto-discover and create all dataset loaders
-_auto_loaders = discover_datasets()
+try:
+    _auto_loaders = discover_datasets()
+except RuntimeError:
+    # Outside Flask app context (e.g., tests, tooling)
+    _auto_loaders = {}
 
 # Add auto-discovered loaders to module namespace
 globals().update(_auto_loaders)
