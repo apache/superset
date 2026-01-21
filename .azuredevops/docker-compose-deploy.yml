@@ -64,6 +64,8 @@ services:
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      # Webserver port - must match container port mapping
+      SUPERSET_PORT: "5760"
     depends_on:
       redis:
         condition: service_healthy
@@ -100,7 +102,9 @@ services:
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      
+      # Webserver port - must match container port mapping
+      SUPERSET_PORT: "5760"
+
     depends_on:
       superset-init:
         condition: service_completed_successfully
