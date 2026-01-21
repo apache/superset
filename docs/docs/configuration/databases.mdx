@@ -553,6 +553,82 @@ For a connection to a SQL endpoint you need to use the HTTP path from the endpoi
 {"connect_args": {"http_path": "/sql/1.0/endpoints/****", "driver_path": "/path/to/odbc/driver"}}
 ```
 
+##### OAuth2 Authentication
+
+Superset supports OAuth2 authentication for Databricks, allowing users to authenticate with their personal Databricks accounts instead of using shared access tokens. This provides better security and audit capabilities.
+
+###### Prerequisites
+
+1. Create an OAuth2 application in your Databricks account:
+   - Go to your Databricks account console
+   - Navigate to **Settings** → **Developer** → **OAuth apps**
+   - Create a new OAuth app with the redirect URI: `http://your-superset-host:port/api/v1/database/oauth2/`
+
+2. Configure OAuth2 in your `superset_config.py`:
+
+```python
+from datetime import timedelta
+
+# OAuth2 configuration for Databricks
+# OAuth2 endpoints are automatically detected based on your Databricks cloud provider
+DATABASE_OAUTH2_CLIENTS = {
+    "Databricks (legacy)": {
+        "id": "your-databricks-client-id",
+        "secret": "your-databricks-client-secret",
+        "scope": "sql",
+        # OAuth2 endpoints are auto-detected based on hostname, but can be overridden:
+        # AWS: "authorization_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{account_id}/v1/authorize",
+        # Azure: "authorization_request_uri": "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/authorize",
+        # GCP: "authorization_request_uri": "https://accounts.gcp.databricks.com/oidc/accounts/{account_id}/v1/authorize",
+    },
+    "Databricks": {
+        "id": "your-databricks-client-id",
+        "secret": "your-databricks-client-secret",
+        "scope": "sql",
+        # OAuth2 endpoints are auto-detected based on hostname
+    },
+}
+
+# OAuth2 redirect URI (adjust hostname/port for your setup)
+DATABASE_OAUTH2_REDIRECT_URI = "http://your-superset-host:port/api/v1/database/oauth2/"
+
+# Optional: OAuth2 timeout
+DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
+```
+
+Replace the following placeholders:
+- `your-databricks-client-id`: Your Databricks OAuth2 application client ID
+- `your-databricks-client-secret`: Your Databricks OAuth2 application client secret
+- `your-superset-host:port`: Your Superset instance hostname and port
+
+**Multi-Cloud Provider Support**
+
+Superset automatically detects your Databricks cloud provider and uses the appropriate OAuth2 endpoints:
+
+- **AWS**: Detected from hostnames containing `cloud.databricks.com`
+- **Azure**: Detected from hostnames containing `azure` or `azuredatabricks`
+- **GCP**: Detected from hostnames containing `gcp` or `googleusercontent`
+
+You can also explicitly specify the cloud provider in your database configuration under **Advanced** → **Other** → **ENGINE PARAMETERS**:
+
+```json
+{
+  "cloud_provider": "azure"
+}
+```
+
+Valid cloud provider values are: `aws`, `azure`, `gcp`.
+
+###### Usage
+
+Once configured, users can:
+
+1. Connect to Databricks databases normally using access tokens
+2. When querying data, Superset will automatically redirect users to authenticate with Databricks if needed
+3. User-specific OAuth2 tokens will be used for database connections, providing better security and audit trails
+
+This feature works with both "Databricks (legacy)" and "Databricks" engine types and automatically supports all major cloud providers (AWS, Azure, GCP).
+
 #### Denodo
 
 The recommended connector library for Denodo is
