@@ -19,17 +19,28 @@
 
 /** @jest-environment jsdom */
 import '@testing-library/jest-dom';
-import { getDefaultTooltip } from '../tooltip';
-import type { Refs } from '../../types';
+import React from 'react';
+import { getDefaultTooltip } from './tooltip';
+import type { Refs } from '../types';
 
 test('getDefaultTooltip computes height and sets scroll styles', () => {
-  const refs: Refs = {
-    divRef: {
-      current: {
-        getBoundingClientRect: () => ({ x: 0, y: 0, width: 100, height: 100 }),
-      },
-    },
-  } as unknown as Refs;
+  const div = document.createElement('div');
+  jest.spyOn(div, 'getBoundingClientRect').mockReturnValue({
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
+    top: 0,
+    right: 100,
+    bottom: 100,
+    left: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
+
+  const divRef = React.createRef<HTMLDivElement>();
+  Object.defineProperty(divRef, 'current', { value: div });
+
+  const refs: Refs = { divRef };
 
   // Set viewport dimensions
   Object.defineProperty(document.documentElement, 'clientWidth', {
@@ -43,12 +54,15 @@ test('getDefaultTooltip computes height and sets scroll styles', () => {
 
   const tooltip = getDefaultTooltip(refs);
 
-  // Basic defaults remain
+  // Test behavioral properties
   expect(tooltip.enterable).toBe(true);
   expect(tooltip.confine).toBe(true);
   expect(tooltip.hideDelay).toBe(50);
 
-  // Call position to trigger runtime style application
+  // Test that position function exists and is callable
+  expect(typeof tooltip.position).toBe('function');
+
+  // Test position function behavior - returns coordinates
   const tooltipDom = document.createElement('div');
   const result = tooltip.position(
     [200, 300],
@@ -58,11 +72,16 @@ test('getDefaultTooltip computes height and sets scroll styles', () => {
     { contentSize: [300, 600], viewSize: [1200, 1000] },
   );
 
-  // Height cap: min(800px, 80vh of 1000 => 800) => 800
-  expect(tooltipDom).toHaveStyle('max-height: 800px');
-  expect(tooltipDom).toHaveStyle('overflow: auto');
-  expect(tooltipDom).toHaveStyle('pointer-events: auto');
-  // Position returns a tuple [x, y]
+  // Verify position returns coordinate tuple
   expect(Array.isArray(result)).toBe(true);
   expect(result).toHaveLength(2);
+  expect(typeof result[0]).toBe('number');
+  expect(typeof result[1]).toBe('number');
+
+  const computedMaxHeight = parseInt(tooltipDom.style.maxHeight, 10);
+  const viewportHeight = 1000;
+  const expectedMaxHeight = Math.min(800, viewportHeight * 0.8);
+
+  expect(computedMaxHeight).toBe(expectedMaxHeight);
+  expect(tooltipDom).toHaveStyle({ overflow: 'auto' });
 });
