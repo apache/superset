@@ -212,10 +212,10 @@
     "@babel/runtime" "^7.23.2"
     "@rc-component/util" "^1.4.0"
 
-"@ant-design/cssinjs@^2.0.1":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@ant-design/cssinjs/-/cssinjs-2.0.1.tgz#a7742deba17d613769db6d1aa4cfa46222ccec45"
-  integrity sha512-Lw1Z4cUQxdMmTNir67gU0HCpTl5TtkKCJPZ6UBvCqzcOTl/QmMFB6qAEoj8qFl0CuZDX9qQYa3m9+rEKfaBSbA==
+"@ant-design/cssinjs@^2.0.1", "@ant-design/cssinjs@^2.0.3":
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/@ant-design/cssinjs/-/cssinjs-2.0.3.tgz#b6d35b7b00f76fa8a8894d157bc158429ec7b1ca"
+  integrity sha512-HAo8SZ3a6G8v6jT0suCz1270na6EA3obeJWM4uzRijBhdwdoMAXWK2f4WWkwB28yUufsfk3CAhN1coGPQq4kNQ==
   dependencies:
     "@babel/runtime" "^7.11.1"
     "@emotion/hash" "^0.8.0"
@@ -2919,10 +2919,10 @@
     "@rc-component/util" "^1.3.0"
     clsx "^2.1.1"
 
-"@rc-component/resize-observer@^1.0.0", "@rc-component/resize-observer@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@rc-component/resize-observer/-/resize-observer-1.0.1.tgz#bd07c2ab29baa019bd83a0870c07f6902d2241a3"
-  integrity sha512-r+w+Mz1EiueGk1IgjB3ptNXLYSLZ5vnEfKHH+gfgj7JMupftyzvUUl3fRcMZe5uMM04x0n8+G2o/c6nlO2+Wag==
+"@rc-component/resize-observer@^1.0.0", "@rc-component/resize-observer@^1.0.1", "@rc-component/resize-observer@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@rc-component/resize-observer/-/resize-observer-1.1.1.tgz#216d7edb5259bb7d2a732735f0a103328ac8ad80"
+  integrity sha512-NfXXMmiR+SmUuKE1NwJESzEUYUFWIDUn2uXpxCTOLwiRUUakd62DRNFjRJArgzyFW8S5rsL4aX5XlyIXyC/vRA==
   dependencies:
     "@rc-component/util" "^1.2.0"
 
@@ -3043,14 +3043,14 @@
     "@rc-component/virtual-list" "^1.0.1"
     clsx "^2.1.1"
 
-"@rc-component/trigger@^3.0.0", "@rc-component/trigger@^3.6.15", "@rc-component/trigger@^3.7.1", "@rc-component/trigger@^3.8.2":
-  version "3.8.2"
-  resolved "https://registry.yarnpkg.com/@rc-component/trigger/-/trigger-3.8.2.tgz#75d3bd194381678262c674e40392f287bea11765"
-  integrity sha512-I6idYAk8YY3Ly6v5hB7ONqxfdTYTcVNUmV1ZjtSsGH6N/k5tss9+OAtusr+7zdlIcD7TwnlsoB5etfB14ORtMw==
+"@rc-component/trigger@^3.0.0", "@rc-component/trigger@^3.6.15", "@rc-component/trigger@^3.7.1", "@rc-component/trigger@^3.9.0":
+  version "3.9.0"
+  resolved "https://registry.yarnpkg.com/@rc-component/trigger/-/trigger-3.9.0.tgz#d4d2df167e9aced1bf17672d9104a3297663f766"
+  integrity sha512-X8btpwfrT27AgrZVOz4swclhEHTZcqaHeQMXXBgveagOiakTa36uObXbdwerXffgV8G9dH1fAAE0DHtVQs8EHg==
   dependencies:
     "@rc-component/motion" "^1.1.4"
     "@rc-component/portal" "^2.2.0"
-    "@rc-component/resize-observer" "^1.0.0"
+    "@rc-component/resize-observer" "^1.1.1"
     "@rc-component/util" "^1.2.1"
     clsx "^2.1.1"
 
@@ -4877,13 +4877,13 @@ ansi-styles@^6.1.0:
   resolved "https://registry.yarnpkg.com/ansi-styles/-/ansi-styles-6.2.1.tgz#0e62320cf99c21afff3b3012192546aacbfb05c5"
   integrity sha512-bN798gFfQX+viw3R7yrGWRqnrN2oRkEkUjjl4JNn4E8GxxbjtG3FbrEIIY3l8/hrwUwIeCZvi4QuOTP4MErVug==
 
-antd@^6.2.0:
-  version "6.2.0"
-  resolved "https://registry.yarnpkg.com/antd/-/antd-6.2.0.tgz#f61f2ebad9a8e6c9905540c97e432f5efea3bbed"
-  integrity sha512-fwETatwHYExjfzKcV41fBtgPo4kp+g+9gp5YOSSGxwnJHljps8TbXef8WP7ZnaOn5dkcA9xIC0TyUecIybBG7w==
+antd@^6.2.1:
+  version "6.2.1"
+  resolved "https://registry.yarnpkg.com/antd/-/antd-6.2.1.tgz#3014b5973e843641d0723476c7e234f45254a1f1"
+  integrity sha512-ycw/XX7So4MdrwYKGfvZJdkGiCYUOSTebAIi+ejE95WJ138b11oy/iJg7iH0qydaD/B5sFd7Tz8XfPBuW7CRmw==
   dependencies:
     "@ant-design/colors" "^8.0.1"
-    "@ant-design/cssinjs" "^2.0.1"
+    "@ant-design/cssinjs" "^2.0.3"
     "@ant-design/cssinjs-utils" "^2.0.2"
     "@ant-design/fast-color" "^3.0.0"
     "@ant-design/icons" "^6.1.0"
@@ -4910,7 +4910,7 @@ antd@^6.2.0:
     "@rc-component/progress" "~1.0.2"
     "@rc-component/qrcode" "~1.1.1"
     "@rc-component/rate" "~1.0.1"
-    "@rc-component/resize-observer" "^1.0.1"
+    "@rc-component/resize-observer" "^1.1.1"
     "@rc-component/segmented" "~1.3.0"
     "@rc-component/select" "~1.5.0"
     "@rc-component/slider" "~1.0.1"
@@ -4923,7 +4923,7 @@ antd@^6.2.0:
     "@rc-component/tour" "~2.3.0"
     "@rc-component/tree" "~1.1.0"
     "@rc-component/tree-select" "~1.6.0"
-    "@rc-component/trigger" "^3.8.2"
+    "@rc-component/trigger" "^3.9.0"
     "@rc-component/upload" "~1.1.0"
     "@rc-component/util" "^1.7.0"
     clsx "^2.1.1"
