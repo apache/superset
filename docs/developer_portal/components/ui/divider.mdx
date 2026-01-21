@@ -36,14 +36,14 @@ The Divider component from Superset's UI library.
   dashed: false,
   variant: "solid",
   orientation: "center",
-  plain: true,
-  type: "horizontal"
+  plain: true
 }}
   controls={[
   {
     name: "dashed",
     label: "Dashed",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether line is dashed (deprecated, use variant)."
   },
   {
     name: "variant",
@@ -53,7 +53,8 @@ The Divider component from Superset's UI library.
       "dashed",
       "dotted",
       "solid"
-    ]
+    ],
+    description: "Line style of the divider."
   },
   {
     name: "orientation",
@@ -63,26 +64,20 @@ The Divider component from Superset's UI library.
       "left",
       "right",
       "center"
-    ]
+    ],
+    description: "Position of title inside divider."
   },
   {
     name: "plain",
     label: "Plain",
-    type: "boolean"
-  },
-  {
-    name: "type",
-    label: "Type",
-    type: "select",
-    options: [
-      "horizontal",
-      "vertical"
-    ]
+    type: "boolean",
+    description: "Use plain style without bold title."
   },
   {
     name: "orientationMargin",
     label: "Orientation Margin",
-    type: "text"
+    type: "text",
+    description: "Margin from divider edge to title."
   }
 ]}
 />
@@ -94,12 +89,18 @@ Edit the code below to experiment with the component:
 ```tsx live
 function Demo() {
   return (
-    <Divider
-      variant="solid"
-      orientation="center"
-      plain
-      type="horizontal"
-    />
+    <>
+      <p>Horizontal divider separates sections:</p>
+      <Divider />
+      <p>Vertical divider separates inline elements:</p>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <span>Link</span>
+        <Divider type="vertical" />
+        <span>Link</span>
+        <Divider type="vertical" />
+        <span>Link</span>
+      </div>
+    </>
   );
 }
 ```
@@ -108,11 +109,10 @@ function Demo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `dashed` | `boolean` | `false` | - |
-| `variant` | `string` | `"solid"` | - |
-| `orientation` | `string` | `"center"` | - |
-| `plain` | `boolean` | `true` | - |
-| `type` | `string` | `"horizontal"` | - |
+| `dashed` | `boolean` | `false` | Whether line is dashed (deprecated, use variant). |
+| `variant` | `string` | `"solid"` | Line style of the divider. |
+| `orientation` | `string` | `"center"` | Position of title inside divider. |
+| `plain` | `boolean` | `true` | Use plain style without bold title. |
 
 ## Import
 
