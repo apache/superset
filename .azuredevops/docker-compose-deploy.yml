@@ -21,8 +21,6 @@ services:
   db:
     image: postgres:17.4
     container_name: superset_db
-    env_file:
-      - .env.deploy
     shm_size: 1g
     user: postgres
     restart: unless-stopped
@@ -50,8 +48,6 @@ services:
     networks:
       - superset-network
       - oeeintellisuite
-    env_file:
-      - .env.deploy
     environment:
       # Superset configuration
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:?SUPERSET_SECRET_KEY environment variable is not set or empty}
@@ -88,8 +84,6 @@ services:
       - oeeintellisuite
     ports:
       - "${SUPERSET_PORT:-5760}:5760"
-    env_file:
-      - .env.deploy
     environment:
       # Superset configuration
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:?SUPERSET_SECRET_KEY environment variable is not set or empty}

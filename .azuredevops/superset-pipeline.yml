@@ -492,7 +492,7 @@ stages:
                   echo ""
 
                   echo "Deploying with docker-compose..."
-                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops --env-file $(pwd)/.env.deploy up -d
+                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops up -d
 
                   echo ""
                   echo "✓ Deployment completed"
