@@ -384,7 +384,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     }
 
     const metadata = (
-      <div data-test="table-element">
+      <div data-test="table-element" css={{ paddingTop: 6 }}>
         {renderWell()}
         <div>
           {cols?.map(col => (
@@ -401,7 +401,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       activeKey={props.activeKey}
       expandIconPosition="end"
       onChange={props.onChange}
-      bordered
+      ghost
       items={[
         {
           key: id,
@@ -410,21 +410,8 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           extra: renderControls(),
           onMouseEnter: () => setHover(true),
           onMouseLeave: () => setHover(false),
-          styles: {
-            header: {
-              paddingTop: theme.paddingContentVerticalSM,
-              paddingBottom: theme.paddingContentVerticalSM,
-            },
-            body: {
-              paddingTop: theme.paddingContentVerticalSM,
-              paddingBottom: theme.paddingContentVerticalSM,
-            },
-          },
         },
       ]}
-      style={{
-        marginBottom: theme.paddingContentVerticalSM,
-      }}
     />
   );
 };
