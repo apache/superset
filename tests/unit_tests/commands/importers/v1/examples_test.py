@@ -52,21 +52,40 @@ def test_transpile_virtual_dataset_sql_database_not_found(mock_db):
 @patch("superset.commands.importers.v1.examples.db")
 @patch("superset.commands.importers.v1.examples.transpile_to_dialect")
 def test_transpile_virtual_dataset_sql_success(mock_transpile, mock_db):
-    """Test successful SQL transpilation."""
-    # Setup mock database
+    """Test successful SQL transpilation with source engine."""
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "mysql"
     mock_db.session.query.return_value.get.return_value = mock_database
 
-    # Setup mock transpilation
     mock_transpile.return_value = "SELECT * FROM `foo`"
 
+    config = {
+        "table_name": "my_table",
+        "sql": "SELECT * FROM foo",
+        "source_db_engine": "postgresql",
+    }
+    transpile_virtual_dataset_sql(config, 1)
+
+    assert config["sql"] == "SELECT * FROM `foo`"
+    mock_transpile.assert_called_once_with("SELECT * FROM foo", "mysql", "postgresql")
+
+
+@patch("superset.commands.importers.v1.examples.db")
+@patch("superset.commands.importers.v1.examples.transpile_to_dialect")
+def test_transpile_virtual_dataset_sql_no_source_engine(mock_transpile, mock_db):
+    """Test transpilation when source_db_engine is not specified (legacy)."""
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "mysql"
+    mock_db.session.query.return_value.get.return_value = mock_database
+
+    mock_transpile.return_value = "SELECT * FROM `foo`"
+
+    # No source_db_engine - should default to None (generic dialect)
     config = {"table_name": "my_table", "sql": "SELECT * FROM foo"}
     transpile_virtual_dataset_sql(config, 1)
 
-    # SQL should be transpiled
     assert config["sql"] == "SELECT * FROM `foo`"
-    mock_transpile.assert_called_once_with("SELECT * FROM foo", "mysql")
+    mock_transpile.assert_called_once_with("SELECT * FROM foo", "mysql", None)
 
 
 @patch("superset.commands.importers.v1.examples.db")
@@ -80,7 +99,11 @@ def test_transpile_virtual_dataset_sql_no_change(mock_transpile, mock_db):
     original_sql = "SELECT * FROM foo"
     mock_transpile.return_value = original_sql
 
-    config = {"table_name": "my_table", "sql": original_sql}
+    config = {
+        "table_name": "my_table",
+        "sql": original_sql,
+        "source_db_engine": "postgresql",
+    }
     transpile_virtual_dataset_sql(config, 1)
 
     assert config["sql"] == original_sql
@@ -96,11 +119,14 @@ def test_transpile_virtual_dataset_sql_error_fallback(mock_transpile, mock_db):
     mock_database.db_engine_spec.engine = "mysql"
     mock_db.session.query.return_value.get.return_value = mock_database
 
-    # Simulate transpilation failure
     mock_transpile.side_effect = QueryClauseValidationException("Parse error")
 
     original_sql = "SELECT SOME_POSTGRES_SPECIFIC_FUNCTION() FROM foo"
-    config = {"table_name": "my_table", "sql": original_sql}
+    config = {
+        "table_name": "my_table",
+        "sql": original_sql,
+        "source_db_engine": "postgresql",
+    }
 
     # Should not raise, should keep original SQL
     transpile_virtual_dataset_sql(config, 1)
@@ -109,32 +135,110 @@ def test_transpile_virtual_dataset_sql_error_fallback(mock_transpile, mock_db):
 
 @patch("superset.commands.importers.v1.examples.db")
 @patch("superset.commands.importers.v1.examples.transpile_to_dialect")
-def test_transpile_virtual_dataset_sql_complex_query(mock_transpile, mock_db):
-    """Test transpilation of a more complex SQL query."""
+def test_transpile_virtual_dataset_sql_postgres_to_duckdb(mock_transpile, mock_db):
+    """Test transpilation from PostgreSQL to DuckDB."""
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "duckdb"
     mock_db.session.query.return_value.get.return_value = mock_database
 
     original_sql = """
-        SELECT
-            DATE_TRUNC('month', created_at) as month,
-            COUNT(*) as count
-        FROM orders
-        WHERE status = 'completed'
-        GROUP BY 1
+        SELECT DATE_TRUNC('month', created_at) AS month, COUNT(*) AS cnt
+        FROM orders WHERE status = 'completed' GROUP BY 1
     """
     transpiled_sql = """
-        SELECT
-            DATE_TRUNC('month', created_at) AS month,
-            COUNT(*) AS count
-        FROM orders
-        WHERE status = 'completed'
-        GROUP BY 1
+        SELECT DATE_TRUNC('month', created_at) AS month, COUNT(*) AS cnt
+        FROM orders WHERE status = 'completed' GROUP BY 1
     """
     mock_transpile.return_value = transpiled_sql
 
-    config = {"table_name": "monthly_orders", "sql": original_sql}
+    config = {
+        "table_name": "monthly_orders",
+        "sql": original_sql,
+        "source_db_engine": "postgresql",
+    }
     transpile_virtual_dataset_sql(config, 1)
 
     assert config["sql"] == transpiled_sql
-    mock_transpile.assert_called_once_with(original_sql, "duckdb")
+    mock_transpile.assert_called_once_with(original_sql, "duckdb", "postgresql")
+
+
+@patch("superset.commands.importers.v1.examples.db")
+@patch("superset.commands.importers.v1.examples.transpile_to_dialect")
+def test_transpile_virtual_dataset_sql_postgres_to_clickhouse(mock_transpile, mock_db):
+    """Test transpilation from PostgreSQL to ClickHouse.
+
+    ClickHouse has different syntax for date functions, so this tests
+    real dialect differences.
+    """
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "clickhouse"
+    mock_db.session.query.return_value.get.return_value = mock_database
+
+    # PostgreSQL syntax
+    original_sql = "SELECT DATE_TRUNC('month', created_at) AS month FROM orders"
+    # ClickHouse uses toStartOfMonth instead
+    transpiled_sql = "SELECT toStartOfMonth(created_at) AS month FROM orders"
+    mock_transpile.return_value = transpiled_sql
+
+    config = {
+        "table_name": "monthly_orders",
+        "sql": original_sql,
+        "source_db_engine": "postgresql",
+    }
+    transpile_virtual_dataset_sql(config, 1)
+
+    assert config["sql"] == transpiled_sql
+    mock_transpile.assert_called_once_with(original_sql, "clickhouse", "postgresql")
+
+
+@patch("superset.commands.importers.v1.examples.db")
+@patch("superset.commands.importers.v1.examples.transpile_to_dialect")
+def test_transpile_virtual_dataset_sql_postgres_to_mysql(mock_transpile, mock_db):
+    """Test transpilation from PostgreSQL to MySQL.
+
+    MySQL uses backticks for identifiers and has different casting syntax.
+    """
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "mysql"
+    mock_db.session.query.return_value.get.return_value = mock_database
+
+    # PostgreSQL syntax with :: casting
+    original_sql = "SELECT created_at::DATE AS date_only FROM orders"
+    # MySQL syntax with CAST
+    transpiled_sql = "SELECT CAST(created_at AS DATE) AS date_only FROM `orders`"
+    mock_transpile.return_value = transpiled_sql
+
+    config = {
+        "table_name": "orders_dates",
+        "sql": original_sql,
+        "source_db_engine": "postgresql",
+    }
+    transpile_virtual_dataset_sql(config, 1)
+
+    assert config["sql"] == transpiled_sql
+    mock_transpile.assert_called_once_with(original_sql, "mysql", "postgresql")
+
+
+@patch("superset.commands.importers.v1.examples.db")
+@patch("superset.commands.importers.v1.examples.transpile_to_dialect")
+def test_transpile_virtual_dataset_sql_postgres_to_sqlite(mock_transpile, mock_db):
+    """Test transpilation from PostgreSQL to SQLite."""
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "sqlite"
+    mock_db.session.query.return_value.get.return_value = mock_database
+
+    original_sql = "SELECT * FROM orders WHERE created_at > NOW() - INTERVAL '7 days'"
+    transpiled_sql = (
+        "SELECT * FROM orders WHERE created_at > DATETIME('now', '-7 days')"
+    )
+    mock_transpile.return_value = transpiled_sql
+
+    config = {
+        "table_name": "recent_orders",
+        "sql": original_sql,
+        "source_db_engine": "postgresql",
+    }
+    transpile_virtual_dataset_sql(config, 1)
+
+    assert config["sql"] == transpiled_sql
+    mock_transpile.assert_called_once_with(original_sql, "sqlite", "postgresql")

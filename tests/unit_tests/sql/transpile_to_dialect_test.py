@@ -345,3 +345,54 @@ def test_sqlglot_generation_error_raises_exception() -> None:
                 match="Cannot transpile SQL to postgresql",
             ):
                 transpile_to_dialect("name = 'test'", "postgresql")
+
+
+# Tests for source_engine parameter
+@pytest.mark.parametrize(
+    "sql,source_engine,target_engine,expected",
+    [
+        # PostgreSQL to MySQL - should convert :: casting to CAST()
+        (
+            "SELECT created_at::DATE FROM orders",
+            "postgresql",
+            "mysql",
+            "SELECT CAST(created_at AS DATE) FROM orders",
+        ),
+        # Same dialect - should preserve SQL
+        (
+            "SELECT * FROM orders",
+            "postgresql",
+            "postgresql",
+            "SELECT * FROM orders",
+        ),
+        # PostgreSQL to DuckDB - DuckDB supports similar syntax (uppercases date part)
+        (
+            "SELECT DATE_TRUNC('month', ts) FROM orders",
+            "postgresql",
+            "duckdb",
+            "SELECT DATE_TRUNC('MONTH', ts) FROM orders",
+        ),
+    ],
+)
+def test_transpile_with_source_engine(
+    sql: str, source_engine: str, target_engine: str, expected: str
+) -> None:
+    """Test transpilation with explicit source engine."""
+    result = transpile_to_dialect(sql, target_engine, source_engine)
+    assert result == expected
+
+
+def test_transpile_source_engine_none_uses_generic() -> None:
+    """Test that source_engine=None uses generic dialect (backward compatible)."""
+    # Simple SQL that doesn't require dialect-specific parsing
+    result = transpile_to_dialect("SELECT * FROM orders", "postgresql", None)
+    assert result == "SELECT * FROM orders"
+
+
+def test_transpile_unknown_source_engine_uses_generic() -> None:
+    """Test that unknown source_engine falls back to generic dialect."""
+    # Unknown engine should be treated as None (generic)
+    result = transpile_to_dialect(
+        "SELECT * FROM orders", "postgresql", "unknown_engine"
+    )
+    assert result == "SELECT * FROM orders"

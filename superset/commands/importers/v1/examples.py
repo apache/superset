@@ -74,20 +74,24 @@ def transpile_virtual_dataset_sql(config: dict[str, Any], database_id: int) -> N
         return
 
     target_engine = database.db_engine_spec.engine
+    source_engine = config.get("source_db_engine")
+
     try:
-        transpiled_sql = transpile_to_dialect(sql, target_engine)
+        transpiled_sql = transpile_to_dialect(sql, target_engine, source_engine)
         if transpiled_sql != sql:
             logger.info(
-                "Transpiled virtual dataset SQL for '%s' to %s dialect",
+                "Transpiled virtual dataset SQL for '%s' from %s to %s dialect",
                 config.get("table_name", "unknown"),
+                source_engine or "generic",
                 target_engine,
             )
             config["sql"] = transpiled_sql
     except QueryClauseValidationException as ex:
         logger.warning(
-            "Could not transpile SQL for dataset '%s' to %s: %s. "
+            "Could not transpile SQL for dataset '%s' from %s to %s: %s. "
             "Using original SQL which may not be compatible.",
             config.get("table_name", "unknown"),
+            source_engine or "generic",
             target_engine,
             ex,
         )

@@ -175,6 +175,10 @@ def export_dataset_yaml(
         "schema": None,  # Don't export - use target database's default schema
         # Preserve SQL for virtual datasets, None for physical (data is in parquet)
         "sql": dataset.sql if is_preserved_virtual else None,
+        # Track source database engine for SQL transpilation during import
+        "source_db_engine": (
+            dataset.database.db_engine_spec.engine if is_preserved_virtual else None
+        ),
         "params": None,  # Don't export - contains stale import metadata
         "template_params": dataset.template_params,
         "filter_select_enabled": dataset.filter_select_enabled,
