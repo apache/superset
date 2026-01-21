@@ -82,7 +82,10 @@ extraEnv: {}
   # GUNICORN_KEEPALIVE: 2
   # SERVER_LIMIT_REQUEST_LINE: 0
   # SERVER_LIMIT_REQUEST_FIELD_SIZE: 0
-
+  # See: https://superset.apache.org/docs/configuration/event-logging/#statsd-logging
+  # SERVER_STATSD_HOST: localhost
+  # SERVER_STATSD_PORT: 8125
+  # SERVER_STATSD_PREFIX: superset
   # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
   # #   this includes any random Gmail address if your OAuth2 Web App is set to External.
