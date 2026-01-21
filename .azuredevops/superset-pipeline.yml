@@ -278,6 +278,12 @@ stages:
                     Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($explorer.port)"
                     Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($explorer.'admin-user')"
 
+                    # Write SECRET_KEY to temp file (secret variables not passed to bash)
+                    # IMPORTANT: Use the same SECRET_KEY across deployments to avoid decryption errors
+                    $secretKeyFile = Join-Path "$(Agent.TempDirectory)" "superset-secret-key.txt"
+                    Set-Content -Path $secretKeyFile -Value $env:SUPERSET_SECRET_KEY -NoNewline
+                    Write-Host "✓ SECRET_KEY written to temp file"
+
                     # Write admin password to temp file (secret variables not passed to bash)
                     $adminPasswordFile = Join-Path "$(Agent.TempDirectory)" "superset-admin-password.txt"
                     Set-Content -Path $adminPasswordFile -Value $explorer.'admin-password' -NoNewline
@@ -338,10 +344,19 @@ stages:
                   echo ""
                   echo "Creating .env.deploy file..."
 
-                  # Generate SUPERSET_SECRET_KEY (Flask secret key for session encryption)
-                  # Secret variables are not passed to bash, so we generate it directly
-                  SUPERSET_SECRET_KEY=$(openssl rand -base64 48 | tr -d '=+/' | cut -c1-64)
-                  echo "✓ Generated SUPERSET_SECRET_KEY (64 chars)"
+                  # Read SUPERSET_SECRET_KEY from temp file (written by PowerShell step)
+                  # IMPORTANT: Use the same SECRET_KEY across deployments to avoid decryption errors
+                  # Secret variables are not passed to bash, so we use a file (same approach as admin password)
+                  SECRET_KEY_FILE="$(Agent.TempDirectory)/superset-secret-key.txt"
+                  if [ -f "$SECRET_KEY_FILE" ]; then
+                    SUPERSET_SECRET_KEY=$(cat "$SECRET_KEY_FILE")
+                    echo "✓ Read SUPERSET_SECRET_KEY from temp file"
+                  else
+                    echo "✗ ERROR: SECRET_KEY file not found: $SECRET_KEY_FILE"
+                    echo "  Please set SUPERSET_SECRET_KEY as a secret variable in Azure DevOps"
+                    echo "  Pipeline variables → Add → Name: SUPERSET_SECRET_KEY → Check 'Keep this value secret'"
+                    exit 1
+                  fi
 
                   # Read admin password from temp file (written by PowerShell step)
                   # Secret variables are not passed to bash, so we use a file
