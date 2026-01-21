@@ -18,35 +18,53 @@
  */
 
 import reducer, { getInitialDataMask } from './reducer';
-import { SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE } from './actions';
-import type {
-  DataMaskStateWithId,
-  Filter,
-  Filters,
-  DataMask,
-  NativeFilterTarget,
+import {
+  SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE,
+  type SetDataMaskForFilterChangesComplete,
+} from './actions';
+import {
+  type DataMaskStateWithId,
+  type Filter,
+  type NativeFilterTarget,
+  NativeFilterType,
 } from '@superset-ui/core';
 
-function makeFilter(
+// Helper to create minimal filter for testing
+const createFilter = (
   id: string,
-  opts: Partial<Filter> & { targets?: any } = {},
-): Filter {
-  return {
+  columnName = 'col',
+  controlValues = {},
+): Filter =>
+  ({
     id,
     name: id,
-    type: 'NATIVE_FILTER',
-    scope: [],
+    type: NativeFilterType.NativeFilter,
+    scope: { rootPath: [], excluded: [] },
     chartsInScope: [],
     tabsInScope: [],
-    controlValues: {},
+    controlValues,
     filterType: 'filter_select',
-    targets: opts.targets ?? [{ column: { name: 'col' } }],
-    defaultDataMask: { filterState: { value: undefined } } as DataMask,
-    ...opts,
-  } as unknown as Filter;
-}
+    targets: [{ column: { name: columnName } } as NativeFilterTarget],
+    defaultDataMask: { filterState: { value: undefined } },
+    cascadeParentIds: [],
+    description: '',
+  }) satisfies Partial<Filter> as Filter;
 
-test('dataMask reducer: preserves other native filters when one is modified (targets changed)', () => {
+// Helper to create action for filter modification
+const createModifyAction = (
+  modifiedFilter: Filter,
+  oldFilters = {},
+): SetDataMaskForFilterChangesComplete => ({
+  type: SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE,
+  filterChanges: {
+    deleted: [],
+    reordered: [],
+    modified: [modifiedFilter],
+  },
+  filters: oldFilters,
+});
+
+test('when user edits a filter and changes targets, other filters maintain their selected values', () => {
   const initialState: DataMaskStateWithId = {
     'NATIVE_FILTER-1': {
       id: 'NATIVE_FILTER-1',
@@ -58,90 +76,43 @@ test('dataMask reducer: preserves other native filters when one is modified (tar
       ...getInitialDataMask('NATIVE_FILTER-2'),
       filterState: { value: ['bar'] },
     },
-  } as unknown as DataMaskStateWithId;
+  };
 
-  const oldFilters: Filters = {
-    'NATIVE_FILTER-1': makeFilter('NATIVE_FILTER-1', {
-      targets: [{ column: { name: 'col_a' } }] as [Partial<NativeFilterTarget>],
-      defaultDataMask: {
-        filterState: { value: undefined },
-      } as unknown as DataMask,
-    }),
-    'NATIVE_FILTER-2': makeFilter('NATIVE_FILTER-2', {
-      targets: [{ column: { name: 'col_b' } }] as [Partial<NativeFilterTarget>],
-      defaultDataMask: {
-        filterState: { value: undefined },
-      } as unknown as DataMask,
-    }),
-  } as unknown as Filters;
+  const action = createModifyAction(
+    createFilter('NATIVE_FILTER-1', 'col_changed'),
+  );
 
-  const action = {
-    type: SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE,
-    filterChanges: {
-      added: [],
-      deleted: [],
-      modified: [
-        makeFilter('NATIVE_FILTER-1', {
-          targets: [{ column: { name: 'col_changed' } }] as [
-            Partial<NativeFilterTarget>,
-          ], // targets changed
-          defaultDataMask: { filterState: { value: undefined } } as DataMask,
-        }),
-      ],
-    },
-    filters: oldFilters,
-  } as any;
+  const result = reducer(initialState, action);
 
-  const next = reducer(initialState, action);
-
-  // Filter 2 should be preserved entirely
-  expect(next['NATIVE_FILTER-2']?.filterState?.value).toEqual(['bar']);
-
-  // Filter 1 should be reset to default (undefined)
-  expect(next['NATIVE_FILTER-1']?.filterState?.value).toBeUndefined();
+  expect(result['NATIVE_FILTER-2']?.filterState?.value).toEqual(['bar']);
+  expect(result['NATIVE_FILTER-1']?.filterState?.value).toBeUndefined();
 });
 
-test('dataMask reducer: preserves modified filter state when targets unchanged and allow-empty', () => {
+test('when user edits a filter without changing targets, their selection is preserved', () => {
   const initialState: DataMaskStateWithId = {
     'NATIVE_FILTER-1': {
       id: 'NATIVE_FILTER-1',
       ...getInitialDataMask('NATIVE_FILTER-1'),
-      extraFormData: { append_form_data: { since: '1 year ago' } },
+      extraFormData: { time_range: '1 year ago' },
       filterState: { value: ['foo'] },
     },
-  } as unknown as DataMaskStateWithId;
+  };
 
-  const oldFilters: Filters = {
-    'NATIVE_FILTER-1': makeFilter('NATIVE_FILTER-1', {
-      targets: [{ column: { name: 'col_a' } }] as [Partial<NativeFilterTarget>],
-      controlValues: { enableEmptyFilter: true },
-      defaultDataMask: { filterState: { value: undefined } } as DataMask,
+  const oldFilters = {
+    'NATIVE_FILTER-1': createFilter('NATIVE_FILTER-1', 'col_a', {
+      enableEmptyFilter: true,
     }),
-  } as unknown as Filters;
+  };
 
-  const action = {
-    type: SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE,
-    filterChanges: {
-      added: [],
-      deleted: [],
-      modified: [
-        makeFilter('NATIVE_FILTER-1', {
-          targets: [{ column: { name: 'col_a' } }] as [
-            Partial<NativeFilterTarget>,
-          ], // targets unchanged
-          controlValues: { enableEmptyFilter: true },
-          defaultDataMask: { filterState: { value: undefined } } as DataMask,
-        }),
-      ],
-    },
-    filters: oldFilters,
-  } as any;
+  const action = createModifyAction(
+    createFilter('NATIVE_FILTER-1', 'col_a', { enableEmptyFilter: true }),
+    oldFilters,
+  );
 
-  const next = reducer(initialState, action);
+  const result = reducer(initialState, action);
 
-  // Filter 1 keeps its state
-  expect(next['NATIVE_FILTER-1']?.filterState?.value).toEqual(['foo']);
-  expect(
-    (next['NATIVE_FILTER-1'] as any)?.extraFormData?.append_form_data?.since,
-  ).toEqual('1 year ago');
+  expect(result['NATIVE_FILTER-1']?.filterState?.value).toEqual(['foo']);
+  expect(result['NATIVE_FILTER-1']?.extraFormData?.time_range).toEqual(
+    '1 year ago',
+  );
 });
