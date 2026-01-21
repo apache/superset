@@ -201,9 +201,7 @@ const ViewModeToggle = ({
   mode: 'table' | 'card';
   setMode: (mode: 'table' | 'card') => void;
 }) => {
-  const gridTitle = t('Grid view');
-  const listTitle = t('List view');
-  console.log('Rendering ViewModeToggle', { gridTitle, listTitle, mode });
+  
 
   return (
     <ViewModeContainer>
