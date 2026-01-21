@@ -332,7 +332,7 @@
     "jest-websocket-mock": "^2.5.0",
     "jsdom": "^27.4.0",
     "lerna": "^8.2.3",
-    "lightningcss": "^1.30.2",
+    "lightningcss": "^1.31.1",
     "mini-css-extract-plugin": "^2.10.0",
     "open-cli": "^8.0.0",
     "oxlint": "^1.41.0",
