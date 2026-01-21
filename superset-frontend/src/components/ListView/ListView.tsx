@@ -28,8 +28,11 @@ import {
   Icons,
   EmptyState,
   Loading,
+  Tooltip,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
+
+
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -197,32 +200,46 @@ const ViewModeToggle = ({
 }: {
   mode: 'table' | 'card';
   setMode: (mode: 'table' | 'card') => void;
-}) => (
-  <ViewModeContainer>
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => {
-        e.currentTarget.blur();
-        setMode('card');
-      }}
-      className={cx('toggle-button', { active: mode === 'card' })}
-    >
-      <Icons.AppstoreOutlined iconSize="xl" />
-    </div>
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => {
-        e.currentTarget.blur();
-        setMode('table');
-      }}
-      className={cx('toggle-button', { active: mode === 'table' })}
-    >
-      <Icons.UnorderedListOutlined iconSize="xl" />
-    </div>
-  </ViewModeContainer>
-);
+}) => {
+  const gridTitle = t('Grid view');
+  const listTitle = t('List view');
+  console.log('Rendering ViewModeToggle', { gridTitle, listTitle, mode });
+
+  return (
+    <ViewModeContainer>
+      <Tooltip title={gridTitle}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={e => {
+            console.log('Grid view icon clicked');
+            e.currentTarget.blur();
+            setMode('card');
+          }}
+          onMouseEnter={() => console.log('Mouse entered Grid view icon')}
+          className={cx('toggle-button', { active: mode === 'card' })}
+        >
+          <Icons.AppstoreOutlined iconSize="xl" />
+        </div>
+      </Tooltip>
+      <Tooltip title={listTitle}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={e => {
+            console.log('List view icon clicked');
+            e.currentTarget.blur();
+            setMode('table');
+          }}
+          onMouseEnter={() => console.log('Mouse entered List view icon')}
+          className={cx('toggle-button', { active: mode === 'table' })}
+        >
+          <Icons.UnorderedListOutlined iconSize="xl" />
+        </div>
+      </Tooltip>
+    </ViewModeContainer>
+  );
+};
 
 export interface ListViewProps<T extends object = any> {
   columns: any[];
@@ -270,7 +287,7 @@ export function ListView<T extends object = any>({
   filters = [],
   bulkActions = [],
   bulkSelectEnabled = false,
-  disableBulkSelect = () => {},
+  disableBulkSelect = () => { },
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   showThumbnails,
