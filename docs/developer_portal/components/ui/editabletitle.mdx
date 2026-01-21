@@ -41,6 +41,8 @@ The EditableTitle component from Superset's UI library.
   title: "Title",
   defaultTitle: "Default title",
   placeholder: "Placeholder",
+  certifiedBy: "",
+  certificationDetails: "",
   maxWidth: 100,
   autoSize: true
 }}
@@ -48,52 +50,74 @@ The EditableTitle component from Superset's UI library.
   {
     name: "canEdit",
     label: "Can Edit",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether the title can be edited."
   },
   {
     name: "editing",
     label: "Editing",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether the title is currently in edit mode."
   },
   {
     name: "emptyText",
     label: "Empty Text",
-    type: "text"
+    type: "text",
+    description: "Text to display when title is empty."
   },
   {
     name: "noPermitTooltip",
     label: "No Permit Tooltip",
-    type: "text"
+    type: "text",
+    description: "Tooltip shown when user lacks edit permission."
   },
   {
     name: "showTooltip",
     label: "Show Tooltip",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether to show tooltip on hover."
   },
   {
     name: "title",
     label: "Title",
-    type: "text"
+    type: "text",
+    description: "The title text to display."
   },
   {
     name: "defaultTitle",
     label: "Default Title",
-    type: "text"
+    type: "text",
+    description: "Default title when none is provided."
   },
   {
     name: "placeholder",
     label: "Placeholder",
-    type: "text"
+    type: "text",
+    description: "Placeholder text when editing."
+  },
+  {
+    name: "certifiedBy",
+    label: "Certified By",
+    type: "text",
+    description: "Name of person/team who certified this item."
+  },
+  {
+    name: "certificationDetails",
+    label: "Certification Details",
+    type: "text",
+    description: "Additional certification details or description."
   },
   {
     name: "maxWidth",
     label: "Max Width",
-    type: "number"
+    type: "number",
+    description: "Maximum width of the title in pixels."
   },
   {
     name: "autoSize",
     label: "Auto Size",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether to auto-size based on content."
   }
 ]}
 />
@@ -106,15 +130,12 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <EditableTitle
+      title="My Dashboard"
       canEdit
-      emptyText="Empty text"
-      noPermitTooltip="Not permitted"
       showTooltip
-      title="Title"
-      defaultTitle="Default title"
-      placeholder="Placeholder"
-      maxWidth={100}
-      autoSize
+      certifiedBy="Data Team"
+      certificationDetails="Verified Q1 2024"
+      onSaveTitle={(newTitle) => console.log('Saved:', newTitle)}
     />
   );
 }
@@ -124,16 +145,18 @@ function Demo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `canEdit` | `boolean` | `true` | - |
-| `editing` | `boolean` | `false` | - |
-| `emptyText` | `string` | `"Empty text"` | - |
-| `noPermitTooltip` | `string` | `"Not permitted"` | - |
-| `showTooltip` | `boolean` | `true` | - |
-| `title` | `string` | `"Title"` | - |
-| `defaultTitle` | `string` | `"Default title"` | - |
-| `placeholder` | `string` | `"Placeholder"` | - |
-| `maxWidth` | `number` | `100` | - |
-| `autoSize` | `boolean` | `true` | - |
+| `canEdit` | `boolean` | `true` | Whether the title can be edited. |
+| `editing` | `boolean` | `false` | Whether the title is currently in edit mode. |
+| `emptyText` | `string` | `"Empty text"` | Text to display when title is empty. |
+| `noPermitTooltip` | `string` | `"Not permitted"` | Tooltip shown when user lacks edit permission. |
+| `showTooltip` | `boolean` | `true` | Whether to show tooltip on hover. |
+| `title` | `string` | `"Title"` | The title text to display. |
+| `defaultTitle` | `string` | `"Default title"` | Default title when none is provided. |
+| `placeholder` | `string` | `"Placeholder"` | Placeholder text when editing. |
+| `certifiedBy` | `string` | `""` | Name of person/team who certified this item. |
+| `certificationDetails` | `string` | `""` | Additional certification details or description. |
+| `maxWidth` | `number` | `100` | Maximum width of the title in pixels. |
+| `autoSize` | `boolean` | `true` | Whether to auto-size based on content. |
 
 ## Import
 
