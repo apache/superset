@@ -52,6 +52,7 @@ are compatible with Superset.
 | [Arc - Apache Arrow](/docs/configuration/databases#arc-arrow)                  | `pip install arc-superset-arrow`                                                   | `arc+arrow://{api_key}@{hostname}:{port}/{database}`                                                                                                   |
 | [Arc - JSON](/docs/configuration/databases#arc-json)                           | `pip install arc-superset-dialect`                                                | `arc+json://{api_key}@{hostname}:{port}/{database}`                                                                                                    |
 | [Ascend.io](/docs/configuration/databases#ascendio)                       | `pip install impyla`                                                               | `ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true`                                                        |
+| [Atgenomix SeqsLab](/docs/configuration/databases#atgenomix-seqslab)              | `pip install seqslab-connector`                                                    | `seqslab+hive://token:{access_token}@{host}:443/{database}?http_path={job_run_id}`                                                                      |
 | [Azure MS SQL](/docs/configuration/databases#sql-server)                | `pip install pymssql`                                                              | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`                                                       |
 | [ClickHouse](/docs/configuration/databases#clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                    |
 | [Cloudflare D1](/docs/configuration/databases#cloudflare-d1)                  | `pip install superset-engine-d1` or `pip install apache_superset[d1]`                                                  | `d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}`                                                                                    |
@@ -190,6 +191,20 @@ purposes of isolating the problem.
 Repeat this process for each type of database you want Superset to connect to.
 
 ### Database-specific Instructions
+
+#### Atgenomix SeqsLab
+
+The recommended connector library for Atgenomix SeqsLab interactive jobs (clusters) is
+[seqslab-connector](https://pypi.org/project/seqslab-connector/).
+
+The expected connection string is formatted as follows:
+
+```
+seqslab+hive://token:{access_token}@{host}:443/{database}?http_path={job_run_id}
+```
+
+The connection string is automatically created once you create an interactive job.
+It can be found in "Jobs" -> "the specific job" -> "Activity" -> "Connect to SQL".
 
 #### Ascend.io
 
