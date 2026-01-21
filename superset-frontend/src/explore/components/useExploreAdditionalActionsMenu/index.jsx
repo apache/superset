@@ -212,7 +212,7 @@ export const useExploreAdditionalActionsMenu = (
     }
   }, [addDangerToast, latestQueryFormData]);
 
-  const exportCSV = useCallback(() => {
+  const exportCSV = useCallback(async () => {
     if (!canDownloadCSV) return null;
 
     // Determine row count for streaming threshold check
@@ -248,22 +248,42 @@ export const useExploreAdditionalActionsMenu = (
       filename = `${safeChartName}${timestamp}.csv`;
     }
 
-    return exportChart({
-      formData: latestQueryFormData,
-      ownState,
-      resultType: 'full',
-      resultFormat: 'csv',
-      onStartStreamingExport: shouldUseStreaming
-        ? exportParams => {
-            setIsStreamingModalVisible(true);
-            startExport({
-              ...exportParams,
-              filename,
-              expectedRows: actualRowCount,
-            });
-          }
-        : null,
-    });
+    try {
+      await exportChart({
+        formData: latestQueryFormData,
+        ownState,
+        resultType: 'full',
+        resultFormat: 'csv',
+        onStartStreamingExport: shouldUseStreaming
+          ? exportParams => {
+              setIsStreamingModalVisible(true);
+              startExport({
+                ...exportParams,
+                filename,
+                expectedRows: actualRowCount,
+              });
+            }
+          : null,
+      });
+    } catch (error) {
+      const status = error?.status || error?.response?.status;
+      if (status === 413) {
+        addDangerToast(
+          t(
+            'Export failed: The chart data is too large to download (413). Please try reducing the date range, limiting rows, or using fewer columns.',
+          ),
+        );
+      } else {
+        const errorMessage =
+          error?.message ||
+          error?.statusText ||
+          t(
+            'Failed to export chart data. Please try again or contact your administrator.',
+          );
+        addDangerToast(errorMessage);
+      }
+    }
+    return null;
   }, [
     canDownloadCSV,
     latestQueryFormData,
