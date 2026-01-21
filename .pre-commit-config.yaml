@@ -142,3 +142,10 @@ repos:
             else
               echo "No Python files to lint."
             fi
+      - id: db-engine-spec-metadata
+        name: database engine spec metadata validation
+        entry: python superset/db_engine_specs/lint_metadata.py --strict
+        language: system
+        files: ^superset/db_engine_specs/.*\.py$
+        exclude: ^superset/db_engine_specs/(base|lib|lint_metadata|__init__)\.py$
+        pass_filenames: false
