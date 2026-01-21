@@ -18,6 +18,7 @@
  */
 
 import path from 'path';
+import webpack from 'webpack';
 import type { Plugin } from '@docusaurus/types';
 
 export default function webpackExtendPlugin(): Plugin<void> {
@@ -26,10 +27,47 @@ export default function webpackExtendPlugin(): Plugin<void> {
     configureWebpack(config) {
       const isDev = process.env.NODE_ENV === 'development';
 
+      // Use NormalModuleReplacementPlugin to forcefully replace react-table
+      // This is necessary because regular aliases don't work for modules in nested node_modules
+      const reactTableShim = path.resolve(__dirname, './shims/react-table.js');
+      config.plugins?.push(
+        new webpack.NormalModuleReplacementPlugin(
+          /^react-table$/,
+          reactTableShim,
+        ),
+      );
+
       // Add YAML loader rule directly to existing rules
       config.module?.rules?.push({
         test: /\.ya?ml$/,
         use: 'js-yaml-loader',
+      });
+
+      // Add babel-loader rule for superset-frontend files
+      // This ensures Emotion CSS-in-JS is processed correctly for SSG
+      const supersetFrontendPath = path.resolve(
+        __dirname,
+        '../../superset-frontend',
+      );
+      config.module?.rules?.push({
+        test: /\.(tsx?|jsx?)$/,
+        include: supersetFrontendPath,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: [
+              [
+                '@babel/preset-react',
+                {
+                  runtime: 'automatic',
+                  importSource: '@emotion/react',
+                },
+              ],
+              '@babel/preset-typescript',
+            ],
+            plugins: ['@emotion/babel-plugin'],
+          },
+        },
       });
 
       return {
@@ -44,8 +82,16 @@ export default function webpackExtendPlugin(): Plugin<void> {
           },
         }),
         resolve: {
+          // Add superset-frontend node_modules to module resolution
+          modules: [
+            ...(config.resolve?.modules || []),
+            path.resolve(__dirname, '../../superset-frontend/node_modules'),
+          ],
           alias: {
             ...config.resolve.alias,
+            // Ensure single React instance across all modules (critical for hooks to work)
+            react: path.resolve(__dirname, '../node_modules/react'),
+            'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
             // Allow importing from superset-frontend
             src: path.resolve(__dirname, '../../superset-frontend/src'),
             // '@superset-ui/core': path.resolve(
@@ -58,14 +104,25 @@ export default function webpackExtendPlugin(): Plugin<void> {
               __dirname,
               '../../superset-frontend/packages/superset-ui-core/src/components',
             ),
+            // Also alias the full package path for internal imports within components
+            '@superset-ui/core/components': path.resolve(
+              __dirname,
+              '../../superset-frontend/packages/superset-ui-core/src/components',
+            ),
+            // Use a shim for react-table to handle CommonJS to ES module interop
+            // react-table v7 is CommonJS, but Superset components import it with ES module syntax
+            'react-table': path.resolve(__dirname, './shims/react-table.js'),
             // Extension API package - allows docs to import from @apache-superset/core/ui
             // This matches the established pattern used throughout the Superset codebase
-            // Point directly to components to avoid importing theme (which has font dependencies)
             // Note: TypeScript types come from docs/src/types/apache-superset-core (see tsconfig.json)
             // This split is intentional: webpack resolves actual source, tsconfig provides simplified types
             '@apache-superset/core/ui': path.resolve(
               __dirname,
-              '../../superset-frontend/packages/superset-core/src/ui/components',
+              '../../superset-frontend/packages/superset-core/src/ui',
+            ),
+            '@apache-superset/core/api/core': path.resolve(
+              __dirname,
+              '../../superset-frontend/packages/superset-core/src/api/core',
             ),
             // Add proper Storybook aliases
             '@storybook/blocks': path.resolve(

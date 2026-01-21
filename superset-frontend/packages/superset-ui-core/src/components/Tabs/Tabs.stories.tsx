@@ -21,61 +21,65 @@ import Tabs, { TabsProps } from '.';
 export default {
   title: 'Components/Tabs',
   component: Tabs,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'A tabs component for switching between different views or content sections. ' +
+          'Supports multiple tab styles, positions, and sizes.',
+      },
+    },
+  },
 };
 
-export const InteractiveTabs = (args: TabsProps) => <Tabs {...args} />;
+// Demo tab items (kept separate from args to avoid parser issues)
+const demoItems = [
+  { key: '1', label: 'Tab 1', children: 'Content of Tab Pane 1' },
+  { key: '2', label: 'Tab 2', children: 'Content of Tab Pane 2' },
+  { key: '3', label: 'Tab 3', children: 'Content of Tab Pane 3' },
+];
+
+export const InteractiveTabs = (args: TabsProps) => (
+  <Tabs {...args} items={demoItems} />
+);
 
 InteractiveTabs.args = {
   defaultActiveKey: '1',
-  animated: true,
-  centered: false,
-  allowOverflow: false,
+  type: 'line',
   tabPosition: 'top',
   size: 'middle',
+  animated: true,
+  centered: false,
   tabBarGutter: 8,
-  items: [
-    {
-      key: '1',
-      label: 'Tab 1',
-      children: 'Content of Tab Pane 1',
-    },
-    {
-      key: '2',
-      label: 'Tab 2',
-      children: 'Content of Tab Pane 2',
-    },
-    {
-      key: '3',
-      label: 'Tab 3',
-      children: 'Content of Tab Pane 3',
-    },
-  ],
 };
 
 InteractiveTabs.argTypes = {
   onChange: { action: 'onChange' },
   type: {
-    defaultValue: 'line',
-    control: {
-      type: 'inline-radio',
-    },
+    description: 'The style of tabs. Options: line, card, editable-card.',
+    control: { type: 'inline-radio' },
     options: ['line', 'card', 'editable-card'],
   },
   tabPosition: {
-    control: {
-      type: 'inline-radio',
-    },
+    description: 'Position of tabs. Options: top, bottom, left, right.',
+    control: { type: 'inline-radio' },
     options: ['top', 'bottom', 'left', 'right'],
   },
   size: {
-    control: {
-      type: 'inline-radio',
-    },
+    description: 'Size of the tabs.',
+    control: { type: 'inline-radio' },
     options: ['small', 'middle', 'large'],
   },
+  animated: {
+    description: 'Whether to animate tab transitions.',
+    control: { type: 'boolean' },
+  },
+  centered: {
+    description: 'Whether to center the tabs.',
+    control: { type: 'boolean' },
+  },
   tabBarGutter: {
-    control: {
-      type: 'number',
-    },
+    description: 'The gap between tabs.',
+    control: { type: 'number' },
   },
 };

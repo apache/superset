@@ -26,6 +26,17 @@ export default {
   component: Flex,
 };
 
+// Sample children used in both Storybook and auto-generated docs
+const SAMPLE_ITEMS = ['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5'];
+
+// Shared styling for sample items - matches docs site rendering
+const sampleItemStyle = {
+  padding: '8px 16px',
+  background: '#e6f4ff',
+  border: '1px solid #91caff',
+  borderRadius: '4px',
+};
+
 export const InteractiveFlex = (args: FlexProps) => (
   <Flex
     {...args}
@@ -34,8 +45,10 @@ export const InteractiveFlex = (args: FlexProps) => (
       height: 90vh;
     `}
   >
-    {new Array(20).fill(null).map((_, i) => (
-      <p key={i}>Item</p>
+    {SAMPLE_ITEMS.map((item, i) => (
+      <div key={i} style={sampleItemStyle}>
+        {item}
+      </div>
     ))}
   </Flex>
 );
@@ -83,5 +96,13 @@ InteractiveFlex.argTypes = {
     control: { type: 'select' },
     options: ['small', 'medium', 'large'],
     type: { name: 'string', required: false },
+  },
+};
+
+// Sample children for documentation - references the same data and styling used in render
+InteractiveFlex.parameters = {
+  docs: {
+    sampleChildren: SAMPLE_ITEMS,
+    sampleChildrenStyle: sampleItemStyle,
   },
 };

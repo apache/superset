@@ -1,0 +1,156 @@
+---
+title: Typography
+sidebar_label: Typography
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Typography
+
+Typography is a component for displaying text with various styles and formats. It includes subcomponents like Title, Paragraph, and Link.
+
+## Live Example
+
+<StoryWithControls
+  component="Typography"
+  props={{}}
+  controls={[
+  {
+    name: "code",
+    label: "Code",
+    type: "boolean",
+    description: "Code style"
+  },
+  {
+    name: "type",
+    label: "Type",
+    type: "select",
+    options: [
+      "secondary",
+      "success",
+      "warning",
+      "danger"
+    ],
+    description: "Text type"
+  },
+  {
+    name: "copyable",
+    label: "Copyable",
+    type: "boolean",
+    description: "Whether to be copyable, customize it via setting an object"
+  },
+  {
+    name: "delete",
+    label: "Delete",
+    type: "boolean",
+    description: "Deleted line style"
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean",
+    description: "Disabled content"
+  },
+  {
+    name: "editable",
+    label: "Editable",
+    type: "boolean",
+    description: "Whether to be editable, customize it via setting an object"
+  },
+  {
+    name: "ellipsis",
+    label: "Ellipsis",
+    type: "boolean",
+    description: "Display ellipsis when text overflows, can not configure expandable、rows and onExpand by using object. Diff with Typography.Paragraph, Text do not have 100% width style which means it will fix width on the first ellipsis. If you want to have responsive ellipsis, please set width manually"
+  },
+  {
+    name: "keyboard",
+    label: "Keyboard",
+    type: "boolean",
+    description: "Keyboard style"
+  },
+  {
+    name: "mark",
+    label: "Mark",
+    type: "boolean",
+    description: "Marked style"
+  },
+  {
+    name: "italic",
+    label: "Italic",
+    type: "boolean",
+    description: "Italic style"
+  },
+  {
+    name: "underline",
+    label: "Underline",
+    type: "boolean",
+    description: "Underlined style\t"
+  },
+  {
+    name: "level",
+    label: "Level",
+    type: "number",
+    description: "Set content importance. Match with h1, h2, h3, h4, h5"
+  },
+  {
+    name: "strong",
+    label: "Strong",
+    type: "boolean",
+    description: "Bold style"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Typography
+      // Add props here
+    />
+  );
+}
+```
+
+
+
+## Import
+
+```tsx
+import { Typography } from '@superset/components';
+```
+
+## Interactive Demo
+
+View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-typography) for an interactive demo.
+
+## Source
+
+- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/Typography/Typography.stories.tsx)
+
+---
+
+*This page was auto-generated from the component's Storybook story.*

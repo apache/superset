@@ -1,0 +1,154 @@
+---
+title: EditableTitle
+sidebar_label: EditableTitle
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# EditableTitle
+
+The EditableTitle component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="EditableTitle"
+  props={{
+  canEdit: true,
+  editing: false,
+  emptyText: "Empty text",
+  noPermitTooltip: "Not permitted",
+  showTooltip: true,
+  title: "Title",
+  defaultTitle: "Default title",
+  placeholder: "Placeholder",
+  maxWidth: 100,
+  autoSize: true
+}}
+  controls={[
+  {
+    name: "canEdit",
+    label: "Can Edit",
+    type: "boolean"
+  },
+  {
+    name: "editing",
+    label: "Editing",
+    type: "boolean"
+  },
+  {
+    name: "emptyText",
+    label: "Empty Text",
+    type: "text"
+  },
+  {
+    name: "noPermitTooltip",
+    label: "No Permit Tooltip",
+    type: "text"
+  },
+  {
+    name: "showTooltip",
+    label: "Show Tooltip",
+    type: "boolean"
+  },
+  {
+    name: "title",
+    label: "Title",
+    type: "text"
+  },
+  {
+    name: "defaultTitle",
+    label: "Default Title",
+    type: "text"
+  },
+  {
+    name: "placeholder",
+    label: "Placeholder",
+    type: "text"
+  },
+  {
+    name: "maxWidth",
+    label: "Max Width",
+    type: "number"
+  },
+  {
+    name: "autoSize",
+    label: "Auto Size",
+    type: "boolean"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <EditableTitle
+      canEdit
+      emptyText="Empty text"
+      noPermitTooltip="Not permitted"
+      showTooltip
+      title="Title"
+      defaultTitle="Default title"
+      placeholder="Placeholder"
+      maxWidth={100}
+      autoSize
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `canEdit` | `boolean` | `true` | - |
+| `editing` | `boolean` | `false` | - |
+| `emptyText` | `string` | `"Empty text"` | - |
+| `noPermitTooltip` | `string` | `"Not permitted"` | - |
+| `showTooltip` | `boolean` | `true` | - |
+| `title` | `string` | `"Title"` | - |
+| `defaultTitle` | `string` | `"Default title"` | - |
+| `placeholder` | `string` | `"Placeholder"` | - |
+| `maxWidth` | `number` | `100` | - |
+| `autoSize` | `boolean` | `true` | - |
+
+## Import
+
+```tsx
+import { EditableTitle } from '@superset/components';
+```
+
+## Interactive Demo
+
+View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-editabletitle) for an interactive demo.
+
+## Source
+
+- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/EditableTitle/EditableTitle.stories.tsx)
+
+---
+
+*This page was auto-generated from the component's Storybook story.*

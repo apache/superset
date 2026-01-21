@@ -1,0 +1,185 @@
+---
+title: Slider
+sidebar_label: Slider
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Slider
+
+The Slider component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="Slider"
+  props={{
+  min: 0,
+  max: 100,
+  defaultValue: 70,
+  step: 1,
+  disabled: false,
+  reverse: false,
+  vertical: false,
+  autoFocus: false,
+  keyboard: true,
+  dots: false,
+  included: true,
+  tooltipPosition: "bottom"
+}}
+  controls={[
+  {
+    name: "min",
+    label: "Min",
+    type: "number"
+  },
+  {
+    name: "max",
+    label: "Max",
+    type: "number"
+  },
+  {
+    name: "defaultValue",
+    label: "Default Value",
+    type: "number"
+  },
+  {
+    name: "step",
+    label: "Step",
+    type: "number"
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean"
+  },
+  {
+    name: "reverse",
+    label: "Reverse",
+    type: "boolean"
+  },
+  {
+    name: "vertical",
+    label: "Vertical",
+    type: "boolean"
+  },
+  {
+    name: "autoFocus",
+    label: "Auto Focus",
+    type: "boolean"
+  },
+  {
+    name: "keyboard",
+    label: "Keyboard",
+    type: "boolean"
+  },
+  {
+    name: "dots",
+    label: "Dots",
+    type: "boolean"
+  },
+  {
+    name: "included",
+    label: "Included",
+    type: "boolean"
+  },
+  {
+    name: "tooltipPosition",
+    label: "Tooltip Position",
+    type: "select",
+    options: [
+      "top",
+      "left",
+      "bottom",
+      "right",
+      "topLeft",
+      "topRight",
+      "bottomLeft",
+      "bottomRight",
+      "leftTop",
+      "leftBottom",
+      "rightTop",
+      "rightBottom"
+    ]
+  },
+  {
+    name: "tooltipOpen",
+    label: "Tooltip Open",
+    type: "boolean"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Slider
+      min={0}
+      max={100}
+      defaultValue={70}
+      step={1}
+      keyboard
+      included
+      tooltipPosition="bottom"
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `min` | `number` | `0` | - |
+| `max` | `number` | `100` | - |
+| `defaultValue` | `number` | `70` | - |
+| `step` | `number` | `1` | - |
+| `disabled` | `boolean` | `false` | - |
+| `reverse` | `boolean` | `false` | - |
+| `vertical` | `boolean` | `false` | - |
+| `autoFocus` | `boolean` | `false` | - |
+| `keyboard` | `boolean` | `true` | - |
+| `dots` | `boolean` | `false` | - |
+| `included` | `boolean` | `true` | - |
+| `tooltipPosition` | `string` | `"bottom"` | - |
+
+## Import
+
+```tsx
+import Slider from '@superset/components';
+```
+
+## Interactive Demo
+
+View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-slider) for an interactive demo.
+
+## Source
+
+- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/Slider/Slider.stories.tsx)
+
+---
+
+*This page was auto-generated from the component's Storybook story.*

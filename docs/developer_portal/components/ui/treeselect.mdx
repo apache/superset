@@ -1,0 +1,207 @@
+---
+title: TreeSelect
+sidebar_label: TreeSelect
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# TreeSelect
+
+TreeSelect is a select component that allows users to select from a tree structure.
+
+## Live Example
+
+<StoryWithControls
+  component="TreeSelect"
+  props={{}}
+  controls={[
+  {
+    name: "allowClear",
+    label: "Allow Clear",
+    type: "boolean",
+    description: "Whether to allow clearing the selected value."
+  },
+  {
+    name: "autoClearSearchValue",
+    label: "Auto Clear Search Value",
+    type: "boolean",
+    description: "Whether to clear the search value automatically."
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean",
+    description: "Whether the component is disabled."
+  },
+  {
+    name: "labelInValue",
+    label: "Label In Value",
+    type: "boolean",
+    description: "Whether to use label in value."
+  },
+  {
+    name: "listHeight",
+    label: "List Height",
+    type: "number",
+    description: "Height of the dropdown list."
+  },
+  {
+    name: "maxTagCount",
+    label: "Max Tag Count",
+    type: "number",
+    description: "Maximum number of tags to display."
+  },
+  {
+    name: "maxTagTextLength",
+    label: "Max Tag Text Length",
+    type: "number",
+    description: "Maximum length of tag text."
+  },
+  {
+    name: "multiple",
+    label: "Multiple",
+    type: "boolean",
+    description: "Whether to allow multiple selections."
+  },
+  {
+    name: "placeholder",
+    label: "Placeholder",
+    type: "text",
+    description: "Placeholder text for the input field."
+  },
+  {
+    name: "placement",
+    label: "Placement",
+    type: "select",
+    options: [
+      "topLeft",
+      "topRight",
+      "bottomLeft",
+      "bottomRight"
+    ],
+    description: "Placement of the dropdown menu."
+  },
+  {
+    name: "showSearch",
+    label: "Show Search",
+    type: "boolean",
+    description: "Whether to show the search input."
+  },
+  {
+    name: "size",
+    label: "Size",
+    type: "select",
+    options: [
+      "large",
+      "middle",
+      "small"
+    ],
+    description: "Size of the component."
+  },
+  {
+    name: "status",
+    label: "Status",
+    type: "select",
+    options: [
+      "error",
+      "warning"
+    ],
+    description: "Status of the component."
+  },
+  {
+    name: "treeCheckable",
+    label: "Tree Checkable",
+    type: "boolean",
+    description: "Whether to show checkable tree nodes."
+  },
+  {
+    name: "treeDefaultExpandAll",
+    label: "Tree Default Expand All",
+    type: "boolean",
+    description: "Whether to expand all tree nodes by default."
+  },
+  {
+    name: "treeIcon",
+    label: "Tree Icon",
+    type: "boolean",
+    description: "Whether to show tree icons."
+  },
+  {
+    name: "treeLine",
+    label: "Tree Line",
+    type: "boolean",
+    description: "Whether to show tree lines."
+  },
+  {
+    name: "variant",
+    label: "Variant",
+    type: "select",
+    options: [
+      "outlined",
+      "borderless",
+      "filled",
+      "underlined"
+    ],
+    description: "Variant of the component."
+  },
+  {
+    name: "virtual",
+    label: "Virtual",
+    type: "boolean",
+    description: "Whether to use virtual scrolling."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <TreeSelect
+      // Add props here
+    />
+  );
+}
+```
+
+
+
+## Import
+
+```tsx
+import { TreeSelect } from '@superset/components';
+```
+
+## Interactive Demo
+
+View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-treeselect) for an interactive demo.
+
+## Source
+
+- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/TreeSelect/TreeSelect.stories.tsx)
+
+---
+
+*This page was auto-generated from the component's Storybook story.*

@@ -1,0 +1,90 @@
+---
+title: IconButton
+sidebar_label: IconButton
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# IconButton
+
+The IconButton component is a versatile button that allows you to combine an icon with a text label. It is designed for use in situations where you want to display an icon along with some text in a single clickable element.
+
+## Live Example
+
+<StoryWithControls
+  component="IconButton"
+  props={{}}
+  controls={[
+  {
+    name: "altText",
+    label: "Alt Text",
+    type: "text",
+    description: "The alt text for the button. If not provided, the button text is used as the alt text by default."
+  },
+  {
+    name: "buttonText",
+    label: "Button Text",
+    type: "text",
+    description: "The text inside the button"
+  },
+  {
+    name: "padded",
+    label: "Padded",
+    type: "boolean",
+    description: "add padding between icon and button text"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <IconButton
+      // Add props here
+    />
+  );
+}
+```
+
+
+
+## Import
+
+```tsx
+import { IconButton } from '@superset/components';
+```
+
+## Interactive Demo
+
+View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-iconbutton) for an interactive demo.
+
+## Source
+
+- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/IconButton/IconButton.stories.tsx)
+
+---
+
+*This page was auto-generated from the component's Storybook story.*

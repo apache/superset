@@ -1,0 +1,310 @@
+---
+title: Select
+sidebar_label: Select
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Select
+
+The Select component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="Select"
+  props={{
+  autoFocus: true,
+  allowNewOptions: false,
+  allowClear: false,
+  autoClearSearchValue: false,
+  allowSelectAll: true,
+  disabled: false,
+  header: "none",
+  invertSelection: false,
+  labelInValue: true,
+  maxTagCount: 4,
+  mode: "single",
+  oneLine: false,
+  placeholder: "Select ...",
+  showSearch: true
+}}
+  controls={[
+  {
+    name: "autoFocus",
+    label: "Auto Focus",
+    type: "boolean"
+  },
+  {
+    name: "allowNewOptions",
+    label: "Allow New Options",
+    type: "boolean",
+    description: "It enables the user to create new options. Can be used with standard or async select types. Can be used with any mode, single or multiple. False by default."
+  },
+  {
+    name: "allowClear",
+    label: "Allow Clear",
+    type: "boolean"
+  },
+  {
+    name: "autoClearSearchValue",
+    label: "Auto Clear Search Value",
+    type: "boolean"
+  },
+  {
+    name: "allowSelectAll",
+    label: "Allow Select All",
+    type: "boolean"
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean"
+  },
+  {
+    name: "header",
+    label: "Header",
+    type: "inline-radio",
+    options: [
+      "none",
+      "text",
+      "control"
+    ],
+    description: "It adds a header on top of the Select. Can be any ReactNode."
+  },
+  {
+    name: "invertSelection",
+    label: "Invert Selection",
+    type: "boolean",
+    description: "It shows a stop-outlined icon at the far right of a selected option instead of the default checkmark. Useful to better indicate to the user that by clicking on a selected option it will be de-selected. False by default."
+  },
+  {
+    name: "labelInValue",
+    label: "Label In Value",
+    type: "boolean"
+  },
+  {
+    name: "maxTagCount",
+    label: "Max Tag Count",
+    type: "number",
+    description: "Sets maxTagCount attribute. The overflow tag is displayed in place of the remaining items. Requires '\"mode=multiple\"'."
+  },
+  {
+    name: "mode",
+    label: "Mode",
+    type: "inline-radio",
+    options: [
+      "single",
+      "multiple"
+    ],
+    description: "It defines whether the Select should allow for the selection of multiple options or single. Single by default."
+  },
+  {
+    name: "oneLine",
+    label: "One Line",
+    type: "boolean",
+    description: "Sets maxTagCount to 1. The overflow tag is always displayed in the same line, line wrapping is disabled. When the dropdown is open, sets maxTagCount to 0, displays only the overflow tag. Requires '\"mode=multiple\"'."
+  },
+  {
+    name: "placeholder",
+    label: "Placeholder",
+    type: "text"
+  },
+  {
+    name: "showSearch",
+    label: "Show Search",
+    type: "boolean"
+  },
+  {
+    name: "options",
+    label: "Options",
+    type: "select",
+    options: [
+      "Such an incredibly awesome long long label",
+      "Such an incredibly awesome long long label",
+      "Secret custom prop",
+      "Another incredibly awesome long long label",
+      "Another incredibly awesome long long label",
+      "red",
+      "JSX Label",
+      "A",
+      "A",
+      "B",
+      "B",
+      "C",
+      "C",
+      "D",
+      "D",
+      "E",
+      "E",
+      "F",
+      "F",
+      "G",
+      "G",
+      "H",
+      "H",
+      "I",
+      "I"
+    ],
+    description: "It defines the options of the Select. The options can be static, an array of options. The options can also be async, a promise that returns an array of options."
+  },
+  {
+    name: "control",
+    label: "Control",
+    type: "select",
+    options: [
+      "none",
+      "text",
+      "control"
+    ]
+  },
+  {
+    name: "optionsCount",
+    label: "Options Count",
+    type: "number"
+  },
+  {
+    name: "pageSize",
+    label: "Page Size",
+    type: "select",
+    options: [
+      "Such an incredibly awesome long long label",
+      "Such an incredibly awesome long long label",
+      "Secret custom prop",
+      "Another incredibly awesome long long label",
+      "Another incredibly awesome long long label",
+      "red",
+      "JSX Label",
+      "A",
+      "A",
+      "B",
+      "B",
+      "C",
+      "C",
+      "D",
+      "D",
+      "E",
+      "E",
+      "F",
+      "F",
+      "G",
+      "G",
+      "H",
+      "H",
+      "I",
+      "I"
+    ],
+    description: "It defines how many results should be included in the query response. Works in async mode only (See the options property)."
+  },
+  {
+    name: "fetchOnlyOnSearch",
+    label: "Fetch Only On Search",
+    type: "select",
+    options: [
+      "Such an incredibly awesome long long label",
+      "Such an incredibly awesome long long label",
+      "Secret custom prop",
+      "Another incredibly awesome long long label",
+      "Another incredibly awesome long long label",
+      "red",
+      "JSX Label",
+      "A",
+      "A",
+      "B",
+      "B",
+      "C",
+      "C",
+      "D",
+      "D",
+      "E",
+      "E",
+      "F",
+      "F",
+      "G",
+      "G",
+      "H",
+      "H",
+      "I",
+      "I"
+    ],
+    description: "It fires a request against the server only after searching. Works in async mode only (See the options property). Undefined by default."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Select
+      autoFocus
+      allowSelectAll
+      header="none"
+      labelInValue
+      maxTagCount={4}
+      mode="single"
+      placeholder="Select ..."
+      showSearch
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `autoFocus` | `boolean` | `true` | - |
+| `allowNewOptions` | `boolean` | `false` | It enables the user to create new options. Can be used with standard or async select types. Can be used with any mode, single or multiple. False by default. |
+| `allowClear` | `boolean` | `false` | - |
+| `autoClearSearchValue` | `boolean` | `false` | - |
+| `allowSelectAll` | `boolean` | `true` | - |
+| `disabled` | `boolean` | `false` | - |
+| `header` | `string` | `"none"` | It adds a header on top of the Select. Can be any ReactNode. |
+| `invertSelection` | `boolean` | `false` | It shows a stop-outlined icon at the far right of a selected option instead of the default checkmark. Useful to better indicate to the user that by clicking on a selected option it will be de-selected. False by default. |
+| `labelInValue` | `boolean` | `true` | - |
+| `maxTagCount` | `number` | `4` | Sets maxTagCount attribute. The overflow tag is displayed in place of the remaining items. Requires '"mode=multiple"'. |
+| `mode` | `string` | `"single"` | It defines whether the Select should allow for the selection of multiple options or single. Single by default. |
+| `oneLine` | `boolean` | `false` | Sets maxTagCount to 1. The overflow tag is always displayed in the same line, line wrapping is disabled. When the dropdown is open, sets maxTagCount to 0, displays only the overflow tag. Requires '"mode=multiple"'. |
+| `placeholder` | `string` | `"Select ..."` | - |
+| `showSearch` | `boolean` | `true` | - |
+
+## Import
+
+```tsx
+import { Select } from '@superset/components';
+```
+
+## Interactive Demo
+
+View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-select) for an interactive demo.
+
+## Source
+
+- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/Select/Select.stories.tsx)
+
+---
+
+*This page was auto-generated from the component's Storybook story.*

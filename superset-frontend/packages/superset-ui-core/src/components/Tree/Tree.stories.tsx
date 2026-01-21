@@ -237,3 +237,52 @@ export const TreeStory: Story = {
   },
   render: (args: TreeProps) => <Tree {...args} />,
 };
+
+// Interactive story with primitive args for documentation
+export const InteractiveTree = (args: TreeProps) => <Tree {...args} treeData={treeData} />;
+
+InteractiveTree.args = {
+  checkable: false,
+  defaultExpandAll: false,
+  disabled: false,
+  draggable: false,
+  multiple: false,
+  selectable: true,
+  showIcon: false,
+  showLine: false,
+};
+
+InteractiveTree.argTypes = {
+  checkable: {
+    description: 'Add a Checkbox before the treeNodes',
+    control: { type: 'boolean' },
+  },
+  defaultExpandAll: {
+    description: 'Whether to expand all treeNodes by default',
+    control: { type: 'boolean' },
+  },
+  disabled: {
+    description: 'Whether disabled the tree',
+    control: { type: 'boolean' },
+  },
+  draggable: {
+    description: 'Specifies whether this Tree or the node is draggable',
+    control: { type: 'boolean' },
+  },
+  multiple: {
+    description: 'Allows selecting multiple treeNodes',
+    control: { type: 'boolean' },
+  },
+  selectable: {
+    description: 'Whether can be selected',
+    control: { type: 'boolean' },
+  },
+  showIcon: {
+    description: 'Controls whether to display the icon node',
+    control: { type: 'boolean' },
+  },
+  showLine: {
+    description: 'Shows a connecting line',
+    control: { type: 'boolean' },
+  },
+};

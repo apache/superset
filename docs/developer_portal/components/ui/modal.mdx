@@ -1,0 +1,145 @@
+---
+title: Modal
+sidebar_label: Modal
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Modal
+
+The Modal component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="Modal"
+  props={{
+  disablePrimaryButton: false,
+  primaryButtonName: "Danger",
+  primaryButtonStyle: "danger",
+  show: true,
+  title: "I'm a modal!",
+  resizable: false,
+  draggable: false,
+  width: 500
+}}
+  controls={[
+  {
+    name: "disablePrimaryButton",
+    label: "Disable Primary Button",
+    type: "boolean"
+  },
+  {
+    name: "primaryButtonName",
+    label: "Primary Button Name",
+    type: "text"
+  },
+  {
+    name: "primaryButtonStyle",
+    label: "Primary Button Style",
+    type: "select",
+    options: [
+      "primary",
+      "secondary",
+      "dashed",
+      "danger",
+      "link"
+    ],
+    description: "The style of the primary action button."
+  },
+  {
+    name: "show",
+    label: "Show",
+    type: "boolean"
+  },
+  {
+    name: "title",
+    label: "Title",
+    type: "text"
+  },
+  {
+    name: "resizable",
+    label: "Resizable",
+    type: "boolean"
+  },
+  {
+    name: "draggable",
+    label: "Draggable",
+    type: "boolean"
+  },
+  {
+    name: "width",
+    label: "Width",
+    type: "number",
+    description: "Width of the modal in pixels or as a string."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Modal
+      primaryButtonName="Danger"
+      primaryButtonStyle="danger"
+      show
+      title="I'm a modal!"
+      width={500}
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `disablePrimaryButton` | `boolean` | `false` | - |
+| `primaryButtonName` | `string` | `"Danger"` | - |
+| `primaryButtonStyle` | `string` | `"danger"` | The style of the primary action button. |
+| `show` | `boolean` | `true` | - |
+| `title` | `string` | `"I'm a modal!"` | - |
+| `resizable` | `boolean` | `false` | - |
+| `draggable` | `boolean` | `false` | - |
+| `width` | `number` | `500` | Width of the modal in pixels or as a string. |
+
+## Import
+
+```tsx
+import { Modal } from '@superset/components';
+```
+
+## Interactive Demo
+
+View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-modal) for an interactive demo.
+
+## Source
+
+- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/Modal/Modal.stories.tsx)
+
+---
+
+*This page was auto-generated from the component's Storybook story.*

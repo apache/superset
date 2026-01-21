@@ -100,18 +100,31 @@ ButtonGallery.parameters = {
   },
 };
 
-export const InteractiveButton = (args: ButtonProps & { label: string }) => {
-  const { label, ...btnArgs } = args;
-  return <Button {...btnArgs}>{label}</Button>;
-};
+export const InteractiveButton = (
+  args: ButtonProps & { children: string },
+) => <Button {...args} />;
 
 InteractiveButton.args = {
   buttonStyle: 'default',
   buttonSize: 'default',
-  label: 'Button!',
+  children: 'Button!',
 };
 
 InteractiveButton.argTypes = {
+  children: {
+    description: 'The button text or content.',
+    control: { type: 'text' },
+  },
+  buttonStyle: {
+    description: 'The style variant of the button.',
+    options: buttonStyles,
+    control: { type: 'select' },
+  },
+  buttonSize: {
+    description: 'The size of the button.',
+    options: buttonSizes,
+    control: { type: 'select' },
+  },
   target: {
     name: TARGETS.label,
     control: { type: 'select' },
@@ -122,5 +135,26 @@ InteractiveButton.argTypes = {
     control: { type: 'select' },
     options: Object.values(HREFS.options),
   },
+  disabled: {
+    description: 'Whether the button is disabled.',
+    control: { type: 'boolean' },
+  },
+  loading: {
+    description: 'Whether to show loading spinner.',
+    control: { type: 'boolean' },
+  },
   onClick: { action: 'clicked' },
+};
+
+// Gallery configuration for docs - renders all button variants like ButtonGallery
+InteractiveButton.parameters = {
+  docs: {
+    gallery: {
+      component: 'Button',
+      sizes: buttonSizes,
+      styles: buttonStyles,
+      sizeProp: 'buttonSize',
+      styleProp: 'buttonStyle',
+    },
+  },
 };

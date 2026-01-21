@@ -1,0 +1,172 @@
+---
+title: TableView
+sidebar_label: TableView
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# TableView
+
+The TableView component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="TableView"
+  props={{
+  accessor: "summary",
+  Header: "Summary",
+  sortable: true,
+  id: 321,
+  age: 10,
+  name: "John Smith",
+  noDataText: "No data here",
+  pageSize: 1,
+  showRowCount: true,
+  withPagination: true,
+  scrollTopOnPagination: false
+}}
+  controls={[
+  {
+    name: "accessor",
+    label: "Accessor",
+    type: "text"
+  },
+  {
+    name: "Header",
+    label: "Header",
+    type: "text"
+  },
+  {
+    name: "sortable",
+    label: "Sortable",
+    type: "boolean"
+  },
+  {
+    name: "id",
+    label: "Id",
+    type: "number"
+  },
+  {
+    name: "age",
+    label: "Age",
+    type: "number"
+  },
+  {
+    name: "name",
+    label: "Name",
+    type: "text"
+  },
+  {
+    name: "noDataText",
+    label: "No Data Text",
+    type: "text"
+  },
+  {
+    name: "pageSize",
+    label: "Page Size",
+    type: "number"
+  },
+  {
+    name: "showRowCount",
+    label: "Show Row Count",
+    type: "boolean"
+  },
+  {
+    name: "withPagination",
+    label: "With Pagination",
+    type: "boolean"
+  },
+  {
+    name: "scrollTopOnPagination",
+    label: "Scroll Top On Pagination",
+    type: "boolean"
+  },
+  {
+    name: "emptyWrapperType",
+    label: "Empty Wrapper Type",
+    type: "select"
+  },
+  {
+    name: "initialPageIndex",
+    label: "Initial Page Index",
+    type: "number"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <TableView
+      accessor="summary"
+      Header="Summary"
+      sortable
+      id={321}
+      age={10}
+      name="John Smith"
+      noDataText="No data here"
+      pageSize={1}
+      showRowCount
+      withPagination
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `accessor` | `string` | `"summary"` | - |
+| `Header` | `string` | `"Summary"` | - |
+| `sortable` | `boolean` | `true` | - |
+| `id` | `number` | `321` | - |
+| `age` | `number` | `10` | - |
+| `name` | `string` | `"John Smith"` | - |
+| `noDataText` | `string` | `"No data here"` | - |
+| `pageSize` | `number` | `1` | - |
+| `showRowCount` | `boolean` | `true` | - |
+| `withPagination` | `boolean` | `true` | - |
+| `scrollTopOnPagination` | `boolean` | `false` | - |
+
+## Import
+
+```tsx
+import { TableView } from '@superset/components';
+```
+
+## Interactive Demo
+
+View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-tableview) for an interactive demo.
+
+## Source
+
+- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/TableView/TableView.stories.tsx)
+
+---
+
+*This page was auto-generated from the component's Storybook story.*

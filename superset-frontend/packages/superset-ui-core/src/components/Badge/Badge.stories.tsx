@@ -59,55 +59,84 @@ const SIZES = {
   defaultValue: undefined,
 };
 
-export const InteractiveBadge = (args: BadgeProps) => <Badge {...args} />;
+// Count Badge - shows a number
+export const InteractiveBadge = (args: BadgeProps) => (
+  <Badge {...args}>
+    <div
+      style={{
+        width: 40,
+        height: 40,
+        background: '#eee',
+        borderRadius: 4,
+      }}
+    />
+  </Badge>
+);
 
 InteractiveBadge.args = {
-  count: undefined,
-  color: undefined,
-  text: 'Text',
-  status: 'success',
+  count: 5,
   size: 'default',
   showZero: false,
   overflowCount: 99,
 };
 
 InteractiveBadge.argTypes = {
-  status: {
-    control: {
-      type: 'select',
-    },
-    options: [undefined, ...STATUSES],
-    description:
-      'only works if `count` is `undefined` (or is set to 0) and `color` is set to `undefined`',
+  count: {
+    description: 'Number to show in the badge.',
+    control: { type: 'number' },
   },
   size: {
-    control: {
-      type: 'select',
-    },
-    options: SIZES.options,
+    description: 'Size of the badge.',
+    control: { type: 'select' },
+    options: ['default', 'small'],
   },
   color: {
-    control: {
-      type: 'select',
-    },
-    options: [undefined, ...COLORS.options],
-  },
-  count: {
-    control: {
-      type: 'select',
-      defaultValue: undefined,
-    },
-    options: [undefined, ...Array(100).keys()],
-    defaultValue: undefined,
+    description: 'Custom background color for the badge.',
+    control: { type: 'select' },
+    options: [
+      'pink',
+      'red',
+      'yellow',
+      'orange',
+      'cyan',
+      'green',
+      'blue',
+      'purple',
+      'geekblue',
+      'magenta',
+      'volcano',
+      'gold',
+      'lime',
+    ],
   },
   showZero: {
+    description: 'Whether to show badge when count is zero.',
     control: 'boolean',
-    defaultValue: false,
   },
   overflowCount: {
-    control: 'number',
     description:
-      'The threshold at which the number overflows with a `+` e.g if you set this to 10, and the value is 11, you get `11+`',
+      'Max count to show. Shows count+ when exceeded (e.g., 99+).',
+    control: 'number',
+  },
+};
+
+// Status Badge - shows a status dot with text
+export const StatusBadge = (args: BadgeProps) => <Badge {...args} />;
+
+StatusBadge.args = {
+  status: 'success',
+  text: 'Completed',
+};
+
+StatusBadge.argTypes = {
+  status: {
+    description: 'Status type for the badge dot.',
+    control: { type: 'select' },
+    options: ['default', 'error', 'warning', 'success', 'processing'],
+  },
+  text: {
+    description: 'Text to display next to the status dot.',
+    control: { type: 'text' },
   },
 };
 
@@ -116,14 +145,16 @@ export const BadgeGallery = () => (
     {SIZES.options.map(size => (
       <div key={size} style={{ marginBottom: 40 }}>
         <h4>{size}</h4>
-        {COLORS.options.map(color => (
-          <Badge
-            count={9}
-            size={size}
-            key={`${color}_${size}`}
-            style={{ marginRight: '15px' }}
-          />
-        ))}
+        <div style={{ display: 'flex', gap: 24 }}>
+          {COLORS.options.map(color => (
+            <Badge
+              count={9}
+              color={color}
+              size={size}
+              key={`${color}_${size}`}
+            />
+          ))}
+        </div>
       </div>
     ))}
   </>

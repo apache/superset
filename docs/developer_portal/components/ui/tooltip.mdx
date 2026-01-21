@@ -1,0 +1,134 @@
+---
+title: Tooltip
+sidebar_label: Tooltip
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Tooltip
+
+The Tooltip component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="Tooltip"
+  props={{
+  title: "Simple tooltip text",
+  mouseEnterDelay: 0.1,
+  mouseLeaveDelay: 0.1
+}}
+  controls={[
+  {
+    name: "title",
+    label: "Title",
+    type: "text"
+  },
+  {
+    name: "mouseEnterDelay",
+    label: "Mouse Enter Delay",
+    type: "number"
+  },
+  {
+    name: "mouseLeaveDelay",
+    label: "Mouse Leave Delay",
+    type: "number"
+  },
+  {
+    name: "placement",
+    label: "Placement",
+    type: "select",
+    options: [
+      "bottom",
+      "bottomLeft",
+      "bottomRight",
+      "left",
+      "leftBottom",
+      "leftTop",
+      "right",
+      "rightBottom",
+      "rightTop",
+      "top",
+      "topLeft",
+      "topRight"
+    ]
+  },
+  {
+    name: "trigger",
+    label: "Trigger",
+    type: "select",
+    options: [
+      "hover",
+      "focus",
+      "click",
+      "contextMenu"
+    ]
+  },
+  {
+    name: "color",
+    label: "Color",
+    type: "color"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Tooltip
+      title="Simple tooltip text"
+      mouseEnterDelay={0.1}
+      mouseLeaveDelay={0.1}
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | `"Simple tooltip text"` | - |
+| `mouseEnterDelay` | `number` | `0.1` | - |
+| `mouseLeaveDelay` | `number` | `0.1` | - |
+
+## Import
+
+```tsx
+import { Tooltip } from '@superset/components';
+```
+
+## Interactive Demo
+
+View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-tooltip) for an interactive demo.
+
+## Source
+
+- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/Tooltip/Tooltip.stories.tsx)
+
+---
+
+*This page was auto-generated from the component's Storybook story.*

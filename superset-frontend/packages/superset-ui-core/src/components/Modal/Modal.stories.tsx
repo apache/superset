@@ -42,6 +42,15 @@ InteractiveModal.args = {
 };
 
 InteractiveModal.argTypes = {
+  primaryButtonStyle: {
+    description: 'The style of the primary action button.',
+    options: ['primary', 'secondary', 'dashed', 'danger', 'link'],
+    control: { type: 'select' },
+  },
+  width: {
+    description: 'Width of the modal in pixels or as a string.',
+    control: { type: 'number' },
+  },
   onHandledPrimaryAction: { action: 'onHandledPrimaryAction' },
   onHide: { action: 'onHide' },
 };
