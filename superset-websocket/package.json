@@ -21,7 +21,7 @@
     "hot-shots": "^13.0.0",
     "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.3",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "uuid": "^11.1.0",
     "winston": "^3.19.0",
     "ws": "^8.19.0"
