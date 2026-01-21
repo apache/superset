@@ -66,7 +66,6 @@ export default function EchartsTimeseries({
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
-
   useEffect(() => {
     const element = extraControlRef.current;
     if (!element) {
