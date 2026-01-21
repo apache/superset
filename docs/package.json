@@ -50,6 +50,8 @@
     "@emotion/core": "^11.0.0",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.14.1",
+    "@fontsource/fira-code": "^5.2.7",
+    "@fontsource/inter": "^5.2.8",
     "@mdx-js/react": "^3.1.1",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@storybook/addon-docs": "^8.6.15",
