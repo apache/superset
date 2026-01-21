@@ -270,10 +270,13 @@ test('useSelectFiltersInScope correctly categorizes filters with missing chartsI
 
   const { result } = renderHook(() => useSelectFiltersInScope(filters));
 
+  // Only filters in scope should be returned
   expect(result.current[0]).toContainEqual(
     expect.objectContaining({ id: 'filter_in_scope' }),
   );
-  expect(result.current[1]).toContainEqual(
+  // Filters out of scope for inactive tabs should be completely hidden (not in filtersOutOfScope)
+  expect(result.current[1]).toHaveLength(0);
+  expect(result.current[0]).not.toContainEqual(
     expect.objectContaining({ id: 'filter_out_scope' }),
   );
 });
@@ -295,4 +298,60 @@ test('filter with chartsInScope takes precedence over rootPath', () => {
 
   const { result } = renderHook(() => useIsFilterInScope());
   expect(result.current(filter)).toBe(true);
+});
+
+test('dashboard-level filters without tab scope should appear in filtersOutOfScope', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: ['TAB_1'] },
+      dashboardLayout: {
+        present: {
+          tab1: { type: 'TAB', id: 'TAB_1' },
+          chart1: { type: 'CHART', id: 'CHART_1', parents: ['TAB_1'] },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const filters: Filter[] = [
+    {
+      id: 'dashboard_level_filter',
+      name: 'Dashboard Level Filter',
+      filterType: 'filter_select',
+      type: NativeFilterType.NativeFilter,
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+      controlValues: {},
+      defaultDataMask: {},
+      cascadeParentIds: [],
+      targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+      description: 'Dashboard-level filter without tab scope',
+    },
+    {
+      id: 'tab_scoped_filter',
+      name: 'Tab Scoped Filter',
+      filterType: 'filter_select',
+      type: NativeFilterType.NativeFilter,
+      scope: { rootPath: ['TAB_99'], excluded: [] },
+      controlValues: {},
+      defaultDataMask: {},
+      cascadeParentIds: [],
+      targets: [{ column: { name: 'column_name' }, datasetId: 2 }],
+      description: 'Filter scoped to inactive tab',
+    },
+  ];
+
+  const { result } = renderHook(() => useSelectFiltersInScope(filters));
+
+  // Dashboard-level filter should appear in filtersOutOfScope (not hidden)
+  expect(result.current[1]).toContainEqual(
+    expect.objectContaining({ id: 'dashboard_level_filter' }),
+  );
+  // Tab-scoped filter should be completely hidden (not in either array)
+  expect(result.current[0]).not.toContainEqual(
+    expect.objectContaining({ id: 'tab_scoped_filter' }),
+  );
+  expect(result.current[1]).not.toContainEqual(
+    expect.objectContaining({ id: 'tab_scoped_filter' }),
+  );
 });
