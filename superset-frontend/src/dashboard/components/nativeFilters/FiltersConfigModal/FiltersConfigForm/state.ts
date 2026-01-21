@@ -18,7 +18,8 @@
  */
 import { useEffect, useState } from 'react';
 import type { FormInstance } from '@superset-ui/core/components';
-import { Filter, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ChartCustomization, Filter } from '@superset-ui/core';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { setNativeFilterFieldValues, useForceUpdate } from './utils';
 
@@ -51,6 +52,7 @@ export const useBackendFormUpdate = (
 export const useDefaultValue = (
   formFilter?: NativeFiltersFormItem,
   filterToEdit?: Filter,
+  customizationToEdit?: ChartCustomization,
 ): [boolean, boolean, string, Function] => {
   const enableEmptyFilter = !!formFilter?.controlValues?.enableEmptyFilter;
   const defaultToFirstItem = !!formFilter?.controlValues?.defaultToFirstItem;
@@ -71,16 +73,15 @@ export const useDefaultValue = (
         ? false
         : !!formFilter?.defaultDataMask?.filterState?.value,
     );
-    // TODO: this logic should be unhardcoded
   }, [defaultToFirstItem, enableEmptyFilter]);
 
   useEffect(() => {
-    setHasDefaultValue(
-      defaultToFirstItem
-        ? false
-        : !!filterToEdit?.defaultDataMask?.filterState?.value,
-    );
-  }, []);
+    const defaultValue =
+      filterToEdit?.defaultDataMask?.filterState?.value ||
+      customizationToEdit?.defaultDataMask?.filterState?.value;
+
+    setHasDefaultValue(defaultToFirstItem ? false : !!defaultValue);
+  }, [filterToEdit, customizationToEdit, defaultToFirstItem]);
 
   useEffect(() => {
     let tooltip = '';

@@ -166,6 +166,7 @@ class DatasetPutSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 255))
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
+    currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
@@ -313,6 +314,7 @@ class ImportV1DatasetSchema(Schema):
 
     table_name = fields.String(required=True)
     main_dttm_col = fields.String(allow_none=True)
+    currency_code_column = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     offset = fields.Integer()
@@ -336,6 +338,8 @@ class ImportV1DatasetSchema(Schema):
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
+    # data_file is used by the example loading system to reference Parquet files
+    data_file = fields.String(allow_none=True, load_default=None)
 
 
 class GetOrCreateDatasetSchema(Schema):

@@ -176,7 +176,7 @@ The `mcp_core.py` module provides reusable patterns:
 
 - **`ModelListCore`**: For listing resources (dashboards, charts, datasets)
 - **`ModelGetInfoCore`**: For getting resource details by ID/UUID
-- **`ModelGetAvailableFiltersCore`**: For retrieving filterable columns
+- **`ModelGetSchemaCore`**: For retrieving comprehensive schema metadata (columns, filters, sortable columns)
 
 **Example**:
 ```python
@@ -502,8 +502,8 @@ def my_function(param: Optional[str] = None) -> Optional[int]:
 **Solution**: Use DAO classes (ChartDAO, DashboardDAO, etc.).
 
 ### 7. ❌ Not Using Core Classes
-**Problem**: Duplicating list/get_info/filter logic across tools.
-**Solution**: Use ModelListCore, ModelGetInfoCore, ModelGetAvailableFiltersCore.
+**Problem**: Duplicating list/get_info/schema logic across tools.
+**Solution**: Use ModelListCore, ModelGetInfoCore, ModelGetSchemaCore.
 
 ### 8. ❌ Missing Apache License Headers
 **Problem**: CI fails on license check.

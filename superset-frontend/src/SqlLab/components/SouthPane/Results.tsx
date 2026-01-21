@@ -19,7 +19,8 @@
 import { FC } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { EmptyState } from '@superset-ui/core/components';
-import { FeatureFlag, t, isFeatureEnabled } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { styled, Alert } from '@apache-superset/core/ui';
 
 import { SqlLabRootState } from 'src/SqlLab/types';
@@ -79,7 +80,7 @@ const Results: FC<Props> = ({
   ) {
     return (
       <Alert
-        type="warning"
+        type="info"
         message={t('No stored results found, you need to re-run your query')}
       />
     );

@@ -51,21 +51,18 @@ Available tools:
 Dashboard Management:
 - list_dashboards: List dashboards with advanced filters (1-based pagination)
 - get_dashboard_info: Get detailed dashboard information by ID
-- get_dashboard_available_filters: List available dashboard filter fields/operators
 - generate_dashboard: Automatically create a dashboard from datasets with AI
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard
 
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID
-- get_dataset_available_filters: List available dataset filter fields/operators
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
 - get_chart_info: Get detailed chart information by ID
 - get_chart_preview: Get a visual preview of a chart with image URL
 - get_chart_data: Get underlying chart data in text-friendly format
-- get_chart_available_filters: List available chart filter fields/operators
 - generate_chart: Create a new chart with AI assistance
 - update_chart: Update existing chart configuration
 - update_chart_preview: Update chart and get preview in one operation
@@ -76,6 +73,9 @@ SQL Lab Integration:
 
 Explore & Analysis:
 - generate_explore_link: Create pre-configured explore URL with dataset/metrics/filters
+
+Schema Discovery:
+- get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
 
 System Information:
 - get_instance_info: Get instance-wide statistics and metadata
@@ -125,7 +125,8 @@ Query Examples:
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
-- Use 'filters' parameter for advanced queries (see *_available_filters tools)
+- Use get_schema to discover filterable columns, sortable columns, and default columns
+- Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
 - Chart previews are served as PNG images via custom screenshot endpoints
@@ -274,7 +275,16 @@ def create_mcp_app(
 
 
 # Create default MCP instance for backward compatibility
-mcp = create_mcp_app(stateless_http=True)
+mcp = create_mcp_app()
+
+# Initialize MCP dependency injection BEFORE importing tools/prompts
+# This replaces the abstract @tool and @prompt decorators in superset_core.mcp
+# with concrete implementations that can register with the mcp instance
+from superset.core.mcp.core_mcp_injection import (  # noqa: E402
+    initialize_core_mcp_dependencies,
+)
+
+initialize_core_mcp_dependencies()
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
@@ -289,7 +299,6 @@ from superset.mcp_service.chart import (  # noqa: F401, E402
 )
 from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     generate_chart,
-    get_chart_available_filters,
     get_chart_data,
     get_chart_info,
     get_chart_preview,
@@ -300,12 +309,10 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
     generate_dashboard,
-    get_dashboard_available_filters,
     get_dashboard_info,
     list_dashboards,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
-    get_dataset_available_filters,
     get_dataset_info,
     list_datasets,
 )
@@ -322,6 +329,7 @@ from superset.mcp_service.system import (  # noqa: F401, E402
 )
 from superset.mcp_service.system.tool import (  # noqa: F401, E402
     get_instance_info,
+    get_schema,
     health_check,
 )
 

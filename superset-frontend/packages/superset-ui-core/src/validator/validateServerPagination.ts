@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '../translation';
+import { t } from '@apache-superset/core';
 
 export default function validateServerPagination(
   v: unknown,

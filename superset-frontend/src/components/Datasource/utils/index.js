@@ -18,7 +18,8 @@
  */
 import { Children, cloneElement } from 'react';
 import { nanoid } from 'nanoid';
-import { SupersetClient, tn } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { tn } from '@apache-superset/core/ui';
 import rison from 'rison';
 
 export function recurseReactClone(children, type, propExtender) {

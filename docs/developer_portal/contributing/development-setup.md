@@ -164,6 +164,8 @@ Available commands (run from repo root):
 | `make down` | Stop all services |
 | `make ps` | Show running containers |
 | `make logs` | Follow container logs |
+| `make ports` | Show assigned URLs and ports |
+| `make open` | Open browser to dev server |
 | `make nuke` | Stop, remove volumes & local images |
 
 From a subdirectory, use: `make -C $(git rev-parse --show-toplevel) up`
@@ -651,7 +653,7 @@ export enum FeatureFlag {
 those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
 in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 
-The current status of the usability of each flag (stable vs testing, etc) can be found in `RESOURCES/FEATURE_FLAGS.md`.
+The current status of the usability of each flag (stable vs testing, etc) can be found in the [Feature Flags](/docs/configuration/feature-flags) documentation.
 
 ## Git Hooks
 

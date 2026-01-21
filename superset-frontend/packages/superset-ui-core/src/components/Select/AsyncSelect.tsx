@@ -31,9 +31,9 @@ import {
   ClipboardEvent,
 } from 'react';
 
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
-  t,
   usePrevious,
   getClientErrorObject,
 } from '@superset-ui/core';

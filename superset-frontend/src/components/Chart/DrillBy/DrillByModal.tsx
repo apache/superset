@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core';
 import {
   BinaryQueryObjectFilterClause,
   BaseFormData,
@@ -25,7 +26,6 @@ import {
   QueryData,
   ensureIsArray,
   isDefined,
-  t,
   ContextMenuFilters,
   AdhocFilter,
 } from '@superset-ui/core';

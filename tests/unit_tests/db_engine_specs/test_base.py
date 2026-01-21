@@ -894,3 +894,52 @@ def test_extract_errors_no_match_falls_back(mocker: MockerFixture) -> None:
         engine_name="ExampleEngine",
     )
     assert result == [expected]
+
+
+def test_get_oauth2_authorization_uri_standard_params(mocker: MockerFixture) -> None:
+    """
+    Test that BaseEngineSpec.get_oauth2_authorization_uri uses standard OAuth 2.0
+    parameters only and does not include provider-specific params like prompt=consent.
+    """
+    from urllib.parse import parse_qs, urlparse
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.superset_typing import OAuth2ClientConfig, OAuth2State
+    from superset.utils.oauth2 import decode_oauth2_state
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    state: OAuth2State = {
+        "database_id": 1,
+        "user_id": 1,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "1234",
+    }
+
+    url = BaseEngineSpec.get_oauth2_authorization_uri(config, state)
+    parsed = urlparse(url)
+    assert parsed.netloc == "oauth.example.com"
+    assert parsed.path == "/authorize"
+
+    query = parse_qs(parsed.query)
+
+    # Verify standard OAuth 2.0 parameters are included
+    assert query["scope"][0] == "read write"
+    assert query["response_type"][0] == "code"
+    assert query["client_id"][0] == "client-id"
+    assert query["redirect_uri"][0] == "http://localhost:8088/api/v1/database/oauth2/"
+    encoded_state = query["state"][0].replace("%2E", ".")
+    assert decode_oauth2_state(encoded_state) == state
+
+    # Verify Google-specific parameters are NOT included (standard OAuth 2.0)
+    assert "prompt" not in query
+    assert "access_type" not in query
+    assert "include_granted_scopes" not in query

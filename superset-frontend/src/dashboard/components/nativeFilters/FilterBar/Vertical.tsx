@@ -31,7 +31,7 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { RootState } from 'src/dashboard/types';
 import { DataMaskStateWithId } from '@superset-ui/core';
@@ -39,12 +39,10 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
-import { selectChartCustomizationItems } from '../ChartCustomization/selectors';
 import { getFilterBarTestId, useChartsVerboseMaps } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
-import { ChartCustomizationItem } from '../ChartCustomization/types';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 import crossFiltersSelector from './CrossFilters/selectors';
 
@@ -133,10 +131,12 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   dataMaskSelected,
   filtersOpen,
   filterValues,
+  chartCustomizationValues,
   height,
   isInitialized,
   offset,
   onSelectionChange,
+  onPendingCustomizationDataMaskChange,
   toggleFiltersBar,
   width,
   clearAllTriggers,
@@ -174,10 +174,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     () => ({ overflow: 'auto', height, overscrollBehavior: 'contain' }),
     [height],
   );
-  const chartCustomizationItems = useSelector<
-    RootState,
-    ChartCustomizationItem[]
-  >(selectChartCustomizationItems);
 
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
@@ -200,7 +196,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
       types.push(SectionType.Filters);
     }
 
-    if (chartCustomizationItems.length > 0) {
+    if (chartCustomizationValues.length > 0) {
       types.push(SectionType.ChartCustomization);
     }
 
@@ -211,7 +207,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     return types;
   }, [
     filterValues.length,
-    chartCustomizationItems.length,
+    chartCustomizationValues.length,
     selectedCrossFilters.length,
   ]);
 
@@ -219,13 +215,17 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
 
   const filterControls = useMemo(() => {
     const hasFiltersOrCustomizations =
-      filterValues.length > 0 || chartCustomizationItems.length > 0;
+      filterValues.length > 0 || chartCustomizationValues.length > 0;
 
     return hasFiltersOrCustomizations ? (
       <FilterControlsWrapper>
         <FilterControls
           dataMaskSelected={dataMaskSelected}
           onFilterSelectionChange={onSelectionChange}
+          onPendingCustomizationDataMaskChange={
+            onPendingCustomizationDataMaskChange
+          }
+          chartCustomizationValues={chartCustomizationValues}
           hideHeader={hasOnlyOneSectionType}
         />
       </FilterControlsWrapper>
@@ -238,7 +238,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           description={
             canEdit &&
             t(
-              'Click on "Add or Edit Filters" option in Settings to create new dashboard filters',
+              'Click on "Filters and customizations" option in Settings to create new dashboard filters',
             )
           }
         />
@@ -249,7 +249,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     dataMaskSelected,
     filterValues.length,
     onSelectionChange,
-    chartCustomizationItems.length,
+    onPendingCustomizationDataMaskChange,
+    chartCustomizationValues,
     hasOnlyOneSectionType,
   ]);
 

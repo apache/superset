@@ -187,6 +187,135 @@ class MetricType(TypedDict, total=False):
     extra: str | None
 
 
+class DatabaseCategory:
+    """
+    Standard categories for database classification.
+    Used for organizing databases in documentation and UI.
+
+    Categories are grouped into:
+    - Cloud providers (where the database runs)
+    - Database types (what kind of database it is)
+    - Licensing (open source vs proprietary)
+    """
+
+    # Cloud providers
+    CLOUD_AWS = "Cloud - AWS"
+    CLOUD_GCP = "Cloud - Google"
+    CLOUD_AZURE = "Cloud - Azure"
+    CLOUD_DATA_WAREHOUSES = "Cloud Data Warehouses"
+
+    # Database types
+    APACHE_PROJECTS = "Apache Projects"
+    TRADITIONAL_RDBMS = "Traditional RDBMS"
+    ANALYTICAL_DATABASES = "Analytical Databases"
+    SEARCH_NOSQL = "Search & NoSQL"
+    QUERY_ENGINES = "Query Engines"
+    TIME_SERIES = "Time Series Databases"
+    OTHER = "Other Databases"
+
+    # Licensing
+    OPEN_SOURCE = "Open Source"
+    HOSTED_OPEN_SOURCE = "Hosted Open Source"
+    PROPRIETARY = "Proprietary"
+
+
+class DriverInfo(TypedDict, total=False):
+    """Information about a database driver."""
+
+    name: str
+    pypi_package: str
+    connection_string: str
+    is_recommended: bool
+    notes: str
+    docs_url: str
+
+
+class AuthenticationMethod(TypedDict, total=False):
+    """Information about an authentication method."""
+
+    name: str
+    description: str
+    requirements: str
+    connection_string: str
+    engine_parameters: dict[str, Any]
+    secure_extra: dict[str, Any]
+    notes: str
+
+
+class ConnectionExample(TypedDict, total=False):
+    """Example connection string configuration."""
+
+    description: str
+    connection_string: str
+
+
+class CompatibleDatabase(TypedDict, total=False):
+    """Information about a compatible/derived database."""
+
+    name: str
+    description: str
+    logo: str
+    homepage_url: str
+    pypi_packages: list[str]
+    connection_string: str
+    parameters: dict[str, str]
+    connection_examples: list[ConnectionExample]
+    notes: str
+    docs_url: str
+    categories: list[str]  # Override parent categories (e.g., for HOSTED_OPEN_SOURCE)
+
+
+class DBEngineSpecMetadata(TypedDict, total=False):
+    """
+    Metadata for database engine documentation and UI display.
+
+    This centralizes all documentation-related information for a database
+    engine, making it easier to add new databases without modifying
+    multiple files.
+    """
+
+    # Basic information
+    description: str
+    logo: str  # Filename in docs/static/img/databases/ or full URL
+    homepage_url: str
+    docs_url: str
+    sqlalchemy_docs_url: str
+    categories: list[str]  # Use DatabaseCategory constants, supports multiple
+
+    # Connection information
+    pypi_packages: list[str]
+    connection_string: str
+    default_port: int
+    parameters: dict[str, str]  # Parameter name -> description
+    connection_examples: list[ConnectionExample]
+
+    # Driver options (for databases with multiple drivers)
+    drivers: list[DriverInfo]
+
+    # Authentication methods
+    authentication_methods: list[AuthenticationMethod]
+
+    # Engine parameters (JSON configs for advanced options)
+    engine_parameters: list[dict[str, Any]]
+
+    # Additional information
+    notes: str
+    warnings: list[str]
+    tutorials: list[str]
+    install_instructions: str
+    version_requirements: str
+
+    # Related databases (e.g., PostgreSQL-compatible databases)
+    compatible_databases: list[CompatibleDatabase]
+
+    # Host examples (for databases with platform-specific configs)
+    host_examples: list[dict[str, str]]
+
+    # Advanced features documentation
+    ssl_configuration: dict[str, Any]
+    advanced_features: dict[str, str]
+
+
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """Abstract class for database engine specific configurations
 
@@ -202,6 +331,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """
 
     engine_name: str | None = None  # for user messages, overridden in child classes
+
+    # Documentation metadata for this engine spec. Centralizes all documentation
+    # information so adding a new database only requires modifying one file.
+    # See DBEngineSpecMetadata TypedDict for available fields.
+    metadata: DBEngineSpecMetadata = {}
 
     # These attributes map the DB engine spec to one or more SQLAlchemy dialects/drivers;  # noqa: E501
     # see the ``supports_url`` and ``supports_backend`` methods below.
@@ -551,17 +685,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ) -> str:
         """
         Return URI for initial OAuth2 request.
+
+        Uses standard OAuth 2.0 parameters only. Subclasses can override
+        to add provider-specific parameters (e.g., Google's prompt=consent).
         """
         uri = config["authorization_request_uri"]
         params = {
             "scope": config["scope"],
-            "access_type": "offline",
-            "include_granted_scopes": "false",
             "response_type": "code",
             "state": encode_oauth2_state(state),
             "redirect_uri": config["redirect_uri"],
             "client_id": config["id"],
-            "prompt": "consent",
         }
         return urljoin(uri, "?" + urlencode(params))
 

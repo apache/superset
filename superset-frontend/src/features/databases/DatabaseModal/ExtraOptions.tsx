@@ -18,8 +18,8 @@
  */
 import { ChangeEvent, EventHandler, useState, useEffect } from 'react';
 import cx from 'classnames';
+import { t } from '@apache-superset/core';
 import {
-  t,
   DatabaseConnectionExtension,
   isFeatureEnabled,
   FeatureFlag,

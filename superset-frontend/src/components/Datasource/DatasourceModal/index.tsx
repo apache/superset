@@ -18,10 +18,10 @@
  */
 import { FunctionComponent, useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core';
 import {
   SupersetClient,
   getClientErrorObject,
-  t,
   SupersetError,
 } from '@superset-ui/core';
 import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
@@ -119,6 +119,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         datasource.schema,
       description: datasource.description,
       main_dttm_col: datasource.main_dttm_col,
+      currency_code_column: datasource.currency_code_column ?? null,
       normalize_columns: datasource.normalize_columns,
       always_filter_main_dttm: datasource.always_filter_main_dttm,
       offset: datasource.offset,

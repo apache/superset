@@ -107,7 +107,7 @@ def sanitize_datasource_data(
 def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, Any]:
     if user.is_anonymous:
         payload = {}
-        user.roles = (security_manager.find_role("Public"),)
+        user.roles = (security_manager.get_public_role(),)
     elif security_manager.is_guest_user(user):
         payload = {
             "username": user.username,

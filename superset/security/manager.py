@@ -289,6 +289,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
+        "CssTemplate",
         "Dataset",
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
@@ -327,7 +328,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Annotation",
         "CSS Templates",
         "ColumnarToDatabaseView",
-        "CssTemplate",
         "ExcelToDatabaseView",
         "Import dashboards",
         "ImportExportRestApi",
@@ -412,6 +412,61 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_csv", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_read", "Superset"),
         ("can_read", "Database"),
+    }
+
+    # Permissions for the Public role - minimal read-only access for viewing
+    # dashboards without authentication. This is more restrictive than Gamma.
+    # Users can set PUBLIC_ROLE_LIKE = "Public" to use these sensible defaults.
+    PUBLIC_ROLE_PERMISSIONS = {
+        # Core dashboard viewing
+        ("can_read", "Dashboard"),
+        ("can_read", "Chart"),
+        ("can_dashboard", "Superset"),
+        ("can_slice", "Superset"),
+        ("can_explore_json", "Superset"),
+        ("can_dashboard_permalink", "Superset"),
+        ("can_read", "DashboardPermalinkRestApi"),
+        # Dashboard filter interactions
+        ("can_read", "DashboardFilterStateRestApi"),
+        ("can_write", "DashboardFilterStateRestApi"),
+        # API access for chart rendering
+        ("can_time_range", "Api"),
+        ("can_query_form_data", "Api"),
+        ("can_query", "Api"),
+        # CSS and themes for dashboard styling
+        ("can_read", "CssTemplate"),
+        ("can_read", "Theme"),
+        # Embedded dashboard support
+        ("can_read", "EmbeddedDashboard"),
+        # Datasource metadata for chart rendering
+        ("can_get", "Datasource"),
+        ("can_external_metadata", "Datasource"),
+        # Annotations on charts
+        ("can_read", "Annotation"),
+        ("can_read", "AnnotationLayerRestApi"),
+        # Chart permalinks (for shared chart links)
+        ("can_read", "ExplorePermalinkRestApi"),
+    }
+
+    # View menus that Public role should NOT have access to
+    PUBLIC_EXCLUDED_VIEW_MENUS = {
+        "SQL Lab",
+        "SQL Editor",
+        "Saved Queries",
+        "Query Search",
+        "Queries",
+        "Security",
+        "List Users",
+        "List Roles",
+        "Row Level Security",
+        "Row Level Security Filters",
+        "Access Requests",
+        "Action Log",
+        "Manage",
+        "Import dashboards",
+        "Annotation Layers",
+        "CSS Templates",
+        "Alerts & Report",
     }
 
     data_access_permissions = (
@@ -1230,9 +1285,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("sql_lab", self._is_sql_lab_pvm, pvms)
 
         # Configure public role
-        if get_conf()["PUBLIC_ROLE_LIKE"]:
+        # If PUBLIC_ROLE_LIKE is "Public", use the built-in Public role with
+        # sensible defaults for anonymous dashboard viewing.
+        # If set to another role name (e.g., "Gamma"), copy permissions from that role.
+        # If not set (None), the Public role remains empty (default/legacy behavior).
+        public_role_like = get_conf()["PUBLIC_ROLE_LIKE"]
+        if public_role_like == "Public":
+            # Use the built-in Public role with minimal read-only permissions
+            self.set_role("Public", self._is_public_pvm, pvms)
+        elif public_role_like:
+            # Copy permissions from another role (e.g., "Gamma") to Public
             self.copy_role(
-                get_conf()["PUBLIC_ROLE_LIKE"],
+                public_role_like,
                 self.auth_role_public,
                 merge=True,
             )
@@ -1451,6 +1515,34 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or (pvm.permission.name, pvm.view_menu.name)
             in self.SQLLAB_EXTRA_PERMISSION_VIEWS
         )
+
+    def _is_public_pvm(self, pvm: PermissionView) -> bool:
+        """
+        Return True if the FAB permission/view is appropriate for the Public role,
+        False otherwise.
+
+        The Public role is designed for anonymous/unauthenticated users who need
+        to view dashboards. It provides minimal read-only access - more restrictive
+        than Gamma - suitable for public-facing dashboard deployments.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is appropriate for Public role
+        """
+        # Explicitly allow permissions in the PUBLIC_ROLE_PERMISSIONS set
+        if (pvm.permission.name, pvm.view_menu.name) in self.PUBLIC_ROLE_PERMISSIONS:
+            return True
+
+        # Exclude any view menus in the excluded list
+        if pvm.view_menu.name in self.PUBLIC_EXCLUDED_VIEW_MENUS:
+            return False
+
+        # Exclude user-defined permissions (datasource_access, schema_access, etc.)
+        # These must be explicitly granted to the Public role
+        if self._is_user_defined_permission(pvm):
+            return False
+
+        # Exclude all other permissions not explicitly allowed
+        return False
 
     def database_after_insert(
         self,
