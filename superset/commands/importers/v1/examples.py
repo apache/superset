@@ -75,6 +75,9 @@ def transpile_virtual_dataset_sql(config: dict[str, Any], database_id: int) -> N
 
     target_engine = database.db_engine_spec.engine
     source_engine = config.get("source_db_engine")
+    if target_engine == source_engine:
+        logger.info("Source and target dialects are identical, skipping transpilation")
+        return
 
     try:
         transpiled_sql = transpile_to_dialect(sql, target_engine, source_engine)
