@@ -145,7 +145,9 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
 
   let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
   expect(within(dropdown).getByText('Total Sales')).toBeInTheDocument();
-  expect(within(dropdown).queryByText('User Identifier')).not.toBeInTheDocument();
+  expect(
+    within(dropdown).queryByText('User Identifier'),
+  ).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Creation Date')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Status')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Last Update')).not.toBeInTheDocument();
@@ -165,18 +167,40 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
   expect(within(dropdown).getByText('Creation Date')).toBeInTheDocument();
   expect(within(dropdown).getByText('Last Update')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Sales')).not.toBeInTheDocument();
-  expect(within(dropdown).queryByText('User Identifier')).not.toBeInTheDocument();
+  expect(
+    within(dropdown).queryByText('User Identifier'),
+  ).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Status')).not.toBeInTheDocument();
 });
 
 test('Should filter saved expressions by column_name and verbose_name', async () => {
   const { container } = renderPopover({
     columns: [
-      { column_name: 'calc_revenue', verbose_name: 'Total Sales', expression: 'price * quantity' },
-      { column_name: 'calc_tax', verbose_name: 'Tax Amount', expression: 'price * 0.1' },
-      { column_name: 'calc_profit', verbose_name: 'Net Profit', expression: 'revenue - cost' },
-      { column_name: 'calc_margin', verbose_name: 'Profit Margin', expression: 'profit / revenue' },
-      { column_name: 'calc_discount', verbose_name: 'Discount Rate', expression: 'discount / price' },
+      {
+        column_name: 'calc_revenue',
+        verbose_name: 'Total Sales',
+        expression: 'price * quantity',
+      },
+      {
+        column_name: 'calc_tax',
+        verbose_name: 'Tax Amount',
+        expression: 'price * 0.1',
+      },
+      {
+        column_name: 'calc_profit',
+        verbose_name: 'Net Profit',
+        expression: 'revenue - cost',
+      },
+      {
+        column_name: 'calc_margin',
+        verbose_name: 'Profit Margin',
+        expression: 'profit / revenue',
+      },
+      {
+        column_name: 'calc_discount',
+        verbose_name: 'Discount Rate',
+        expression: 'discount / price',
+      },
     ],
     editedColumn: undefined,
     getCurrentTab: jest.fn(),
