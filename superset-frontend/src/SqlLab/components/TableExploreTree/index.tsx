@@ -37,6 +37,7 @@ import {
   Empty,
   Typography,
   Button,
+  Flex,
 } from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import type { SqlLabRootState } from 'src/SqlLab/types';
@@ -54,6 +55,8 @@ import {
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { addTable } from 'src/SqlLab/actions/sqlLab';
 import IconButton from 'src/dashboard/components/IconButton';
+import PanelToolbar from 'src/components/PanelToolbar';
+import { ViewContribution } from 'src/SqlLab/contributions';
 
 type Props = {
   queryEditorId: string;
@@ -127,6 +130,14 @@ const StyledTreeContainer = styled.div`
     top: 50%;
     transform: translateY(-50%);
     z-index: ${({ theme }) => theme.zIndexPopupBase};
+  }
+`;
+
+const StyledColumnNode = styled.div`
+  & > .ant-flex {
+    flex: 1;
+    margin-right: ${({ theme }) => theme.sizeUnit * 1.5}px;
+    cursor: default;
   }
 `;
 
@@ -512,19 +523,14 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       // Column nodes use ColumnElement
       if (identifier === 'column' && data.columnData) {
         return (
-          <div
+          <StyledColumnNode
             className="tree-node"
             style={style}
             data-selected={node.isSelected}
             onClick={() => node.select()}
-            css={css`
-              & > .ant-flex {
-                flex: 1;
-              }
-            `}
           >
             <ColumnElement column={data.columnData} />
-          </div>
+          </StyledColumnNode>
         );
       }
 
@@ -604,23 +610,31 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
 
   return (
     <>
-      <Input
-        allowClear
-        type="text"
-        className="form-control input-sm"
-        placeholder={t('Enter a part of the object name')}
-        onChange={handleSearchChange}
-        value={searchTerm}
-      />
-      <Button
-        buttonStyle="secondary"
-        icon={<Icons.ReloadOutlined />}
-        onClick={() => refetch()}
-        block
-        loading={isFetching}
-      >
-        {t('Force refresh schema list')}
-      </Button>
+      <Flex align="center" gap="small">
+        <PanelToolbar
+          viewId={ViewContribution.LeftSidebar}
+          defaultPrimaryActions={
+            <>
+              <Button
+                color="primary"
+                variant="text"
+                icon={<Icons.ReloadOutlined />}
+                onClick={() => refetch()}
+                loading={isFetching}
+                tooltip={t('Force refresh schema list')}
+              />
+            </>
+          }
+        />
+        <Input
+          allowClear
+          type="text"
+          className="form-control input-sm"
+          placeholder={t('Enter a part of the object name')}
+          onChange={handleSearchChange}
+          value={searchTerm}
+        />
+      </Flex>
       <StyledTreeContainer>
         <AutoSizer disableWidth>
           {({ height }) => {
@@ -631,7 +645,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
             if (searchTerm && treeData.length === 0) {
               return (
                 <Empty
-                  description="No matching results found"
+                  description={t('No matching results found')}
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 />
               );

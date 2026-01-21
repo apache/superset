@@ -20,36 +20,19 @@ import { useCallback, useMemo, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 
 import { SqlLabRootState, Table } from 'src/SqlLab/types';
-import {
-  addTable,
-  removeTables,
-  collapseTable,
-  expandTable,
-  resetState,
-} from 'src/SqlLab/actions/sqlLab';
-import {
-  Button,
-  EmptyState,
-  Icons,
-  Segmented,
-} from '@superset-ui/core/components';
+import { addTable, removeTables, resetState } from 'src/SqlLab/actions/sqlLab';
+import { Button, EmptyState, Icons } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core';
 import { styled, css } from '@apache-superset/core/ui';
-import { TableSelectorMultiple } from 'src/components/TableSelector';
+import TableSelector from 'src/components/TableSelector';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { noop } from 'lodash';
-import TableElement from '../TableElement';
 import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
 import TableExploreTree from '../TableExploreTree';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
 }
-
-const StyledScrollbarContainer = styled.div`
-  flex: 1 1 auto;
-  overflow: auto;
-`;
 
 const LeftBarStyles = styled.div`
   display: flex;
@@ -68,10 +51,7 @@ const LeftBarStyles = styled.div`
   `}
 `;
 
-type ViewType = 'TreeView' | 'SelectView';
-
 const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
-  const [viewType, setViewType] = useState<ViewType>('TreeView');
   const { db: userSelectedDb, ...dbSelectorProps } =
     useDatabaseSelector(queryEditorId);
   const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
@@ -134,19 +114,6 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
     dispatch(removeTables(currentTables));
   };
 
-  const onToggleTable = (updatedTables: string[]) => {
-    tables.forEach(table => {
-      if (!updatedTables.includes(table.id.toString()) && table.expanded) {
-        dispatch(collapseTable(table));
-      } else if (
-        updatedTables.includes(table.id.toString()) &&
-        !table.expanded
-      ) {
-        dispatch(expandTable(table));
-      }
-    });
-  };
-
   const shouldShowReset = window.location.search === '?reset=1';
 
   const handleResetState = useCallback(() => {
@@ -155,48 +122,16 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
 
   return (
     <LeftBarStyles data-test="sql-editor-left-bar">
-      <div
-        css={css`
-          text-align: center;
-        `}
-      >
-        <Segmented
-          value={viewType}
-          onChange={value => setViewType(value as ViewType)}
-          options={[
-            { value: 'TreeView', icon: <Icons.PartitionOutlined /> },
-            { value: 'SelectView', icon: <Icons.ProfileOutlined /> },
-          ]}
-        />
-      </div>
-      {viewType === 'TreeView' ? (
-        <TableExploreTree queryEditorId={queryEditorId} />
-      ) : (
-        <>
-          <TableSelectorMultiple
-            {...dbSelectorProps}
-            onEmptyResults={onEmptyResults}
-            emptyState={<EmptyState />}
-            database={userSelectedDb}
-            onTableSelectChange={onTablesChange}
-            tableValue={selectedTableNames}
-            sqlLabMode
-          />
-          <div className="divider" />
-          <StyledScrollbarContainer>
-            {tables.map(table => (
-              <TableElement
-                table={table}
-                key={table.id}
-                activeKey={tables
-                  .filter(({ expanded }) => expanded)
-                  .map(({ id }) => id)}
-                onChange={onToggleTable}
-              />
-            ))}
-          </StyledScrollbarContainer>
-        </>
-      )}
+      <TableSelector
+        {...dbSelectorProps}
+        onEmptyResults={onEmptyResults}
+        emptyState={<EmptyState />}
+        database={userSelectedDb}
+        onTableSelectChange={onTablesChange}
+        tableValue={selectedTableNames}
+        sqlLabMode
+      />
+      <TableExploreTree queryEditorId={queryEditorId} />
       {shouldShowReset && (
         <Button
           buttonSize="small"
