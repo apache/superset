@@ -45,6 +45,7 @@ import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   extractExtraMetrics,
   getOriginalSeries,
+  getTimeOffset,
   isDerivedSeries,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
@@ -309,7 +310,7 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
-  let patternIncrement = 0;
+  const offsetLineWidths: { [key: string]: number } = {};
 
   // For horizontal bar charts, calculate min/max from data to avoid cutting off labels
   const shouldCalculateDataBounds =
@@ -320,17 +321,33 @@ export default function transformProps(
   let dataMin: number | undefined;
 
   rawSeries.forEach(entry => {
-    const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
-    const lineStyle: LineStyleOption = {};
-    if (derivedSeries) {
-      patternIncrement += 1;
-      // use a combination of dash and dot for the line style
-      lineStyle.type = [(patternIncrement % 5) + 1, (patternIncrement % 3) + 1];
-      lineStyle.opacity = OpacityEnum.DerivedSeries;
-    }
-
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
+    // isDerivedSeries checks for time comparison series patterns:
+    // - "metric__1 day ago" pattern (via hasTimeOffset)
+    // - "1 day ago, groupby" pattern (via hasTimeOffset)
+    // - exact match "1 day ago" (via seriesName parameter)
+    const derivedSeries = isDerivedSeries(
+      entry,
+      chartProps.rawFormData,
+      seriesName,
+    );
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries) {
+      // Get the time offset for this series to assign different dash patterns
+      const offset = getTimeOffset(entry, array) || seriesName;
+      if (!offsetLineWidths[offset]) {
+        offsetLineWidths[offset] = Object.keys(offsetLineWidths).length + 1;
+      }
+      // Use visible dash patterns that vary by offset index
+      // Pattern: [dash length, gap length] - scaled to be clearly visible
+      const patternIndex = offsetLineWidths[offset];
+      lineStyle.type = [
+        (patternIndex % 5) + 4, // dash: 4-8px (visible)
+        (patternIndex % 3) + 3, // gap: 3-5px (visible)
+      ];
+      lineStyle.opacity = OpacityEnum.DerivedSeries;
+    }
 
     // Calculate min/max from data for horizontal bar charts
     if (shouldCalculateDataBounds && entry.data && Array.isArray(entry.data)) {
@@ -349,14 +366,17 @@ export default function transformProps(
 
     let colorScaleKey = getOriginalSeries(seriesName, array);
 
-    // If this series name exactly matches a time compare value, it's a time-shifted series
-    // and we need to find the corresponding original series for color matching
-    if (array && array.includes(seriesName)) {
-      // Find the original series (first non-time-compare series)
-      const originalSeries = rawSeries.find(s => {
-        const sName = inverted[String(s.name || '')] || String(s.name || '');
-        return !array.includes(sName);
-      });
+    // If series name exactly matches a time offset (single metric case),
+    // find the original series for color matching
+    if (derivedSeries && array.includes(seriesName)) {
+      const originalSeries = rawSeries.find(
+        s =>
+          !isDerivedSeries(
+            s,
+            chartProps.rawFormData,
+            inverted[String(s.name || '')] || String(s.name || ''),
+          ),
+      );
       if (originalSeries) {
         const originalSeriesName =
           inverted[String(originalSeries.name || '')] ||
