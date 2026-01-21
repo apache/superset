@@ -34,7 +34,7 @@ The DatePicker component from Superset's UI library.
   component="DatePicker"
   props={{
   placeholder: "Select date",
-  showToday: true,
+  showNow: true,
   allowClear: false,
   autoFocus: true,
   disabled: false,
@@ -43,7 +43,6 @@ The DatePicker component from Superset's UI library.
   picker: "date",
   placement: "bottomLeft",
   size: "middle",
-  showNow: true,
   showTime: {
     format: "hh:mm a",
     needConfirm: false
@@ -56,9 +55,10 @@ The DatePicker component from Superset's UI library.
     type: "text"
   },
   {
-    name: "showToday",
-    label: "Show Today",
-    type: "boolean"
+    name: "showNow",
+    label: "Show Now",
+    type: "boolean",
+    description: "Show \"Now\" button to select current date and time."
   }
 ]}
 />
@@ -73,7 +73,7 @@ function Demo() {
     <DatePicker
       placeholder="Select date"
       format="YYYY-MM-DD hh:mm a"
-      showToday
+      showNow
       showTime={{ format: 'hh:mm a', needConfirm: false }}
     />
   );
@@ -84,8 +84,8 @@ function Demo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `placeholder` | `string` | `"Placeholder"` | - |
-| `showToday` | `boolean` | `true` | - |
+| `placeholder` | `string` | `"Select date"` | - |
+| `showNow` | `boolean` | `true` | Show "Now" button to select current date and time. |
 | `allowClear` | `boolean` | `false` | - |
 | `autoFocus` | `boolean` | `true` | - |
 | `disabled` | `boolean` | `false` | - |
@@ -94,7 +94,6 @@ function Demo() {
 | `picker` | `string` | `"date"` | - |
 | `placement` | `string` | `"bottomLeft"` | - |
 | `size` | `string` | `"middle"` | - |
-| `showNow` | `boolean` | `true` | - |
 | `showTime` | `any` | `{"format":"hh:mm a","needConfirm":false}` | - |
 
 ## Import
