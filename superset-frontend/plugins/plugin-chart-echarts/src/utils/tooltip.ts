@@ -70,8 +70,6 @@ export function getDefaultTooltip(refs: Refs) {
       if (tooltipDom) {
         tooltipDom.style.maxHeight = `${maxAllowedHeight}px`;
         tooltipDom.style.overflow = 'auto';
-        // mobile momentum scrolling
-        tooltipDom.style.setProperty('-webkit-overflow-scrolling', 'touch');
         // ensure interactions within tooltip don't get swallowed
         tooltipDom.style.pointerEvents = 'auto';
       }
