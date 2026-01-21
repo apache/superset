@@ -31,8 +31,6 @@ import {
   Tooltip,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
-
-
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -201,8 +199,8 @@ const ViewModeToggle = ({
   mode: 'table' | 'card';
   setMode: (mode: 'table' | 'card') => void;
 }) => {
-  
-
+  const gridTitle = t('Grid view');
+const listTitle = t('List view');
   return (
     <ViewModeContainer>
       <Tooltip title={gridTitle}>
@@ -210,11 +208,9 @@ const ViewModeToggle = ({
           role="button"
           tabIndex={0}
           onClick={e => {
-            console.log('Grid view icon clicked');
             e.currentTarget.blur();
             setMode('card');
           }}
-          onMouseEnter={() => console.log('Mouse entered Grid view icon')}
           className={cx('toggle-button', { active: mode === 'card' })}
         >
           <Icons.AppstoreOutlined iconSize="xl" />
@@ -225,11 +221,9 @@ const ViewModeToggle = ({
           role="button"
           tabIndex={0}
           onClick={e => {
-            console.log('List view icon clicked');
             e.currentTarget.blur();
             setMode('table');
           }}
-          onMouseEnter={() => console.log('Mouse entered List view icon')}
           className={cx('toggle-button', { active: mode === 'table' })}
         >
           <Icons.UnorderedListOutlined iconSize="xl" />
@@ -285,7 +279,7 @@ export function ListView<T extends object = any>({
   filters = [],
   bulkActions = [],
   bulkSelectEnabled = false,
-  disableBulkSelect = () => { },
+  disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   showThumbnails,
