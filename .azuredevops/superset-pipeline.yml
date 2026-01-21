@@ -11,14 +11,6 @@ parameters:
     displayName: Docker Agent Pool
     default: 'Linux-Hosted'
 
-  # IMPORTANT: Set this value in Azure DevOps UI when running the pipeline
-  # Pipeline → Edit → Parameters → Set SUPERSET_SECRET_KEY value
-  # This key must be consistent across deployments to avoid database decryption errors
-  - name: SUPERSET_SECRET_KEY
-    type: string
-    displayName: Superset SECRET_KEY (must be consistent across deployments)
-    # To generate: openssl rand -base64 48 | tr -d '=+/' | cut -c1-64
-
 variables:
   appName: superset
   containerRegistry: 'IntelliSuite Container Registry'
@@ -289,7 +281,7 @@ stages:
                     # Write SECRET_KEY to temp file (secret variables not passed to bash)
                     # IMPORTANT: Use the same SECRET_KEY across deployments to avoid decryption errors
                     $secretKeyFile = Join-Path "$(Agent.TempDirectory)" "superset-secret-key.txt"
-                    Set-Content -Path $secretKeyFile -Value "${{ parameters.SUPERSET_SECRET_KEY }}" -NoNewline
+                    Set-Content -Path $secretKeyFile -Value $env:SUPERSET_SECRET_KEY -NoNewline
                     Write-Host "✓ SECRET_KEY written to temp file"
 
                     # Write admin password to temp file (secret variables not passed to bash)
