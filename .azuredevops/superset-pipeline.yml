@@ -439,25 +439,21 @@ stages:
                 displayName: Create .env.deploy
 
               # -------------------------------------
-              # Cleanup old containers and volumes (dev environments only)
+              # Cleanup old containers (NOT volumes - data is preserved)
               # -------------------------------------
               - bash: |
-                  echo "=== Cleaning up old containers and volumes ==="
+                  echo "=== Cleaning up old containers (preserving volumes) ==="
                   cd "$(Pipeline.Workspace)/s" || exit 1
 
                   echo "Stopping and removing existing containers by name..."
                   docker rm -f superset_db superset_cache superset_init superset_app 2>/dev/null || echo "No named containers to remove"
 
-                  echo "Stopping and removing docker-compose project containers..."
-                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops down -v 2>/dev/null || echo "No project containers to stop"
+                  echo "Stopping docker-compose project containers (without removing volumes)..."
+                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops down 2>/dev/null || echo "No project containers to stop"
 
-                  echo "Removing any orphaned volumes..."
-                  docker volume rm s_db_home s_superset_home 2>/dev/null || echo "No s_* volumes to remove"
-                  docker volume rm azuredevops_db_home azuredevops_superset_home 2>/dev/null || echo "No azuredevops_* volumes to remove"
-
-                  echo "✓ Cleanup completed"
+                  echo "✓ Cleanup completed (volumes preserved)"
                   echo ""
-                displayName: Cleanup Old Containers and Volumes
+                displayName: Cleanup Old Containers
 
               # -------------------------------------
               # Deploy Superset
