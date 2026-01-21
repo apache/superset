@@ -893,6 +893,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
+            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                self.start_oauth2_dance()
+
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
@@ -927,6 +930,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
+            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                self.start_oauth2_dance()
+
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
@@ -963,6 +969,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
+            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                self.start_oauth2_dance()
+
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
         return set()
