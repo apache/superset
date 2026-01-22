@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactElement } from 'react';
 import { VizType } from '@superset-ui/core';
 import { css } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { VizMeta } from './types';
 
-// Multi Chart icon (only shown when selected)
-export const MULTI_CHART_ICON = (
-  <Icons.Multiple iconSize="l" viewBox="5 4 15 20" />
-);
+// Custom icons for non-featured charts
+export const CUSTOM_CHART_ICONS: Record<string, ReactElement> = {
+  deck_multi: <Icons.Multiple iconSize="l" viewBox="5 4 15 20" />,
+};
 
 export const FEATURED_CHARTS: VizMeta[] = [
   {
