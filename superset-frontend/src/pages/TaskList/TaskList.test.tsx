@@ -241,8 +241,9 @@ test('displays task scope labels', async () => {
 test('displays task duration for completed tasks', async () => {
   renderTaskList();
   // Wait for the table to be populated with duration data
+  // formatDuration uses prettyMs which formats 299s as "4m 59s"
   await waitFor(() => {
-    expect(screen.getByText('299s')).toBeInTheDocument();
+    expect(screen.getByText('4m 59s')).toBeInTheDocument();
   });
 });
 
