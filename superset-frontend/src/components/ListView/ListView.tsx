@@ -201,7 +201,7 @@ const ViewModeToggle = ({
 }) => {
   return (
     <ViewModeContainer>
-      <Tooltip title={t('Grid view'}>
+      <Tooltip title={t('Grid view')}>
         <div
           role="button"
           tabIndex={0}
@@ -214,7 +214,7 @@ const ViewModeToggle = ({
           <Icons.AppstoreOutlined iconSize="xl" />
         </div>
       </Tooltip>
-      <Tooltip title={t('List view'}>
+      <Tooltip title={t('List view')}>
         <div
           role="button"
           tabIndex={0}
