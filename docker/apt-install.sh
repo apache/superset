@@ -38,15 +38,8 @@ RESET='\033[0m'
 echo -e "${GREEN}Updating package lists...${RESET}"
 apt-get update -qq
 
-# Ensure native Python extensions can compile (python-geohash, psycopg2, mysqlclient)
-echo -e "${GREEN}Installing build toolchain...${RESET}"
-apt-get install -yqq --no-install-recommends \
-    build-essential \
-    g++
-
 echo -e "${GREEN}Installing packages: $@${RESET}"
 apt-get install -yqq --no-install-recommends "$@"
-
 
 echo -e "${GREEN}Autoremoving unnecessary packages...${RESET}"
 apt-get autoremove -yqq --purge
@@ -55,4 +48,4 @@ echo -e "${GREEN}Cleaning up package cache and metadata...${RESET}"
 apt-get clean
 rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /tmp/* /var/tmp/*
 
-echo -e "${GREEN}Installation and cleanup complete.${RESET}"
+echo -e "${GREEN}Installation and cleanup complete.${RESET}"   is this ok
