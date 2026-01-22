@@ -50,9 +50,12 @@ class OAuth2StoreTokenCommand(BaseCommand):
         if oauth2_config is None:
             raise OAuth2Error("No configuration found for OAuth2")
 
+        # Pass PKCE code_verifier if present in state (RFC 7636)
+        code_verifier = self._state.get("code_verifier")
         token_response = self._database.db_engine_spec.get_oauth2_token(
             oauth2_config,
             self._parameters["code"],
+            code_verifier=code_verifier,
         )
 
         # delete old tokens
