@@ -199,11 +199,9 @@ const ViewModeToggle = ({
   mode: 'table' | 'card';
   setMode: (mode: 'table' | 'card') => void;
 }) => {
-  const gridTitle = t('Grid view');
-const listTitle = t('List view');
   return (
     <ViewModeContainer>
-      <Tooltip title={gridTitle}>
+      <Tooltip title={t('Grid view'}>
         <div
           role="button"
           tabIndex={0}
@@ -216,7 +214,7 @@ const listTitle = t('List view');
           <Icons.AppstoreOutlined iconSize="xl" />
         </div>
       </Tooltip>
-      <Tooltip title={listTitle}>
+      <Tooltip title={t('List view'}>
         <div
           role="button"
           tabIndex={0}
