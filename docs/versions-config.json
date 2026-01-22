@@ -1,7 +1,7 @@
 {
   "docs": {
     "disabled": false,
-    "lastVersion": "6.0.0",
+    "lastVersion": "current",
     "includeCurrentVersion": true,
     "onlyIncludeVersions": [
       "current",
@@ -11,7 +11,7 @@
       "current": {
         "label": "Next",
         "path": "",
-        "banner": "unreleased"
+        "banner": "none"
       },
       "6.0.0": {
         "label": "6.0.0",

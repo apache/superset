@@ -18,9 +18,7 @@ from typing import Any, Optional
 
 from marshmallow import Schema
 from sqlalchemy.exc import MultipleResultsFound
-from sqlalchemy.sql import select
 
-from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.importers.v1 import ImportChartsCommand
 from superset.commands.chart.importers.v1.utils import import_chart
@@ -36,13 +34,14 @@ from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.commands.importers.v1.utils import (
+    safe_insert_dashboard_chart_relationships,
+)
 from superset.daos.base import BaseDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
-from superset.models.dashboard import dashboard_slices
 from superset.utils.core import get_example_default_schema
-from superset.utils.database import get_example_database
 from superset.utils.decorators import transaction
 
 
@@ -105,22 +104,16 @@ class ImportExamplesCommand(ImportModelsCommand):
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets
-        # If database_uuid is not in the list of UUIDs it means that the examples
-        # database was created before its UUID was frozen, so it has a random UUID.
-        # We need to determine its ID so we can point the dataset to it.
-        examples_db = get_example_database()
         dataset_info: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
                 # find the ID of the corresponding database
                 if config["database_uuid"] not in database_ids:
-                    if examples_db is None:
-                        raise Exception(  # pylint: disable=broad-exception-raised
-                            "Cannot find examples database"
-                        )
-                    config["database_id"] = examples_db.id
-                else:
-                    config["database_id"] = database_ids[config["database_uuid"]]
+                    raise Exception(  # pylint: disable=broad-exception-raised
+                        f"Database UUID {config['database_uuid']} not found. "
+                        "Please ensure the database config is present."
+                    )
+                config["database_id"] = database_ids[config["database_uuid"]]
 
                 # set schema
                 if config["schema"] is None:
@@ -164,11 +157,6 @@ class ImportExamplesCommand(ImportModelsCommand):
                 )
                 chart_ids[str(chart.uuid)] = chart.id
 
-        # store the existing relationship between dashboards and charts
-        existing_relationships = db.session.execute(
-            select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
-        ).fetchall()
-
         # import dashboards
         dashboard_chart_ids: list[tuple[int, int]] = []
         for file_name, config in configs.items():
@@ -187,12 +175,7 @@ class ImportExamplesCommand(ImportModelsCommand):
 
                 for uuid in find_chart_uuids(config["position"]):
                     chart_id = chart_ids[uuid]
-                    if (dashboard.id, chart_id) not in existing_relationships:
-                        dashboard_chart_ids.append((dashboard.id, chart_id))
+                    dashboard_chart_ids.append((dashboard.id, chart_id))
 
         # set ref in the dashboard_slices table
-        values = [
-            {"dashboard_id": dashboard_id, "slice_id": chart_id}
-            for (dashboard_id, chart_id) in dashboard_chart_ids
-        ]
-        db.session.execute(dashboard_slices.insert(), values)
+        safe_insert_dashboard_chart_relationships(dashboard_chart_ids)
