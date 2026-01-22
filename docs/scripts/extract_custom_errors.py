@@ -178,7 +178,7 @@ def extract_custom_errors_from_file(filepath: Path) -> dict[str, list[dict[str, 
                         if errors:
                             results[class_name] = errors
 
-    except Exception as e:
+    except (OSError, SyntaxError, ValueError) as e:
         print(f"Error parsing {filepath}: {e}", file=sys.stderr)
 
     return results
