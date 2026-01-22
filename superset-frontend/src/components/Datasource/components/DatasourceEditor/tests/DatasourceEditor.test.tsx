@@ -221,6 +221,27 @@ test('can add new columns', async () => {
   });
 });
 
+test('renders Data type label in calculated columns tab', async () => {
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
+  });
+
+  const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
+  await userEvent.click(calcColsTab);
+
+  const calcColsPanel = within(
+    await screen.findByRole('tabpanel', { name: /calculated columns/i }),
+  );
+
+  const addBtn = calcColsPanel.getByRole('button', { name: /add item/i });
+  await userEvent.click(addBtn);
+
+  const dataTypeLabels = await calcColsPanel.findAllByText('Data type');
+  expect(dataTypeLabels.length).toBeGreaterThanOrEqual(2);
+});
+
 test('renders isSqla fields', async () => {
   const testProps = createProps();
   await asyncRender({
