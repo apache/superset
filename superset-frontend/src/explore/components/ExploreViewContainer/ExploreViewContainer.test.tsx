@@ -516,7 +516,9 @@ test('automatic axis title margin adjustment sets X axis margin to 30 when title
     setControlValueSpy.mockClear();
 
     // Simulate title being added by dispatching action
-    store.dispatch(exploreActions.setControlValue('x_axis_title', 'X Axis Label'));
+    store.dispatch(
+      exploreActions.setControlValue('x_axis_title', 'X Axis Label'),
+    );
 
     await waitFor(() => {
       expect(setControlValueSpy).toHaveBeenCalledWith(
@@ -559,7 +561,9 @@ test('automatic axis title margin adjustment sets Y axis margin to 30 when title
     setControlValueSpy.mockClear();
 
     // Simulate title being added by dispatching action
-    store.dispatch(exploreActions.setControlValue('y_axis_title', 'Y Axis Label'));
+    store.dispatch(
+      exploreActions.setControlValue('y_axis_title', 'Y Axis Label'),
+    );
 
     await waitFor(() => {
       expect(setControlValueSpy).toHaveBeenCalledWith(
@@ -605,10 +609,7 @@ test('automatic axis title margin adjustment resets X axis margin to 0 when titl
     store.dispatch(exploreActions.setControlValue('x_axis_title', ''));
 
     await waitFor(() => {
-      expect(setControlValueSpy).toHaveBeenCalledWith(
-        'x_axis_title_margin',
-        0,
-      );
+      expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 0);
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
@@ -648,10 +649,7 @@ test('automatic axis title margin adjustment resets Y axis margin to 0 when titl
     store.dispatch(exploreActions.setControlValue('y_axis_title', ''));
 
     await waitFor(() => {
-      expect(setControlValueSpy).toHaveBeenCalledWith(
-        'y_axis_title_margin',
-        0,
-      );
+      expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 0);
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
@@ -688,7 +686,9 @@ test('automatic axis title margin adjustment does not change X axis margin when 
     setControlValueSpy.mockClear();
 
     // Simulate title being added by dispatching action
-    store.dispatch(exploreActions.setControlValue('x_axis_title', 'X Axis Label'));
+    store.dispatch(
+      exploreActions.setControlValue('x_axis_title', 'X Axis Label'),
+    );
 
     // Wait a bit to ensure useEffect has run
     await waitFor(() => {
@@ -737,7 +737,9 @@ test('automatic axis title margin adjustment does not change Y axis margin when 
     setControlValueSpy.mockClear();
 
     // Simulate title being added by dispatching action
-    store.dispatch(exploreActions.setControlValue('y_axis_title', 'Y Axis Label'));
+    store.dispatch(
+      exploreActions.setControlValue('y_axis_title', 'Y Axis Label'),
+    );
 
     // Wait a bit to ensure useEffect has run
     await waitFor(() => {
@@ -788,8 +790,12 @@ test('automatic axis title margin adjustment handles both X and Y axis titles be
     setControlValueSpy.mockClear();
 
     // Simulate both titles being added simultaneously
-    store.dispatch(exploreActions.setControlValue('x_axis_title', 'X Axis Label'));
-    store.dispatch(exploreActions.setControlValue('y_axis_title', 'Y Axis Label'));
+    store.dispatch(
+      exploreActions.setControlValue('x_axis_title', 'X Axis Label'),
+    );
+    store.dispatch(
+      exploreActions.setControlValue('y_axis_title', 'Y Axis Label'),
+    );
 
     await waitFor(() => {
       expect(setControlValueSpy).toHaveBeenCalledWith(
