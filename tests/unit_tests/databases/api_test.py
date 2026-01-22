@@ -2337,35 +2337,18 @@ def test_import_includes_configuration_method(
     from unittest.mock import patch
 
     import yaml
-    from flask import g
+    from flask import g, has_app_context, has_request_context
 
     from superset import db, security_manager
-    from superset.models.core import Database
     from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
 
-    # Use the session fixture and set the datamodel session to avoid LocalProxy issues
     DatabaseRestApi.datamodel._session = db.session
     Database.metadata.create_all(db.session.get_bind())
 
-
-    # Add additional databases for API visibility debugging
-    db1 = Database(
-        database_name="db1",
-        sqlalchemy_uri="sqlite://",
-        uuid="11111111-1111-1111-1111-111111111111",
-    )
-    db2 = Database(
-        database_name="db2",
-        sqlalchemy_uri="sqlite://",
-        uuid="22222222-2222-2222-2222-222222222222",
-    )
-    db.session.add_all([db1, db2])
-    db.session.commit()
-
-    # Patch DatabaseDAO.find_by_id to return the correct db object for the imported database
-    imported_db_uuid = "87654321-4321-8765-4321-876543218765"
     def find_by_id_side_effect(db_id):
         return db.session.query(Database).filter_by(id=db_id).first()
+
     DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.side_effect = find_by_id_side_effect
 
@@ -2415,13 +2398,6 @@ def test_import_includes_configuration_method(
         .filter_by(database_name="Test_Import_Configuration_Method")
         .first()
     )
-    print("[DEBUG] DB object after import:", db_obj)
-    print("[DEBUG] DB object fields:", {
-        "id": getattr(db_obj, "id", None),
-        "uuid": getattr(db_obj, "uuid", None),
-        "configuration_method": getattr(db_obj, "configuration_method", None),
-        "database_name": getattr(db_obj, "database_name", None),
-    })
     assert db_obj is not None, "Database not found in SQLAlchemy session after import"
     assert hasattr(db_obj, "configuration_method"), (
         "'configuration_method' not found on model"
@@ -2431,42 +2407,18 @@ def test_import_includes_configuration_method(
         f"{db_obj.configuration_method}"
     )
 
-    from flask import has_request_context, has_app_context
     user = None
     if has_request_context() or has_app_context():
         user = getattr(g, "user", None)
     if user and getattr(user, "is_authenticated", False) and hasattr(user, "id"):
         db_obj.created_by = security_manager.get_user_by_id(user.id)
         db.session.commit()
-
-    # Print all DBs in the session for debugging
-    all_dbs = db.session.query(Database).all()
-    print("[DEBUG] All DBs in session:", [
-        {"id": d.id, "name": d.database_name, "uuid": str(getattr(d, "uuid", None))} for d in all_dbs
-    ])
-
-    # Print all DBs returned by the API (no filter)
-    all_api_resp = client.get("/api/v1/database/")
-    print("[DEBUG] API /api/v1/database/ status:", all_api_resp.status_code)
-    try:
-        print("[DEBUG] API /api/v1/database/ JSON:", all_api_resp.json)
-    except Exception as e:
-        print("[DEBUG] Failed to parse API /api/v1/database/ JSON:", e)
-
     get_resp = client.get(
         "/api/v1/database/?q=(filters:!((col:database_name,opr:eq,value:'Test_Import_Configuration_Method')))"
     )
-    print("[DEBUG] API response status:", get_resp.status_code)
-    print("[DEBUG] API response data:", get_resp.data)
-    try:
-        print("[DEBUG] API response JSON:", get_resp.json)
-    except Exception as e:
-        print("[DEBUG] Failed to parse API response JSON:", e)
     result = get_resp.json["result"]
-    print("[DEBUG] API result list:", result)
     assert result, "No database returned from API after import."
     db_obj_api = result[0]
-    print("[DEBUG] API DB object fields:", db_obj_api)
     assert "configuration_method" in db_obj_api, (
         f"'configuration_method' not found in database list response: {db_obj_api}"
     )
