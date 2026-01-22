@@ -17,12 +17,12 @@
 
 from superset.commands.tasks.cancel import CancelTaskCommand
 from superset.commands.tasks.create import CreateTaskCommand
-from superset.commands.tasks.delete import DeleteOldTasksCommand
+from superset.commands.tasks.prune import TaskPruneCommand
 from superset.commands.tasks.update import UpdateTaskCommand
 
 __all__ = [
     "CancelTaskCommand",
     "CreateTaskCommand",
-    "DeleteOldTasksCommand",
+    "TaskPruneCommand",
     "UpdateTaskCommand",
 ]

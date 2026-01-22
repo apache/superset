@@ -22,9 +22,6 @@ from typing import Any, Callable, TYPE_CHECKING, TypeVar
 from flask import current_app
 from superset_core.api.tasks import TaskContext as CoreTaskContext, TaskStatus
 
-from superset.extensions import db
-from superset.utils.decorators import transaction
-
 if TYPE_CHECKING:
     from superset.models.tasks import Task
     from superset.tasks.manager import AbortListener
@@ -83,7 +80,6 @@ class TaskContext(CoreTaskContext):
             raise ValueError(f"Task {self._task_uuid} not found")
         return task
 
-    @transaction()
     def update_task(
         self,
         progress: float | int | tuple[int, int] | None = None,
@@ -104,42 +100,44 @@ class TaskContext(CoreTaskContext):
         :param progress: Progress value, or None to leave unchanged
         :param payload: Payload data to merge (dict), or None to leave unchanged
         """
-        task = self._task
+        from superset.commands.tasks.update import UpdateTaskCommand
+
+        update_data: dict[str, Any] = {}
 
         if progress is not None:
             if isinstance(progress, float):
                 # Percentage only mode
-                task.progress_percent = progress
-                task.progress_current = None
-                task.progress_total = None
+                update_data["progress_percent"] = progress
+                update_data["progress_current"] = None
+                update_data["progress_total"] = None
             elif isinstance(progress, int):
                 # Count only mode (total unknown)
-                task.progress_percent = None
-                task.progress_current = progress
-                task.progress_total = None
+                update_data["progress_percent"] = None
+                update_data["progress_current"] = progress
+                update_data["progress_total"] = None
             elif isinstance(progress, tuple) and len(progress) == 2:
                 # Count and total mode
                 current, total = progress
-                task.progress_current = current
-                task.progress_total = total
+                update_data["progress_current"] = current
+                update_data["progress_total"] = total
                 # Compute percentage, handle division by zero
                 try:
                     if total > 0:
-                        task.progress_percent = current / total
+                        update_data["progress_percent"] = current / total
                     else:
                         logger.warning(
-                            "Progress total is zero for task %s, " \
+                            "Progress total is zero for task %s, "
                             "cannot compute percentage",
                             self._task_uuid,
                         )
-                        task.progress_percent = None
+                        update_data["progress_percent"] = None
                 except Exception as ex:
                     logger.warning(
                         "Failed to compute progress percentage for task %s: %s",
                         self._task_uuid,
                         str(ex),
                     )
-                    task.progress_percent = None
+                    update_data["progress_percent"] = None
             else:
                 logger.warning(
                     "Invalid progress value for task %s: %s "
@@ -149,9 +147,12 @@ class TaskContext(CoreTaskContext):
                 )
 
         if payload is not None:
-            task.set_payload(payload)
+            update_data["payload"] = payload
 
-        db.session.merge(task)
+        if update_data:
+            UpdateTaskCommand(
+                self._task_uuid, update_data, skip_security_check=True
+            ).run()
 
     def is_aborted(self) -> bool:
         """
@@ -224,12 +225,13 @@ class TaskContext(CoreTaskContext):
 
         return handler
 
-    @transaction()
     def _set_abortable(self) -> None:
         """Mark the task as abortable (abort handler has been registered)."""
-        task = self._task
-        task.is_abortable = True
-        db.session.merge(task)
+        from superset.commands.tasks.update import UpdateTaskCommand
+
+        UpdateTaskCommand(
+            self._task_uuid, {"is_abortable": True}, skip_security_check=True
+        ).run()
 
     def _start_abort_listener(self, interval: float) -> None:
         """
@@ -282,6 +284,8 @@ class TaskContext(CoreTaskContext):
 
         If any handler fails, the task is marked as FAILED instead of ABORTED.
         """
+        from superset.commands.tasks.update import UpdateTaskCommand
+
         handler_failed = False
         for handler in reversed(self._abort_handlers):
             try:
@@ -297,11 +301,14 @@ class TaskContext(CoreTaskContext):
                 # Mark task as FAILED since handler threw an exception
                 if self._app:
                     with self._app.app_context():
-                        task = self._task
-                        task.set_status(TaskStatus.FAILURE)
-                        task.error_message = f"Abort handler failed: {str(ex)}"
-                        db.session.merge(task)
-                        db.session.commit()
+                        UpdateTaskCommand(
+                            self._task_uuid,
+                            {
+                                "status": TaskStatus.FAILURE.value,
+                                "error_message": f"Abort handler failed: {str(ex)}",
+                            },
+                            skip_security_check=True,
+                        ).run()
                 break  # Stop processing handlers on first failure
 
         if not handler_failed:

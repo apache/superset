@@ -26,7 +26,7 @@ import redis
 from redis.sentinel import Sentinel
 from superset_core.api.tasks import TaskScope, TaskStatus
 
-from superset.daos.exceptions import DAOCreateFailedError
+from superset.commands.tasks.exceptions import TaskCreateFailedError
 from superset.tasks.utils import generate_random_task_key
 
 if TYPE_CHECKING:
@@ -331,7 +331,7 @@ class TaskManager:
         return AbortListener(task_uuid, thread, stop_event, pubsub)
 
     @classmethod
-    def _listen_pubsub(
+    def _listen_pubsub(  # noqa: C901
         cls,
         task_uuid: str,
         pubsub: redis.client.PubSub,
@@ -515,16 +515,18 @@ class TaskManager:
 
         try:
             # Create task entry in metastore
-            # DAO automatically extracts current user for subscription
+            # Command automatically extracts current user for subscription
             # Lazy import to avoid circular dependency
-            from superset.daos.tasks import TaskDAO
+            from superset.commands.tasks.create import CreateTaskCommand
 
-            task = TaskDAO.create_task(
-                task_key=task_key,
-                task_type=task_type,
-                task_name=task_name,
-                scope=scope.value,
-            )
+            task = CreateTaskCommand(
+                {
+                    "task_key": task_key,
+                    "task_type": task_type,
+                    "task_name": task_name,
+                    "scope": scope.value,
+                }
+            ).run()
 
             # Import here to avoid circular dependency
             from superset.tasks.executor import execute_task
@@ -545,7 +547,7 @@ class TaskManager:
 
             return task
 
-        except DAOCreateFailedError:
+        except TaskCreateFailedError:
             # Task with same task_key already exists and is active
             # Return existing task instead of creating duplicate
             # Lazy import to avoid circular dependency
