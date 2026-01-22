@@ -54,10 +54,9 @@ export const FastVizSwitcher = memo(
       ) {
         vizTiles.unshift({
           name: currentSelection,
-          icon:
-            CUSTOM_CHART_ICONS[currentSelection] || (
-              <Icons.MonitorOutlined {...antdIconProps} aria-label="monitor" />
-            ),
+          icon: CUSTOM_CHART_ICONS[currentSelection] || (
+            <Icons.MonitorOutlined {...antdIconProps} aria-label="monitor" />
+          ),
         });
       }
       if (
@@ -68,13 +67,12 @@ export const FastVizSwitcher = memo(
       ) {
         vizTiles.unshift({
           name: currentViz,
-          icon:
-            CUSTOM_CHART_ICONS[currentViz] || (
-              <Icons.CheckSquareOutlined
-                {...antdIconProps}
-                aria-label="check-square"
-              />
-            ),
+          icon: CUSTOM_CHART_ICONS[currentViz] || (
+            <Icons.CheckSquareOutlined
+              {...antdIconProps}
+              aria-label="check-square"
+            />
+          ),
         });
       }
       return vizTiles;
