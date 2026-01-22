@@ -920,7 +920,7 @@ THEME_DEFAULT: Theme = {
         # Fonts
         "fontUrls": [],
         "fontFamily": "Inter, Helvetica, Arial",
-        "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
+        "fontFamilyCode": "'IBM Plex Mono', 'Courier New', monospace",
         # Extra tokens
         "transitionTiming": 0.3,
         "brandIconMaxWidth": 37,
