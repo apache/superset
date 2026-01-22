@@ -230,17 +230,21 @@ class Task(CoreTask, AuditMixinNullable, Model):
         """
         Get task duration in seconds.
 
-        - Finished tasks: Time from started_at to ended_at
+        - Finished tasks: Time from started_at to ended_at (None if never started)
         - Running/aborting tasks: Time from started_at to now
         - Pending tasks: Time from created_on to now (queue time)
 
         Note: started_at/ended_at are stored in UTC, but created_on from
         AuditMixinNullable is stored as naive local time. We handle both cases.
         """
-        if self.started_at and self.ended_at:
-            # Finished task - both timestamps use the same timezone (UTC)
-            # Just compute the difference directly
-            return (self.ended_at - self.started_at).total_seconds()
+        if self.is_finished:
+            # Task has completed - use fixed timestamps, never increment
+            if self.started_at and self.ended_at:
+                # Finished task - both timestamps use the same timezone (UTC)
+                # Just compute the difference directly
+                return (self.ended_at - self.started_at).total_seconds()
+            # Never started (e.g., aborted while pending) - no duration
+            return None
         elif self.started_at:
             # Running or aborting - started_at is UTC (set by set_status)
             # Use UTC now for comparison
