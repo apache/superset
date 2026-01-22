@@ -25,6 +25,8 @@ import { Popover, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import copyTextToClipboard from 'src/utils/copy';
 
+
+
 const StackTraceContainer = styled.div`
   max-width: 600px;
   max-height: 400px;
