@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   lazy,
@@ -139,8 +140,7 @@ const RowLevelSecurityList = lazy(
 );
 
 const TaskList = lazy(
-  () =>
-    import(/* webpackChunkName: "TaskList" */ 'src/pages/TaskList'),
+  () => import(/* webpackChunkName: "TaskList" */ 'src/pages/TaskList'),
 );
 
 const RolesList = lazy(
