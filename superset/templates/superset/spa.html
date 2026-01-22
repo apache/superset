@@ -24,6 +24,8 @@
       {% block title %}
         {% if title %}
           {{ title }}
+        {% else %}
+          {{ default_title | default('Superset') }}
         {% endif %}
       {% endblock %}
     </title>

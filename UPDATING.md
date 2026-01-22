@@ -149,6 +149,34 @@ Note: Pillow is now a required dependency (previously optional) to support image
 
 ### Breaking Changes
 
+#### APP_NAME no longer controls frontend branding
+
+The `APP_NAME` configuration variable no longer controls the browser window/tab title or other frontend branding. Application names should now be configured using the theme system with the `brandAppName` token. The `APP_NAME` config is still used for backend contexts (MCP service, logs, etc.) and serves as a fallback if `brandAppName` is not set.
+
+**Before (5.x):**
+```python
+APP_NAME = "My Custom App"
+```
+
+**After (6.0):**
+```python
+# Option 1: Use theme system (recommended)
+THEME_DEFAULT = {
+    "token": {
+        "brandAppName": "My Custom App",  # Window titles
+        "brandLogoAlt": "My Custom App",  # Logo alt text
+        "brandLogoUrl": "/static/assets/images/custom_logo.png"
+    }
+}
+
+# Option 2: Temporary fallback
+# Keep APP_NAME for now (will be used as fallback for brandAppName)
+APP_NAME = "My Custom App"
+# But you should migrate to THEME_DEFAULT.token.brandAppName
+```
+
+**Note:** For dark mode, set the same tokens in `THEME_DARK` configuration.
+
 #### CUSTOM_FONT_URLS removed
 
 The `CUSTOM_FONT_URLS` configuration option has been removed. Use the new per-theme `fontUrls` token in `THEME_DEFAULT` or database-managed themes instead.
