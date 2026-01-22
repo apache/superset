@@ -226,7 +226,7 @@ class TaskWrapper(Generic[P]):
             ValueError: If task validation fails
         """
         from superset.commands.tasks.create import CreateTaskCommand
-        from superset.extensions import db
+        from superset.commands.tasks.update import UpdateTaskCommand
 
         # Extract and merge options (decorator defaults + call-time overrides)
         override_options = cast(TaskOptions | None, kwargs.pop("options", None))
@@ -255,11 +255,11 @@ class TaskWrapper(Generic[P]):
         ctx = TaskContext(task_uuid=task.uuid)
 
         # Update status to IN_PROGRESS
-        task = ctx._task
-        task.set_status(TaskStatus.IN_PROGRESS)
-
-        db.session.merge(task)
-        db.session.commit()
+        task = UpdateTaskCommand(
+            task_uuid=task.uuid,
+            data={"status": TaskStatus.IN_PROGRESS.value},
+            skip_security_check=True,
+        ).run()
 
         try:
             # Execute with ambient context
@@ -267,12 +267,11 @@ class TaskWrapper(Generic[P]):
                 self.func(*args, **kwargs)
 
             # Update to SUCCESS and return completed task
-            task = ctx._task
-            task.set_status(TaskStatus.SUCCESS)
-            from superset.extensions import db
-
-            db.session.merge(task)
-            db.session.commit()
+            task = UpdateTaskCommand(
+                task_uuid=task.uuid,
+                data={"status": TaskStatus.SUCCESS.value},
+                skip_security_check=True,
+            ).run()
 
             logger.debug(
                 "Synchronous execution of task %s (uuid=%s) completed successfully",
@@ -285,13 +284,14 @@ class TaskWrapper(Generic[P]):
 
         except Exception as ex:
             # Update to FAILURE and return failed task
-            task = ctx._task
-            task.set_status(TaskStatus.FAILURE)
-            task.error_message = str(ex)
-            from superset.extensions import db
-
-            db.session.merge(task)
-            db.session.commit()
+            task = UpdateTaskCommand(
+                task_uuid=task.uuid,
+                data={
+                    "status": TaskStatus.FAILURE.value,
+                    "error_message": str(ex),
+                },
+                skip_security_check=True,
+            ).run()
 
             logger.error(
                 "Synchronous execution of task %s (uuid=%s) failed: %s",

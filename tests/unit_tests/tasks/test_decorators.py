@@ -289,15 +289,16 @@ class TestTaskWrapperCall:
         """Clear task registry before each test"""
         TaskRegistry._tasks.clear()
 
-    @patch("superset.extensions.db")
+    @patch("superset.commands.tasks.update.UpdateTaskCommand.run")
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     @patch("superset.commands.tasks.create.CreateTaskCommand.run")
-    def test_call_uses_default_scope(self, mock_run, mock_find, mock_db):
+    def test_call_uses_default_scope(self, mock_create_run, mock_find, mock_update_run):
         """Test direct call uses decorator's default scope"""
         mock_task = MagicMock()
         mock_task.uuid = "test-uuid"
         mock_task.status = "in_progress"
-        mock_run.return_value = mock_task
+        mock_create_run.return_value = mock_task
+        mock_update_run.return_value = mock_task
         mock_find.return_value = mock_task  # Mock the subsequent find call
 
         @task(name="test_call_default_unique", scope=TaskScope.SHARED)
@@ -308,17 +309,20 @@ class TestTaskWrapperCall:
         call_task_1(123, options=TaskOptions(task_key="test_key"))
 
         # Verify CreateTaskCommand.run was called
-        mock_run.assert_called_once()
+        mock_create_run.assert_called_once()
 
-    @patch("superset.extensions.db")
+    @patch("superset.commands.tasks.update.UpdateTaskCommand.run")
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     @patch("superset.commands.tasks.create.CreateTaskCommand.run")
-    def test_call_uses_private_scope_by_default(self, mock_run, mock_find, mock_db):
+    def test_call_uses_private_scope_by_default(
+        self, mock_create_run, mock_find, mock_update_run
+    ):
         """Test direct call uses PRIVATE scope when no scope specified"""
         mock_task = MagicMock()
         mock_task.uuid = "test-uuid"
         mock_task.status = "in_progress"
-        mock_run.return_value = mock_task
+        mock_create_run.return_value = mock_task
+        mock_update_run.return_value = mock_task
         mock_find.return_value = mock_task  # Mock the subsequent find call
 
         @task(name="test_call_private_default_unique")
@@ -328,17 +332,20 @@ class TestTaskWrapperCall:
         call_task_2(123)
 
         # Verify CreateTaskCommand.run was called
-        mock_run.assert_called_once()
+        mock_create_run.assert_called_once()
 
-    @patch("superset.extensions.db")
+    @patch("superset.commands.tasks.update.UpdateTaskCommand.run")
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     @patch("superset.commands.tasks.create.CreateTaskCommand.run")
-    def test_call_with_custom_options(self, mock_run, mock_find, mock_db):
+    def test_call_with_custom_options(
+        self, mock_create_run, mock_find, mock_update_run
+    ):
         """Test direct call with custom task options"""
         mock_task = MagicMock()
         mock_task.uuid = "test-uuid"
         mock_task.status = "in_progress"
-        mock_run.return_value = mock_task
+        mock_create_run.return_value = mock_task
+        mock_update_run.return_value = mock_task
         mock_find.return_value = mock_task  # Mock the subsequent find call
 
         @task(name="test_call_custom_unique", scope=TaskScope.SYSTEM)
@@ -352,7 +359,7 @@ class TestTaskWrapperCall:
         )
 
         # Verify CreateTaskCommand.run was called
-        mock_run.assert_called_once()
+        mock_create_run.assert_called_once()
 
     def test_call_shared_task_requires_task_key(self):
         """Test shared task direct call requires explicit task_key"""
@@ -368,15 +375,18 @@ class TestTaskWrapperCall:
         ):
             shared_task(123)
 
-    @patch("superset.extensions.db")
+    @patch("superset.commands.tasks.update.UpdateTaskCommand.run")
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     @patch("superset.commands.tasks.create.CreateTaskCommand.run")
-    def test_call_shared_task_works_with_task_key(self, mock_run, mock_find, mock_db):
+    def test_call_shared_task_works_with_task_key(
+        self, mock_create_run, mock_find, mock_update_run
+    ):
         """Test shared task direct call works with task_key"""
         mock_task = MagicMock()
         mock_task.uuid = "test-uuid"
         mock_task.status = "in_progress"
-        mock_run.return_value = mock_task
+        mock_create_run.return_value = mock_task
+        mock_update_run.return_value = mock_task
         mock_find.return_value = mock_task
 
         @task(name="test_shared_call_with_key", scope=TaskScope.SHARED)
@@ -385,17 +395,20 @@ class TestTaskWrapperCall:
 
         # Should work with task_key provided
         shared_task(123, options=TaskOptions(task_key="valid_key"))
-        mock_run.assert_called_once()
+        mock_create_run.assert_called_once()
 
-    @patch("superset.extensions.db")
+    @patch("superset.commands.tasks.update.UpdateTaskCommand.run")
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     @patch("superset.commands.tasks.create.CreateTaskCommand.run")
-    def test_call_private_task_allows_no_task_key(self, mock_run, mock_find, mock_db):
+    def test_call_private_task_allows_no_task_key(
+        self, mock_create_run, mock_find, mock_update_run
+    ):
         """Test private task direct call works without task_key"""
         mock_task = MagicMock()
         mock_task.uuid = "test-uuid"
         mock_task.status = "in_progress"
-        mock_run.return_value = mock_task
+        mock_create_run.return_value = mock_task
+        mock_update_run.return_value = mock_task
         mock_find.return_value = mock_task
 
         @task(name="test_private_call_no_key", scope=TaskScope.PRIVATE)
@@ -404,4 +417,4 @@ class TestTaskWrapperCall:
 
         # Should work without task_key (generates random UUID)
         private_task(123)
-        mock_run.assert_called_once()
+        mock_create_run.assert_called_once()

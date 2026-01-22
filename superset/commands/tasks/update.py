@@ -93,11 +93,15 @@ class UpdateTaskCommand(BaseCommand):
         """Validate command parameters."""
         exceptions: list[ValidationError] = []
 
-        # Validate/populate model exists - this applies base filter
+        # Validate/populate model exists
+        # When skip_security_check=True, also skip base filter to find any task
         # Lazy import to avoid circular dependency
         from superset.daos.tasks import TaskDAO
 
-        self._model = TaskDAO.find_one_or_none(uuid=self._task_uuid)
+        self._model = TaskDAO.find_one_or_none(
+            skip_base_filter=self._skip_security_check,
+            uuid=self._task_uuid,
+        )
         if not self._model:
             raise TaskNotFoundError()
 
