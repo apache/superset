@@ -17,18 +17,18 @@
 # pylint: disable=unused-argument, import-outside-toplevel
 from datetime import datetime
 
+import numpy as np
 import pytest
 from pandas import Timestamp
 from pandas._libs.tslibs import NaT
 
 from superset.dataframe import df_to_records
+from superset.db_engine_specs import BaseEngineSpec
+from superset.result_set import SupersetResultSet
 from superset.superset_typing import DbapiDescription
 
 
 def test_df_to_records() -> None:
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     data = [("a1", "b1", "c1"), ("a2", "b2", "c2")]
     cursor_descr: DbapiDescription = [
         (column, "string", None, None, None, None, False) for column in ("a", "b", "c")
@@ -43,9 +43,6 @@ def test_df_to_records() -> None:
 
 
 def test_df_to_records_NaT_type() -> None:  # noqa: N802
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     data = [(NaT,), (Timestamp("2023-01-06 20:50:31.749000+0000", tz="UTC"),)]
     cursor_descr: DbapiDescription = [
         ("date", "timestamp with time zone", None, None, None, None, False)
@@ -60,9 +57,6 @@ def test_df_to_records_NaT_type() -> None:  # noqa: N802
 
 
 def test_df_to_records_mixed_emoji_type() -> None:
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     data = [
         ("What's up?", "This is a string text", 1),
         ("What's up?", "This is a string with an 😍 added", 2),
@@ -100,9 +94,6 @@ def test_df_to_records_mixed_emoji_type() -> None:
 
 
 def test_df_to_records_mixed_accent_type() -> None:
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     data = [
         ("What's up?", "This is a string text", 1),
         ("What's up?", "This is a string with áccent", 2),
@@ -140,9 +131,6 @@ def test_df_to_records_mixed_accent_type() -> None:
 
 
 def test_js_max_int() -> None:
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     data = [(1, 1239162456494753670, "c1"), (2, 100, "c2")]
     cursor_descr: DbapiDescription = [
         ("a", "int", None, None, None, None, False),
@@ -192,9 +180,6 @@ def test_js_max_int() -> None:
     ],
 )
 def test_max_pandas_timestamp(input_, expected) -> None:
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     cursor_descr: DbapiDescription = [
         ("a", "datetime", None, None, None, None, False),
         ("b", "int", None, None, None, None, False),
@@ -207,11 +192,6 @@ def test_max_pandas_timestamp(input_, expected) -> None:
 
 def test_df_to_records_with_nan_from_division_by_zero() -> None:
     """Test that NaN values from division by zero are converted to None."""
-    import numpy as np
-
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     # Simulate Athena query: select 0.00 / 0.00 as test
     data = [(np.nan,), (5.0,), (np.nan,)]
     cursor_descr: DbapiDescription = [("test", "double", None, None, None, None, False)]
@@ -227,10 +207,6 @@ def test_df_to_records_with_nan_from_division_by_zero() -> None:
 
 def test_df_to_records_with_mixed_nan_and_valid_values() -> None:
     """Test that NaN values are properly handled alongside valid numeric data."""
-    import numpy as np
-
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
 
     # Simulate a query with multiple columns containing NaN values
     data = [
@@ -258,11 +234,6 @@ def test_df_to_records_with_mixed_nan_and_valid_values() -> None:
 
 def test_df_to_records_with_inf_and_nan() -> None:
     """Test that both NaN and infinity values are handled correctly."""
-    import numpy as np
-
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     # Test various edge cases: NaN, positive infinity, negative infinity
     data = [
         (np.nan, "division by zero"),

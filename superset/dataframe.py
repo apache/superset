@@ -55,11 +55,8 @@ def df_to_records(dframe: pd.DataFrame) -> list[dict[str, Any]]:
 
     for record in records:
         for key in record:
-            val = record[key]
-            # Convert NaN/NA values to None for JSON compatibility
-            if pd.isna(val):
-                record[key] = None
-            else:
-                record[key] = _convert_big_integers(val)
+            record[key] = (
+                None if pd.isna(record[key]) else _convert_big_integers(record[key])
+            )
 
     return records
