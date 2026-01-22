@@ -460,7 +460,7 @@ function FiltersConfigModal({
     return titles;
   }, [filterIds, chartCustomizationIds, modalSaveLogic, formValuesVersion]);
 
-  const debouncedErrorHandling = useMemo(
+  const debouncedHandleErroredItems = useMemo(
     () =>
       debounce(() => {
         setSaveAlertVisible(false);
@@ -471,8 +471,8 @@ function FiltersConfigModal({
 
   const handleValuesChange = useCallback(() => {
     setFormValuesVersion(prev => prev + 1);
-    debouncedErrorHandling();
-  }, [debouncedErrorHandling]);
+    debouncedHandleErroredItems();
+  }, [debouncedHandleErroredItems]);
 
   const handleActiveFilterPanelChange = useCallback(
     (key: string | string[]) => setActiveFilterPanelKey(key),
@@ -583,6 +583,7 @@ function FiltersConfigModal({
                 restoreItem={restoreItem}
                 onCollapseChange={setActiveCollapseKeys}
                 onCrossListDrop={handleCrossListMove}
+                formValuesVersion={formValuesVersion}
               />
 
               <ConfigModalContent

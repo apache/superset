@@ -78,6 +78,7 @@ export interface ConfigModalSidebarProps {
     targetType: 'filter' | 'customization',
   ) => void;
   itemTitles?: Record<string, string>;
+  formValuesVersion?: number;
 }
 
 const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
@@ -101,6 +102,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
   onCollapseChange,
   onCrossListDrop,
   itemTitles,
+  formValuesVersion,
 }) => {
   const getTitle = useCallback(
     (id: string) => itemTitles?.[id] ?? getItemTitle(id),
@@ -147,6 +149,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
         />
       </StyledHeaderFlex>
       <StyledCollapse
+        key={formValuesVersion}
         activeKey={activeCollapseKeys}
         onChange={keys => onCollapseChange(keys as string[])}
         ghost
