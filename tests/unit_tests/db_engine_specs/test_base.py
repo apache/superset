@@ -890,7 +890,7 @@ def test_get_oauth2_authorization_uri_standard_params(mocker: MockerFixture) -> 
     assert "include_granted_scopes" not in query
 
 
-    # Verify PKCE parameters are NOT included when code_verifier is not in state
+    # Verify PKCE parameters are NOT included when code_verifier is not provided
     assert "code_challenge" not in query
     assert "code_challenge_method" not in query
 
@@ -898,7 +898,7 @@ def test_get_oauth2_authorization_uri_standard_params(mocker: MockerFixture) -> 
 def test_get_oauth2_authorization_uri_with_pkce(mocker: MockerFixture) -> None:
     """
     Test that BaseEngineSpec.get_oauth2_authorization_uri includes PKCE parameters
-    when code_verifier is present in state (RFC 7636).
+    when code_verifier is passed as a parameter (RFC 7636).
     """
     from urllib.parse import parse_qs, urlparse
 
@@ -922,10 +922,11 @@ def test_get_oauth2_authorization_uri_with_pkce(mocker: MockerFixture) -> None:
         "user_id": 1,
         "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
         "tab_id": "1234",
-        "code_verifier": code_verifier,
     }
 
-    url = BaseEngineSpec.get_oauth2_authorization_uri(config, state)
+    url = BaseEngineSpec.get_oauth2_authorization_uri(
+        config, state, code_verifier=code_verifier
+    )
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
 

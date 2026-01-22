@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import re
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
 from typing import (
@@ -36,7 +36,7 @@ from typing import (
     Union,
 )
 from urllib.parse import urlencode, urljoin
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pandas as pd
 import requests
@@ -614,9 +614,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         re-run the query after authorization.
 
         PKCE (RFC 7636) is used to protect against authorization code interception
-        attacks. A code_verifier is generated and stored in the state, while the
-        code_challenge (derived from the verifier) is sent to the authorization server.
+        attacks. A code_verifier is generated and stored server-side in the KV store,
+        while the code_challenge (derived from the verifier) is sent to the
+        authorization server.
         """
+        from superset.daos.key_value import KeyValueDAO
+        from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
+
         tab_id = str(uuid4())
         default_redirect_uri = app.config.get(
             "DATABASE_OAUTH2_REDIRECT_URI",
@@ -625,6 +629,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         # Generate PKCE code verifier (RFC 7636)
         code_verifier = generate_code_verifier()
+
+        # Store the code_verifier server-side in the KV store, keyed by tab_id.
+        # This avoids exposing it in the URL/browser history via the JWT state.
+        KeyValueDAO.create_entry(
+            resource=KeyValueResource.PKCE_CODE_VERIFIER,
+            value={"code_verifier": code_verifier},
+            codec=JsonKeyValueCodec(),
+            key=UUID(tab_id),
+            expires_on=datetime.now() + timedelta(minutes=5),
+        )
+        db.session.commit()
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then
@@ -647,14 +662,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # UUID to the original tab, and the second tab will use it when sending the
             # message.
             "tab_id": tab_id,
-            # PKCE code verifier stored in state to be retrieved during token exchange
-            "code_verifier": code_verifier,
         }
         oauth2_config = database.get_oauth2_config()
         if oauth2_config is None:
             raise OAuth2Error("No configuration found for OAuth2")
 
-        oauth_url = cls.get_oauth2_authorization_uri(oauth2_config, state)
+        oauth_url = cls.get_oauth2_authorization_uri(
+            oauth2_config, state, code_verifier=code_verifier
+        )
 
         raise OAuth2RedirectError(oauth_url, tab_id, default_redirect_uri)
 
@@ -698,6 +713,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         config: OAuth2ClientConfig,
         state: OAuth2State,
+        code_verifier: str | None = None,
     ) -> str:
         """
         Return URI for initial OAuth2 request.
@@ -715,9 +731,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "client_id": config["id"],
         }
 
-        # Add PKCE parameters (RFC 7636) if code_verifier is present in state
-        if "code_verifier" in state:
-            params["code_challenge"] = generate_code_challenge(state["code_verifier"])
+        # Add PKCE parameters (RFC 7636) if code_verifier is provided
+        if code_verifier:
+            params["code_challenge"] = generate_code_challenge(code_verifier)
             params["code_challenge_method"] = "S256"
 
         return urljoin(uri, "?" + urlencode(params))

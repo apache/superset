@@ -365,5 +365,3 @@ class OAuth2State(TypedDict, total=False):
     user_id: int
     default_redirect_uri: str
     tab_id: str
-    # PKCE code verifier (RFC 7636) - stored in state during token exchange
-    code_verifier: str

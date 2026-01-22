@@ -250,43 +250,11 @@ def test_generate_code_challenge_rfc_example() -> None:
     assert code_challenge == expected_challenge
 
 
-def test_encode_decode_oauth2_state_with_code_verifier(mocker: MockerFixture) -> None:
-    """
-    Test that code_verifier is preserved through encode/decode cycle.
-    """
-    from superset.superset_typing import OAuth2State
-
-    mocker.patch(
-        "flask.current_app.config",
-        {
-            "SECRET_KEY": "test-secret-key",
-            "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
-        },
-    )
-
-    code_verifier = generate_code_verifier()
-    state: OAuth2State = {
-        "database_id": 1,
-        "user_id": 2,
-        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
-        "tab_id": "test-tab-id",
-        "code_verifier": code_verifier,
-    }
-
-    with freeze_time("2024-01-01"):
-        encoded = encode_oauth2_state(state)
-        decoded = decode_oauth2_state(encoded)
-
-    assert decoded["code_verifier"] == code_verifier
-    assert decoded["database_id"] == 1
-    assert decoded["user_id"] == 2
-
-
-def test_encode_decode_oauth2_state_without_code_verifier(
+def test_encode_decode_oauth2_state(
     mocker: MockerFixture,
 ) -> None:
     """
-    Test backward compatibility: state without code_verifier still works.
+    Test that encode/decode cycle preserves state fields.
     """
     from superset.superset_typing import OAuth2State
 

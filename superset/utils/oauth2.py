@@ -181,9 +181,6 @@ def encode_oauth2_state(state: OAuth2State) -> str:
         "default_redirect_uri": state["default_redirect_uri"],
         "tab_id": state["tab_id"],
     }
-    # Include PKCE code_verifier if present (RFC 7636)
-    if "code_verifier" in state:
-        payload["code_verifier"] = state["code_verifier"]
 
     encoded_state = jwt.encode(
         payload=payload,
@@ -202,8 +199,6 @@ class OAuth2StateSchema(Schema):
     user_id = fields.Int(required=True)
     default_redirect_uri = fields.Str(required=True)
     tab_id = fields.Str(required=True)
-    # PKCE code verifier (RFC 7636) - optional for backward compatibility
-    code_verifier = fields.Str(required=False, load_default=None)
 
     # pylint: disable=unused-argument
     @post_load
@@ -212,16 +207,12 @@ class OAuth2StateSchema(Schema):
         data: dict[str, Any],
         **kwargs: Any,
     ) -> OAuth2State:
-        state: OAuth2State = {
+        return {
             "database_id": data["database_id"],
             "user_id": data["user_id"],
             "default_redirect_uri": data["default_redirect_uri"],
             "tab_id": data["tab_id"],
         }
-        # Include code_verifier if present (PKCE)
-        if data.get("code_verifier"):
-            state["code_verifier"] = data["code_verifier"]
-        return state
 
     class Meta:  # pylint: disable=too-few-public-methods
         # ignore `exp`
