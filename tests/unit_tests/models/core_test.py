@@ -668,8 +668,89 @@ def test_get_oauth2_config(app_context: None) -> None:
         "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
         "scope": "refresh_token session:role:USERADMIN",
         "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "data",  # Default value from BaseEngineSpec
+    }
+
+
+def test_get_oauth2_config_token_request_type_from_db_engine_specs(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Test that DB Engine Spec overrides for ``oauth2_token_request_type`` are respected.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_token_request_type",
+        "json",
+    )
+
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:USERADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
         "request_content_type": "json",
     }
+
+
+def test_get_oauth2_config_custom_token_request_type_extra(app_context: None) -> None:
+    """
+    Test passing a custom ``token_request_type`` via ``encrypted_extra``
+    takes precedence.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    custom_oauth2_client_info = {
+        "oauth2_client_info": {
+            **oauth2_client_info["oauth2_client_info"],
+            "request_content_type": "json",
+        }
+    }
+
+    database.encrypted_extra = json.dumps(custom_oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:USERADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "json",
+    }
+
+
+def test_get_oauth2_config_redirect_uri_from_config(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that ``DATABASE_OAUTH2_REDIRECT_URI`` config takes precedence over
+    url_for default.
+    """
+    custom_redirect_uri = "https://custom.example.com/oauth/callback"
+    mocker.patch.dict(
+        "superset.utils.oauth2.app.config",
+        {"DATABASE_OAUTH2_REDIRECT_URI": custom_redirect_uri},
+    )
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+
+    config = database.get_oauth2_config()
+
+    assert config is not None
+    assert config["redirect_uri"] == custom_redirect_uri
 
 
 def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
