@@ -136,9 +136,7 @@ test('extraColorChoices included when time comparison is enabled', () => {
     },
   ]);
   expect(result.columnOptions).not.toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ value: 'col1' }),
-    ]),
+    expect.arrayContaining([expect.objectContaining({ value: 'col1' })]),
   );
 });
 
@@ -170,10 +168,12 @@ test('consistency between extraColorChoices and columnOptions', () => {
   );
 
   const hasExtraColorChoices = result.extraColorChoices.length > 0;
-  const hasComparisonColumns =
-    result.columnOptions.some((col: { value: string }) =>
-      col.value.includes('Main') || col.value.includes('#') || col.value.includes('△'),
-    );
+  const hasComparisonColumns = result.columnOptions.some(
+    (col: { value: string }) =>
+      col.value.includes('Main') ||
+      col.value.includes('#') ||
+      col.value.includes('△'),
+  );
 
   expect(hasExtraColorChoices).toBe(true);
   expect(hasComparisonColumns).toBe(true);
