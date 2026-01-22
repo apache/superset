@@ -720,8 +720,11 @@ function mergeCustomErrors(databases, customErrors) {
   let mergedCount = 0;
 
   for (const [, db] of Object.entries(databases)) {
-    const moduleName = db.module;
-    if (!moduleName || !customErrors[moduleName]) continue;
+    if (!db.module) continue;
+    // Normalize module name: Flask mode uses full path (superset.db_engine_specs.postgres),
+    // but customErrors is keyed by file stem (postgres)
+    const moduleName = db.module.split('.').pop();
+    if (!customErrors[moduleName]) continue;
 
     // Get all errors from all classes in this module
     const moduleErrors = customErrors[moduleName];
