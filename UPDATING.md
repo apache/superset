@@ -163,6 +163,28 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 - [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
 
 ### Breaking Changes
+- [37370](https://github.com/apache/superset/pull/37370): The `APP_NAME` configuration variable no longer controls the browser window/tab title or other frontend branding. Application names should now be configured using the theme system with the `brandAppName` token. The `APP_NAME` config is still used for backend contexts (MCP service, logs, etc.) and serves as a fallback if `brandAppName` is not set.
+  - **Migration:**
+  ```python
+  # Before (Superset 5.x)
+  APP_NAME = "My Custom App"
+
+  # After (Superset 6.x) - Option 1: Use theme system (recommended)
+  THEME_DEFAULT = {
+    "token": {
+      "brandAppName": "My Custom App",  # Window titles
+      "brandLogoAlt": "My Custom App",  # Logo alt text
+      "brandLogoUrl": "/static/assets/images/custom_logo.png"
+    }
+  }
+
+  # After (Superset 6.x) - Option 2: Temporary fallback
+  # Keep APP_NAME for now (will be used as fallback for brandAppName)
+  APP_NAME = "My Custom App"
+  # But you should migrate to THEME_DEFAULT.token.brandAppName
+  ```
+  - **Note:** For dark mode, set the same tokens in `THEME_DARK` configuration.
+
 - [36317](https://github.com/apache/superset/pull/36317): The `CUSTOM_FONT_URLS` configuration option has been removed. Use the new per-theme `fontUrls` token in `THEME_DEFAULT` or database-managed themes instead.
   - **Before:**
   ```python
@@ -177,7 +199,7 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
       "fontUrls": [
         "https://fonts.example.com/myfont.css",
         ],
-        # ... other tokens  
+        # ... other tokens
     }
   }
   ```
