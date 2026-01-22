@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/ui';
 import { Provider } from 'react-redux';
@@ -29,7 +29,7 @@ import * as fitViewportModule from '../utils/fitViewport';
 jest.mock('../DeckGLContainer', () => ({
   DeckGLContainerStyledWrapper: ({ viewport, layers }: any) => (
     <div
-      data-testid="deckgl-container"
+      data-test="deckgl-container"
       data-viewport={JSON.stringify(viewport)}
       data-layers-count={layers?.length || 0}
     >
@@ -182,7 +182,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should use adjusted viewport when autozoom is enabled', () => {
+  it('should use adjusted viewport when autozoom is enabled', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     const adjustedViewport = {
       longitude: -122.4,
@@ -199,21 +199,23 @@ describe('DeckMulti Autozoom Functionality', () => {
       },
     };
 
-    const { getByTestId } = renderWithProviders(<DeckMulti {...props} />);
+    renderWithProviders(<DeckMulti {...props} />);
 
-    const container = getByTestId('deckgl-container');
-    const viewportData = JSON.parse(
-      container.getAttribute('data-viewport') || '{}',
-    );
+    await waitFor(() => {
+      const container = screen.getByTestId('deckgl-container');
+      const viewportData = JSON.parse(
+        container.getAttribute('data-viewport') || '{}',
+      );
 
-    expect(viewportData.longitude).toBe(adjustedViewport.longitude);
-    expect(viewportData.latitude).toBe(adjustedViewport.latitude);
-    expect(viewportData.zoom).toBe(adjustedViewport.zoom);
+      expect(viewportData.longitude).toBe(adjustedViewport.longitude);
+      expect(viewportData.latitude).toBe(adjustedViewport.latitude);
+      expect(viewportData.zoom).toBe(adjustedViewport.zoom);
+    });
 
     fitViewportSpy.mockRestore();
   });
 
-  it('should set zoom to 0 when calculated zoom is negative', () => {
+  it('should set zoom to 0 when calculated zoom is negative', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: 0,
@@ -229,15 +231,17 @@ describe('DeckMulti Autozoom Functionality', () => {
       },
     };
 
-    const { getByTestId } = renderWithProviders(<DeckMulti {...props} />);
+    renderWithProviders(<DeckMulti {...props} />);
 
-    const container = getByTestId('deckgl-container');
-    const viewportData = JSON.parse(
-      container.getAttribute('data-viewport') || '{}',
-    );
+    await waitFor(() => {
+      const container = screen.getByTestId('deckgl-container');
+      const viewportData = JSON.parse(
+        container.getAttribute('data-viewport') || '{}',
+      );
 
-    // Zoom should be 0, not negative
-    expect(viewportData.zoom).toBe(0);
+      // Zoom should be 0, not negative
+      expect(viewportData.zoom).toBe(0);
+    });
 
     fitViewportSpy.mockRestore();
   });
@@ -332,7 +336,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should use original viewport when autozoom is disabled', () => {
+  it('should use original viewport when autozoom is disabled', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
     const originalViewport = { longitude: -100, latitude: 40, zoom: 5 };
@@ -345,20 +349,91 @@ describe('DeckMulti Autozoom Functionality', () => {
       },
     };
 
-    const { getByTestId } = renderWithProviders(<DeckMulti {...props} />);
+    renderWithProviders(<DeckMulti {...props} />);
 
-    const container = getByTestId('deckgl-container');
-    const viewportData = JSON.parse(
-      container.getAttribute('data-viewport') || '{}',
-    );
+    await waitFor(() => {
+      const container = screen.getByTestId('deckgl-container');
+      const viewportData = JSON.parse(
+        container.getAttribute('data-viewport') || '{}',
+      );
 
-    // Should use original viewport without modification
-    expect(viewportData.longitude).toBe(originalViewport.longitude);
-    expect(viewportData.latitude).toBe(originalViewport.latitude);
-    expect(viewportData.zoom).toBe(originalViewport.zoom);
+      // Should use original viewport without modification
+      expect(viewportData.longitude).toBe(originalViewport.longitude);
+      expect(viewportData.latitude).toBe(originalViewport.latitude);
+      expect(viewportData.zoom).toBe(originalViewport.zoom);
+    });
 
     // fitViewport should not have been called
     expect(fitViewportSpy).not.toHaveBeenCalled();
+
+    fitViewportSpy.mockRestore();
+  });
+
+  it('should apply autozoom when autozoom is undefined (backward compatibility)', () => {
+    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    fitViewportSpy.mockReturnValue({
+      longitude: -122.4,
+      latitude: 37.8,
+      zoom: 10,
+    });
+
+    const props = {
+      ...baseMockProps,
+      formData: {
+        ...baseMockProps.formData,
+        autozoom: undefined, // Simulating existing charts created before this feature
+      },
+    };
+
+    renderWithProviders(<DeckMulti {...props} />);
+
+    // fitViewport should be called for backward compatibility with existing charts
+    expect(fitViewportSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        longitude: 0,
+        latitude: 0,
+        zoom: 1,
+      }),
+      expect.objectContaining({
+        width: 800,
+        height: 600,
+        points: expect.any(Array),
+      }),
+    );
+
+    fitViewportSpy.mockRestore();
+  });
+
+  it('should use adjusted viewport when autozoom is undefined', async () => {
+    const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
+    const adjustedViewport = {
+      longitude: -122.4,
+      latitude: 37.8,
+      zoom: 12,
+    };
+    fitViewportSpy.mockReturnValue(adjustedViewport);
+
+    const props = {
+      ...baseMockProps,
+      formData: {
+        ...baseMockProps.formData,
+        autozoom: undefined, // Simulating existing charts
+      },
+    };
+
+    renderWithProviders(<DeckMulti {...props} />);
+
+    await waitFor(() => {
+      const container = screen.getByTestId('deckgl-container');
+      const viewportData = JSON.parse(
+        container.getAttribute('data-viewport') || '{}',
+      );
+
+      // Should use adjusted viewport for backward compatibility
+      expect(viewportData.longitude).toBe(adjustedViewport.longitude);
+      expect(viewportData.latitude).toBe(adjustedViewport.latitude);
+      expect(viewportData.zoom).toBe(adjustedViewport.zoom);
+    });
 
     fitViewportSpy.mockRestore();
   });
@@ -376,40 +451,47 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should render DeckGLContainer', () => {
-    const { getByTestId } = renderWithProviders(
-      <DeckMulti {...baseMockProps} />,
-    );
+  it('should render DeckGLContainer', async () => {
+    renderWithProviders(<DeckMulti {...baseMockProps} />);
 
-    expect(getByTestId('deckgl-container')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('deckgl-container')).toBeInTheDocument();
+    });
   });
 
-  it('should pass correct props to DeckGLContainer', () => {
-    const { getByTestId } = renderWithProviders(
-      <DeckMulti {...baseMockProps} />,
-    );
+  it('should pass correct props to DeckGLContainer', async () => {
+    renderWithProviders(<DeckMulti {...baseMockProps} />);
 
-    const container = getByTestId('deckgl-container');
-    const viewportData = JSON.parse(
-      container.getAttribute('data-viewport') || '{}',
-    );
+    await waitFor(() => {
+      const container = screen.getByTestId('deckgl-container');
+      const viewportData = JSON.parse(
+        container.getAttribute('data-viewport') || '{}',
+      );
 
-    expect(viewportData).toMatchObject({
-      longitude: baseMockProps.viewport.longitude,
-      latitude: baseMockProps.viewport.latitude,
-      zoom: baseMockProps.viewport.zoom,
+      expect(viewportData).toMatchObject({
+        longitude: baseMockProps.viewport.longitude,
+        latitude: baseMockProps.viewport.latitude,
+        zoom: baseMockProps.viewport.zoom,
+      });
     });
   });
 
   it('should handle viewport changes', async () => {
-    const { getByTestId, rerender } = renderWithProviders(
-      <DeckMulti {...baseMockProps} />,
-    );
+    const { rerender } = renderWithProviders(<DeckMulti {...baseMockProps} />);
+
+    // Wait for initial render
+    await waitFor(() => {
+      expect(screen.getByTestId('deckgl-container')).toBeInTheDocument();
+    });
 
     const newViewport = { longitude: 10, latitude: 20, zoom: 8 };
     const updatedProps = {
       ...baseMockProps,
       viewport: newViewport,
+      formData: {
+        ...baseMockProps.formData,
+        deck_slices: [1, 2, 3], // Change deck_slices to trigger loadLayers
+      },
     };
 
     rerender(
@@ -421,7 +503,7 @@ describe('DeckMulti Component Rendering', () => {
     );
 
     await waitFor(() => {
-      const container = getByTestId('deckgl-container');
+      const container = screen.getByTestId('deckgl-container');
       const viewportData = JSON.parse(
         container.getAttribute('data-viewport') || '{}',
       );

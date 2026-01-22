@@ -116,8 +116,8 @@ const DeckMulti = (props: DeckMultiProps) => {
   const getAdjustedViewport = useCallback(() => {
     let viewport = { ...props.viewport };
 
-    // Only apply auto zoom if the autozoom setting is enabled
-    if (props.formData.autozoom) {
+    // Default to autozoom enabled for backward compatibility (undefined treated as true)
+    if (props.formData.autozoom !== false) {
       const points = [
         ...getPointsPolygon(props.payload.data.features.deck_polygon || []),
         ...getPointsPath(props.payload.data.features.deck_path || []),
