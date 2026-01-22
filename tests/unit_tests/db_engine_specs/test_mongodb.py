@@ -74,7 +74,7 @@ def test_epoch_to_dttm() -> None:
         (TimeGrain.DAY, "DATETIME({col}, 'start of day')"),
         (
             TimeGrain.WEEK,
-            "DATETIME({col}, 'start of day', '-strftime('%w', {col}) || ' days')",
+            "DATETIME({col}, 'start of day', -strftime('%w', {col}) || ' days')",
         ),
         (TimeGrain.MONTH, "DATETIME({col}, 'start of month')"),
         (
