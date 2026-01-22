@@ -21,7 +21,7 @@ import '@testing-library/jest-dom';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/ui';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { SupersetClient } from '@superset-ui/core';
+import { DatasourceType, SupersetClient } from '@superset-ui/core';
 import DeckMulti from './Multi';
 import * as fitViewportModule from '../utils/fitViewport';
 
@@ -105,7 +105,16 @@ const baseMockProps = {
   onAddFilter: jest.fn(),
   height: 600,
   width: 800,
-  datasource: { id: 1, type: 'table' },
+  datasource: {
+    id: 1,
+    type: DatasourceType.Table,
+    name: 'test_datasource',
+    columns: [],
+    metrics: [],
+    columnFormats: {},
+    currencyFormats: {},
+    verboseMap: {},
+  },
   onSelect: jest.fn(),
 };
 
