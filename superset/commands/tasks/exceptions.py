@@ -20,7 +20,6 @@ from superset.commands.exceptions import (
     CommandException,
     CommandInvalidError,
     CreateFailedError,
-    DeleteFailedError,
     ForbiddenError,
     UpdateFailedError,
 )
@@ -49,12 +48,6 @@ class TaskUpdateFailedError(UpdateFailedError):
     """Task update failed."""
 
     message = _("Task could not be updated.")
-
-
-class TaskDeleteFailedError(DeleteFailedError):
-    """Task deletion failed."""
-
-    message = _("Tasks could not be deleted.")
 
 
 class TaskAbortFailedError(CommandException):

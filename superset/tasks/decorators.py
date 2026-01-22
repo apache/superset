@@ -225,6 +225,9 @@ class TaskWrapper(Generic[P]):
         Raises:
             ValueError: If task validation fails
         """
+        from superset.commands.tasks.create import CreateTaskCommand
+        from superset.extensions import db
+
         # Extract and merge options (decorator defaults + call-time overrides)
         override_options = cast(TaskOptions | None, kwargs.pop("options", None))
         options = self._merge_options(override_options)
@@ -239,16 +242,14 @@ class TaskWrapper(Generic[P]):
         task_key = options.task_key or generate_random_task_key()
         scope = self.scope  # Use scope from decorator
 
-        # Create task entry
-        # Lazy import to avoid circular dependency
-        from superset.daos.tasks import TaskDAO
-
-        task = TaskDAO.create_task(
-            task_type=self.name,
-            task_key=task_key,
-            task_name=task_name,
-            scope=scope.value,
-        )
+        task = CreateTaskCommand(
+            {
+                "task_type": self.name,
+                "task_key": task_key,
+                "task_name": task_name,
+                "scope": scope.value,
+            }
+        ).run()
 
         # Build context and execute synchronously
         ctx = TaskContext(task_uuid=task.uuid)
@@ -256,7 +257,6 @@ class TaskWrapper(Generic[P]):
         # Update status to IN_PROGRESS
         task = ctx._task
         task.set_status(TaskStatus.IN_PROGRESS)
-        from superset.extensions import db
 
         db.session.merge(task)
         db.session.commit()

@@ -164,8 +164,10 @@ def test_update_task_payload(mock_get_user, app_context, get_user, login_as) -> 
 
 
 @patch("superset.tasks.utils.get_current_user")
-def test_update_multiple_fields(mock_get_user, app_context, get_user, login_as) -> None:
-    """Test updating multiple task fields at once"""
+def test_update_all_supported_fields(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
+    """Test updating all supported task fields (status, error, progress, abortable)"""
     admin = get_user("admin")
     login_as("admin")
     mock_get_user.return_value = admin.username
@@ -173,7 +175,7 @@ def test_update_multiple_fields(mock_get_user, app_context, get_user, login_as) 
     # Create a task using DAO
     task = TaskDAO.create_task(
         task_type="test_type",
-        task_key="multiple_test",
+        task_key="all_fields_test",
         scope=TaskScope.PRIVATE,
         user_id=admin.id,
     )
@@ -182,12 +184,16 @@ def test_update_multiple_fields(mock_get_user, app_context, get_user, login_as) 
     db.session.commit()
 
     try:
-        # Update multiple fields
+        # Update all field types at once
         command = UpdateTaskCommand(
             task_uuid=task.uuid,
             data={
                 "status": TaskStatus.FAILURE.value,
                 "error_message": "Task failed due to error",
+                "progress_percent": 0.75,
+                "progress_current": 75,
+                "progress_total": 100,
+                "is_abortable": True,
             },
         )
         result = command.run()
@@ -196,11 +202,63 @@ def test_update_multiple_fields(mock_get_user, app_context, get_user, login_as) 
         assert result.uuid == task.uuid
         assert result.status == TaskStatus.FAILURE.value
         assert result.error_message == "Task failed due to error"
+        assert result.progress_percent == 0.75
+        assert result.progress_current == 75
+        assert result.progress_total == 100
+        assert result.is_abortable is True
 
         # Verify in database
         db.session.refresh(task)
         assert task.status == TaskStatus.FAILURE.value
         assert task.error_message == "Task failed due to error"
+        assert task.progress_percent == 0.75
+        assert task.progress_current == 75
+        assert task.progress_total == 100
+        assert task.is_abortable is True
+    finally:
+        # Cleanup
+        db.session.delete(task)
+        db.session.commit()
+
+
+@patch("superset.tasks.utils.get_current_user")
+def test_update_task_skip_security_check(
+    mock_get_user, app_context, get_user, login_as
+) -> None:
+    """Test skip_security_check allows updating any task"""
+    admin = get_user("admin")
+    mock_get_user.return_value = admin.username
+
+    # Create a task owned by admin
+    task = TaskDAO.create_task(
+        task_type="test_type",
+        task_key="skip_security_test",
+        scope=TaskScope.PRIVATE,
+        user_id=admin.id,
+    )
+    task.created_by = admin
+    task.set_status(TaskStatus.IN_PROGRESS)
+    db.session.commit()
+
+    try:
+        # Login as gamma user (non-owner)
+        login_as("gamma")
+
+        # With skip_security_check=True, should succeed even though gamma doesn't own it
+        command = UpdateTaskCommand(
+            task_uuid=task.uuid,
+            data={"progress_percent": 0.75},
+            skip_security_check=True,
+        )
+        result = command.run()
+
+        # Verify update succeeded
+        assert result.uuid == task.uuid
+        assert result.progress_percent == 0.75
+
+        # Verify in database
+        db.session.refresh(task)
+        assert task.progress_percent == 0.75
     finally:
         # Cleanup
         db.session.delete(task)

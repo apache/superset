@@ -38,12 +38,27 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateTaskCommand(BaseCommand):
-    """Command to update an task."""
+    """Command to update a task."""
 
-    def __init__(self, task_uuid: str, data: dict[str, Any]):
+    def __init__(
+        self,
+        task_uuid: str,
+        data: dict[str, Any],
+        skip_security_check: bool = False,
+    ):
+        """
+        Initialize UpdateTaskCommand.
+
+        :param task_uuid: UUID of the task to update
+        :param data: Dictionary of properties to update
+        :param skip_security_check: If True, skip ownership validation.
+            Use this for internal task updates (e.g., task executor updating
+            its own task's progress). Default is False for API-driven updates.
+        """
         self._task_uuid = task_uuid
         self._properties = data.copy()
         self._model: "Task" | None = None
+        self._skip_security_check = skip_security_check
 
     @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
     def run(self) -> "Task":
@@ -53,7 +68,18 @@ class UpdateTaskCommand(BaseCommand):
 
         # Update allowed properties
         for key, value in self._properties.items():
-            if key in ["status", "error_message", "started_at", "ended_at"]:
+            if key in [
+                "status",
+                "error_message",
+                "exception_type",
+                "stack_trace",
+                "started_at",
+                "ended_at",
+                "progress_percent",
+                "progress_current",
+                "progress_total",
+                "is_abortable",
+            ]:
                 setattr(self._model, key, value)
             elif key == "payload":
                 self._model.set_payload(value)
@@ -76,10 +102,12 @@ class UpdateTaskCommand(BaseCommand):
             raise TaskNotFoundError()
 
         # Verify ownership via base filter (user can only update their own tasks)
-        try:
-            security_manager.raise_for_ownership(self._model)
-        except SupersetSecurityException as ex:
-            raise TaskForbiddenError() from ex
+        # Skip this check for internal updates (e.g., task executor updating progress)
+        if not self._skip_security_check:
+            try:
+                security_manager.raise_for_ownership(self._model)
+            except SupersetSecurityException as ex:
+                raise TaskForbiddenError() from ex
 
         if exceptions:
             raise TaskInvalidError(exceptions=exceptions)

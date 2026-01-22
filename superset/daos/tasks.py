@@ -262,61 +262,6 @@ class TaskDAO(BaseDAO[Task]):
 
         return False
 
-    @classmethod
-    @transaction()
-    def delete_old_completed_tasks(cls, older_than: Any, batch_size: int = 1000) -> int:
-        """
-        Delete old completed async tasks.
-
-        This method does NOT apply base filter as it's intended for
-        administrative cleanup of old tasks across all users.
-
-        :param older_than: Delete tasks completed before this datetime
-        :param batch_size: Number of tasks to delete per batch
-        :returns: Count of deleted tasks
-        """
-        from datetime import datetime
-
-        total_deleted = 0
-
-        while True:
-            # Find batch of old completed tasks
-            tasks_to_delete = (
-                db.session.query(Task)
-                .filter(
-                    Task.ended_at < older_than,
-                    Task.status.in_(
-                        [
-                            TaskStatus.SUCCESS.value,
-                            TaskStatus.FAILURE.value,
-                            TaskStatus.ABORTED.value,
-                        ]
-                    ),
-                )
-                .limit(batch_size)
-                .all()
-            )
-
-            if not tasks_to_delete:
-                break
-
-            # Delete batch
-            for task in tasks_to_delete:
-                db.session.delete(task)
-
-            batch_count = len(tasks_to_delete)
-            total_deleted += batch_count
-
-            logger.info("Deleted batch of %d old async tasks", batch_count)
-
-        logger.info(
-            "Completed deletion of %d old async tasks older than %s",
-            total_deleted,
-            older_than if isinstance(older_than, datetime) else str(older_than),
-        )
-
-        return total_deleted
-
     # Subscription management methods
 
     @classmethod
