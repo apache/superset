@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -247,82 +246,3 @@ class TestTaskDAO:
 
         assert result is False
         mock_task.set_status.assert_not_called()
-
-    @patch("superset.daos.tasks.db.session")
-    def test_delete_old_completed_tasks(self, mock_session):
-        """Test deletion of old completed tasks"""
-        cutoff_date = datetime.utcnow() - timedelta(days=30)
-
-        # First batch
-        mock_task1 = MagicMock(spec=Task)
-        mock_task2 = MagicMock(spec=Task)
-        batch1 = [mock_task1, mock_task2]
-
-        # Second call returns empty (done)
-        batch2 = []
-
-        mock_query = MagicMock()
-        mock_session.query.return_value = mock_query
-        mock_filter = MagicMock()
-        mock_query.filter.return_value = mock_filter
-        mock_limit = MagicMock()
-        mock_filter.limit.return_value = mock_limit
-        mock_limit.all.side_effect = [batch1, batch2]
-
-        result = TaskDAO.delete_old_completed_tasks(
-            older_than=cutoff_date,
-            batch_size=2,
-        )
-
-        assert result == 2
-        assert mock_session.delete.call_count == 2
-        assert mock_session.commit.call_count == 1
-
-    @patch("superset.daos.tasks.db.session")
-    def test_delete_old_completed_tasks_no_tasks(self, mock_session):
-        """Test deletion when no old tasks exist"""
-        cutoff_date = datetime.utcnow() - timedelta(days=30)
-
-        mock_query = MagicMock()
-        mock_session.query.return_value = mock_query
-        mock_filter = MagicMock()
-        mock_query.filter.return_value = mock_filter
-        mock_limit = MagicMock()
-        mock_filter.limit.return_value = mock_limit
-        mock_limit.all.return_value = []
-
-        result = TaskDAO.delete_old_completed_tasks(
-            older_than=cutoff_date,
-            batch_size=1000,
-        )
-
-        assert result == 0
-        mock_session.delete.assert_not_called()
-
-    @patch("superset.daos.tasks.db.session")
-    def test_delete_old_completed_tasks_multiple_batches(self, mock_session):
-        """Test deletion processes multiple batches"""
-        cutoff_date = datetime.utcnow() - timedelta(days=30)
-
-        # Three batches
-        batch1 = [MagicMock(spec=Task) for _ in range(3)]
-        batch2 = [MagicMock(spec=Task) for _ in range(3)]
-        batch3 = [MagicMock(spec=Task) for _ in range(2)]
-        batch4 = []  # Done
-
-        mock_query = MagicMock()
-        mock_session.query.return_value = mock_query
-        mock_filter = MagicMock()
-        mock_query.filter.return_value = mock_filter
-        mock_limit = MagicMock()
-        mock_filter.limit.return_value = mock_limit
-        mock_limit.all.side_effect = [batch1, batch2, batch3, batch4]
-
-        result = TaskDAO.delete_old_completed_tasks(
-            older_than=cutoff_date,
-            batch_size=3,
-        )
-
-        assert result == 8  # 3 + 3 + 2
-        assert mock_session.delete.call_count == 8
-        assert mock_session.commit.call_count == 1

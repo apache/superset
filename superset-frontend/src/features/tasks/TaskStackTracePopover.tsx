@@ -27,6 +27,7 @@ import copyTextToClipboard from 'src/utils/copy';
 
 
 
+
 const StackTraceContainer = styled.div`
   max-width: 600px;
   max-height: 400px;
