@@ -17,16 +17,12 @@
  * under the License.
  */
 
-
 import { useState, useCallback } from 'react';
 import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Popover, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import copyTextToClipboard from 'src/utils/copy';
-
-
-
 
 const StackTraceContainer = styled.div`
   max-width: 600px;
@@ -38,7 +34,8 @@ const StackTraceContainer = styled.div`
 const Header = styled.div`
   display: flex;
   justify-content: flex-end;
-  padding: ${({ theme }) => theme.sizeUnit}px ${({ theme }) => theme.sizeUnit * 2}px;
+  padding: ${({ theme }) => theme.sizeUnit}px
+    ${({ theme }) => theme.sizeUnit * 2}px;
   border-bottom: 1px solid ${({ theme }) => theme.colorBorder};
 `;
 
