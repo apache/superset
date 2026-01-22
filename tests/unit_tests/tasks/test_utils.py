@@ -335,30 +335,30 @@ def test_get_executor(
 
 
 @pytest.mark.parametrize(
-    "scope,task_type,task_key,username,expected",
+    "scope,task_type,task_key,user_id,expected",
     [
         # Private tasks with TaskScope enum
         (
             TaskScope.PRIVATE,
             "sql_execution",
             "chart_123",
-            "user42",
-            "private|sql_execution|chart_123|user42",
+            42,
+            "private|sql_execution|chart_123|42",
         ),
         (
             TaskScope.PRIVATE,
             "thumbnail_gen",
             "dash_456",
-            "user100",
-            "private|thumbnail_gen|dash_456|user100",
+            100,
+            "private|thumbnail_gen|dash_456|100",
         ),
         # Private tasks with string scope
         (
             "private",
             "api_call",
             "endpoint_789",
-            "user200",
-            "private|api_call|endpoint_789|user200",
+            200,
+            "private|api_call|endpoint_789|200",
         ),
         # Shared tasks with TaskScope enum
         (
@@ -372,7 +372,7 @@ def test_get_executor(
             TaskScope.SHARED,
             "export_csv",
             "large_export",
-            "user999",  # username should be ignored for shared
+            999,  # user_id should be ignored for shared
             "shared|export_csv|large_export",
         ),
         # Shared tasks with string scope
@@ -380,7 +380,7 @@ def test_get_executor(
             "shared",
             "batch_process",
             "batch_001",
-            "ignored_user",
+            123,  # user_id should be ignored for shared
             "shared|batch_process|batch_001",
         ),
         # System tasks with TaskScope enum
@@ -395,7 +395,7 @@ def test_get_executor(
             TaskScope.SYSTEM,
             "db_migration",
             "version_123",
-            "admin",  # username should be ignored for system
+            1,  # user_id should be ignored for system
             "system|db_migration|version_123",
         ),
         # System tasks with string scope
@@ -403,26 +403,26 @@ def test_get_executor(
             "system",
             "maintenance",
             "nightly_job",
-            "root",
+            2,  # user_id should be ignored for system
             "system|maintenance|nightly_job",
         ),
     ],
 )
-def test_get_active_dedup_key(scope, task_type, task_key, username, expected, mocker):
+def test_get_active_dedup_key(scope, task_type, task_key, user_id, expected, mocker):
     """Test get_active_dedup_key generates correct format for all scopes"""
-    # Mock get_current_user to return the specified username
-    mocker.patch("superset.tasks.utils.get_current_user", return_value=username)
+    # Mock get_user_id to return the specified user_id
+    mocker.patch("superset.utils.core.get_user_id", return_value=user_id)
 
     result = get_active_dedup_key(scope, task_type, task_key)
     assert result == expected
 
 
-def test_get_active_dedup_key_private_requires_username(mocker):
-    """Test that private tasks require username from get_current_user()"""
-    # Mock get_current_user to return None
-    mocker.patch("superset.tasks.utils.get_current_user", return_value=None)
+def test_get_active_dedup_key_private_requires_user_id(mocker):
+    """Test that private tasks require user_id from get_user_id()"""
+    # Mock get_user_id to return None
+    mocker.patch("superset.utils.core.get_user_id", return_value=None)
 
-    with pytest.raises(ValueError, match="username required for private tasks"):
+    with pytest.raises(ValueError, match="user_id required for private tasks"):
         get_active_dedup_key(TaskScope.PRIVATE, "test_type", "test_key")
 
 

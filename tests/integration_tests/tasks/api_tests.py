@@ -157,7 +157,11 @@ class TestTaskApi(SupersetTestCase):
             # Get a pending task to verify active dedup_key format
             task = (
                 db.session.query(Task)
-                .filter_by(created_by_fk=admin.id, status=TaskStatus.PENDING.value)
+                .filter_by(
+                    created_by_fk=admin.id,
+                    status=TaskStatus.PENDING.value,
+                    task_type="test_type",
+                )
                 .first()
             )
             assert task is not None
@@ -287,7 +291,11 @@ class TestTaskApi(SupersetTestCase):
             # Find a pending task
             task = (
                 db.session.query(Task)
-                .filter_by(created_by_fk=admin.id, status=TaskStatus.PENDING.value)
+                .filter_by(
+                    created_by_fk=admin.id,
+                    status=TaskStatus.PENDING.value,
+                    task_type="test_type",
+                )
                 .first()
             )
             assert task is not None
@@ -550,7 +558,11 @@ class TestTaskApi(SupersetTestCase):
             self.login(ADMIN_USERNAME)
             admin = self.get_user("admin")
 
-            task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
+            task = (
+                db.session.query(Task)
+                .filter_by(created_by_fk=admin.id, task_type="test_type")
+                .first()
+            )
             uri = f"{self.TASK_API_BASE}/{task.id}"
             rv = self.client.get(uri)
             assert rv.status_code == 200

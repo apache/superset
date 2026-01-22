@@ -29,11 +29,11 @@ from superset.models.tasks import Task
 class TestTaskDAO:
     """Test TaskDAO functionality"""
 
-    @patch("superset.tasks.utils.get_current_user")
+    @patch("superset.utils.core.get_user_id")
     @patch("superset.daos.tasks.db.session")
-    def test_find_by_task_key_active(self, mock_session, mock_get_user):
+    def test_find_by_task_key_active(self, mock_session, mock_get_user_id):
         """Test finding active task by task_key"""
-        mock_get_user.return_value = "test_user"
+        mock_get_user_id.return_value = 1
         mock_task = MagicMock(spec=Task)
         mock_task.task_key = "test-id"
         mock_task.task_type = "test_type"
@@ -50,11 +50,11 @@ class TestTaskDAO:
         assert result == mock_task
         mock_session.query.assert_called_once_with(Task)
 
-    @patch("superset.tasks.utils.get_current_user")
+    @patch("superset.utils.core.get_user_id")
     @patch("superset.daos.tasks.db.session")
-    def test_find_by_task_key_not_found(self, mock_session, mock_get_user):
+    def test_find_by_task_key_not_found(self, mock_session, mock_get_user_id):
         """Test finding task by task_key returns None when not found"""
-        mock_get_user.return_value = "test_user"
+        mock_get_user_id.return_value = 1
         mock_query = MagicMock()
         mock_session.query.return_value = mock_query
         mock_filter = MagicMock()
@@ -65,11 +65,13 @@ class TestTaskDAO:
 
         assert result is None
 
-    @patch("superset.tasks.utils.get_current_user")
+    @patch("superset.utils.core.get_user_id")
     @patch("superset.daos.tasks.db.session")
-    def test_find_by_task_key_ignores_finished_tasks(self, mock_session, mock_get_user):
+    def test_find_by_task_key_ignores_finished_tasks(
+        self, mock_session, mock_get_user_id
+    ):
         """Test that find_by_task_key only returns pending/in-progress tasks"""
-        mock_get_user.return_value = "test_user"
+        mock_get_user_id.return_value = 1
         mock_query = MagicMock()
         mock_session.query.return_value = mock_query
         mock_filter = MagicMock()
@@ -80,15 +82,15 @@ class TestTaskDAO:
         result = TaskDAO.find_by_task_key("test_type", "finished-key")
         assert result is None
 
-    @patch("superset.tasks.utils.get_current_user")
+    @patch("superset.utils.core.get_user_id")
     @patch("superset.daos.tasks.TaskDAO.create")
     @patch("superset.daos.tasks.TaskDAO.find_by_task_key")
     @patch("superset.daos.tasks.db.session")
     def test_create_task_success(
-        self, mock_session, mock_find, mock_create, mock_get_user
+        self, mock_session, mock_find, mock_create, mock_get_user_id
     ):
         """Test successful task creation"""
-        mock_get_user.return_value = "test_user"
+        mock_get_user_id.return_value = 1
         mock_find.return_value = None  # No existing task
         mock_task = MagicMock(spec=Task)
         mock_task.task_key = "new-task"
@@ -104,11 +106,11 @@ class TestTaskDAO:
         mock_find.assert_called_once_with("test_type", "new-task", "private", None)
         mock_session.commit.assert_called_once()
 
-    @patch("superset.tasks.utils.get_current_user")
+    @patch("superset.utils.core.get_user_id")
     @patch("superset.daos.tasks.TaskDAO.find_by_task_key")
-    def test_create_task_duplicate(self, mock_find, mock_get_user):
+    def test_create_task_duplicate(self, mock_find, mock_get_user_id):
         """Test that creating duplicate task raises error"""
-        mock_get_user.return_value = "test_user"
+        mock_get_user_id.return_value = 1
         existing_task = MagicMock(spec=Task)
         existing_task.status = TaskStatus.PENDING.value
         mock_find.return_value = existing_task
@@ -121,16 +123,16 @@ class TestTaskDAO:
 
         assert "already exists" in str(exc_info.value)
 
-    @patch("superset.tasks.utils.get_current_user")
+    @patch("superset.utils.core.get_user_id")
     @patch("superset.daos.tasks.TaskDAO.create")
     @patch("superset.daos.tasks.TaskDAO.find_by_task_key")
     @patch("superset.daos.tasks.db.session")
     @patch("superset.daos.tasks.uuid.uuid4")
     def test_create_task_without_task_key(
-        self, mock_uuid, mock_session, mock_find, mock_create, mock_get_user
+        self, mock_uuid, mock_session, mock_find, mock_create, mock_get_user_id
     ):
         """Test task creation without task_key generates UUID"""
-        mock_get_user.return_value = "test_user"
+        mock_get_user_id.return_value = 1
         mock_uuid.return_value = "generated-uuid"
         mock_find.return_value = None
         mock_task = MagicMock(spec=Task)
