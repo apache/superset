@@ -25,6 +25,7 @@ import errno
 import logging
 import os
 import platform
+import pytz
 import re
 import signal
 import smtplib
@@ -1849,7 +1850,7 @@ class DateColumn:
     timestamp_format: str | None = None
     offset: int | None = None
     time_shift: str | None = None
-
+    timezone: str | None = None  # IANA timezone name
     def __hash__(self) -> int:
         return hash(self.col_label)
 
@@ -1862,11 +1863,13 @@ class DateColumn:
         timestamp_format: str | None,
         offset: int | None,
         time_shift: str | None,
+        timezone: str | None = None,
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
             offset=offset,
             time_shift=time_shift,
+            timezone=timezone,
             col_label=DTTM_ALIAS,
         )
 
@@ -1951,8 +1954,28 @@ def normalize_dttm_col(
 
         _process_datetime_column(df, _col)
 
-        if _col.offset:
+        if _col.timezone:
+            try:
+                tz = pytz.timezone(_col.timezone)
+                # Data is stored in UTC, convert to the dataset's configured timezone
+                # First make the datetime UTC-aware, then convert to target timezone
+                series = df[_col.col_label]
+                if not series.empty and series.notna().any():
+                    # Convert UTC to target timezone
+                    df[_col.col_label] = (
+                        series.dt.tz_localize("UTC")
+                        .dt.tz_convert(tz)
+                        .dt.tz_localize(None)  # Remove timezone info for display
+                    )
+            except pytz.UnknownTimeZoneError:
+                logging.warning(
+                    "Unknown timezone '%s', falling back to offset", _col.timezone
+                )
+                if _col.offset:
+                    df[_col.col_label] += timedelta(hours=_col.offset)
+        elif _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
+
         if _col.time_shift is not None:
             df[_col.col_label] += parse_human_timedelta(_col.time_shift)
 
