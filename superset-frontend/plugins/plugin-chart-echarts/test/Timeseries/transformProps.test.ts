@@ -21,6 +21,7 @@ import {
   AnnotationStyle,
   AnnotationType,
   ChartProps,
+  ComparisonType,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
@@ -738,6 +739,170 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+});
+
+const timeCompareFormData: SqlaFormData = {
+  colorScheme: 'bnbColors',
+  datasource: '3__table',
+  granularity_sqla: 'ds',
+  metric: 'sum__num',
+  viz_type: 'my_viz',
+};
+
+const timeCompareChartPropsConfig = {
+  formData: timeCompareFormData,
+  width: 800,
+  height: 600,
+  theme: supersetTheme,
+};
+
+test('should apply dashed line style to time comparison series with single metric', () => {
+  const queriesDataWithTimeCompare = [
+    {
+      data: [
+        { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+    },
+    queriesData: queriesDataWithTimeCompare,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const mainSeries = series.find(s => s.name === 'sum__num');
+  const comparisonSeries = series.find(s => s.name === '1 week ago');
+
+  expect(mainSeries).toBeDefined();
+  expect(comparisonSeries).toBeDefined();
+  // Main series should not have a dash pattern array
+  expect(Array.isArray(mainSeries.lineStyle?.type)).toBe(false);
+  // Comparison series should have a visible dash pattern array [dash, gap]
+  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(true);
+  expect(comparisonSeries.lineStyle?.type[0]).toBeGreaterThanOrEqual(4);
+  expect(comparisonSeries.lineStyle?.type[1]).toBeGreaterThanOrEqual(3);
+});
+
+test('should apply dashed line style to time comparison series with metric__offset pattern', () => {
+  const queriesDataWithTimeCompare = [
+    {
+      data: [
+        {
+          sum__num: 100,
+          'sum__num__1 week ago': 80,
+          __timestamp: 599616000000,
+        },
+        {
+          sum__num: 150,
+          'sum__num__1 week ago': 120,
+          __timestamp: 599916000000,
+        },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+    },
+    queriesData: queriesDataWithTimeCompare,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const mainSeries = series.find(s => s.name === 'sum__num');
+  const comparisonSeries = series.find(s => s.name === 'sum__num__1 week ago');
+
+  expect(mainSeries).toBeDefined();
+  expect(comparisonSeries).toBeDefined();
+  // Main series should not have a dash pattern array
+  expect(Array.isArray(mainSeries.lineStyle?.type)).toBe(false);
+  // Comparison series should have a visible dash pattern array [dash, gap]
+  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(true);
+  expect(comparisonSeries.lineStyle?.type[0]).toBeGreaterThanOrEqual(4);
+  expect(comparisonSeries.lineStyle?.type[1]).toBeGreaterThanOrEqual(3);
+});
+
+test('should apply connectNulls to time comparison series', () => {
+  const queriesDataWithNulls = [
+    {
+      data: [
+        { sum__num: 100, '1 week ago': null, __timestamp: 599616000000 },
+        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+        { sum__num: 200, '1 week ago': null, __timestamp: 600216000000 },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+    },
+    queriesData: queriesDataWithNulls,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const comparisonSeries = series.find(s => s.name === '1 week ago');
+
+  expect(comparisonSeries).toBeDefined();
+  expect(comparisonSeries.connectNulls).toBe(true);
+});
+
+test('should not apply dashed line style for non-Values comparison types', () => {
+  const queriesDataWithTimeCompare = [
+    {
+      data: [
+        { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Difference,
+    },
+    queriesData: queriesDataWithTimeCompare,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const comparisonSeries = series.find(s => s.name === '1 week ago');
+
+  expect(comparisonSeries).toBeDefined();
+  // Non-Values comparison types don't get dashed styling (isDerivedSeries returns false)
+  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(false);
+  expect(comparisonSeries.connectNulls).toBeFalsy();
 });
 
 test('EchartsTimeseries AUTO mode should detect single currency and format with $ for USD', () => {

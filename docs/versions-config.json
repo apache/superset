@@ -22,7 +22,7 @@
   },
   "developer_portal": {
     "disabled": false,
-    "hideFromNav": true,
+    "hideFromNav": false,
     "lastVersion": "current",
     "includeCurrentVersion": true,
     "onlyIncludeVersions": [

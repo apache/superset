@@ -134,7 +134,7 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'extensions/architectural-principles',
+        docId: 'extensions/overview',
         label: 'Extensions',
       },
       {
