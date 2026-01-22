@@ -379,8 +379,10 @@ class TaskRestApi(BaseSupersetModelRestApi):
         from flask import request
 
         force = False
-        if request.json:
-            parsed = self.cancel_request_schema.load(request.json)
+        # Use get_json with silent=True to handle missing Content-Type gracefully
+        json_data = request.get_json(silent=True)
+        if json_data:
+            parsed = self.cancel_request_schema.load(json_data)
             force = parsed.get("force", False)
 
         command = CancelTaskCommand(task_uuid, force=force)
