@@ -119,14 +119,20 @@ test('DateFilter should properly handle isOverflowingFilterBar prop changes', ()
     setup({ ...defaultProps, isOverflowingFilterBar: false }),
   );
 
+  // When not overflowing, popover should attach to document.body
   userEvent.click(screen.getByText(NO_TIME_RANGE));
   const popover = document.querySelector('.time-range-popover');
   expect(popover?.parentElement).toBe(document.body);
 
   userEvent.click(screen.getByText('CANCEL'));
 
+  // When overflowing, popover should attach to parent node
   rerender(setup({ ...defaultProps, isOverflowingFilterBar: true }));
   userEvent.click(screen.getByText(NO_TIME_RANGE));
 
-  expect(defaultProps.onOpenPopover).toHaveBeenCalled();
+  const popoverAfterRerender = document.querySelector('.time-range-popover');
+  const trigger = screen.getByTestId(DateFilterTestKey.PopoverOverlay);
+
+  expect(popoverAfterRerender?.parentElement).toBe(trigger.parentElement);
+  expect(popoverAfterRerender?.parentElement).not.toBe(document.body);
 });

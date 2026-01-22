@@ -661,16 +661,10 @@ const FilterControls: FC<FilterControlsProps> = ({
 
     return filtersWithValues.map(filter => {
       // Out-of-scope filters in vertical mode are in a Collapse panel, not overflowed
-      if (
-        filterBarOrientation === FilterBarOrientation.Vertical &&
-        filtersOutOfScopeIds.has(filter.id)
-      ) {
-        return false;
+      if (filtersOutOfScopeIds.has(filter.id)) {
+        return filterBarOrientation === FilterBarOrientation.Horizontal;
       }
-      return (
-        filtersOutOfScopeIds.has(filter.id) ||
-        overflowedFiltersInScopeIds.has(filter.id)
-      );
+      return overflowedFiltersInScopeIds.has(filter.id);
     });
   }, [
     filtersOutOfScope,
