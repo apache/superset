@@ -2404,8 +2404,10 @@ def test_import_includes_configuration_method(
         f"{db_obj.configuration_method}"
     )
 
-    user = getattr(g, "user", None)
-    print("[DEBUG] g.user:", user)
+    from flask import has_request_context, has_app_context
+    user = None
+    if has_request_context() or has_app_context():
+        user = getattr(g, "user", None)
     if user and getattr(user, "is_authenticated", False) and hasattr(user, "id"):
         db_obj.created_by = security_manager.get_user_by_id(user.id)
         db.session.commit()
