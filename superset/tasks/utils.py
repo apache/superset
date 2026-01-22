@@ -162,6 +162,7 @@ def get_active_dedup_key(
     scope: TaskScope | str,
     task_type: str,
     task_key: str,
+    user_id: int | None = None,
 ) -> str:
     """
     Build a deduplication key for active tasks.
@@ -178,15 +179,14 @@ def get_active_dedup_key(
     :param scope: Task scope (PRIVATE/SHARED/SYSTEM) as TaskScope enum or string
     :param task_type: Type of task (e.g., 'sql_execution')
     :param task_key: Task identifier for deduplication
+    :param user_id: User ID for private tasks (falls back to g.user if not provided)
     :returns: Deduplication key string
     :raises ValueError: If user_id is missing for private scope
 
     Example:
         >>> from superset_core.api.tasks import TaskScope
-        >>> get_active_dedup_key(TaskScope.PRIVATE, "sql_exec", "chart_123")
-        'private|sql_exec|chart_123|gamma'
-        >>> get_active_dedup_key("private", "sql_exec", "chart_123")
-        'private|sql_exec|chart_123|gamma'
+        >>> get_active_dedup_key(TaskScope.PRIVATE, "sql_exec", "chart_123", user_id=1)
+        'private|sql_exec|chart_123|1'
         >>> get_active_dedup_key(TaskScope.SHARED, "report", "monthly")
         'shared|report|monthly'
     """
@@ -196,10 +196,15 @@ def get_active_dedup_key(
 
     match scope:
         case TaskScope.PRIVATE:
-            username = get_current_user()
-            if username is None:
-                raise ValueError("username required for private tasks")
-            return f"{scope.value}|{task_type}|{task_key}|{username}"
+            # Use provided user_id, or fall back to current user from Flask context
+            effective_user_id = user_id
+            if effective_user_id is None:
+                from superset.utils.core import get_user_id
+
+                effective_user_id = get_user_id()
+            if effective_user_id is None:
+                raise ValueError("user_id required for private tasks")
+            return f"{scope.value}|{task_type}|{task_key}|{effective_user_id}"
         case TaskScope.SHARED:
             return f"{scope.value}|{task_type}|{task_key}"
         case TaskScope.SYSTEM:

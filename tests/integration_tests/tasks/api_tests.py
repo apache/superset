@@ -84,7 +84,7 @@ class TestTaskApi(SupersetTestCase):
                 db.session.commit()
                 tasks.append(task)
 
-            # Create in progress task for gamma user
+            # Create pending task for gamma user (use PENDING so it can be aborted)
             gamma_task = TaskDAO.create_task(
                 task_type="test_type",
                 task_key="gamma_task",
@@ -95,8 +95,6 @@ class TestTaskApi(SupersetTestCase):
             )
             # Set created_by for test purposes
             gamma_task.created_by = gamma
-            # Set to IN_PROGRESS
-            gamma_task.set_status(TaskStatus.IN_PROGRESS)
             db.session.commit()
             tasks.append(gamma_task)
 
@@ -115,7 +113,7 @@ class TestTaskApi(SupersetTestCase):
                 # Rollback if commit fails
                 db.session.rollback()
 
-    def test_info_async_task(self):
+    def test_info_task(self):
         """
         Task API: Test info endpoint
         """
@@ -126,9 +124,9 @@ class TestTaskApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert "permissions" in data
 
-    def test_get_async_task_by_id(self):
+    def test_get_task_by_id(self):
         """
-        Task API: Test get async task by ID
+        Task API: Test get task by ID
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -148,9 +146,9 @@ class TestTaskApi(SupersetTestCase):
             assert data["result"]["task_type"] == task.task_type
             assert data["result"]["status"] == task.status
 
-    def test_get_async_task_by_uuid(self):
+    def test_get_task_by_uuid(self):
         """
-        Task API: Test get async task by UUID and verify dedup_key
+        Task API: Test get task by UUID and verify dedup_key
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -177,27 +175,27 @@ class TestTaskApi(SupersetTestCase):
             assert data["result"]["uuid"] == task.uuid
             assert data["result"]["id"] == task.id
 
-    def test_get_async_task_not_found(self):
+    def test_get_task_not_found(self):
         """
-        Task API: Test get async task not found
+        Task API: Test get task not found
         """
         self.login(ADMIN_USERNAME)
         uri = f"{self.TASK_API_BASE}/99999"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
-    def test_get_async_task_invalid_uuid(self):
+    def test_get_task_invalid_uuid(self):
         """
-        Task API: Test get async task with invalid UUID
+        Task API: Test get task with invalid UUID
         """
         self.login(ADMIN_USERNAME)
         uri = f"{self.TASK_API_BASE}/invalid-uuid"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
-    def test_get_async_task_list(self):
+    def test_get_task_list(self):
         """
-        Task API: Test get async task list
+        Task API: Test get task list
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -209,9 +207,9 @@ class TestTaskApi(SupersetTestCase):
             assert data["count"] >= 6  # At least the fixtures we created
             assert "result" in data
 
-    def test_get_async_task_list_filtered_by_status(self):
+    def test_get_task_list_filtered_by_status(self):
         """
-        Task API: Test get async task list filtered by status
+        Task API: Test get task list filtered by status
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -228,9 +226,9 @@ class TestTaskApi(SupersetTestCase):
             for task in data["result"]:
                 assert task["status"] == TaskStatus.PENDING.value
 
-    def test_get_async_task_list_filtered_by_type(self):
+    def test_get_task_list_filtered_by_type(self):
         """
-        Task API: Test get async task list filtered by type
+        Task API: Test get task list filtered by type
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -246,9 +244,9 @@ class TestTaskApi(SupersetTestCase):
             for task in data["result"]:
                 assert task["task_type"] == "test_type"
 
-    def test_get_async_task_list_ordered(self):
+    def test_get_task_list_ordered(self):
         """
-        Task API: Test get async task list with ordering
+        Task API: Test get task list with ordering
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -263,9 +261,9 @@ class TestTaskApi(SupersetTestCase):
             data = json.loads(rv.data.decode("utf-8"))
             assert len(data["result"]) > 0
 
-    def test_get_async_task_list_paginated(self):
+    def test_get_task_list_paginated(self):
         """
-        Task API: Test get async task list with pagination
+        Task API: Test get task list with pagination
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -278,9 +276,9 @@ class TestTaskApi(SupersetTestCase):
             assert len(data["result"]) <= 2
             assert data["count"] >= 6
 
-    def test_cancel_async_task_by_id(self):
+    def test_cancel_task_by_id(self):
         """
-        Task API: Test cancel async task by ID
+        Task API: Test cancel task by ID
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -314,9 +312,9 @@ class TestTaskApi(SupersetTestCase):
             assert task.dedup_key == task.uuid
             assert task.dedup_key != original_dedup_key
 
-    def test_cancel_async_task_by_uuid(self):
+    def test_cancel_task_by_uuid(self):
         """
-        Task API: Test cancel async task by UUID
+        Task API: Test cancel task by UUID
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -338,18 +336,18 @@ class TestTaskApi(SupersetTestCase):
             assert data["task"]["status"] == TaskStatus.ABORTED.value
             assert data["action"] == "aborted"
 
-    def test_cancel_async_task_not_found(self):
+    def test_cancel_task_not_found(self):
         """
-        Task API: Test cancel async task not found
+        Task API: Test cancel task not found
         """
         self.login(ADMIN_USERNAME)
         uri = f"{self.TASK_API_BASE}/99999/cancel"
         rv = self.client.post(uri)
         assert rv.status_code == 404
 
-    def test_cancel_async_task_not_owned(self):
+    def test_cancel_task_not_owned(self):
         """
-        Task API: Test cancel async task not owned by user
+        Task API: Test cancel task not owned by user
         """
         with self._create_tasks():
             self.login(GAMMA_USERNAME)
@@ -363,7 +361,7 @@ class TestTaskApi(SupersetTestCase):
             rv = self.client.post(uri)
             assert rv.status_code == 404
 
-    def test_cancel_async_task_admin_can_cancel_others(self):
+    def test_cancel_task_admin_can_cancel_others(self):
         """
         Task API: Test admin can cancel other users' tasks
         """
@@ -379,9 +377,9 @@ class TestTaskApi(SupersetTestCase):
             rv = self.client.post(uri)
             assert rv.status_code == 200
 
-    def test_get_async_task_status_by_id(self):
+    def test_get_task_status_by_id(self):
         """
-        Task API: Test get async task status by ID (lightweight)
+        Task API: Test get task status by ID (lightweight)
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -403,9 +401,9 @@ class TestTaskApi(SupersetTestCase):
             assert "created_by" not in data
             assert "error_message" not in data
 
-    def test_get_async_task_status_by_uuid(self):
+    def test_get_task_status_by_uuid(self):
         """
-        Task API: Test get async task status by UUID
+        Task API: Test get task status by UUID
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -422,16 +420,16 @@ class TestTaskApi(SupersetTestCase):
             assert "status" in data
             assert data["status"] == task.status
 
-    def test_get_async_task_status_not_found(self):
+    def test_get_task_status_not_found(self):
         """
-        Task API: Test get async task status not found
+        Task API: Test get task status not found
         """
         self.login(ADMIN_USERNAME)
         uri = f"{self.TASK_API_BASE}/99999/status"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
-    def test_get_async_task_status_not_owned(self):
+    def test_get_task_status_not_owned(self):
         """
         Task API: Test non-owner can't see task status
         """
@@ -448,7 +446,7 @@ class TestTaskApi(SupersetTestCase):
             # Should be forbidden due to base filter
             assert rv.status_code == 404
 
-    def test_get_async_task_status_admin_can_see_others(self):
+    def test_get_task_status_admin_can_see_others(self):
         """
         Task API: Test admin can see other users' task status
         """
@@ -467,7 +465,7 @@ class TestTaskApi(SupersetTestCase):
             data = json.loads(rv.data.decode("utf-8"))
             assert data["status"] == task.status
 
-    def test_get_async_task_list_user_sees_own_tasks(self):
+    def test_get_task_list_user_sees_own_tasks(self):
         """
         Task API: Test non-admin user only sees their own tasks
         """
@@ -484,7 +482,7 @@ class TestTaskApi(SupersetTestCase):
             for task in data["result"]:
                 assert task["created_by"]["id"] == gamma.id
 
-    def test_get_async_task_list_admin_sees_all_tasks(self):
+    def test_get_task_list_admin_sees_all_tasks(self):
         """
         Task API: Test admin sees all tasks
         """
@@ -499,7 +497,7 @@ class TestTaskApi(SupersetTestCase):
             # Admin should see all tasks
             assert data["count"] >= 6
 
-    def test_async_task_response_schema(self):
+    def test_task_response_schema(self):
         """
         Task API: Test response schema includes all expected fields
         """
@@ -536,13 +534,15 @@ class TestTaskApi(SupersetTestCase):
                 "is_finished",
                 "is_successful",
                 "is_aborted",
-                "progress",
+                "progress_percent",
+                "progress_current",
+                "progress_total",
             ]
 
             for field in expected_fields:
                 assert field in result, f"Field {field} missing from response"
 
-    def test_async_task_payload_serialization(self):
+    def test_task_payload_serialization(self):
         """
         Task API: Test payload is properly serialized as dict
         """
@@ -563,7 +563,7 @@ class TestTaskApi(SupersetTestCase):
             assert "test" in payload
             assert payload["test"] == "data"
 
-    def test_async_task_computed_properties(self):
+    def test_task_computed_properties(self):
         """
         Task API: Test computed properties in response
         """

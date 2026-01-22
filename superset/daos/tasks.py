@@ -21,7 +21,6 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy.exc import IntegrityError
 from superset_core.api.tasks import TaskScope, TaskStatus
 
 from superset.daos.base import BaseDAO
@@ -76,6 +75,7 @@ class TaskDAO(BaseDAO[Task]):
             scope=scope,
             task_type=task_type,
             task_key=task_key,
+            user_id=user_id,
         )
 
         # Simple single-column query with unique index
@@ -113,11 +113,15 @@ class TaskDAO(BaseDAO[Task]):
         if task_key is None:
             task_key = str(uuid.uuid4())
 
+        # Determine user_id early: use provided value or fall back to current user
+        effective_user_id = user_id if user_id is not None else get_user_id()
+
         # Build dedup_key for active task
         dedup_key = get_active_dedup_key(
             scope=scope,
             task_type=task_type,
             task_key=task_key,
+            user_id=effective_user_id,
         )
 
         # Check for existing active task using dedup_key
@@ -155,8 +159,6 @@ class TaskDAO(BaseDAO[Task]):
             **kwargs,
         }
 
-        # Determine user_id: use provided value or fall back to current user
-        effective_user_id = user_id if user_id is not None else get_user_id()
         if effective_user_id is not None:
             task_data["user_id"] = effective_user_id
 
@@ -318,6 +320,7 @@ class TaskDAO(BaseDAO[Task]):
     # Subscription management methods
 
     @classmethod
+    @transaction()
     def add_subscriber(cls, task_id: int, user_id: int) -> bool:
         """
         Add a user as a subscriber to a task.
@@ -326,23 +329,28 @@ class TaskDAO(BaseDAO[Task]):
         :param user_id: ID of the user to subscribe
         :returns: True if subscriber was added, False if already exists
         """
-        try:
-            subscription = TaskSubscriber(
-                task_id=task_id,
-                user_id=user_id,
-                subscribed_at=datetime.utcnow(),
-            )
-            db.session.add(subscription)
-            db.session.commit()
-            logger.info("Added subscriber %s to task %s", user_id, task_id)
-            return True
-        except IntegrityError:
-            # Subscription already exists
-            db.session.rollback()
+        # Check first to avoid IntegrityError which invalidates the session
+        # in nested transaction contexts (IntegrityError can't be recovered from)
+        existing = (
+            db.session.query(TaskSubscriber)
+            .filter_by(task_id=task_id, user_id=user_id)
+            .first()
+        )
+        if existing:
             logger.debug(
                 "Subscriber %s already subscribed to task %s", user_id, task_id
             )
             return False
+
+        subscription = TaskSubscriber(
+            task_id=task_id,
+            user_id=user_id,
+            subscribed_at=datetime.utcnow(),
+        )
+        db.session.add(subscription)
+        db.session.flush()
+        logger.info("Added subscriber %s to task %s", user_id, task_id)
+        return True
 
     @classmethod
     @transaction()
