@@ -26,6 +26,7 @@ from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.result_set import SupersetResultSet
 from superset.superset_typing import DbapiDescription
+from superset.utils import json as superset_json
 
 
 def test_df_to_records() -> None:
@@ -262,3 +263,103 @@ def test_df_to_records_with_inf_and_nan() -> None:
     # Normal values should remain unchanged
     assert records[3]["result"] == 0.0
     assert records[4]["result"] == 42.5
+
+
+def test_df_to_records_nan_json_serialization() -> None:
+    """
+    Test that NaN values are properly converted to None for JSON serialization.
+
+    Without the pd.isna() check, np.nan values would be passed through to JSON
+    serialization, which either produces non-spec-compliant output or requires
+    special handling with ignore_nan flags throughout the codebase.
+
+    This test validates that our fix converts NaN to None for proper JSON
+    serialization.
+    """
+    # Simulate Athena query: SELECT 0.00 / 0.00 as test
+    data = [(np.nan,), (5.0,), (np.nan,)]
+    cursor_descr: DbapiDescription = [("test", "double", None, None, None, None, False)]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    # Get records with our fix
+    records = df_to_records(df)
+
+    # Verify NaN values are converted to None
+    assert records == [
+        {"test": None},  # NaN converted to None
+        {"test": 5.0},
+        {"test": None},  # NaN converted to None
+    ]
+
+    # This should succeed with valid, spec-compliant JSON
+    json_output = superset_json.dumps(records)
+    parsed = superset_json.loads(json_output)
+
+    # Verify JSON serialization works correctly
+    assert parsed == records
+
+    # Demonstrate what happens WITHOUT the fix
+    # (simulate the old behavior by directly using to_dict)
+    records_without_fix = df.to_dict(orient="records")
+
+    # Verify the records contain actual NaN values (not None)
+    assert np.isnan(records_without_fix[0]["test"])
+    assert records_without_fix[1]["test"] == 5.0
+    assert np.isnan(records_without_fix[2]["test"])
+
+    # Demonstrate the actual bug: without the fix, ignore_nan=False raises ValueError
+    # This is the error users would see without our fix
+    with pytest.raises(
+        ValueError, match="Out of range float values are not JSON compliant"
+    ):
+        superset_json.dumps(records_without_fix, ignore_nan=False)
+
+    # With ignore_nan=True, it works by converting NaN to null
+    # But this requires the flag to be set everywhere - our fix eliminates this need
+    json_with_ignore = superset_json.dumps(records_without_fix, ignore_nan=True)
+    parsed_with_ignore = superset_json.loads(json_with_ignore)
+    # The output is the same, but our fix doesn't require the ignore_nan flag
+    assert parsed_with_ignore[0]["test"] is None
+
+
+def test_df_to_records_with_json_serialization_like_sql_lab() -> None:
+    """
+    Test that mimics the actual SQL Lab serialization flow.
+    This shows how the fix prevents errors in the real usage path.
+    """
+    # Simulate query with NaN results
+    data = [
+        ("user1", 100.0, np.nan),
+        ("user2", np.nan, 50.0),
+        ("user3", 75.0, 25.0),
+    ]
+    cursor_descr: DbapiDescription = [
+        ("name", "varchar", None, None, None, None, False),
+        ("value1", "double", None, None, None, None, False),
+        ("value2", "double", None, None, None, None, False),
+    ]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    # Mimic sql_lab.py:360 - this is where df_to_records is used
+    records = df_to_records(df) or []
+
+    # Mimic sql_lab.py:332 - JSON serialization with Superset's custom json.dumps
+    # This should work without errors
+    json_str = superset_json.dumps(
+        records, default=superset_json.json_iso_dttm_ser, ignore_nan=True
+    )
+
+    # Verify it's valid JSON and NaN values are properly handled as null
+    parsed = superset_json.loads(json_str)
+    assert parsed[0]["value2"] is None  # NaN became null
+    assert parsed[1]["value1"] is None  # NaN became null
+    assert parsed[0]["value1"] == 100.0
+
+    # Also verify it works without ignore_nan flag (since we convert NaN to None)
+    json_str_no_flag = superset_json.dumps(
+        records, default=superset_json.json_iso_dttm_ser, ignore_nan=False
+    )
+    parsed_no_flag = superset_json.loads(json_str_no_flag)
+    assert parsed_no_flag == parsed  # Same result
