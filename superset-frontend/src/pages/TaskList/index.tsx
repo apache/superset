@@ -70,25 +70,22 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   const [forceCancel, setForceCancel] = useState(false);
 
   // Determine dialog message based on task context
-  const getCancelDialogMessage = useCallback(
-    (task: Task) => {
-      const isSharedTask = task.scope === TaskScope.Shared;
-      const subscriberCount = task.subscriber_count || 0;
-      const otherSubscribers = subscriberCount - 1;
+  const getCancelDialogMessage = useCallback((task: Task) => {
+    const isSharedTask = task.scope === TaskScope.Shared;
+    const subscriberCount = task.subscriber_count || 0;
+    const otherSubscribers = subscriberCount - 1;
 
-      // If it's going to abort (private, system, or last subscriber)
-      if (!isSharedTask || subscriberCount <= 1) {
-        return t('This will cancel the task.');
-      }
+    // If it's going to abort (private, system, or last subscriber)
+    if (!isSharedTask || subscriberCount <= 1) {
+      return t('This will cancel the task.');
+    }
 
-      // Shared task with multiple subscribers
-      return t(
-        "You'll be removed from this task. It will continue running for %s other subscriber(s).",
-        otherSubscribers,
-      );
-    },
-    [],
-  );
+    // Shared task with multiple subscribers
+    return t(
+      "You'll be removed from this task. It will continue running for %s other subscriber(s).",
+      otherSubscribers,
+    );
+  }, []);
 
   // Get force cancel message for admin checkbox
   const getForceCancelMessage = useCallback((task: Task) => {
