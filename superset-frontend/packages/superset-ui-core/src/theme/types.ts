@@ -123,6 +123,13 @@ export interface SupersetSpecificTokens {
   brandLogoMargin: string;
   brandLogoHref: string;
   brandLogoHeight: string;
+
+  // Editor-related
+  /**
+   * Background color for code editor text selection.
+   * Defaults to colorPrimaryBgHover if not specified.
+   */
+  colorEditorSelection?: string;
 }
 
 /**

@@ -746,10 +746,12 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # Default theme configuration
 # Leave empty to use Superset's default theme
+# To customize editor selection color, add: "colorEditorSelection": "#fff5cf"
 THEME_DEFAULT: Theme = {"algorithm": "default"}
 
 # Dark theme configuration
 # Applied when user selects dark mode
+# To customize editor selection color, add: "colorEditorSelection": "#5c4d1a"
 THEME_DARK: Theme = {"algorithm": "dark"}
 
 # Theme behavior and user preference settings
