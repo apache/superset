@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-21T21:46:41.044Z",
+  "generated": "2026-01-21T23:22:58.314Z",
   "statistics": {
     "totalDatabases": 67,
     "withDocumentation": 67,
@@ -333,7 +333,19 @@
             }
           }
         ],
-        "notes": "URL-encode special characters in s3_staging_dir (e.g., s3:// becomes s3%3A//)."
+        "notes": "URL-encode special characters in s3_staging_dir (e.g., s3:// becomes s3%3A//).",
+        "custom_errors": [
+          {
+            "regex_name": "SYNTAX_ERROR_REGEX",
+            "message_template": "Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          }
+        ]
       },
       "time_grains": {},
       "score": 0,
@@ -516,7 +528,62 @@
         "warnings": [
           "Google BigQuery Python SDK is not compatible with gevent. Use a worker type other than gevent when deploying with gunicorn."
         ],
-        "docs_url": "https://github.com/googleapis/python-bigquery-sqlalchemy"
+        "docs_url": "https://github.com/googleapis/python-bigquery-sqlalchemy",
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_DATABASE_PERMISSIONS_REGEX",
+            "message_template": "Unable to connect. Verify that the following roles are set on the service account: \"BigQuery Data Viewer\", \"BigQuery Metadata Viewer\", \"BigQuery Job User\" and the following permissions are set \"bigquery.readsessions.create\", \"bigquery.readsessions.getData\"",
+            "error_type": "CONNECTION_DATABASE_PERMISSIONS_ERROR",
+            "category": "Permissions",
+            "description": "Insufficient permissions",
+            "issue_codes": [
+              1017
+            ]
+          },
+          {
+            "regex_name": "TABLE_DOES_NOT_EXIST_REGEX",
+            "message_template": "The table \"%(table)s\" does not exist. A valid table must be used to run this query.",
+            "error_type": "TABLE_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Table not found",
+            "issue_codes": [
+              1003,
+              1005
+            ]
+          },
+          {
+            "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
+            "message_template": "We can't seem to resolve column \"%(column)s\" at line %(location)s.",
+            "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Column not found",
+            "issue_codes": [
+              1003,
+              1004
+            ]
+          },
+          {
+            "regex_name": "SCHEMA_DOES_NOT_EXIST_REGEX",
+            "message_template": "The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query.",
+            "error_type": "SCHEMA_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Schema not found",
+            "issue_codes": [
+              1003,
+              1016
+            ]
+          },
+          {
+            "regex_name": "SYNTAX_ERROR_REGEX",
+            "message_template": "Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          }
+        ]
       },
       "time_grains": {},
       "score": 0,
@@ -1214,6 +1281,120 @@
             "is_recommended": true,
             "notes": "Uses PostgreSQL wire protocol."
           }
+        ],
+        "custom_errors": [
+          {
+            "message_template": "Incorrect username or password.",
+            "error_type": "CONNECTION_INVALID_USERNAME_ERROR",
+            "category": "Authentication",
+            "description": "Invalid username",
+            "issue_codes": [
+              1012
+            ],
+            "invalid_fields": [
+              "username",
+              "password"
+            ]
+          },
+          {
+            "message_template": "Please enter a password.",
+            "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
+            "category": "Authentication",
+            "description": "Access denied",
+            "issue_codes": [
+              1014,
+              1015
+            ],
+            "invalid_fields": [
+              "password"
+            ]
+          },
+          {
+            "message_template": "Hostname \"%(hostname)s\" cannot be resolved.",
+            "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+            "category": "Connection",
+            "description": "Invalid hostname",
+            "issue_codes": [
+              1007
+            ],
+            "invalid_fields": [
+              "host"
+            ]
+          },
+          {
+            "message_template": "Server refused the connection: check hostname and port.",
+            "error_type": "CONNECTION_PORT_CLOSED_ERROR",
+            "category": "Connection",
+            "description": "Port closed or refused",
+            "issue_codes": [
+              1008
+            ],
+            "invalid_fields": [
+              "host",
+              "port"
+            ]
+          },
+          {
+            "message_template": "Unable to connect to database \"%(database)s\"",
+            "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            "category": "Connection",
+            "description": "Unknown database",
+            "issue_codes": [
+              1015
+            ],
+            "invalid_fields": [
+              "database"
+            ]
+          },
+          {
+            "message_template": "Unable to connect to database \"%(database)s\": database does not exist or insufficient permissions",
+            "error_type": "CONNECTION_DATABASE_PERMISSIONS_ERROR",
+            "category": "Permissions",
+            "description": "Insufficient permissions",
+            "issue_codes": [
+              1017
+            ],
+            "invalid_fields": [
+              "database"
+            ]
+          },
+          {
+            "message_template": "Please check your query for syntax errors at or near \"%(err)s\". Then, try running your query again.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          },
+          {
+            "message_template": "Column \"%(column)s\" not found in \"%(view)s\".",
+            "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Column not found",
+            "issue_codes": [
+              1003,
+              1004
+            ]
+          },
+          {
+            "message_template": "Invalid aggregation expression.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          },
+          {
+            "message_template": "\"%(exp)s\" is neither an aggregation function nor appears in the GROUP BY clause.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          }
         ]
       },
       "time_grains": {
@@ -1313,6 +1494,73 @@
           "APACHE_PROJECTS",
           "ANALYTICAL_DATABASES",
           "OPEN_SOURCE"
+        ],
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_ACCESS_DENIED_REGEX",
+            "message_template": "Either the username \"%(username)s\" or the password is incorrect.",
+            "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
+            "category": "Authentication",
+            "description": "Access denied",
+            "issue_codes": [
+              1014,
+              1015
+            ],
+            "invalid_fields": [
+              "username",
+              "password"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
+            "message_template": "Unknown Doris server host \"%(hostname)s\".",
+            "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+            "category": "Connection",
+            "description": "Invalid hostname",
+            "issue_codes": [
+              1007
+            ],
+            "invalid_fields": [
+              "host"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_HOST_DOWN_REGEX",
+            "message_template": "The host \"%(hostname)s\" might be down and can't be reached.",
+            "error_type": "CONNECTION_HOST_DOWN_ERROR",
+            "category": "Connection",
+            "description": "Host unreachable",
+            "issue_codes": [
+              1009
+            ],
+            "invalid_fields": [
+              "host",
+              "port"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
+            "message_template": "Unable to connect to database \"%(database)s\".",
+            "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            "category": "Connection",
+            "description": "Unknown database",
+            "issue_codes": [
+              1015
+            ],
+            "invalid_fields": [
+              "database"
+            ]
+          },
+          {
+            "regex_name": "SYNTAX_ERROR_REGEX",
+            "message_template": "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          }
         ]
       },
       "time_grains": {
@@ -1650,6 +1898,19 @@
               "HOSTED_OPEN_SOURCE"
             ]
           }
+        ],
+        "custom_errors": [
+          {
+            "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
+            "message_template": "We can't seem to resolve the column \"%(column_name)s\"",
+            "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Column not found",
+            "issue_codes": [
+              1003,
+              1004
+            ]
+          }
         ]
       },
       "time_grains": {
@@ -1727,7 +1988,20 @@
           "database": "MotherDuck database name",
           "token": "Service token from MotherDuck dashboard"
         },
-        "docs_url": "https://motherduck.com/docs/getting-started/"
+        "docs_url": "https://motherduck.com/docs/getting-started/",
+        "custom_errors": [
+          {
+            "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
+            "message_template": "We can't seem to resolve the column \"%(column_name)s\"",
+            "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Column not found",
+            "issue_codes": [
+              1003,
+              1004
+            ]
+          }
+        ]
       },
       "time_grains": {},
       "score": 0,
@@ -2159,7 +2433,19 @@
           "CLOUD_GCP",
           "HOSTED_OPEN_SOURCE"
         ],
-        "install_instructions": "pip install \"apache-superset[gsheets]\""
+        "install_instructions": "pip install \"apache-superset[gsheets]\"",
+        "custom_errors": [
+          {
+            "regex_name": "SYNTAX_ERROR_REGEX",
+            "message_template": "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          }
+        ]
       },
       "time_grains": {
         "SECOND": true,
@@ -2755,7 +3041,50 @@
             "notes": "Connection string must be URL-encoded. Special characters like @ need encoding."
           }
         ],
-        "docs_url": "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"
+        "docs_url": "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords",
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_ACCESS_DENIED_REGEX",
+            "message_template": "Either the username \"%(username)s\", password, or database name \"%(database)s\" is incorrect.",
+            "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
+            "category": "Authentication",
+            "description": "Access denied",
+            "issue_codes": [
+              1014,
+              1015
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
+            "message_template": "The hostname \"%(hostname)s\" cannot be resolved.",
+            "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+            "category": "Connection",
+            "description": "Invalid hostname",
+            "issue_codes": [
+              1007
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
+            "message_template": "Port %(port)s on hostname \"%(hostname)s\" refused the connection.",
+            "error_type": "CONNECTION_PORT_CLOSED_ERROR",
+            "category": "Connection",
+            "description": "Port closed or refused",
+            "issue_codes": [
+              1008
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_HOST_DOWN_REGEX",
+            "message_template": "The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s.",
+            "error_type": "CONNECTION_HOST_DOWN_ERROR",
+            "category": "Connection",
+            "description": "Host unreachable",
+            "issue_codes": [
+              1009
+            ]
+          }
+        ]
       },
       "time_grains": {
         "SECOND": true,
@@ -2828,6 +3157,49 @@
           "CLOUD_DATA_WAREHOUSES",
           "ANALYTICAL_DATABASES",
           "PROPRIETARY"
+        ],
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_ACCESS_DENIED_REGEX",
+            "message_template": "Either the username \"%(username)s\", password, or database name \"%(database)s\" is incorrect.",
+            "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
+            "category": "Authentication",
+            "description": "Access denied",
+            "issue_codes": [
+              1014,
+              1015
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
+            "message_template": "The hostname \"%(hostname)s\" cannot be resolved.",
+            "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+            "category": "Connection",
+            "description": "Invalid hostname",
+            "issue_codes": [
+              1007
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
+            "message_template": "Port %(port)s on hostname \"%(hostname)s\" refused the connection.",
+            "error_type": "CONNECTION_PORT_CLOSED_ERROR",
+            "category": "Connection",
+            "description": "Port closed or refused",
+            "issue_codes": [
+              1008
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_HOST_DOWN_REGEX",
+            "message_template": "The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s.",
+            "error_type": "CONNECTION_HOST_DOWN_ERROR",
+            "category": "Connection",
+            "description": "Host unreachable",
+            "issue_codes": [
+              1009
+            ]
+          }
         ]
       },
       "time_grains": {},
@@ -2937,6 +3309,73 @@
             "categories": [
               "CLOUD_AWS",
               "HOSTED_OPEN_SOURCE"
+            ]
+          }
+        ],
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_ACCESS_DENIED_REGEX",
+            "message_template": "Either the username \"%(username)s\" or the password is incorrect.",
+            "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
+            "category": "Authentication",
+            "description": "Access denied",
+            "issue_codes": [
+              1014,
+              1015
+            ],
+            "invalid_fields": [
+              "username",
+              "password"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
+            "message_template": "Unknown MySQL server host \"%(hostname)s\".",
+            "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+            "category": "Connection",
+            "description": "Invalid hostname",
+            "issue_codes": [
+              1007
+            ],
+            "invalid_fields": [
+              "host"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_HOST_DOWN_REGEX",
+            "message_template": "The host \"%(hostname)s\" might be down and can't be reached.",
+            "error_type": "CONNECTION_HOST_DOWN_ERROR",
+            "category": "Connection",
+            "description": "Host unreachable",
+            "issue_codes": [
+              1009
+            ],
+            "invalid_fields": [
+              "host",
+              "port"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
+            "message_template": "Unable to connect to database \"%(database)s\".",
+            "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            "category": "Connection",
+            "description": "Unknown database",
+            "issue_codes": [
+              1015
+            ],
+            "invalid_fields": [
+              "database"
+            ]
+          },
+          {
+            "regex_name": "SYNTAX_ERROR_REGEX",
+            "message_template": "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
             ]
           }
         ]
@@ -3068,6 +3507,73 @@
         "categories": [
           "TRADITIONAL_RDBMS",
           "OPEN_SOURCE"
+        ],
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_ACCESS_DENIED_REGEX",
+            "message_template": "Either the username \"%(username)s\" or the password is incorrect.",
+            "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
+            "category": "Authentication",
+            "description": "Access denied",
+            "issue_codes": [
+              1014,
+              1015
+            ],
+            "invalid_fields": [
+              "username",
+              "password"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
+            "message_template": "Unknown OceanBase server host \"%(hostname)s\".",
+            "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+            "category": "Connection",
+            "description": "Invalid hostname",
+            "issue_codes": [
+              1007
+            ],
+            "invalid_fields": [
+              "host"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_HOST_DOWN_REGEX",
+            "message_template": "The host \"%(hostname)s\" might be down and can't be reached.",
+            "error_type": "CONNECTION_HOST_DOWN_ERROR",
+            "category": "Connection",
+            "description": "Host unreachable",
+            "issue_codes": [
+              1009
+            ],
+            "invalid_fields": [
+              "host",
+              "port"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
+            "message_template": "Unable to connect to database \"%(database)s\".",
+            "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            "category": "Connection",
+            "description": "Unknown database",
+            "issue_codes": [
+              1015
+            ],
+            "invalid_fields": [
+              "database"
+            ]
+          },
+          {
+            "regex_name": "SYNTAX_ERROR_REGEX",
+            "message_template": "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          }
         ]
       },
       "time_grains": {},
@@ -3099,7 +3605,96 @@
           "sqlalchemy-ocient"
         ],
         "connection_string": "ocient://{username}:{password}@{host}:{port}/{database}",
-        "install_instructions": "pip install sqlalchemy-ocient"
+        "install_instructions": "pip install sqlalchemy-ocient",
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_INVALID_USERNAME_REGEX",
+            "message_template": "The username \"%(username)s\" does not exist.",
+            "error_type": "CONNECTION_INVALID_USERNAME_ERROR",
+            "category": "Authentication",
+            "description": "Invalid username",
+            "issue_codes": [
+              1012
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_PASSWORD_REGEX",
+            "message_template": "The user/password combination is not valid (Incorrect password for user).",
+            "error_type": "CONNECTION_INVALID_PASSWORD_ERROR",
+            "category": "Authentication",
+            "description": "Invalid password",
+            "issue_codes": [
+              1013
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
+            "message_template": "Could not connect to database: \"%(database)s\"",
+            "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            "category": "Connection",
+            "description": "Unknown database",
+            "issue_codes": [
+              1015
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
+            "message_template": "Could not resolve hostname: \"%(host)s\".",
+            "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+            "category": "Connection",
+            "description": "Invalid hostname",
+            "issue_codes": [
+              1007
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_PORT_ERROR",
+            "message_template": "Port out of range 0-65535",
+            "error_type": "CONNECTION_INVALID_PORT_ERROR"
+          },
+          {
+            "regex_name": "INVALID_CONNECTION_STRING_REGEX",
+            "message_template": "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.",
+            "error_type": "GENERIC_DB_ENGINE_ERROR",
+            "category": "General",
+            "description": "Database engine error",
+            "issue_codes": [
+              1002
+            ]
+          },
+          {
+            "regex_name": "SYNTAX_ERROR_REGEX",
+            "message_template": "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          },
+          {
+            "regex_name": "TABLE_DOES_NOT_EXIST_REGEX",
+            "message_template": "Table or View \"%(table)s\" does not exist.",
+            "error_type": "TABLE_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Table not found",
+            "issue_codes": [
+              1003,
+              1005
+            ]
+          },
+          {
+            "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
+            "message_template": "Invalid reference to column: \"%(column)s\"",
+            "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Column not found",
+            "issue_codes": [
+              1003,
+              1004
+            ]
+          }
+        ]
       },
       "time_grains": {
         "SECOND": true,
@@ -3446,6 +4041,124 @@
               "HOSTED_OPEN_SOURCE"
             ]
           }
+        ],
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_INVALID_USERNAME_REGEX",
+            "message_template": "The username \"%(username)s\" does not exist.",
+            "error_type": "CONNECTION_INVALID_USERNAME_ERROR",
+            "category": "Authentication",
+            "description": "Invalid username",
+            "issue_codes": [
+              1012
+            ],
+            "invalid_fields": [
+              "username"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_PASSWORD_REGEX",
+            "message_template": "The password provided for username \"%(username)s\" is incorrect.",
+            "error_type": "CONNECTION_INVALID_PASSWORD_ERROR",
+            "category": "Authentication",
+            "description": "Invalid password",
+            "issue_codes": [
+              1013
+            ],
+            "invalid_fields": [
+              "username",
+              "password"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_PASSWORD_NEEDED_REGEX",
+            "message_template": "Please re-enter the password.",
+            "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
+            "category": "Authentication",
+            "description": "Access denied",
+            "issue_codes": [
+              1014,
+              1015
+            ],
+            "invalid_fields": [
+              "password"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
+            "message_template": "The hostname \"%(hostname)s\" cannot be resolved.",
+            "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+            "category": "Connection",
+            "description": "Invalid hostname",
+            "issue_codes": [
+              1007
+            ],
+            "invalid_fields": [
+              "host"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
+            "message_template": "Port %(port)s on hostname \"%(hostname)s\" refused the connection.",
+            "error_type": "CONNECTION_PORT_CLOSED_ERROR",
+            "category": "Connection",
+            "description": "Port closed or refused",
+            "issue_codes": [
+              1008
+            ],
+            "invalid_fields": [
+              "host",
+              "port"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_HOST_DOWN_REGEX",
+            "message_template": "The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s.",
+            "error_type": "CONNECTION_HOST_DOWN_ERROR",
+            "category": "Connection",
+            "description": "Host unreachable",
+            "issue_codes": [
+              1009
+            ],
+            "invalid_fields": [
+              "host",
+              "port"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
+            "message_template": "Unable to connect to database \"%(database)s\".",
+            "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            "category": "Connection",
+            "description": "Unknown database",
+            "issue_codes": [
+              1015
+            ],
+            "invalid_fields": [
+              "database"
+            ]
+          },
+          {
+            "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
+            "message_template": "We can't seem to resolve the column \"%(column_name)s\" at line %(location)s.",
+            "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Column not found",
+            "issue_codes": [
+              1003,
+              1004
+            ]
+          },
+          {
+            "regex_name": "SYNTAX_ERROR_REGEX",
+            "message_template": "Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          }
         ]
       },
       "time_grains": {
@@ -3514,6 +4227,92 @@
             "pypi_package": "pyhive",
             "connection_string": "presto://{hostname}:{port}/{database}",
             "is_recommended": true
+          }
+        ],
+        "custom_errors": [
+          {
+            "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
+            "message_template": "We can't seem to resolve the column \"%(column_name)s\" at line %(location)s.",
+            "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Column not found",
+            "issue_codes": [
+              1003,
+              1004
+            ]
+          },
+          {
+            "regex_name": "TABLE_DOES_NOT_EXIST_REGEX",
+            "message_template": "The table \"%(table_name)s\" does not exist. A valid table must be used to run this query.",
+            "error_type": "TABLE_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Table not found",
+            "issue_codes": [
+              1003,
+              1005
+            ]
+          },
+          {
+            "regex_name": "SCHEMA_DOES_NOT_EXIST_REGEX",
+            "message_template": "The schema \"%(schema_name)s\" does not exist. A valid schema must be used to run this query.",
+            "error_type": "SCHEMA_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Schema not found",
+            "issue_codes": [
+              1003,
+              1016
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_ACCESS_DENIED_REGEX",
+            "message_template": "Either the username \"%(username)s\" or the password is incorrect.",
+            "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
+            "category": "Authentication",
+            "description": "Access denied",
+            "issue_codes": [
+              1014,
+              1015
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
+            "message_template": "The hostname \"%(hostname)s\" cannot be resolved.",
+            "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+            "category": "Connection",
+            "description": "Invalid hostname",
+            "issue_codes": [
+              1007
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_HOST_DOWN_REGEX",
+            "message_template": "The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s.",
+            "error_type": "CONNECTION_HOST_DOWN_ERROR",
+            "category": "Connection",
+            "description": "Host unreachable",
+            "issue_codes": [
+              1009
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
+            "message_template": "Port %(port)s on hostname \"%(hostname)s\" refused the connection.",
+            "error_type": "CONNECTION_PORT_CLOSED_ERROR",
+            "category": "Connection",
+            "description": "Port closed or refused",
+            "issue_codes": [
+              1008
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            "message_template": "Unable to connect to catalog named \"%(catalog_name)s\".",
+            "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            "category": "Connection",
+            "description": "Unknown database",
+            "issue_codes": [
+              1015
+            ]
           }
         ]
       },
@@ -3624,6 +4423,77 @@
                 "user": "IAMR:<superset iam role name>"
               }
             }
+          }
+        ],
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_ACCESS_DENIED_REGEX",
+            "message_template": "Either the username \"%(username)s\" or the password is incorrect.",
+            "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
+            "category": "Authentication",
+            "description": "Access denied",
+            "issue_codes": [
+              1014,
+              1015
+            ],
+            "invalid_fields": [
+              "username",
+              "password"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
+            "message_template": "The hostname \"%(hostname)s\" cannot be resolved.",
+            "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+            "category": "Connection",
+            "description": "Invalid hostname",
+            "issue_codes": [
+              1007
+            ],
+            "invalid_fields": [
+              "host"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
+            "message_template": "Port %(port)s on hostname \"%(hostname)s\" refused the connection.",
+            "error_type": "CONNECTION_PORT_CLOSED_ERROR",
+            "category": "Connection",
+            "description": "Port closed or refused",
+            "issue_codes": [
+              1008
+            ],
+            "invalid_fields": [
+              "host",
+              "port"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_HOST_DOWN_REGEX",
+            "message_template": "The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s.",
+            "error_type": "CONNECTION_HOST_DOWN_ERROR",
+            "category": "Connection",
+            "description": "Host unreachable",
+            "issue_codes": [
+              1009
+            ],
+            "invalid_fields": [
+              "host",
+              "port"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
+            "message_template": "We were unable to connect to your database named \"%(database)s\". Please verify your database name and try again.",
+            "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            "category": "Connection",
+            "description": "Unknown database",
+            "issue_codes": [
+              1015
+            ],
+            "invalid_fields": [
+              "database"
+            ]
           }
         ]
       },
@@ -3858,7 +4728,29 @@
           }
         ],
         "notes": "Schema is not required in connection string. Ensure user has privileges for all databases/schemas/tables/views/warehouses.",
-        "docs_url": "https://docs.snowflake.com/en/user-guide/key-pair-auth.html"
+        "docs_url": "https://docs.snowflake.com/en/user-guide/key-pair-auth.html",
+        "custom_errors": [
+          {
+            "regex_name": "OBJECT_DOES_NOT_EXIST_REGEX",
+            "message_template": "%(object)s does not exist in this database.",
+            "error_type": "OBJECT_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Object not found",
+            "issue_codes": [
+              1029
+            ]
+          },
+          {
+            "regex_name": "SYNTAX_ERROR_REGEX",
+            "message_template": "Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
+          }
+        ]
       },
       "time_grains": {
         "SECOND": true,
@@ -4039,7 +4931,20 @@
         ],
         "pypi_packages": [],
         "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",
-        "notes": "No additional library needed. SQLite is bundled with Python."
+        "notes": "No additional library needed. SQLite is bundled with Python.",
+        "custom_errors": [
+          {
+            "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
+            "message_template": "We can't seem to resolve the column \"%(column_name)s\"",
+            "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Column not found",
+            "issue_codes": [
+              1003,
+              1004
+            ]
+          }
+        ]
       },
       "time_grains": {
         "SECOND": true,
@@ -4182,6 +5087,36 @@
               "database": "Database name"
             },
             "docs_url": "https://docs.celerdata.com/"
+          }
+        ],
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_ACCESS_DENIED_REGEX",
+            "message_template": "Either the username \"%(username)s\" or the password is incorrect.",
+            "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
+            "category": "Authentication",
+            "description": "Access denied",
+            "issue_codes": [
+              1014,
+              1015
+            ],
+            "invalid_fields": [
+              "username",
+              "password"
+            ]
+          },
+          {
+            "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
+            "message_template": "Unable to connect to database \"%(database)s\".",
+            "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            "category": "Connection",
+            "description": "Unknown database",
+            "issue_codes": [
+              1015
+            ],
+            "invalid_fields": [
+              "database"
+            ]
           }
         ]
       },
