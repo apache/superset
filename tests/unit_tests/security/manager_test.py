@@ -1044,6 +1044,82 @@ def test_query_context_modified_orderby(mocker: MockerFixture) -> None:
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_orderby_visible_column_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that guest user can sort by a visible column (whitelist approach).
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name", "country"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [["name", True]],  # Sort by visible column
+    }
+    query_context.queries = []
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_hidden_column_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that guest user cannot sort by a hidden column (data exfiltration prevention).
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [["credit_card_number", True]],  # Hidden column - blocked!
+    }
+    query_context.queries = []
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_direction_change_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that changing sort direction (ASC/DESC) is allowed for visible columns.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+        "orderby": [["name", True]],  # Original: DESC
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [["name", False]],  # Changed to ASC - should be allowed
+    }
+    query_context.queries = []
+
+    assert not query_context_modified(query_context)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
