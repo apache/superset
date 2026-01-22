@@ -45,8 +45,7 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    """Test datetime conversion for various MongoDB column types.
-    """
+    """Test datetime conversion for various MongoDB column types."""
     from superset.db_engine_specs.mongodb import (
         MongoDBEngineSpec as spec,  # noqa: N813
     )
@@ -105,8 +104,7 @@ def test_time_grain_expressions(
     grain: Optional[TimeGrain],
     expected_expression: str,
 ) -> None:
-    """Test time grain expressions for MongoDB.
-    """
+    """Test time grain expressions for MongoDB."""
     from superset.db_engine_specs.mongodb import (
         MongoDBEngineSpec as spec,  # noqa: N813
     )

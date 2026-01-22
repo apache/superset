@@ -39,9 +39,7 @@ class MongoDBEngineSpec(BaseEngineSpec):
     force_column_alias_quotes = False
 
     metadata = {
-        "description": (
-            "MongoDB is a document-oriented, operational NoSQL database."
-        ),
+        "description": ("MongoDB is a document-oriented, operational NoSQL database."),
         "logo": "mongodb.png",
         "homepage_url": "https://www.mongodb.com/",
         "categories": [
@@ -70,8 +68,7 @@ class MongoDBEngineSpec(BaseEngineSpec):
         TimeGrain.HOUR: "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))",
         TimeGrain.DAY: "DATETIME({col}, 'start of day')",
         TimeGrain.WEEK: (
-            "DATETIME({col}, 'start of day', "
-            "-strftime('%w', {col}) || ' days')"
+            "DATETIME({col}, 'start of day', -strftime('%w', {col}) || ' days')"
         ),
         TimeGrain.MONTH: "DATETIME({col}, 'start of month')",
         TimeGrain.QUARTER: (
@@ -100,8 +97,7 @@ class MongoDBEngineSpec(BaseEngineSpec):
         dttm: datetime,
         db_extra: Optional[dict[str, Any]] = None,
     ) -> Optional[str]:
-        """Convert Python datetime to MongoDB/SQL datetime string.
-        """
+        """Convert Python datetime to MongoDB/SQL datetime string."""
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, (types.String, types.DateTime)):
