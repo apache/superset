@@ -50,3 +50,5 @@ export default class ContourChartPlugin extends ChartPlugin {
     });
   }
 }
+
+export * from './getSafeCellSize';

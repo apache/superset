@@ -25,6 +25,7 @@ import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import { ColorType } from '../../types';
 import TooltipRow from '../../TooltipRow';
+import { getSafeCellSize } from './getSafeCellSize';
 import {
   createTooltipContent,
   CommonTooltipRows,
@@ -159,38 +160,17 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
     return baseTooltipContent(o);
   };
 
-  const MIN_CELL_SIZE = 10;
-  const MAX_CELL_SIZE = 5000;
-  const MAX_GRID_CELLS = 1_000_000;
-
-  let parsedCellSize = Number(cellSize || 200);
-  if (!Number.isFinite(parsedCellSize)) {
-    parsedCellSize = 200;
-  }
-
-  let safeCellSize = Math.min(
-    MAX_CELL_SIZE,
-    Math.max(MIN_CELL_SIZE, parsedCellSize),
-  );
-
-  const viewport = fd.viewport;
-  if (viewport && viewport.width > 0 && viewport.height > 0) {
-    const estimatedCells =
-      (viewport.width / safeCellSize) * (viewport.height / safeCellSize);
-
-    if (estimatedCells > MAX_GRID_CELLS) {
-      const scaleFactor = Math.sqrt(estimatedCells / MAX_GRID_CELLS);
-      const adjustedCellSize = Math.ceil(safeCellSize * scaleFactor);
-
+  const safeCellSize = getSafeCellSize({
+    cellSize,
+    viewport: fd.viewport,
+    onAutoAdjust: ({ original, adjusted, estimatedCells }) => {
       console.warn(
-        `[DeckGL Contour] cellSize=${safeCellSize} would create ~${Math.round(
+        `[DeckGL Contour] cellSize=${original} would create ~${Math.round(
           estimatedCells,
-        )} cells. Auto-adjusted to ${adjustedCellSize} to prevent WebGL crash.`,
+        )} cells. Auto-adjusted to ${adjusted} to prevent WebGL crash.`,
       );
-
-      safeCellSize = Math.min(MAX_CELL_SIZE, adjustedCellSize);
-    }
-  }
+    },
+  });
 
   return new ContourLayer({
     id: `contourLayer-${fd.slice_id}`,
