@@ -929,6 +929,8 @@ THEME_DEFAULT: Theme = {
         "fontWeightNormal": "400",
         "fontWeightLight": "300",
         "fontWeightStrong": "500",
+        # Editor selection color (for SQL Lab text highlighting)
+        "colorEditorSelection": "#fff5cf",
     },
     "algorithm": "default",
 }
@@ -938,6 +940,11 @@ THEME_DEFAULT: Theme = {
 # Set to None to disable dark mode
 THEME_DARK: Optional[Theme] = {
     **THEME_DEFAULT,
+    "token": {
+        **THEME_DEFAULT["token"],
+        # Darker selection color for dark mode
+        "colorEditorSelection": "#5c4d1a",
+    },
     "algorithm": "dark",
 }
 

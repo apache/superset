@@ -159,6 +159,13 @@ export interface SupersetSpecificTokens {
   echartsOptionsOverridesByChartType?: {
     [chartType: string]: any;
   };
+
+  // Editor-related
+  /**
+   * Background color for code editor text selection.
+   * Defaults to colorPrimaryBgHover if not specified.
+   */
+  colorEditorSelection?: string;
 }
 
 /**
