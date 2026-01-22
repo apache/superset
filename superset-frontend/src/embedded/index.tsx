@@ -43,12 +43,14 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
+import setupEmbedded from './setupEmbedded';
 
 setupPlugins();
 setupCodeOverrides({ embedded: true });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 const bootstrapData = getBootstrapData();
+setupEmbedded(bootstrapData);
 
 function log(...info: unknown[]) {
   if (debugMode) logging.debug(`[superset]`, ...info);
