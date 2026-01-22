@@ -82,11 +82,10 @@ class MongoDBEngineSpec(BaseEngineSpec):
         TimeGrain.WEEK_ENDING_SATURDAY: "DATETIME({col}, 'start of day', 'weekday 6')",
         TimeGrain.WEEK_ENDING_SUNDAY: "DATETIME({col}, 'start of day', 'weekday 0')",
         TimeGrain.WEEK_STARTING_SUNDAY: (
-            "DATETIME({col}, 'start of day', -strftime('%w', {col}) || ' days')"
+            "DATETIME({col}, 'start of day', 'weekday 0', '-7 days')"
         ),
         TimeGrain.WEEK_STARTING_MONDAY: (
-            "DATETIME({col}, 'start of day', "
-            "'-' || ((strftime('%w', {col}) + 6) % 7) || ' days')"
+            "DATETIME({col}, 'start of day', 'weekday 1', '-7 days')"
         ),
     }
 

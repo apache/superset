@@ -61,7 +61,7 @@ def test_epoch_to_dttm() -> None:
     )
 
     # MongoDB engine just passes through the column expression
-    assert spec.epoch_to_dttm() == "{col}"
+    assert spec.epoch_to_dttm() == "datetime({col}, 'unixepoch')"
 
 
 @pytest.mark.parametrize(
