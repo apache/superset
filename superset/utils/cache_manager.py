@@ -35,14 +35,35 @@ _HASH_METHODS: dict[str, Callable[..., Any]] = {
 }
 
 
-def get_cache_hash_method() -> Callable[..., Any]:
+class ConfigurableHashMethod:
     """
-    Get the hash method based on the HASH_ALGORITHM config.
+    A callable that defers hash algorithm selection to runtime.
 
-    Returns the hashlib function corresponding to the configured algorithm.
+    Flask-caching's memoize decorator evaluates hash_method at decoration time
+    (module import), but we need to read HASH_ALGORITHM config at function call
+    time when the app context is available.
+
+    This class acts like a hashlib function but looks up the configured
+    algorithm when called.
     """
-    algorithm = current_app.config["HASH_ALGORITHM"]
-    return _HASH_METHODS[algorithm]
+
+    def __call__(self, data: bytes = b"") -> Any:
+        """
+        Create a hash object using the configured algorithm.
+
+        Args:
+            data: Optional initial data to hash
+
+        Returns:
+            A hashlib hash object (e.g., sha256 or md5)
+        """
+        algorithm = current_app.config["HASH_ALGORITHM"]
+        hash_func = _HASH_METHODS[algorithm]
+        return hash_func(data)
+
+
+# Singleton instance to use as default hash_method
+configurable_hash_method = ConfigurableHashMethod()
 
 
 class SupersetCache(Cache):
@@ -64,13 +85,11 @@ class SupersetCache(Cache):
         unless: Callable[..., bool] | None = None,
         forced_update: Callable[..., bool] | None = None,
         response_filter: Callable[..., Any] | None = None,
-        hash_method: Callable[..., Any] | None = None,
+        hash_method: Callable[..., Any] = configurable_hash_method,
         cache_none: bool = False,
         source_check: bool | None = None,
         args_to_ignore: Any | None = None,
     ) -> Callable[..., Any]:
-        if hash_method is None:
-            hash_method = get_cache_hash_method()
         return super().memoize(
             timeout=timeout,
             make_name=make_name,
@@ -91,14 +110,12 @@ class SupersetCache(Cache):
         forced_update: Callable[..., bool] | None = None,
         response_filter: Callable[..., Any] | None = None,
         query_string: bool = False,
-        hash_method: Callable[..., Any] | None = None,
+        hash_method: Callable[..., Any] = configurable_hash_method,
         cache_none: bool = False,
         make_cache_key: Callable[..., Any] | None = None,
         source_check: bool | None = None,
         response_hit_indication: bool | None = False,
     ) -> Callable[..., Any]:
-        if hash_method is None:
-            hash_method = get_cache_hash_method()
         return super().cached(
             timeout=timeout,
             key_prefix=key_prefix,
@@ -119,12 +136,10 @@ class SupersetCache(Cache):
         make_name: Callable[..., Any] | None = None,
         timeout: Callable[..., Any] | None = None,
         forced_update: bool = False,
-        hash_method: Callable[..., Any] | None = None,
+        hash_method: Callable[..., Any] = configurable_hash_method,
         source_check: bool | None = False,
         args_to_ignore: Any | None = None,
     ) -> Callable[..., Any]:
-        if hash_method is None:
-            hash_method = get_cache_hash_method()
         return super()._memoize_make_cache_key(
             make_name=make_name,
             timeout=timeout,

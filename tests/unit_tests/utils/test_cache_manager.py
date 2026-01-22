@@ -20,84 +20,71 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.utils.cache_manager import (
-    get_cache_hash_method,
+    configurable_hash_method,
+    ConfigurableHashMethod,
     SupersetCache,
 )
 
 
-def test_get_cache_hash_method_returns_sha256():
-    """Test that get_cache_hash_method returns sha256 when config is sha256."""
+def test_configurable_hash_method_uses_sha256():
+    """Test ConfigurableHashMethod uses sha256 when configured."""
     mock_app = MagicMock()
     mock_app.config = {"HASH_ALGORITHM": "sha256"}
 
     with patch("superset.utils.cache_manager.current_app", mock_app):
-        result = get_cache_hash_method()
-        assert result == hashlib.sha256
+        hash_obj = configurable_hash_method(b"test")
+        # Verify it returns a sha256 hash object
+        assert hash_obj.hexdigest() == hashlib.sha256(b"test").hexdigest()
 
 
-def test_get_cache_hash_method_returns_md5():
-    """Test that get_cache_hash_method returns md5 when config is md5."""
+def test_configurable_hash_method_uses_md5():
+    """Test ConfigurableHashMethod uses md5 when configured."""
     mock_app = MagicMock()
     mock_app.config = {"HASH_ALGORITHM": "md5"}
 
     with patch("superset.utils.cache_manager.current_app", mock_app):
-        result = get_cache_hash_method()
-        assert result == hashlib.md5
+        hash_obj = configurable_hash_method(b"test")
+        # Verify it returns a md5 hash object
+        assert hash_obj.hexdigest() == hashlib.md5(b"test").hexdigest()  # noqa: S324
 
 
-def test_superset_cache_memoize_uses_config_hash_method():
-    """Test that SupersetCache.memoize uses config-based hash method."""
+def test_configurable_hash_method_empty_data():
+    """Test ConfigurableHashMethod with empty data."""
     mock_app = MagicMock()
     mock_app.config = {"HASH_ALGORITHM": "sha256"}
 
+    with patch("superset.utils.cache_manager.current_app", mock_app):
+        hash_obj = configurable_hash_method()
+        assert hash_obj.hexdigest() == hashlib.sha256(b"").hexdigest()
+
+
+def test_configurable_hash_method_is_callable():
+    """Test that ConfigurableHashMethod instance is callable."""
+    method = ConfigurableHashMethod()
+    assert callable(method)
+
+
+def test_superset_cache_memoize_uses_configurable_hash():
+    """Test that SupersetCache.memoize uses configurable_hash_method by default."""
     cache = SupersetCache()
 
-    with (
-        patch("superset.utils.cache_manager.current_app", mock_app),
-        patch.object(
-            cache.__class__.__bases__[0], "memoize", return_value=lambda f: f
-        ) as mock_memoize,
-    ):
+    with patch.object(
+        cache.__class__.__bases__[0], "memoize", return_value=lambda f: f
+    ) as mock_memoize:
         cache.memoize(timeout=300)
 
         mock_memoize.assert_called_once()
         call_kwargs = mock_memoize.call_args[1]
-        assert call_kwargs["hash_method"] == hashlib.sha256
-
-
-def test_superset_cache_memoize_with_md5_config():
-    """Test that SupersetCache.memoize uses md5 when configured."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": "md5"}
-
-    cache = SupersetCache()
-
-    with (
-        patch("superset.utils.cache_manager.current_app", mock_app),
-        patch.object(
-            cache.__class__.__bases__[0], "memoize", return_value=lambda f: f
-        ) as mock_memoize,
-    ):
-        cache.memoize(timeout=300)
-
-        mock_memoize.assert_called_once()
-        call_kwargs = mock_memoize.call_args[1]
-        assert call_kwargs["hash_method"] == hashlib.md5
+        assert call_kwargs["hash_method"] is configurable_hash_method
 
 
 def test_superset_cache_memoize_allows_explicit_hash_method():
     """Test that SupersetCache.memoize allows explicit hash_method override."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": "sha256"}
-
     cache = SupersetCache()
 
-    with (
-        patch("superset.utils.cache_manager.current_app", mock_app),
-        patch.object(
-            cache.__class__.__bases__[0], "memoize", return_value=lambda f: f
-        ) as mock_memoize,
-    ):
+    with patch.object(
+        cache.__class__.__bases__[0], "memoize", return_value=lambda f: f
+    ) as mock_memoize:
         cache.memoize(timeout=300, hash_method=hashlib.md5)
 
         mock_memoize.assert_called_once()
@@ -105,59 +92,27 @@ def test_superset_cache_memoize_allows_explicit_hash_method():
         assert call_kwargs["hash_method"] == hashlib.md5
 
 
-def test_superset_cache_cached_uses_config_hash_method():
-    """Test that SupersetCache.cached uses config-based hash method."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": "sha256"}
-
+def test_superset_cache_cached_uses_configurable_hash():
+    """Test that SupersetCache.cached uses configurable_hash_method by default."""
     cache = SupersetCache()
 
-    with (
-        patch("superset.utils.cache_manager.current_app", mock_app),
-        patch.object(
-            cache.__class__.__bases__[0], "cached", return_value=lambda f: f
-        ) as mock_cached,
-    ):
+    with patch.object(
+        cache.__class__.__bases__[0], "cached", return_value=lambda f: f
+    ) as mock_cached:
         cache.cached(timeout=300)
 
         mock_cached.assert_called_once()
         call_kwargs = mock_cached.call_args[1]
-        assert call_kwargs["hash_method"] == hashlib.sha256
-
-
-def test_superset_cache_cached_with_md5_config():
-    """Test that SupersetCache.cached uses md5 when configured."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": "md5"}
-
-    cache = SupersetCache()
-
-    with (
-        patch("superset.utils.cache_manager.current_app", mock_app),
-        patch.object(
-            cache.__class__.__bases__[0], "cached", return_value=lambda f: f
-        ) as mock_cached,
-    ):
-        cache.cached(timeout=300)
-
-        mock_cached.assert_called_once()
-        call_kwargs = mock_cached.call_args[1]
-        assert call_kwargs["hash_method"] == hashlib.md5
+        assert call_kwargs["hash_method"] is configurable_hash_method
 
 
 def test_superset_cache_cached_allows_explicit_hash_method():
     """Test that SupersetCache.cached allows explicit hash_method override."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": "sha256"}
-
     cache = SupersetCache()
 
-    with (
-        patch("superset.utils.cache_manager.current_app", mock_app),
-        patch.object(
-            cache.__class__.__bases__[0], "cached", return_value=lambda f: f
-        ) as mock_cached,
-    ):
+    with patch.object(
+        cache.__class__.__bases__[0], "cached", return_value=lambda f: f
+    ) as mock_cached:
         cache.cached(timeout=300, hash_method=hashlib.md5)
 
         mock_cached.assert_called_once()
@@ -165,43 +120,31 @@ def test_superset_cache_cached_allows_explicit_hash_method():
         assert call_kwargs["hash_method"] == hashlib.md5
 
 
-def test_superset_cache_memoize_make_cache_key_uses_config():
-    """Test that SupersetCache._memoize_make_cache_key uses config hash method."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": "sha256"}
-
+def test_superset_cache_memoize_make_cache_key_uses_configurable_hash():
+    """Test _memoize_make_cache_key uses configurable_hash_method by default."""
     cache = SupersetCache()
 
-    with (
-        patch("superset.utils.cache_manager.current_app", mock_app),
-        patch.object(
-            cache.__class__.__bases__[0],
-            "_memoize_make_cache_key",
-            return_value=lambda *args, **kwargs: "cache_key",
-        ) as mock_make_key,
-    ):
+    with patch.object(
+        cache.__class__.__bases__[0],
+        "_memoize_make_cache_key",
+        return_value=lambda *args, **kwargs: "cache_key",
+    ) as mock_make_key:
         cache._memoize_make_cache_key(make_name=None, timeout=300)
 
         mock_make_key.assert_called_once()
         call_kwargs = mock_make_key.call_args[1]
-        assert call_kwargs["hash_method"] == hashlib.sha256
+        assert call_kwargs["hash_method"] is configurable_hash_method
 
 
 def test_superset_cache_memoize_make_cache_key_allows_explicit_hash():
     """Test _memoize_make_cache_key allows explicit hash_method override."""
-    mock_app = MagicMock()
-    mock_app.config = {"HASH_ALGORITHM": "sha256"}
-
     cache = SupersetCache()
 
-    with (
-        patch("superset.utils.cache_manager.current_app", mock_app),
-        patch.object(
-            cache.__class__.__bases__[0],
-            "_memoize_make_cache_key",
-            return_value=lambda *args, **kwargs: "cache_key",
-        ) as mock_make_key,
-    ):
+    with patch.object(
+        cache.__class__.__bases__[0],
+        "_memoize_make_cache_key",
+        return_value=lambda *args, **kwargs: "cache_key",
+    ) as mock_make_key:
         cache._memoize_make_cache_key(
             make_name=None, timeout=300, hash_method=hashlib.md5
         )
@@ -212,17 +155,17 @@ def test_superset_cache_memoize_make_cache_key_allows_explicit_hash():
 
 
 @pytest.mark.parametrize(
-    "algorithm,expected_hash_method",
+    "algorithm,expected_digest",
     [
-        ("sha256", hashlib.sha256),
-        ("md5", hashlib.md5),
+        ("sha256", hashlib.sha256(b"test_data").hexdigest()),
+        ("md5", hashlib.md5(b"test_data").hexdigest()),  # noqa: S324
     ],
 )
-def test_get_cache_hash_method_parametrized(algorithm, expected_hash_method):
-    """Parametrized test for get_cache_hash_method with different algorithms."""
+def test_configurable_hash_method_parametrized(algorithm, expected_digest):
+    """Parametrized test for ConfigurableHashMethod with different algorithms."""
     mock_app = MagicMock()
     mock_app.config = {"HASH_ALGORITHM": algorithm}
 
     with patch("superset.utils.cache_manager.current_app", mock_app):
-        result = get_cache_hash_method()
-        assert result == expected_hash_method
+        hash_obj = configurable_hash_method(b"test_data")
+        assert hash_obj.hexdigest() == expected_digest
