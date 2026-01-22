@@ -18,12 +18,15 @@
 from datetime import datetime, timedelta
 from functools import partial
 from typing import cast
+from uuid import UUID
 
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.daos.database import DatabaseUserOAuth2TokensDAO
+from superset.daos.key_value import KeyValueDAO
 from superset.databases.schemas import OAuth2ProviderResponseSchema
 from superset.exceptions import OAuth2Error
+from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.superset_typing import OAuth2State
 from superset.utils.decorators import on_error, transaction
@@ -50,8 +53,24 @@ class OAuth2StoreTokenCommand(BaseCommand):
         if oauth2_config is None:
             raise OAuth2Error("No configuration found for OAuth2")
 
-        # Pass PKCE code_verifier if present in state (RFC 7636)
-        code_verifier = self._state.get("code_verifier")
+        # Look up PKCE code_verifier from KV store (RFC 7636)
+        code_verifier = None
+        tab_id = self._state["tab_id"]
+        try:
+            tab_uuid = UUID(tab_id)
+        except ValueError:
+            tab_uuid = None
+
+        if tab_uuid:
+            kv_value = KeyValueDAO.get_value(
+                resource=KeyValueResource.PKCE_CODE_VERIFIER,
+                key=tab_uuid,
+                codec=JsonKeyValueCodec(),
+            )
+            if kv_value:
+                code_verifier = kv_value["code_verifier"]
+                KeyValueDAO.delete_entry(KeyValueResource.PKCE_CODE_VERIFIER, tab_uuid)
+
         token_response = self._database.db_engine_spec.get_oauth2_token(
             oauth2_config,
             self._parameters["code"],

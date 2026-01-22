@@ -624,6 +624,10 @@ def test_oauth2_happy_path(
         "expires_in": 3600,
         "refresh_token": "ZZZ",
     }
+    mocker.patch(
+        "superset.commands.database.oauth2.KeyValueDAO.get_value",
+        return_value=None,
+    )
 
     state: OAuth2State = {
         "user_id": 1,
@@ -696,6 +700,10 @@ def test_oauth2_permissions(
         "expires_in": 3600,
         "refresh_token": "ZZZ",
     }
+    mocker.patch(
+        "superset.commands.database.oauth2.KeyValueDAO.get_value",
+        return_value=None,
+    )
 
     state: OAuth2State = {
         "user_id": 1,
@@ -773,6 +781,10 @@ def test_oauth2_multiple_tokens(
             "refresh_token": "ZZZ2",
         },
     ]
+    mocker.patch(
+        "superset.commands.database.oauth2.KeyValueDAO.get_value",
+        return_value=None,
+    )
 
     state: OAuth2State = {
         "user_id": 1,
