@@ -19,6 +19,7 @@ from functools import partial
 from typing import Optional
 
 from flask_babel import lazy_gettext as _
+from sqlalchemy import func
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
@@ -85,15 +86,57 @@ class DeleteChartCommand(BaseCommand):
         This method cleans up those references to prevent issues during dashboard
         export/import.
         """
-        # Find all dashboards that contain this chart
-        dashboards = (
-            db.session.query(Dashboard)
+
+        # First check how many dashboards contain this chart
+        dashboard_count = (
+            db.session.query(func.count(Dashboard.id))
+            .filter(Dashboard.slices.any(id=chart_id))  # type: ignore[attr-defined]
+            .scalar()
+        )
+
+        if dashboard_count == 0:
+            return
+
+        # Log warning if cleaning up many dashboards
+        if dashboard_count > 100:
+            logger.warning(
+                "Chart %s is on %d dashboards. "
+                "Cleaning up metadata may take some time.",
+                chart_id,
+                dashboard_count,
+            )
+
+        # Use a reasonable limit to prevent memory issues with extremely popular charts
+        if dashboard_count > (safety_limit := 1000):
+            logger.error(
+                "Chart %s is on %d dashboards (exceeds safety limit of %d). "
+                "Skipping metadata cleanup. "
+                "Manual intervention may be required for export/import.",
+                chart_id,
+                dashboard_count,
+                safety_limit,
+            )
+            return
+
+        # Query only ID and json_metadata (not full Dashboard objects)
+        dashboards_to_update = (
+            db.session.query(Dashboard.id, Dashboard.json_metadata)
             .filter(Dashboard.slices.any(id=chart_id))  # type: ignore[attr-defined]
             .all()
         )
 
-        for dashboard in dashboards:
-            metadata = dashboard.params_dict
+        for dashboard_id, json_metadata_str in dashboards_to_update:
+            if not json_metadata_str:
+                continue
+
+            try:
+                metadata = json.loads(json_metadata_str)
+            except (json.JSONDecodeError, TypeError):
+                logger.warning(
+                    "Could not parse metadata for dashboard %s", dashboard_id
+                )
+                continue
+
             modified = False
 
             # Clean up expanded_slices
@@ -102,23 +145,12 @@ class DeleteChartCommand(BaseCommand):
                 if chart_id_str in metadata["expanded_slices"]:
                     del metadata["expanded_slices"][chart_id_str]
                     modified = True
-                    logger.info(
-                        "Removed chart %s from expanded_slices in dashboard %s",
-                        chart_id,
-                        dashboard.id,
-                    )
 
             # Clean up timed_refresh_immune_slices
             if "timed_refresh_immune_slices" in metadata:
                 if chart_id in metadata["timed_refresh_immune_slices"]:
                     metadata["timed_refresh_immune_slices"].remove(chart_id)
                     modified = True
-                    logger.info(
-                        "Removed chart %s from timed_refresh_immune_slices "
-                        "in dashboard %s",
-                        chart_id,
-                        dashboard.id,
-                    )
 
             # Clean up filter_scopes
             if "filter_scopes" in metadata:
@@ -126,11 +158,6 @@ class DeleteChartCommand(BaseCommand):
                 if chart_id_str in metadata["filter_scopes"]:
                     del metadata["filter_scopes"][chart_id_str]
                     modified = True
-                    logger.info(
-                        "Removed chart %s from filter_scopes in dashboard %s",
-                        chart_id,
-                        dashboard.id,
-                    )
                 # Also clean from immune lists
                 for filter_scope in metadata["filter_scopes"].values():
                     for attributes in filter_scope.values():
@@ -146,11 +173,6 @@ class DeleteChartCommand(BaseCommand):
                     del default_filters[chart_id_str]
                     metadata["default_filters"] = json.dumps(default_filters)
                     modified = True
-                    logger.info(
-                        "Removed chart %s from default_filters in dashboard %s",
-                        chart_id,
-                        dashboard.id,
-                    )
 
             # Clean up native_filter_configuration scope exclusions
             if "native_filter_configuration" in metadata:
@@ -159,12 +181,6 @@ class DeleteChartCommand(BaseCommand):
                     if chart_id in scope_excluded:
                         scope_excluded.remove(chart_id)
                         modified = True
-                        logger.info(
-                            "Removed chart %s from native_filter_configuration "
-                            "in dashboard %s",
-                            chart_id,
-                            dashboard.id,
-                        )
 
             # Clean up chart_configuration
             if "chart_configuration" in metadata:
@@ -172,11 +188,6 @@ class DeleteChartCommand(BaseCommand):
                 if chart_id_str in metadata["chart_configuration"]:
                     del metadata["chart_configuration"][chart_id_str]
                     modified = True
-                    logger.info(
-                        "Removed chart %s from chart_configuration in dashboard %s",
-                        chart_id,
-                        dashboard.id,
-                    )
 
             # Clean up global_chart_configuration scope exclusions
             if "global_chart_configuration" in metadata:
@@ -188,17 +199,15 @@ class DeleteChartCommand(BaseCommand):
                 if chart_id in scope_excluded:
                     scope_excluded.remove(chart_id)
                     modified = True
-                    logger.info(
-                        "Removed chart %s from global_chart_configuration "
-                        "in dashboard %s",
-                        chart_id,
-                        dashboard.id,
-                    )
 
             if modified:
-                dashboard.json_metadata = json.dumps(metadata)
+                # Update only the json_metadata field
+                db.session.query(Dashboard).filter_by(id=dashboard_id).update(
+                    {"json_metadata": json.dumps(metadata)},
+                    synchronize_session=False,
+                )
                 logger.info(
                     "Cleaned up metadata for dashboard %s after deleting chart %s",
-                    dashboard.id,
+                    dashboard_id,
                     chart_id,
                 )
