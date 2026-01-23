@@ -161,6 +161,7 @@ export const useResultsPane = ({
       <SingleQueryResultPane
         data={result.data}
         colnames={result.colnames}
+        collabels={result.collabels}
         coltypes={result.coltypes}
         rowcount={result.rowcount}
         dataSize={dataSize}

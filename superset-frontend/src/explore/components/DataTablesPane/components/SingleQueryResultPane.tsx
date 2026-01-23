@@ -34,6 +34,7 @@ export const SingleQueryResultPane = ({
   data,
   colnames,
   coltypes,
+  collabels,
   rowcount,
   datasourceId,
   dataSize = 50,
@@ -48,6 +49,7 @@ export const SingleQueryResultPane = ({
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
     colnames,
+    collabels,
     coltypes,
     data,
     datasourceId,
