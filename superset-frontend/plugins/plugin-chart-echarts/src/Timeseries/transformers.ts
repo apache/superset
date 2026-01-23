@@ -31,6 +31,7 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { SupersetTheme, isThemeDark } from '@apache-superset/core/ui';
+import { getContrastingColor } from '@superset-ui/core';
 import type {
   CallbackDataParams,
   DefaultStatesMixin,
@@ -145,9 +146,11 @@ export const getBaselineSeriesForStream = (
 export function transformNegativeLabelsPosition(
   series: SeriesOption,
   isHorizontal: boolean,
+  isStacked = false,
 ): TimeseriesDataRecord[] {
   /*
    * Adjusts label position for negative values in bar series
+   * For stacked charts, positions labels inside bars at appropriate edges
    * @param series - Array of series options
    * @param isHorizontal - Whether chart is horizontal
    * @returns data with adjusted label positions for negative values
@@ -156,14 +159,32 @@ export function transformNegativeLabelsPosition(
     const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
     const axisValue = isHorizontal ? xValue : yValue;
 
-    return axisValue < 0
-      ? {
-          value,
-          label: {
-            position: 'outside',
-          },
-        }
-      : value;
+    if (axisValue === null || axisValue === undefined) {
+      return value;
+    }
+
+    if (isStacked) {
+      const labelPosition =
+        axisValue < 0
+          ? isHorizontal
+            ? 'insideLeft'
+            : 'insideBottom'
+          : isHorizontal
+            ? 'insideRight'
+            : 'insideTop';
+
+      return {
+        value,
+        label: { position: labelPosition },
+      };
+    } else if (axisValue < 0) {
+      return {
+        value,
+        label: { position: 'outside' },
+      };
+    }
+
+    return value;
   };
 
   return (series.data as TimeseriesDataRecord[]).map(transformValue);
@@ -337,8 +358,10 @@ export function transformSeries(
 
   return {
     ...series,
-    ...(Array.isArray(data) && seriesType === 'bar' && !stack
-      ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
+    ...(Array.isArray(data) && seriesType === 'bar'
+      ? {
+          data: transformNegativeLabelsPosition(series, isHorizontal, !!stack),
+        }
       : null),
     connectNulls,
     queryIndex,
@@ -371,8 +394,10 @@ export function transformSeries(
     symbolSize: markerSize,
     label: {
       show: !!showValue,
-      position: isHorizontal ? 'right' : 'top',
-      color: theme?.colorText,
+      position: stack ? 'inside' : isHorizontal ? 'right' : 'top',
+      color: stack
+        ? getContrastingColor(String(itemStyle.color))
+        : theme?.colorText,
       textBorderWidth: 0,
       formatter: (params: any) => {
         // don't show confidence band value labels, as they're already visible on the tooltip
