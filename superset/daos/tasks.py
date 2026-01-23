@@ -125,17 +125,20 @@ class TaskDAO(BaseDAO[Task]):
         )
 
         # Check for existing active task using dedup_key
-        if existing := cls.find_by_task_key(task_type, task_key, scope, user_id):
+        # Use effective_user_id consistently for both lookup and subscription
+        if existing := cls.find_by_task_key(
+            task_type, task_key, scope, effective_user_id
+        ):
             # For shared tasks, subscribe user to existing task
             if (
                 scope == TaskScope.SHARED
-                and user_id
-                and not existing.has_subscriber(user_id)
+                and effective_user_id
+                and not existing.has_subscriber(effective_user_id)
             ):
-                cls.add_subscriber(existing.id, user_id)
+                cls.add_subscriber(existing.id, effective_user_id)
                 logger.info(
                     "User %s subscribed to existing shared task: %s",
-                    user_id,
+                    effective_user_id,
                     task_key,
                 )
                 return existing
