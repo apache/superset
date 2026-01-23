@@ -44,7 +44,6 @@ from flask_appbuilder.security.views import (
     PermissionViewModelView,
     ViewMenuModelView,
 )
-from flask_appbuilder.widgets import ListWidget
 from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
@@ -120,27 +119,6 @@ class _RLSFilterRow(NamedTuple):
 
 _RLSCacheKey = tuple[str, int | str]
 _RLSCache = dict[_RLSCacheKey, list[SqlaQuery]]
-
-
-class SupersetSecurityListWidget(ListWidget):  # pylint: disable=too-few-public-methods
-    """
-    Redeclaring to avoid circular imports
-    """
-
-    template = "superset/fab_overrides/list.html"
-
-
-class SupersetRoleListWidget(ListWidget):  # pylint: disable=too-few-public-methods
-    """
-    Role model view from FAB already uses a custom list widget override
-    So we override the override
-    """
-
-    template = "superset/fab_overrides/list_role.html"
-
-    def __init__(self, **kwargs: Any) -> None:
-        kwargs["appbuilder"] = current_app.appbuilder
-        super().__init__(**kwargs)
 
 
 def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
@@ -290,9 +268,6 @@ class SupersetGroupApi(GroupApi):
     def post_delete(self, item: Model) -> None:
         _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
 
-
-PermissionViewModelView.list_widget = SupersetSecurityListWidget
-PermissionModelView.list_widget = SupersetSecurityListWidget
 
 # Limiting routes on FAB model views
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}

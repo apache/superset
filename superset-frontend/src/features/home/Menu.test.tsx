@@ -298,23 +298,27 @@ test('should render the navigation', async () => {
   expect(await screen.findByRole('navigation')).toBeInTheDocument();
 });
 
-test('should render the brand', async () => {
-  useSelectorMock.mockReturnValue({ roles: user.roles });
-  const {
-    data: {
-      brand: { alt, icon },
-    },
-  } = mockedProps;
-  render(<Menu {...mockedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-    useTheme: true,
-  });
-  expect(await screen.findByAltText(alt)).toBeInTheDocument();
-  const image = screen.getByAltText(alt);
-  expect(image).toHaveAttribute('src', icon);
-});
+test.each(['', '/myapp'])(
+  'should render the brand, including app_root "%s"',
+  async app_root => {
+    staticAssetsPrefixMock.mockReturnValue(app_root);
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    const {
+      data: {
+        brand: { alt, icon },
+      },
+    } = mockedProps;
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+    expect(await screen.findByAltText(alt)).toBeInTheDocument();
+    const image = screen.getByAltText(alt);
+    expect(image).toHaveAttribute('src', `${app_root}${icon}`);
+  },
+);
 
 test('should render the environment tag', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
