@@ -1,0 +1,343 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""
+AWS IAM Authentication Mixin for database engine specs.
+
+This mixin provides cross-account IAM authentication support for AWS databases
+(Aurora PostgreSQL, Aurora MySQL, Redshift). It handles:
+- Assuming IAM roles via STS AssumeRole
+- Generating RDS IAM auth tokens
+- Configuring SSL (required for IAM auth)
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any, TYPE_CHECKING, TypedDict
+
+from superset.databases.utils import make_url_safe
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+logger = logging.getLogger(__name__)
+
+# Default session duration for STS AssumeRole (1 hour)
+DEFAULT_SESSION_DURATION = 3600
+
+# Default port for PostgreSQL
+DEFAULT_POSTGRES_PORT = 5432
+
+
+class AWSIAMConfig(TypedDict, total=False):
+    """Configuration for AWS IAM authentication."""
+
+    enabled: bool
+    role_arn: str
+    external_id: str
+    region: str
+    db_username: str
+    session_duration: int
+
+
+class AWSIAMAuthMixin:
+    """
+    Mixin that provides AWS IAM authentication for database connections.
+
+    This mixin can be used with database engine specs that support IAM
+    authentication (Aurora PostgreSQL, Aurora MySQL, Redshift).
+
+    Configuration is provided via the database's encrypted_extra JSON:
+
+    {
+        "aws_iam": {
+            "enabled": true,
+            "role_arn": "arn:aws:iam::222222222222:role/SupersetDatabaseAccess",
+            "external_id": "superset-prod-12345",  # optional
+            "region": "us-east-1",
+            "db_username": "superset_iam_user",
+            "session_duration": 3600  # optional, defaults to 3600
+        }
+    }
+    """
+
+    supports_iam_authentication = True
+
+    # AWS error patterns for actionable error messages
+    aws_iam_custom_errors: dict[str, tuple[SupersetErrorType, str]] = {
+        "AccessDenied": (
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            "Unable to assume IAM role. Verify the role ARN and trust policy "
+            "allow access from Superset's IAM role.",
+        ),
+        "InvalidIdentityToken": (
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            "Invalid IAM credentials. Ensure Superset has a valid IAM role "
+            "with permissions to assume the target role.",
+        ),
+        "MalformedPolicyDocument": (
+            SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            "Invalid IAM role ARN format. Please verify the role ARN.",
+        ),
+        "ExpiredTokenException": (
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            "AWS credentials have expired. Please refresh the connection.",
+        ),
+    }
+
+    @classmethod
+    def get_iam_credentials(
+        cls,
+        role_arn: str,
+        region: str,
+        external_id: str | None = None,
+        session_duration: int = DEFAULT_SESSION_DURATION,
+    ) -> dict[str, Any]:
+        """
+        Assume cross-account IAM role via STS AssumeRole.
+
+        :param role_arn: The ARN of the IAM role to assume
+        :param region: AWS region for the STS client
+        :param external_id: External ID for the role assumption (optional)
+        :param session_duration: Duration of the session in seconds
+        :returns: Dictionary with AccessKeyId, SecretAccessKey, SessionToken
+        :raises SupersetSecurityException: If role assumption fails
+        """
+        try:
+            # Lazy import to avoid errors when boto3 is not installed
+            import boto3
+            from botocore.exceptions import ClientError
+        except ImportError as ex:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="boto3 is required for AWS IAM authentication. "
+                    "Install it with: pip install boto3",
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ) from ex
+
+        try:
+            sts_client = boto3.client("sts", region_name=region)
+
+            assume_role_kwargs: dict[str, Any] = {
+                "RoleArn": role_arn,
+                "RoleSessionName": "superset-iam-session",
+                "DurationSeconds": session_duration,
+            }
+            if external_id:
+                assume_role_kwargs["ExternalId"] = external_id
+
+            response = sts_client.assume_role(**assume_role_kwargs)
+            return response["Credentials"]
+
+        except ClientError as ex:
+            error_code = ex.response.get("Error", {}).get("Code", "")
+            error_message = ex.response.get("Error", {}).get("Message", "")
+
+            # Handle ExternalId mismatch (shows as AccessDenied with specific message)
+            # Check this first before generic AccessDenied handling
+            if "external id" in error_message.lower():
+                raise SupersetSecurityException(
+                    SupersetError(
+                        message="External ID mismatch. Verify the external_id "
+                        "configuration matches the trust policy.",
+                        error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                ) from ex
+
+            if error_code in cls.aws_iam_custom_errors:
+                error_type, message = cls.aws_iam_custom_errors[error_code]
+                raise SupersetSecurityException(
+                    SupersetError(
+                        message=message,
+                        error_type=error_type,
+                        level=ErrorLevel.ERROR,
+                    )
+                ) from ex
+
+            raise SupersetSecurityException(
+                SupersetError(
+                    message=f"Failed to assume IAM role: {ex}",
+                    error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ) from ex
+
+    @classmethod
+    def generate_rds_auth_token(
+        cls,
+        credentials: dict[str, Any],
+        hostname: str,
+        port: int,
+        username: str,
+        region: str,
+    ) -> str:
+        """
+        Generate RDS IAM auth token using temporary credentials.
+
+        :param credentials: STS credentials from assume_role
+        :param hostname: RDS/Aurora endpoint hostname
+        :param port: Database port
+        :param username: Database username configured for IAM auth
+        :param region: AWS region
+        :returns: IAM auth token to use as database password
+        :raises SupersetSecurityException: If token generation fails
+        """
+        try:
+            import boto3
+            from botocore.exceptions import ClientError
+        except ImportError as ex:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="boto3 is required for AWS IAM authentication.",
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ) from ex
+
+        try:
+            rds_client = boto3.client(
+                "rds",
+                region_name=region,
+                aws_access_key_id=credentials["AccessKeyId"],
+                aws_secret_access_key=credentials["SecretAccessKey"],
+                aws_session_token=credentials["SessionToken"],
+            )
+
+            token = rds_client.generate_db_auth_token(
+                DBHostname=hostname,
+                Port=port,
+                DBUsername=username,
+            )
+            return token
+
+        except ClientError as ex:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message=f"Failed to generate RDS auth token: {ex}",
+                    error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ) from ex
+
+    @classmethod
+    def _apply_iam_authentication(
+        cls,
+        database: Database,
+        params: dict[str, Any],
+        iam_config: AWSIAMConfig,
+    ) -> None:
+        """
+        Apply IAM authentication to the connection parameters.
+
+        Full flow: assume role -> generate token -> update connect_args -> enable SSL.
+
+        :param database: Database model instance
+        :param params: Engine parameters dict to modify
+        :param iam_config: IAM configuration from encrypted_extra
+        :raises SupersetSecurityException: If any step fails
+        """
+        # Extract configuration
+        role_arn = iam_config.get("role_arn")
+        region = iam_config.get("region")
+        db_username = iam_config.get("db_username")
+        external_id = iam_config.get("external_id")
+        session_duration = iam_config.get("session_duration", DEFAULT_SESSION_DURATION)
+
+        # Validate required fields
+        missing_fields = []
+        if not role_arn:
+            missing_fields.append("role_arn")
+        if not region:
+            missing_fields.append("region")
+        if not db_username:
+            missing_fields.append("db_username")
+
+        if missing_fields:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="AWS IAM configuration missing required fields: "
+                    f"{', '.join(missing_fields)}",
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+        # Type assertions after validation (mypy doesn't narrow types from list check)
+        assert role_arn is not None
+        assert region is not None
+        assert db_username is not None
+
+        # Get hostname and port from the database URI
+        uri = make_url_safe(database.sqlalchemy_uri_decrypted)
+        hostname = uri.host
+        port = uri.port or DEFAULT_POSTGRES_PORT
+
+        if not hostname:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message=(
+                        "Database URI must include a hostname for IAM authentication"
+                    ),
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+        logger.debug(
+            "Applying IAM authentication for %s:%d as user %s",
+            hostname,
+            port,
+            db_username,
+        )
+
+        # Step 1: Assume the IAM role
+        credentials = cls.get_iam_credentials(
+            role_arn=role_arn,
+            region=region,
+            external_id=external_id,
+            session_duration=session_duration,
+        )
+
+        # Step 2: Generate the RDS auth token
+        token = cls.generate_rds_auth_token(
+            credentials=credentials,
+            hostname=hostname,
+            port=port,
+            username=db_username,
+            region=region,
+        )
+
+        # Step 3: Update connection parameters
+        connect_args = params.setdefault("connect_args", {})
+
+        # Set the IAM token as the password
+        connect_args["password"] = token
+
+        # Override username if different from URI
+        connect_args["user"] = db_username
+
+        # Step 4: Enable SSL (required for IAM authentication)
+        # sslmode=require ensures encrypted connection without cert verification
+        # For production, consider sslmode=verify-full with RDS CA bundle
+        connect_args["sslmode"] = "require"
+
+        logger.debug("IAM authentication configured successfully")

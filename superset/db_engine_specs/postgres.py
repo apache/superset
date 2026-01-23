@@ -359,6 +359,12 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     max_column_name_length = 63
     try_remove_schema_from_table_name = False  # pylint: disable=invalid-name
 
+    # Sensitive fields that should be masked in encrypted_extra
+    encrypted_extra_sensitive_fields = {
+        "$.aws_iam.external_id",
+        "$.aws_iam.role_arn",
+    }
+
     column_type_mappings = (
         (
             re.compile(r"^double precision", re.IGNORECASE),
@@ -460,6 +466,37 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             uri = uri.set(database=catalog)
 
         return uri, connect_args
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Extract sensitive parameters from encrypted_extra.
+
+        Handles AWS IAM authentication if configured, then merges any
+        remaining encrypted_extra keys into params (standard behavior).
+        """
+        if not database.encrypted_extra:
+            return
+
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+
+        # Handle AWS IAM auth: pop the key so it doesn't reach create_engine()
+        iam_config = encrypted_extra.pop("aws_iam", None)
+        if iam_config and iam_config.get("enabled"):
+            from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+            AWSIAMAuthMixin._apply_iam_authentication(database, params, iam_config)
+
+        # Standard behavior: merge remaining keys into params
+        if encrypted_extra:
+            params.update(encrypted_extra)
 
     @classmethod
     def get_default_catalog(cls, database: Database) -> str:
