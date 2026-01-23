@@ -112,10 +112,12 @@ export default function getDropPosition(
     childType: draggingItem.type,
   });
 
-  const parentType = parentComponent?.type;
+  const parentType = parentComponent ? parentComponent.type : null;
+
   const parentDepth =
-    componentDepth +
-    (parentType === TAB_TYPE || parentType === TABS_TYPE ? 0 : -1);
+    parentType && (parentType === TAB_TYPE || parentType === TABS_TYPE)
+      ? componentDepth
+      : componentDepth - 1;
 
   const validSibling = isValidChild({
     parentType,
