@@ -24,7 +24,7 @@ under the License.
 
 # Global Task Framework
 
-The Global Task Framework (GTF) provides a unified way to manage background tasks in Apache Superset. It handles task execution, progress tracking, cancellation, and deduplication for both synchronous and asynchronous execution.
+The Global Task Framework (GTF) provides a unified way to manage background tasks. It handles task execution, progress tracking, cancellation, and deduplication for both synchronous and asynchronous execution.
 
 ## Quick Start
 
@@ -45,27 +45,29 @@ def process_data(dataset_id: int) -> None:
     process_and_cache(data)
 ```
 
-### Execute Tasks
+### Execute a Task
 
 ```python
-# Async execution (production) - schedules on Celery
+# Async execution - schedules on Celery
 task = process_data.schedule(dataset_id=123)
 print(task.status)  # "pending"
 
-# Sync execution (testing/development) - runs inline
+# Sync execution - runs inline
 task = process_data(dataset_id=123)
+# ... blocks until task is complete
 print(task.status)  # "success"
 ```
 
 ## Task Lifecycle
 
 ```
-PENDING ──→ IN_PROGRESS ──→ SUCCESS
-   │             │  
-   │             ↓  
-   │         ABORTING ──→ ABORTED
+PENDING ──→ IN_PROGRESS ────→ SUCCESS
    │             │
-   └─────────────┴──────→ FAILURE
+   │             ├──────────→ FAILURE
+   │             ↓                ↑
+   │         ABORTING ────────────┘
+   │             │
+   └─────────→ ABORTED
 ```
 
 | Status | Description |
@@ -96,15 +98,17 @@ def my_task(items: list[int]) -> None:
         )
 ```
 
-**Tip:** Call `update_task()` once per iteration for best performance—it writes to the database.
+**Tip:** Call `update_task()` once per iteration for best performance to avoid unnecessary database writes.
 
 ### Progress Formats
 
 | Format | Example | Display |
 |--------|---------|---------|
-| `float` (0.0-1.0) | `progress=0.5` | 50% |
+| `float` (0.0-1.0) | `progress=0.5` | 50% with ETA |
 | `int` | `progress=42` | 42 processed |
-| `tuple[int, int]` | `progress=(3, 100)` | 3 of 100 (3%)" with ETA |
+| `tuple[int, int]` | `progress=(3, 100)` | 3 of 100 (3%) with ETA |
+
+**Tip:** ETA is calculated automatically for `float` and `tuple` formats based on elapsed time and progress percentage.
 
 ## Cancellation
 
@@ -138,7 +142,9 @@ def cancellable_task(items: list[str]) -> None:
 - Registering `on_abort` marks the task as abortable and starts the abort listener
 - The abort handler fires automatically when cancellation is requested
 - Use a flag pattern to gracefully stop processing at safe points
-- Without an abort handler, in-progress tasks cannot be cancelled
+- Without an abort handler, in-progress tasks cannot be cancelled—the Cancel button in the Task List UI will be disabled
+
+**Tip:** Always implement an abort handler for long-running tasks. This allows users to cancel unneeded tasks and free up worker capacity for other operations.
 
 ### Handler Types
 
@@ -248,7 +254,7 @@ TaskOptions(task_key: str | None = None, task_name: str | None = None)
 - `task_key`: Deduplication key (also used as display name if `task_name` is not set)
 - `task_name`: Human-readable display name for the Task List UI
 
-**Display in Task List:** The UI shows `task_name` if provided, otherwise falls back to `task_key`. Since `task_key` is primarily for deduplication and may be technical (e.g., `chart_export_123`), providing a descriptive `task_name` (e.g., `"Export Sales Chart 123"`) improves the user experience.
+**Tip:** Provide a descriptive `task_name` for better readability in the Task List UI. While `task_key` is used for deduplication and may be technical (e.g., `chart_export_123`), `task_name` can be user-friendly (e.g., `"Export Sales Chart 123"`).
 
 ## Error Handling
 
@@ -267,3 +273,5 @@ On failure, the framework records:
 - `stack_trace`: Full traceback (visible when `SHOW_STACKTRACE=True`)
 
 Cleanup handlers still run after an exception, so resources can be properly released as necessary.
+
+**Tip:** Use descriptive exception messages. In production environments where stack traces are hidden (`SHOW_STACKTRACE=False`), users see only the error message and exception type when hovering over failed tasks in the Task List. Clear messages help users troubleshoot issues without administrator assistance.
