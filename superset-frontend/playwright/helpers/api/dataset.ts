@@ -40,6 +40,18 @@ export interface DatasetCreatePayload {
 }
 
 /**
+ * TypeScript interface for virtual dataset creation API payload.
+ * Virtual datasets are defined by SQL queries rather than physical tables.
+ */
+export interface VirtualDatasetCreatePayload {
+  database: number;
+  schema: string | null;
+  table_name: string;
+  sql: string;
+  owners?: number[];
+}
+
+/**
  * TypeScript interface for dataset API response
  * Represents the shape of dataset data returned from the API
  */
@@ -65,6 +77,20 @@ export interface DatasetResult {
 export async function apiPostDataset(
   page: Page,
   requestBody: DatasetCreatePayload,
+): Promise<APIResponse> {
+  return apiPost(page, ENDPOINTS.DATASET, requestBody);
+}
+
+/**
+ * POST request to create a virtual dataset with SQL.
+ * Use expectStatusOneOf() on the response and handle both result.id and id shapes.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param requestBody - Virtual dataset configuration (database, schema, table_name, sql)
+ * @returns API response from virtual dataset creation
+ */
+export async function apiPostVirtualDataset(
+  page: Page,
+  requestBody: VirtualDatasetCreatePayload,
 ): Promise<APIResponse> {
   return apiPost(page, ENDPOINTS.DATASET, requestBody);
 }

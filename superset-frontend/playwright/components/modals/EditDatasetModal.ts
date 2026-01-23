@@ -120,21 +120,21 @@ export class EditDatasetModal extends Modal {
 
   /**
    * Gets the description Ace Editor component (Settings tab).
-   * Uses the "Description" button to locate the specific form item containing the editor.
+   * The Description button and ace-editor are in the same form item.
    */
   private get descriptionEditor(): AceEditor {
-    const settingsPanel = this.element.locator('#table-tabs-panel-SETTINGS');
-    // Find the Description button (collapse toggle), then navigate to its parent form item
-    // and locate the ace-editor within that specific container
-    const descriptionButton = settingsPanel.getByRole('button', {
-      name: 'Description',
-      exact: true,
-    });
-    // The button and ace-editor are in the same form item container (button's parent)
-    const editorContainer = descriptionButton
-      .locator('..')
-      .locator('[id="ace-editor"]');
-    return new AceEditor(this.page, editorContainer);
+    // Use tabpanel role with name "Settings" for more reliable lookup
+    const settingsPanel = this.element.getByRole('tabpanel', { name: 'Settings' });
+    // Find the form item that contains the Description button
+    const descriptionFormItem = settingsPanel
+      .locator('.ant-form-item')
+      .filter({
+        has: this.page.getByRole('button', { name: 'Description', exact: true }),
+      })
+      .first();
+    // The ace-editor has class .ace_editor within the form item
+    const editorElement = descriptionFormItem.locator('.ace_editor');
+    return new AceEditor(this.page, editorElement);
   }
 
   /**

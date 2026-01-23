@@ -35,6 +35,7 @@ import { Toast } from '../../../components/core/Toast';
 import {
   apiDeleteDataset,
   apiGetDataset,
+  apiPostVirtualDataset,
   getDatasetByName,
   ENDPOINTS,
 } from '../../../helpers/api/dataset';
@@ -571,13 +572,23 @@ test('should edit column date format via modal', async ({
   datasetListPage,
   testAssets,
 }) => {
-  // Create dataset from birth_names (has 'ds' column for date format testing)
-  const { id: datasetId, name: datasetName } = await createTestDataset(
-    page,
-    testAssets,
-    test.info(),
-    { baseName: 'birth_names', prefix: 'test_date_format' },
-  );
+  // Create virtual dataset with a date column for testing
+  // Using SQL to create a dataset with 'ds' column avoids duplication issues
+  const datasetName = `test_date_format_${Date.now()}_${test.info().parallelIndex}`;
+  const baseDataset = await getDatasetByName(page, 'members_channels_2');
+  expect(baseDataset, 'members_channels_2 dataset must exist').not.toBeNull();
+
+  const createResponse = await apiPostVirtualDataset(page, {
+    database: baseDataset!.database.id,
+    schema: baseDataset!.schema ?? '',
+    table_name: datasetName,
+    sql: "SELECT CAST('2024-01-01' AS DATE) as ds, 'test' as name",
+  });
+  expectStatusOneOf(createResponse, [200, 201]);
+  const createBody = await createResponse.json();
+  const datasetId = createBody.result?.id ?? createBody.id;
+  expect(datasetId, 'Virtual dataset creation should return id').toBeTruthy();
+  testAssets.trackDataset(datasetId);
 
   // Navigate to dataset list, click edit action
   await datasetListPage.goto();
