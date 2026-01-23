@@ -27,7 +27,7 @@
     "@types/react-redux": "^7.1.34",
     "d3-array": "^1.2.0",
     "dayjs": "^1.11.13",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.23"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
