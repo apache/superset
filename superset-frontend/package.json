@@ -163,7 +163,7 @@
     "googleapis": "^170.1.0",
     "immer": "^11.1.3",
     "interweave": "^13.1.1",
-    "jquery": "^3.7.1",
+    "jquery": "^4.0.0",
     "js-levenshtein": "^1.1.6",
     "js-yaml-loader": "^1.2.2",
     "json-bigint": "^1.0.0",
