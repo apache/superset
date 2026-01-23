@@ -387,7 +387,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             <div className="search-container">
               {serverPagination && (
                 <div className="search-by-text-container">
-                  <span className="search-by-text"> {t('Search by')} :</span>
+                  <span className="search-by-text">{t('Search by:')}</span>
                   <SearchSelectDropdown
                     onChange={onSearchColChange}
                     searchOptions={searchOptions}
