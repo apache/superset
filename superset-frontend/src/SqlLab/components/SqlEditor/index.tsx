@@ -760,23 +760,19 @@ const SqlEditor: FC<Props> = ({
           stopQuery={stopQuery}
           overlayCreateAsMenu={showMenu ? runMenuBtn : null}
         />
-        <span>
-          <QueryLimitSelect
-            queryEditorId={queryEditor.id}
-            maxRow={maxRow}
-            defaultQueryLimit={defaultQueryLimit}
-          />
-        </span>
+        <QueryLimitSelect
+          queryEditorId={queryEditor.id}
+          maxRow={maxRow}
+          defaultQueryLimit={defaultQueryLimit}
+        />
         <Divider type="vertical" />
         {isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
           database?.allows_cost_estimate && (
-            <span>
-              <EstimateQueryCostButton
-                getEstimate={getQueryCostEstimate}
-                queryEditorId={queryEditor.id}
-                tooltip={t('Estimate the cost before running a query')}
-              />
-            </span>
+            <EstimateQueryCostButton
+              getEstimate={getQueryCostEstimate}
+              queryEditorId={queryEditor.id}
+              tooltip={t('Estimate the cost before running a query')}
+            />
           )}
         <SaveQuery
           queryEditorId={queryEditor.id}
@@ -859,7 +855,7 @@ const SqlEditor: FC<Props> = ({
               `}
             >
               {' '}
-              {t(`You are edting a query from the virtual dataset `) +
+              {t(`You are editing a query from the virtual dataset `) +
                 queryEditor.name}
             </p>
             <p

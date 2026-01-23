@@ -27,6 +27,7 @@ import { FilterBarOrientation } from 'src/dashboard/types';
 import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
+import * as dataMaskActions from 'src/dataMask/actions';
 
 jest.useFakeTimers();
 
@@ -358,5 +359,119 @@ describe('FilterBar', () => {
 
     const { container } = renderWrapper(openedBarProps, stateWithFilter);
     expect(container).toBeInTheDocument();
+  });
+
+  test('auto-applies filter when extraFormData is empty in applied state', async () => {
+    const filterId = 'test-filter-auto-apply';
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const stateWithIncompleteFilter = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+      },
+      dataMask: {
+        [filterId]: {
+          id: filterId,
+          filterState: { value: ['value1', 'value2'] },
+          extraFormData: {},
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [filterId]: {
+            id: filterId,
+            name: 'Test Filter',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'test_column' } }],
+            defaultDataMask: {
+              filterState: { value: ['value1', 'value2'] },
+              extraFormData: {},
+            },
+            controlValues: {
+              enableEmptyFilter: true,
+            },
+            cascadeParentIds: [],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [],
+            },
+            type: 'NATIVE_FILTER',
+            description: '',
+            chartsInScope: [],
+            tabsInScope: [],
+          },
+        },
+        filtersState: {},
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithIncompleteFilter);
+
+    await act(async () => {
+      jest.advanceTimersByTime(200);
+    });
+
+    expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('renders correctly when filter has complete extraFormData', async () => {
+    const filterId = 'test-filter-complete';
+    const stateWithCompleteFilter = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+      },
+      dataMask: {
+        [filterId]: {
+          id: filterId,
+          filterState: { value: ['value1'] },
+          extraFormData: {
+            filters: [{ col: 'test_column', op: 'IN', val: ['value1'] }],
+          },
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [filterId]: {
+            id: filterId,
+            name: 'Test Filter',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'test_column' } }],
+            defaultDataMask: {
+              filterState: { value: ['value1'] },
+              extraFormData: {
+                filters: [{ col: 'test_column', op: 'IN', val: ['value1'] }],
+              },
+            },
+            controlValues: {
+              enableEmptyFilter: true,
+            },
+            cascadeParentIds: [],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [],
+            },
+            type: 'NATIVE_FILTER',
+            description: '',
+            chartsInScope: [],
+            tabsInScope: [],
+          },
+        },
+        filtersState: {},
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithCompleteFilter);
+
+    await act(async () => {
+      jest.advanceTimersByTime(100);
+    });
+
+    expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
   });
 });
