@@ -107,14 +107,12 @@ export interface ResultSetProps {
   csv?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
-  height?: number;
   queryId: string;
   search?: boolean;
   showSql?: boolean;
   showSqlInline?: boolean;
   visualize?: boolean;
   defaultQueryLimit: number;
-  useFixedHeight?: boolean;
 }
 
 const ResultContainer = styled.div`
@@ -165,14 +163,12 @@ const ResultSet = ({
   csv = true,
   database = {},
   displayLimit,
-  height,
   queryId,
   search = true,
   showSql = false,
   showSqlInline = false,
   visualize = true,
   defaultQueryLimit,
-  useFixedHeight = false,
 }: ResultSetProps) => {
   const streamingThreshold = useSelector(
     (state: SqlLabRootState) =>
@@ -758,22 +754,18 @@ const ResultSet = ({
                 />
               )}
             </div>
-            {useFixedHeight && height !== undefined ? (
-              <ResultTable {...tableProps} height={height} />
-            ) : (
-              <div
-                css={css`
-                  flex: 1 1 auto;
-                  padding-bottom: ${theme.sizeUnit * 3}px;
-                `}
-              >
-                <AutoSizer disableWidth>
-                  {({ height: autoHeight }) => (
-                    <ResultTable {...tableProps} height={autoHeight} />
-                  )}
-                </AutoSizer>
-              </div>
-            )}
+            <div
+              css={css`
+                flex: 1 1 auto;
+                padding-bottom: ${theme.sizeUnit * 3}px;
+              `}
+            >
+              <AutoSizer disableWidth>
+                {({ height: autoHeight }) => (
+                  <ResultTable {...tableProps} height={autoHeight} />
+                )}
+              </AutoSizer>
+            </div>
           </ResultContainer>
           <StreamingExportModal
             visible={showStreamingModal}
