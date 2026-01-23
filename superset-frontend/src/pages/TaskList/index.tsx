@@ -87,11 +87,11 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
     );
   }, []);
 
-  // Get force cancel message for admin checkbox
-  const getForceCancelMessage = useCallback((task: Task) => {
+  // Get force abort message for admin checkbox
+  const getForceAbortMessage = useCallback((task: Task) => {
     const subscriberCount = task.subscriber_count || 0;
     return t(
-      'This will cancel the task for all %s subscribers.',
+      'This will abort (stop) the task for all %s subscriber(s).',
       subscriberCount,
     );
   }, []);
@@ -552,7 +552,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           <>
             <p>
               {forceCancel
-                ? getForceCancelMessage(cancelModalTask)
+                ? getForceAbortMessage(cancelModalTask)
                 : getCancelDialogMessage(cancelModalTask)}
             </p>
             {showForceCancelOption(cancelModalTask) && (
@@ -561,7 +561,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                 onChange={e => setForceCancel(e.target.checked)}
                 disabled={isForceCancelDisabled(cancelModalTask)}
               >
-                {t('Cancel for all subscribers')}
+                {t('Force abort (stops task for all subscribers)')}
               </Checkbox>
             )}
           </>

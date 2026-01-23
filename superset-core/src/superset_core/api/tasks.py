@@ -146,18 +146,6 @@ class TaskContext(ABC):
         ...
 
     @abstractmethod
-    def is_aborted(self) -> bool:
-        """
-        Check if the task has been aborted.
-
-        Returns True if the task status is ABORTED. Fetches fresh state
-        from the database to ensure current status.
-
-        :returns: True if task is aborted, False otherwise
-        """
-        ...
-
-    @abstractmethod
     def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
         """
         Register a cleanup handler that runs when the task ends.

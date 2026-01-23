@@ -264,17 +264,13 @@ def execute_task(  # noqa: C901
         logger.error("Task %s not found in metastore", task_uuid)
         return {"status": "error", "message": "Task not found"}
 
-    # Build context from task (includes user who created the task)
-    ctx = TaskContext(task_uuid=task_uuid)
-
     # AUTOMATIC PRE-EXECUTION CHECK: Don't execute if already aborted/aborting
-    if ctx.is_aborted():
+    if task.status in [TaskStatus.ABORTING.value, TaskStatus.ABORTED.value]:
         logger.info(
             "Task %s (uuid=%s) was aborted before execution started",
             task_type,
             task_uuid,
         )
-        task = ctx._task
         # Ensure status is ABORTED (not just ABORTING)
         if task.status != TaskStatus.ABORTED.value:
             task.set_status(TaskStatus.ABORTED)
@@ -284,6 +280,9 @@ def execute_task(  # noqa: C901
         db.session.merge(task)
         db.session.commit()
         return {"status": TaskStatus.ABORTED.value, "task_uuid": task_uuid}
+
+    # Build context from task (includes user who created the task)
+    ctx = TaskContext(task_uuid=task_uuid)
 
     # Update status to IN_PROGRESS
     task = ctx._task
