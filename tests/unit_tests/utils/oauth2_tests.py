@@ -18,11 +18,15 @@
 # pylint: disable=invalid-name, disallowed-name
 
 from datetime import datetime
+from typing import cast
 
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
-from superset.utils.oauth2 import get_oauth2_access_token
+from superset.superset_typing import OAuth2ClientConfig
+from superset.utils.oauth2 import get_oauth2_access_token, refresh_oauth2_token
+
+DUMMY_OAUTH2_CONFIG = cast(OAuth2ClientConfig, {})
 
 
 def test_get_oauth2_access_token_base_no_token(mocker: MockerFixture) -> None:
@@ -93,3 +97,45 @@ def test_get_oauth2_access_token_base_no_refresh(mocker: MockerFixture) -> None:
 
     # check that token was deleted
     db.session.delete.assert_called_with(token)
+
+
+def test_refresh_oauth2_token_deletes_token_on_exception(mocker: MockerFixture) -> None:
+    """
+    Test that refresh_oauth2_token deletes the token when refresh fails.
+
+    When the token refresh fails (e.g., token was revoked on provider side),
+    the invalid token should be deleted to prevent retry loops.
+    """
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.KeyValueDistributedLock")
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.get_oauth2_fresh_token.side_effect = Exception("Token revoked")
+    token = mocker.MagicMock()
+    token.refresh_token = "refresh-token"  # noqa: S105
+
+    result = refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec, token)
+
+    assert result is None
+    db.session.delete.assert_called_with(token)
+
+
+def test_refresh_oauth2_token_no_access_token_in_response(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that refresh_oauth2_token returns None when no access_token in response.
+
+    This can happen when the refresh token was revoked.
+    """
+    mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.KeyValueDistributedLock")
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.get_oauth2_fresh_token.return_value = {
+        "error": "invalid_grant",
+    }
+    token = mocker.MagicMock()
+    token.refresh_token = "refresh-token"  # noqa: S105
+
+    result = refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec, token)
+
+    assert result is None

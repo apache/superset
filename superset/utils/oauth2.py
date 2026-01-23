@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator, TYPE_CHECKING
@@ -36,6 +37,8 @@ if TYPE_CHECKING:
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
 JWT_EXPIRATION = timedelta(minutes=5)
+
+logger = logging.getLogger(__name__)
 
 
 @backoff.on_exception(
@@ -96,10 +99,20 @@ def refresh_oauth2_token(
         user_id=user_id,
         database_id=database_id,
     ):
-        token_response = db_engine_spec.get_oauth2_fresh_token(
-            config,
-            token.refresh_token,
-        )
+        try:
+            token_response = db_engine_spec.get_oauth2_fresh_token(
+                config,
+                token.refresh_token,
+            )
+        except Exception:
+            # If token refresh failed, delete the invalid token to prevent retry loops
+            logger.warning(
+                "OAuth2 token refresh failed for user=%s db=%s, deleting invalid token",
+                user_id,
+                database_id,
+            )
+            db.session.delete(token)
+            return None
 
         # store new access token; note that the refresh token might be revoked, in which
         # case there would be no access token in the response

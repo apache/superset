@@ -610,7 +610,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         re-run the query after authorization.
         """
         tab_id = str(uuid4())
-        default_redirect_uri = url_for("DatabaseRestApi.oauth2", _external=True)
+        default_redirect_uri = app.config.get(
+            "DATABASE_OAUTH2_REDIRECT_URI",
+            url_for("DatabaseRestApi.oauth2", _external=True),
+        )
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then
