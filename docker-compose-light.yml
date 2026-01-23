@@ -108,6 +108,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
+    ports:
+      - "${SUPERSET_PORT:-8088}:8088"
     depends_on:
       superset-init-light:
         condition: service_completed_successfully
