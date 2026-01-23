@@ -198,8 +198,7 @@ const ViewModeToggle = ({
 }: {
   mode: 'table' | 'card';
   setMode: (mode: 'table' | 'card') => void;
-}) => {
-  return (
+}) => (
     <ViewModeContainer>
       <Tooltip title={t('Grid view')}>
         <div
@@ -229,7 +228,6 @@ const ViewModeToggle = ({
       </Tooltip>
     </ViewModeContainer>
   );
-};
 
 export interface ListViewProps<T extends object = any> {
   columns: any[];
