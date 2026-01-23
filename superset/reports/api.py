@@ -467,7 +467,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/run_now", methods=("POST",))
     @permission_name("post")
+    @protect()
     @safe
+    @statsd_metrics
     def run_now(self, pk) -> Response:
         """
         Run a report immediately, bypassing the schedule.
