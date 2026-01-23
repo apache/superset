@@ -223,6 +223,80 @@ def test_aurora_postgres_inherits_from_postgres() -> None:
     assert AuroraPostgresEngineSpec.supports_catalog is True
 
 
+def test_aurora_mysql_engine_spec_properties() -> None:
+    from superset.db_engine_specs.aurora import AuroraMySQLEngineSpec
+
+    assert AuroraMySQLEngineSpec.engine == "mysql"
+    assert AuroraMySQLEngineSpec.engine_name == "Aurora MySQL"
+    assert AuroraMySQLEngineSpec.default_driver == "mysqldb"
+
+
+def test_aurora_mysql_inherits_from_mysql() -> None:
+    from superset.db_engine_specs.aurora import AuroraMySQLEngineSpec
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    assert issubclass(AuroraMySQLEngineSpec, MySQLEngineSpec)
+    assert AuroraMySQLEngineSpec.supports_dynamic_schema is True
+
+
+def test_aurora_mysql_has_iam_support() -> None:
+    from superset.db_engine_specs.aurora import AuroraMySQLEngineSpec
+
+    # Verify it inherits encrypted_extra_sensitive_fields
+    assert (
+        "$.aws_iam.external_id"
+        in AuroraMySQLEngineSpec.encrypted_extra_sensitive_fields
+    )
+    assert (
+        "$.aws_iam.role_arn" in AuroraMySQLEngineSpec.encrypted_extra_sensitive_fields
+    )
+
+
+def test_aurora_mysql_update_params_from_encrypted_extra_with_iam() -> None:
+    from superset.db_engine_specs.aurora import AuroraMySQLEngineSpec
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+    database = MagicMock()
+    database.encrypted_extra = json.dumps(
+        {
+            "aws_iam": {
+                "enabled": True,
+                "role_arn": "arn:aws:iam::123456789012:role/TestRole",
+                "region": "us-east-1",
+                "db_username": "superset_iam_user",
+            }
+        }
+    )
+    database.sqlalchemy_uri_decrypted = (
+        "mysql://user@mydb.cluster-xyz.us-east-1.rds.amazonaws.com:3306/mydb"
+    )
+
+    params: dict[str, Any] = {}
+
+    with (
+        patch.object(
+            AWSIAMAuthMixin,
+            "get_iam_credentials",
+            return_value={
+                "AccessKeyId": "ASIA...",
+                "SecretAccessKey": "secret...",
+                "SessionToken": "token...",
+            },
+        ),
+        patch.object(
+            AWSIAMAuthMixin,
+            "generate_rds_auth_token",
+            return_value="iam-auth-token",
+        ),
+    ):
+        AuroraMySQLEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert "connect_args" in params
+    assert params["connect_args"]["password"] == "iam-auth-token"  # noqa: S105
+    assert params["connect_args"]["user"] == "superset_iam_user"
+    assert params["connect_args"]["ssl_mode"] == "REQUIRED"
+
+
 def test_aurora_data_api_classes_unchanged() -> None:
     from superset.db_engine_specs.aurora import (
         AuroraMySQLDataAPI,
