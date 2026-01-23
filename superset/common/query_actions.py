@@ -32,10 +32,12 @@ from superset.common.db_query_status import QueryStatus
 from superset.exceptions import QueryObjectValidationError, SupersetParseError
 from superset.explorables.base import Explorable
 from superset.utils.core import (
+    extract_display_labels,
     extract_column_dtype,
     extract_dataframe_dtypes,
     ExtraFiltersReasonType,
     get_column_name,
+    get_column_names_from_columns,
     get_time_filter_status,
 )
 from superset.utils.currency import (
@@ -232,6 +234,9 @@ def _materialize_full_payload(
         payload["colnames"] = list(df.columns)
         payload["indexnames"] = list(df.index)
         payload["coltypes"] = extract_dataframe_dtypes(df, datasource)
+        payload["collabels"] = extract_display_labels(
+            payload["label_map"], payload["colnames"], datasource
+        )
         payload["data"] = query_context.get_data(df, payload["coltypes"])
         payload["result_format"] = query_context.result_format
         payload["detected_currency"] = _detect_currency(
@@ -256,6 +261,7 @@ def _materialize_full_payload(
         return {
             "data": payload.get("data"),
             "colnames": payload.get("colnames"),
+            "collabels": payload.get("collabels"),
             "coltypes": payload.get("coltypes"),
             "rowcount": payload.get("rowcount"),
             "sql_rowcount": payload.get("sql_rowcount"),
