@@ -75,7 +75,7 @@
     "swagger-ui-react": "^5.31.0",
     "tinycolor2": "^1.4.2",
     "ts-loader": "^9.5.4",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.9.1",
