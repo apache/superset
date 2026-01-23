@@ -17,8 +17,7 @@
  * under the License.
  */
 import { FC } from 'react';
-import { t } from '@superset-ui/core';
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { t, tn } from '@superset-ui/core';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 export interface StatusTooltipContentProps {
@@ -28,84 +27,41 @@ export interface StatusTooltipContentProps {
   refreshFrequency: number;
   autoRefreshFetchStartTime: number | null;
   isPausedByTab?: boolean;
+  /** Current timestamp for relative time calculations */
+  currentTime: number;
 }
 
 /**
- * Formats a timestamp for display in the tooltip.
- * Shows relative time ("3 s ago").
+ * Calculates elapsed seconds between two timestamps.
  */
-const formatTimestamp = (timestamp: number | null): string => {
-  if (!timestamp) {
-    return t('Never');
-  }
-  return extendedDayjs(timestamp).fromNow();
+const getElapsedSeconds = (
+  timestamp: number | null,
+  currentTime: number,
+): number | null => {
+  if (timestamp === null) return null;
+  return Math.max(0, Math.floor((currentTime - timestamp) / 1000));
 };
 
 /**
- * Get the status-specific message for the tooltip.
- *
- * Per designer screenshot, tooltip shows two lines:
- * - Line 1: "Dashboard updated X ago"
- * - Line 2: "Auto refresh set to X seconds"
+ * Formats elapsed seconds into a human-readable relative time string.
  */
-const getStatusMessage = (
-  status: AutoRefreshStatus,
-  lastSuccessfulRefresh: number | null,
-  lastError: string | null,
-  refreshFrequency: number,
-  autoRefreshFetchStartTime: number | null,
-  isPausedByTab: boolean,
-): { line1: string; line2: string; line3?: string } => {
-  const intervalLine = t('Auto refresh set to %s seconds', refreshFrequency);
-
-  switch (status) {
-    case AutoRefreshStatus.Fetching:
-      return {
-        line1: t('Fetching data...'),
-        line2: intervalLine,
-      };
-    case AutoRefreshStatus.Delayed: {
-      const fetchElapsed = autoRefreshFetchStartTime
-        ? Math.round((Date.now() - autoRefreshFetchStartTime) / 1000)
-        : null;
-      return {
-        line1: t(
-          'Dashboard updated %s',
-          formatTimestamp(lastSuccessfulRefresh),
-        ),
-        line2: intervalLine,
-        line3: fetchElapsed
-          ? t('Refresh taking longer than expected (%ss)', fetchElapsed)
-          : t('Refresh delayed'),
-      };
-    }
-    case AutoRefreshStatus.Error:
-      return {
-        line1: t(
-          'Dashboard updated %s',
-          formatTimestamp(lastSuccessfulRefresh),
-        ),
-        line2: intervalLine,
-        line3: lastError ? t('Error: %s', lastError) : t('Refresh failed'),
-      };
-    case AutoRefreshStatus.Paused:
-      return {
-        line1: isPausedByTab
-          ? t('Auto-refresh paused (tab inactive)')
-          : t('Auto-refresh paused'),
-        line2: intervalLine,
-      };
-    case AutoRefreshStatus.Success:
-    case AutoRefreshStatus.Idle:
-    default:
-      return {
-        line1: t(
-          'Dashboard updated %s',
-          formatTimestamp(lastSuccessfulRefresh),
-        ),
-        line2: intervalLine,
-      };
+const formatElapsedTime = (seconds: number): string => {
+  if (seconds < 60) {
+    return tn('%s s ago', '%s s ago', seconds, seconds);
   }
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return tn('%s min ago', '%s min ago', minutes, minutes);
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return tn('%s hr ago', '%s hr ago', hours, hours);
+  }
+
+  const days = Math.floor(hours / 24);
+  return tn('%s day ago', '%s days ago', days, days);
 };
 
 export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
@@ -115,15 +71,57 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   refreshFrequency,
   autoRefreshFetchStartTime,
   isPausedByTab = false,
+  currentTime,
 }) => {
-  const { line1, line2, line3 } = getStatusMessage(
-    status,
-    lastSuccessfulRefresh,
-    lastError,
-    refreshFrequency,
+  const elapsedSeconds = getElapsedSeconds(lastSuccessfulRefresh, currentTime);
+  const fetchElapsedSeconds = getElapsedSeconds(
     autoRefreshFetchStartTime,
-    isPausedByTab,
+    currentTime,
   );
+
+  const intervalLine = t('Auto refresh set to %s seconds', refreshFrequency);
+
+  const getUpdatedLine = (): string => {
+    if (elapsedSeconds === null) {
+      return t('Waiting for first refresh');
+    }
+    return t('Dashboard updated %s', formatElapsedTime(elapsedSeconds));
+  };
+
+  let line1: string;
+  let line2: string = intervalLine;
+  let line3: string | undefined;
+
+  switch (status) {
+    case AutoRefreshStatus.Fetching:
+      line1 = t('Fetching data...');
+      break;
+    case AutoRefreshStatus.Delayed:
+      line1 = getUpdatedLine();
+      line3 =
+        fetchElapsedSeconds !== null
+          ? t('Refresh taking longer than expected (%ss)', fetchElapsedSeconds)
+          : t('Refresh delayed');
+      break;
+    case AutoRefreshStatus.Error:
+      line1 = getUpdatedLine();
+      line3 = lastError ? t('Error: %s', lastError) : t('Refresh failed');
+      break;
+    case AutoRefreshStatus.Paused:
+      line1 = getUpdatedLine();
+      line2 = isPausedByTab
+        ? t(
+            'Auto refresh paused - tab inactive (set to %s seconds)',
+            refreshFrequency,
+          )
+        : t('Auto refresh paused (set to %s seconds)', refreshFrequency);
+      break;
+    case AutoRefreshStatus.Success:
+    case AutoRefreshStatus.Idle:
+    default:
+      line1 = getUpdatedLine();
+      break;
+  }
 
   return (
     <div data-test="status-tooltip-content">

@@ -19,9 +19,10 @@
 import { FC, useMemo } from 'react';
 import { t } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
-import { Tooltip } from '@superset-ui/core/components';
+import { Label, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useRealTimeDashboard } from '../../hooks/useRealTimeDashboard';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
 import { StatusIndicatorDot } from '../AutoRefreshStatus/StatusIndicatorDot';
 import { StatusTooltipContent } from '../AutoRefreshStatus/StatusTooltipContent';
 
@@ -51,17 +52,19 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
     autoRefreshFetchStartTime,
     isPausedByTab,
   } = useRealTimeDashboard();
+  const currentTime = useCurrentTime(isRealTimeDashboard);
 
-  const containerStyles = useMemo(
+  const iconPixelSize = theme.fontSizeSM;
+
+  const labelStyles = useMemo(
     () => css`
-      display: inline-flex;
+      background-color: ${theme.colorBgContainer};
+      border-color: ${theme.colorSplit};
+      color: ${theme.colorTextSecondary};
+      padding: ${theme.sizeUnit}px;
+      column-gap: ${theme.marginXS}px;
       align-items: center;
-      gap: ${theme.marginXS}px;
-      border: 1px solid ${theme.colorSplit};
-      border-radius: ${theme.borderRadiusLG}px;
-      padding: ${theme.paddingXXS}px;
-      background: ${theme.colorBgContainer};
-      margin-right: ${theme.marginXS}px;
+      display: inline-flex;
     `,
     [theme],
   );
@@ -71,8 +74,8 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
       display: flex;
       align-items: center;
       justify-content: center;
-      width: ${theme.fontSize}px;
-      height: ${theme.fontSize}px;
+      width: ${iconPixelSize}px;
+      height: ${iconPixelSize}px;
       padding: 0;
       border: none;
       background: transparent;
@@ -89,7 +92,7 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
         opacity: 0.5;
       }
     `,
-    [theme],
+    [iconPixelSize, theme],
   );
 
   const dotWrapperStyles = useMemo(
@@ -97,8 +100,8 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
       display: flex;
       align-items: center;
       justify-content: center;
-      width: ${theme.fontSize}px;
-      height: ${theme.fontSize}px;
+      width: ${iconPixelSize}px;
+      height: ${iconPixelSize}px;
 
       & > span {
         margin: 0;
@@ -106,7 +109,7 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
         cursor: pointer;
       }
     `,
-    [theme.fontSize],
+    [iconPixelSize],
   );
 
   const pauseButton = useMemo(() => {
@@ -124,9 +127,9 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
           data-test="auto-refresh-toggle"
         >
           {isPaused ? (
-            <Icons.PlayCircleOutlined iconSize="m" />
+            <Icons.PlayCircleOutlined iconSize="s" />
           ) : (
-            <Icons.PauseCircleOutlined iconSize="m" />
+            <Icons.PauseCircleOutlined iconSize="s" />
           )}
         </button>
       </Tooltip>
@@ -138,7 +141,7 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
   }
 
   return (
-    <div css={containerStyles} data-test="auto-refresh-indicator">
+    <Label type="default" css={labelStyles} data-test="auto-refresh-indicator">
       <Tooltip
         id="auto-refresh-status-tooltip"
         placement="bottom"
@@ -150,16 +153,17 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
             refreshFrequency={refreshFrequency}
             autoRefreshFetchStartTime={autoRefreshFetchStartTime}
             isPausedByTab={isPausedByTab}
+            currentTime={currentTime}
           />
         }
       >
         <div css={dotWrapperStyles} data-test="auto-refresh-status">
-          <StatusIndicatorDot status={effectiveStatus} size={10} />
+          <StatusIndicatorDot status={effectiveStatus} size={iconPixelSize} />
         </div>
       </Tooltip>
 
       {pauseButton}
-    </div>
+    </Label>
   );
 };
 

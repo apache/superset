@@ -19,6 +19,7 @@
 import { FC } from 'react';
 import { Tooltip } from '@superset-ui/core/components';
 import { useRealTimeDashboard } from '../../hooks/useRealTimeDashboard';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
 import { StatusIndicatorDot } from './StatusIndicatorDot';
 import { StatusTooltipContent } from './StatusTooltipContent';
 
@@ -50,6 +51,7 @@ export const AutoRefreshStatus: FC<AutoRefreshStatusProps> = ({
     autoRefreshFetchStartTime,
     isPausedByTab,
   } = useRealTimeDashboard();
+  const currentTime = useCurrentTime(isRealTimeDashboard);
 
   // Don't render if not a real-time dashboard
   if (!isRealTimeDashboard) {
@@ -68,6 +70,7 @@ export const AutoRefreshStatus: FC<AutoRefreshStatusProps> = ({
           refreshFrequency={refreshFrequency}
           autoRefreshFetchStartTime={autoRefreshFetchStartTime}
           isPausedByTab={isPausedByTab}
+          currentTime={currentTime}
         />
       }
     >

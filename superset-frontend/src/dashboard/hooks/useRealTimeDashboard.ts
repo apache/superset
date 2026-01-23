@@ -23,7 +23,7 @@ import {
   DELAY_THRESHOLD_PERCENTAGE,
   ERROR_THRESHOLD_MULTIPLIER,
 } from '../types/autoRefresh';
-import { RootState } from '../types';
+import { DashboardState, RootState } from '../types';
 import {
   setAutoRefreshStatus,
   setAutoRefreshPaused,
@@ -34,7 +34,9 @@ import {
   setAutoRefreshPauseOnInactiveTab,
 } from '../actions/autoRefresh';
 
-type DashboardStateRoot = Pick<RootState, 'dashboardState'>;
+type DashboardStateRoot = {
+  dashboardState: Partial<DashboardState>;
+};
 
 /**
  * Selector: Determines if this is a "real-time" dashboard.
@@ -94,7 +96,7 @@ export const selectEffectiveRefreshStatus = (
     dashboardState?.autoRefreshFetchStartTime
   ) {
     const elapsed = Date.now() - dashboardState.autoRefreshFetchStartTime;
-    const intervalMs = dashboardState.refreshFrequency * 1000;
+    const intervalMs = (dashboardState.refreshFrequency ?? 0) * 1000;
     const delayThreshold = intervalMs * DELAY_THRESHOLD_PERCENTAGE;
     const errorThreshold = intervalMs * ERROR_THRESHOLD_MULTIPLIER;
 

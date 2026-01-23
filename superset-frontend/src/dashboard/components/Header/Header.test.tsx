@@ -183,11 +183,6 @@ jest.mock('src/dashboard/hooks/useRealTimeDashboard', () => ({
 jest.mock('src/dashboard/hooks/useAutoRefreshTabPause', () => ({
   useAutoRefreshTabPause: jest.fn(),
 }));
-jest.mock('src/dashboard/util/setPeriodicRunner', () => ({
-  __esModule: true,
-  default: jest.fn(),
-  stopPeriodicRender: jest.fn(),
-}));
 
 const useAutoRefreshContextMock = jest.requireMock(
   'src/dashboard/contexts/AutoRefreshContext',
@@ -198,10 +193,6 @@ const useRealTimeDashboardMock = jest.requireMock(
 const useAutoRefreshTabPauseMock = jest.requireMock(
   'src/dashboard/hooks/useAutoRefreshTabPause',
 ).useAutoRefreshTabPause as jest.Mock;
-const setPeriodicRunnerMock = jest.requireMock(
-  'src/dashboard/util/setPeriodicRunner',
-).default as jest.Mock;
-
 beforeAll(() => {
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
@@ -252,7 +243,6 @@ beforeEach(() => {
     setFetchStartTime,
   });
   useAutoRefreshTabPauseMock.mockImplementation(() => {});
-  setPeriodicRunnerMock.mockImplementation(() => 0);
   fetchCharts.mockImplementation(() => undefined);
   onRefresh.mockResolvedValue(undefined);
 
@@ -603,11 +593,7 @@ test('should refresh the charts', async () => {
 });
 
 test('auto-refresh uses fetchCharts and toggles refresh state', async () => {
-  let periodicRender: (() => Promise<void> | void) | null = null;
-  setPeriodicRunnerMock.mockImplementation(({ periodicRender: renderFn }) => {
-    periodicRender = renderFn;
-    return 0;
-  });
+  jest.useFakeTimers();
   fetchCharts.mockResolvedValue(undefined);
 
   const originalRequestAnimationFrame = window.requestAnimationFrame;
@@ -629,13 +615,11 @@ test('auto-refresh uses fetchCharts and toggles refresh state', async () => {
       },
     });
 
-    const periodicRenderFn = periodicRender;
-    if (!periodicRenderFn) {
-      throw new Error('Expected periodicRender to be defined');
-    }
-    await (periodicRenderFn as () => Promise<void> | void)();
+    jest.advanceTimersByTime(10000);
+    await waitFor(() =>
+      expect(fetchCharts).toHaveBeenCalledWith([1, 2], true, 2000, 1),
+    );
 
-    expect(fetchCharts).toHaveBeenCalledWith([1, 2], true, 2000, 1);
     expect(onRefresh).not.toHaveBeenCalled();
     expect(startAutoRefresh).toHaveBeenCalled();
     expect(setStatus).toHaveBeenCalledWith(AutoRefreshStatus.Fetching);
@@ -644,6 +628,7 @@ test('auto-refresh uses fetchCharts and toggles refresh state', async () => {
     expect(endAutoRefresh).toHaveBeenCalled();
   } finally {
     window.requestAnimationFrame = originalRequestAnimationFrame;
+    jest.useRealTimers();
   }
 });
 

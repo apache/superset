@@ -20,7 +20,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { StatusTooltipContent } from './StatusTooltipContent';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
-test('renders success status tooltip with timestamp and interval', () => {
+test('renders success status tooltip with precise seconds format', () => {
   const now = Date.now();
   render(
     <StatusTooltipContent
@@ -29,23 +29,47 @@ test('renders success status tooltip with timestamp and interval', () => {
       lastError={null}
       refreshFrequency={10}
       autoRefreshFetchStartTime={null}
+      currentTime={now}
     />,
   );
 
   const container = screen.getByTestId('status-tooltip-content');
   expect(container).toBeInTheDocument();
+  // Should show precise seconds format "X s ago"
+  expect(container).toHaveTextContent(/\d+ s ago/);
   // Should contain info about the refresh interval
-  expect(container.textContent).toContain('10');
+  expect(container).toHaveTextContent('10');
+});
+
+test('renders minutes format for older timestamps', () => {
+  const now = Date.now();
+  render(
+    <StatusTooltipContent
+      status={AutoRefreshStatus.Success}
+      lastSuccessfulRefresh={now - 120000}
+      lastError={null}
+      refreshFrequency={10}
+      autoRefreshFetchStartTime={null}
+      currentTime={now}
+    />,
+  );
+
+  const container = screen.getByTestId('status-tooltip-content');
+  expect(container).toBeInTheDocument();
+  // Should show minutes format "X min ago"
+  expect(container).toHaveTextContent(/\d+ min ago/);
 });
 
 test('renders fetching status tooltip', () => {
+  const now = Date.now();
   render(
     <StatusTooltipContent
       status={AutoRefreshStatus.Fetching}
-      lastSuccessfulRefresh={Date.now() - 5000}
+      lastSuccessfulRefresh={now - 5000}
       lastError={null}
       refreshFrequency={10}
-      autoRefreshFetchStartTime={Date.now()}
+      autoRefreshFetchStartTime={now}
+      currentTime={now}
     />,
   );
 
@@ -53,35 +77,45 @@ test('renders fetching status tooltip', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('renders paused status tooltip', () => {
+test('renders paused status with last updated time and interval in parentheses', () => {
+  const now = Date.now();
   render(
     <StatusTooltipContent
       status={AutoRefreshStatus.Paused}
-      lastSuccessfulRefresh={Date.now() - 5000}
+      lastSuccessfulRefresh={now - 5000}
       lastError={null}
       refreshFrequency={10}
       autoRefreshFetchStartTime={null}
+      currentTime={now}
     />,
   );
 
   const container = screen.getByTestId('status-tooltip-content');
   expect(container).toBeInTheDocument();
+  // Should show last updated time on first line
+  expect(container).toHaveTextContent(/Dashboard updated \d+ s ago/);
+  // Should show paused status with interval in parentheses
+  expect(container).toHaveTextContent(
+    'Auto refresh paused (set to 10 seconds)',
+  );
 });
 
 test('renders error status with error message', () => {
+  const now = Date.now();
   render(
     <StatusTooltipContent
       status={AutoRefreshStatus.Error}
-      lastSuccessfulRefresh={Date.now() - 30000}
+      lastSuccessfulRefresh={now - 30000}
       lastError="Network timeout"
       refreshFrequency={10}
       autoRefreshFetchStartTime={null}
+      currentTime={now}
     />,
   );
 
   const container = screen.getByTestId('status-tooltip-content');
   expect(container).toBeInTheDocument();
-  expect(container.textContent).toContain('Network timeout');
+  expect(container).toHaveTextContent('Network timeout');
 });
 
 test('renders delayed status with delay info', () => {
@@ -93,6 +127,7 @@ test('renders delayed status with delay info', () => {
       lastError={null}
       refreshFrequency={10}
       autoRefreshFetchStartTime={now - 8000}
+      currentTime={now}
     />,
   );
 
@@ -100,7 +135,8 @@ test('renders delayed status with delay info', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('handles null lastSuccessfulRefresh gracefully', () => {
+test('shows waiting message when no refresh has occurred yet', () => {
+  const now = Date.now();
   render(
     <StatusTooltipContent
       status={AutoRefreshStatus.Idle}
@@ -108,9 +144,11 @@ test('handles null lastSuccessfulRefresh gracefully', () => {
       lastError={null}
       refreshFrequency={10}
       autoRefreshFetchStartTime={null}
+      currentTime={now}
     />,
   );
 
   const container = screen.getByTestId('status-tooltip-content');
   expect(container).toBeInTheDocument();
+  expect(container).toHaveTextContent('Waiting for first refresh');
 });

@@ -24,7 +24,7 @@ import {
   t,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector, useStore } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -42,6 +42,11 @@ import {
 } from '@superset-ui/core/components';
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
+import Role from 'src/types/Role';
+import Owner from 'src/types/Owner';
+import { DashboardLayout, RootState } from 'src/dashboard/types';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { AlertObject } from 'src/features/alerts/types';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -52,10 +57,7 @@ import {
   DASHBOARD_POSITION_DATA_LIMIT,
   DASHBOARD_HEADER_ID,
 } from 'src/dashboard/util/constants';
-import { TagTypeEnum } from 'src/components/Tag/TagType';
-import setPeriodicRunner, {
-  stopPeriodicRender,
-} from 'src/dashboard/util/setPeriodicRunner';
+import { TagType, TagTypeEnum } from 'src/components/Tag/TagType';
 import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
@@ -90,7 +92,7 @@ import {
 } from '../../actions/dashboardState';
 import { logEvent } from '../../../logger/actions';
 import { dashboardInfoChanged } from '../../actions/dashboardInfo';
-import isDashboardLoading from '../../util/isDashboardLoading';
+import { ChartState } from 'src/explore/types';
 import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
 import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
@@ -101,17 +103,76 @@ import { useAutoRefreshTabPause } from '../../hooks/useAutoRefreshTabPause';
 import { useAutoRefreshContext } from '../../contexts/AutoRefreshContext';
 import { AutoRefreshStatus as AutoRefreshStatusEnum } from '../../types/autoRefresh';
 
+type DashboardPropertiesUpdate = {
+  slug?: string;
+  jsonMetadata?: string;
+  certifiedBy?: string;
+  certificationDetails?: string;
+  owners?: Owner[];
+  roles?: Role[];
+  tags?: TagType[];
+  themeId?: number | null;
+  css?: string;
+  title?: string;
+};
+
+type RefreshLogEventPayload = {
+  action: string;
+  metadata: Record<string, number | boolean>;
+};
+
+type DashboardLayoutStateWithHistory = RootState['dashboardLayout'] & {
+  past: DashboardLayout[];
+  future: DashboardLayout[];
+};
+
+type DashboardInfoState = RootState['dashboardInfo'] & {
+  dash_save_perm?: boolean;
+  dash_share_perm?: boolean;
+  is_managed_externally?: boolean;
+  slug?: string;
+  last_modified_time?: number;
+  certified_by?: string;
+  certification_details?: string;
+  roles?: Role[];
+  tags?: TagType[];
+  metadata: RootState['dashboardInfo']['metadata'] & {
+    timed_refresh_immune_slices?: number[];
+    refresh_frequency?: number;
+  };
+};
+
+type DashboardStateWithExtras = RootState['dashboardState'] & {
+  expandedSlices: Record<number, boolean>;
+  shouldPersistRefreshFrequency?: boolean;
+  colorNamespace?: string;
+  isStarred?: boolean;
+  maxUndoHistoryExceeded?: boolean;
+};
+
+type HeaderRootState = Omit<
+  RootState,
+  'dashboardLayout' | 'dashboardInfo' | 'dashboardState' | 'charts' | 'user'
+> & {
+  dashboardLayout: DashboardLayoutStateWithHistory;
+  dashboardInfo: DashboardInfoState;
+  dashboardState: DashboardStateWithExtras;
+  charts: Record<string, ChartState>;
+  user: UserWithPermissionsAndRoles;
+  lastModifiedTime: number;
+};
+
 const extensionsRegistry = getExtensionsRegistry();
 
-const headerContainerStyle = theme => css`
+const headerContainerStyle = (theme: SupersetTheme) => css`
   border-bottom: 1px solid ${theme.colorBorder};
 `;
 
-const editButtonStyle = theme => css`
+const editButtonStyle = (theme: SupersetTheme) => css`
   color: ${theme.colorPrimary};
 `;
 
-const actionButtonsStyle = theme => css`
+const actionButtonsStyle = (theme: SupersetTheme) => css`
   display: flex;
   align-items: center;
 
@@ -133,22 +194,22 @@ const StyledUndoRedoButton = styled(Button)`
   }
 `;
 
-const undoRedoStyle = theme => css`
+const undoRedoStyle = (theme: SupersetTheme) => css`
   color: ${theme.colorIcon};
   &:hover {
     color: ${theme.colorIconHover};
   }
 `;
 
-const undoRedoEmphasized = theme => css`
+const undoRedoEmphasized = (theme: SupersetTheme) => css`
   color: ${theme.colorIcon};
 `;
 
-const undoRedoDisabled = theme => css`
+const undoRedoDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colorTextDisabled};
 `;
 
-const saveBtnStyle = theme => css`
+const saveBtnStyle = (theme: SupersetTheme) => css`
   min-width: ${theme.sizeUnit * 17}px;
   height: ${theme.sizeUnit * 8}px;
   span > :first-of-type {
@@ -156,7 +217,7 @@ const saveBtnStyle = theme => css`
   }
 `;
 
-const discardBtnStyle = theme => css`
+const discardBtnStyle = (theme: SupersetTheme) => css`
   min-width: ${theme.sizeUnit * 22}px;
   height: ${theme.sizeUnit * 8}px;
 `;
@@ -168,9 +229,9 @@ const discardChanges = () => {
   window.location.assign(url);
 };
 
-const Header = () => {
+const Header = (): JSX.Element => {
   const dispatch = useDispatch();
-  const store = useStore();
+  const store = useStore<HeaderRootState>();
   const [didNotifyMaxUndoHistoryToast, setDidNotifyMaxUndoHistoryToast] =
     useState(false);
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
@@ -179,13 +240,22 @@ const Header = () => {
   const [showingRefreshModal, setShowingRefreshModal] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
   const [showingReportModal, setShowingReportModal] = useState(false);
-  const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
-  const dashboardInfo = useSelector(state => state.dashboardInfo);
-  const layout = useSelector(state => state.dashboardLayout.present);
-  const undoLength = useSelector(state => state.dashboardLayout.past.length);
-  const redoLength = useSelector(state => state.dashboardLayout.future.length);
-  const dataMask = useSelector(state => state.dataMask);
-  const user = useSelector(state => state.user);
+  const [currentReportDeleting, setCurrentReportDeleting] =
+    useState<AlertObject | null>(null);
+  const dashboardInfo = useSelector(
+    (state: HeaderRootState) => state.dashboardInfo,
+  );
+  const layout = useSelector(
+    (state: HeaderRootState) => state.dashboardLayout.present,
+  );
+  const undoLength = useSelector(
+    (state: HeaderRootState) => state.dashboardLayout.past.length,
+  );
+  const redoLength = useSelector(
+    (state: HeaderRootState) => state.dashboardLayout.future.length,
+  );
+  const dataMask = useSelector((state: HeaderRootState) => state.dataMask);
+  const user = useSelector((state: HeaderRootState) => state.user);
   const chartIds = useChartIds();
 
   const {
@@ -202,12 +272,12 @@ const Header = () => {
     editMode,
     lastModifiedTime,
   } = useSelector(
-    state => ({
-      expandedSlices: state.dashboardState.expandedSlices,
-      refreshFrequency: state.dashboardState.refreshFrequency,
+    (state: HeaderRootState) => ({
+      expandedSlices: state.dashboardState.expandedSlices ?? {},
+      refreshFrequency: state.dashboardState.refreshFrequency ?? 0,
       shouldPersistRefreshFrequency:
         !!state.dashboardState.shouldPersistRefreshFrequency,
-      customCss: state.dashboardInfo.css,
+      customCss: state.dashboardInfo.css ?? '',
       colorNamespace: state.dashboardState.colorNamespace,
       colorScheme: state.dashboardState.colorScheme,
       isStarred: !!state.dashboardState.isStarred,
@@ -215,11 +285,17 @@ const Header = () => {
       hasUnsavedChanges: !!state.dashboardState.hasUnsavedChanges,
       maxUndoHistoryExceeded: !!state.dashboardState.maxUndoHistoryExceeded,
       editMode: !!state.dashboardState.editMode,
-      lastModifiedTime: state.lastModifiedTime,
+      lastModifiedTime: state.lastModifiedTime ?? 0,
     }),
     shallowEqual,
   );
-  const isLoading = useSelector(state => isDashboardLoading(state.charts));
+  const isLoading = useSelector((state: HeaderRootState) =>
+    Object.values(state.charts).some(chart => {
+      const start = chart.chartUpdateStartTime ?? 0;
+      const end = chart.chartUpdateEndTime ?? 0;
+      return start > end;
+    }),
+  );
 
   // Real-time dashboard state and actions
   const {
@@ -237,17 +313,18 @@ const Header = () => {
     useAutoRefreshContext();
 
   const refreshInFlightRef = useRef(false);
-  const refreshPromiseRef = useRef(null);
-  const refreshTimer = useRef(0);
-  const ctrlYTimeout = useRef(0);
-  const ctrlZTimeout = useRef(0);
+  const refreshPromiseRef = useRef<Promise<void> | null>(null);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ctrlYTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ctrlZTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPeriodicRefreshStoppedRef = useRef(true);
   const previousThemeRef = useRef(dashboardInfo.theme);
 
-  const dashboardTitle = layout[DASHBOARD_HEADER_ID]?.meta?.text;
-  const { slug } = dashboardInfo;
+  const dashboardTitle = layout[DASHBOARD_HEADER_ID]?.meta?.text ?? '';
+  const slug = dashboardInfo.slug ?? '';
   const actualLastModifiedTime = Math.max(
     lastModifiedTime,
-    dashboardInfo.last_modified_time,
+    dashboardInfo.last_modified_time ?? 0,
   );
   const themeId = dashboardInfo.theme ? dashboardInfo.theme.id : null;
   const boundActionCreators = useMemo(
@@ -284,13 +361,13 @@ const Header = () => {
 
   const executeRefresh = useCallback(
     (
-      affectedCharts,
+      affectedCharts: number[],
       force = false,
       suppressSpinners = false,
       interval = 0,
-      logEventPayload = null,
+      logEventPayload: RefreshLogEventPayload | null = null,
       updateLastRefreshTime = false,
-    ) => {
+    ): Promise<void> => {
       if (affectedCharts.length === 0) {
         return Promise.resolve();
       }
@@ -328,32 +405,38 @@ const Header = () => {
         setFetchStartTime(Date.now());
       }
 
-      let innerPromise;
+      let innerPromise: Promise<unknown>;
       if (!suppressSpinners) {
-        innerPromise = boundActionCreators.onRefresh(
-          chartsToRefresh,
-          force,
-          0,
-          dashboardInfo.id,
+        innerPromise = Promise.resolve(
+          boundActionCreators.onRefresh(
+            chartsToRefresh,
+            force,
+            0,
+            dashboardInfo.id,
+          ),
         );
       } else if (updateLastRefreshTime) {
-        innerPromise = boundActionCreators.onRefresh(
-          chartsToRefresh,
-          force,
-          0,
-          dashboardInfo.id,
-          true,
+        innerPromise = Promise.resolve(
+          boundActionCreators.onRefresh(
+            chartsToRefresh,
+            force,
+            0,
+            dashboardInfo.id,
+            true,
+          ),
         );
       } else {
-        innerPromise = boundActionCreators.fetchCharts(
-          chartsToRefresh,
-          force,
-          interval * 0.2,
-          dashboardInfo.id,
+        innerPromise = Promise.resolve(
+          boundActionCreators.fetchCharts(
+            chartsToRefresh,
+            force,
+            interval * 0.2,
+            dashboardInfo.id,
+          ),
         );
       }
 
-      const wrappedPromise = new Promise((resolve, reject) => {
+      const wrappedPromise: Promise<void> = new Promise((resolve, reject) => {
         innerPromise
           .then(() => {
             if (suppressSpinners) {
@@ -365,9 +448,13 @@ const Header = () => {
                 const failedChart = chartsToRefresh.find(
                   chartId => charts[chartId]?.chartStatus === 'failed',
                 );
-                const errorMsg =
-                  charts[failedChart]?.chartAlert || 'Chart refresh failed';
-                recordError(errorMsg);
+                if (failedChart !== undefined) {
+                  const errorMsg =
+                    charts[failedChart]?.chartAlert || 'Chart refresh failed';
+                  recordError(errorMsg);
+                } else {
+                  recordError('Chart refresh failed');
+                }
               } else {
                 recordSuccess();
               }
@@ -426,52 +513,88 @@ const Header = () => {
     ],
   );
 
+  // Extract stable values from dashboardInfo for use in callbacks
+  // This prevents unnecessary recreations when unrelated dashboardInfo properties change
+  const timedRefreshImmuneSlices = useMemo(
+    () => dashboardInfo.metadata?.timed_refresh_immune_slices || [],
+    [dashboardInfo.metadata?.timed_refresh_immune_slices],
+  );
+  const autoRefreshMode =
+    dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_MODE;
+
+  const stopPeriodicRender = useCallback(() => {
+    if (refreshTimer.current !== null) {
+      clearTimeout(refreshTimer.current);
+      refreshTimer.current = null;
+    }
+    isPeriodicRefreshStoppedRef.current = true;
+  }, []);
+
   const startPeriodicRender = useCallback(
-    interval => {
-      const periodicRender = () => {
-        const { metadata } = dashboardInfo;
-        const immune = metadata.timed_refresh_immune_slices || [];
+    (intervalMs: number) => {
+      stopPeriodicRender();
+
+      if (intervalMs <= 0) {
+        return;
+      }
+
+      isPeriodicRefreshStoppedRef.current = false;
+
+      const runPeriodicRefresh = () => {
+        if (isPeriodicRefreshStoppedRef.current) {
+          return;
+        }
+
         const affectedCharts = chartIds.filter(
-          chartId => immune.indexOf(chartId) === -1,
+          chartId => timedRefreshImmuneSlices.indexOf(chartId) === -1,
         );
 
-        const force =
-          dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_MODE !== 'fetch';
+        const force = autoRefreshMode !== 'fetch';
 
-        return executeRefresh(
-          affectedCharts,
-          force,
-          true,
-          interval,
-          {
-            action: LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
-            metadata: {
-              interval,
-              chartCount: affectedCharts.length,
+        Promise.resolve(
+          executeRefresh(
+            affectedCharts,
+            force,
+            true,
+            intervalMs,
+            {
+              action: LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
+              metadata: {
+                interval: intervalMs,
+                chartCount: affectedCharts.length,
+              },
             },
-          },
-          false,
-        );
+            false,
+          ),
+        )
+          .catch(() => undefined)
+          .finally(() => {
+            if (isPeriodicRefreshStoppedRef.current) {
+              return;
+            }
+            refreshTimer.current = setTimeout(runPeriodicRefresh, intervalMs);
+          });
       };
 
-      refreshTimer.current = setPeriodicRunner({
-        interval,
-        periodicRender,
-        refreshTimer: refreshTimer.current,
-      });
+      refreshTimer.current = setTimeout(runPeriodicRefresh, intervalMs);
     },
-    [dashboardInfo, chartIds, executeRefresh],
+    [
+      autoRefreshMode,
+      chartIds,
+      executeRefresh,
+      stopPeriodicRender,
+      timedRefreshImmuneSlices,
+    ],
   );
 
   useEffect(() => {
     if (isPaused) {
-      stopPeriodicRender(refreshTimer.current);
-      refreshTimer.current = 0;
+      stopPeriodicRender();
       return;
     }
 
     startPeriodicRender(refreshFrequency * 1000);
-  }, [isPaused, refreshFrequency, startPeriodicRender]);
+  }, [isPaused, refreshFrequency, startPeriodicRender, stopPeriodicRender]);
 
   // Track theme changes as unsaved changes, and sync ref when navigating between dashboards
   useEffect(() => {
@@ -498,16 +621,20 @@ const Header = () => {
 
   useEffect(
     () => () => {
-      stopPeriodicRender(refreshTimer.current);
+      stopPeriodicRender();
       boundActionCreators.setRefreshFrequency(0);
-      clearTimeout(ctrlYTimeout.current);
-      clearTimeout(ctrlZTimeout.current);
+      if (ctrlYTimeout.current !== null) {
+        clearTimeout(ctrlYTimeout.current);
+      }
+      if (ctrlZTimeout.current !== null) {
+        clearTimeout(ctrlZTimeout.current);
+      }
     },
-    [boundActionCreators],
+    [boundActionCreators, stopPeriodicRender],
   );
 
   const handleChangeText = useCallback(
-    nextText => {
+    (nextText: string) => {
       if (nextText && dashboardTitle !== nextText) {
         boundActionCreators.updateDashboardTitle(nextText);
         boundActionCreators.onChange();
@@ -519,7 +646,7 @@ const Header = () => {
   const handleCtrlY = useCallback(() => {
     boundActionCreators.onRedo();
     setEmphasizeRedo(true);
-    if (ctrlYTimeout.current) {
+    if (ctrlYTimeout.current !== null) {
       clearTimeout(ctrlYTimeout.current);
     }
     ctrlYTimeout.current = setTimeout(() => {
@@ -530,7 +657,7 @@ const Header = () => {
   const handleCtrlZ = useCallback(() => {
     boundActionCreators.onUndo();
     setEmphasizeUndo(true);
-    if (ctrlZTimeout.current) {
+    if (ctrlZTimeout.current !== null) {
       clearTimeout(ctrlZTimeout.current);
     }
     ctrlZTimeout.current = setTimeout(() => {
@@ -678,15 +805,15 @@ const Header = () => {
 
   const userCanEdit =
     dashboardInfo.dash_edit_perm && !dashboardInfo.is_managed_externally;
-  const userCanShare = dashboardInfo.dash_share_perm;
-  const userCanSaveAs = dashboardInfo.dash_save_perm;
+  const userCanShare = !!dashboardInfo.dash_share_perm;
+  const userCanSaveAs = !!dashboardInfo.dash_save_perm;
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
     findPermission('can_set_embedded', 'Dashboard', user.roles);
   const isEmbedded = !dashboardInfo?.userId;
 
   const handleOnPropertiesChange = useCallback(
-    updates => {
+    (updates: DashboardPropertiesUpdate) => {
       boundActionCreators.dashboardInfoChanged({
         slug: updates.slug,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
@@ -709,7 +836,7 @@ const Header = () => {
   );
 
   const handleRefreshChange = useCallback(
-    (refreshFrequency, editMode) => {
+    (refreshFrequency: number, editMode: boolean) => {
       boundActionCreators.setRefreshFrequency(refreshFrequency, !!editMode);
     },
     [boundActionCreators],
@@ -764,10 +891,8 @@ const Header = () => {
     if (isPaused) {
       // Resume: fetch immediately, then restart timer
       setPaused(false);
-      const { metadata } = dashboardInfo;
-      const immune = metadata.timed_refresh_immune_slices || [];
       const affectedCharts = chartIds.filter(
-        chartId => immune.indexOf(chartId) === -1,
+        chartId => timedRefreshImmuneSlices.indexOf(chartId) === -1,
       );
       executeRefresh(affectedCharts, true, true, 0, null, true).finally(() => {
         startPeriodicRender(refreshFrequency * 1000);
@@ -776,18 +901,18 @@ const Header = () => {
       // Pause: stop the timer
       setPaused(true);
       setStatus(AutoRefreshStatusEnum.Paused);
-      stopPeriodicRender(refreshTimer.current);
-      refreshTimer.current = 0;
+      stopPeriodicRender();
     }
   }, [
     isPaused,
     setPaused,
     setStatus,
-    dashboardInfo,
+    timedRefreshImmuneSlices,
     chartIds,
     executeRefresh,
     startPeriodicRender,
     refreshFrequency,
+    stopPeriodicRender,
   ]);
 
   // Callback for tab visibility refresh
@@ -798,13 +923,11 @@ const Header = () => {
     if (isLoading) {
       return Promise.resolve();
     }
-    const { metadata } = dashboardInfo;
-    const immune = metadata.timed_refresh_immune_slices || [];
     const affectedCharts = chartIds.filter(
-      chartId => immune.indexOf(chartId) === -1,
+      chartId => timedRefreshImmuneSlices.indexOf(chartId) === -1,
     );
     return executeRefresh(affectedCharts, true, true, 0, null, true);
-  }, [dashboardInfo, chartIds, isLoading, executeRefresh]);
+  }, [timedRefreshImmuneSlices, chartIds, isLoading, executeRefresh]);
 
   // Callback to restart the periodic timer
   const handleRestartTimer = useCallback(() => {
@@ -813,9 +936,8 @@ const Header = () => {
 
   // Callback to stop the periodic timer
   const handleStopTimer = useCallback(() => {
-    stopPeriodicRender(refreshTimer.current);
-    refreshTimer.current = 0;
-  }, []);
+    stopPeriodicRender();
+  }, [stopPeriodicRender]);
 
   // Auto-pause when browser tab is inactive
   useAutoRefreshTabPause({
@@ -843,7 +965,6 @@ const Header = () => {
           savePublished={boundActionCreators.savePublished}
           userCanEdit={userCanEdit}
           userCanSave={userCanSaveAs}
-          visible={!editMode}
         />
       ),
       !editMode && !isEmbedded && metadataBar,
@@ -981,7 +1102,7 @@ const Header = () => {
     ],
   );
 
-  const handleReportDelete = async report => {
+  const handleReportDelete = async (report: AlertObject) => {
     await dispatch(deleteActiveReport(report));
     setCurrentReportDeleting(null);
   };
@@ -1035,7 +1156,7 @@ const Header = () => {
           onOpenChange: setIsDropdownVisible,
         }}
         additionalActionsMenu={menu}
-        showFaveStar={user?.userId && dashboardInfo?.id}
+        showFaveStar={Boolean(user?.userId && dashboardInfo?.id)}
         showTitlePanelItems
       />
       {showingPropertiesModal && (
@@ -1095,7 +1216,7 @@ const Header = () => {
         <DashboardEmbedModal
           show={showingEmbedModal}
           onHide={hideEmbedModal}
-          dashboardId={dashboardInfo.id}
+          dashboardId={String(dashboardInfo.id)}
         />
       )}
       <Global

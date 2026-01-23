@@ -21,7 +21,8 @@
  * Status states for the auto-refresh indicator.
  *
  * Per requirements:
- * - Green (Success/Idle): Refreshed on schedule
+ * - Green (Success): Refreshed on schedule
+ * - Blue (Idle): Waiting for first refresh
  * - Blue (Fetching): Currently fetching data
  * - Yellow (Delayed): Refresh taking longer than expected OR 1 consecutive error
  * - Red (Error): 2+ consecutive errors

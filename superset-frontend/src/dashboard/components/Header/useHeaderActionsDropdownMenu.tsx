@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
@@ -64,7 +65,11 @@ export const useHeaderActionsMenu = ({
   dashboardTitle,
   logEvent,
   setCurrentReportDeleting,
-}: HeaderDropdownProps) => {
+}: HeaderDropdownProps): [
+  ReactElement,
+  boolean,
+  Dispatch<SetStateAction<boolean>>,
+] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const menuRef = useRef<React.ReactElement | null>(null);
   const history = useHistory();
@@ -117,6 +122,7 @@ export const useHeaderActionsMenu = ({
       showPropertiesModal,
       showRefreshModal,
       manageEmbedded,
+      history,
     ],
   );
 

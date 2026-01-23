@@ -29,8 +29,10 @@ import {
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
+import { TagType } from 'src/components/Tag/TagType';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
+import Role from 'src/types/Role';
 import { UrlParamEntries } from 'src/utils/urlUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
@@ -145,8 +147,12 @@ export type DashboardInfo = {
   common: {
     conf: JsonObject;
   };
-  userId: string;
+  userId?: string;
   dash_edit_perm: boolean;
+  dash_save_perm?: boolean;
+  dash_share_perm?: boolean;
+  is_managed_externally?: boolean;
+  slug?: string;
   json_metadata: string;
   metadata: {
     native_filter_configuration: JsonObject;
@@ -160,14 +166,21 @@ export type DashboardInfo = {
     map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
     chart_customization_config?: ChartCustomizationItem[];
+    timed_refresh_immune_slices?: number[];
+    refresh_frequency?: number;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
   created_on_delta_humanized: string;
   changed_on_delta_humanized: string;
+  last_modified_time?: number;
   changed_by?: Owner;
   created_by?: Owner;
   owners: Owner[];
+  certified_by?: string;
+  certification_details?: string;
+  roles?: Role[];
+  tags?: TagType[];
   chartCustomizationData?: { [itemId: string]: FilterOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
   pendingChartCustomizations?: Record<string, ChartCustomizationItem>;

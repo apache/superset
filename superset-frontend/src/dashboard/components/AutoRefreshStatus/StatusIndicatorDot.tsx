@@ -31,7 +31,7 @@ export interface StatusIndicatorDotProps {
  * Status indicator configuration mapping.
  *
  * - Green dot: Refreshed on schedule
- * - Blue dot: Fetching data
+ * - Blue dot: Fetching data or waiting for first refresh
  * - Yellow/warning dot: Delayed
  * - Red dot: Error
  * - White dot: Paused
@@ -47,14 +47,18 @@ const getStatusConfig = (
 ): StatusConfig => {
   switch (status) {
     case AutoRefreshStatus.Success:
-    case AutoRefreshStatus.Idle:
       return {
         color: theme.colorSuccess,
         needsBorder: false,
       };
+    case AutoRefreshStatus.Idle:
+      return {
+        color: theme.colorInfo,
+        needsBorder: false,
+      };
     case AutoRefreshStatus.Fetching:
       return {
-        color: theme.colorPrimary,
+        color: theme.colorInfo,
         needsBorder: false,
       };
     case AutoRefreshStatus.Delayed:
