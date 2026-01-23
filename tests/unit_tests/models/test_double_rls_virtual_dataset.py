@@ -43,15 +43,15 @@ def mock_datasource() -> MagicMock:
     return datasource
 
 
-def test_public_api_includes_guest_rls(
+def test_rls_filters_include_guest_when_enabled(
     mock_datasource: MagicMock,
     app: Flask,
 ) -> None:
     """
-    Test that get_sqla_row_level_filters() includes guest RLS filters.
+    Test that RLS filters include guest filters when enabled.
 
-    The public API must maintain backwards compatibility and always
-    include guest RLS when EMBEDDED_SUPERSET is enabled.
+    When include_guest_rls=True and EMBEDDED_SUPERSET is enabled,
+    both regular and guest RLS filters should be returned.
     """
     regular_filter = MagicMock()
     regular_filter.clause = "col1 = 'value1'"
@@ -73,8 +73,7 @@ def test_public_api_includes_guest_rls(
             return_value=True,
         ),
     ):
-        # Call the public API using the unbound method with mock as self
-        # This ensures we test the actual implementation, not the mock
+        # Call with include_guest_rls=True
         filters = BaseDatasource._get_sqla_row_level_filters_internal(
             mock_datasource, include_guest_rls=True
         )
@@ -86,12 +85,12 @@ def test_public_api_includes_guest_rls(
         assert any("col2" in s for s in filter_strs)
 
 
-def test_internal_api_excludes_guest_rls_when_requested(
+def test_rls_filters_exclude_guest_when_requested(
     mock_datasource: MagicMock,
     app: Flask,
 ) -> None:
     """
-    Test that _get_sqla_row_level_filters_internal() can exclude guest RLS.
+    Test that RLS filters exclude guest filters when requested.
 
     Issue #37359: When analyzing underlying tables in virtual datasets,
     guest RLS should be excluded to prevent double application.
@@ -128,14 +127,15 @@ def test_internal_api_excludes_guest_rls_when_requested(
         assert not any("col2" in s for s in filter_strs)
 
 
-def test_internal_api_includes_guest_rls_by_default(
+def test_rls_filters_include_guest_by_default(
     mock_datasource: MagicMock,
     app: Flask,
 ) -> None:
     """
-    Test that _get_sqla_row_level_filters_internal() includes guest RLS by default.
+    Test that RLS filters include guest filters by default.
 
-    The default behavior (include_guest_rls=True) should match the public API.
+    The default behavior (include_guest_rls=True) ensures backwards
+    compatibility with existing code.
     """
     regular_filter = MagicMock()
     regular_filter.clause = "col1 = 'value1'"
