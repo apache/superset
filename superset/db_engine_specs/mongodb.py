@@ -116,8 +116,10 @@ class MongoDBEngineSpec(BaseEngineSpec):
         """Convert Python datetime to MongoDB/SQL datetime string."""
         sqla_type = cls.get_sqla_column_type(target_type)
 
-        if isinstance(sqla_type, (types.String, types.DateTime)):
+        if isinstance(
+            sqla_type, (types.String, types.DateTime, types.Date, types.TIMESTAMP)
+        ):
             # Return ISO format datetime string for MongoDB compatibility
-            return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
+            return f"""{dttm.isoformat(sep=" ", timespec="seconds")!r}"""
 
         return None
