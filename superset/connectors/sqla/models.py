@@ -735,12 +735,33 @@ class BaseDatasource(
     ) -> list[TextClause]:
         """
         Return the appropriate row level security filters for this table and the
-        current user. A custom username can be passed when the user is not present in the
-        Flask global namespace.
+        current user. Always includes guest RLS filters when EMBEDDED_SUPERSET is
+        enabled.
+
+        For internal use cases that need to exclude guest RLS (e.g., virtual dataset
+        underlying table analysis), use _get_sqla_row_level_filters_internal().
 
         :param template_processor: The template processor to apply to the filters.
         :returns: A list of SQL clauses to be ANDed together.
-        """  # noqa: E501
+        """
+        return self._get_sqla_row_level_filters_internal(
+            template_processor, include_guest_rls=True
+        )
+
+    def _get_sqla_row_level_filters_internal(
+        self,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+        include_guest_rls: bool = True,
+    ) -> list[TextClause]:
+        """
+        Internal method for RLS filter retrieval with optional guest RLS exclusion.
+
+        :param template_processor: The template processor to apply to the filters.
+        :param include_guest_rls: Whether to include guest user RLS filters.
+            Set to False when analyzing underlying tables in virtual datasets
+            to prevent double RLS application. See Issue #37359.
+        :returns: A list of SQL clauses to be ANDed together.
+        """
         template_processor = template_processor or self.get_template_processor()
 
         all_filters: list[TextClause] = []
@@ -755,7 +776,7 @@ class BaseDatasource(
                 else:
                     all_filters.append(clause)
 
-            if is_feature_enabled("EMBEDDED_SUPERSET"):
+            if include_guest_rls and is_feature_enabled("EMBEDDED_SUPERSET"):
                 for rule in security_manager.get_guest_rls_filters(self):
                     clause = self.text(
                         f"({template_processor.process_template(rule['clause'])})"
