@@ -34,8 +34,8 @@ from superset.extensions import db
 from superset.models.tasks import Task
 from superset.tasks.ambient_context import get_context
 from superset.tasks.context import TaskContext
-from superset.tasks.executor import execute_task
 from superset.tasks.registry import TaskRegistry
+from superset.tasks.scheduler import execute_task
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 
