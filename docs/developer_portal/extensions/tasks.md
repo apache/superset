@@ -1,7 +1,6 @@
 ---
-title: Task Framework
-sidebar_label: Tasks
-sidebar_position: 9
+title: Tasks
+sidebar_position: 10
 ---
 
 

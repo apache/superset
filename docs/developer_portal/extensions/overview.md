@@ -51,4 +51,5 @@ Extensions can provide:
 - **[Deployment](./deployment)** - Packaging and deploying extensions
 - **[MCP Integration](./mcp)** - Adding AI agent capabilities using extensions
 - **[Security](./security)** - Security considerations and best practices
+- **[Tasks](./tasks)** - Framework for creating and managing long running tasks
 - **[Community Extensions](./registry)** - Browse extensions shared by the community
