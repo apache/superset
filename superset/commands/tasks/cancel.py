@@ -94,12 +94,20 @@ class CancelTaskCommand(BaseCommand):
 
         if should_abort_directly:
             # Direct abort
-            self._action_taken = "aborted"
             try:
-                TaskDAO.abort_task(self._task_uuid, skip_base_filter=self._is_admin)
+                aborted = TaskDAO.abort_task(
+                    self._task_uuid, skip_base_filter=self._is_admin
+                )
             except TaskNotAbortableError:
                 raise
 
+            if not aborted:
+                # abort_task returned False - task wasn't aborted
+                # This can happen if task is already finished or has
+                # remaining subscribers
+                raise TaskAbortFailedError()
+
+            self._action_taken = "aborted"
             logger.info(
                 "Task aborted: %s (scope: %s, force: %s)",
                 self._task_uuid,
