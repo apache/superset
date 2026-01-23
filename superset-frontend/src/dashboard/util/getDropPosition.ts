@@ -1,21 +1,3 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
 import { ComponentType } from '../types';
 import isValidChild from './isValidChild';
 import { TAB_TYPE, TABS_TYPE } from './componentTypes';
@@ -78,12 +60,11 @@ type DropTargetMonitor = {
   getClientOffset: () => ClientOffset | null;
 };
 
-// this defines how close the mouse must be to the edge of a component to display
-// a sibling type drop indicator
 const SIBLING_DROP_THRESHOLD = 20;
 const NON_SHALLOW_DROP_THRESHOLD = 20;
 
 let CACHED_CLIENT_OFFSET: Record<string, ClientOffset> = {};
+
 export function clearDropCache() {
   CACHED_CLIENT_OFFSET = {};
 }
@@ -112,7 +93,9 @@ export default function getDropPosition(
     childType: draggingItem.type,
   });
 
-  const parentType = parentComponent ? parentComponent.type : null;
+  // 🔥 CRITICAL FIX — restore original JS behavior (undefined, not null)
+  const parentType: ComponentType | undefined =
+    parentComponent && parentComponent.type;
 
   const parentDepth =
     parentType && (parentType === TAB_TYPE || parentType === TABS_TYPE)
@@ -151,6 +134,7 @@ export default function getDropPosition(
   }
 
   CACHED_CLIENT_OFFSET[component.id] = clientOffset;
+
   const deltaTop = Math.abs(clientOffset.y - refBoundingRect.top);
   const deltaBottom = Math.abs(clientOffset.y - refBoundingRect.bottom);
   const deltaLeft = Math.abs(clientOffset.x - refBoundingRect.left);
@@ -173,7 +157,8 @@ export default function getDropPosition(
       return clientOffset.x < refMiddleX ? DROP_LEFT : DROP_RIGHT;
     }
     const refMiddleY =
-      refBoundingRect.top + (refBoundingRect.bottom - refBoundingRect.top) / 2;
+      refBoundingRect.top +
+      (refBoundingRect.bottom - refBoundingRect.top) / 2;
     return clientOffset.y < refMiddleY ? DROP_TOP : DROP_BOTTOM;
   }
 
