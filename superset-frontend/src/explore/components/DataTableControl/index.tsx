@@ -224,6 +224,31 @@ const DataTableTemporalHeaderCell = ({
   );
 };
 
+const DataTableHeaderCell = ({
+  columnName,
+  columnLabel,
+}: {
+  columnName: string;
+  columnLabel?: string;
+}) => {
+  // Use label if provided, otherwise use column name
+  // as header
+  const displayText = columnLabel || columnName;
+  if (columnLabel && columnLabel !== columnName) {
+    return (
+      <Popover
+        content={`Column name: ${columnName}`}
+        placement="bottomLeft"
+        arrow={{ pointAtCenter: true }}
+      >
+        <span>{displayText}</span>
+      </Popover>
+    );
+  }
+
+  return <span>{displayText}</span>;
+};
+
 export const useFilteredTableData = (
   filterText: string,
   data?: Record<string, any>[],
@@ -254,13 +279,13 @@ const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
 export const useTableColumns = (
   colnames?: string[],
+  collabels?: string[],
   coltypes?: GenericDataType[],
   data?: Record<string, any>[],
   datasourceId?: string,
   isVisible?: boolean,
   moreConfigs?: { [key: string]: Partial<Column> },
   allowHTML?: boolean,
-  columnDisplayNames?: Record<string, string>,
 ) => {
   const [originalFormattedTimeColumns, setOriginalFormattedTimeColumns] =
     useState<string[]>(getTimeColumns(datasourceId));
@@ -312,6 +337,7 @@ export const useTableColumns = (
                   : -1;
               const isOriginalTimeColumn =
                 originalFormattedTimeColumns.includes(key);
+              const label = collabels?.[index];
               return {
                 // react-table requires a non-empty id, therefore we introduce a fallback value in case the key is empty
                 id: key || index,
@@ -327,7 +353,7 @@ export const useTableColumns = (
                       displayLabel={headerLabel}
                     />
                   ) : (
-                    headerLabel
+                    <DataTableHeaderCell columnName={key} columnLabel={label} />
                   ),
                 Cell: ({ value }) => {
                   if (value === true) {
@@ -359,6 +385,7 @@ export const useTableColumns = (
       colnames,
       data,
       coltypes,
+      collabels,
       datasourceId,
       moreConfigs,
       originalFormattedTimeColumns,
