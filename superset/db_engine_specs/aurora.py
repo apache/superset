@@ -56,6 +56,19 @@ class AuroraPostgresDataAPI(PostgresEngineSpec):
     )
 
 
+class AuroraMySQLEngineSpec(MySQLEngineSpec):
+    """
+    Aurora MySQL engine spec.
+
+    IAM authentication is handled by the parent MySQLEngineSpec via
+    the aws_iam config in encrypted_extra.
+    """
+
+    engine = "mysql"
+    engine_name = "Aurora MySQL"
+    default_driver = "mysqldb"
+
+
 class AuroraPostgresEngineSpec(PostgresEngineSpec):
     """
     Aurora PostgreSQL engine spec.

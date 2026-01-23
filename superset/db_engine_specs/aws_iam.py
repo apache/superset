@@ -21,13 +21,18 @@ This mixin provides cross-account IAM authentication support for AWS databases
 (Aurora PostgreSQL, Aurora MySQL, Redshift). It handles:
 - Assuming IAM roles via STS AssumeRole
 - Generating RDS IAM auth tokens
+- Generating Redshift Serverless credentials
 - Configuring SSL (required for IAM auth)
+- Caching STS credentials to reduce API calls
 """
 
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Any, TYPE_CHECKING, TypedDict
+
+from cachetools import TTLCache
 
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -41,8 +46,16 @@ logger = logging.getLogger(__name__)
 # Default session duration for STS AssumeRole (1 hour)
 DEFAULT_SESSION_DURATION = 3600
 
-# Default port for PostgreSQL
+# Default ports
 DEFAULT_POSTGRES_PORT = 5432
+DEFAULT_MYSQL_PORT = 3306
+DEFAULT_REDSHIFT_PORT = 5439
+
+# Cache STS credentials: key = (role_arn, region, external_id), TTL = 50 min
+_credentials_cache: TTLCache[tuple[str, str, str | None], dict[str, Any]] = TTLCache(
+    maxsize=100, ttl=3000
+)
+_credentials_lock = threading.RLock()
 
 
 class AWSIAMConfig(TypedDict, total=False):
@@ -54,6 +67,9 @@ class AWSIAMConfig(TypedDict, total=False):
     region: str
     db_username: str
     session_duration: int
+    # Redshift Serverless fields
+    workgroup_name: str
+    db_name: str
 
 
 class AWSIAMAuthMixin:
@@ -110,7 +126,11 @@ class AWSIAMAuthMixin:
         session_duration: int = DEFAULT_SESSION_DURATION,
     ) -> dict[str, Any]:
         """
-        Assume cross-account IAM role via STS AssumeRole.
+        Assume cross-account IAM role via STS AssumeRole with credential caching.
+
+        Credentials are cached by (role_arn, region, external_id) with a 50-minute
+        TTL to reduce STS API calls while ensuring tokens are refreshed before the
+        default 1-hour expiration.
 
         :param role_arn: The ARN of the IAM role to assume
         :param region: AWS region for the STS client
@@ -119,6 +139,13 @@ class AWSIAMAuthMixin:
         :returns: Dictionary with AccessKeyId, SecretAccessKey, SessionToken
         :raises SupersetSecurityException: If role assumption fails
         """
+        cache_key = (role_arn, region, external_id)
+
+        with _credentials_lock:
+            cached = _credentials_cache.get(cache_key)
+            if cached is not None:
+                return cached
+
         try:
             # Lazy import to avoid errors when boto3 is not installed
             import boto3
@@ -145,7 +172,12 @@ class AWSIAMAuthMixin:
                 assume_role_kwargs["ExternalId"] = external_id
 
             response = sts_client.assume_role(**assume_role_kwargs)
-            return response["Credentials"]
+            credentials = response["Credentials"]
+
+            with _credentials_lock:
+                _credentials_cache[cache_key] = credentials
+
+            return credentials
 
         except ClientError as ex:
             error_code = ex.response.get("Error", {}).get("Code", "")
@@ -239,11 +271,67 @@ class AWSIAMAuthMixin:
             ) from ex
 
     @classmethod
+    def generate_redshift_credentials(
+        cls,
+        credentials: dict[str, Any],
+        workgroup_name: str,
+        db_name: str,
+        region: str,
+    ) -> tuple[str, str]:
+        """
+        Generate Redshift Serverless credentials using temporary STS credentials.
+
+        :param credentials: STS credentials from assume_role
+        :param workgroup_name: Redshift Serverless workgroup name
+        :param db_name: Redshift database name
+        :param region: AWS region
+        :returns: Tuple of (username, password) for Redshift connection
+        :raises SupersetSecurityException: If credential generation fails
+        """
+        try:
+            import boto3
+            from botocore.exceptions import ClientError
+        except ImportError as ex:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="boto3 is required for AWS IAM authentication.",
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ) from ex
+
+        try:
+            client = boto3.client(
+                "redshift-serverless",
+                region_name=region,
+                aws_access_key_id=credentials["AccessKeyId"],
+                aws_secret_access_key=credentials["SecretAccessKey"],
+                aws_session_token=credentials["SessionToken"],
+            )
+
+            response = client.get_credentials(
+                workgroupName=workgroup_name,
+                dbName=db_name,
+            )
+            return response["dbUser"], response["dbPassword"]
+
+        except ClientError as ex:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message=f"Failed to get Redshift credentials: {ex}",
+                    error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ) from ex
+
+    @classmethod
     def _apply_iam_authentication(
         cls,
         database: Database,
         params: dict[str, Any],
         iam_config: AWSIAMConfig,
+        ssl_args: dict[str, str] | None = None,
+        default_port: int = DEFAULT_POSTGRES_PORT,
     ) -> None:
         """
         Apply IAM authentication to the connection parameters.
@@ -253,8 +341,13 @@ class AWSIAMAuthMixin:
         :param database: Database model instance
         :param params: Engine parameters dict to modify
         :param iam_config: IAM configuration from encrypted_extra
+        :param ssl_args: SSL args to apply (defaults to sslmode=require)
+        :param default_port: Default port if not specified in URI
         :raises SupersetSecurityException: If any step fails
         """
+        if ssl_args is None:
+            ssl_args = {"sslmode": "require"}
+
         # Extract configuration
         role_arn = iam_config.get("role_arn")
         region = iam_config.get("region")
@@ -289,7 +382,7 @@ class AWSIAMAuthMixin:
         # Get hostname and port from the database URI
         uri = make_url_safe(database.sqlalchemy_uri_decrypted)
         hostname = uri.host
-        port = uri.port or DEFAULT_POSTGRES_PORT
+        port = uri.port or default_port
 
         if not hostname:
             raise SupersetSecurityException(
@@ -336,8 +429,89 @@ class AWSIAMAuthMixin:
         connect_args["user"] = db_username
 
         # Step 4: Enable SSL (required for IAM authentication)
-        # sslmode=require ensures encrypted connection without cert verification
-        # For production, consider sslmode=verify-full with RDS CA bundle
-        connect_args["sslmode"] = "require"
+        connect_args.update(ssl_args)
 
         logger.debug("IAM authentication configured successfully")
+
+    @classmethod
+    def _apply_redshift_iam_authentication(
+        cls,
+        database: Database,
+        params: dict[str, Any],
+        iam_config: AWSIAMConfig,
+    ) -> None:
+        """
+        Apply Redshift Serverless IAM authentication to connection parameters.
+
+        Flow: assume role -> get Redshift credentials -> update connect_args -> SSL.
+
+        :param database: Database model instance
+        :param params: Engine parameters dict to modify
+        :param iam_config: IAM configuration from encrypted_extra
+        :raises SupersetSecurityException: If any step fails
+        """
+        # Extract configuration
+        role_arn = iam_config.get("role_arn")
+        region = iam_config.get("region")
+        external_id = iam_config.get("external_id")
+        session_duration = iam_config.get("session_duration", DEFAULT_SESSION_DURATION)
+        workgroup_name = iam_config.get("workgroup_name")
+        db_name = iam_config.get("db_name")
+
+        # Validate required fields
+        missing_fields = []
+        if not role_arn:
+            missing_fields.append("role_arn")
+        if not region:
+            missing_fields.append("region")
+        if not workgroup_name:
+            missing_fields.append("workgroup_name")
+        if not db_name:
+            missing_fields.append("db_name")
+
+        if missing_fields:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="AWS IAM configuration missing required fields: "
+                    f"{', '.join(missing_fields)}",
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+        # Type assertions after validation
+        assert role_arn is not None
+        assert region is not None
+        assert workgroup_name is not None
+        assert db_name is not None
+
+        logger.debug(
+            "Applying Redshift IAM authentication for workgroup %s",
+            workgroup_name,
+        )
+
+        # Step 1: Assume the IAM role
+        credentials = cls.get_iam_credentials(
+            role_arn=role_arn,
+            region=region,
+            external_id=external_id,
+            session_duration=session_duration,
+        )
+
+        # Step 2: Get Redshift Serverless credentials
+        db_user, db_password = cls.generate_redshift_credentials(
+            credentials=credentials,
+            workgroup_name=workgroup_name,
+            db_name=db_name,
+            region=region,
+        )
+
+        # Step 3: Update connection parameters
+        connect_args = params.setdefault("connect_args", {})
+        connect_args["password"] = db_password
+        connect_args["user"] = db_user
+
+        # Step 4: Enable SSL (required for Redshift IAM authentication)
+        connect_args["sslmode"] = "verify-ca"
+
+        logger.debug("Redshift IAM authentication configured successfully")

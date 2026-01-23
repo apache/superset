@@ -492,7 +492,13 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         if iam_config and iam_config.get("enabled"):
             from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
 
-            AWSIAMAuthMixin._apply_iam_authentication(database, params, iam_config)
+            AWSIAMAuthMixin._apply_iam_authentication(
+                database,
+                params,
+                iam_config,
+                ssl_args={"sslmode": "require"},
+                default_port=5432,
+            )
 
         # Standard behavior: merge remaining keys into params
         if encrypted_extra:
