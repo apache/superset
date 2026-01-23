@@ -37,14 +37,14 @@ import nh3
 
 def _strip_html_tags(value: str) -> str:
     """
-    Strip all HTML tags from the input using nh3, then unescape HTML entities.
+    Strip all HTML tags from the input using nh3.
 
-    Uses nh3's Rust-based sanitizer with no allowed tags, which is
-    faster and safer than manual regex-based tag stripping.
-
-    Since nh3.clean() produces HTML-safe output (escaping & to &amp;, etc.),
-    we use html.unescape() afterward to restore the original characters.
-    This ensures text like "A & B" stays as "A & B", not "A &amp; B".
+    Decodes all layers of HTML entity encoding BEFORE passing to nh3,
+    so entity-encoded tags (e.g., ``&lt;script&gt;``) are decoded into
+    real tags that nh3 can detect and strip. After nh3 removes all tags,
+    we unescape nh3's output to restore characters like ``&`` (which nh3
+    encodes as ``&amp;``). This final unescape is safe because all tags
+    have already been stripped from the fully-decoded input.
 
     Args:
         value: The input string that may contain HTML
@@ -52,11 +52,25 @@ def _strip_html_tags(value: str) -> str:
     Returns:
         String with all HTML tags removed and entities unescaped
     """
-    # nh3.clean with tags=set() strips ALL HTML tags
-    # url_schemes=set() blocks all URL schemes in any remaining attributes
-    cleaned = nh3.clean(value, tags=set(), url_schemes=set())
+    # Decode all layers of HTML entity encoding to prevent bypass
+    # via entity-encoded tags (e.g., &lt;script&gt; or &amp;lt;script&amp;gt;)
+    # The loop terminates when unescape produces no change (idempotent on decoded text).
+    # Max iterations cap provides defense-in-depth against pathological inputs.
+    max_iterations = 100
+    decoded = value
+    prev = None
+    iterations = 0
+    while prev != decoded and iterations < max_iterations:
+        prev = decoded
+        decoded = html.unescape(decoded)
+        iterations += 1
 
-    # Unescape HTML entities so & doesn't become &amp;
+    # nh3.clean with tags=set() strips ALL HTML tags from the decoded input
+    # url_schemes=set() blocks all URL schemes in any remaining attributes
+    cleaned = nh3.clean(decoded, tags=set(), url_schemes=set())
+
+    # Unescape nh3's output to restore characters like & (encoded as &amp;)
+    # This is safe because nh3 already stripped all tags from the decoded input
     return html.unescape(cleaned)
 
 
