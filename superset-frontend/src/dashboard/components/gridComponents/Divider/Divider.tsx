@@ -16,31 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { PureComponent } from 'react';
-import PropTypes from 'prop-types';
 import { css, styled } from '@apache-superset/core/ui';
 
 import { Draggable } from '../../dnd/DragDroppable';
 import HoverMenu from '../../menu/HoverMenu';
 import DeleteComponentButton from '../../DeleteComponentButton';
-import { componentShape } from '../../../util/propShapes';
+import type { ConnectDragSource } from 'react-dnd';
+import type { LayoutItem } from 'src/dashboard/types';
 
-const propTypes = {
-  id: PropTypes.string.isRequired,
-  parentId: PropTypes.string.isRequired,
-  component: componentShape.isRequired,
-  depth: PropTypes.number.isRequired,
-  parentComponent: componentShape.isRequired,
-  index: PropTypes.number.isRequired,
-  editMode: PropTypes.bool.isRequired,
-  handleComponentDrop: PropTypes.func.isRequired,
-  deleteComponent: PropTypes.func.isRequired,
-};
+export interface DividerProps {
+  id: string;
+  parentId: string;
+  component: LayoutItem;
+  depth: number;
+  parentComponent: LayoutItem;
+  index: number;
+  editMode: boolean;
+  handleComponentDrop: (dropResult: unknown) => void;
+  deleteComponent: (id: string, parentId: string) => void;
+}
 
 const DividerLine = styled.div`
   ${({ theme }) => css`
     width: 100%;
-    padding: ${theme.sizeUnit * 2}px 0; /* this is padding not margin to enable a larger mouse target */
+    padding: ${theme.sizeUnit * 2}px 0;
     background-color: transparent;
 
     &:after {
@@ -62,8 +63,8 @@ const DividerLine = styled.div`
   `}
 `;
 
-class Divider extends PureComponent {
-  constructor(props) {
+class Divider extends PureComponent<DividerProps> {
+  constructor(props: DividerProps) {
     super(props);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
   }
@@ -93,7 +94,7 @@ class Divider extends PureComponent {
         onDrop={handleComponentDrop}
         editMode={editMode}
       >
-        {({ dragSourceRef }) => (
+        {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
           <div ref={dragSourceRef}>
             {editMode && (
               <HoverMenu position="left">
@@ -107,7 +108,5 @@ class Divider extends PureComponent {
     );
   }
 }
-
-Divider.propTypes = propTypes;
 
 export default Divider;
