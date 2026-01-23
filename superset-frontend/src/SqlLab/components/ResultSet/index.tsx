@@ -221,11 +221,11 @@ const ResultSet = ({
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [showStreamingModal, setShowStreamingModal] = useState(false);
   const orderedColumnKeys = useMemo(
-    () => query.results?.columns.map(col => col.column_name),
+    () => query.results?.columns?.map(col => col.column_name) ?? EMPTY,
     [query.results?.columns],
   );
   const expandedColumns = useMemo(
-    () => query.results?.expanded_columns.map(col => col.column_name) ?? EMPTY,
+    () => query.results?.expanded_columns?.map(col => col.column_name) ?? EMPTY,
     [query.results?.expanded_columns],
   );
 
