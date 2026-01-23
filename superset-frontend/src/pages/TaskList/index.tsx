@@ -96,14 +96,30 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
     );
   }, []);
 
-  // Check if force cancel option should be shown
+  // Check if current user is subscribed to a task
+  const isUserSubscribed = useCallback(
+    (task: Task) =>
+      task.subscribers?.some((sub: any) => sub.user_id === user.userId) ??
+      false,
+    [user.userId],
+  );
+
+  // Check if force cancel option should be shown (for admins on shared tasks)
   const showForceCancelOption = useCallback(
     (task: Task) => {
       const isSharedTask = task.scope === TaskScope.Shared;
-      const subscriberCount = task.subscriber_count || 0;
-      return isAdmin && isSharedTask && subscriberCount > 1;
+      // Show for admins on shared tasks:
+      // - If not subscribed: they can only abort (checkbox pre-checked, disabled)
+      // - If subscribed with multiple subscribers: they can choose
+      return isAdmin && isSharedTask;
     },
     [isAdmin],
+  );
+
+  // Check if force cancel checkbox should be disabled (admin not subscribed)
+  const isForceCancelDisabled = useCallback(
+    (task: Task) => isAdmin && !isUserSubscribed(task),
+    [isAdmin, isUserSubscribed],
   );
 
   const handleTaskCancel = useCallback(
@@ -136,6 +152,17 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       );
     },
     [addDangerToast, addSuccessToast, refreshData],
+  );
+
+  // Handle opening the cancel modal - set initial forceCancel state
+  const openCancelModal = useCallback(
+    (task: Task) => {
+      // Pre-check force cancel if admin is not subscribed
+      const shouldPreCheck = isAdmin && !isUserSubscribed(task);
+      setForceCancel(shouldPreCheck);
+      setCancelModalTask(task);
+    },
+    [isAdmin, isUserSubscribed],
   );
 
   // Handle modal confirmation
@@ -404,7 +431,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                     role="button"
                     tabIndex={0}
                     className="action-button"
-                    onClick={() => setCancelModalTask(original)}
+                    onClick={() => openCancelModal(original)}
                   >
                     <Icons.StopOutlined iconSize="l" />
                   </span>
@@ -532,6 +559,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               <Checkbox
                 checked={forceCancel}
                 onChange={e => setForceCancel(e.target.checked)}
+                disabled={isForceCancelDisabled(cancelModalTask)}
               >
                 {t('Cancel for all subscribers')}
               </Checkbox>

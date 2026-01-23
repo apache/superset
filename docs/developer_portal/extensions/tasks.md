@@ -245,8 +245,10 @@ TASKS_BACKEND = {
 TaskOptions(task_key: str | None = None, task_name: str | None = None)
 ```
 
-- `task_key`: Deduplication key
-- `task_name`: Human-readable display name
+- `task_key`: Deduplication key (also used as display name if `task_name` is not set)
+- `task_name`: Human-readable display name for the Task List UI
+
+**Display in Task List:** The UI shows `task_name` if provided, otherwise falls back to `task_key`. Since `task_key` is primarily for deduplication and may be technical (e.g., `chart_export_123`), providing a descriptive `task_name` (e.g., `"Export Sales Chart 123"`) improves the user experience.
 
 ## Error Handling
 
