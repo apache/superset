@@ -26,18 +26,63 @@ import { StoryWithControls } from '../../../src/components/StorybookWrapper';
 
 # ListViewCard
 
-The ListViewCard component from Superset's UI library.
+ListViewCard is a card component used to display items in list views with an image, title, description, and optional cover sections.
 
 ## Live Example
 
 <StoryWithControls
   component="ListViewCard"
-  props={{}}
+  props={{
+  title: "Superset Card Title",
+  loading: false,
+  url: "/superset/dashboard/births/",
+  imgURL: "https://picsum.photos/seed/superset/300/200",
+  description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit...",
+  coverLeft: "Left Section",
+  coverRight: "Right Section"
+}}
   controls={[
+  {
+    name: "title",
+    label: "Title",
+    type: "text",
+    description: "Title displayed on the card."
+  },
   {
     name: "loading",
     label: "Loading",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether the card is in loading state."
+  },
+  {
+    name: "url",
+    label: "URL",
+    type: "text",
+    description: "URL the card links to."
+  },
+  {
+    name: "imgURL",
+    label: "Image URL",
+    type: "text",
+    description: "Primary image URL for the card."
+  },
+  {
+    name: "description",
+    label: "Description",
+    type: "text",
+    description: "Description text displayed on the card."
+  },
+  {
+    name: "coverLeft",
+    label: "Cover Left",
+    type: "text",
+    description: "Content for the left section of the cover."
+  },
+  {
+    name: "coverRight",
+    label: "Cover Right",
+    type: "text",
+    description: "Content for the right section of the cover."
   }
 ]}
 />
@@ -50,13 +95,28 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <ListViewCard
-      // Add props here
+      title="Superset Card Title"
+      url="/superset/dashboard/births/"
+      imgURL="https://picsum.photos/seed/superset/300/200"
+      description="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
+      coverLeft="Left Section"
+      coverRight="Right Section"
     />
   );
 }
 ```
 
+## Props
 
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | `"Superset Card Title"` | Title displayed on the card. |
+| `loading` | `boolean` | `false` | Whether the card is in loading state. |
+| `url` | `string` | `"/superset/dashboard/births/"` | URL the card links to. |
+| `imgURL` | `string` | `"https://picsum.photos/seed/superset/300/200"` | Primary image URL for the card. |
+| `description` | `string` | `"Lorem ipsum dolor sit amet, consectetur adipiscing elit..."` | Description text displayed on the card. |
+| `coverLeft` | `string` | `"Left Section"` | Content for the left section of the cover. |
+| `coverRight` | `string` | `"Right Section"` | Content for the right section of the cover. |
 
 ## Import
 
@@ -64,14 +124,9 @@ function Demo() {
 import { ListViewCard } from '@superset/components';
 ```
 
-## Interactive Demo
-
-View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-listviewcard) for an interactive demo.
-
-## Source
-
-- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/ListViewCard/ListViewCard.stories.tsx)
-
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/ListViewCard/ListViewCard.stories.tsx).
+:::

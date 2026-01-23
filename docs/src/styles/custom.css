@@ -412,3 +412,34 @@ ul.dropdown__menu svg {
   background: none;
   background-color: transparent;
 }
+
+/* ============================================
+   Live Code Editor Height Limits
+   Prevents tall code blocks from dominating the page
+   ============================================ */
+
+/* Limit the code editor height and make it scrollable */
+/* Target multiple possible class names used by Docusaurus/react-live */
+.playgroundEditor,
+[class*="playgroundEditor"],
+.live-editor,
+[class*="liveEditor"] {
+  max-height: 350px !important;
+  overflow: auto !important;
+}
+
+/* The actual textarea/code area inside the editor */
+.playgroundEditor textarea,
+.playgroundEditor pre,
+[class*="playgroundEditor"] textarea,
+[class*="playgroundEditor"] pre {
+  max-height: 350px !important;
+  overflow: auto !important;
+}
+
+/* Also limit the preview area for consistency */
+.playgroundPreview,
+[class*="playgroundPreview"] {
+  max-height: 400px;
+  overflow: auto;
+}

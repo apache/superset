@@ -32,19 +32,29 @@ FaveStar component for marking items as favorites
 
 <StoryWithControls
   component="FaveStar"
-  props={{}}
+  props={{
+  itemId: 1,
+  isStarred: false,
+  showTooltip: true
+}}
   controls={[
+  {
+    name: "itemId",
+    label: "Item ID",
+    type: "number",
+    description: "Unique identifier for the item"
+  },
   {
     name: "isStarred",
     label: "Is Starred",
     type: "boolean",
-    description: "Indicates if the item is starred"
+    description: "Whether the item is currently starred."
   },
   {
     name: "showTooltip",
     label: "Show Tooltip",
     type: "boolean",
-    description: "Show tooltip on hover"
+    description: "Show tooltip on hover."
   }
 ]}
 />
@@ -57,13 +67,20 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <FaveStar
-      // Add props here
+      itemId={1}
+      showTooltip
     />
   );
 }
 ```
 
+## Props
 
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `itemId` | `number` | `1` | Unique identifier for the item |
+| `isStarred` | `boolean` | `false` | Whether the item is currently starred. |
+| `showTooltip` | `boolean` | `true` | Show tooltip on hover. |
 
 ## Import
 
@@ -71,14 +88,9 @@ function Demo() {
 import { FaveStar } from '@superset/components';
 ```
 
-## Interactive Demo
-
-View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-favestar) for an interactive demo.
-
-## Source
-
-- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/FaveStar/FaveStar.stories.tsx)
-
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/FaveStar/FaveStar.stories.tsx).
+:::

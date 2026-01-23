@@ -18,6 +18,30 @@
  */
 
 /**
+ * ============================================================================
+ * PHILOSOPHY: STORIES ARE THE SINGLE SOURCE OF TRUTH
+ * ============================================================================
+ *
+ * When something doesn't render correctly in the docs, FIX THE STORY FIRST.
+ * Do NOT add special cases or workarounds to this generator.
+ *
+ * This generator should be as lightweight as possible - it extracts data from
+ * stories and passes it through to MDX. All configuration belongs in stories:
+ *
+ * - Use `export default { title: '...' }` (inline export, not variable)
+ * - Name stories `Interactive${ComponentName}` for docs generation
+ * - Define `args` and `argTypes` at the story level (not meta level)
+ * - Use `parameters.docs.gallery` for variant grids
+ * - Use `parameters.docs.sampleChildren` for components needing children
+ * - Use `parameters.docs.liveExample` for custom code examples
+ * - Use `parameters.docs.staticProps` for complex props
+ *
+ * If a story doesn't work with this generator, fix the story to match the
+ * expected patterns rather than adding complexity here.
+ * ============================================================================
+ */
+
+/**
  * This script scans for ALL Storybook stories and generates MDX documentation
  * pages for the "Superset Components" section of the developer portal.
  *
@@ -577,6 +601,24 @@ function extractBalancedBrackets(content, startIndex) {
 }
 
 /**
+ * Convert camelCase prop name to human-readable label
+ * Handles acronyms properly: imgURL -> "Image URL", coverLeft -> "Cover Left"
+ */
+function propNameToLabel(name) {
+  return name
+    // Insert space before uppercase letters that follow lowercase (camelCase boundary)
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    // Handle common acronyms - keep them together
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    // Capitalize first letter
+    .replace(/^./, s => s.toUpperCase())
+    // Fix common acronyms display
+    .replace(/\bUrl\b/g, 'URL')
+    .replace(/\bImg\b/g, 'Image')
+    .replace(/\bId\b/g, 'ID');
+}
+
+/**
  * Convert JS object literal syntax to JSON
  * Handles: single quotes, unquoted keys, trailing commas
  */
@@ -614,6 +656,8 @@ function extractDocsConfig(content, storyNames) {
   let gallery = null;
   let staticProps = null;
   let liveExample = null;
+  let examples = null;
+  let renderComponent = null;
 
   for (const storyName of storyNames) {
     // Look for parameters block
@@ -712,13 +756,49 @@ function extractDocsConfig(content, storyNames) {
             liveExample = parametersContent.slice(startIndex, endIndex);
           }
         }
+
+        // Extract renderComponent - allows overriding which component to render
+        // Useful when the title-derived component (e.g., 'Icons') is a namespace, not a component
+        const renderComponentMatch = parametersContent.match(/renderComponent:\s*['"]([^'"]+)['"]/);
+        if (renderComponentMatch) {
+          renderComponent = renderComponentMatch[1];
+        }
+
+        // Extract examples array - for multiple code examples
+        // Format: examples: [{ title: 'Title', code: `...` }, ...]
+        const examplesMatch = parametersContent.match(/examples:\s*\[/);
+        if (examplesMatch) {
+          const examplesStartIndex = examplesMatch.index + examplesMatch[0].length - 1;
+          const examplesArrayContent = extractBalancedBrackets(parametersContent, examplesStartIndex);
+          if (examplesArrayContent) {
+            examples = [];
+            // Find each example object { title: '...', code: `...` }
+            const exampleObjPattern = /\{\s*title:\s*['"]([^'"]+)['"]\s*,\s*code:\s*`/g;
+            let exampleMatch;
+            while ((exampleMatch = exampleObjPattern.exec(examplesArrayContent)) !== null) {
+              const title = exampleMatch[1];
+              const codeStartIndex = exampleMatch.index + exampleMatch[0].length;
+              // Find closing backtick for code
+              let codeEndIndex = codeStartIndex;
+              while (codeEndIndex < examplesArrayContent.length && examplesArrayContent[codeEndIndex] !== '`') {
+                if (examplesArrayContent[codeEndIndex] === '\\' && examplesArrayContent[codeEndIndex + 1] === '`') {
+                  codeEndIndex += 2;
+                } else {
+                  codeEndIndex++;
+                }
+              }
+              const code = examplesArrayContent.slice(codeStartIndex, codeEndIndex);
+              examples.push({ title, code });
+            }
+          }
+        }
       }
     }
 
-    if (sampleChildren || gallery || staticProps || liveExample) break;
+    if (sampleChildren || gallery || staticProps || liveExample || examples || renderComponent) break;
   }
 
-  return { sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample };
+  return { sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent };
 }
 
 /**
@@ -752,7 +832,7 @@ function extractArgsAndControls(content, componentName) {
   const storyNames = [`Interactive${componentName}`, `${componentName}Story`, componentName];
 
   // Extract docs config (sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample) from parameters.docs
-  const { sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample } = extractDocsConfig(content, storyNames);
+  const { sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent } = extractDocsConfig(content, storyNames);
 
   for (const storyName of storyNames) {
     // Try CSF 3.0 format: export const StoryName: StoryObj = { args: {...}, argTypes: {...} }
@@ -820,7 +900,7 @@ function extractArgsAndControls(content, componentName) {
   // First pass: props that have default values in args
   for (const [key, value] of Object.entries(args)) {
     processedProps.add(key);
-    const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+    const label = propNameToLabel(key);
     const argType = argTypes[key] || {};
 
     if (argType.type) {
@@ -848,7 +928,7 @@ function extractArgsAndControls(content, componentName) {
     if (processedProps.has(key)) continue;
     if (!argType.type) continue; // Skip if no control type defined
 
-    const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+    const label = propNameToLabel(key);
 
     // Don't add to args - let the component use its own defaults
 
@@ -861,7 +941,7 @@ function extractArgsAndControls(content, componentName) {
     });
   }
 
-  return { args, argTypes, controls, sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample };
+  return { args, argTypes, controls, sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent };
 }
 
 /**
@@ -870,7 +950,7 @@ function extractArgsAndControls(content, componentName) {
 function generateMDX(component, storyContent) {
   const { componentName, description, relativePath, category, title, sourceConfig, resolvedImportPath, isDefaultExport } = component;
 
-  const { args, argTypes, controls, sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample } = extractArgsAndControls(storyContent, componentName);
+  const { args, argTypes, controls, sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent } = extractArgsAndControls(storyContent, componentName);
 
   // Merge staticProps into args for complex values (arrays, objects) that can't be parsed from inline args
   const mergedArgs = { ...args, ...staticProps };
@@ -971,7 +1051,8 @@ ${hasGallery ? `
 ## Live Example
 
 <StoryWithControls
-  component="${componentName}"
+  component="${componentName}"${renderComponent ? `
+  renderComponent="${renderComponent}"` : ''}
   props={${propsJson}}
   controls={${controlsJson}}${sampleChildrenJson ? `
   sampleChildren={${sampleChildrenJson}}` : ''}${sampleChildrenStyleJson ? `
@@ -993,7 +1074,13 @@ ${liveExample || `function Demo() {
   );
 }`}
 \`\`\`
+${examples && examples.length > 0 ? examples.map(ex => `
+## ${ex.title}
 
+\`\`\`tsx live
+${ex.code}
+\`\`\`
+`).join('') : ''}
 ${Object.keys(args).length > 0 ? `## Props
 
 | Prop | Type | Default | Description |
@@ -1006,17 +1093,12 @@ ${propsTable}` : ''}
 ${isDefaultExport ? `import ${componentName} from '${componentImportPath}';` : `import { ${componentName} } from '${componentImportPath}';`}
 \`\`\`
 
-## Interactive Demo
-
-View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/${title.toLowerCase().replace(/\//g, '-').replace(/\s+/g, '-')}) for an interactive demo.
-
-## Source
-
-- [Story file](https://github.com/apache/superset/blob/master/${relativePath})
-
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/${relativePath}).
+:::
 `;
 }
 

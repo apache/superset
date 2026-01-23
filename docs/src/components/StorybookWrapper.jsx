@@ -69,11 +69,25 @@ function getProviders() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { themeObject } = require('@apache-superset/core/ui');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { App } = require('antd');
+    const { App, ConfigProvider } = require('antd');
+
+    // Configure Ant Design to render portals (tooltips, dropdowns, etc.)
+    // inside the closest .storybook-example container instead of document.body
+    // This fixes positioning issues in the docs pages
+    const getPopupContainer = (triggerNode) => {
+      // Find the closest .storybook-example container
+      const container = triggerNode?.closest?.('.storybook-example');
+      return container || document.body;
+    };
 
     SupersetProviders = ({ children }) => (
       <themeObject.SupersetThemeProvider>
-        <App>{children}</App>
+        <ConfigProvider
+          getPopupContainer={getPopupContainer}
+          getTargetContainer={() => document.body}
+        >
+          <App>{children}</App>
+        </ConfigProvider>
       </themeObject.SupersetThemeProvider>
     );
     return SupersetProviders;
@@ -84,6 +98,7 @@ function getProviders() {
 }
 
 // Resolve component from string name or React component
+// Supports dot notation for nested components (e.g., 'Icons.InfoCircleOutlined')
 function resolveComponent(component) {
   if (!component) return null;
   // If already a component (function/class), return as-is
@@ -91,6 +106,15 @@ function resolveComponent(component) {
   // If string, look up in registry
   if (typeof component === 'string') {
     const registry = getComponentRegistry();
+    // Handle dot notation (e.g., 'Icons.InfoCircleOutlined')
+    if (component.includes('.')) {
+      const parts = component.split('.');
+      let current = registry[parts[0]];
+      for (let i = 1; i < parts.length && current; i++) {
+        current = current[parts[i]];
+      }
+      return typeof current === 'function' ? current : null;
+    }
     return registry[component] || null;
   }
   return null;
@@ -134,6 +158,7 @@ export function StoryExample({ component, props = {} }) {
                 borderRadius: '4px',
                 padding: '20px',
                 marginBottom: '20px',
+                position: 'relative', // Required for portal positioning
               }}
             >
               {Component ? (
@@ -216,8 +241,12 @@ function generateSampleChildren(sampleChildren, sampleChildrenStyle) {
 }
 
 // Inner component for StoryWithControls (browser-only)
-function StoryWithControlsInner({ component, props, controls, sampleChildren, sampleChildrenStyle }) {
-  const Component = resolveComponent(component);
+// renderComponent allows overriding which component to actually render (useful when the named
+// component is a namespace object like Icons, not a React component)
+function StoryWithControlsInner({ component, renderComponent, props, controls, sampleChildren, sampleChildrenStyle }) {
+  // Use renderComponent if provided, otherwise use the main component name
+  const componentToRender = renderComponent || component;
+  const Component = resolveComponent(componentToRender);
   const Providers = getProviders();
   const [stateProps, setStateProps] = React.useState(props);
 
@@ -230,6 +259,20 @@ function StoryWithControlsInner({ component, props, controls, sampleChildren, sa
 
   // Extract children from props (label, children, text, content)
   const { children: propsChildren, restProps } = extractChildren(stateProps);
+  // Filter out undefined values so they don't override component defaults
+  const filteredProps = Object.fromEntries(
+    Object.entries(restProps).filter(([, v]) => v !== undefined)
+  );
+
+  // For List-like components with dataSource but no renderItem, provide a default
+  if (filteredProps.dataSource && !filteredProps.renderItem) {
+    const ListItem = resolveComponent('List')?.Item;
+    filteredProps.renderItem = (item) =>
+      ListItem
+        ? React.createElement(ListItem, null, String(item))
+        : React.createElement('div', null, String(item));
+  }
+
   // Use sample children if provided, otherwise use props children
   const children = generateSampleChildren(sampleChildren, sampleChildrenStyle) || propsChildren;
 
@@ -243,10 +286,11 @@ function StoryWithControlsInner({ component, props, controls, sampleChildren, sa
             borderRadius: '4px',
             padding: '20px',
             marginBottom: '20px',
+            position: 'relative', // Required for portal positioning
           }}
         >
           {Component ? (
-            <Component {...restProps}>{children}</Component>
+            <Component {...filteredProps}>{children}</Component>
           ) : (
             <div style={{ color: '#999' }}>
               Component &quot;{String(component)}&quot; not found
@@ -272,10 +316,11 @@ function StoryWithControlsInner({ component, props, controls, sampleChildren, sa
                 </label>
                 {control.type === 'select' ? (
                   <select
-                    value={stateProps[control.name]}
-                    onChange={e => updateProp(control.name, e.target.value)}
+                    value={stateProps[control.name] ?? ''}
+                    onChange={e => updateProp(control.name, e.target.value || undefined)}
                     style={{ width: '100%', padding: '5px' }}
                   >
+                    <option value="">— None —</option>
                     {control.options?.map(option => (
                       <option key={option} value={option}>
                         {option}
@@ -343,12 +388,14 @@ function StoryWithControlsInner({ component, props, controls, sampleChildren, sa
 }
 
 // A simple component to display a story with controls
-export function StoryWithControls({ component: Component, props = {}, controls = [], sampleChildren, sampleChildrenStyle }) {
+// renderComponent: optional override for which component to render (e.g., 'Icons.InfoCircleOutlined' when component='Icons')
+export function StoryWithControls({ component: Component, renderComponent, props = {}, controls = [], sampleChildren, sampleChildrenStyle }) {
   return (
     <BrowserOnly fallback={<LoadingPlaceholder />}>
       {() => (
         <StoryWithControlsInner
           component={Component}
+          renderComponent={renderComponent}
           props={props}
           controls={controls}
           sampleChildren={sampleChildren}

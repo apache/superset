@@ -33,14 +33,6 @@ const emptyStates = [
 export default {
   title: 'Components/EmptyState',
   component: EmptyState,
-  argTypes: {
-    size: {
-      control: { type: 'select' },
-      options: ['small', 'medium', 'large'],
-      defaultValue: 'medium',
-      description: 'Size of the Empty State components',
-    },
-  },
 } as Meta;
 
 export const Gallery: StoryFn<{ size: 'small' | 'medium' | 'large' }> = ({
@@ -64,4 +56,117 @@ export const Gallery: StoryFn<{ size: 'small' | 'medium' | 'large' }> = ({
 
 Gallery.args = {
   size: 'medium',
+};
+
+Gallery.argTypes = {
+  size: {
+    control: { type: 'select' },
+    options: ['small', 'medium', 'large'],
+    description: 'Size of the Empty State components',
+  },
+};
+
+// Interactive story for docs
+export const InteractiveEmptyState: StoryFn<{
+  size: 'small' | 'medium' | 'large';
+  title: string;
+  description: string;
+  image: string;
+  buttonText: string;
+}> = args => <EmptyState {...args} />;
+
+InteractiveEmptyState.args = {
+  size: 'medium',
+  title: 'No Data Available',
+  description: 'There is no data to display at this time.',
+  image: 'empty.svg',
+  buttonText: '',
+};
+
+InteractiveEmptyState.argTypes = {
+  size: {
+    control: { type: 'select' },
+    options: ['small', 'medium', 'large'],
+    description: 'Size of the empty state component.',
+  },
+  title: {
+    control: { type: 'text' },
+    description: 'Main title text.',
+  },
+  description: {
+    control: { type: 'text' },
+    description: 'Description text below the title.',
+  },
+  image: {
+    control: { type: 'select' },
+    options: [
+      'chart.svg',
+      'document.svg',
+      'empty-charts.svg',
+      'empty-dashboard.svg',
+      'empty-dataset.svg',
+      'empty-query.svg',
+      'empty-table.svg',
+      'empty.svg',
+      'empty_sql_chart.svg',
+      'filter-results.svg',
+      'filter.svg',
+      'star-circle.svg',
+      'union.svg',
+      'vector.svg',
+    ],
+    description: 'Predefined image to display.',
+  },
+  buttonText: {
+    control: { type: 'text' },
+    description: 'Text for optional action button.',
+  },
+};
+
+// All available image keys for gallery
+const imageKeys = [
+  'chart.svg',
+  'document.svg',
+  'empty-charts.svg',
+  'empty-dashboard.svg',
+  'empty-dataset.svg',
+  'empty-query.svg',
+  'empty-table.svg',
+  'empty.svg',
+  'empty_sql_chart.svg',
+  'filter-results.svg',
+  'filter.svg',
+  'star-circle.svg',
+  'union.svg',
+  'vector.svg',
+];
+
+// Single size for gallery display
+const gallerySizes = ['medium'];
+
+InteractiveEmptyState.parameters = {
+  docs: {
+    description: {
+      story: 'A component for displaying empty states with optional images and actions.',
+    },
+    gallery: {
+      component: 'EmptyState',
+      sizes: gallerySizes,
+      styles: imageKeys,
+      sizeProp: 'size',
+      styleProp: 'image',
+    },
+    liveExample: `function Demo() {
+  return (
+    <EmptyState
+      size="medium"
+      title="No Results Found"
+      description="Try adjusting your filters or search terms."
+      image="filter.svg"
+      buttonText="Clear Filters"
+      buttonAction={() => alert('Filters cleared!')}
+    />
+  );
+}`,
+  },
 };

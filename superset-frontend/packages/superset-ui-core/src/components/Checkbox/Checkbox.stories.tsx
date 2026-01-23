@@ -67,6 +67,74 @@ InteractiveCheckbox.args = {
   indeterminate: false,
 };
 
+InteractiveCheckbox.argTypes = {
+  checked: {
+    control: { type: 'boolean' },
+    description: 'Whether the checkbox is checked.',
+  },
+  indeterminate: {
+    control: { type: 'boolean' },
+    description: 'Whether the checkbox is in indeterminate state (partially selected).',
+  },
+};
+
+InteractiveCheckbox.parameters = {
+  docs: {
+    examples: [
+      {
+        title: 'All Checkbox States',
+        code: `function AllStates() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <Checkbox checked={false}>Unchecked</Checkbox>
+      <Checkbox checked={true}>Checked</Checkbox>
+      <Checkbox indeterminate={true}>Indeterminate</Checkbox>
+      <Checkbox disabled>Disabled unchecked</Checkbox>
+      <Checkbox disabled checked>Disabled checked</Checkbox>
+    </div>
+  );
+}`,
+      },
+      {
+        title: 'Select All Pattern',
+        code: `function SelectAllDemo() {
+  const [selected, setSelected] = React.useState([]);
+  const options = ['Option A', 'Option B', 'Option C'];
+
+  const allSelected = selected.length === options.length;
+  const indeterminate = selected.length > 0 && !allSelected;
+
+  return (
+    <div>
+      <Checkbox
+        checked={allSelected}
+        indeterminate={indeterminate}
+        onChange={(e) => setSelected(e.target.checked ? [...options] : [])}
+      >
+        Select All
+      </Checkbox>
+      <div style={{ marginLeft: 24, marginTop: 8 }}>
+        {options.map(opt => (
+          <div key={opt}>
+            <Checkbox
+              checked={selected.includes(opt)}
+              onChange={() => setSelected(prev =>
+                prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]
+              )}
+            >
+              {opt}
+            </Checkbox>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}`,
+      },
+    ],
+  },
+};
+
 // All checkbox states including indeterminate
 const STATES = [
   {

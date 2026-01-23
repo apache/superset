@@ -32,8 +32,19 @@ The IconButton component is a versatile button that allows you to combine an ico
 
 <StoryWithControls
   component="IconButton"
-  props={{}}
+  props={{
+  buttonText: "IconButton",
+  altText: "Icon button alt text",
+  padded: true,
+  icon: "https://superset.apache.org/img/superset-logo-horiz.svg"
+}}
   controls={[
+  {
+    name: "buttonText",
+    label: "Button Text",
+    type: "text",
+    description: "The text inside the button."
+  },
   {
     name: "altText",
     label: "Alt Text",
@@ -41,16 +52,16 @@ The IconButton component is a versatile button that allows you to combine an ico
     description: "The alt text for the button. If not provided, the button text is used as the alt text by default."
   },
   {
-    name: "buttonText",
-    label: "Button Text",
-    type: "text",
-    description: "The text inside the button"
-  },
-  {
     name: "padded",
     label: "Padded",
     type: "boolean",
-    description: "add padding between icon and button text"
+    description: "Add padding between icon and button text."
+  },
+  {
+    name: "icon",
+    label: "Icon",
+    type: "text",
+    description: "Icon inside the button (URL or path)."
   }
 ]}
 />
@@ -63,13 +74,23 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <IconButton
-      // Add props here
+      buttonText="IconButton"
+      altText="Icon button alt text"
+      padded
+      icon="https://superset.apache.org/img/superset-logo-horiz.svg"
     />
   );
 }
 ```
 
+## Props
 
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `buttonText` | `string` | `"IconButton"` | The text inside the button. |
+| `altText` | `string` | `"Icon button alt text"` | The alt text for the button. If not provided, the button text is used as the alt text by default. |
+| `padded` | `boolean` | `true` | Add padding between icon and button text. |
+| `icon` | `string` | `"https://superset.apache.org/img/superset-logo-horiz.svg"` | Icon inside the button (URL or path). |
 
 ## Import
 
@@ -77,14 +98,9 @@ function Demo() {
 import { IconButton } from '@superset/components';
 ```
 
-## Interactive Demo
-
-View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-iconbutton) for an interactive demo.
-
-## Source
-
-- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/IconButton/IconButton.stories.tsx)
-
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/IconButton/IconButton.stories.tsx).
+:::

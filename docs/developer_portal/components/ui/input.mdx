@@ -58,7 +58,17 @@ The Input component from Superset's UI library.
   {
     name: "type",
     label: "Type",
-    type: "text"
+    type: "select",
+    options: [
+      "text",
+      "password",
+      "email",
+      "number",
+      "tel",
+      "url",
+      "search"
+    ],
+    description: "HTML input type"
   },
   {
     name: "variant",
@@ -79,7 +89,7 @@ The Input component from Superset's UI library.
   },
   {
     name: "id",
-    label: "Id",
+    label: "ID",
     type: "text",
     description: "HTML id attribute"
   },
@@ -135,7 +145,7 @@ function Demo() {
 | `allowClear` | `boolean` | `false` | - |
 | `disabled` | `boolean` | `false` | - |
 | `showCount` | `boolean` | `false` | - |
-| `type` | `string` | `"text"` | - |
+| `type` | `string` | `"text"` | HTML input type |
 | `variant` | `string` | `"outlined"` | Input style variant |
 
 ## Import
@@ -144,14 +154,9 @@ function Demo() {
 import { Input } from '@superset/components';
 ```
 
-## Interactive Demo
-
-View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-input) for an interactive demo.
-
-## Source
-
-- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/Input/Input.stories.tsx)
-
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Input/Input.stories.tsx).
+:::

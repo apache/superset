@@ -111,12 +111,48 @@ InteractiveBadge.argTypes = {
   },
   showZero: {
     description: 'Whether to show badge when count is zero.',
-    control: 'boolean',
+    control: { type: 'boolean' },
   },
   overflowCount: {
     description:
       'Max count to show. Shows count+ when exceeded (e.g., 99+).',
-    control: 'number',
+    control: { type: 'number' },
+  },
+};
+
+InteractiveBadge.parameters = {
+  docs: {
+    description: {
+      story: 'Badge can show a count number or a status indicator dot.',
+    },
+    examples: [
+      {
+        title: 'Status Badge',
+        code: `function StatusBadgeDemo() {
+  const statuses = ['default', 'success', 'processing', 'warning', 'error'];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {statuses.map(status => (
+        <Badge key={status} status={status} text={\`Status: \${status}\`} />
+      ))}
+    </div>
+  );
+}`,
+      },
+      {
+        title: 'Color Gallery',
+        code: `function ColorGallery() {
+  const colors = ['pink', 'red', 'orange', 'green', 'cyan', 'blue', 'purple'];
+  return (
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+      {colors.map(color => (
+        <Badge key={color} count={9} color={color} />
+      ))}
+    </div>
+  );
+}`,
+      },
+    ],
   },
 };
 

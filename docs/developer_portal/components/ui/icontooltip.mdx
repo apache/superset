@@ -39,7 +39,8 @@ The IconTooltip component from Superset's UI library.
   {
     name: "tooltip",
     label: "Tooltip",
-    type: "text"
+    type: "text",
+    description: "Text content to display in the tooltip."
   },
   {
     name: "placement",
@@ -58,9 +59,11 @@ The IconTooltip component from Superset's UI library.
       "top",
       "topLeft",
       "topRight"
-    ]
+    ],
+    description: "Position of the tooltip relative to the icon."
   }
 ]}
+  sampleChildren={[{"component":"Icons.InfoCircleOutlined","props":{"iconSize":"l"}}]}
 />
 
 ## Try It
@@ -70,9 +73,9 @@ Edit the code below to experiment with the component:
 ```tsx live
 function Demo() {
   return (
-    <IconTooltip
-      tooltip="Tooltip"
-    />
+    <IconTooltip tooltip="Helpful information">
+      <Icons.InfoCircleOutlined iconSize="l" />
+    </IconTooltip>
   );
 }
 ```
@@ -81,7 +84,7 @@ function Demo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `tooltip` | `string` | `"Tooltip"` | - |
+| `tooltip` | `string` | `"Tooltip"` | Text content to display in the tooltip. |
 
 ## Import
 
@@ -89,14 +92,9 @@ function Demo() {
 import { IconTooltip } from '@superset/components';
 ```
 
-## Interactive Demo
-
-View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-icontooltip) for an interactive demo.
-
-## Source
-
-- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/IconTooltip/IconTooltip.stories.tsx)
-
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/IconTooltip/IconTooltip.stories.tsx).
+:::

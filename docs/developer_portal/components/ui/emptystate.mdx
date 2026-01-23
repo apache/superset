@@ -22,11 +22,21 @@ sidebar_label: EmptyState
     under the License.
 -->
 
-import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+import { StoryWithControls, ComponentGallery } from '../../../src/components/StorybookWrapper';
 
 # EmptyState
 
 The EmptyState component from Superset's UI library.
+
+## All Variants
+
+<ComponentGallery
+  component="EmptyState"
+  sizes={["medium"]}
+  styles={["chart.svg","document.svg","empty-charts.svg","empty-dashboard.svg","empty-dataset.svg","empty-query.svg","empty-table.svg","empty.svg","empty_sql_chart.svg","filter-results.svg","filter.svg","star-circle.svg","union.svg","vector.svg"]}
+  sizeProp="size"
+  styleProp="image"
+/>
 
 ## Live Example
 
@@ -36,7 +46,7 @@ The EmptyState component from Superset's UI library.
   size: "medium",
   title: "No Data Available",
   description: "There is no data to display at this time.",
-  image: "empty",
+  image: "empty.svg",
   buttonText: ""
 }}
   controls={[
@@ -68,11 +78,20 @@ The EmptyState component from Superset's UI library.
     label: "Image",
     type: "select",
     options: [
-      "empty",
-      "error",
-      "filter",
-      "document",
-      "chart"
+      "chart.svg",
+      "document.svg",
+      "empty-charts.svg",
+      "empty-dashboard.svg",
+      "empty-dataset.svg",
+      "empty-query.svg",
+      "empty-table.svg",
+      "empty.svg",
+      "empty_sql_chart.svg",
+      "filter-results.svg",
+      "filter.svg",
+      "star-circle.svg",
+      "union.svg",
+      "vector.svg"
     ],
     description: "Predefined image to display."
   },
@@ -96,7 +115,7 @@ function Demo() {
       size="medium"
       title="No Results Found"
       description="Try adjusting your filters or search terms."
-      image="filter"
+      image="filter.svg"
       buttonText="Clear Filters"
       buttonAction={() => alert('Filters cleared!')}
     />
@@ -111,7 +130,7 @@ function Demo() {
 | `size` | `string` | `"medium"` | Size of the empty state component. |
 | `title` | `string` | `"No Data Available"` | Main title text. |
 | `description` | `string` | `"There is no data to display at this time."` | Description text below the title. |
-| `image` | `string` | `"empty"` | Predefined image to display. |
+| `image` | `string` | `"empty.svg"` | Predefined image to display. |
 | `buttonText` | `string` | `""` | Text for optional action button. |
 
 ## Import
@@ -120,14 +139,9 @@ function Demo() {
 import { EmptyState } from '@superset/components';
 ```
 
-## Interactive Demo
-
-View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-emptystate) for an interactive demo.
-
-## Source
-
-- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/EmptyState/EmptyState.stories.tsx)
-
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/EmptyState/EmptyState.stories.tsx).
+:::

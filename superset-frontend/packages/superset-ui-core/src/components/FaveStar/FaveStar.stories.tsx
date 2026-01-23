@@ -71,3 +71,44 @@ export const Default: Story = {
     </div>
   ),
 };
+
+export const InteractiveFaveStar: Story = {
+  args: {
+    itemId: 1,
+    isStarred: false,
+    showTooltip: true,
+  },
+  argTypes: {
+    isStarred: {
+      control: 'boolean',
+      description: 'Whether the item is currently starred.',
+    },
+    showTooltip: {
+      control: 'boolean',
+      description: 'Show tooltip on hover.',
+    },
+  },
+  render: args => (
+    <span style={{ display: 'inline-block' }}>
+      <FaveStar {...args} />
+    </span>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'A star icon for marking items as favorites.',
+      },
+      liveExample: `function Demo() {
+  const [starred, setStarred] = React.useState(false);
+  return (
+    <FaveStar
+      itemId={1}
+      isStarred={starred}
+      showTooltip
+      fetchFaveStar={() => setStarred(!starred)}
+    />
+  );
+}`,
+    },
+  },
+};

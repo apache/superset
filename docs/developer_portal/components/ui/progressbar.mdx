@@ -26,7 +26,7 @@ import { StoryWithControls } from '../../../src/components/StorybookWrapper';
 
 # ProgressBar
 
-The ProgressBar component from Superset's UI library.
+Progress bar component for displaying completion status. Supports line, circle, and dashboard display types.
 
 ## Live Example
 
@@ -45,7 +45,8 @@ The ProgressBar component from Superset's UI library.
       "success",
       "exception",
       "active"
-    ]
+    ],
+    description: "Current status of the progress bar."
   }
 ]}
 />
@@ -64,11 +65,52 @@ function Demo() {
 }
 ```
 
+## All Progress Types
+
+```tsx live
+function AllTypesDemo() {
+  return (
+    <div style={{ display: 'flex', gap: 40, alignItems: 'center' }}>
+      <div style={{ flex: 1 }}>
+        <h4>Line</h4>
+        <ProgressBar percent={75} type="line" />
+      </div>
+      <div>
+        <h4>Circle</h4>
+        <ProgressBar percent={75} type="circle" />
+      </div>
+      <div>
+        <h4>Dashboard</h4>
+        <ProgressBar percent={75} type="dashboard" />
+      </div>
+    </div>
+  );
+}
+```
+
+## Status Variants
+
+```tsx live
+function StatusDemo() {
+  const statuses = ['normal', 'success', 'exception', 'active'];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {statuses.map(status => (
+        <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ width: 80 }}>{status}</span>
+          <ProgressBar percent={75} status={status} type="line" style={{ flex: 1 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `status` | `string` | `"normal"` | - |
+| `status` | `string` | `"normal"` | Current status of the progress bar. |
 
 ## Import
 
@@ -76,14 +118,9 @@ function Demo() {
 import ProgressBar from '@superset/components';
 ```
 
-## Interactive Demo
-
-View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-progressbar) for an interactive demo.
-
-## Source
-
-- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/ProgressBar/ProgressBar.stories.tsx)
-
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/ProgressBar/ProgressBar.stories.tsx).
+:::

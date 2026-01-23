@@ -107,6 +107,36 @@ function Demo() {
 }
 ```
 
+## Status Badge
+
+```tsx live
+function StatusBadgeDemo() {
+  const statuses = ['default', 'success', 'processing', 'warning', 'error'];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {statuses.map(status => (
+        <Badge key={status} status={status} text={\`Status: \${status}\`} />
+      ))}
+    </div>
+  );
+}
+```
+
+## Color Gallery
+
+```tsx live
+function ColorGallery() {
+  const colors = ['pink', 'red', 'orange', 'green', 'cyan', 'blue', 'purple'];
+  return (
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+      {colors.map(color => (
+        <Badge key={color} count={9} color={color} />
+      ))}
+    </div>
+  );
+}
+```
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -122,14 +152,9 @@ function Demo() {
 import { Badge } from '@superset/components';
 ```
 
-## Interactive Demo
-
-View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-badge) for an interactive demo.
-
-## Source
-
-- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/Badge/Badge.stories.tsx)
-
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Badge/Badge.stories.tsx).
+:::
