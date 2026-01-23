@@ -80,6 +80,7 @@ export interface TableControlsProps {
 
 export interface QueryResultInterface {
   colnames: string[];
+  collabels: string[];
   coltypes: GenericDataType[];
   rowcount: number;
   data: Record<string, any>[][];
@@ -90,8 +91,6 @@ export interface SingleQueryResultPaneProp extends QueryResultInterface {
   datasourceId?: string;
   isVisible: boolean;
   canDownload: boolean;
-  // Optional map of column/metric name -> verbose label
-  columnDisplayNames?: Record<string, string>;
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];
   onRowLimitChange?: (limit: number) => void;

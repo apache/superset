@@ -1814,6 +1814,40 @@ def extract_dataframe_dtypes(
     return generic_types
 
 
+def extract_display_labels(
+    label_map: dict[str, list[str]],
+    colnames: list[str],
+    datasource: Explorable | None = None,
+) -> list[str]:
+    """Extract display labels for a list of column names based on a label map
+    and an optional datasource.
+    """
+    if not colnames:
+        return []
+
+    # Build column -> label mapping (skip self-references)
+    col_to_label = {}
+    if label_map:
+        for label, cols in label_map.items():
+            for col in cols:
+                if label != col and col not in col_to_label:
+                    col_to_label[col] = label
+
+    # Build column -> object mapping
+    col_to_obj = {}
+    if datasource:
+        for col in datasource.columns:
+            name = col.get("column_name") if isinstance(col, dict) else col.column_name
+            if name:
+                col_to_obj[name] = col
+
+    return [
+        col_to_label.get(col)
+        or (get_column_name(col_to_obj[col]) if col in col_to_obj else col)
+        for col in colnames
+    ]
+
+
 def extract_column_dtype(col: TableColumn) -> GenericDataType:
     if col.is_temporal:
         return GenericDataType.TEMPORAL
