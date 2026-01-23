@@ -30,27 +30,39 @@ export type CatalogOption = {
 export type FetchCatalogsQueryParams = {
   dbId?: string | number;
   forceRefresh: boolean;
-  onSuccess?: (data: CatalogOption[], isRefetched: boolean) => void;
+  onSuccess?: (
+    data: CatalogOption[],
+    isRefetched: boolean,
+    defaultCatalog: string | null,
+  ) => void;
   onError?: (error: ClientErrorObject) => void;
 };
 
 type Params = Omit<FetchCatalogsQueryParams, 'forceRefresh'>;
 
+// Internal type for transformed API response
+type CatalogsApiResponse = {
+  catalogs: CatalogOption[];
+  defaultCatalog: string | null;
+};
+
 const catalogApi = api.injectEndpoints({
   endpoints: builder => ({
-    catalogs: builder.query<CatalogOption[], FetchCatalogsQueryParams>({
+    catalogs: builder.query<CatalogsApiResponse, FetchCatalogsQueryParams>({
       providesTags: [{ type: 'Catalogs', id: 'LIST' }],
       query: ({ dbId, forceRefresh }) => ({
         endpoint: `/api/v1/database/${dbId}/catalogs/`,
         urlParams: {
           force: forceRefresh,
         },
-        transformResponse: ({ json }: JsonResponse) =>
-          json.result.sort().map((value: string) => ({
+        transformResponse: ({ json }: JsonResponse) => ({
+          catalogs: json.result.sort().map((value: string) => ({
             value,
             label: value,
             title: value,
           })),
+          defaultCatalog: json.default ?? null,
+        }),
       }),
       serializeQueryArgs: ({ queryArgs: { dbId } }) => ({
         dbId,
@@ -89,7 +101,11 @@ export function useCatalogs(options: Params) {
       if (dbId && (!result.currentData || forceRefresh)) {
         trigger({ dbId, forceRefresh }).then(({ isSuccess, isError, data }) => {
           if (isSuccess) {
-            onSuccess?.(data || EMPTY_CATALOGS, forceRefresh);
+            onSuccess?.(
+              data?.catalogs || EMPTY_CATALOGS,
+              forceRefresh,
+              data?.defaultCatalog ?? null,
+            );
           }
           if (isError) {
             onError?.(result.error as ClientErrorObject);
@@ -110,5 +126,7 @@ export function useCatalogs(options: Params) {
   return {
     ...result,
     refetch,
+    data: result.data?.catalogs,
+    defaultCatalog: result.data?.defaultCatalog ?? null,
   };
 }
