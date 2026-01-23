@@ -81,7 +81,11 @@ PENDING ──→ IN_PROGRESS ────→ SUCCESS
 
 ## Context API
 
-Access task context via `get_context()` from within any `@task` function:
+Access task context via `get_context()` from within any `@task` function. The context provides methods for updating task metadata and registering handlers.
+
+### Updating Task Metadata
+
+Use `update_task()` to report progress and store custom payload data:
 
 ```python
 @task
@@ -90,35 +94,75 @@ def my_task(items: list[int]) -> None:
 
     for i, item in enumerate(items):
         result = process(item)
-
-        # Update progress once per iteration (see format options below)
         ctx.update_task(
             progress=(i + 1, len(items)),
             payload={"last_result": result}
         )
 ```
 
-**Tip:** Call `update_task()` once per iteration for best performance to avoid unnecessary database writes.
+:::tip
+Call `update_task()` once per iteration for best performance—each call writes to the database.
+:::
 
-### Progress Formats
+#### Progress Formats
+
+The `progress` parameter accepts three formats:
 
 | Format | Example | Display |
 |--------|---------|---------|
+| `tuple[int, int]` | `progress=(3, 100)` | 3 of 100 (3%) with ETA |
 | `float` (0.0-1.0) | `progress=0.5` | 50% with ETA |
 | `int` | `progress=42` | 42 processed |
-| `tuple[int, int]` | `progress=(3, 100)` | 3 of 100 (3%) with ETA |
 
-**Tip:** ETA is calculated automatically for `float` and `tuple` formats based on elapsed time and progress percentage.
+:::tip
+Use the tuple format `(current, total)` whenever possible. It provides the richest information to users—showing both the count and percentage—while still computing ETA automatically.
+:::
 
-## Cancellation
+#### Payload
 
-### Making Tasks Cancellable
+The `payload` parameter stores custom metadata that can help users understand what the task is doing. Each call to `update_task()` replaces the previous payload completely—values are not merged.
 
-Pending tasks can always be cancelled. In-progress tasks require an abort handler to be cancellable:
+In the Task List UI, when a payload is defined, an info icon appears in the **Details** column. Users can hover over it to see the JSON content.
+
+### Handlers
+
+Register handlers to run cleanup logic or respond to abort requests:
+
+| Handler | When it runs | Use case |
+|---------|--------------|----------|
+| `on_cleanup` | Always (success, failure, abort) | Release resources, close connections |
+| `on_abort` | When task is aborted | Set stop flag, cancel external operations |
 
 ```python
 @task
-def cancellable_task(items: list[str]) -> None:
+def my_task() -> None:
+    ctx = get_context()
+
+    @ctx.on_cleanup
+    def cleanup():
+        logger.info("Task ended, cleaning up")
+
+    @ctx.on_abort
+    def handle_abort():
+        logger.info("Abort requested")
+
+    # ... task logic
+```
+
+Multiple handlers of the same type execute in LIFO order (last registered runs first). Abort handlers run first when abort is detected, then cleanup handlers run when the task ends.
+
+## Making Tasks Abortable
+
+When users click **Cancel** in the Task List, the system decides whether to **abort** (stop) the task or **unsubscribe** (remove the user from a shared task). Abort occurs when:
+- It's a private or system task
+- It's a shared task and the user is the last subscriber
+- An admin checks **Force abort** to stop the task for all subscribers
+
+Pending tasks can always be aborted—they simply won't start. In-progress tasks require an abort handler to be abortable:
+
+```python
+@task
+def abortable_task(items: list[str]) -> None:
     ctx = get_context()
     should_stop = False
 
@@ -140,22 +184,15 @@ def cancellable_task(items: list[str]) -> None:
 
 **Key points:**
 - Registering `on_abort` marks the task as abortable and starts the abort listener
-- The abort handler fires automatically when cancellation is requested
+- The abort handler fires automatically when abort is triggered
 - Use a flag pattern to gracefully stop processing at safe points
-- Without an abort handler, in-progress tasks cannot be cancelled—the Cancel button in the Task List UI will be disabled
-
-**Tip:** Always implement an abort handler for long-running tasks. This allows users to cancel unneeded tasks and free up worker capacity for other operations.
-
-### Handler Types
-
-| Handler | When it runs | Use case |
-|---------|--------------|----------|
-| `on_abort` | When cancellation is requested | Set stop flag, cancel external operations |
-| `on_cleanup` | Always (success, failure, abort) | Release resources, close connections |
-
-### Pre-execution Check
+- Without an abort handler, in-progress tasks cannot be aborted—the Cancel button in the Task List UI will be disabled
 
 The framework automatically skips execution if a task was aborted while pending—no manual check needed at task start.
+
+:::tip
+Always implement an abort handler for long-running tasks. This allows users to cancel unneeded tasks and free up worker capacity for other operations.
+:::
 
 ## Deduplication
 
@@ -240,10 +277,8 @@ TASKS_BACKEND = {
 | Method | Description |
 |--------|-------------|
 | `update_task(progress, payload)` | Update progress and/or custom payload |
-| `is_aborted()` | Check if task should stop |
 | `on_cleanup(handler)` | Register cleanup handler |
-| `on_abort(handler)` | Register abort handler (makes task cancellable) |
-| `run(callable)` | Execute if not aborted, returns None if aborted |
+| `on_abort(handler)` | Register abort handler (makes task abortable) |
 
 ### TaskOptions
 
@@ -254,7 +289,9 @@ TaskOptions(task_key: str | None = None, task_name: str | None = None)
 - `task_key`: Deduplication key (also used as display name if `task_name` is not set)
 - `task_name`: Human-readable display name for the Task List UI
 
-**Tip:** Provide a descriptive `task_name` for better readability in the Task List UI. While `task_key` is used for deduplication and may be technical (e.g., `chart_export_123`), `task_name` can be user-friendly (e.g., `"Export Sales Chart 123"`).
+:::tip
+Provide a descriptive `task_name` for better readability in the Task List UI. While `task_key` is used for deduplication and may be technical (e.g., `chart_export_123`), `task_name` can be user-friendly (e.g., `"Export Sales Chart 123"`).
+:::
 
 ## Error Handling
 
@@ -272,6 +309,10 @@ On failure, the framework records:
 - `exception_type`: Exception class name
 - `stack_trace`: Full traceback (visible when `SHOW_STACKTRACE=True`)
 
+In the Task List UI, failed tasks show error details when hovering over the status. When stack traces are enabled, a separate bug icon appears in the **Details** column for viewing the full traceback.
+
 Cleanup handlers still run after an exception, so resources can be properly released as necessary.
 
-**Tip:** Use descriptive exception messages. In production environments where stack traces are hidden (`SHOW_STACKTRACE=False`), users see only the error message and exception type when hovering over failed tasks in the Task List. Clear messages help users troubleshoot issues without administrator assistance.
+:::tip
+Use descriptive exception messages. In production environments where stack traces are hidden (`SHOW_STACKTRACE=False`), users see only the error message and exception type when hovering over failed tasks. Clear messages help users troubleshoot issues without administrator assistance.
+:::

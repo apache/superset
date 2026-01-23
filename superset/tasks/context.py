@@ -154,18 +154,6 @@ class TaskContext(CoreTaskContext):
                 self._task_uuid, update_data, skip_security_check=True
             ).run()
 
-    def is_aborted(self) -> bool:
-        """
-        Check if the task has been aborted or is aborting.
-
-        Returns True if the task status is ABORTED or ABORTING. Fetches fresh
-        state from the database to ensure current status.
-
-        :returns: True if task is aborted or aborting, False otherwise
-        """
-        status = self._task.status
-        return status in [TaskStatus.ABORTED.value, TaskStatus.ABORTING.value]
-
     def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
         """
         Register a cleanup handler that runs when the task ends.
@@ -373,23 +361,3 @@ class TaskContext(CoreTaskContext):
                     str(ex),
                     exc_info=True,
                 )
-
-    def run(self, operation: Callable[[], T]) -> T | None:
-        """
-        Execute an operation if the task is not aborted.
-
-        Checks abort status before executing the operation. If the
-        task is aborted, returns None without executing. Cannot interrupt
-        an operation once it has started.
-
-        :param operation: Callable to execute
-        :returns: Operation result if not aborted, None if aborted
-
-        Example:
-            response = ctx.run(lambda: requests.get(url, timeout=60))
-            if response is None:
-                return  # Task was aborted
-        """
-        if self.is_aborted():
-            return None
-        return operation()
