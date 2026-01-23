@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Optional
 from datetime import datetime, timezone
+from typing import Any, Optional
 from uuid import uuid4
 
 from flask import request, Response
@@ -38,8 +38,8 @@ from superset.commands.report.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
-from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
+from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
@@ -496,7 +496,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         try:
             AsyncExecuteReportScheduleCommand(execution_id, pk, scheduled_dttm).run()
             return self.response(200, message="Report execution started")
-        except (ReportScheduleNotFoundError, ReportScheduleInvalidError, SupersetException) as ex:
+        except (
+            ReportScheduleNotFoundError,
+            ReportScheduleInvalidError,
+            SupersetException,
+        ) as ex:
             return self.response(500, message=f"Failed to run report: {ex}")
 
     @expose("/", methods=("DELETE",))

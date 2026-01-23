@@ -18,10 +18,12 @@
 """
 Integration tests for the /api/v1/report/<pk>/run_now endpoint.
 """
-import pytest
+
 from superset.models.reports import ReportSchedule
+
 from superset import db
 from tests.integration_tests.base_tests import SupersetTestCase
+
 
 class TestReportRunNowApi(SupersetTestCase):
     def setUp(self):
