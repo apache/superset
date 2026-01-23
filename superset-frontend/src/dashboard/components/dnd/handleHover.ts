@@ -36,7 +36,8 @@ function handleHover(
   // this may happen due to throttling
   if (!Component.mounted) return;
 
-  const dropPosition = getDropPosition(monitor, Component);
+  // Cast component to any to satisfy getDropPosition's DropTargetComponent typing
+  const dropPosition = getDropPosition(monitor, Component as any);
 
   const isDashboardRoot =
     Component?.props?.component?.type === DASHBOARD_ROOT_TYPE;

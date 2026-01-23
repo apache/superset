@@ -17,11 +17,15 @@
  * under the License.
  */
 
-import { LayoutItem, LayoutItemMeta, ComponentType } from '../types';
+import { LayoutItemMeta, ComponentType } from '../types';
 import { TABS_TYPE } from './componentTypes';
 import { DROP_LEFT, DROP_RIGHT, DropPosition } from './getDropPosition';
 
-type LayoutItemLike = Pick<LayoutItem, 'id' | 'children' | 'type'> & {
+type LayoutItemLike = {
+  id: string;
+  children: string[];
+  // Accept loose type strings to match test fixtures and runtime
+  type?: string;
   meta?: Partial<LayoutItemMeta>;
 };
 
