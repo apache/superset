@@ -88,4 +88,5 @@ export interface SingleQueryResultPaneProp extends QueryResultInterface {
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
+  isPaginationSticky?: boolean;
 }
