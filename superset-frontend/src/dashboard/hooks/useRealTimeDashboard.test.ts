@@ -108,14 +108,14 @@ test('selectEffectiveRefreshStatus returns actual status when not paused', () =>
   expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Success);
 });
 
-test('selectEffectiveRefreshStatus returns Delayed after one refresh error', () => {
+test('selectEffectiveRefreshStatus returns Fetching when status is Fetching with one error', () => {
   const state = createMockState({
     refreshFrequency: 3,
     autoRefreshStatus: AutoRefreshStatus.Fetching,
     refreshErrorCount: 1,
   });
 
-  expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Delayed);
+  expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Fetching);
 });
 
 test('selectEffectiveRefreshStatus returns Fetching when no refresh errors', () => {
@@ -131,11 +131,21 @@ test('selectEffectiveRefreshStatus returns Fetching when no refresh errors', () 
 test('selectEffectiveRefreshStatus returns Error after two refresh errors', () => {
   const state = createMockState({
     refreshFrequency: 3,
-    autoRefreshStatus: AutoRefreshStatus.Fetching,
+    autoRefreshStatus: AutoRefreshStatus.Success,
     refreshErrorCount: 2,
   });
 
   expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Error);
+});
+
+test('selectEffectiveRefreshStatus returns Delayed when not fetching and one refresh error', () => {
+  const state = createMockState({
+    refreshFrequency: 3,
+    autoRefreshStatus: AutoRefreshStatus.Success,
+    refreshErrorCount: 1,
+  });
+
+  expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Delayed);
 });
 
 test('selectEffectiveRefreshStatus returns Idle when not a real-time dashboard', () => {

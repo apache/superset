@@ -42,6 +42,7 @@ export interface AutoRefreshState {
   autoRefreshPaused: boolean;
   autoRefreshPausedByTab: boolean;
   lastSuccessfulRefresh: number | null;
+  lastAutoRefreshTime: number | null;
   lastRefreshError: string | null;
   refreshErrorCount: number;
   autoRefreshFetchStartTime: number | null;
@@ -53,14 +54,11 @@ export const AUTO_REFRESH_STATE_DEFAULTS: AutoRefreshState = {
   autoRefreshPaused: false,
   autoRefreshPausedByTab: false,
   lastSuccessfulRefresh: null,
+  lastAutoRefreshTime: null,
   lastRefreshError: null,
   refreshErrorCount: 0,
   autoRefreshFetchStartTime: null,
   autoRefreshPauseOnInactiveTab: false,
 };
-
-export const DELAY_THRESHOLD_PERCENTAGE = 1;
-
-export const ERROR_THRESHOLD_MULTIPLIER = 2;
 
 export const ERROR_THRESHOLD_COUNT = 2;

@@ -16,12 +16,51 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
-import useInterval from 'src/SqlLab/utils/useInterval';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
-export const useCurrentTime = (enabled = true): number => {
+/**
+ * Hook that provides the current time, updating every second.
+ *
+ * @param enabled - Whether the timer should be running
+ * @param syncTrigger - When this value changes, the timer restarts in phase
+ *                      with the new value. This ensures the display timer is
+ *                      synchronized with refresh cycles.
+ * @returns The current timestamp in milliseconds
+ */
+export const useCurrentTime = (
+  enabled = true,
+  syncTrigger?: number | null,
+): number => {
   const [currentTime, setCurrentTime] = useState(() => Date.now());
-  useInterval(() => setCurrentTime(Date.now()), enabled ? 1000 : null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearExistingInterval = useCallback(() => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // When syncTrigger changes (refresh completes), restart the interval
+  // This keeps the display timer aligned with the refresh cycle
+  useEffect(() => {
+    if (!enabled) {
+      clearExistingInterval();
+      return undefined;
+    }
+
+    if (syncTrigger != null) {
+      setCurrentTime(Date.now());
+    }
+
+    clearExistingInterval();
+    intervalRef.current = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+
+    return clearExistingInterval;
+  }, [enabled, syncTrigger, clearExistingInterval]);
+
   return currentTime;
 };
 

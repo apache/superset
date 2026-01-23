@@ -87,6 +87,10 @@ export const selectEffectiveRefreshStatus = (
     dashboardState?.autoRefreshStatus ?? AutoRefreshStatus.Idle;
   const refreshErrorCount = dashboardState?.refreshErrorCount ?? 0;
 
+  if (currentStatus === AutoRefreshStatus.Fetching) {
+    return AutoRefreshStatus.Fetching;
+  }
+
   if (refreshErrorCount >= 2) {
     return AutoRefreshStatus.Error;
   }
@@ -109,6 +113,10 @@ export const useRealTimeDashboard = () => {
 
   const lastSuccessfulRefresh = useSelector(
     (state: RootState) => state.dashboardState?.lastSuccessfulRefresh ?? null,
+  );
+
+  const lastAutoRefreshTime = useSelector(
+    (state: RootState) => state.dashboardState?.lastAutoRefreshTime ?? null,
   );
 
   const lastError = useSelector(
@@ -193,6 +201,7 @@ export const useRealTimeDashboard = () => {
       isPausedByTab,
       effectiveStatus,
       lastSuccessfulRefresh,
+      lastAutoRefreshTime,
       lastError,
       refreshErrorCount,
       refreshFrequency,
@@ -214,6 +223,7 @@ export const useRealTimeDashboard = () => {
       isPausedByTab,
       effectiveStatus,
       lastSuccessfulRefresh,
+      lastAutoRefreshTime,
       lastError,
       refreshErrorCount,
       refreshFrequency,

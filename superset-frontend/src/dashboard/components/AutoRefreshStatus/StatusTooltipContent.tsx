@@ -23,10 +23,9 @@ import { AutoRefreshStatus } from '../../types/autoRefresh';
 export interface StatusTooltipContentProps {
   status: AutoRefreshStatus;
   lastSuccessfulRefresh: number | null;
-  lastError: string | null;
+  lastAutoRefreshTime: number | null;
   refreshErrorCount: number;
   refreshFrequency: number;
-  autoRefreshFetchStartTime: number | null;
   isPausedByTab?: boolean;
   /** Current timestamp for relative time calculations */
   currentTime: number;
@@ -65,10 +64,42 @@ const formatElapsedTime = (seconds: number): string => {
   return tn('%s day ago', '%s days ago', days, days);
 };
 
+const getNextRefreshLabel = (nextRefreshInSeconds: number | null): string =>
+  nextRefreshInSeconds === null
+    ? t('a few seconds')
+    : tn('%s second', '%s seconds', nextRefreshInSeconds, nextRefreshInSeconds);
+
+const getLastUpdatedLine = (
+  elapsedSeconds: number | null,
+): string | undefined =>
+  elapsedSeconds === null
+    ? undefined
+    : t('Last updated %s ago', formatElapsedTime(elapsedSeconds));
+
+const getNextRefreshInSeconds = (
+  lastAutoRefreshTime: number | null,
+  currentTime: number,
+  refreshFrequency: number,
+): number | null => {
+  if (refreshFrequency <= 0) {
+    return null;
+  }
+
+  if (lastAutoRefreshTime === null) {
+    return refreshFrequency;
+  }
+
+  const elapsedSeconds = Math.floor(
+    Math.max(0, currentTime - lastAutoRefreshTime) / 1000,
+  );
+
+  return Math.max(0, refreshFrequency - elapsedSeconds);
+};
+
 export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   status,
   lastSuccessfulRefresh,
-  lastError,
+  lastAutoRefreshTime,
   refreshErrorCount,
   refreshFrequency,
   isPausedByTab = false,
@@ -76,6 +107,11 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
 }) => {
   const elapsedSeconds = getElapsedSeconds(lastSuccessfulRefresh, currentTime);
   const missedRefreshes = Math.max(0, refreshErrorCount);
+  const nextRefreshInSeconds = getNextRefreshInSeconds(
+    lastAutoRefreshTime,
+    currentTime,
+    refreshFrequency,
+  );
 
   const intervalLine = t('Auto refresh set to %s seconds', refreshFrequency);
 
@@ -87,7 +123,7 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   };
 
   let line1: string;
-  let line2: string = intervalLine;
+  let line2: string | undefined = intervalLine;
   let line3: string | undefined;
 
   switch (status) {
@@ -107,17 +143,12 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
           : t('Refresh delayed');
       break;
     case AutoRefreshStatus.Error:
-      line1 = getUpdatedLine();
-      line3 = lastError
-        ? t('Error: %s', lastError)
-        : missedRefreshes > 0
-          ? tn(
-              'Missed %s refresh',
-              'Missed %s refreshes',
-              missedRefreshes,
-              missedRefreshes,
-            )
-          : t('Refresh failed');
+      line1 = t(
+        "There was a problem refreshing your dashboard. We'll try again in %s, as scheduled.",
+        getNextRefreshLabel(nextRefreshInSeconds),
+      );
+      line2 = getLastUpdatedLine(elapsedSeconds);
+      line3 = undefined;
       break;
     case AutoRefreshStatus.Paused:
       line1 = getUpdatedLine();
@@ -138,7 +169,7 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   return (
     <div data-test="status-tooltip-content">
       <div>{line1}</div>
-      <div>{line2}</div>
+      {line2 && <div>{line2}</div>}
       {line3 && <div>{line3}</div>}
     </div>
   );

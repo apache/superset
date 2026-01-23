@@ -544,7 +544,6 @@ const Header = (): JSX.Element => {
         if (isPeriodicRefreshStoppedRef.current) {
           return;
         }
-
         const affectedCharts = chartIds.filter(
           chartId => timedRefreshImmuneSlices.indexOf(chartId) === -1,
         );

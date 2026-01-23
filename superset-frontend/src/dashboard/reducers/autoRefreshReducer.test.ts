@@ -130,6 +130,7 @@ test('RECORD_AUTO_REFRESH_SUCCESS updates timestamp and resets errors', () => {
   const result = dashboardStateReducer(initialState, action);
 
   expect(result.lastSuccessfulRefresh).toBe(action.timestamp);
+  expect(result.lastAutoRefreshTime).toBe(action.timestamp);
   expect(result.lastRefreshError).toBeNull();
   expect(result.refreshErrorCount).toBe(0);
   expect(result.autoRefreshStatus).toBe(AutoRefreshStatus.Success);
@@ -141,13 +142,12 @@ test('RECORD_AUTO_REFRESH_ERROR increments error count', () => {
     lastRefreshError: null,
   });
 
-  const result = dashboardStateReducer(
-    initialState,
-    recordAutoRefreshError('Network error'),
-  );
+  const action = recordAutoRefreshError('Network error');
+  const result = dashboardStateReducer(initialState, action);
 
   expect(result.refreshErrorCount).toBe(1);
   expect(result.lastRefreshError).toBe('Network error');
+  expect(result.lastAutoRefreshTime).toBe(action.timestamp);
 });
 
 test('RECORD_AUTO_REFRESH_ERROR sets delayed status for 1 error', () => {

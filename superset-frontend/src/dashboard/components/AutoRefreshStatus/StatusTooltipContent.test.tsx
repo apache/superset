@@ -26,10 +26,9 @@ test('renders success status tooltip with precise seconds format', () => {
     <StatusTooltipContent
       status={AutoRefreshStatus.Success}
       lastSuccessfulRefresh={now - 5000}
-      lastError={null}
+      lastAutoRefreshTime={now - 5000}
       refreshErrorCount={0}
       refreshFrequency={10}
-      autoRefreshFetchStartTime={null}
       currentTime={now}
     />,
   );
@@ -48,10 +47,9 @@ test('renders minutes format for older timestamps', () => {
     <StatusTooltipContent
       status={AutoRefreshStatus.Success}
       lastSuccessfulRefresh={now - 120000}
-      lastError={null}
+      lastAutoRefreshTime={now - 120000}
       refreshErrorCount={0}
       refreshFrequency={10}
-      autoRefreshFetchStartTime={null}
       currentTime={now}
     />,
   );
@@ -68,10 +66,9 @@ test('renders fetching status tooltip', () => {
     <StatusTooltipContent
       status={AutoRefreshStatus.Fetching}
       lastSuccessfulRefresh={now - 5000}
-      lastError={null}
+      lastAutoRefreshTime={now - 5000}
       refreshErrorCount={0}
       refreshFrequency={10}
-      autoRefreshFetchStartTime={now}
       currentTime={now}
     />,
   );
@@ -86,10 +83,9 @@ test('renders paused status with last updated time and interval in parentheses',
     <StatusTooltipContent
       status={AutoRefreshStatus.Paused}
       lastSuccessfulRefresh={now - 5000}
-      lastError={null}
+      lastAutoRefreshTime={now - 5000}
       refreshErrorCount={0}
       refreshFrequency={10}
-      autoRefreshFetchStartTime={null}
       currentTime={now}
     />,
   );
@@ -104,23 +100,47 @@ test('renders paused status with last updated time and interval in parentheses',
   );
 });
 
-test('renders error status with error message', () => {
+test('renders error status copy with last updated line', () => {
   const now = Date.now();
   render(
     <StatusTooltipContent
       status={AutoRefreshStatus.Error}
       lastSuccessfulRefresh={now - 30000}
-      lastError="Network timeout"
+      lastAutoRefreshTime={now - 1000}
       refreshErrorCount={2}
       refreshFrequency={10}
-      autoRefreshFetchStartTime={null}
       currentTime={now}
     />,
   );
 
   const container = screen.getByTestId('status-tooltip-content');
   expect(container).toBeInTheDocument();
-  expect(container).toHaveTextContent('Network timeout');
+  expect(container).toHaveTextContent(
+    'There was a problem refreshing your dashboard.',
+  );
+  expect(container).toHaveTextContent('Last updated');
+  expect(container).not.toHaveTextContent('Network timeout');
+});
+
+test('omits last updated line when there was no successful refresh', () => {
+  const now = Date.now();
+  render(
+    <StatusTooltipContent
+      status={AutoRefreshStatus.Error}
+      lastSuccessfulRefresh={null}
+      lastAutoRefreshTime={now - 1000}
+      refreshErrorCount={2}
+      refreshFrequency={10}
+      currentTime={now}
+    />,
+  );
+
+  const container = screen.getByTestId('status-tooltip-content');
+  expect(container).toBeInTheDocument();
+  expect(container).toHaveTextContent(
+    'There was a problem refreshing your dashboard.',
+  );
+  expect(container).not.toHaveTextContent('Last updated');
 });
 
 test('renders delayed status with missed refresh description', () => {
@@ -129,10 +149,9 @@ test('renders delayed status with missed refresh description', () => {
     <StatusTooltipContent
       status={AutoRefreshStatus.Delayed}
       lastSuccessfulRefresh={now - 7000}
-      lastError={null}
+      lastAutoRefreshTime={now - 7000}
       refreshErrorCount={1}
       refreshFrequency={3}
-      autoRefreshFetchStartTime={null}
       currentTime={now}
     />,
   );
@@ -148,10 +167,9 @@ test('shows waiting message when no refresh has occurred yet', () => {
     <StatusTooltipContent
       status={AutoRefreshStatus.Idle}
       lastSuccessfulRefresh={null}
-      lastError={null}
+      lastAutoRefreshTime={null}
       refreshErrorCount={0}
       refreshFrequency={10}
-      autoRefreshFetchStartTime={null}
       currentTime={now}
     />,
   );

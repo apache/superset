@@ -136,6 +136,7 @@ export type DashboardState = {
   autoRefreshPaused?: boolean;
   autoRefreshPausedByTab?: boolean;
   lastSuccessfulRefresh?: number | null;
+  lastAutoRefreshTime?: number | null;
   lastRefreshError?: string | null;
   refreshErrorCount?: number;
   autoRefreshFetchStartTime?: number | null;

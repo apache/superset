@@ -47,13 +47,12 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
     isPaused,
     effectiveStatus,
     lastSuccessfulRefresh,
-    lastError,
+    lastAutoRefreshTime,
     refreshErrorCount,
     refreshFrequency,
-    autoRefreshFetchStartTime,
     isPausedByTab,
   } = useRealTimeDashboard();
-  const currentTime = useCurrentTime(isRealTimeDashboard);
+  const currentTime = useCurrentTime(isRealTimeDashboard, lastAutoRefreshTime);
 
   const iconPixelSize = theme.fontSizeSM;
 
@@ -150,10 +149,9 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
           <StatusTooltipContent
             status={effectiveStatus}
             lastSuccessfulRefresh={lastSuccessfulRefresh}
-            lastError={lastError}
+            lastAutoRefreshTime={lastAutoRefreshTime}
             refreshErrorCount={refreshErrorCount}
             refreshFrequency={refreshFrequency}
-            autoRefreshFetchStartTime={autoRefreshFetchStartTime}
             isPausedByTab={isPausedByTab}
             currentTime={currentTime}
           />

@@ -46,13 +46,12 @@ export const AutoRefreshStatus: FC<AutoRefreshStatusProps> = ({
     isRealTimeDashboard,
     effectiveStatus,
     lastSuccessfulRefresh,
-    lastError,
+    lastAutoRefreshTime,
     refreshErrorCount,
     refreshFrequency,
-    autoRefreshFetchStartTime,
     isPausedByTab,
   } = useRealTimeDashboard();
-  const currentTime = useCurrentTime(isRealTimeDashboard);
+  const currentTime = useCurrentTime(isRealTimeDashboard, lastAutoRefreshTime);
 
   // Don't render if not a real-time dashboard
   if (!isRealTimeDashboard) {
@@ -67,10 +66,9 @@ export const AutoRefreshStatus: FC<AutoRefreshStatusProps> = ({
         <StatusTooltipContent
           status={effectiveStatus}
           lastSuccessfulRefresh={lastSuccessfulRefresh}
-          lastError={lastError}
+          lastAutoRefreshTime={lastAutoRefreshTime}
           refreshErrorCount={refreshErrorCount}
           refreshFrequency={refreshFrequency}
-          autoRefreshFetchStartTime={autoRefreshFetchStartTime}
           isPausedByTab={isPausedByTab}
           currentTime={currentTime}
         />

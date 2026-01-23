@@ -367,6 +367,7 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         autoRefreshStatus: AutoRefreshStatus.Success,
         lastSuccessfulRefresh: action.timestamp,
+        lastAutoRefreshTime: action.timestamp,
         lastRefreshError: null,
         refreshErrorCount: 0,
       };
@@ -384,6 +385,7 @@ export default function dashboardStateReducer(state = {}, action) {
         autoRefreshStatus: newStatus,
         lastRefreshError: action.error,
         refreshErrorCount: newErrorCount,
+        lastAutoRefreshTime: action.timestamp,
       };
     },
     [SET_AUTO_REFRESH_FETCH_START_TIME]() {

@@ -51,6 +51,7 @@ export interface RecordAutoRefreshSuccessAction {
 export interface RecordAutoRefreshErrorAction {
   type: typeof RECORD_AUTO_REFRESH_ERROR;
   error: string | undefined;
+  timestamp: number;
 }
 
 export interface SetAutoRefreshFetchStartTimeAction {
@@ -100,7 +101,7 @@ export function recordAutoRefreshSuccess(): RecordAutoRefreshSuccessAction {
 export function recordAutoRefreshError(
   error: string | undefined,
 ): RecordAutoRefreshErrorAction {
-  return { type: RECORD_AUTO_REFRESH_ERROR, error };
+  return { type: RECORD_AUTO_REFRESH_ERROR, error, timestamp: Date.now() };
 }
 
 export function setAutoRefreshFetchStartTime(
