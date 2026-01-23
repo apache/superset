@@ -27,12 +27,11 @@ from superset.common.db_query_status import QueryStatus
 from superset.exceptions import QueryObjectValidationError, SupersetParseError
 from superset.explorables.base import Explorable
 from superset.utils.core import (
-    extract_display_labels,
     extract_column_dtype,
     extract_dataframe_dtypes,
+    extract_display_labels,
     ExtraFiltersReasonType,
     get_column_name,
-    get_column_names_from_columns,
     get_time_filter_status,
 )
 from superset.utils.currency import (
