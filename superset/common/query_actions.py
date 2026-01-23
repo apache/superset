@@ -194,7 +194,6 @@ def _get_full(
         }
         for col in rejected_filter_columns
     ] + rejected_time_columns
-    # print([get_column_name(col) for col in rejected_filter_columns])  # DEBUG
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
         return {
