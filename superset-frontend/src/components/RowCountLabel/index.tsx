@@ -39,7 +39,7 @@ export default function RowCountLabel(props: RowCountLabelProps) {
     limitReached || (rowcount === 0 && !loading) ? 'error' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
   const labelText = (
-    <Label type={type}>
+    <Label type={type} monospace>
       {loading ? (
         t('Loading...')
       ) : (
