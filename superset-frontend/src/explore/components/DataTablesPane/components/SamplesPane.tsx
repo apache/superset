@@ -119,6 +119,7 @@ export const SamplesPane = ({
         .catch(error => {
           setData([]);
           setColnames([]);
+          setCollabels([]);
           setColtypes([]);
           setResponseError(`${error.name}: ${error.message}`);
         })
