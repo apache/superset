@@ -29,6 +29,7 @@ import {
 } from 'src/features/datasets/AddDataset/types';
 import { Table } from 'src/hooks/apiResources';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
@@ -190,7 +191,7 @@ export default function LeftPanel({
       description={
         <span>
           {t('Manage your databases')}{' '}
-          <Typography.Link href="/databaseview/list">
+          <Typography.Link href={ensureAppRoot('/databaseview/list')}>
             {t('here')}
           </Typography.Link>
         </span>
