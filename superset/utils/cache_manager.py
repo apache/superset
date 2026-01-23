@@ -56,9 +56,14 @@ class ConfigurableHashMethod:
 
         Returns:
             A hashlib hash object (e.g., sha256 or md5)
+
+        Raises:
+            ValueError: If HASH_ALGORITHM is set to an unsupported value
         """
         algorithm = current_app.config["HASH_ALGORITHM"]
-        hash_func = _HASH_METHODS[algorithm]
+        hash_func = _HASH_METHODS.get(algorithm)
+        if hash_func is None:
+            raise ValueError(f"Unsupported hash algorithm: {algorithm}")
         return hash_func(data)
 
 
