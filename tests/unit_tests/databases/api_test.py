@@ -2431,3 +2431,152 @@ def test_schemas_with_oauth2(
             }
         ]
     }
+
+
+def test_export_includes_configuration_method(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """
+    Test that exporting a database
+    includes the 'configuration_method' field in the YAML.
+    """
+    import zipfile
+
+    import prison
+
+    from superset.models.core import Database
+
+    # Create a database with a non-default configuration_method
+    db_obj = Database(
+        database_name="export_test_db",
+        sqlalchemy_uri="bigquery://gcp-project-id/",
+        configuration_method="dynamic_form",
+        uuid=UUID("12345678-1234-5678-1234-567812345678"),
+    )
+    db.session.add(db_obj)
+    db.session.commit()
+
+    rison_ids = prison.dumps([db_obj.id])
+    response = client.get(f"/api/v1/database/export/?q={rison_ids}")
+    assert response.status_code == 200
+
+    # Read the zip file from the response
+    buf = BytesIO(response.data)
+    with zipfile.ZipFile(buf) as zf:
+        # Find the database yaml file
+        db_yaml_path = None
+        for name in zf.namelist():
+            if (
+                name.endswith(".yaml")
+                and name.startswith("database_export_")
+                and "/databases/" in name
+            ):
+                db_yaml_path = name
+                break
+        assert db_yaml_path, "Database YAML not found in export zip"
+        with zf.open(db_yaml_path) as f:
+            db_yaml = yaml.safe_load(f.read())
+    # Assert configuration_method is present and correct
+    assert "configuration_method" in db_yaml
+    assert db_yaml["configuration_method"] == "dynamic_form"
+
+
+def test_import_includes_configuration_method(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that importing a database YAML with configuration_method
+    sets the value on the imported DB connection.
+    """
+    from io import BytesIO
+    from unittest.mock import patch
+
+    import yaml
+    from flask import g, has_app_context, has_request_context
+
+    from superset import db, security_manager
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = db.session
+    Database.metadata.create_all(db.session.get_bind())
+
+    def find_by_id_side_effect(db_id):
+        return db.session.query(Database).filter_by(id=db_id).first()
+
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.side_effect = find_by_id_side_effect
+
+    metadata = {
+        "version": "1.0.0",
+        "type": "Database",
+        "timestamp": "2025-12-08T18:06:31.356738+00:00",
+    }
+    db_yaml = {
+        "database_name": "Test_Import_Configuration_Method",
+        "sqlalchemy_uri": "bigquery://gcp-project-id/",
+        "cache_timeout": 0,
+        "expose_in_sqllab": True,
+        "allow_run_async": False,
+        "allow_ctas": False,
+        "allow_cvas": False,
+        "allow_dml": False,
+        "allow_csv_upload": False,
+        "extra": {"allows_virtual_table_explore": True},
+        "impersonate_user": False,
+        "uuid": "87654321-4321-8765-4321-876543218765",
+        "configuration_method": "dynamic_form",
+        "version": "1.0.0",
+    }
+    contents = {
+        "metadata.yaml": yaml.safe_dump(metadata),
+        "databases/test.yaml": yaml.safe_dump(db_yaml),
+    }
+
+    with (
+        patch("superset.databases.api.is_zipfile", return_value=True),
+        patch("superset.databases.api.ZipFile"),
+        patch("superset.databases.api.get_contents_from_bundle", return_value=contents),
+    ):
+        form_data = {"formData": (BytesIO(b"test"), "test.zip")}
+        response = client.post(
+            "/api/v1/database/import/",
+            data=form_data,
+            content_type="multipart/form-data",
+        )
+        db.session.commit()
+        db.session.remove()
+    assert response.status_code == 200, response.data
+
+    db_obj = (
+        db.session.query(Database)
+        .filter_by(database_name="Test_Import_Configuration_Method")
+        .first()
+    )
+    assert db_obj is not None, "Database not found in SQLAlchemy session after import"
+    assert hasattr(db_obj, "configuration_method"), (
+        "'configuration_method' not found on model"
+    )
+    assert db_obj.configuration_method == "dynamic_form", (
+        "Expected configuration_method 'dynamic_form', got "
+        f"{db_obj.configuration_method}"
+    )
+
+    user = None
+    if has_request_context() or has_app_context():
+        user = getattr(g, "user", None)
+    if user and getattr(user, "is_authenticated", False) and hasattr(user, "id"):
+        db_obj.created_by = security_manager.get_user_by_id(user.id)
+        db.session.commit()
+    get_resp = client.get(
+        "/api/v1/database/?q=(filters:!((col:database_name,opr:eq,value:'Test_Import_Configuration_Method')))"
+    )
+    result = get_resp.json["result"]
+    assert result, "No database returned from API after import."
+    db_obj_api = result[0]
+    assert "configuration_method" in db_obj_api, (
+        f"'configuration_method' not found in database list response: {db_obj_api}"
+    )
+    assert db_obj_api["configuration_method"] == "dynamic_form"

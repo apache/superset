@@ -195,6 +195,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "allow_file_upload",
         "extra",
         "impersonate_user",
+        "configuration_method",
     ]
     extra_import_fields = [
         "password",

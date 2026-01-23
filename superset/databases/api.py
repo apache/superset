@@ -220,6 +220,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "changed_by.last_name",
         "created_by.first_name",
         "created_by.last_name",
+        "configuration_method",
         "database_name",
         "explore_database_id",
         "expose_in_sqllab",
