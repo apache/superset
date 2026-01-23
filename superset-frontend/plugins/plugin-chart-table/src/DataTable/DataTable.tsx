@@ -559,30 +559,28 @@ export default typedMemo(function DataTable<D extends object>({
               />
             ) : null}
             <Flex wrap align="center" gap="middle">
-              {serverPagination && (
-                <Space size="small" className="search-select-container">
-                  <span className="search-by-label">{t('Search by')}:</span>
-                  <SearchSelectDropdown
-                    searchOptions={searchOptions}
-                    value={serverPaginationData?.searchColumn || ''}
-                    onChange={onSearchColChange}
-                  />
-                </Space>
-              )}
               {searchInput && (
-                <GlobalFilter<D>
-                  searchInput={
-                    typeof searchInput === 'boolean' ? undefined : searchInput
-                  }
-                  preGlobalFilteredRows={preGlobalFilteredRows}
-                  setGlobalFilter={
-                    manualSearch ? handleSearchChange : setGlobalFilter
-                  }
-                  filterValue={manualSearch ? initialSearchText : filterValue}
-                  id={searchInputId}
-                  serverPagination={!!serverPagination}
-                  rowCount={rowCount}
-                />
+                <>
+                  {serverPagination && (
+                    <Space size="small" className="search-select-container">
+                      <span className="search-by-label">{t('Search by')}:</span>
+                      <SearchSelectDropdown
+                        searchOptions={searchOptions}
+                        value={serverPaginationData?.searchColumn || ''}
+                        onChange={onSearchColChange}
+                      />
+                    </Space>
+                  )}
+                  <GlobalFilter<D>
+                    searchInput={typeof searchInput === 'boolean' ? undefined : searchInput}
+                    preGlobalFilteredRows={preGlobalFilteredRows}
+                    setGlobalFilter={manualSearch ? handleSearchChange : setGlobalFilter}
+                    filterValue={manualSearch ? initialSearchText : filterValue}
+                    id={searchInputId}
+                    serverPagination={!!serverPagination}
+                    rowCount={rowCount}
+                  />
+                </>
               )}
               {renderTimeComparisonDropdown
                 ? renderTimeComparisonDropdown()
