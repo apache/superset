@@ -349,9 +349,8 @@ def init_fastmcp_server(
     """
     Initialize and configure the FastMCP server.
 
-    This function provides a way to create a custom FastMCP instance
-    instead of using the default global one. If parameters are provided,
-    a new instance will be created with those settings.
+    This function configures the global MCP instance (which has all tools
+    already registered) with auth, middleware, and other settings.
 
     Args:
         name: Server name (defaults to "{APP_NAME} MCP Server")
@@ -361,7 +360,7 @@ def init_fastmcp_server(
         **kwargs: Additional FastMCP configuration
 
     Returns:
-        FastMCP instance (either the global one or a new custom one)
+        The global FastMCP instance configured with the provided settings
     """
     # Read branding from Flask config's APP_NAME
     from superset.mcp_service.flask_singleton import app as flask_app
@@ -377,38 +376,32 @@ def init_fastmcp_server(
     if instructions is None:
         instructions = get_default_instructions(branding)
 
-    # If any custom parameters are provided, create a new instance
-    custom_params_provided = any(
-        [
-            name != default_name,
-            instructions != get_default_instructions(branding),
-            auth is not None,
-            lifespan is not None,
-            tools is not None,
-            include_tags is not None,
-            exclude_tags is not None,
-            config is not None,
-            middleware is not None,
-            kwargs,
-        ]
-    )
+    # Configure the global mcp instance with provided settings.
+    # Tools are already registered on this instance via @tool decorator imports above.
+    # name and instructions are read-only properties that delegate to _mcp_server
+    mcp._mcp_server.name = name
+    mcp._mcp_server.instructions = instructions
 
-    if custom_params_provided:
-        logger.info("Creating custom FastMCP instance with provided configuration")
-        return create_mcp_app(
-            name=name,
-            instructions=instructions,
-            auth=auth,
-            lifespan=lifespan,
-            tools=tools,
-            include_tags=include_tags,
-            exclude_tags=exclude_tags,
-            config=config,
-            middleware=middleware,
-            **kwargs,
-        )
-    else:
-        # Use the default global instance
-        logger.setLevel(logging.DEBUG)
-        logger.info("Using default FastMCP instance - scaffold version without auth")
-        return mcp
+    if auth is not None:
+        mcp.auth = auth
+        logger.info("Authentication configured on MCP instance")
+
+    if middleware is not None:
+        for mw in middleware:
+            mcp.add_middleware(mw)
+        logger.info("Added %d middleware(s) to MCP instance", len(middleware))
+
+    if lifespan is not None:
+        mcp.lifespan = lifespan
+
+    if include_tags is not None:
+        mcp.include_tags = include_tags
+
+    if exclude_tags is not None:
+        mcp.exclude_tags = exclude_tags
+
+    # Apply any additional configuration
+    _apply_config(mcp, config)
+
+    logger.info("Configured FastMCP instance: %s (auth=%s)", name, auth is not None)
+    return mcp
