@@ -26,7 +26,6 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
 )
 
-
 # --- _strip_html_tags tests ---
 
 
