@@ -107,14 +107,16 @@ export class CreateDatasetPage {
    * Uses the dropdown menu to select "Create dataset" option
    */
   async clickCreateDataset(): Promise<void> {
-    // Click the dropdown arrow to open the menu
-    const dropdownButton = new Button(
-      this.page,
-      this.page.locator(
-        '.ant-dropdown-trigger, .ant-btn-group .ant-btn:last-child',
-      ),
-    );
-    await dropdownButton.click();
+    // Find the "Create and explore dataset" button, then its sibling dropdown trigger
+    // This avoids ambiguity if other "down" buttons exist on the page
+    const mainButton = this.page.getByRole('button', {
+      name: /Create and explore dataset/i,
+    });
+    // The dropdown trigger is in the same button group, find it relative to main button
+    const dropdownTrigger = mainButton
+      .locator('xpath=following-sibling::button')
+      .first();
+    await dropdownTrigger.click();
 
     // Click "Create dataset" option from the dropdown menu
     await this.page.getByText('Create dataset', { exact: true }).click();
