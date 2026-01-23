@@ -48,7 +48,7 @@ type ComponentProps = {
   isDraggingOverShallow: boolean;
 };
 
-type DropTargetComponent = {
+export type DropTargetComponent = {
   props: ComponentProps;
   ref: {
     getBoundingClientRect: () => DOMRectLike | null;

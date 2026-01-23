@@ -8,7 +8,7 @@ import getComponentWidthFromDrop from './getComponentWidthFromDrop';
 export interface DropResult {
   source: {
     id: string;
-    index?: number; // optional in hover/legacy paths
+    index?: number;
   };
   destination?: {
     id: string;

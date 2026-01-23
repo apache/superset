@@ -31,6 +31,21 @@ type LayoutItemLike = {
 
 type EntitiesMap = Record<string, LayoutItemLike>;
 
+export interface DropResult {
+  source: {
+    id: string;
+    index?: number;
+  };
+  destination?: {
+    id: string;
+    index?: number;
+  };
+  dragging: {
+    id?: string;
+    type?: ComponentType;
+  };
+}
+
 type DragLocation = {
   id: string;
   index: number;

@@ -8,13 +8,6 @@
  * with the License.  You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
  */
 import reorderItem from 'src/dashboard/util/dnd-reorder';
 import { TABS_TYPE } from './componentTypes';
@@ -23,24 +16,17 @@ import { DROP_LEFT, DROP_RIGHT } from './getDropPosition';
 type TestEntity = {
   id: string;
   children: string[];
-  type?: string;
+  type: string; // ✅ REQUIRED
 };
 
 type TestEntitiesMap = Record<string, TestEntity>;
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dnd-reorderItem', () => {
   test('should remove the item from its source entity and add it to its destination entity', () => {
     const result = reorderItem({
       entitiesMap: {
-        a: {
-          id: 'a',
-          children: ['x', 'y', 'z'],
-        },
-        b: {
-          id: 'b',
-          children: ['banana'],
-        },
+        a: { id: 'a', type: 'ROW', children: ['x', 'y', 'z'] },
+        b: { id: 'b', type: 'ROW', children: ['banana'] },
       } as TestEntitiesMap,
       source: { id: 'a', index: 2 },
       destination: { id: 'b', index: 1 },
@@ -53,10 +39,7 @@ describe('dnd-reorderItem', () => {
   test('should correctly move elements within the same list', () => {
     const result = reorderItem({
       entitiesMap: {
-        a: {
-          id: 'a',
-          children: ['x', 'y', 'z'],
-        },
+        a: { id: 'a', type: 'ROW', children: ['x', 'y', 'z'] },
       } as TestEntitiesMap,
       source: { id: 'a', index: 2 },
       destination: { id: 'a', index: 0 },
@@ -66,17 +49,11 @@ describe('dnd-reorderItem', () => {
   });
 
   test('should copy items that do not move into the result', () => {
-    const extraEntity: TestEntity = { id: 'iAmExtra', children: [] };
+    const extraEntity: TestEntity = { id: 'iAmExtra', type: 'ROW', children: [] };
     const result = reorderItem({
       entitiesMap: {
-        a: {
-          id: 'a',
-          children: ['x', 'y', 'z'],
-        },
-        b: {
-          id: 'b',
-          children: ['banana'],
-        },
+        a: { id: 'a', type: 'ROW', children: ['x', 'y', 'z'] },
+        b: { id: 'b', type: 'ROW', children: ['banana'] },
         iAmExtra: extraEntity,
       } as TestEntitiesMap,
       source: { id: 'a', index: 2 },
@@ -89,14 +66,8 @@ describe('dnd-reorderItem', () => {
   test('should handle out of bounds destination index gracefully', () => {
     const result = reorderItem({
       entitiesMap: {
-        a: {
-          id: 'a',
-          children: ['x', 'y', 'z'],
-        },
-        b: {
-          id: 'b',
-          children: ['banana'],
-        },
+        a: { id: 'a', type: 'ROW', children: ['x', 'y', 'z'] },
+        b: { id: 'b', type: 'ROW', children: ['banana'] },
       } as TestEntitiesMap,
       source: { id: 'a', index: 1 },
       destination: { id: 'b', index: 5 },
@@ -109,10 +80,7 @@ describe('dnd-reorderItem', () => {
   test('should do nothing if source and destination are the same and indices are the same', () => {
     const result = reorderItem({
       entitiesMap: {
-        a: {
-          id: 'a',
-          children: ['x', 'y', 'z'],
-        },
+        a: { id: 'a', type: 'ROW', children: ['x', 'y', 'z'] },
       } as TestEntitiesMap,
       source: { id: 'a', index: 1 },
       destination: { id: 'a', index: 1 },
@@ -124,11 +92,7 @@ describe('dnd-reorderItem', () => {
   test('should handle DROP_LEFT in the same TABS_TYPE list correctly', () => {
     const result = reorderItem({
       entitiesMap: {
-        a: {
-          id: 'a',
-          type: TABS_TYPE,
-          children: ['x', 'y', 'z'],
-        },
+        a: { id: 'a', type: TABS_TYPE, children: ['x', 'y', 'z'] },
       } as TestEntitiesMap,
       source: { id: 'a', type: TABS_TYPE, index: 2 },
       destination: { id: 'a', type: TABS_TYPE, index: 1 },
@@ -141,11 +105,7 @@ describe('dnd-reorderItem', () => {
   test('should handle DROP_RIGHT in the same TABS_TYPE list correctly', () => {
     const result = reorderItem({
       entitiesMap: {
-        a: {
-          id: 'a',
-          type: TABS_TYPE,
-          children: ['x', 'y', 'z'],
-        },
+        a: { id: 'a', type: TABS_TYPE, children: ['x', 'y', 'z'] },
       } as TestEntitiesMap,
       source: { id: 'a', type: TABS_TYPE, index: 0 },
       destination: { id: 'a', type: TABS_TYPE, index: 1 },
@@ -158,16 +118,8 @@ describe('dnd-reorderItem', () => {
   test('should handle DROP_LEFT when moving between different TABS_TYPE lists', () => {
     const result = reorderItem({
       entitiesMap: {
-        a: {
-          id: 'a',
-          type: TABS_TYPE,
-          children: ['x', 'y'],
-        },
-        b: {
-          id: 'b',
-          type: TABS_TYPE,
-          children: ['banana'],
-        },
+        a: { id: 'a', type: TABS_TYPE, children: ['x', 'y'] },
+        b: { id: 'b', type: TABS_TYPE, children: ['banana'] },
       } as TestEntitiesMap,
       source: { id: 'a', type: TABS_TYPE, index: 1 },
       destination: { id: 'b', type: TABS_TYPE, index: 0 },
@@ -181,16 +133,8 @@ describe('dnd-reorderItem', () => {
   test('should handle DROP_RIGHT when moving between different TABS_TYPE lists', () => {
     const result = reorderItem({
       entitiesMap: {
-        a: {
-          id: 'a',
-          type: TABS_TYPE,
-          children: ['x', 'y'],
-        },
-        b: {
-          id: 'b',
-          type: TABS_TYPE,
-          children: ['banana'],
-        },
+        a: { id: 'a', type: TABS_TYPE, children: ['x', 'y'] },
+        b: { id: 'b', type: TABS_TYPE, children: ['banana'] },
       } as TestEntitiesMap,
       source: { id: 'a', type: TABS_TYPE, index: 0 },
       destination: { id: 'b', type: TABS_TYPE, index: 0 },

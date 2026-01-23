@@ -19,7 +19,9 @@
 import { throttle } from 'lodash';
 import { DropTargetMonitor } from 'react-dnd';
 import { DASHBOARD_ROOT_TYPE } from 'src/dashboard/util/componentTypes';
-import getDropPosition from 'src/dashboard/util/getDropPosition';
+import getDropPosition, {
+  type DropTargetComponent,
+} from 'src/dashboard/util/getDropPosition';
 import type {
   DragDroppableProps,
   DragDroppableComponent,
@@ -36,8 +38,12 @@ function handleHover(
   // this may happen due to throttling
   if (!Component.mounted) return;
 
-  // Cast component to any to satisfy getDropPosition's DropTargetComponent typing
-  const dropPosition = getDropPosition(monitor, Component as any);
+  // DragDroppableComponent at runtime satisfies DropTargetComponent,
+  // but the types are not structurally aligned — so we cast safely.
+  const dropPosition = getDropPosition(
+    monitor,
+    Component as unknown as DropTargetComponent,
+  );
 
   const isDashboardRoot =
     Component?.props?.component?.type === DASHBOARD_ROOT_TYPE;
