@@ -22,8 +22,11 @@ This module contains shared logic for chart configuration mapping and explore li
 generation that can be used by both generate_chart and generate_explore_link tools.
 """
 
+import logging
+from dataclasses import dataclass
 from typing import Any, Dict
 
+from superset.commands.exceptions import CommandException
 from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
@@ -33,6 +36,113 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DatasetValidationResult:
+    """Result of dataset accessibility validation."""
+
+    is_valid: bool
+    dataset_id: int | None
+    dataset_name: str | None
+    warnings: list[str]
+    error: str | None = None
+
+
+def validate_chart_dataset(
+    chart: Any,
+    check_access: bool = True,
+) -> DatasetValidationResult:
+    """
+    Validate that a chart's dataset exists and is accessible.
+
+    This shared utility should be called by MCP tools after creating or retrieving
+    charts to detect issues like missing or deleted datasets early.
+
+    Args:
+        chart: A chart-like object with datasource_id, datasource_type attributes
+        check_access: Whether to also check user permissions (default True)
+
+    Returns:
+        DatasetValidationResult with validation status and any warnings
+    """
+    from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.auth import has_dataset_access
+
+    warnings: list[str] = []
+    datasource_id = getattr(chart, "datasource_id", None)
+
+    # Check if chart has a datasource reference
+    if datasource_id is None:
+        return DatasetValidationResult(
+            is_valid=False,
+            dataset_id=None,
+            dataset_name=None,
+            warnings=[],
+            error="Chart has no dataset reference (datasource_id is None)",
+        )
+
+    # Try to look up the dataset
+    try:
+        dataset = DatasetDAO.find_by_id(datasource_id)
+
+        if dataset is None:
+            return DatasetValidationResult(
+                is_valid=False,
+                dataset_id=datasource_id,
+                dataset_name=None,
+                warnings=[],
+                error=(
+                    f"Dataset (ID: {datasource_id}) has been deleted or does not "
+                    f"exist. The chart will not render correctly. "
+                    f"Consider updating the chart to use a different dataset."
+                ),
+            )
+
+        dataset_name = getattr(dataset, "table_name", None) or getattr(
+            dataset, "name", None
+        )
+
+        # Check if it's a virtual dataset (SQL Lab query)
+        is_virtual = bool(getattr(dataset, "sql", None))
+        if is_virtual:
+            warnings.append(
+                f"This chart uses a virtual dataset (SQL-based). "
+                f"If the dataset '{dataset_name}' is deleted, this chart will break."
+            )
+
+        # Check access permissions if requested
+        if check_access and not has_dataset_access(dataset):
+            return DatasetValidationResult(
+                is_valid=False,
+                dataset_id=datasource_id,
+                dataset_name=dataset_name,
+                warnings=warnings,
+                error=(
+                    f"Access denied to dataset '{dataset_name}' (ID: {datasource_id}). "
+                    f"You do not have permission to view this dataset."
+                ),
+            )
+
+        return DatasetValidationResult(
+            is_valid=True,
+            dataset_id=datasource_id,
+            dataset_name=dataset_name,
+            warnings=warnings,
+            error=None,
+        )
+
+    except (AttributeError, ValueError, RuntimeError) as e:
+        logger.warning("Error validating chart dataset %s: %s", datasource_id, e)
+        return DatasetValidationResult(
+            is_valid=False,
+            dataset_id=datasource_id,
+            dataset_name=None,
+            warnings=[],
+            error=f"Error validating dataset (ID: {datasource_id}): {str(e)}",
+        )
 
 
 def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
@@ -92,8 +202,9 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         # Return URL with just the form_data_key
         return f"{base_url}/explore/?form_data_key={form_data_key}"
 
-    except Exception:
+    except (CommandException, KeyError, ValueError) as e:
         # Fallback to basic explore URL with numeric ID if available
+        logger.debug("Explore link generation fallback due to: %s", e)
         if numeric_dataset_id is not None:
             return (
                 f"{base_url}/explore/?datasource_type=table"

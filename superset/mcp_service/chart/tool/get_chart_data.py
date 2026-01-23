@@ -29,6 +29,9 @@ from superset_core.mcp import tool
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.commands.exceptions import CommandException
+from superset.exceptions import SupersetException
+from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -118,6 +121,22 @@ async def get_chart_data(  # noqa: C901
             )
         )
         logger.info("Getting data for chart %s: %s", chart.id, chart.slice_name)
+
+        # Validate the chart's dataset is accessible before retrieving data
+        validation_result = validate_chart_dataset(chart, check_access=True)
+        if not validation_result.is_valid:
+            await ctx.warning(
+                "Chart found but dataset is not accessible: %s"
+                % (validation_result.error,)
+            )
+            return ChartError(
+                error=validation_result.error
+                or "Chart's dataset is not accessible. Dataset may have been deleted.",
+                error_type="DatasetNotAccessible",
+            )
+        # Log any warnings (e.g., virtual dataset warnings)
+        for warning in validation_result.warnings:
+            await ctx.warning("Dataset warning: %s" % (warning,))
 
         import time
 
@@ -430,7 +449,7 @@ async def get_chart_data(  # noqa: C901
                 cache_status=cache_status,
             )
 
-        except Exception as data_error:
+        except (CommandException, SupersetException, ValueError) as data_error:
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
                 % (
@@ -445,7 +464,7 @@ async def get_chart_data(  # noqa: C901
                 error_type="DataError",
             )
 
-    except Exception as e:
+    except (CommandException, SupersetException, ValueError, KeyError) as e:
         await ctx.error(
             "Chart data retrieval failed: identifier=%s, error=%s, error_type=%s"
             % (
