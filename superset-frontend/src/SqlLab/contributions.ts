@@ -18,5 +18,9 @@
  */
 export enum ViewContribution {
   RightSidebar = 'sqllab.rightSidebar',
-  SouthPanels = 'sqllab.panels',
+  Panels = 'sqllab.panels',
+  Editor = 'sqllab.editor',
+  StatusBar = 'sqllab.statusBar',
+  Results = 'sqllab.results',
+  QueryHistory = 'sqllab.queryHistory',
 }

@@ -29,7 +29,7 @@ export const ENDPOINTS = {
 } as const;
 
 /**
- * TypeScript interface for dataset creation API payload
+ * TypeScript interface for physical dataset creation API payload
  * Provides compile-time safety for required fields
  */
 export interface DatasetCreatePayload {
@@ -69,7 +69,7 @@ export interface DatasetResult {
 }
 
 /**
- * POST request to create a dataset
+ * POST request to create a physical dataset
  * @param page - Playwright page instance (provides authentication context)
  * @param requestBody - Dataset configuration object (database, schema, table_name)
  * @returns API response from dataset creation
@@ -93,6 +93,35 @@ export async function apiPostVirtualDataset(
   requestBody: VirtualDatasetCreatePayload,
 ): Promise<APIResponse> {
   return apiPost(page, ENDPOINTS.DATASET, requestBody);
+}
+
+/**
+ * Creates a simple virtual dataset for testing purposes
+ * @param page - Playwright page instance
+ * @param name - Name for the virtual dataset
+ * @param databaseId - ID of the database to use (defaults to 1 for examples db)
+ * @returns The created dataset ID, or null on failure
+ */
+export async function createTestVirtualDataset(
+  page: Page,
+  name: string,
+  databaseId = 1,
+): Promise<number | null> {
+  const response = await apiPostVirtualDataset(page, {
+    database: databaseId,
+    schema: '',
+    table_name: name,
+    sql: "SELECT 1 as id, 'test' as name",
+    owners: [],
+  });
+
+  if (!response.ok()) {
+    console.warn(`Failed to create virtual dataset: ${response.status()}`);
+    return null;
+  }
+
+  const body = await response.json();
+  return body.id ?? null;
 }
 
 /**

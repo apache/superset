@@ -273,10 +273,8 @@ export function AsyncAceEditor(
               key="ace-tooltip-global"
               styles={css`
                 .ace_editor {
-                  border: 1px solid ${token.colorBorder} !important;
                   background-color: ${token.colorBgContainer} !important;
                 }
-
                 /* Basic editor styles with dark mode support */
                 .ace_editor.ace-github,
                 .ace_editor.ace-tm {
@@ -294,7 +292,8 @@ export function AsyncAceEditor(
                 }
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
-                  background-color: ${token.colorPrimaryBgHover} !important;
+                  background-color: ${token.colorEditorSelection ??
+                  token.colorPrimaryBgHover} !important;
                 }
 
                 /* Improve active line highlighting */

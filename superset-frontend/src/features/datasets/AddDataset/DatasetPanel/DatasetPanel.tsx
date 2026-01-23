@@ -49,19 +49,18 @@ interface StyledHeaderProps {
   position: EPosition;
 }
 
-const LOADER_WIDTH = 200;
-const SPINNER_WIDTH = 120;
-const HALF = 0.5;
 const MARGIN_MULTIPLIER = 3;
 
 const StyledHeader = styled.div<StyledHeaderProps>`
   ${({ theme, position }) => `
   position: ${position};
+  display: flex;
+  align-items: center;
   margin: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 1)}px
     ${theme.sizeUnit * MARGIN_MULTIPLIER}px
     ${theme.sizeUnit * MARGIN_MULTIPLIER}px
     ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
-  font-size: ${theme.sizeUnit * 6}px;
+  font-size: ${theme.sizeUnit * 5}px;
   font-weight: ${theme.fontWeightStrong};
   padding-bottom: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
 
@@ -71,7 +70,6 @@ const StyledHeader = styled.div<StyledHeaderProps>`
 
   .anticon:first-of-type {
     margin-right: ${theme.sizeUnit * 2}px;
-    vertical-align: text-top;
   }
 
   `}
@@ -104,20 +102,15 @@ const LoaderContainer = styled.div`
 
 const StyledLoader = styled.div`
   ${({ theme }) => `
-  max-width: 50%;
-  width: ${LOADER_WIDTH}px;
-
-  .ant-image {
-    width: ${SPINNER_WIDTH}px;
-    margin-left: ${(LOADER_WIDTH - SPINNER_WIDTH) * HALF}px;
-  }
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   div {
-    width: 100%;
     margin-top: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
     text-align: center;
     font-weight: ${theme.fontWeightNormal};
-    font-size: ${theme.fontSizeLG}px;
+    font-size: ${theme.fontSize}px;
     color: ${theme.colorTextSecondary};
   }
   `}
@@ -268,7 +261,7 @@ const DatasetPanel = ({
     loader = (
       <LoaderContainer>
         <StyledLoader>
-          <Loading position="inline-centered" />
+          <Loading position="inline-centered" size="m" />
           <div>{REFRESHING}</div>
         </StyledLoader>
       </LoaderContainer>
@@ -331,7 +324,7 @@ const DatasetPanel = ({
             }
             title={tableName || ''}
           >
-            <Icons.InsertRowAboveOutlined iconSize="xxl" />
+            <Icons.InsertRowAboveOutlined iconSize="xl" />
             {tableName}
           </StyledHeader>
         </>

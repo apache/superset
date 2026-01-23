@@ -53,6 +53,7 @@ export interface Datasource {
   verboseMap?: {
     [key: string]: string;
   };
+  currencyCodeColumn?: string;
 }
 
 export const DEFAULT_METRICS: Metric[] = [
