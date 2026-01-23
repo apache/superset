@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -45,8 +45,13 @@ const defaultFormData = {
   viz_type: VizType.Pie,
 };
 
-const TestWrapper = ({ onClose = jest.fn() }: { onClose?: jest.Mock }) => {
+const TestWrapper = () => {
   const contextMenuRef = useRef<ChartContextMenuRef>(null);
+  const [isTooltipVisible, setIsTooltipVisible] = useState(true);
+
+  const handleClose = () => {
+    setIsTooltipVisible(true);
+  };
 
   return (
     <>
@@ -56,20 +61,23 @@ const TestWrapper = ({ onClose = jest.fn() }: { onClose?: jest.Mock }) => {
       >
         Open Context Menu
       </button>
+      {isTooltipVisible && (
+        <div data-test="tooltip-visible">Tooltip is visible</div>
+      )}
       <ChartContextMenu
         ref={contextMenuRef}
         id={sliceId}
         formData={defaultFormData}
         onSelection={jest.fn()}
-        onClose={onClose}
+        onClose={handleClose}
         displayedItems={ContextMenuItem.All}
       />
     </>
   );
 };
 
-const setup = (props: Parameters<typeof TestWrapper>[0] = {}) => {
-  return render(<TestWrapper {...props} />, {
+const setup = () => {
+  return render(<TestWrapper />, {
     useRedux: true,
     initialState: {
       ...mockState,
@@ -101,9 +109,8 @@ beforeEach(() => {
   });
 });
 
-test('context menu calls onClose when user clicks outside to close it', async () => {
-  const onCloseMock = jest.fn();
-  setup({ onClose: onCloseMock });
+test('tooltip is restored when user clicks outside to close context menu', async () => {
+  setup();
 
   const openButton = screen.getByTestId('open-context-menu');
   userEvent.click(openButton);
@@ -112,19 +119,17 @@ test('context menu calls onClose when user clicks outside to close it', async ()
     expect(screen.getByTestId('chart-context-menu')).toBeInTheDocument();
   });
 
-  expect(onCloseMock).not.toHaveBeenCalled();
+  expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
 
   userEvent.click(document.body);
 
-  // Ensure onClose is called when dropdown closes
   await waitFor(() => {
-    expect(onCloseMock).toHaveBeenCalled();
+    expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
   });
 });
 
-test('context menu calls onClose when user selects a menu item', async () => {
-  const onCloseMock = jest.fn();
-  setup({ onClose: onCloseMock });
+test('tooltip is restored when user selects a menu item', async () => {
+  setup();
 
   const openButton = screen.getByTestId('open-context-menu');
   userEvent.click(openButton);
@@ -137,6 +142,6 @@ test('context menu calls onClose when user selects a menu item', async () => {
   userEvent.click(menuItem);
 
   await waitFor(() => {
-    expect(onCloseMock).toHaveBeenCalled();
+    expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
   });
 });
