@@ -19,9 +19,8 @@
 Integration tests for the /api/v1/report/<pk>/run_now endpoint.
 """
 
-from superset.models.reports import ReportSchedule
-
 from superset import db
+from superset.reports.models import ReportSchedule
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
