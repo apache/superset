@@ -328,6 +328,7 @@ function ColumnCollectionTable({
                 control={
                   <Select
                     ariaLabel={t('Data type')}
+                    header={<FormLabel>{t('Data type')}</FormLabel>}
                     options={DATA_TYPES}
                     name="type"
                     allowNewOptions
