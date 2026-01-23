@@ -30,13 +30,12 @@ import { GenericDataType } from '@apache-superset/core/common';
 import type { IRowNode } from 'ag-grid-community';
 
 const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
-const CONTRIBUTION_SUFFIX = '__contribution';
 
 export function useGridColumns(
   colnames: string[] | undefined,
   coltypes: GenericDataType[] | undefined,
   data: Record<string, any>[] | undefined,
-  columnDisplayNames?: Record<string, string>,
+  collabels?: string[] | undefined,
 ) {
   return useMemo(
     () =>
@@ -45,29 +44,7 @@ export function useGridColumns(
             .filter((column: string) => Object.keys(data[0]).includes(column))
             .map((key, index) => {
               const colType = coltypes?.[index];
-
-              const rawHeader = columnDisplayNames?.[key] ?? key;
-              let cleaned = rawHeader;
-              let suffix = '';
-
-              if (rawHeader.endsWith(CONTRIBUTION_SUFFIX)) {
-                cleaned = rawHeader.slice(
-                  0,
-                  rawHeader.length - CONTRIBUTION_SUFFIX.length,
-                );
-                suffix = ` (${t('contribution')})`;
-              }
-
-              try {
-                const parsed = JSON.parse(cleaned);
-                if (parsed && typeof parsed === 'object') {
-                  cleaned = getMetricLabel(parsed as QueryFormMetric);
-                }
-              } catch {
-                /* not a JSON-encoded metric – keep original display name */
-              }
-
-              const cleanHeader = `${cleaned}${suffix}`;
+              const headerLabel = collabels?.[index];
 
               return {
                 label: key,
@@ -100,7 +77,7 @@ export function useGridColumns(
               };
             })
         : [],
-    [colnames, data, coltypes, columnDisplayNames],
+    [colnames, data, coltypes, collabels],
   );
 }
 
