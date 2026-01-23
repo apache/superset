@@ -15,8 +15,8 @@ export interface DropResult {
     index: number;
   };
   dragging: {
-    id?: string;
-    type?: ComponentType;
+    id: string;
+    type: ComponentType;
   };
 }
 
