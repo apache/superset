@@ -52,6 +52,14 @@ const coltypes = [
   GenericDataType.Temporal,
   GenericDataType.Temporal,
 ];
+const collabels = [
+  'label01',
+  'label02',
+  'label03',
+  'label04',
+  'label05',
+  'label06',
+];
 
 const cellValues = {
   col01: true,
@@ -74,30 +82,44 @@ const expectedDisplayValues = {
 };
 
 test('useTableColumns with no options', () => {
-  const hook = renderHook(() => useTableColumns(colnames, coltypes, data));
+  const hook = renderHook(() =>
+    useTableColumns(colnames, collabels, coltypes, data),
+  );
   expect(hook.result.current).toMatchInlineSnapshot(`
     [
       {
         "Cell": [Function],
-        "Header": "col01",
+        "Header": <DataTableHeaderCell
+          columnLabel="label01"
+          columnName="col01"
+        />,
         "accessor": [Function],
         "id": "col01",
       },
       {
         "Cell": [Function],
-        "Header": "col02",
+        "Header": <DataTableHeaderCell
+          columnLabel="label02"
+          columnName="col02"
+        />,
         "accessor": [Function],
         "id": "col02",
       },
       {
         "Cell": [Function],
-        "Header": " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~",
+        "Header": <DataTableHeaderCell
+          columnLabel="label03"
+          columnName=" !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~"
+        />,
         "accessor": [Function],
         "id": " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~",
       },
       {
         "Cell": [Function],
-        "Header": "你好. 吃了吗?",
+        "Header": <DataTableHeaderCell
+          columnLabel="label04"
+          columnName="你好. 吃了吗?"
+        />,
         "accessor": [Function],
         "id": "你好. 吃了吗?",
       },
@@ -114,7 +136,10 @@ test('useTableColumns with no options', () => {
       },
       {
         "Cell": [Function],
-        "Header": "strtime",
+        "Header": <DataTableHeaderCell
+          columnLabel="label06"
+          columnName="strtime"
+        />,
         "accessor": [Function],
         "id": "strtime",
       },
@@ -135,7 +160,7 @@ test('useTableColumns with no options', () => {
 
 test('useTableColumns with options', () => {
   const hook = renderHook(() =>
-    useTableColumns(colnames, coltypes, data, undefined, true, {
+    useTableColumns(colnames, collabels, coltypes, data, undefined, true, {
       col01: { Header: 'Header' },
     }),
   );
@@ -149,19 +174,28 @@ test('useTableColumns with options', () => {
       },
       {
         "Cell": [Function],
-        "Header": "col02",
+        "Header": <DataTableHeaderCell
+          columnLabel="label02"
+          columnName="col02"
+        />,
         "accessor": [Function],
         "id": "col02",
       },
       {
         "Cell": [Function],
-        "Header": " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~",
+        "Header": <DataTableHeaderCell
+          columnLabel="label03"
+          columnName=" !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~"
+        />,
         "accessor": [Function],
         "id": " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~",
       },
       {
         "Cell": [Function],
-        "Header": "你好. 吃了吗?",
+        "Header": <DataTableHeaderCell
+          columnLabel="label04"
+          columnName="你好. 吃了吗?"
+        />,
         "accessor": [Function],
         "id": "你好. 吃了吗?",
       },
@@ -178,7 +212,10 @@ test('useTableColumns with options', () => {
       },
       {
         "Cell": [Function],
-        "Header": "strtime",
+        "Header": <DataTableHeaderCell
+          columnLabel="label06"
+          columnName="strtime"
+        />,
         "accessor": [Function],
         "id": "strtime",
       },
