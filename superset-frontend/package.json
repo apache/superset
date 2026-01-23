@@ -349,7 +349,7 @@
     "speed-measure-webpack-plugin": "^1.5.0",
     "storybook": "8.6.15",
     "style-loader": "^4.0.0",
-    "swc-loader": "^0.2.6",
+    "swc-loader": "^0.2.7",
     "terser-webpack-plugin": "^5.3.16",
     "thread-loader": "^4.0.4",
     "ts-jest": "^29.4.6",
