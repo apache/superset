@@ -22,14 +22,16 @@ import { supersetTheme } from '@apache-superset/core/ui';
 import type { SeriesOption } from 'echarts';
 import { EchartsTimeseriesSeriesType } from '../../src';
 import { TIMESERIES_CONSTANTS } from '../../src/constants';
-import { LegendOrientation } from '../../src/types';
+import {
+  LegendOrientation,
+  EchartsTimeseriesChartProps,
+} from '../../src/types';
 import {
   transformSeries,
   transformNegativeLabelsPosition,
   getPadding,
 } from '../../src/Timeseries/transformers';
 import transformProps from '../../src/Timeseries/transformProps';
-import { EchartsTimeseriesChartProps } from '../../src/types';
 import * as seriesUtils from '../../src/utils/series';
 
 // Mock the colorScale function
@@ -215,15 +217,34 @@ describe('transformNegativeLabelsPosition', () => {
       stack: 'obs',
     };
 
-    const result =
-      Array.isArray(series.data) && series.type === 'bar' && !series.stack
-        ? transformNegativeLabelsPosition(series, isHorizontal)
-        : series.data;
-    expect((result as any)[0].label).toBe(undefined);
-    expect((result as any)[1].label).toBe(undefined);
-    expect((result as any)[2].label).toBe(undefined);
-    expect((result as any)[3].label).toBe(undefined);
-    expect((result as any)[4].label).toBe(undefined);
+    const result = transformNegativeLabelsPosition(series, isHorizontal, true);
+    expect((result as any)[0].label.position).toBe('insideTop');
+    expect((result as any)[1].label.position).toBe('insideTop');
+    expect((result as any)[2].label.position).toBe('insideBottom');
+    expect((result as any)[3].label.position).toBe('insideBottom');
+    expect((result as any)[4].label.position).toBe('insideTop');
+  });
+
+  it('label position for horizontal stacked charts', () => {
+    const isHorizontal = true;
+    const series: SeriesOption = {
+      data: [
+        [1, 2020],
+        [-3, 2021],
+        [2, 2022],
+        [-4, 2023],
+        [-6, 2024],
+      ],
+      type: EchartsTimeseriesSeriesType.Bar,
+      stack: 'obs',
+    };
+
+    const result = transformNegativeLabelsPosition(series, isHorizontal, true);
+    expect((result as any)[0].label.position).toBe('insideRight');
+    expect((result as any)[1].label.position).toBe('insideLeft');
+    expect((result as any)[2].label.position).toBe('insideRight');
+    expect((result as any)[3].label.position).toBe('insideLeft');
+    expect((result as any)[4].label.position).toBe('insideLeft');
   });
 });
 
