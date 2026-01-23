@@ -529,7 +529,7 @@ class TaskManager:
             ).run()
 
             # Import here to avoid circular dependency
-            from superset.tasks.executor import execute_task
+            from superset.tasks.scheduler import execute_task
 
             # Schedule Celery task for async execution
             execute_task.delay(

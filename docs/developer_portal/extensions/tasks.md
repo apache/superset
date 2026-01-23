@@ -792,7 +792,7 @@ When `SHOW_STACKTRACE=True`:
   "status": "failure",
   "error_message": "division by zero",
   "exception_type": "ZeroDivisionError",
-  "stack_trace": "Traceback (most recent call last):\n  File \"/app/superset/tasks/executor.py\", line 108, in execute_task\n    executor_fn(*args, **kwargs)\n  File \"/app/my_task.py\", line 42, in my_task\n    result = 1 / 0\nZeroDivisionError: division by zero\n"
+  "stack_trace": "Traceback (most recent call last):\n  File \"/app/superset/tasks/scheduler.py\", line 108, in execute_task\n    executor_fn(*args, **kwargs)\n  File \"/app/my_task.py\", line 42, in my_task\n    result = 1 / 0\nZeroDivisionError: division by zero\n"
 }
 ```
 
