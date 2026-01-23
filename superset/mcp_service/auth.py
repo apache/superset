@@ -133,6 +133,8 @@ def _setup_user_context() -> User | None:
 
     Returns:
         User object with roles and groups loaded, or None if no Flask context
+        or user context is unavailable (e.g., resources/prompts where the
+        workspace middleware handles auth at the HTTP level).
     """
     try:
         user = get_user_from_request()
@@ -143,6 +145,17 @@ def _setup_user_context() -> User | None:
             logger.debug("No Flask app context available for user setup")
             return None
         raise
+    except ValueError:
+        # User context unavailable (g.user not set, MCP_DEV_USERNAME not configured)
+        # This happens for resources/prompts where workspace_context_middleware
+        # already verified the OAuth token at the HTTP level but couldn't load
+        # the user into g.user (e.g., user not yet synced to Superset DB).
+        # Return None to allow metadata resources to proceed without RBAC.
+        logger.debug(
+            "User context unavailable for MCP operation - "
+            "proceeding without user (auth verified at HTTP level)"
+        )
+        return None
 
     # Validate user has necessary relationships loaded
     # (Force access to ensure they're loaded if lazy)
