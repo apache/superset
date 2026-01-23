@@ -124,8 +124,8 @@ class WebDriverPool:
 
         try:
             # SECURITY FIX: Set up timeout protection for driver creation
-            old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
-            signal.alarm(self.creation_timeout_seconds)
+            old_handler = signal.signal(signal.SIGALRM, _timeout_handler)  # type: ignore[attr-defined]
+            signal.alarm(self.creation_timeout_seconds)  # type: ignore[attr-defined]
 
             driver_type = current_app.config.get("WEBDRIVER_TYPE", "firefox")
             selenium_driver = WebDriverSelenium(driver_type, window_size)
@@ -135,7 +135,7 @@ class WebDriverPool:
             driver.set_window_size(*window_size)
 
             # Clear the alarm - creation successful
-            signal.alarm(0)
+            signal.alarm(0)  # type: ignore[attr-defined]
 
             pooled_driver = PooledWebDriver(
                 driver=driver,
@@ -176,9 +176,9 @@ class WebDriverPool:
 
         finally:
             # Restore original signal handler and clear alarm
-            signal.alarm(0)
+            signal.alarm(0)  # type: ignore[attr-defined]
             if old_handler is not None:
-                signal.signal(signal.SIGALRM, old_handler)
+                signal.signal(signal.SIGALRM, old_handler)  # type: ignore[attr-defined]
 
     def _is_driver_valid(self, pooled_driver: PooledWebDriver) -> bool:
         """Check if a pooled driver is still valid for use"""
