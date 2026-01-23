@@ -29,6 +29,8 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import (
+    _extract_orderby_column_name,
+    _get_visible_columns,
     query_context_modified,
     SupersetSecurityManager,
 )
@@ -1262,3 +1264,428 @@ def test_get_catalogs_accessible_by_user_schema_access(
     catalogs = {"catalog1", "catalog2"}
 
     assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+# -----------------------------------------------------------------------------
+# Tests for _extract_orderby_column_name() - defensive barrier tests
+# -----------------------------------------------------------------------------
+# These tests verify that the function handles all valid formats correctly
+# and gracefully returns None (block) for invalid formats instead of crashing.
+#
+# Why barriers are needed:
+# 1. Security-critical code should be fail-closed (block unknown, not pass)
+# 2. Schema accepts fields.Raw() which doesn't validate structure
+# 3. Defensive coding prevents 500 errors on malformed input
+# -----------------------------------------------------------------------------
+
+
+def test_extract_orderby_column_name_string() -> None:
+    """
+    Test extraction from a simple string column name.
+
+    This is the most common case: orderby = [["country", True]]
+    """
+    assert _extract_orderby_column_name("country") == "country"
+    assert _extract_orderby_column_name("name") == "name"
+
+
+def test_extract_orderby_column_name_adhoc_column_with_label() -> None:
+    """
+    Test extraction from an adhoc column (dict with label).
+
+    Format: {"label": "My Column", "sqlExpression": "UPPER(name)"}
+    """
+    adhoc_column = {
+        "label": "My Column",
+        "sqlExpression": "UPPER(name)",
+        "expressionType": "SQL",
+    }
+    # Note: expressionType=SQL should block, but label takes precedence
+    # Actually no - SQL is blocked first
+    assert _extract_orderby_column_name(adhoc_column) is None
+
+    # Without expressionType=SQL, label should work
+    adhoc_column_no_sql = {
+        "label": "My Column",
+        "sqlExpression": "UPPER(name)",
+    }
+    assert _extract_orderby_column_name(adhoc_column_no_sql) == "My Column"
+
+
+def test_extract_orderby_column_name_adhoc_metric_simple() -> None:
+    """
+    Test extraction from an adhoc SIMPLE metric.
+
+    Format: {"expressionType": "SIMPLE", "column": {"column_name": "sales"}, ...}
+    The label should be extracted, not column.column_name.
+    """
+    adhoc_metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales", "type": "BIGINT"},
+        "aggregate": "SUM",
+        "label": "SUM(sales)",
+    }
+    assert _extract_orderby_column_name(adhoc_metric) == "SUM(sales)"
+
+
+def test_extract_orderby_column_name_adhoc_metric_simple_no_label() -> None:
+    """
+    Test extraction from an adhoc SIMPLE metric without label.
+
+    Should fall back to column.column_name.
+    """
+    adhoc_metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales", "type": "BIGINT"},
+        "aggregate": "SUM",
+    }
+    assert _extract_orderby_column_name(adhoc_metric) == "sales"
+
+
+def test_extract_orderby_column_name_sql_expression_blocked() -> None:
+    """
+    Test that SQL expressions are blocked for security.
+
+    Format: {"expressionType": "SQL", "sqlExpression": "random()", ...}
+    Returns None to block - prevents SQL injection via sorting.
+    """
+    adhoc_sql = {
+        "expressionType": "SQL",
+        "sqlExpression": "random()",
+        "label": "random()",
+    }
+    assert _extract_orderby_column_name(adhoc_sql) is None
+
+
+def test_extract_orderby_column_name_invalid_column_string() -> None:
+    """
+    Test that invalid format {"column": "string"} is blocked.
+
+    This format does NOT exist in Superset's type system:
+    - AdhocMetric.column is AdhocMetricColumn (dict) or None, never str
+    - The codeant-ai bot suggested supporting this, but it's INCORRECT
+
+    The barrier (isinstance check) ensures this returns None (block)
+    instead of raising AttributeError.
+    """
+    # This is the format the bot incorrectly claimed could exist
+    invalid_format = {"column": "country"}
+    # With barrier: returns None (blocked)
+    # Without barrier: would raise AttributeError on "country".get("column_name")
+    assert _extract_orderby_column_name(invalid_format) is None
+
+
+def test_extract_orderby_column_name_invalid_nested_types() -> None:
+    """
+    Test that other invalid nested structures are blocked.
+
+    Defensive tests - ensure no crashes on unexpected input.
+    """
+    # column as list (invalid)
+    assert _extract_orderby_column_name({"column": ["a", "b"]}) is None
+
+    # column as number (invalid)
+    assert _extract_orderby_column_name({"column": 123}) is None
+
+    # Empty dict
+    assert _extract_orderby_column_name({}) is None
+
+    # None
+    assert _extract_orderby_column_name(None) is None
+
+    # List (invalid - orderby_item should be unpacked from tuple first)
+    assert _extract_orderby_column_name(["country", True]) is None
+
+    # Number
+    assert _extract_orderby_column_name(42) is None
+
+
+# -----------------------------------------------------------------------------
+# Tests for _get_visible_columns() - defensive barrier tests
+# -----------------------------------------------------------------------------
+
+
+def test_get_visible_columns_string_columns(mocker: MockerFixture) -> None:
+    """
+    Test extraction of visible columns from string column names.
+
+    Format: {"columns": ["name", "country"]}
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": ["name", "country"],
+        "groupby": [],
+        "metrics": [],
+    }
+    visible = _get_visible_columns(stored_chart)
+    assert visible == {"name", "country"}
+
+
+def test_get_visible_columns_adhoc_columns(mocker: MockerFixture) -> None:
+    """
+    Test extraction of visible columns from adhoc column dicts.
+
+    Format: {"columns": [{"label": "My Column", "sqlExpression": "..."}]}
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": [
+            {"label": "Full Name", "sqlExpression": "CONCAT(first, last)"},
+            {"label": "Upper Country", "sqlExpression": "UPPER(country)"},
+        ],
+        "groupby": [],
+        "metrics": [],
+    }
+    visible = _get_visible_columns(stored_chart)
+    assert visible == {"Full Name", "Upper Country"}
+
+
+def test_get_visible_columns_mixed(mocker: MockerFixture) -> None:
+    """
+    Test extraction from mixed string and adhoc columns.
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": [
+            "name",
+            {"label": "Custom", "sqlExpression": "..."},
+        ],
+        "groupby": [],
+        "metrics": [],
+    }
+    visible = _get_visible_columns(stored_chart)
+    assert visible == {"name", "Custom"}
+
+
+def test_get_visible_columns_includes_metrics(mocker: MockerFixture) -> None:
+    """
+    Test that metrics are included in visible columns.
+
+    Guest users can sort by metrics too.
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count", "sum_amount"],
+    }
+    visible = _get_visible_columns(stored_chart)
+    assert visible == {"name", "count", "sum_amount"}
+
+
+def test_get_visible_columns_includes_groupby(mocker: MockerFixture) -> None:
+    """
+    Test that deprecated groupby field is included.
+
+    groupby is deprecated but still used in some charts.
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": [],
+        "groupby": ["category", "region"],
+        "metrics": [],
+    }
+    visible = _get_visible_columns(stored_chart)
+    assert visible == {"category", "region"}
+
+
+def test_get_visible_columns_adhoc_metrics(mocker: MockerFixture) -> None:
+    """
+    Test extraction from adhoc metric dicts.
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": [],
+        "groupby": [],
+        "metrics": [
+            "count",
+            {"label": "Total Sales", "expressionType": "SIMPLE"},
+        ],
+    }
+    visible = _get_visible_columns(stored_chart)
+    assert visible == {"count", "Total Sales"}
+
+
+def test_get_visible_columns_empty(mocker: MockerFixture) -> None:
+    """
+    Test with empty/missing fields.
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+    visible = _get_visible_columns(stored_chart)
+    assert visible == set()
+
+
+def test_get_visible_columns_ignores_invalid(mocker: MockerFixture) -> None:
+    """
+    Test that invalid column formats are ignored (not crash).
+
+    Defensive test - columns that don't match expected format
+    should be skipped, not cause errors.
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": [
+            "valid_string",
+            {"label": "valid_dict"},
+            {"no_label_key": "ignored"},  # dict without label - ignored
+            123,  # number - ignored
+            None,  # None - ignored
+            ["list"],  # list - ignored
+        ],
+        "groupby": [],
+        "metrics": [],
+    }
+    visible = _get_visible_columns(stored_chart)
+    assert visible == {"valid_string", "valid_dict"}
+
+
+# -----------------------------------------------------------------------------
+# Tests for orderby with invalid formats - integration tests
+# -----------------------------------------------------------------------------
+
+
+def test_query_context_modified_orderby_sql_expression_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that SQL expressions in orderby are blocked.
+
+    Security: prevents SQL injection via sorting.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [[{"expressionType": "SQL", "sqlExpression": "random()"}, True]],
+    }
+    query_context.queries = []
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_invalid_format_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that invalid orderby formats are blocked (not crash).
+
+    The invalid format {"column": "string"} should be blocked,
+    not cause AttributeError.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        # Invalid format - should be blocked, not crash
+        "orderby": [[{"column": "country"}, True]],
+    }
+    query_context.queries = []
+
+    # Should return True (modified/blocked), not raise exception
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_string_instead_of_list_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that orderby as string (instead of list) is blocked.
+
+    Defensive barrier: if orderby is not a list, block (fail-closed).
+    Without this barrier, iterating over string would yield characters,
+    each would be skipped, and the check would pass (fail-open).
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        # Invalid: string instead of list
+        "orderby": "malicious_string",
+    }
+    query_context.queries = []
+
+    # Should return True (blocked), not pass through
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_element_not_tuple_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that orderby element that is not tuple/list is blocked.
+
+    Defensive barrier: each orderby element must be [column, bool].
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        # Invalid: element is string, not tuple
+        "orderby": ["name"],
+    }
+    query_context.queries = []
+
+    # Should return True (blocked)
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_empty_tuple_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that empty orderby tuple is blocked.
+
+    Defensive barrier: empty tuples are invalid.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        # Invalid: empty tuple
+        "orderby": [[]],
+    }
+    query_context.queries = []
+
+    # Should return True (blocked)
+    assert query_context_modified(query_context)

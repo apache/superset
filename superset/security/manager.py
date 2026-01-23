@@ -247,7 +247,9 @@ def _extract_orderby_column_name(orderby_item: Any) -> str | None:
         if label := orderby_item.get("label"):
             return label
         if col := orderby_item.get("column"):
-            return col.get("column_name")
+            if isinstance(col, dict):
+                return col.get("column_name")
+            return None
 
     return None
 
@@ -292,23 +294,45 @@ def _orderby_whitelist_compare(
 
     Allows sorting by any visible column, blocks hidden columns and SQL expressions.
     Returns True if modified (request should be blocked).
+
+    Defensive barriers:
+    - If orderby is not a list, block (fail-closed)
+    - If orderby element is not a tuple/list, block (fail-closed)
     """
     form_data = query_context.form_data or {}
 
     # Check form_data orderby
-    for orderby_tuple in form_data.get("orderby") or []:
-        if isinstance(orderby_tuple, (list, tuple)) and len(orderby_tuple) >= 1:
-            col_name = _extract_orderby_column_name(orderby_tuple[0])
-            if col_name is None or col_name not in visible_columns:
-                return True
+    form_orderby = form_data.get("orderby")
+    if form_orderby is not None and not isinstance(form_orderby, list):
+        # orderby must be a list, block invalid format
+        return True
+    for orderby_tuple in form_orderby or []:
+        if not isinstance(orderby_tuple, (list, tuple)):
+            # Each orderby element must be a tuple/list, block invalid format
+            return True
+        if len(orderby_tuple) < 1:
+            # Empty tuple, block
+            return True
+        col_name = _extract_orderby_column_name(orderby_tuple[0])
+        if col_name is None or col_name not in visible_columns:
+            return True
 
     # Check queries orderby
     for query in query_context.queries:
-        for orderby_tuple in getattr(query, "orderby", None) or []:
-            if isinstance(orderby_tuple, (list, tuple)) and len(orderby_tuple) >= 1:
-                col_name = _extract_orderby_column_name(orderby_tuple[0])
-                if col_name is None or col_name not in visible_columns:
-                    return True
+        query_orderby = getattr(query, "orderby", None)
+        if query_orderby is not None and not isinstance(query_orderby, list):
+            # orderby must be a list, block invalid format
+            return True
+        for orderby_tuple in query_orderby or []:
+            if not isinstance(orderby_tuple, (list, tuple)):
+                # Each orderby element must be a tuple/list, block invalid format
+                return True
+            if len(orderby_tuple) < 1:
+                # Empty tuple, block
+                return True
+            col_name = _extract_orderby_column_name(orderby_tuple[0])
+            if col_name is None or col_name not in visible_columns:
+                return True
 
     return False
 
