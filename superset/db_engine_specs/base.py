@@ -717,9 +717,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "redirect_uri": config["redirect_uri"],
             "grant_type": "authorization_code",
         }
-        if config["request_content_type"] == "data":
-            return requests.post(uri, data=req_body, timeout=timeout).json()
-        return requests.post(uri, json=req_body, timeout=timeout).json()
+        response = (
+            requests.post(uri, data=req_body, timeout=timeout)
+            if config["request_content_type"] == "data"
+            else requests.post(uri, json=req_body, timeout=timeout)
+        )
+        response.raise_for_status()
+        return response.json()
 
     @classmethod
     def get_oauth2_fresh_token(
@@ -738,9 +742,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "refresh_token": refresh_token,
             "grant_type": "refresh_token",
         }
-        if config["request_content_type"] == "data":
-            return requests.post(uri, data=req_body, timeout=timeout).json()
-        return requests.post(uri, json=req_body, timeout=timeout).json()
+        response = (
+            requests.post(uri, data=req_body, timeout=timeout)
+            if config["request_content_type"] == "data"
+            else requests.post(uri, json=req_body, timeout=timeout)
+        )
+        response.raise_for_status()
+        return response.json()
 
     @classmethod
     def get_allows_alias_in_select(

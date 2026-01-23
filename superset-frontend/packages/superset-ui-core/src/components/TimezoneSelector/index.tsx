@@ -31,6 +31,9 @@ import type { TimezoneOption } from './types';
 // Import dayjs plugin types for TypeScript support
 import 'dayjs/plugin/timezone';
 
+// Re-export for convenience
+export { timezoneOptionsCache };
+
 export type TimezoneSelectorProps = {
   onTimezoneChange: (value: string) => void;
   timezone?: string | null;

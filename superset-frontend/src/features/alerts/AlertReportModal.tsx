@@ -57,8 +57,9 @@ import {
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 
-import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
-import { timezoneOptionsCache } from '@superset-ui/core/components/TimezoneSelector/TimezoneOptionsCache';
+import TimezoneSelector, {
+  timezoneOptionsCache,
+} from '@superset-ui/core/components/TimezoneSelector';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import {

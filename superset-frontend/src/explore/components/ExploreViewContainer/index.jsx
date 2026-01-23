@@ -291,13 +291,14 @@ function ExploreViewContainer(props) {
 
   const theme = useTheme();
 
+  // Capture original title before any effects run
+  const originalTitle = useMemo(() => document.title, []);
+
+  // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
       document.title = props.sliceName;
     }
-    return () => {
-      document.title = 'Superset';
-    };
   }, [props.sliceName]);
 
   // Cleanup BroadcastChannel on component unmount
@@ -306,6 +307,18 @@ function ExploreViewContainer(props) {
       saveModalActions.closeChartUpdateBroadcast();
     },
     [],
+  );
+
+  // Restore original title on unmount
+  useEffect(
+    () => () => {
+      document.title =
+        originalTitle ||
+        theme?.brandAppName ||
+        theme?.brandLogoAlt ||
+        'Superset';
+    },
+    [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
   );
 
   const addHistory = useCallback(

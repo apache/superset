@@ -219,7 +219,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@applitools/eyes-storybook": "^3.63.4",
+    "@applitools/eyes-storybook": "^3.63.8",
     "@babel/cli": "^7.28.6",
     "@babel/compat-data": "^7.28.4",
     "@babel/core": "^7.28.6",
@@ -332,7 +332,7 @@
     "jest-websocket-mock": "^2.5.0",
     "jsdom": "^27.4.0",
     "lerna": "^8.2.3",
-    "lightningcss": "^1.30.2",
+    "lightningcss": "^1.31.1",
     "mini-css-extract-plugin": "^2.10.0",
     "open-cli": "^8.0.0",
     "oxlint": "^1.41.0",

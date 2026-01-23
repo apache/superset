@@ -676,6 +676,78 @@ function updateReadme(databases) {
 }
 
 /**
+ * Extract custom_errors from engine specs for troubleshooting documentation
+ * Returns a map of module names to their custom errors
+ */
+function extractCustomErrors() {
+  console.log('Extracting custom_errors from engine specs...');
+
+  try {
+    const scriptPath = path.join(__dirname, 'extract_custom_errors.py');
+    const result = spawnSync('python3', [scriptPath], {
+      cwd: ROOT_DIR,
+      encoding: 'utf-8',
+      timeout: 30000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(result.stderr || 'Python script failed');
+    }
+
+    const customErrors = JSON.parse(result.stdout);
+    const moduleCount = Object.keys(customErrors).length;
+    const errorCount = Object.values(customErrors).reduce((sum, classes) =>
+      sum + Object.values(classes).reduce((s, errs) => s + errs.length, 0), 0);
+    console.log(`  Found ${errorCount} custom errors across ${moduleCount} modules`);
+    return customErrors;
+  } catch (err) {
+    console.log('  Could not extract custom_errors:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Merge custom_errors into database documentation
+ * Maps by module name since that's how both datasets are keyed
+ */
+function mergeCustomErrors(databases, customErrors) {
+  if (!customErrors) return;
+
+  let mergedCount = 0;
+
+  for (const [, db] of Object.entries(databases)) {
+    if (!db.module) continue;
+    // Normalize module name: Flask mode uses full path (superset.db_engine_specs.postgres),
+    // but customErrors is keyed by file stem (postgres)
+    const moduleName = db.module.split('.').pop();
+    if (!customErrors[moduleName]) continue;
+
+    // Get all errors from all classes in this module
+    const moduleErrors = customErrors[moduleName];
+    const allErrors = [];
+
+    for (const classErrors of Object.values(moduleErrors)) {
+      allErrors.push(...classErrors);
+    }
+
+    if (allErrors.length > 0) {
+      // Add to documentation
+      db.documentation = db.documentation || {};
+      db.documentation.custom_errors = allErrors;
+      mergedCount++;
+    }
+  }
+
+  if (mergedCount > 0) {
+    console.log(`  Merged custom_errors into ${mergedCount} database docs`);
+  }
+}
+
+/**
  * Load existing database data if available
  */
 function loadExistingData() {
@@ -767,6 +839,10 @@ async function main() {
   if (!hasNewScores && existingData) {
     databases = mergeWithExistingDiagnostics(databases, existingData);
   }
+
+  // Extract and merge custom_errors for troubleshooting documentation
+  const customErrors = extractCustomErrors();
+  mergeCustomErrors(databases, customErrors);
 
   // Build statistics
   const statistics = buildStatistics(databases);
