@@ -404,6 +404,41 @@ def test_sanitize_filter_value_removes_zero_width_chars():
     assert result == "hello"
 
 
+def test_sanitize_filter_value_blocks_or_injection():
+    with pytest.raises(ValueError, match="malicious SQL patterns"):
+        sanitize_filter_value("' OR '1'='1")
+
+
+def test_sanitize_filter_value_blocks_and_injection():
+    with pytest.raises(ValueError, match="malicious SQL patterns"):
+        sanitize_filter_value("' AND '1'='1")
+
+
+def test_sanitize_filter_value_blocks_block_comment():
+    with pytest.raises(ValueError, match="malicious SQL patterns"):
+        sanitize_filter_value("value /* comment */")
+
+
+def test_sanitize_filter_value_blocks_semicolon_drop():
+    with pytest.raises(ValueError, match="malicious SQL patterns"):
+        sanitize_filter_value("; DROP TABLE users")
+
+
+def test_sanitize_filter_value_blocks_parentheses():
+    with pytest.raises(ValueError, match="unsafe shell characters"):
+        sanitize_filter_value("$(whoami)")
+
+
+def test_sanitize_filter_value_blocks_dollar_sign():
+    with pytest.raises(ValueError, match="unsafe shell characters"):
+        sanitize_filter_value("$HOME")
+
+
+def test_sanitize_filter_value_blocks_event_handler():
+    with pytest.raises(ValueError, match="malicious event handler"):
+        sanitize_filter_value("onerror=alert(1)")
+
+
 def test_sanitize_filter_value_xss_entity_encoded():
     """Entity-encoded XSS in filter values must be neutralized."""
     result = sanitize_filter_value("&lt;img src=x onerror=alert(1)&gt;")
