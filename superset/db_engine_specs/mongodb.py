@@ -57,6 +57,22 @@ class MongoDBEngineSpec(BaseEngineSpec):
             "port": "MongoDB port",
             "database": "Database name",
         },
+        "drivers": [
+            {
+                "name": "MongoDB Atlas Cloud",
+                "pypi_package": "pymongosql",
+                "connection_string": "mongodb+srv://{username}:{password}@{host}/{database}?mode=superset",
+                "notes": "For MongoDB Atlas cloud service.",
+                "is_recommended": True,
+            },
+            {
+                "name": "MongoDB Cluster",
+                "pypi_package": "pymongosql",
+                "connection_string": "mongodb://{username}:{password}@{host}:{port}/{database}?mode=superset",
+                "is_recommended": False,
+                "notes": ("For self-hosted MongoDB instances."),
+            },
+        ],
         "notes": "Uses PartiQL for SQL queries. Requires mode=superset parameter.",
         "docs_url": "https://github.com/passren/PyMongoSQL",
     }
