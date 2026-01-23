@@ -13,21 +13,13 @@ import reorderItem from 'src/dashboard/util/dnd-reorder';
 import { TABS_TYPE } from './componentTypes';
 import { DROP_LEFT, DROP_RIGHT } from './getDropPosition';
 
-type TestEntity = {
-  id: string;
-  children: string[];
-  type: string; // ✅ REQUIRED
-};
-
-type TestEntitiesMap = Record<string, TestEntity>;
-
 describe('dnd-reorderItem', () => {
   test('should remove the item from its source entity and add it to its destination entity', () => {
     const result = reorderItem({
       entitiesMap: {
         a: { id: 'a', type: 'ROW', children: ['x', 'y', 'z'] },
         b: { id: 'b', type: 'ROW', children: ['banana'] },
-      } as TestEntitiesMap,
+      },
       source: { id: 'a', index: 2 },
       destination: { id: 'b', index: 1 },
     });
@@ -40,7 +32,7 @@ describe('dnd-reorderItem', () => {
     const result = reorderItem({
       entitiesMap: {
         a: { id: 'a', type: 'ROW', children: ['x', 'y', 'z'] },
-      } as TestEntitiesMap,
+      },
       source: { id: 'a', index: 2 },
       destination: { id: 'a', index: 0 },
     });
@@ -49,13 +41,14 @@ describe('dnd-reorderItem', () => {
   });
 
   test('should copy items that do not move into the result', () => {
-    const extraEntity: TestEntity = { id: 'iAmExtra', type: 'ROW', children: [] };
+    const extraEntity = { id: 'iAmExtra', type: 'ROW', children: [] };
+
     const result = reorderItem({
       entitiesMap: {
         a: { id: 'a', type: 'ROW', children: ['x', 'y', 'z'] },
         b: { id: 'b', type: 'ROW', children: ['banana'] },
         iAmExtra: extraEntity,
-      } as TestEntitiesMap,
+      },
       source: { id: 'a', index: 2 },
       destination: { id: 'b', index: 1 },
     });
@@ -68,7 +61,7 @@ describe('dnd-reorderItem', () => {
       entitiesMap: {
         a: { id: 'a', type: 'ROW', children: ['x', 'y', 'z'] },
         b: { id: 'b', type: 'ROW', children: ['banana'] },
-      } as TestEntitiesMap,
+      },
       source: { id: 'a', index: 1 },
       destination: { id: 'b', index: 5 },
     });
@@ -81,7 +74,7 @@ describe('dnd-reorderItem', () => {
     const result = reorderItem({
       entitiesMap: {
         a: { id: 'a', type: 'ROW', children: ['x', 'y', 'z'] },
-      } as TestEntitiesMap,
+      },
       source: { id: 'a', index: 1 },
       destination: { id: 'a', index: 1 },
     });
@@ -93,7 +86,7 @@ describe('dnd-reorderItem', () => {
     const result = reorderItem({
       entitiesMap: {
         a: { id: 'a', type: TABS_TYPE, children: ['x', 'y', 'z'] },
-      } as TestEntitiesMap,
+      },
       source: { id: 'a', type: TABS_TYPE, index: 2 },
       destination: { id: 'a', type: TABS_TYPE, index: 1 },
       position: DROP_LEFT,
@@ -106,7 +99,7 @@ describe('dnd-reorderItem', () => {
     const result = reorderItem({
       entitiesMap: {
         a: { id: 'a', type: TABS_TYPE, children: ['x', 'y', 'z'] },
-      } as TestEntitiesMap,
+      },
       source: { id: 'a', type: TABS_TYPE, index: 0 },
       destination: { id: 'a', type: TABS_TYPE, index: 1 },
       position: DROP_RIGHT,
@@ -120,7 +113,7 @@ describe('dnd-reorderItem', () => {
       entitiesMap: {
         a: { id: 'a', type: TABS_TYPE, children: ['x', 'y'] },
         b: { id: 'b', type: TABS_TYPE, children: ['banana'] },
-      } as TestEntitiesMap,
+      },
       source: { id: 'a', type: TABS_TYPE, index: 1 },
       destination: { id: 'b', type: TABS_TYPE, index: 0 },
       position: DROP_LEFT,
@@ -135,7 +128,7 @@ describe('dnd-reorderItem', () => {
       entitiesMap: {
         a: { id: 'a', type: TABS_TYPE, children: ['x', 'y'] },
         b: { id: 'b', type: TABS_TYPE, children: ['banana'] },
-      } as TestEntitiesMap,
+      },
       source: { id: 'a', type: TABS_TYPE, index: 0 },
       destination: { id: 'b', type: TABS_TYPE, index: 0 },
       position: DROP_RIGHT,
