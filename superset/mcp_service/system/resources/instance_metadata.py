@@ -100,8 +100,9 @@ def get_instance_metadata_resource() -> str:
             del base_result["popular_content"]
 
         # Add available datasets (top 20 by most recent modification)
+        dataset_dao = instance_info_core.dao_classes["datasets"]
         try:
-            datasets = DatasetDAO.find_all()
+            datasets = dataset_dao.find_all()
             sorted_datasets = sorted(
                 datasets,
                 key=lambda d: getattr(d, "changed_on", None) or "",
@@ -121,8 +122,9 @@ def get_instance_metadata_resource() -> str:
             base_result["available_datasets"] = []
 
         # Add available databases (for execute_sql)
+        database_dao = instance_info_core.dao_classes["databases"]
         try:
-            databases = DatabaseDAO.find_all()
+            databases = database_dao.find_all()
             base_result["available_databases"] = [
                 {
                     "id": db.id,
