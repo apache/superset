@@ -48,6 +48,7 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
     effectiveStatus,
     lastSuccessfulRefresh,
     lastError,
+    refreshErrorCount,
     refreshFrequency,
     autoRefreshFetchStartTime,
     isPausedByTab,
@@ -150,6 +151,7 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
             status={effectiveStatus}
             lastSuccessfulRefresh={lastSuccessfulRefresh}
             lastError={lastError}
+            refreshErrorCount={refreshErrorCount}
             refreshFrequency={refreshFrequency}
             autoRefreshFetchStartTime={autoRefreshFetchStartTime}
             isPausedByTab={isPausedByTab}

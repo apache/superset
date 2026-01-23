@@ -103,66 +103,39 @@ test('selectEffectiveRefreshStatus returns actual status when not paused', () =>
     autoRefreshPaused: false,
     autoRefreshPausedByTab: false,
     autoRefreshStatus: AutoRefreshStatus.Success,
+    refreshErrorCount: 0,
   });
   expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Success);
 });
 
-test('selectEffectiveRefreshStatus returns Delayed when fetch exceeds threshold', () => {
-  const now = Date.now();
-  const refreshFrequency = 10; // 10 seconds
-  const fetchStartTime = now - 11000; // Started 11 seconds ago (> 10s)
-
+test('selectEffectiveRefreshStatus returns Delayed after one refresh error', () => {
   const state = createMockState({
-    refreshFrequency,
+    refreshFrequency: 3,
     autoRefreshStatus: AutoRefreshStatus.Fetching,
-    autoRefreshFetchStartTime: fetchStartTime,
+    refreshErrorCount: 1,
   });
-
-  // Mock Date.now for consistent testing
-  const originalDateNow = Date.now;
-  Date.now = jest.fn(() => now);
 
   expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Delayed);
-
-  Date.now = originalDateNow;
 });
 
-test('selectEffectiveRefreshStatus returns Fetching when within threshold', () => {
-  const now = Date.now();
-  const refreshFrequency = 10; // 10 seconds
-  const fetchStartTime = now - 2000; // Started 2 seconds ago (< 10s)
-
+test('selectEffectiveRefreshStatus returns Fetching when no refresh errors', () => {
   const state = createMockState({
-    refreshFrequency,
+    refreshFrequency: 3,
     autoRefreshStatus: AutoRefreshStatus.Fetching,
-    autoRefreshFetchStartTime: fetchStartTime,
+    refreshErrorCount: 0,
   });
-
-  const originalDateNow = Date.now;
-  Date.now = jest.fn(() => now);
 
   expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Fetching);
-
-  Date.now = originalDateNow;
 });
 
-test('selectEffectiveRefreshStatus returns Error when fetch exceeds error threshold', () => {
-  const now = Date.now();
-  const refreshFrequency = 10; // 10 seconds
-  const fetchStartTime = now - 21000; // Started 21 seconds ago (> 20s)
-
+test('selectEffectiveRefreshStatus returns Error after two refresh errors', () => {
   const state = createMockState({
-    refreshFrequency,
+    refreshFrequency: 3,
     autoRefreshStatus: AutoRefreshStatus.Fetching,
-    autoRefreshFetchStartTime: fetchStartTime,
+    refreshErrorCount: 2,
   });
 
-  const originalDateNow = Date.now;
-  Date.now = jest.fn(() => now);
-
   expect(selectEffectiveRefreshStatus(state)).toBe(AutoRefreshStatus.Error);
-
-  Date.now = originalDateNow;
 });
 
 test('selectEffectiveRefreshStatus returns Idle when not a real-time dashboard', () => {

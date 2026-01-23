@@ -24,6 +24,7 @@ export interface StatusTooltipContentProps {
   status: AutoRefreshStatus;
   lastSuccessfulRefresh: number | null;
   lastError: string | null;
+  refreshErrorCount: number;
   refreshFrequency: number;
   autoRefreshFetchStartTime: number | null;
   isPausedByTab?: boolean;
@@ -68,16 +69,13 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
   status,
   lastSuccessfulRefresh,
   lastError,
+  refreshErrorCount,
   refreshFrequency,
-  autoRefreshFetchStartTime,
   isPausedByTab = false,
   currentTime,
 }) => {
   const elapsedSeconds = getElapsedSeconds(lastSuccessfulRefresh, currentTime);
-  const fetchElapsedSeconds = getElapsedSeconds(
-    autoRefreshFetchStartTime,
-    currentTime,
-  );
+  const missedRefreshes = Math.max(0, refreshErrorCount);
 
   const intervalLine = t('Auto refresh set to %s seconds', refreshFrequency);
 
@@ -99,13 +97,27 @@ export const StatusTooltipContent: FC<StatusTooltipContentProps> = ({
     case AutoRefreshStatus.Delayed:
       line1 = getUpdatedLine();
       line3 =
-        fetchElapsedSeconds !== null
-          ? t('Refresh taking longer than expected (%ss)', fetchElapsedSeconds)
+        missedRefreshes > 0
+          ? tn(
+              'Delayed (missed %s refresh)',
+              'Delayed (missed %s refreshes)',
+              missedRefreshes,
+              missedRefreshes,
+            )
           : t('Refresh delayed');
       break;
     case AutoRefreshStatus.Error:
       line1 = getUpdatedLine();
-      line3 = lastError ? t('Error: %s', lastError) : t('Refresh failed');
+      line3 = lastError
+        ? t('Error: %s', lastError)
+        : missedRefreshes > 0
+          ? tn(
+              'Missed %s refresh',
+              'Missed %s refreshes',
+              missedRefreshes,
+              missedRefreshes,
+            )
+          : t('Refresh failed');
       break;
     case AutoRefreshStatus.Paused:
       line1 = getUpdatedLine();

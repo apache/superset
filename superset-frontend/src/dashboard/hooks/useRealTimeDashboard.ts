@@ -18,11 +18,7 @@
  */
 import { useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import {
-  AutoRefreshStatus,
-  DELAY_THRESHOLD_PERCENTAGE,
-  ERROR_THRESHOLD_MULTIPLIER,
-} from '../types/autoRefresh';
+import { AutoRefreshStatus } from '../types/autoRefresh';
 import { DashboardState, RootState } from '../types';
 import {
   setAutoRefreshStatus,
@@ -89,24 +85,14 @@ export const selectEffectiveRefreshStatus = (
 
   const currentStatus =
     dashboardState?.autoRefreshStatus ?? AutoRefreshStatus.Idle;
+  const refreshErrorCount = dashboardState?.refreshErrorCount ?? 0;
 
-  // Check for delay/error during fetch
-  if (
-    currentStatus === AutoRefreshStatus.Fetching &&
-    dashboardState?.autoRefreshFetchStartTime
-  ) {
-    const elapsed = Date.now() - dashboardState.autoRefreshFetchStartTime;
-    const intervalMs = (dashboardState.refreshFrequency ?? 0) * 1000;
-    const delayThreshold = intervalMs * DELAY_THRESHOLD_PERCENTAGE;
-    const errorThreshold = intervalMs * ERROR_THRESHOLD_MULTIPLIER;
+  if (refreshErrorCount >= 2) {
+    return AutoRefreshStatus.Error;
+  }
 
-    if (elapsed >= errorThreshold) {
-      return AutoRefreshStatus.Error;
-    }
-
-    if (elapsed >= delayThreshold) {
-      return AutoRefreshStatus.Delayed;
-    }
+  if (refreshErrorCount === 1) {
+    return AutoRefreshStatus.Delayed;
   }
 
   return currentStatus;
@@ -127,6 +113,10 @@ export const useRealTimeDashboard = () => {
 
   const lastError = useSelector(
     (state: RootState) => state.dashboardState?.lastRefreshError ?? null,
+  );
+
+  const refreshErrorCount = useSelector(
+    (state: RootState) => state.dashboardState?.refreshErrorCount ?? 0,
   );
 
   const refreshFrequency = useSelector(
@@ -204,6 +194,7 @@ export const useRealTimeDashboard = () => {
       effectiveStatus,
       lastSuccessfulRefresh,
       lastError,
+      refreshErrorCount,
       refreshFrequency,
       autoRefreshFetchStartTime,
       autoRefreshPauseOnInactiveTab,
@@ -224,6 +215,7 @@ export const useRealTimeDashboard = () => {
       effectiveStatus,
       lastSuccessfulRefresh,
       lastError,
+      refreshErrorCount,
       refreshFrequency,
       autoRefreshFetchStartTime,
       autoRefreshPauseOnInactiveTab,
