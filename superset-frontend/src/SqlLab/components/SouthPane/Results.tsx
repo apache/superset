@@ -80,7 +80,7 @@ const Results: FC<Props> = ({
   ) {
     return (
       <Alert
-        type="warning"
+        type="info"
         message={t('No stored results found, you need to re-run your query')}
       />
     );

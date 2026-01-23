@@ -43,9 +43,7 @@ import {
 import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
-  FeatureFlag,
   isAdhocColumn,
-  isFeatureEnabled,
   isPhysicalColumn,
   validateInteger,
   QueryFormColumn,
@@ -753,9 +751,7 @@ const config: ControlPanelConfig = {
         showCalculationType: false,
         showFullChoices: false,
       }),
-      visibility: ({ controls }) =>
-        isAggMode({ controls }) &&
-        isFeatureEnabled(FeatureFlag.TableV2TimeComparisonEnabled),
+      visibility: isAggMode,
     },
   ],
   formDataOverrides: formData => ({

@@ -37,13 +37,9 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
-    URLPreview,
 )
 from superset.mcp_service.utils.schema_utils import parse_request
-from superset.mcp_service.utils.url_utils import (
-    get_chart_screenshot_url,
-    get_superset_base_url,
-)
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -60,7 +56,6 @@ async def generate_chart(  # noqa: C901
     - Charts are NOT saved by default (save_chart=False) - preview only
     - Set save_chart=True to permanently save the chart
     - LLM clients MUST display returned chart URL to users
-    - Embed preview_url as image: ![Chart Preview](preview_url)
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - MUST include chart_type in config (either 'xy' or 'table')
 
@@ -397,20 +392,9 @@ async def generate_chart(  # noqa: C901
                             previews[format_type] = preview_result.content
                     else:
                         # For preview-only mode (save_chart=false)
-                        if format_type == "url" and form_data_key:
-                            # Generate screenshot URL using centralized helper
-                            from superset.mcp_service.utils.url_utils import (
-                                get_explore_screenshot_url,
-                            )
-
-                            preview_url = get_explore_screenshot_url(form_data_key)
-                            previews[format_type] = URLPreview(
-                                preview_url=preview_url,
-                                width=800,
-                                height=600,
-                                supports_interaction=False,
-                            )
-                        elif format_type in ["ascii", "table", "vega_lite"]:
+                        # Note: Screenshot-based URL previews are not supported.
+                        # Use the explore_url to view the chart interactively.
+                        if format_type in ["ascii", "table", "vega_lite"]:
                             # Generate preview from form data without saved chart
                             from superset.mcp_service.chart.preview_utils import (
                                 generate_preview_from_form_data,
@@ -483,7 +467,6 @@ async def generate_chart(  # noqa: C901
                 "data": f"{get_superset_base_url()}/api/v1/chart/{chart.id}/data/"
                 if chart
                 else None,
-                "preview": get_chart_screenshot_url(chart.id) if chart else None,
                 "export": f"{get_superset_base_url()}/api/v1/chart/{chart.id}/export/"
                 if chart
                 else None,

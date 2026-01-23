@@ -1,0 +1,58 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: a46c986d-8780-4745-91ff-7fefeef69f3c
+description: null
+params:
+  color_picker:
+    a: 0.82
+    b: 3
+    g: 0
+    r: 205
+  datasource: 5__table
+  granularity_sqla: null
+  groupby: []
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  max_radius: 250
+  min_radius: 1
+  multiplier: 10
+  point_radius_fixed:
+    type: metric
+    value: count
+  point_unit: square_m
+  row_limit: 5000
+  size: count
+  spatial:
+    latCol: LAT
+    lonCol: LON
+    type: latlong
+  time_grain_sqla: null
+  time_range: ' : '
+  viewport:
+    bearing: -4.952916738791771
+    latitude: 37.78926922909199
+    longitude: -122.42613341901688
+    pitch: 4.750411100577438
+    zoom: 12.729132798697304
+  viz_type: deck_scatter
+query_context: null
+slice_name: Deck.gl Scatterplot
+uuid: 36706f55-dec0-46d8-9dab-50842690d8d8
+version: 1.0.0
+viz_type: deck_scatter
