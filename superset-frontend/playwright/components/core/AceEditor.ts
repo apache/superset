@@ -32,13 +32,19 @@ const ACE_EDITOR_SELECTORS = {
  */
 export class AceEditor {
   readonly page: Page;
-  private readonly selector: string;
   private readonly locator: Locator;
 
-  constructor(page: Page, selector: string) {
+  constructor(page: Page, selector: string);
+
+  constructor(page: Page, locator: Locator);
+
+  constructor(page: Page, selectorOrLocator: string | Locator) {
     this.page = page;
-    this.selector = selector;
-    this.locator = page.locator(selector);
+    if (typeof selectorOrLocator === 'string') {
+      this.locator = page.locator(selectorOrLocator);
+    } else {
+      this.locator = selectorOrLocator;
+    }
   }
 
   /**
@@ -52,39 +58,70 @@ export class AceEditor {
    * Waits for the ace editor to be fully loaded and ready for interaction.
    */
   async waitForReady(): Promise<void> {
-    await this.locator.waitFor({ state: 'visible' });
-    await this.locator.locator(ACE_EDITOR_SELECTORS.CONTENT).waitFor();
-    await this.locator.locator(ACE_EDITOR_SELECTORS.TEXT_LAYER).waitFor();
+    // Wait for editor to be attached (outer .ace_editor div may be CSS-hidden)
+    await this.locator.waitFor({ state: 'attached' });
+    await this.locator
+      .locator(ACE_EDITOR_SELECTORS.CONTENT)
+      .waitFor({ state: 'attached' });
   }
 
   /**
    * Sets text in the ace editor using the ace API.
+   * Uses element handle to target the specific editor instance (not global ID lookup).
    * @param text - The text to set
    */
   async setText(text: string): Promise<void> {
     await this.waitForReady();
-    const editorId = this.extractEditorId();
+    const elementHandle = await this.locator.elementHandle();
+    if (!elementHandle) {
+      throw new Error('Could not get element handle for ace editor');
+    }
     await this.page.evaluate(
-      ({ id, value }) => {
-        const editor = (window as any).ace.edit(id);
+      ({ element, value }) => {
+        const windowWithAce = window as unknown as {
+          ace?: {
+            edit(el: Element): {
+              setValue(v: string, c: number): void;
+              session: { getUndoManager(): { reset(): void } };
+            };
+          };
+        };
+        if (!windowWithAce.ace) {
+          throw new Error(
+            'Ace editor library not loaded. Ensure the page has finished loading.',
+          );
+        }
+        // ace.edit() accepts either an element ID string or the DOM element itself
+        const editor = windowWithAce.ace.edit(element);
         editor.setValue(value, 1);
         editor.session.getUndoManager().reset();
       },
-      { id: editorId, value: text },
+      { element: elementHandle, value: text },
     );
   }
 
   /**
    * Gets the text content from the ace editor.
+   * Uses element handle to target the specific editor instance.
    * @returns The text content
    */
   async getText(): Promise<string> {
     await this.waitForReady();
-    const editorId = this.extractEditorId();
-    return this.page.evaluate(id => {
-      const editor = (window as any).ace.edit(id);
-      return editor.getValue();
-    }, editorId);
+    const elementHandle = await this.locator.elementHandle();
+    if (!elementHandle) {
+      throw new Error('Could not get element handle for ace editor');
+    }
+    return this.page.evaluate(element => {
+      const windowWithAce = window as unknown as {
+        ace?: { edit(el: Element): { getValue(): string } };
+      };
+      if (!windowWithAce.ace) {
+        throw new Error(
+          'Ace editor library not loaded. Ensure the page has finished loading.',
+        );
+      }
+      return windowWithAce.ace.edit(element).getValue();
+    }, elementHandle);
   }
 
   /**
@@ -96,32 +133,62 @@ export class AceEditor {
 
   /**
    * Appends text to the existing content in the ace editor.
+   * Uses element handle to target the specific editor instance.
    * @param text - The text to append
    */
   async appendText(text: string): Promise<void> {
     await this.waitForReady();
-    const editorId = this.extractEditorId();
+    const elementHandle = await this.locator.elementHandle();
+    if (!elementHandle) {
+      throw new Error('Could not get element handle for ace editor');
+    }
     await this.page.evaluate(
-      ({ id, value }) => {
-        const editor = (window as any).ace.edit(id);
+      ({ element, value }) => {
+        const windowWithAce = window as unknown as {
+          ace?: {
+            edit(el: Element): {
+              getValue(): string;
+              setValue(v: string, c: number): void;
+            };
+          };
+        };
+        if (!windowWithAce.ace) {
+          throw new Error(
+            'Ace editor library not loaded. Ensure the page has finished loading.',
+          );
+        }
+        const editor = windowWithAce.ace.edit(element);
         const currentText = editor.getValue();
-        const newText = currentText + (currentText ? '\n' : '') + value;
+        // Only add newline if there's existing text that doesn't already end with one
+        const needsNewline = currentText && !currentText.endsWith('\n');
+        const newText = currentText + (needsNewline ? '\n' : '') + value;
         editor.setValue(newText, 1);
       },
-      { id: editorId, value: text },
+      { element: elementHandle, value: text },
     );
   }
 
   /**
    * Focuses the ace editor.
+   * Uses element handle to target the specific editor instance.
    */
   async focus(): Promise<void> {
     await this.waitForReady();
-    const editorId = this.extractEditorId();
-    await this.page.evaluate(id => {
-      const editor = (window as any).ace.edit(id);
-      editor.focus();
-    }, editorId);
+    const elementHandle = await this.locator.elementHandle();
+    if (!elementHandle) {
+      throw new Error('Could not get element handle for ace editor');
+    }
+    await this.page.evaluate(element => {
+      const windowWithAce = window as unknown as {
+        ace?: { edit(el: Element): { focus(): void } };
+      };
+      if (!windowWithAce.ace) {
+        throw new Error(
+          'Ace editor library not loaded. Ensure the page has finished loading.',
+        );
+      }
+      windowWithAce.ace.edit(element).focus();
+    }, elementHandle);
   }
 
   /**
@@ -129,24 +196,5 @@ export class AceEditor {
    */
   async isVisible(): Promise<boolean> {
     return this.locator.isVisible();
-  }
-
-  /**
-   * Extracts the editor ID from the selector.
-   * Handles selectors like '#ace-editor' or '[id="ace-editor"]'
-   */
-  private extractEditorId(): string {
-    // Handle #id format
-    if (this.selector.startsWith('#')) {
-      return this.selector.slice(1);
-    }
-    // Handle [id="..."] format
-    const idMatch = this.selector.match(/id="([^"]+)"/);
-    if (idMatch) {
-      return idMatch[1];
-    }
-    // Handle [data-test="..."] format - use the element's actual id
-    // This requires getting it from the DOM
-    return this.selector.replace(/[#[\]]/g, '');
   }
 }

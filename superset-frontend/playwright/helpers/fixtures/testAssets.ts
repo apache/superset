@@ -45,13 +45,20 @@ export const test = base.extend<{ testAssets: TestAssets }>({
     // Then delete databases. Use failOnStatusCode: false for tolerance.
     await Promise.all(
       [...datasetIds].map(id =>
-        apiDeleteDataset(page, id, { failOnStatusCode: false }).catch(() => {}),
+        apiDeleteDataset(page, id, { failOnStatusCode: false }).catch(error => {
+          console.warn(`[testAssets] Failed to cleanup dataset ${id}:`, error);
+        }),
       ),
     );
     await Promise.all(
       [...databaseIds].map(id =>
         apiDeleteDatabase(page, id, { failOnStatusCode: false }).catch(
-          () => {},
+          error => {
+            console.warn(
+              `[testAssets] Failed to cleanup database ${id}:`,
+              error,
+            );
+          },
         ),
       ),
     );

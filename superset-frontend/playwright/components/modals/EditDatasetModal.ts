@@ -18,7 +18,7 @@
  */
 
 import { Locator, Page } from '@playwright/test';
-import { Input, Modal, Tabs } from '../core';
+import { Input, Modal, Tabs, AceEditor } from '../core';
 
 /**
  * Edit Dataset Modal component (DatasourceModal).
@@ -37,10 +37,11 @@ export class EditDatasetModal extends Modal {
 
   constructor(page: Page) {
     super(page);
-    this.tabs = new Tabs(page);
     // Use getByRole with specific name to target Edit Dataset dialog
     // The dialog has aria-labelledby that resolves to "edit Edit Dataset"
     this.specificLocator = page.getByRole('dialog', { name: /edit.*dataset/i });
+    // Scope tabs to modal's tablist to avoid matching tablists elsewhere on page
+    this.tabs = new Tabs(page, this.specificLocator.getByRole('tablist'));
   }
 
   /**
@@ -98,5 +99,86 @@ export class EditDatasetModal extends Modal {
    */
   async clickTab(tabName: string): Promise<void> {
     await this.tabs.clickTab(tabName);
+  }
+
+  /**
+   * Navigate to the Settings tab
+   */
+  async clickSettingsTab(): Promise<void> {
+    await this.tabs.clickTab('Settings');
+  }
+
+  /**
+   * Navigate to the Columns tab.
+   * Uses regex to avoid matching "Calculated columns" tab, scoped to modal.
+   */
+  async clickColumnsTab(): Promise<void> {
+    // Use regex starting with "Columns" to avoid matching "Calculated columns"
+    // Scope to modal element to avoid matching tabs elsewhere on page
+    await this.element.getByRole('tab', { name: /^Columns/ }).click();
+  }
+
+  /**
+   * Gets the description Ace Editor component (Settings tab).
+   * Uses the "Description" button to locate the specific form item containing the editor.
+   */
+  private get descriptionEditor(): AceEditor {
+    const settingsPanel = this.element.locator('#table-tabs-panel-SETTINGS');
+    // Find the Description button (collapse toggle), then navigate to its parent form item
+    // and locate the ace-editor within that specific container
+    const descriptionButton = settingsPanel.getByRole('button', {
+      name: 'Description',
+      exact: true,
+    });
+    // The button and ace-editor are in the same form item container (button's parent)
+    const editorContainer = descriptionButton
+      .locator('..')
+      .locator('[id="ace-editor"]');
+    return new AceEditor(this.page, editorContainer);
+  }
+
+  /**
+   * Fill the dataset description field (Settings tab).
+   * @param description - The description text to set
+   */
+  async fillDescription(description: string): Promise<void> {
+    await this.descriptionEditor.setText(description);
+  }
+
+  /**
+   * Expand a column row by column name.
+   * Uses exact cell match to avoid false positives with short names like "ds".
+   * @param columnName - The name of the column to expand
+   * @returns The row locator for scoped selector access
+   */
+  async expandColumn(columnName: string): Promise<Locator> {
+    // Find cell with exact column name text, then derive row from that cell
+    const cell = this.body.getByRole('cell', { name: columnName, exact: true });
+    const row = cell.locator('xpath=ancestor::tr[1]');
+    await row.getByRole('button', { name: /expand row/i }).click();
+    return row;
+  }
+
+  /**
+   * Fill column datetime format for a given column.
+   * Expands the column row and fills the date format input.
+   * Note: Expanded content appears in a sibling row, so we scope to modal body.
+   * @param columnName - The name of the column to edit
+   * @param format - The python date format string (e.g., '%Y-%m-%d')
+   */
+  async fillColumnDateFormat(
+    columnName: string,
+    format: string,
+  ): Promise<void> {
+    await this.expandColumn(columnName);
+    // Expanded content appears in a sibling row, not nested inside the original row.
+    // Use modal body scope with placeholder selector to find the datetime format input.
+    const dateFormatInput = new Input(
+      this.page,
+      this.body.getByPlaceholder('%Y-%m-%d'),
+    );
+    await dateFormatInput.element.waitFor({ state: 'visible' });
+    await dateFormatInput.clear();
+    await dateFormatInput.fill(format);
   }
 }

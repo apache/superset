@@ -40,11 +40,11 @@ export class Tabs {
   }
 
   /**
-   * Gets a tab by name
+   * Gets a tab by name, scoped to this tablist's container
    * @param tabName - The name/label of the tab
    */
   getTab(tabName: string): Locator {
-    return this.page.getByRole('tab', { name: tabName });
+    return this.locator.getByRole('tab', { name: tabName });
   }
 
   /**

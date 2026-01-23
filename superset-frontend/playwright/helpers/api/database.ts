@@ -31,7 +31,8 @@ const ENDPOINTS = {
 export interface DatabaseResult {
   id: number;
   database_name: string;
-  sqlalchemy_uri: string;
+  /** Optional - list API masks this for security, only detail API returns it */
+  sqlalchemy_uri?: string;
   backend?: string;
   engine_information?: {
     disable_ssh_tunneling?: boolean;

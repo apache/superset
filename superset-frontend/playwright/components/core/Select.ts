@@ -83,8 +83,14 @@ export class Select {
    * This prevents strict mode violations when multiple selects are used sequentially
    */
   private async waitForDropdownClose(): Promise<void> {
-    // Wait for dropdown animation to complete
-    await this.page.waitForTimeout(300);
+    // Wait for dropdown to actually close (become hidden)
+    await this.page
+      .locator(`${SELECT_SELECTORS.DROPDOWN}:not(.ant-select-dropdown-hidden)`)
+      .last()
+      .waitFor({ state: 'hidden', timeout: 5000 })
+      .catch(() => {
+        // Dropdown may already be closed or never opened
+      });
   }
 
   /**

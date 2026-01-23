@@ -36,9 +36,9 @@ import {
   apiDeleteDataset,
   apiGetDataset,
   getDatasetByName,
-  duplicateDataset,
   ENDPOINTS,
 } from '../../../helpers/api/dataset';
+import { createTestDataset } from './dataset-test-helpers';
 import {
   waitForGet,
   waitForPost,
@@ -126,18 +126,13 @@ test('should delete a dataset with confirmation', async ({
   datasetListPage,
   testAssets,
 }) => {
-  // Get example dataset to duplicate
-  const originalDataset = await getDatasetByName(page, 'members_channels_2');
-  expect(originalDataset).not.toBeNull();
-
-  // Create throwaway copy for deletion (hermetic - uses duplicate API)
-  const datasetName = `test_delete_${Date.now()}`;
-  const duplicateDatasetResult = await duplicateDataset(
+  // Create throwaway dataset for deletion
+  const { name: datasetName } = await createTestDataset(
     page,
-    originalDataset!.id,
-    datasetName,
+    testAssets,
+    test.info(),
+    { prefix: 'test_delete' },
   );
-  testAssets.trackDataset(duplicateDatasetResult.id);
 
   // Refresh to see the new dataset
   await datasetListPage.goto();
@@ -282,35 +277,30 @@ test('should export multiple datasets via bulk select action', async ({
   datasetListPage,
   testAssets,
 }) => {
-  // Get example dataset to duplicate
-  const originalDataset = await getDatasetByName(page, 'members_channels_2');
-  expect(originalDataset).not.toBeNull();
-
-  // Create 2 throwaway copies for bulk export (hermetic - uses duplicate API)
-  const dataset1Name = `test_bulk_export_1_${Date.now()}`;
-  const dataset2Name = `test_bulk_export_2_${Date.now()}`;
-
-  const [duplicate1, duplicate2] = await Promise.all([
-    duplicateDataset(page, originalDataset!.id, dataset1Name),
-    duplicateDataset(page, originalDataset!.id, dataset2Name),
+  // Create 2 throwaway datasets for bulk export
+  const [dataset1, dataset2] = await Promise.all([
+    createTestDataset(page, testAssets, test.info(), {
+      prefix: 'bulk_export_1',
+    }),
+    createTestDataset(page, testAssets, test.info(), {
+      prefix: 'bulk_export_2',
+    }),
   ]);
-  testAssets.trackDataset(duplicate1.id);
-  testAssets.trackDataset(duplicate2.id);
 
   // Refresh to see new datasets
   await datasetListPage.goto();
   await datasetListPage.waitForTableLoad();
 
   // Verify both datasets are visible in list
-  await expect(datasetListPage.getDatasetRow(dataset1Name)).toBeVisible();
-  await expect(datasetListPage.getDatasetRow(dataset2Name)).toBeVisible();
+  await expect(datasetListPage.getDatasetRow(dataset1.name)).toBeVisible();
+  await expect(datasetListPage.getDatasetRow(dataset2.name)).toBeVisible();
 
   // Enable bulk select mode
   await datasetListPage.clickBulkSelectButton();
 
   // Select both datasets
-  await datasetListPage.selectDatasetCheckbox(dataset1Name);
-  await datasetListPage.selectDatasetCheckbox(dataset2Name);
+  await datasetListPage.selectDatasetCheckbox(dataset1.name);
+  await datasetListPage.selectDatasetCheckbox(dataset2.name);
 
   // Set up API response intercept for export endpoint
   const exportResponsePromise = waitForGet(page, ENDPOINTS.DATASET_EXPORT);
@@ -328,18 +318,13 @@ test('should edit dataset name via modal', async ({
   datasetListPage,
   testAssets,
 }) => {
-  // Get example dataset to duplicate
-  const originalDataset = await getDatasetByName(page, 'members_channels_2');
-  expect(originalDataset).not.toBeNull();
-
-  // Create throwaway copy for editing (hermetic - uses duplicate API)
-  const datasetName = `test_edit_${Date.now()}`;
-  const duplicateDatasetResult = await duplicateDataset(
+  // Create throwaway dataset for editing
+  const { id: datasetId, name: datasetName } = await createTestDataset(
     page,
-    originalDataset!.id,
-    datasetName,
+    testAssets,
+    test.info(),
+    { prefix: 'test_edit' },
   );
-  testAssets.trackDataset(duplicateDatasetResult.id);
 
   // Refresh to see new dataset
   await datasetListPage.goto();
@@ -365,7 +350,7 @@ test('should edit dataset name via modal', async ({
   // Set up response intercept for save
   const saveResponsePromise = waitForPut(
     page,
-    `${ENDPOINTS.DATASET}${duplicateDatasetResult.id}`,
+    `${ENDPOINTS.DATASET}${datasetId}`,
   );
 
   // Click Save button
@@ -386,10 +371,7 @@ test('should edit dataset name via modal', async ({
   await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
 
   // Verify via API that name was saved
-  const updatedDatasetRes = await apiGetDataset(
-    page,
-    duplicateDatasetResult.id,
-  );
+  const updatedDatasetRes = await apiGetDataset(page, datasetId);
   const updatedDataset = (await updatedDatasetRes.json()).result;
   expect(updatedDataset.table_name).toBe(newName);
 });
@@ -399,35 +381,30 @@ test('should bulk delete multiple datasets', async ({
   datasetListPage,
   testAssets,
 }) => {
-  // Get example dataset to duplicate
-  const originalDataset = await getDatasetByName(page, 'members_channels_2');
-  expect(originalDataset).not.toBeNull();
-
-  // Create 2 throwaway copies for bulk delete (hermetic - uses duplicate API)
-  const dataset1Name = `test_bulk_delete_1_${Date.now()}`;
-  const dataset2Name = `test_bulk_delete_2_${Date.now()}`;
-
-  const [duplicate1, duplicate2] = await Promise.all([
-    duplicateDataset(page, originalDataset!.id, dataset1Name),
-    duplicateDataset(page, originalDataset!.id, dataset2Name),
+  // Create 2 throwaway datasets for bulk delete
+  const [dataset1, dataset2] = await Promise.all([
+    createTestDataset(page, testAssets, test.info(), {
+      prefix: 'bulk_delete_1',
+    }),
+    createTestDataset(page, testAssets, test.info(), {
+      prefix: 'bulk_delete_2',
+    }),
   ]);
-  testAssets.trackDataset(duplicate1.id);
-  testAssets.trackDataset(duplicate2.id);
 
   // Refresh to see new datasets
   await datasetListPage.goto();
   await datasetListPage.waitForTableLoad();
 
   // Verify both datasets are visible in list
-  await expect(datasetListPage.getDatasetRow(dataset1Name)).toBeVisible();
-  await expect(datasetListPage.getDatasetRow(dataset2Name)).toBeVisible();
+  await expect(datasetListPage.getDatasetRow(dataset1.name)).toBeVisible();
+  await expect(datasetListPage.getDatasetRow(dataset2.name)).toBeVisible();
 
   // Enable bulk select mode
   await datasetListPage.clickBulkSelectButton();
 
   // Select both datasets
-  await datasetListPage.selectDatasetCheckbox(dataset1Name);
-  await datasetListPage.selectDatasetCheckbox(dataset2Name);
+  await datasetListPage.selectDatasetCheckbox(dataset1.name);
+  await datasetListPage.selectDatasetCheckbox(dataset2.name);
 
   // Click bulk delete action
   await datasetListPage.clickBulkAction('Delete');
@@ -450,14 +427,14 @@ test('should bulk delete multiple datasets', async ({
   await expect(toast.getSuccess()).toBeVisible();
 
   // Verify both datasets are removed from list
-  await expect(datasetListPage.getDatasetRow(dataset1Name)).not.toBeVisible();
-  await expect(datasetListPage.getDatasetRow(dataset2Name)).not.toBeVisible();
+  await expect(datasetListPage.getDatasetRow(dataset1.name)).not.toBeVisible();
+  await expect(datasetListPage.getDatasetRow(dataset2.name)).not.toBeVisible();
 
   // Verify via API that datasets no longer exist (404)
   // Use polling since deletes may be async
   await expect
     .poll(async () => {
-      const response = await apiGetDataset(page, duplicate1.id, {
+      const response = await apiGetDataset(page, dataset1.id, {
         failOnStatusCode: false,
       });
       return response.status();
@@ -465,7 +442,7 @@ test('should bulk delete multiple datasets', async ({
     .toBe(404);
   await expect
     .poll(async () => {
-      const response = await apiGetDataset(page, duplicate2.id, {
+      const response = await apiGetDataset(page, dataset2.id, {
         failOnStatusCode: false,
       });
       return response.status();
@@ -474,7 +451,9 @@ test('should bulk delete multiple datasets', async ({
 });
 
 // Import test uses a fixed dataset name from the zip fixture.
-// Serialize to prevent race conditions if multiple workers run simultaneously.
+// Uses test.describe only because Playwright's serial mode API requires it -
+// this prevents race conditions when parallel workers import the same fixture.
+// (Deviation from "avoid describe" guideline is necessary for functional reasons)
 test.describe('import dataset', () => {
   test.describe.configure({ mode: 'serial' });
   test('should import a dataset from a zip file', async ({
@@ -585,4 +564,86 @@ test.describe('import dataset', () => {
     expect(importedDataset).not.toBeNull();
     testAssets.trackDataset(importedDataset!.id);
   });
+});
+
+test('should edit column date format via modal', async ({
+  page,
+  datasetListPage,
+  testAssets,
+}) => {
+  // Create dataset from birth_names (has 'ds' column for date format testing)
+  const { id: datasetId, name: datasetName } = await createTestDataset(
+    page,
+    testAssets,
+    test.info(),
+    { baseName: 'birth_names', prefix: 'test_date_format' },
+  );
+
+  // Navigate to dataset list, click edit action
+  await datasetListPage.goto();
+  await datasetListPage.waitForTableLoad();
+  await datasetListPage.clickEditAction(datasetName);
+
+  // Enable edit mode, navigate to Columns tab
+  const editModal = new EditDatasetModal(page);
+  await editModal.waitForReady();
+  await editModal.enableEditMode();
+  await editModal.clickColumnsTab();
+
+  // Expand 'ds' column row and fill date format (scoped to row)
+  const dateFormat = '%Y-%m-%d';
+  await editModal.fillColumnDateFormat('ds', dateFormat);
+
+  // Save and handle confirmation dialog conditionally
+  await editModal.clickSave();
+  await new ConfirmDialog(page).clickOkIfVisible();
+  await editModal.waitForHidden();
+
+  // Verify via API
+  const updatedRes = await apiGetDataset(page, datasetId);
+  const columns = (await updatedRes.json()).result.columns;
+  const dsColumn = columns.find(
+    (c: { column_name: string }) => c.column_name === 'ds',
+  );
+  expect(dsColumn, 'ds column should exist in dataset').toBeDefined();
+  expect(dsColumn.python_date_format).toBe(dateFormat);
+});
+
+test('should edit dataset description via modal', async ({
+  page,
+  datasetListPage,
+  testAssets,
+}) => {
+  // Create throwaway dataset for editing description
+  const { id: datasetId, name: datasetName } = await createTestDataset(
+    page,
+    testAssets,
+    test.info(),
+    { prefix: 'test_description' },
+  );
+
+  // Navigate to dataset list, click edit action
+  await datasetListPage.goto();
+  await datasetListPage.waitForTableLoad();
+  await datasetListPage.clickEditAction(datasetName);
+
+  // Enable edit mode, navigate to Settings tab
+  const editModal = new EditDatasetModal(page);
+  await editModal.waitForReady();
+  await editModal.enableEditMode();
+  await editModal.clickSettingsTab();
+
+  // Fill description field
+  const description = `Test description ${Date.now()}`;
+  await editModal.fillDescription(description);
+
+  // Save and handle confirmation dialog conditionally
+  await editModal.clickSave();
+  await new ConfirmDialog(page).clickOkIfVisible();
+  await editModal.waitForHidden();
+
+  // Verify via API
+  const updatedRes = await apiGetDataset(page, datasetId);
+  const result = (await updatedRes.json()).result;
+  expect(result.description).toBe(description);
 });

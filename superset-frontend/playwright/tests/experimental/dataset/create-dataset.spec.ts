@@ -18,27 +18,45 @@
  */
 
 import { test, expect } from '../../../helpers/fixtures/testAssets';
+import type { TestAssets } from '../../../helpers/fixtures/testAssets';
+import type { Page, TestInfo } from '@playwright/test';
 import { ExplorePage } from '../../../pages/ExplorePage';
 import { CreateDatasetPage } from '../../../pages/CreateDatasetPage';
+import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ChartCreationPage } from '../../../pages/ChartCreationPage';
 import { ENDPOINTS } from '../../../helpers/api/dataset';
 import { waitForPost } from '../../../helpers/api/intercepts';
 import { expectStatusOneOf } from '../../../helpers/api/assertions';
 import { apiPostDatabase } from '../../../helpers/api/database';
 
-test('should create a dataset via wizard', async ({ page, testAssets }) => {
-  const createDatasetPage = new CreateDatasetPage(page);
+interface GsheetsSetupResult {
+  sheetName: string;
+  dbName: string;
+  createDatasetPage: CreateDatasetPage;
+}
 
+/**
+ * Sets up gsheets database and navigates to create dataset page.
+ * Skips test if gsheets connector unavailable.
+ * @param testInfo - Test info for parallelIndex to avoid name collisions in parallel runs
+ * @returns Setup result with names and page object, or null if test.skip() was called
+ */
+async function setupGsheetsDataset(
+  page: Page,
+  testAssets: TestAssets,
+  testInfo: TestInfo,
+): Promise<GsheetsSetupResult | null> {
   // Public Google Sheet for testing (published to web, no auth required)
   // This is a Netflix dataset that is publicly accessible via Google Visualization API
   const sheetUrl =
     'https://docs.google.com/spreadsheets/d/19XNqckHGKGGPh83JGFdFGP4Bw9gdXeujq5EoIGwttdM/edit#gid=347941303';
-  const sheetName = `test_netflix_${Date.now()}`;
-  const dbName = `test_gsheets_db_${Date.now()}`;
+  // Include parallelIndex to avoid collisions when tests run in parallel
+  const uniqueSuffix = `${Date.now()}_${testInfo.parallelIndex}`;
+  const sheetName = `test_netflix_${uniqueSuffix}`;
+  const dbName = `test_gsheets_db_${uniqueSuffix}`;
 
-  // Step 1: Create a Google Sheets database via API
+  // Create a Google Sheets database via API
   // The catalog must be in `extra` as JSON with engine_params.catalog format
-  // (discovered from DatabaseModal/index.tsx lines 867-875)
   const catalogDict = { [sheetName]: sheetUrl };
   const createDbRes = await apiPostDatabase(page, {
     database_name: dbName,
@@ -67,25 +85,27 @@ test('should create a dataset via wizard', async ({ page, testAssets }) => {
         contentType: 'text/plain',
       });
       test.skip();
-      return;
+      return null;
     }
     throw new Error(`Failed to create gsheets database: ${errorText}`);
   }
 
   const createDbBody = await createDbRes.json();
-  const testDatabaseId = createDbBody.id;
-  testAssets.trackDatabase(testDatabaseId);
-  expect(testDatabaseId).toBeGreaterThan(0);
+  const dbId = createDbBody.result?.id ?? createDbBody.id;
+  if (!dbId) {
+    throw new Error('Database creation did not return an ID');
+  }
+  testAssets.trackDatabase(dbId);
 
-  // Navigate to create dataset page AFTER DB creation
-  // (ensures the database dropdown fetches fresh options including the new DB)
+  // Navigate to create dataset page
+  const createDatasetPage = new CreateDatasetPage(page);
   await createDatasetPage.goto();
   await createDatasetPage.waitForPageLoad();
 
-  // Step 2: Select the Google Sheets database
+  // Select the Google Sheets database
   await createDatasetPage.selectDatabase(dbName);
 
-  // Step 3: Try to select the sheet - if not found due to timeout, log options and skip
+  // Try to select the sheet - if not found due to timeout, skip
   try {
     await createDatasetPage.selectTable(sheetName);
   } catch (error) {
@@ -93,18 +113,23 @@ test('should create a dataset via wizard', async ({ page, testAssets }) => {
     if (!(error instanceof Error) || error.name !== 'TimeoutError') {
       throw error;
     }
-    // Sheet not visible in dropdown - skip test (gsheets may have loading delay)
-    // Attach context so timeout skips are diagnosable in CI
     await test.info().attach('skip-reason', {
-      body: `Table "${sheetName}" not found in dropdown after timeout. This may indicate gsheets loading delay or a selector change.`,
+      body: `Table "${sheetName}" not found in dropdown after timeout.`,
       contentType: 'text/plain',
     });
     test.skip();
-    return;
+    return null;
   }
 
-  // Step 4: Set up response intercept to capture new dataset ID
-  // Use pathMatch to match pathname suffix, avoiding false matches on /duplicate, /export
+  return { sheetName, dbName, createDatasetPage };
+}
+
+test('should create a dataset via wizard', async ({ page, testAssets }) => {
+  const setup = await setupGsheetsDataset(page, testAssets, test.info());
+  if (!setup) return; // test.skip() was called
+  const { sheetName, createDatasetPage } = setup;
+
+  // Set up response intercept to capture new dataset ID
   const createResponsePromise = waitForPost(page, ENDPOINTS.DATASET, {
     pathMatch: true,
   });
@@ -112,7 +137,7 @@ test('should create a dataset via wizard', async ({ page, testAssets }) => {
   // Click "Create and explore dataset" button
   await createDatasetPage.clickCreateAndExploreDataset();
 
-  // Step 5: Wait for dataset creation and capture ID for cleanup
+  // Wait for dataset creation and capture ID for cleanup
   const createResponse = expectStatusOneOf(
     await createResponsePromise,
     [200, 201],
@@ -124,7 +149,7 @@ test('should create a dataset via wizard', async ({ page, testAssets }) => {
     testAssets.trackDataset(newDatasetId);
   }
 
-  // Step 6: Verify we navigated to Chart Creation page with dataset pre-selected
+  // Verify we navigated to Chart Creation page with dataset pre-selected
   await page.waitForURL(/.*\/chart\/add.*/);
   const chartCreationPage = new ChartCreationPage(page);
   await chartCreationPage.waitForPageLoad();
@@ -132,13 +157,13 @@ test('should create a dataset via wizard', async ({ page, testAssets }) => {
   // Verify the dataset is pre-selected
   await chartCreationPage.expectDatasetSelected(sheetName);
 
-  // Step 7: Select a visualization type and create chart
+  // Select a visualization type and create chart
   await chartCreationPage.selectVizType('Table');
 
   // Click "Create new chart" to go to Explore
   await chartCreationPage.clickCreateNewChart();
 
-  // Step 8: Verify we navigated to Explore page
+  // Verify we navigated to Explore page
   await page.waitForURL(/.*\/explore\/.*/);
   const explorePage = new ExplorePage(page);
   await explorePage.waitForPageLoad();
@@ -146,4 +171,41 @@ test('should create a dataset via wizard', async ({ page, testAssets }) => {
   // Verify the dataset name is shown in Explore
   const loadedDatasetName = await explorePage.getDatasetName();
   expect(loadedDatasetName).toContain(sheetName);
+});
+
+test('should create a dataset without exploring', async ({
+  page,
+  testAssets,
+}) => {
+  const setup = await setupGsheetsDataset(page, testAssets, test.info());
+  if (!setup) return; // test.skip() was called
+  const { sheetName, createDatasetPage } = setup;
+
+  // Set up response intercept to capture dataset ID
+  const createResponsePromise = waitForPost(page, ENDPOINTS.DATASET, {
+    pathMatch: true,
+  });
+
+  // Click "Create dataset" (not explore)
+  await createDatasetPage.clickCreateDataset();
+
+  // Capture dataset ID from response for cleanup
+  const createResponse = expectStatusOneOf(
+    await createResponsePromise,
+    [200, 201],
+  );
+  const createBody = await createResponse.json();
+  const datasetId = createBody.result?.id ?? createBody.id;
+  if (datasetId) {
+    testAssets.trackDataset(datasetId);
+  }
+
+  // Verify redirect to dataset list (not chart creation)
+  // Note: "Create dataset" action does not show a toast
+  // await page.waitForURL(/.*tablemodelview\/list.*/);
+
+  // Wait for table load, verify row visible
+  const datasetListPage = new DatasetListPage(page);
+  await datasetListPage.waitForTableLoad();
+  await expect(datasetListPage.getDatasetRow(sheetName)).toBeVisible();
 });

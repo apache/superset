@@ -44,11 +44,11 @@ export class ConfirmDialog extends Modal {
 
   /**
    * Clicks the OK button to confirm
-   * Waits for element to be stable (animation complete) before clicking
+   * Waits for element to be visible before clicking
    */
   async clickOk(): Promise<void> {
-    // Wait for modal animation to complete before clicking
-    await this.page.waitForTimeout(200);
+    // Wait for modal to be visible before clicking
+    await this.element.waitFor({ state: 'visible' });
     await this.clickFooterButton('OK');
   }
 
@@ -57,5 +57,22 @@ export class ConfirmDialog extends Modal {
    */
   async clickCancel(): Promise<void> {
     await this.clickFooterButton('Cancel');
+  }
+
+  /**
+   * Clicks OK if dialog appears within timeout, otherwise silently returns.
+   * Use when dialog appearance is conditional (e.g., depends on dataset settings).
+   * @param timeout - How long to wait for dialog (default 2000ms)
+   */
+  async clickOkIfVisible(timeout = 2000): Promise<void> {
+    try {
+      await this.element.waitFor({ state: 'visible', timeout });
+      await this.clickOk();
+      await this.waitForHidden();
+    } catch (error) {
+      if (!(error instanceof Error) || error.name !== 'TimeoutError') {
+        throw error;
+      }
+    }
   }
 }

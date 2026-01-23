@@ -17,16 +17,25 @@
  * under the License.
  */
 
-import type { Response } from '@playwright/test';
+import type { Response, APIResponse } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 /**
+ * Common interface for response types with status() method.
+ * Supports both Response (network interception) and APIResponse (page.request API).
+ */
+type ResponseLike = Response | APIResponse;
+
+/**
  * Verify response has exact status code
- * @param response - Playwright Response object
+ * @param response - Playwright Response or APIResponse object
  * @param expected - Expected status code
  * @returns The response for chaining
  */
-export function expectStatus(response: Response, expected: number): Response {
+export function expectStatus<T extends ResponseLike>(
+  response: T,
+  expected: number,
+): T {
   expect(
     response.status(),
     `Expected status ${expected}, got ${response.status()}`,
@@ -36,14 +45,14 @@ export function expectStatus(response: Response, expected: number): Response {
 
 /**
  * Verify response status code is one of the expected values
- * @param response - Playwright Response object
+ * @param response - Playwright Response or APIResponse object
  * @param expected - Array of acceptable status codes
  * @returns The response for chaining
  */
-export function expectStatusOneOf(
-  response: Response,
+export function expectStatusOneOf<T extends ResponseLike>(
+  response: T,
   expected: number[],
-): Response {
+): T {
   expect(
     expected,
     `Expected status to be one of ${expected.join(', ')}, got ${response.status()}`,
