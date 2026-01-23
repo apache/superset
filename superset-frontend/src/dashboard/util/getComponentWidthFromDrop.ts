@@ -24,16 +24,16 @@ import newComponentFactory from './newComponentFactory';
 
 type DropLocation = {
   id: string;
-  index: number;
+  index?: number; // optional in several runtime paths/tests
   type?: ComponentType;
 };
 
 type DropResult = {
   source: DropLocation;
-  destination: DropLocation;
+  destination?: DropLocation; // can be undefined while hovering
   dragging: {
-    id: string;
-    type: ComponentType;
+    id?: string; // undefined for new components
+    type?: ComponentType; // may be absent in some synthetic events
   };
 };
 
@@ -46,10 +46,19 @@ export default function getComponentWidthFromDrop({
 }): number | undefined {
   const { source, destination, dragging } = dropResult;
 
+  // Basic guards for missing fields
+  if (!source?.id) return undefined;
+
+  // Destination can be undefined during hover; cannot compute capacity then
+  if (!destination?.id) return undefined;
+
+  // Dragging type is required to build a new component
+  if (!dragging?.type && !dragging?.id) return undefined;
+
   const isNewComponent = source.id === NEW_COMPONENTS_SOURCE_ID;
   const component: LayoutItem | undefined = isNewComponent
-    ? newComponentFactory(dragging.type)
-    : components[dragging.id];
+    ? (dragging.type ? newComponentFactory(dragging.type) : undefined)
+    : (dragging.id ? components[dragging.id] : undefined);
 
   if (!component) {
     return undefined;

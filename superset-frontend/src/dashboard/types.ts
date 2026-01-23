@@ -222,7 +222,8 @@ export type LayoutItemMeta = {
 export type LayoutItem = {
   children: string[];
   parents?: string[];
-  type: ComponentType;
+  // Type is optional in some legacy layouts used by tests and during DnD
+  type?: ComponentType;
   id: string;
   meta: LayoutItemMeta;
 };

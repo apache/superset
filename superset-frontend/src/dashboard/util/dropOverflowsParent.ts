@@ -8,15 +8,15 @@ import getComponentWidthFromDrop from './getComponentWidthFromDrop';
 export interface DropResult {
   source: {
     id: string;
-    index: number;
+    index?: number; // optional in hover/legacy paths
   };
-  destination: {
+  destination?: {
     id: string;
-    index: number;
+    index?: number;
   };
   dragging: {
-    id: string;
-    type: ComponentType;
+    id?: string;
+    type?: ComponentType;
   };
 }
 
@@ -26,5 +26,6 @@ export default function doesChildOverflowParent(
 ): boolean {
   const childWidth = getComponentWidthFromDrop({ dropResult, layout });
 
-  return typeof childWidth === 'number' && childWidth < 0;
+  if (typeof childWidth !== 'number') return false;
+  return childWidth < 0;
 }
