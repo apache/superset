@@ -68,6 +68,10 @@ export interface ChartDataResponseResult {
    */
   colnames: string[];
   /**
+   * Labels of each column, for display purpose.
+   */
+  collabels: string[];
+  /**
    * Generic data types, based on the final output pandas dataframe.
    */
   coltypes: GenericDataType[];
