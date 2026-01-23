@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from typing import Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from flask import request, Response
@@ -490,11 +490,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         # Use a random UUID for the execution id
         execution_id = str(uuid4())
         # Use current time as scheduled_dttm
-        scheduled_dttm = datetime.utcnow()
+        scheduled_dttm = datetime.now(timezone.utc)
         try:
             AsyncExecuteReportScheduleCommand(execution_id, pk, scheduled_dttm).run()
             return self.response(200, message="Report execution started")
-        except Exception as ex:
+        except (ReportScheduleNotFoundError, ReportScheduleInvalidError, SupersetException) as ex:
             return self.response(500, message=f"Failed to run report: {ex}")
 
     @expose("/", methods=("DELETE",))
