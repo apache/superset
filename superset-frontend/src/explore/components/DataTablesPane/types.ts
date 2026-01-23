@@ -95,6 +95,7 @@ export interface TableControlsProps extends DrillControlsProps {
 
 export interface QueryResultInterface {
   colnames: string[];
+  collabels: string[];
   coltypes: GenericDataType[];
   rowcount: number;
   data: Record<string, any>[][];
@@ -106,8 +107,6 @@ export interface SingleQueryResultPaneProp
   datasourceId?: string;
   isVisible: boolean;
   canDownload: boolean;
-  // Optional map of column/metric name -> verbose label
-  columnDisplayNames?: Record<string, string>;
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];
   effectiveRowLimit?: number;
