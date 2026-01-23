@@ -23,6 +23,7 @@ import {
   waitFor,
   userEvent,
   cleanup,
+  within,
 } from 'spec/helpers/testing-library';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import { isFeatureEnabled } from '@superset-ui/core';
@@ -178,6 +179,21 @@ describe('DatasourceEditor', () => {
       const newColumn = screen.getAllByRole('textbox')[0];
       expect(newColumn).toHaveValue('<new column>');
     });
+  });
+
+  it('renders Data type label in calculated columns tab', async () => {
+    const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
+    await userEvent.click(calcColsTab);
+
+    const calcColsPanel = within(
+      await screen.findByRole('tabpanel', { name: /calculated columns/i }),
+    );
+
+    const addBtn = calcColsPanel.getByRole('button', { name: /add item/i });
+    await userEvent.click(addBtn);
+
+    const dataTypeLabels = await calcColsPanel.findAllByText('Data type');
+    expect(dataTypeLabels.length).toBeGreaterThanOrEqual(2);
   });
 
   it('renders isSqla fields', async () => {
