@@ -330,7 +330,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 200
         assert "can_read" in data["permissions"]
         assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert "can_run_now" in data["permissions"]
+        assert len(data["permissions"]) == 3
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_report_schedule_not_found(self):
@@ -2052,7 +2053,7 @@ class TestReportSchedulesApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("setup_sample_data")
     @patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.run")
-    def test_run_now_success(self, run_mock, owners):
+    def test_run_now_success(self, run_mock):
         """
         ReportSchedule API: Test running a report
         immediately returns 200 and starts execution.
@@ -2080,7 +2081,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("setup_sample_data")
-    def test_run_now_not_found(self, owners):
+    def test_run_now_not_found(self):
         """
         ReportSchedule API: Test running a non-existent report returns 500 or 404.
         """
