@@ -452,6 +452,15 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        raise NotImplementedError()
+
     def get_limit_value(self) -> int | None:
         """
         Get the limit value of the statement.
@@ -1180,6 +1189,16 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         :return: True if any of the functions are present
         """
         logger.warning("Kusto KQL doesn't support checking for functions present.")
+        return False
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        logger.warning("Kusto KQL doesn't support checking for tables present.")
         return False
 
     def get_limit_value(self) -> int | None:
