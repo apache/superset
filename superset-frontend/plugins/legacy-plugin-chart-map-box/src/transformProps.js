@@ -19,7 +19,7 @@
 import Supercluster from 'supercluster';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapBox';
 
-const NOOP = () => {};
+const NOOP = () => { };
 
 export default function transformProps(chartProps) {
   const { width, height, formData, hooks, queriesData } = chartProps;
@@ -90,7 +90,10 @@ export default function transformProps(chartProps) {
       setControlValue('viewport_latitude', latitude);
       setControlValue('viewport_zoom', zoom);
     },
-    pointRadius: pointRadius === 'Auto' ? DEFAULT_POINT_RADIUS : pointRadius,
+    pointRadius:
+      pointRadius === 'Auto' || typeof pointRadius !== 'number'
+        ? DEFAULT_POINT_RADIUS
+        : pointRadius,
     pointRadiusUnit,
     renderWhileDragging,
     rgb,
