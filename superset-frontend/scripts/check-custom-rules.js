@@ -236,6 +236,10 @@ function processFile(filepath) {
 function main() {
   if (!parser || !traverse) {
     console.warn('\x1b[33m%s\x1b[0m', '⚠ Warning: @babel/parser or @babel/traverse not found. Skipping AST-based checks.');
+    if (process.env.CI) {
+      console.error('\x1b[31m%s\x1b[0m', '✖ Error: Essential dependencies missing in CI environment.');
+      process.exit(1);
+    }
     return;
   }
   const args = process.argv.slice(2);

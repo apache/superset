@@ -426,3 +426,25 @@ test('should NOT set stackGroup when groupby length is 1', () => {
   // When groupby length is 1, stackGroup is undefined, so it uses name + suffix
   expect(series[0].stack).toEqual('sum__num, boy\na');
 });
+
+test('should handle null or empty label_map values correctly', () => {
+  const queriesDataWithEmptyLabel = [
+    {
+      data: [{ 'SF, boy': 1, ds: 599616000000 }],
+      label_map: {
+        ds: ['ds'],
+        'SF, boy': [null as any, 'boy'],
+      },
+    },
+    queriesData[1],
+  ];
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: { ...formData, groupby: ['city', 'gender'] },
+    queriesData: queriesDataWithEmptyLabel,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const series = transformed.echartOptions.series as any[];
+  // Should be 'null' because it coerced String(null)
+  expect(series[0].stack).toEqual('null\na');
+});
