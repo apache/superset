@@ -460,6 +460,16 @@ class SQLExecutor:
                 )
             )
 
+        # Check disallowed tables
+        if disallowed_tables := self._check_disallowed_tables(script):
+            raise SupersetSecurityException(
+                SupersetError(
+                    message=f"Disallowed SQL tables: {', '.join(disallowed_tables)}",
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
         # Check DML permission
         if script.has_mutation() and not self.database.allow_dml:
             raise SupersetSecurityException(
@@ -683,6 +693,34 @@ class SQLExecutor:
                     found.add(func)
 
         return found if found else None
+
+    def _check_disallowed_tables(self, script: SQLScript) -> set[str] | None:
+        """
+        Check for disallowed SQL tables/views.
+
+        :param script: Parsed SQL script
+        :returns: Set of disallowed tables found, or None if none found
+        """
+        disallowed_config = app.config.get("DISALLOWED_SQL_TABLES", {})
+        engine_name = self.database.db_engine_spec.engine
+
+        # Get disallowed tables for this engine
+        engine_disallowed = disallowed_config.get(engine_name, set())
+        if not engine_disallowed:
+            return None
+
+        # Use AST-based table detection
+        if script.check_tables_present(engine_disallowed):
+            # Return the specific tables that were found
+            found = set()
+            for statement in script.statements:
+                present = {table.table.lower() for table in statement.tables}
+                for table in engine_disallowed:
+                    if table.lower() in present:
+                        found.add(table)
+            return found if found else None
+
+        return None
 
     def _apply_rls_to_script(
         self, script: SQLScript, catalog: str | None, schema: str | None
