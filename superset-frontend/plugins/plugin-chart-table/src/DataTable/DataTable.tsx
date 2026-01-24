@@ -573,9 +573,13 @@ export default typedMemo(function DataTable<D extends object>({
                     </Space>
                   )}
                   <GlobalFilter<D>
-                    searchInput={typeof searchInput === 'boolean' ? undefined : searchInput}
+                    searchInput={
+                      typeof searchInput === 'boolean' ? undefined : searchInput
+                    }
                     preGlobalFilteredRows={preGlobalFilteredRows}
-                    setGlobalFilter={manualSearch ? handleSearchChange : setGlobalFilter}
+                    setGlobalFilter={
+                      manualSearch ? handleSearchChange : setGlobalFilter
+                    }
                     filterValue={manualSearch ? initialSearchText : filterValue}
                     id={searchInputId}
                     serverPagination={!!serverPagination}
