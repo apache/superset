@@ -19,6 +19,7 @@
 import { DataMaskType } from '@superset-ui/core';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import {
+  extractLabel,
   getCrossFilterIndicator,
   getStatus,
   IndicatorStatus,
@@ -146,6 +147,53 @@ describe('getCrossFilterIndicator', () => {
       value: null,
     });
   });
+});
+
+test('extractLabel returns label when filter has label and it does not include undefined', () => {
+  expect(extractLabel({ label: 'My Label', value: 'x' })).toBe('My Label');
+  expect(extractLabel({ label: 'Only label' })).toBe('Only label');
+});
+
+test('extractLabel returns value joined by ", " when filter has non-empty array value and no label', () => {
+  expect(extractLabel({ value: ['a', 'b'] })).toBe('a, b');
+  expect(extractLabel({ value: ['single'] })).toBe('single');
+});
+
+test('extractLabel returns value when filter has non-array value (ensureIsArray wraps it)', () => {
+  expect(extractLabel({ value: 'scalar' })).toBe('scalar');
+  expect(extractLabel({ value: 42 })).toBe('42');
+});
+
+test('extractLabel returns null when filter is undefined or has no label and no value', () => {
+  expect(extractLabel(undefined)).toBe(null);
+  expect(extractLabel({})).toBe(null);
+  expect(extractLabel({ label: '' })).toBe(null);
+});
+
+test('extractLabel returns null when filter.value is null or undefined', () => {
+  expect(extractLabel({ value: null })).toBe(null);
+  expect(extractLabel({ value: undefined })).toBe(null);
+});
+
+test('extractLabel does not return ", " or "null, null" for arrays of only null, undefined, or empty string', () => {
+  expect(extractLabel({ value: [null, null] })).toBe(null);
+  expect(extractLabel({ value: [null] })).toBe(null);
+  expect(extractLabel({ value: [''] })).toBe(null);
+  expect(extractLabel({ value: ['', ''] })).toBe(null);
+  expect(extractLabel({ value: [null, ''] })).toBe(null);
+  expect(extractLabel({ value: [undefined, undefined] })).toBe(null);
+  expect(extractLabel({ value: [null, undefined, ''] })).toBe(null);
+  expect(extractLabel({ value: [null, null] })).not.toBe(', ');
+  expect(extractLabel({ value: [null, ''] })).not.toBe(', ');
+});
+
+test('extractLabel returns only non-empty items when array has mix of empty and non-empty', () => {
+  expect(extractLabel({ value: [null, 'a', '', 'b', undefined] })).toBe('a, b');
+  expect(extractLabel({ value: ['', 'x', ''] })).toBe('x');
+});
+
+test('extractLabel uses value when label is undefined', () => {
+  expect(extractLabel({ label: undefined, value: ['a'] })).toBe('a');
 });
 
 test('getStatus returns Applied for filter without column but with value', () => {

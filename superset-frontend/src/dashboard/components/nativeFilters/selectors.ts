@@ -65,7 +65,11 @@ export const extractLabel = (filter?: FilterState): string | null => {
     return filter.label;
   }
   if (filter?.value) {
-    return ensureIsArray(filter?.value).join(', ');
+    const arr = ensureIsArray(filter.value);
+    // To avoid returning an array with a simple comma ", " or similar
+    const nonEmpty = arr.filter(v => v != null && v !== '');
+    if (nonEmpty.length === 0) return null;
+    return nonEmpty.join(', ');
   }
   return null;
 };
@@ -333,8 +337,8 @@ export const selectChartCrossFilters = (
           ? getColumnLabel(filterIndicator.column)
           : undefined,
         type: DataMaskType.CrossFilters,
-        appliedColumns,
         rejectedColumns,
+        appliedColumns,
       });
 
       return { ...filterIndicator, status: filterStatus };
