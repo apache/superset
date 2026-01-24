@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, styled } from '@apache-superset/core/ui';
 import { Form } from '@superset-ui/core/components';
 import { Tag } from 'src/components';

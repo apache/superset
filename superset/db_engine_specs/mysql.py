@@ -39,7 +39,11 @@ from sqlalchemy.dialects.mysql import (
 from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    DatabaseCategory,
+)
 from superset.errors import SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.utils.core import GenericDataType
@@ -75,6 +79,104 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
     supports_dynamic_schema = True
     supports_multivalues_insert = True
+
+    metadata = {
+        "description": "MySQL is a popular open-source relational database.",
+        "logo": "mysql.png",
+        "homepage_url": "https://www.mysql.com/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["mysqlclient"],
+        "connection_string": "mysql://{username}:{password}@{host}/{database}",
+        "default_port": 3306,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "localhost, 127.0.0.1, IP address, or hostname",
+            "database": "Database name",
+        },
+        "host_examples": [
+            {"platform": "Localhost", "host": "localhost or 127.0.0.1"},
+            {"platform": "Docker on Linux", "host": "172.18.0.1"},
+            {"platform": "Docker on macOS", "host": "docker.for.mac.host.internal"},
+            {"platform": "On-premise", "host": "IP address or hostname"},
+        ],
+        "drivers": [
+            {
+                "name": "mysqlclient",
+                "pypi_package": "mysqlclient",
+                "connection_string": (
+                    "mysql://{username}:{password}@{host}/{database}"
+                ),
+                "is_recommended": True,
+                "notes": (
+                    "Recommended driver. May fail with caching_sha2_password auth."
+                ),
+            },
+            {
+                "name": "mysql-connector-python",
+                "pypi_package": "mysql-connector-python",
+                "connection_string": (
+                    "mysql+mysqlconnector://{username}:{password}@{host}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": (
+                    "Required for newer MySQL databases using "
+                    "caching_sha2_password authentication."
+                ),
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "MariaDB",
+                "description": (
+                    "MariaDB is a community-developed fork of MySQL, "
+                    "fully compatible with MySQL."
+                ),
+                "logo": "mariadb.png",
+                "homepage_url": "https://mariadb.org/",
+                "pypi_packages": ["mysqlclient"],
+                "connection_string": (
+                    "mysql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "categories": [DatabaseCategory.OPEN_SOURCE],
+            },
+            {
+                "name": "Amazon Aurora MySQL",
+                "description": (
+                    "Amazon Aurora MySQL is a fully managed, MySQL-compatible "
+                    "relational database with up to 5x the throughput of "
+                    "standard MySQL."
+                ),
+                "logo": "aws-aurora.jpg",
+                "homepage_url": "https://aws.amazon.com/rds/aurora/",
+                "pypi_packages": ["sqlalchemy-aurora-data-api"],
+                "connection_string": (
+                    "mysql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+                    "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+                    "secret_arn={secret_arn}&region_name={region_name}"
+                ),
+                "parameters": {
+                    "aws_access_id": "AWS Access Key ID",
+                    "aws_secret_access_key": "AWS Secret Access Key",
+                    "database_name": "Database name",
+                    "aurora_cluster_arn": "Aurora cluster ARN",
+                    "secret_arn": "Secrets Manager ARN for credentials",
+                    "region_name": "AWS region (e.g., us-east-1)",
+                },
+                "notes": (
+                    "Uses the Data API for serverless access. "
+                    "Standard MySQL connections also work with mysqlclient."
+                ),
+                "categories": [
+                    DatabaseCategory.CLOUD_AWS,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+        ],
+    }
 
     column_type_mappings = (
         (

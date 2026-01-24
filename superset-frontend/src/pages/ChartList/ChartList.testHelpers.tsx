@@ -60,6 +60,14 @@ export const mockCharts = [
     thumbnail_url: '/api/v1/chart/0/thumbnail/',
     certified_by: null,
     certification_details: null,
+
+    // Add form_data with matrixify enabled
+    form_data: {
+      viz_type: 'table',
+      matrixify_enable_vertical_layout: true,
+      matrixify_mode_rows: 'metrics',
+      matrixify_rows: [{ label: 'COUNT(*)', expressionType: 'SIMPLE' }],
+    },
   },
   {
     id: 1,
@@ -102,6 +110,11 @@ export const mockCharts = [
     thumbnail_url: '/api/v1/chart/1/thumbnail/',
     certified_by: 'Data Team',
     certification_details: 'Approved for production use',
+
+    // Add form_data without matrixify
+    form_data: {
+      viz_type: 'bar',
+    },
   },
   {
     id: 2,

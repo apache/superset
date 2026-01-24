@@ -18,7 +18,8 @@
  */
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { isDefined, NativeFilterScope, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { isDefined, NativeFilterScope } from '@superset-ui/core';
 import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 import { Select, Tooltip } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';

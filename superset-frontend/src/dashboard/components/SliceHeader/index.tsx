@@ -24,7 +24,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { getExtensionsRegistry, QueryData, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getExtensionsRegistry, QueryData } from '@superset-ui/core';
 import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
@@ -33,7 +34,7 @@ import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
-import GroupByBadge from 'src/dashboard/components/GroupByBadge';
+import CustomizationsBadge from 'src/dashboard/components/CustomizationsBadge';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -53,6 +54,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  queriedDttm?: string | null;
   exportPivotExcel?: (arg0: string) => void;
 };
 
@@ -141,6 +143,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       annotationQuery = {},
       annotationError = {},
       cachedDttm = null,
+      queriedDttm = null,
       updatedDttm = null,
       isCached = [],
       isExpanded = false,
@@ -294,7 +297,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 </Tooltip>
               )}
               {!uiConfig.hideChartControls && (
-                <GroupByBadge chartId={slice.slice_id} />
+                <CustomizationsBadge chartId={slice.slice_id} />
               )}
 
               {!uiConfig.hideChartControls && (
@@ -322,6 +325,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   isCached={isCached}
                   isExpanded={isExpanded}
                   cachedDttm={cachedDttm}
+                  queriedDttm={queriedDttm}
                   updatedDttm={updatedDttm}
                   toggleExpandSlice={toggleExpandSlice}
                   forceRefresh={forceRefresh}

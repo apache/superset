@@ -19,8 +19,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import { isFeatureEnabled, FeatureFlag, t, VizType } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { isFeatureEnabled, FeatureFlag, VizType } from '@superset-ui/core';
+import { css, styled, useTheme, t } from '@apache-superset/core/ui';
 import {
   Icons,
   ModalTrigger,
@@ -204,8 +204,13 @@ export const useExploreAdditionalActionsMenu = (
   const shareByEmail = useCallback(async () => {
     try {
       const subject = t('Superset Chart');
-      const url = await getChartPermalink(latestQueryFormData);
-      const body = encodeURIComponent(t('%s%s', 'Check out this chart: ', url));
+      const result = await getChartPermalink(latestQueryFormData);
+      if (!result?.url) {
+        throw new Error('Failed to generate permalink');
+      }
+      const body = encodeURIComponent(
+        t('%s%s', 'Check out this chart: ', result.url),
+      );
       window.location.href = `mailto:?Subject=${subject}%20&Body=${body}`;
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
@@ -279,11 +284,12 @@ export const useExploreAdditionalActionsMenu = (
       canDownloadCSV
         ? exportChart({
             formData: latestQueryFormData,
+            ownState,
             resultType: 'post_processed',
             resultFormat: 'csv',
           })
         : null,
-    [canDownloadCSV, latestQueryFormData],
+    [canDownloadCSV, latestQueryFormData, ownState],
   );
 
   const exportJson = useCallback(
@@ -291,11 +297,12 @@ export const useExploreAdditionalActionsMenu = (
       canDownloadCSV
         ? exportChart({
             formData: latestQueryFormData,
+            ownState,
             resultType: 'results',
             resultFormat: 'json',
           })
         : null,
-    [canDownloadCSV, latestQueryFormData],
+    [canDownloadCSV, latestQueryFormData, ownState],
   );
 
   const exportExcel = useCallback(
@@ -303,11 +310,12 @@ export const useExploreAdditionalActionsMenu = (
       canDownloadCSV
         ? exportChart({
             formData: latestQueryFormData,
+            ownState,
             resultType: 'results',
             resultFormat: 'xlsx',
           })
         : null,
-    [canDownloadCSV, latestQueryFormData],
+    [canDownloadCSV, latestQueryFormData, ownState],
   );
 
   const copyLink = useCallback(async () => {
@@ -315,7 +323,13 @@ export const useExploreAdditionalActionsMenu = (
       if (!latestQueryFormData) {
         throw new Error();
       }
-      await copyTextToClipboard(() => getChartPermalink(latestQueryFormData));
+      await copyTextToClipboard(async () => {
+        const result = await getChartPermalink(latestQueryFormData);
+        if (!result?.url) {
+          throw new Error('Failed to generate permalink');
+        }
+        return result.url;
+      });
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));

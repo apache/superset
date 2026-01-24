@@ -18,7 +18,8 @@
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { styled, Alert } from '@apache-superset/core/ui';
 import {
   Tag,

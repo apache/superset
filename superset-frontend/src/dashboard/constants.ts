@@ -48,3 +48,6 @@ export const DEFAULT_CROSS_FILTER_SCOPING: NativeFilterScope = {
   rootPath: [DASHBOARD_ROOT_ID],
   excluded: [],
 };
+
+export const CHART_WIDTH = 4;
+export const CHART_HEIGHT = 50;

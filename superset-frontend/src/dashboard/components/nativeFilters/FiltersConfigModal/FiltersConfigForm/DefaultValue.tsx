@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
+import { t } from '@apache-superset/core';
 import {
   Behavior,
   SetDataMaskHook,
   SuperChart,
   AppSection,
-  t,
 } from '@superset-ui/core';
 import { Loading, type FormInstance } from '@superset-ui/core/components';
 import { NativeFiltersForm } from '../types';
@@ -54,28 +54,26 @@ const DefaultValue: FC<DefaultValueProps> = ({
 }) => {
   const formFilter = form.getFieldValue('filters')?.[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
+  const chartType = formFilter?.filterType;
+  const isTimeFilter = formFilter?.filterType === 'filter_time';
+  const hasQueriesData = queriesData && queriesData.length > 0;
+  const emptyQueriesData = useMemo(() => [{ data: [{}] }], []);
   const loading = hasDataset && queriesData === null;
   const value = formFilter?.defaultDataMask?.filterState?.value;
   const isMissingRequiredValue =
     hasDefaultValue && (value === null || value === undefined);
+
   return loading ? (
     <Loading position="inline-centered" />
   ) : (
     <SuperChart
       height={INPUT_HEIGHT}
-      width={
-        formFilter?.filterType === 'filter_time'
-          ? TIME_FILTER_INPUT_WIDTH
-          : INPUT_WIDTH
-      }
+      width={isTimeFilter ? TIME_FILTER_INPUT_WIDTH : INPUT_WIDTH}
       appSection={AppSection.FilterConfigModal}
       behaviors={[Behavior.NativeFilter]}
       formData={formData}
-      // For charts that don't have datasource we need workaround for empty placeholder
-      queriesData={
-        hasDataset ? formFilter?.defaultValueQueriesData : [{ data: [{}] }]
-      }
-      chartType={formFilter?.filterType}
+      queriesData={hasQueriesData ? queriesData : emptyQueriesData}
+      chartType={chartType}
       hooks={{ setDataMask }}
       enableNoResults={enableNoResults}
       filterState={{

@@ -46,6 +46,10 @@ if (!versionsConfig.components.disabled) {
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/components',
       remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
       docItemComponent: '@theme/DocItem',
       includeCurrentVersion: versionsConfig.components.includeCurrentVersion,
       lastVersion: versionsConfig.components.lastVersion,
@@ -70,6 +74,10 @@ if (!versionsConfig.developer_portal.disabled) {
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/developer_portal',
       remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
       docItemComponent: '@theme/DocItem',
       includeCurrentVersion: versionsConfig.developer_portal.includeCurrentVersion,
       lastVersion: versionsConfig.developer_portal.lastVersion,
@@ -126,7 +134,7 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'extensions/architectural-principles',
+        docId: 'extensions/overview',
         label: 'Extensions',
       },
       {
@@ -214,7 +222,7 @@ const config: Config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/druid.html',
           },
           {
@@ -266,7 +274,7 @@ const config: Config = {
             from: '/docs/contributing/contribution-page',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/docs/databases/yugabyte/',
           },
           {
@@ -343,6 +351,10 @@ const config: Config = {
             return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
           },
           remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+          admonitions: {
+            keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+            extendDefaults: true,
+          },
           includeCurrentVersion: versionsConfig.docs.includeCurrentVersion,
           lastVersion: versionsConfig.docs.lastVersion,  // Make 'next' the default
           onlyIncludeVersions: versionsConfig.docs.onlyIncludeVersions,
@@ -397,6 +409,11 @@ const config: Config = {
               type: 'doc',
               docId: 'intro',
               label: 'Getting Started',
+            },
+            {
+              type: 'doc',
+              docId: 'databases/index',
+              label: 'Databases',
             },
             {
               type: 'doc',

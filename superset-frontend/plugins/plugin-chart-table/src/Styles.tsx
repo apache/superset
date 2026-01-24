@@ -120,12 +120,12 @@ export default styled.div`
     }
 
     td.dt-is-filter:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+      background-color: ${theme.colorFillContentHover};
     }
 
     td.dt-is-active-filter,
     td.dt-is-active-filter:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+      background-color: ${theme.colorFillContentHover};
     }
 
     .dt-global-filter {

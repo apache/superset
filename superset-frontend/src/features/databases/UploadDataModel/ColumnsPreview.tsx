@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Typography } from '@superset-ui/core/components';
 import { type TagType, TagsList } from 'src/components';

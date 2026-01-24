@@ -509,6 +509,7 @@ database_with_ssh_tunnel_config_private_pass_only: dict[str, Any] = {
 dataset_config: dict[str, Any] = {
     "table_name": "imported_dataset",
     "main_dttm_col": None,
+    "currency_code_column": "currency",
     "description": "This is a dataset that was exported",
     "default_endpoint": "",
     "offset": 66,

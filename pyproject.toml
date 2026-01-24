@@ -42,7 +42,7 @@ dependencies = [
     "click>=8.0.3",
     "click-option-group",
     "colorama",
-    "flask-cors>=4.0.2, <7.0",
+    "flask-cors>=6.0.0, <7.0",
     "croniter>=0.3.28",
     "cron-descriptor",
     "cryptography>=42.0.4, <45.0.0",
@@ -160,8 +160,9 @@ hive = [
 impala = ["impyla>0.16.2, <0.17"]
 kusto = ["sqlalchemy-kusto>=3.0.0, <4"]
 kylin = ["kylinpy>=2.8.1, <2.9"]
-motherduck = ["duckdb==0.10.2", "duckdb-engine>=0.12.1, <0.13"]
 mssql = ["pymssql>=2.2.8, <3"]
+# motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
+motherduck = ["apache-superset[duckdb]"]
 mysql = ["mysqlclient>=2.1.0, <3"]
 ocient = [
     "sqlalchemy-ocient>=1.0.0",
@@ -266,6 +267,26 @@ module = "cryptography.*"
 ignore_errors = true
 follow_imports = "skip"
 
+# superset-core is installed as editable locally but CI may not expose types
+# This ensures consistent behavior between local dev and CI
+[[tool.mypy.overrides]]
+module = "superset_core.*"
+follow_imports = "skip"
+
+# Disable warn_unused_ignores for modules with dynamic type assignments
+# These type: ignore comments are needed in CI where superset-core types aren't visible
+[[tool.mypy.overrides]]
+module = [
+    "superset.core.api.core_api_injection",
+    "superset.security.manager",
+    "superset.daos.base",
+    "superset.connectors.sqla.models",
+    "superset.tags.filters",
+    "superset.commands.security.update",
+    "superset.commands.security.create",
+]
+warn_unused_ignores = false
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -334,6 +355,7 @@ select = [
 
 ignore = [
     "S101",
+    "PT004",  # Fixtures that don't return values - underscore prefix conflicts with pytest usage
     "PT006",
     "T201",
     "N999",
@@ -358,6 +380,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "superset/extensions/__init__.py" = ["TID251"]
 "superset/utils/json.py" = ["TID251"]
 "docker/*" = ["I"]  # Docker config files have non-standard imports that vary by environment
+"superset/db_engine_specs/lib.py" = ["E501"]  # Database config file with long description strings
 
 [tool.ruff.lint.isort]
 case-sensitive = false

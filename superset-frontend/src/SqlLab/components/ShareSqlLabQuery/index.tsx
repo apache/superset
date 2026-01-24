@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, getClientErrorObject, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { css } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
@@ -70,18 +71,16 @@ const ShareSqlLabQuery = ({
     const tooltip = t('Copy query link to your clipboard');
     return (
       <Button
-        buttonSize="small"
-        buttonStyle="secondary"
+        color="primary"
+        variant="text"
         tooltip={tooltip}
         css={css`
           span > :first-of-type {
             margin-right: 0;
           }
         `}
-      >
-        <Icons.LinkOutlined iconSize="m" />
-        {t('Copy link')}
-      </Button>
+        icon={<Icons.LinkOutlined iconSize="m" />}
+      />
     );
   };
 
