@@ -659,12 +659,19 @@ const FilterControls: FC<FilterControlsProps> = ({
       overflowedFiltersInScope.map(({ id }) => id),
     );
 
-    return filtersWithValues.map(
-      filter =>
-        filtersOutOfScopeIds.has(filter.id) ||
-        overflowedFiltersInScopeIds.has(filter.id),
-    );
-  }, [filtersOutOfScope, filtersWithValues, overflowedFiltersInScope]);
+    return filtersWithValues.map(filter => {
+      // Out-of-scope filters in vertical mode are in a Collapse panel, not overflowed
+      if (filtersOutOfScopeIds.has(filter.id)) {
+        return filterBarOrientation === FilterBarOrientation.Horizontal;
+      }
+      return overflowedFiltersInScopeIds.has(filter.id);
+    });
+  }, [
+    filtersOutOfScope,
+    filtersWithValues,
+    overflowedFiltersInScope,
+    filterBarOrientation,
+  ]);
 
   useEffect(() => {
     if (outlinedFilterId && overflowedIds.includes(outlinedFilterId)) {

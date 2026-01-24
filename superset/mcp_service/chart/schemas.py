@@ -36,6 +36,7 @@ from pydantic import (
     PositiveInt,
 )
 
+from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
@@ -211,13 +212,13 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
 
-    # Generate MCP service screenshot URL instead of chart's native URL
-    from superset.mcp_service.utils.url_utils import get_chart_screenshot_url
+    # Use the chart's native URL (explore URL) instead of screenshot URL
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
 
     chart_id = getattr(chart, "id", None)
-    screenshot_url = None
+    chart_url = None
     if chart_id:
-        screenshot_url = get_chart_screenshot_url(chart_id)
+        chart_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
 
     return ChartInfo(
         id=chart_id,
@@ -225,7 +226,7 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         viz_type=getattr(chart, "viz_type", None),
         datasource_name=getattr(chart, "datasource_name", None),
         datasource_type=getattr(chart, "datasource_type", None),
-        url=screenshot_url,
+        url=chart_url,
         description=getattr(chart, "description", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
         form_data=getattr(chart, "form_data", None),
@@ -608,6 +609,14 @@ class TableChartConfig(BaseModel):
     chart_type: Literal["table"] = Field(
         ..., description="Chart type (REQUIRED: must be 'table')"
     )
+    viz_type: Literal["table", "ag-grid-table"] = Field(
+        "table",
+        description=(
+            "Visualization type: 'table' for standard table, 'ag-grid-table' for "
+            "AG Grid Interactive Table with advanced features like column resizing, "
+            "sorting, filtering, and server-side pagination"
+        ),
+    )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
@@ -669,6 +678,19 @@ class XYChartConfig(BaseModel):
     )
     kind: Literal["line", "bar", "area", "scatter"] = Field(
         "line", description="Chart visualization type"
+    )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description=(
+            "Time granularity for the x-axis when it's a temporal column. "
+            "Common values: PT1S (second), PT1M (minute), PT1H (hour), "
+            "P1D (day), P1W (week), P1M (month), P3M (quarter), P1Y (year). "
+            "If not specified, Superset will use its default behavior."
+        ),
+    )
+    stacked: bool = Field(
+        False,
+        description="Stack bars/areas on top of each other instead of side-by-side",
     )
     group_by: ColumnRef | None = Field(None, description="Column to group by")
     x_axis: AxisConfig | None = Field(None, description="X-axis configuration")

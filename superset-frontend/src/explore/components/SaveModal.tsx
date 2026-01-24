@@ -320,7 +320,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
       // Go to new dashboard url
       if (gotodash && dashboard) {
-        let url = dashboard.url;
+        let { url } = dashboard;
         if (this.state.selectedTab?.value) {
           url += `#${this.state.selectedTab.value}`;
         }

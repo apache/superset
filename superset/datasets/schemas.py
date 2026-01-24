@@ -322,6 +322,8 @@ class ImportV1DatasetSchema(Schema):
     schema = fields.String(allow_none=True)
     catalog = fields.String(allow_none=True)
     sql = fields.String(allow_none=True)
+    # Source database engine for SQL transpilation (virtual datasets only)
+    source_db_engine = fields.String(allow_none=True, load_default=None)
     params = fields.Dict(allow_none=True)
     template_params = fields.Dict(allow_none=True)
     filter_select_enabled = fields.Boolean()
@@ -338,6 +340,8 @@ class ImportV1DatasetSchema(Schema):
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
+    # data_file is used by the example loading system to reference Parquet files
+    data_file = fields.String(allow_none=True, load_default=None)
 
 
 class GetOrCreateDatasetSchema(Schema):
