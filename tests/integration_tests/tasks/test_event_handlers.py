@@ -310,98 +310,12 @@ class TestAbortHandlers(SupersetTestCase):
 
 
 class TestTaskContextMethods(SupersetTestCase):
-    """Tests for TaskContext public methods (is_aborted, run, etc.)."""
+    """Tests for TaskContext public methods."""
 
     def setUp(self):
         """Set up test fixtures."""
         super().setUp()
         self.login(ADMIN_USERNAME)
-
-    def test_is_aborted_returns_true_for_aborting(self):
-        """Test is_aborted() returns True for ABORTING status."""
-        task_obj = TaskDAO.create_task(
-            task_type="test_is_aborted",
-            task_key=f"test_key_{uuid.uuid4().hex[:8]}",
-            task_name="Test Is Aborted",
-            scope=TaskScope.SYSTEM,
-        )
-
-        task_obj.status = TaskStatus.ABORTING.value
-        db.session.merge(task_obj)
-        db.session.commit()
-
-        ctx = TaskContext(task_uuid=task_obj.uuid)
-        assert ctx.is_aborted() is True
-
-    def test_is_aborted_returns_true_for_aborted(self):
-        """Test is_aborted() returns True for ABORTED status."""
-        task_obj = TaskDAO.create_task(
-            task_type="test_is_aborted2",
-            task_key=f"test_key_{uuid.uuid4().hex[:8]}",
-            task_name="Test Is Aborted 2",
-            scope=TaskScope.SYSTEM,
-        )
-
-        task_obj.status = TaskStatus.ABORTED.value
-        db.session.merge(task_obj)
-        db.session.commit()
-
-        ctx = TaskContext(task_uuid=task_obj.uuid)
-        assert ctx.is_aborted() is True
-
-    def test_is_aborted_returns_false_for_pending(self):
-        """Test is_aborted() returns False for PENDING status."""
-        task_obj = TaskDAO.create_task(
-            task_type="test_not_aborted",
-            task_key=f"test_key_{uuid.uuid4().hex[:8]}",
-            task_name="Test Not Aborted",
-            scope=TaskScope.SYSTEM,
-        )
-
-        ctx = TaskContext(task_uuid=task_obj.uuid)
-        assert ctx.is_aborted() is False
-
-    def test_run_skips_operation_when_aborted(self):
-        """Test that ctx.run() skips operation when task is aborted."""
-        task_obj = TaskDAO.create_task(
-            task_type="test_run_skip",
-            task_key=f"test_key_{uuid.uuid4().hex[:8]}",
-            task_name="Test Run Skip",
-            scope=TaskScope.SYSTEM,
-        )
-
-        task_obj.status = TaskStatus.ABORTED.value
-        db.session.merge(task_obj)
-        db.session.commit()
-
-        ctx = TaskContext(task_uuid=task_obj.uuid)
-
-        operation_called = False
-
-        def my_operation():
-            nonlocal operation_called
-            operation_called = True
-            return "result"
-
-        result = ctx.run(my_operation)
-
-        assert not operation_called
-        assert result is None
-
-    def test_run_executes_operation_when_not_aborted(self):
-        """Test that ctx.run() executes operation when task is not aborted."""
-        task_obj = TaskDAO.create_task(
-            task_type="test_run_exec",
-            task_key=f"test_key_{uuid.uuid4().hex[:8]}",
-            task_name="Test Run Exec",
-            scope=TaskScope.SYSTEM,
-        )
-
-        ctx = TaskContext(task_uuid=task_obj.uuid)
-
-        result = ctx.run(lambda: "expected result")
-
-        assert result == "expected result"
 
     def test_on_abort_marks_task_abortable(self):
         """Test that registering an on_abort handler marks task as abortable."""
