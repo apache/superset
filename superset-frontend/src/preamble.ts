@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import { configure, LanguagePack } from '@apache-superset/core/ui';
 import { makeApi, initFeatureFlags, SupersetClient } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
@@ -39,11 +38,6 @@ import 'dayjs/plugin/updateLocale';
 import 'dayjs/plugin/localizedFormat';
 
 configure();
-
-// Set hot reloader config
-if (process.env.WEBPACK_MODE === 'development') {
-  setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
-}
 
 // Grab initial bootstrap data
 const bootstrapData = getBootstrapData();
