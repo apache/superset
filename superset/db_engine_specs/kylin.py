@@ -20,7 +20,7 @@ from typing import Any, Optional
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -28,6 +28,23 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     engine = "kylin"
     engine_name = "Apache Kylin"
+
+    metadata = {
+        "description": "Apache Kylin is an open-source OLAP engine for big data.",
+        "logo": "apache-kylin.png",
+        "homepage_url": "https://kylin.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["kylinpy"],
+        "connection_string": (
+            "kylin://{username}:{password}@{hostname}:{port}/{project}"
+            "?{param1}={value1}&{param2}={value2}"
+        ),
+        "default_port": 7070,
+    }
 
     _time_grain_expressions = {
         None: "{col}",

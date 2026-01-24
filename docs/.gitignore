@@ -26,3 +26,10 @@ docs/intro.md
 
 # Generated badge images (downloaded at build time by remark-localize-badges plugin)
 static/badges/
+
+# Generated database documentation MDX files (regenerated at build time)
+# Source of truth is in superset/db_engine_specs/*.py metadata attributes
+docs/databases/
+
+# Note: src/data/databases.json is COMMITTED (not ignored) to preserve feature diagnostics
+# that require Flask context to generate. Update it locally with: npm run gen-db-docs

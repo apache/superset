@@ -62,6 +62,7 @@ export type QueryPayload = {
 } & Pick<QueryEditor, 'dbId' | 'catalog' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
+  display: contents;
   span[role='img']:not([aria-label='down']) {
     display: flex;
     margin: 0;

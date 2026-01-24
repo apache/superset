@@ -1,0 +1,64 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 56a8f963-1298-42a5-99d8-24fd90ab012d
+description: null
+params:
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  datasource: 12__table
+  js_columns:
+  - color
+  js_data_mutator: "data => data.map(d => ({\n    ...d,\n    color: colors.hexToRGB(d.extraProps.color)\n\
+    }));"
+  js_onclick_href: ''
+  js_tooltip: ''
+  line_column: path_json
+  line_type: json
+  line_width: 150
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  reverse_long_lat: false
+  row_limit: 5000
+  slice_id: 43
+  time_grain_sqla: null
+  time_range: ' : '
+  viewport:
+    altitude: 1.5
+    bearing: 0
+    height: 1094
+    latitude: 37.73671752604488
+    longitude: -122.18885402582598
+    maxLatitude: 85.05113
+    maxPitch: 60
+    maxZoom: 20
+    minLatitude: -85.05113
+    minPitch: 0
+    minZoom: 0
+    pitch: 0
+    width: 669
+    zoom: 9.51847667620428
+  viz_type: deck_path
+query_context: null
+slice_name: Deck.gl Path
+uuid: e871563b-6b80-4629-b606-ab9054da1fbf
+version: 1.0.0
+viz_type: deck_path
