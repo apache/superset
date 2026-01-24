@@ -45,6 +45,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetErrorsException,
@@ -410,6 +411,13 @@ def execute_sql_statements(  # noqa: C901
         disallowed_functions
     ):
         raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+
+    disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+        db_engine_spec.engine,
+        set(),
+    )
+    if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+        raise SupersetDisallowedSQLTableException(disallowed_tables)
 
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()

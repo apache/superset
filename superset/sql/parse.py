@@ -766,6 +766,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
         return any(function.upper() in present for function in functions)
 
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        present = {table.table.lower() for table in self.tables}
+        return any(table.lower() in present for table in tables)
+
     def get_limit_value(self) -> int | None:
         """
         Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
@@ -1311,6 +1321,17 @@ class SQLScript:
         return any(
             statement.check_functions_present(functions)
             for statement in self.statements
+        )
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the script.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        return any(
+            statement.check_tables_present(tables) for statement in self.statements
         )
 
     def is_valid_ctas(self) -> bool:

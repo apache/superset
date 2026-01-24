@@ -2943,6 +2943,39 @@ def test_check_functions_present(sql: str, engine: str, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM my_table", "postgresql", False),
+        ("SELECT * FROM pg_stat_activity", "postgresql", True),
+        ("SELECT * FROM PG_STAT_ACTIVITY", "postgresql", True),
+        ("SELECT * FROM pg_roles", "postgresql", True),
+        (
+            "WITH cte AS (SELECT 1) SELECT * FROM cte",
+            "postgresql",
+            False,
+        ),
+        (
+            "SELECT * FROM my_table; SELECT * FROM pg_settings",
+            "postgresql",
+            True,
+        ),
+        (
+            "SELECT * FROM schema.pg_stat_activity",
+            "postgresql",
+            True,
+        ),
+        ("Table | limit 10", "kustokql", False),
+    ],
+)
+def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
+    """
+    Check the `check_tables_present` method.
+    """
+    tables = {"pg_stat_activity", "pg_roles", "pg_settings"}
+    assert SQLScript(sql, engine).check_tables_present(tables) == expected
+
+
+@pytest.mark.parametrize(
     "kql, expected",
     [
         (
