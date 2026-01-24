@@ -29,7 +29,7 @@ from inspect import (
     signature,
 )
 from logging import Logger
-from typing import Any, Callable, cast, Union
+from typing import Any, Callable, cast, Type, Union
 
 _DEFAULT_ENTER_MSG_PREFIX = "enter to "
 _DEFAULT_ENTER_MSG_SUFFIX = ""
@@ -48,7 +48,7 @@ empty_and_none = {Signature.empty, "None"}
 
 
 Function = Callable[..., Any]
-Decorated = Union[type[Any], Function]
+Decorated = Union[Type[Any], Function]
 
 
 def log(
@@ -85,11 +85,11 @@ def _make_decorator(  # noqa: C901
     def decorator(decorated: Decorated):  # noqa: C901
         decorated_logger = _get_logger(decorated)
 
-        def decorator_class(clazz: type[Any]) -> type[Any]:
+        def decorator_class(clazz: Type[Any]) -> Type[Any]:
             _decorate_class_members_with_logs(clazz)
             return clazz
 
-        def _decorate_class_members_with_logs(clazz: type[Any]) -> None:
+        def _decorate_class_members_with_logs(clazz: Type[Any]) -> None:
             members = getmembers(
                 clazz, predicate=lambda val: ismethod(val) or isfunction(val)
             )
@@ -168,7 +168,7 @@ def _make_decorator(  # noqa: C901
             return _wrapper_func
 
         if isclass(decorated):
-            return decorator_class(cast(type[Any], decorated))
+            return decorator_class(cast(Type[Any], decorated))
         return decorator_func(cast(Function, decorated))
 
     return decorator

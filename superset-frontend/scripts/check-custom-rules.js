@@ -34,7 +34,7 @@ try {
   traverse = require('@babel/traverse').default;
 } catch (e) {
   console.warn('\x1b[33m%s\x1b[0m', '⚠ Warning: @babel/parser or @babel/traverse not found. Skipping custom rules check.');
-  process.exit(0);
+
 }
 
 // ANSI color codes
@@ -266,7 +266,13 @@ function main() {
 
   // If no files specified, check all
   if (files.length === 0) {
-    const fg = require('fast-glob');
+    let fg;
+    try {
+      fg = require('fast-glob');
+    } catch (e) {
+      console.warn('\x1b[33m%s\x1b[0m', '⚠ Warning: fast-glob not found. Skipping file search.');
+      return;
+    }
     files = fg.sync('src/**/*.{ts,tsx,js,jsx}', {
       ignore: [
         '**/*.test.*',

@@ -230,7 +230,7 @@ class TestThumbnails(SupersetTestCase):
         """
         self.login(ALPHA_USERNAME)
         with patch.dict(
-            "flask.current_app.config",
+            app.config,
             {
                 "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
             },
@@ -255,7 +255,7 @@ class TestThumbnails(SupersetTestCase):
         username = "alpha"
         self.login(username)
         with patch.dict(
-            "flask.current_app.config",
+            app.config,
             {
                 "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
             },
