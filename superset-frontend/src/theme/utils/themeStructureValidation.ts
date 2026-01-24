@@ -70,7 +70,23 @@ export function validateTheme(themeConfig: AnyThemeConfig): ValidationResult {
   }
 
   // WARNING: Unknown token names (likely typos)
-  const tokens = themeConfig.token || {};
+  // Guard against non-object token values (e.g., string, array, number)
+  const rawToken = themeConfig.token;
+  const tokens =
+    rawToken && typeof rawToken === 'object' && !Array.isArray(rawToken)
+      ? rawToken
+      : {};
+
+  if (rawToken && tokens !== rawToken) {
+    errors.push({
+      tokenName: '_root',
+      severity: 'error',
+      message:
+        'Token configuration must be an object, not an array or primitive',
+    });
+    return { valid: false, errors, warnings };
+  }
+
   Object.entries(tokens).forEach(([name, value]) => {
     // Null/undefined check
     if (value === null || value === undefined) {

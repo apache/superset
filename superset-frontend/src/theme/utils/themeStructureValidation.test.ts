@@ -157,3 +157,28 @@ test('validateTheme combines errors and warnings correctly', () => {
   expect(result.errors).toHaveLength(0);
   expect(result.warnings.length).toBeGreaterThan(0);
 });
+
+test('validateTheme errors when token is an array instead of object', () => {
+  const theme = {
+    token: ['colorPrimary', '#1890ff'],
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].tokenName).toBe('_root');
+  expect(result.errors[0].message).toContain('must be an object');
+});
+
+test('validateTheme errors when token is a string instead of object', () => {
+  const theme = {
+    token: 'colorPrimary',
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].message).toContain('must be an object');
+});

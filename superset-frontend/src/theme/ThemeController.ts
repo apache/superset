@@ -809,12 +809,17 @@ export class ThemeController {
   }
 
   private async applyThemeWithRecovery(theme: AnyThemeConfig): Promise<void> {
-    try {
-      const normalizedConfig = normalizeThemeConfig(theme);
-      this.globalTheme.setConfig(normalizedConfig);
-    } catch (error) {
-      await this.fallbackToDefaultMode();
-    }
+    // Note: This method re-throws errors to the caller instead of calling
+    // fallbackToDefaultMode directly, to avoid infinite recursion since
+    // fallbackToDefaultMode calls this method. The caller's try/catch
+    // handles the fallback flow.
+    const normalizedConfig = normalizeThemeConfig(theme);
+    this.globalTheme.setConfig(normalizedConfig);
+
+    // Load custom fonts if specified, mirroring applyTheme() behavior
+    const fontUrls = (normalizedConfig?.token as Record<string, unknown>)
+      ?.fontUrls as string[] | undefined;
+    this.loadFonts(fontUrls);
   }
 
   /**
@@ -949,6 +954,11 @@ export class ThemeController {
   /**
    * Fetches a fresh system default theme from the API for runtime recovery.
    * Tries multiple fallback strategies to find a valid theme.
+   *
+   * Note: Uses raw fetch() instead of SupersetClient because ThemeController
+   * initializes early in the app lifecycle, before SupersetClient is fully
+   * configured. This avoids boot-time circular dependencies.
+   *
    * @returns The system default theme configuration or null if not found
    */
   private async fetchSystemDefaultTheme(): Promise<AnyThemeConfig | null> {
