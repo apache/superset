@@ -67,6 +67,7 @@ PENDING ──→ IN_PROGRESS ────→ SUCCESS
    │             ↓                ↑
    │         ABORTING ────────────┘
    │             │
+   │             ↓
    └─────────→ ABORTED
 ```
 
@@ -101,7 +102,7 @@ def my_task(items: list[int]) -> None:
 ```
 
 :::tip
-Call `update_task()` once per iteration for best performance—each call writes to the database.
+Call `update_task()` once per iteration for best performance: each call writes to the database.
 :::
 
 #### Progress Formats
@@ -115,12 +116,12 @@ The `progress` parameter accepts three formats:
 | `int` | `progress=42` | 42 processed |
 
 :::tip
-Use the tuple format `(current, total)` whenever possible. It provides the richest information to users—showing both the count and percentage—while still computing ETA automatically.
+Use the tuple format `(current, total)` whenever possible. It provides the richest information to users: showing both the count and percentage, while still computing ETA automatically.
 :::
 
 #### Payload
 
-The `payload` parameter stores custom metadata that can help users understand what the task is doing. Each call to `update_task()` replaces the previous payload completely—values are not merged.
+The `payload` parameter stores custom metadata that can help users understand what the task is doing. Each call to `update_task()` replaces the previous payload completely.
 
 In the Task List UI, when a payload is defined, an info icon appears in the **Details** column. Users can hover over it to see the JSON content.
 
@@ -158,7 +159,7 @@ When users click **Cancel** in the Task List, the system decides whether to **ab
 - It's a shared task and the user is the last subscriber
 - An admin checks **Force abort** to stop the task for all subscribers
 
-Pending tasks can always be aborted—they simply won't start. In-progress tasks require an abort handler to be abortable:
+Pending tasks can always be aborted: they simply won't start. In-progress tasks require an abort handler to be abortable:
 
 ```python
 @task
@@ -186,9 +187,9 @@ def abortable_task(items: list[str]) -> None:
 - Registering `on_abort` marks the task as abortable and starts the abort listener
 - The abort handler fires automatically when abort is triggered
 - Use a flag pattern to gracefully stop processing at safe points
-- Without an abort handler, in-progress tasks cannot be aborted—the Cancel button in the Task List UI will be disabled
+- Without an abort handler, in-progress tasks cannot be aborted: the Cancel button in the Task List UI will be disabled
 
-The framework automatically skips execution if a task was aborted while pending—no manual check needed at task start.
+The framework automatically skips execution if a task was aborted while pending: no manual check needed at task start.
 
 :::tip
 Always implement an abort handler for long-running tasks. This allows users to cancel unneeded tasks and free up worker capacity for other operations.
@@ -295,7 +296,7 @@ Provide a descriptive `task_name` for better readability in the Task List UI. Wh
 
 ## Error Handling
 
-Let exceptions propagate—the framework captures them automatically and sets task status to `FAILURE`:
+Let exceptions propagate: the framework captures them automatically and sets task status to `FAILURE`:
 
 ```python
 @task
@@ -314,5 +315,5 @@ In the Task List UI, failed tasks show error details when hovering over the stat
 Cleanup handlers still run after an exception, so resources can be properly released as necessary.
 
 :::tip
-Use descriptive exception messages. In production environments where stack traces are hidden (`SHOW_STACKTRACE=False`), users see only the error message and exception type when hovering over failed tasks. Clear messages help users troubleshoot issues without administrator assistance.
+Use descriptive exception messages. In environments where stack traces are hidden (`SHOW_STACKTRACE=False`), users see only the error message and exception type when hovering over failed tasks. Clear messages help users troubleshoot issues without administrator assistance.
 :::
