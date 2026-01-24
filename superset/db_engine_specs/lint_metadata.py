@@ -39,7 +39,7 @@ Example output:
 
     PostgreSQL (postgres.py)
       ✓ description, category, pypi_packages, connection_string
-      ⚠ Missing recommended: logo, homepage_url
+      ? Missing recommended: logo, homepage_url
 
     MySQL (mysql.py)
       ✓ All required and recommended fields present
@@ -363,6 +363,9 @@ def _eval_ast_value(node: Any) -> Any:  # noqa: C901
     elif isinstance(node, ast.JoinedStr):
         # f-strings - just return placeholder
         return "<f-string>"
+    elif isinstance(node, ast.JoinedStr):
+        # f-strings - just return placeholder
+        return "<f-string>"
     elif isinstance(node, ast.Tuple):
         return tuple(_eval_ast_value(e) for e in node.elts)
     return None
@@ -411,13 +414,13 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None: 
     no_metadata = [r for r in reports if not r.has_metadata]
 
     if complete:
-        print(f"\n✅ COMPLETE ({len(complete)} specs - all required & recommended):")
+        print(f"\n[COMPLETE] ({len(complete)} specs - all required & recommended):")
         print("-" * 50)
         for r in complete:
             print(f"  {r.engine_name:30} {r.completeness_score:5.1f}%")
 
     if needs_work:
-        print(f"\n⚠️  NEEDS WORK ({len(needs_work)} specs):")
+        print(f"\n[NEEDS WORK] ({len(needs_work)} specs):")
         print("-" * 50)
         for r in sorted(needs_work, key=lambda x: -x.completeness_score):
             status = []
@@ -431,10 +434,10 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None: 
                 )
             print(f"  {r.engine_name:30} {r.completeness_score:5.1f}%")
             for s in status:
-                print(f"      └─ {s}")
+                print(f"      L {s}")
 
     if no_metadata:
-        print(f"\n❌ NO METADATA ({len(no_metadata)} specs):")
+        print(f"\n[NO METADATA] ({len(no_metadata)} specs):")
         print("-" * 50)
         for r in no_metadata:
             print(f"  {r.engine_name} ({r.module}.py)")
@@ -442,7 +445,7 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None: 
     # Show invalid PyPI packages
     invalid_pypi = [r for r in reports if r.invalid_packages]
     if invalid_pypi:
-        print(f"\n📦 INVALID PyPI PACKAGES ({len(invalid_pypi)} specs):")
+        print(f"\n[INVALID PyPI PACKAGES] ({len(invalid_pypi)} specs):")
         print("-" * 50)
         for r in invalid_pypi:
             packages = r.invalid_packages or []
@@ -465,14 +468,14 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None: 
     for field, _desc in REQUIRED_FIELDS.items():
         count = field_counts[field]
         pct = count * 100 // total
-        bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
+        bar = "#" * (pct // 5) + "-" * (20 - pct // 5)
         print(f"  {field:25} {bar} {count:3}/{total} ({pct}%)")
 
     print("\nRecommended fields:")
     for field, _desc in RECOMMENDED_FIELDS.items():
         count = field_counts[field]
         pct = count * 100 // total
-        bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
+        bar = "#" * (pct // 5) + "-" * (20 - pct // 5)
         print(f"  {field:25} {bar} {count:3}/{total} ({pct}%)")
 
     if verbose:
@@ -480,7 +483,7 @@ def print_report(reports: list[MetadataReport], verbose: bool = False) -> None: 
         for field, _desc in OPTIONAL_FIELDS.items():
             count = field_counts[field]
             pct = count * 100 // total
-            bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
+            bar = "#" * (pct // 5) + "-" * (20 - pct // 5)
             print(f"  {field:25} {bar} {count:3}/{total} ({pct}%)")
 
 
@@ -553,8 +556,8 @@ def generate_markdown_report(reports: list[MetadataReport]) -> str:
     # Sort by score ascending (worst first)
     needs_work = [r for r in reports if r.missing_required or r.missing_recommended]
     for r in sorted(needs_work, key=lambda x: x.completeness_score):
-        missing_req = ", ".join(sorted(r.missing_required)) or "✓"
-        missing_rec = ", ".join(sorted(r.missing_recommended)) or "✓"
+        missing_req = ", ".join(sorted(r.missing_required)) or "v"
+        missing_rec = ", ".join(sorted(r.missing_recommended)) or "v"
         score = f"{r.completeness_score:.0f}%"
         row = f"| {r.engine_name} | {r.module}.py | {score} | {missing_req} | {missing_rec} |"  # noqa: E501
         lines.append(row)
@@ -688,13 +691,13 @@ def main() -> int:
 
         if missing_count > 0:
             print(
-                f"\n❌ STRICT MODE: {missing_count} specs missing required fields",
+                f"\n[STRICT MODE failure] {missing_count} specs missing required fields",
                 file=sys.stderr,
             )
             return 1
 
         if args.check_pypi and invalid_pypi_count > 0:
-            msg = f"\n❌ STRICT MODE: {invalid_pypi_count} specs have invalid packages"
+            msg = f"\n[STRICT MODE failure] {invalid_pypi_count} specs have invalid packages"
             print(msg, file=sys.stderr)
             return 1
 

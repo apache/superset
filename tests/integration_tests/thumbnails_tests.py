@@ -229,17 +229,14 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get async dashboard screenshot as selenium user
         """
         self.login(ALPHA_USERNAME)
-        with (
-            patch.dict(
-                "flask.current_app.config",
-                {
-                    "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
-                },
-            ),
-            patch(
-                "superset.thumbnails.digest._adjust_string_for_executor"
-            ) as mock_adjust_string,
-        ):
+        with patch.dict(
+            "flask.current_app.config",
+            {
+                "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
+            },
+        ), patch(
+            "superset.thumbnails.digest._adjust_string_for_executor"
+        ) as mock_adjust_string:
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             assert self.digest_hash in thumbnail_url
@@ -257,17 +254,14 @@ class TestThumbnails(SupersetTestCase):
         """
         username = "alpha"
         self.login(username)
-        with (
-            patch.dict(
-                "flask.current_app.config",
-                {
-                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
-                },
-            ),
-            patch(
-                "superset.thumbnails.digest._adjust_string_for_executor"
-            ) as mock_adjust_string,
-        ):
+        with patch.dict(
+            "flask.current_app.config",
+            {
+                "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
+            },
+        ), patch(
+            "superset.thumbnails.digest._adjust_string_for_executor"
+        ) as mock_adjust_string:
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             assert self.digest_hash in thumbnail_url
@@ -307,17 +301,14 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get async chart screenshot as selenium user
         """
         self.login(ADMIN_USERNAME)
-        with (
-            patch.dict(
-                "flask.current_app.config",
-                {
-                    "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
-                },
-            ),
-            patch(
-                "superset.thumbnails.digest._adjust_string_for_executor"
-            ) as mock_adjust_string,
-        ):
+        with patch.dict(
+            "flask.current_app.config",
+            {
+                "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
+            },
+        ), patch(
+            "superset.thumbnails.digest._adjust_string_for_executor"
+        ) as mock_adjust_string:
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             assert self.digest_hash in thumbnail_url
@@ -335,17 +326,14 @@ class TestThumbnails(SupersetTestCase):
         """
         username = "alpha"
         self.login(username)
-        with (
-            patch.dict(
-                "flask.current_app.config",
-                {
-                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
-                },
-            ),
-            patch(
-                "superset.thumbnails.digest._adjust_string_for_executor"
-            ) as mock_adjust_string,
-        ):
+        with patch.dict(
+            "flask.current_app.config",
+            {
+                "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
+            },
+        ), patch(
+            "superset.thumbnails.digest._adjust_string_for_executor"
+        ) as mock_adjust_string:
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             assert self.digest_hash in thumbnail_url
@@ -371,7 +359,7 @@ class TestThumbnails(SupersetTestCase):
     @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_chart_wrong_digest(self):
         """
-        Thumbnails: Simple get chart with wrong digest
+        Thumbnails: Simple get chart with <SAME> digest
         """
         with patch.object(
             ChartScreenshot,
@@ -422,7 +410,7 @@ class TestThumbnails(SupersetTestCase):
     @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_dashboard_wrong_digest(self):
         """
-        Thumbnails: Simple get dashboard with wrong digest
+        Thumbnails: Simple get dashboard with <SAME> digest
         """
         with patch.object(
             DashboardScreenshot,

@@ -1220,20 +1220,15 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.return_value = True
         mock_g.user = security_manager.find_user("admin")
 
-        with (
-            patch.object(
-                database, "get_default_catalog", return_value="default_catalog"
-            ),
-            patch.object(
-                database, "get_all_table_names_in_schema", return_value=[]
-            ) as mock_get_all_table_names,
-            patch.object(
-                database, "get_all_view_names_in_schema", return_value=[]
-            ) as mock_get_all_view_names,
-            patch.object(
-                database, "get_all_materialized_view_names_in_schema", return_value=[]
-            ) as mock_get_all_materialized_view_names,
-        ):
+        with patch.object(
+            database, "get_default_catalog", return_value="default_catalog"
+        ), patch.object(
+            database, "get_all_table_names_in_schema", return_value=[]
+        ) as mock_get_all_table_names, patch.object(
+            database, "get_all_view_names_in_schema", return_value=[]
+        ) as mock_get_all_view_names, patch.object(
+            database, "get_all_materialized_view_names_in_schema", return_value=[]
+        ) as mock_get_all_materialized_view_names:
             command = TablesDatabaseCommand(database.id, None, "schema_name", False)
             command.run()
 

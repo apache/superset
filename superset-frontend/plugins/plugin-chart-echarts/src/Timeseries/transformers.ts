@@ -129,9 +129,9 @@ export const getBaselineSeriesForStream = (
       EchartsTimeseriesSeriesType.End,
     ].includes(seriesType)
       ? (seriesType as
-        | EchartsTimeseriesSeriesType.Start
-        | EchartsTimeseriesSeriesType.Middle
-        | EchartsTimeseriesSeriesType.End)
+          | EchartsTimeseriesSeriesType.Start
+          | EchartsTimeseriesSeriesType.Middle
+          | EchartsTimeseriesSeriesType.End)
       : undefined,
     smooth: seriesType === EchartsTimeseriesSeriesType.Smooth,
   };
@@ -153,11 +153,11 @@ export function transformNegativeLabelsPosition(
 
     return axisValue < 0
       ? {
-        value,
-        label: {
-          position: 'outside',
-        },
-      }
+          value,
+          label: {
+            position: 'outside',
+          },
+        }
       : value;
   };
 
@@ -260,7 +260,9 @@ export function transformSeries(
     // When stackGroup is provided, use it as the stack ID base for grouped+stacked charts
     stackId = stackGroup || getTimeCompareStackId('obs', timeCompare, name);
   } else if (stack && isTrend) {
-    stackId = stackGroup || getTimeCompareStackId(forecastSeries.type, timeCompare, name);
+    stackId =
+      stackGroup ||
+      getTimeCompareStackId(forecastSeries.type, timeCompare, name);
   }
   if (stackId && stackIdSuffix) {
     stackId += stackIdSuffix;
@@ -355,8 +357,8 @@ export function transformSeries(
     areaStyle:
       area || forecastSeries.type === ForecastSeriesEnum.ForecastUpper
         ? {
-          opacity: opacity * areaOpacity,
-        }
+            opacity: opacity * areaOpacity,
+          }
         : undefined,
     emphasis,
     showSymbol,
@@ -457,39 +459,39 @@ export function transformIntervalAnnotation(
       | MarkArea1DDataItemOption
       | MarkArea2DDataItemOption
     )[] = [
-        [
-          {
-            name: label,
-            ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
-          },
-          isHorizontal ? { yAxis: intervalEnd } : { xAxis: intervalEnd },
-        ],
-      ];
+      [
+        {
+          name: label,
+          ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
+        },
+        isHorizontal ? { yAxis: intervalEnd } : { xAxis: intervalEnd },
+      ],
+    ];
     const intervalLabel: SeriesLabelOption = showLabel
       ? {
-        show: true,
-        color: theme.colorTextLabel,
-        position: 'insideTop',
-        verticalAlign: 'top',
-        fontWeight: 'bold',
-        // @ts-ignore
-        emphasis: {
+          show: true,
+          color: theme.colorTextLabel,
           position: 'insideTop',
           verticalAlign: 'top',
-          backgroundColor: theme.colorPrimaryBgHover,
-        },
-      }
-      : {
-        show: false,
-        color: theme.colorTextLabel,
-        // @ts-ignore
-        emphasis: {
           fontWeight: 'bold',
-          position: 'insideTop',
-          verticalAlign: 'top',
-          backgroundColor: theme.colorPrimaryBgHover,
-        },
-      };
+          // @ts-ignore
+          emphasis: {
+            position: 'insideTop',
+            verticalAlign: 'top',
+            backgroundColor: theme.colorPrimaryBgHover,
+          },
+        }
+      : {
+          show: false,
+          color: theme.colorTextLabel,
+          // @ts-ignore
+          emphasis: {
+            fontWeight: 'bold',
+            position: 'insideTop',
+            verticalAlign: 'top',
+            backgroundColor: theme.colorPrimaryBgHover,
+          },
+        };
     series.push({
       id: `Interval - ${label}`,
       type: 'line',
@@ -547,27 +549,27 @@ export function transformEventAnnotation(
 
     const eventLabel: SeriesLineLabelOption = showLabel
       ? {
-        show: true,
-        color: theme.colorTextLabel,
-        position: 'insideEndTop',
-        fontWeight: 'bold',
-        formatter: (params: CallbackDataParams) => params.name,
-        // @ts-ignore
-        emphasis: {
-          backgroundColor: theme.colorPrimaryBgHover,
-        },
-      }
-      : {
-        show: false,
-        color: theme.colorTextLabel,
-        position: 'insideEndTop',
-        // @ts-ignore
-        emphasis: {
-          formatter: (params: CallbackDataParams) => params.name,
+          show: true,
+          color: theme.colorTextLabel,
+          position: 'insideEndTop',
           fontWeight: 'bold',
-          backgroundColor: theme.colorPrimaryBgHover,
-        },
-      };
+          formatter: (params: CallbackDataParams) => params.name,
+          // @ts-ignore
+          emphasis: {
+            backgroundColor: theme.colorPrimaryBgHover,
+          },
+        }
+      : {
+          show: false,
+          color: theme.colorTextLabel,
+          position: 'insideEndTop',
+          // @ts-ignore
+          emphasis: {
+            formatter: (params: CallbackDataParams) => params.name,
+            fontWeight: 'bold',
+            backgroundColor: theme.colorPrimaryBgHover,
+          },
+        };
 
     series.push({
       id: `Event - ${label}`,
@@ -665,7 +667,7 @@ export function getPadding(
       left:
         yAxisTitlePosition === 'Left'
           ? TIMESERIES_CONSTANTS.gridOffsetLeft +
-          (Number(yAxisTitleMargin) || 0)
+            (Number(yAxisTitleMargin) || 0)
           : TIMESERIES_CONSTANTS.gridOffsetLeft,
       right:
         showLegend && legendOrientation === LegendOrientation.Right

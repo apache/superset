@@ -54,22 +54,20 @@ def test_run_uses_get_session_id():
     )
     command = CreateFormDataCommand(cmd_params)
 
-    with (
-        patch("superset.commands.explore.form_data.create.check_access"),
-        patch("superset.commands.explore.form_data.create.cache_key") as mock_cache_key,
-        patch(
-            "superset.commands.explore.form_data.create.cache_manager"
-        ) as mock_cache_manager,
-        patch(
-            "superset.commands.explore.form_data.create.random_key"
-        ) as mock_random_key,
-        patch(
-            "superset.commands.explore.form_data.create.get_user_id"
-        ) as mock_get_user_id,
-        patch.object(
-            command, "_get_session_id", return_value="test-session-id"
-        ) as mock_get_session_id,
-    ):
+    with patch("superset.commands.explore.form_data.create.check_access"), \
+         patch("superset.commands.explore.form_data.create.cache_key") as mock_cache_key, \
+         patch(
+             "superset.commands.explore.form_data.create.cache_manager"
+         ) as mock_cache_manager, \
+         patch(
+             "superset.commands.explore.form_data.create.random_key"
+         ) as mock_random_key, \
+         patch(
+             "superset.commands.explore.form_data.create.get_user_id"
+         ) as mock_get_user_id, \
+         patch.object(
+             command, "_get_session_id", return_value="test-session-id"
+         ) as mock_get_session_id:
         mock_cache_manager.explore_form_data_cache.get.return_value = None
         mock_random_key.return_value = "random-key"
         mock_get_user_id.return_value = 1

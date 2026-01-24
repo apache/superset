@@ -473,14 +473,11 @@ def test_screenshot_width_calculation(
     )
 
     # Mock security manager and screenshot
-    with (
-        patch(
-            "superset.commands.report.execute.security_manager"
-        ) as mock_security_manager,
-        patch(
-            "superset.utils.screenshots.ChartScreenshot.get_screenshot"
-        ) as mock_get_screenshot,
-    ):
+    with patch(
+        "superset.commands.report.execute.security_manager"
+    ) as mock_security_manager, patch(
+        "superset.utils.screenshots.ChartScreenshot.get_screenshot"
+    ) as mock_get_screenshot:
         # Mock user
         mock_user = mocker.MagicMock()
         mock_security_manager.find_user.return_value = mock_user

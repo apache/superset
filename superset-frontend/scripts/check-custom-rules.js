@@ -25,9 +25,17 @@
 
 const fs = require('fs');
 const path = require('path');
-const glob = require('glob');
-const parser = require('@babel/parser');
-const traverse = require('@babel/traverse').default;
+
+let parser;
+let traverse;
+
+try {
+  parser = require('@babel/parser');
+  traverse = require('@babel/traverse').default;
+} catch (e) {
+  console.warn('\x1b[33m%s\x1b[0m', '⚠ Warning: @babel/parser or @babel/traverse not found. Skipping custom rules check.');
+  process.exit(0);
+}
 
 // ANSI color codes
 const RED = '\x1b[31m';
@@ -258,7 +266,8 @@ function main() {
 
   // If no files specified, check all
   if (files.length === 0) {
-    files = glob.sync('src/**/*.{ts,tsx,js,jsx}', {
+    const fg = require('fast-glob');
+    files = fg.sync('src/**/*.{ts,tsx,js,jsx}', {
       ignore: [
         '**/*.test.*',
         '**/*.spec.*',

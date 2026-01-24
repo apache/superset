@@ -82,7 +82,7 @@ repos:
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
       - id: eslint-docs
         name: eslint (docs)
-        entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --fix --quiet $FILES'
+        entry: bash -c 'cd docs && for f in "$@"; do FILES+=("${f#docs/}"); done && for ((i=0; i<${#FILES[@]}; i+=50)); do yarn eslint --fix --quiet "${FILES[@]:i:50}"; done'
         language: system
         pass_filenames: true
         files: ^docs/.*\.(js|jsx|ts|tsx)$
@@ -153,7 +153,7 @@ repos:
     hooks:
       - id: feature-flags-sync
         name: feature flags documentation sync
-        entry: bash -c 'python scripts/extract_feature_flags.py > docs/static/feature-flags.json.tmp && if ! diff -q docs/static/feature-flags.json docs/static/feature-flags.json.tmp > /dev/null 2>&1; then mv docs/static/feature-flags.json.tmp docs/static/feature-flags.json && echo "Updated docs/static/feature-flags.json" && exit 1; else rm docs/static/feature-flags.json.tmp; fi'
+        entry: bash -c 'python3 scripts/extract_feature_flags.py > docs/static/feature-flags.json.tmp && if ! diff -q docs/static/feature-flags.json docs/static/feature-flags.json.tmp > /dev/null 2>&1; then mv docs/static/feature-flags.json.tmp docs/static/feature-flags.json && echo "Updated docs/static/feature-flags.json" && exit 1; else rm docs/static/feature-flags.json.tmp; fi'
         language: system
         files: ^superset/config\.py$
         pass_filenames: false

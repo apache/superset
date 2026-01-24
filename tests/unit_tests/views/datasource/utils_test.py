@@ -52,15 +52,12 @@ def test_get_samples_raises_security_exception_when_access_denied(
         )
     )
 
-    with (
-        patch(
-            "superset.views.datasource.utils.DatasourceDAO.get_datasource",
-            return_value=mock_datasource,
-        ),
-        patch(
-            "superset.views.datasource.utils.QueryContextFactory"
-        ) as mock_factory_class,
-    ):
+    with patch(
+        "superset.views.datasource.utils.DatasourceDAO.get_datasource",
+        return_value=mock_datasource,
+    ), patch(
+        "superset.views.datasource.utils.QueryContextFactory"
+    ) as mock_factory_class:
         mock_factory = MagicMock()
         mock_factory_class.return_value = mock_factory
 
@@ -121,15 +118,12 @@ def test_get_samples_calls_raise_for_access_on_both_contexts(
         ]
     }
 
-    with (
-        patch(
-            "superset.views.datasource.utils.DatasourceDAO.get_datasource",
-            return_value=mock_datasource,
-        ),
-        patch(
-            "superset.views.datasource.utils.QueryContextFactory"
-        ) as mock_factory_class,
-    ):
+    with patch(
+        "superset.views.datasource.utils.DatasourceDAO.get_datasource",
+        return_value=mock_datasource,
+    ), patch(
+        "superset.views.datasource.utils.QueryContextFactory"
+    ) as mock_factory_class:
         mock_factory = MagicMock()
         mock_factory_class.return_value = mock_factory
 
@@ -183,15 +177,12 @@ def test_get_samples_count_star_access_denied(mock_get_limit_clause: MagicMock):
         )
     )
 
-    with (
-        patch(
-            "superset.views.datasource.utils.DatasourceDAO.get_datasource",
-            return_value=mock_datasource,
-        ),
-        patch(
-            "superset.views.datasource.utils.QueryContextFactory"
-        ) as mock_factory_class,
-    ):
+    with patch(
+        "superset.views.datasource.utils.DatasourceDAO.get_datasource",
+        return_value=mock_datasource,
+    ), patch(
+        "superset.views.datasource.utils.QueryContextFactory"
+    ) as mock_factory_class:
         mock_factory = MagicMock()
         mock_factory_class.return_value = mock_factory
 
