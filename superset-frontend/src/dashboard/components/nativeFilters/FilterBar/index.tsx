@@ -416,11 +416,18 @@ const FilterBar: FC<FiltersBarProps> = ({
   const handleClearAll = useCallback(() => {
     const newClearAllTriggers = { ...clearAllTriggers };
     nativeFilterValues.forEach(filter => {
-      const { id } = filter;
+      const { id, filterType } = filter;
+      // Range filters use [null, null] as the cleared value; others use null
+      const clearedValue = filterType === 'filter_range' ? [null, null] : null;
+      const clearedDataMask = {
+        filterState: { value: clearedValue },
+        extraFormData: {},
+      };
       if (dataMaskSelected[id]) {
+        dispatch(updateDataMask(id, clearedDataMask));
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
-            draft[id].filterState!.value = undefined;
+            draft[id].filterState!.value = clearedValue;
           }
           draft[id].extraFormData = {};
         });
