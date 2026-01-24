@@ -369,3 +369,60 @@ test('should correctly calculate stackGroup for multi-groupby scenarios', () => 
   expect(series[2].stack).toEqual('SF\nb');
   expect(series[3].stack).toEqual('SF\nb');
 });
+
+test('should fallback to entryName splitting when label_map is missing', () => {
+  const formDataWithMultiGroupby: EchartsMixedTimeseriesFormData = {
+    ...formData,
+    groupby: ['city', 'gender'],
+  };
+  const queriesDataWithoutLabelMap = [
+    {
+      data: [{ 'SF, boy': 1, ds: 599616000000 }],
+      // label_map missing for SF, boy
+      label_map: { ds: ['ds'] },
+    },
+    queriesData[1],
+  ];
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: formDataWithMultiGroupby,
+    queriesData: queriesDataWithoutLabelMap,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const series = transformed.echartOptions.series as any[];
+  // Should still be SF because it split 'SF, boy'
+  expect(series[0].stack).toEqual('SF\na');
+});
+
+test('should handle commas in dimension values correctly when using label_map', () => {
+  const queriesDataWithCommas = [
+    {
+      data: [{ 'City, with comma, boy': 1, ds: 599616000000 }],
+      label_map: {
+        ds: ['ds'],
+        'City, with comma, boy': ['City, with comma', 'boy'],
+      },
+    },
+    queriesData[1],
+  ];
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: { ...formData, groupby: ['city', 'gender'] },
+    queriesData: queriesDataWithCommas,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const series = transformed.echartOptions.series as any[];
+  // Should be 'City, with comma' because it used label_map[0]
+  expect(series[0].stack).toEqual('City, with comma\na');
+});
+
+test('should NOT set stackGroup when groupby length is 1', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: { ...formData, groupby: ['gender'] },
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const series = transformed.echartOptions.series as any[];
+  // When groupby length is 1, stackGroup is undefined, so it uses name + suffix
+  expect(series[0].stack).toEqual('sum__num, boy\na');
+});

@@ -116,6 +116,20 @@ const getFormatter = (
   );
 };
 
+const computeFirstGroupValue = (
+  seriesName: string,
+  labelMap: Record<string, string[]>,
+  entryName: string,
+) => {
+  if (labelMap?.[seriesName] && labelMap[seriesName].length > 0) {
+    return String(labelMap[seriesName][0]);
+  }
+  // fallback: try splitting by comma, but be tolerant
+  if (entryName.includes(', ')) return entryName.split(', ')[0];
+  // single token fallback
+  return entryName;
+};
+
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesProps,
 ): EchartsMixedTimeseriesChartTransformedProps {
@@ -301,17 +315,17 @@ export default function transformProps(
     ? getNumberFormatter(',.0%')
     : resolvedCurrency?.symbol
       ? new CurrencyFormatter({
-          d3Format: yAxisFormat,
-          currency: resolvedCurrency,
-        })
+        d3Format: yAxisFormat,
+        currency: resolvedCurrency,
+      })
       : getNumberFormatter(yAxisFormat);
   const formatterSecondary = contributionMode
     ? getNumberFormatter(',.0%')
     : resolvedCurrencySecondary?.symbol
       ? new CurrencyFormatter({
-          d3Format: yAxisFormatSecondary,
-          currency: resolvedCurrencySecondary,
-        })
+        d3Format: yAxisFormatSecondary,
+        currency: resolvedCurrencySecondary,
+      })
       : getNumberFormatter(yAxisFormatSecondary);
   const customFormatters = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
@@ -462,13 +476,11 @@ export default function transformProps(
         // use the first dimension value as stackGroup to group related bars
         stackGroup:
           groupby.length > 1
-            ? String(
-                labelMap?.[seriesName]?.[0] ??
-                  (entryName.includes(', ')
-                    ? entryName.split(', ')[0]
-                    : entryName),
-              )
+            ? computeFirstGroupValue(seriesName, labelMap, entryName)
             : undefined,
+        // In mixed timeseries, we append unique suffixes ('\na', '\nb') to stack IDs
+        // to prevent collisions between series from Query A and Query B when stacking.
+        // The newline prefix is used to avoid visual issues in legend/tooltips if the ID is leaked.
         stackIdSuffix: '\na',
         yAxisIndex,
         filterState,
@@ -478,9 +490,9 @@ export default function transformProps(
         formatter:
           seriesType === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: yAxisMax,
-                formatter: seriesFormatter,
-              })
+              max: yAxisMax,
+              formatter: seriesFormatter,
+            })
             : seriesFormatter,
         totalStackedValues: sortedTotalValuesA,
         showValueIndexes: showValueIndexesA,
@@ -547,13 +559,11 @@ export default function transformProps(
         // use the first dimension value as stackGroup to group related bars
         stackGroup:
           groupbyB.length > 1
-            ? String(
-                labelMapB?.[seriesName]?.[0] ??
-                  (entryName.includes(', ')
-                    ? entryName.split(', ')[0]
-                    : entryName),
-              )
+            ? computeFirstGroupValue(seriesName, labelMapB, entryName)
             : undefined,
+        // In mixed timeseries, we append unique suffixes ('\na', '\nb') to stack IDs
+        // to prevent collisions between series from Query A and Query B when stacking.
+        // The newline prefix is used to avoid visual issues in legend/tooltips if the ID is leaked.
         stackIdSuffix: '\nb',
         yAxisIndex: yAxisIndexB,
         filterState,
@@ -563,9 +573,9 @@ export default function transformProps(
         formatter:
           seriesTypeB === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: maxSecondary,
-                formatter: seriesFormatter,
-              })
+              max: maxSecondary,
+              formatter: seriesFormatter,
+            })
             : seriesFormatter,
         totalStackedValues: sortedTotalValuesB,
         showValueIndexes: showValueIndexesB,
@@ -613,7 +623,7 @@ export default function transformProps(
     convertInteger(xAxisTitleMargin),
   );
 
-  const { setDataMask = () => {}, onContextMenu } = hooks || {};
+  const { setDataMask = () => { }, onContextMenu } = hooks || {};
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
   const echartOptions: EChartsCoreOption = {
@@ -636,14 +646,14 @@ export default function transformProps(
       minInterval:
         xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-            ]
+          timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
           : 0,
       maxInterval:
         xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-            ]
+          timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
           : undefined,
       ...getMinAndMaxFromBounds(
         xAxisType,
@@ -809,13 +819,13 @@ export default function transformProps(
     },
     dataZoom: zoomable
       ? [
-          {
-            type: 'slider',
-            start: TIMESERIES_CONSTANTS.dataZoomStart,
-            end: TIMESERIES_CONSTANTS.dataZoomEnd,
-            bottom: TIMESERIES_CONSTANTS.zoomBottom,
-          },
-        ]
+        {
+          type: 'slider',
+          start: TIMESERIES_CONSTANTS.dataZoomStart,
+          end: TIMESERIES_CONSTANTS.dataZoomEnd,
+          bottom: TIMESERIES_CONSTANTS.zoomBottom,
+        },
+      ]
       : [],
   };
 

@@ -363,9 +363,6 @@ def _eval_ast_value(node: Any) -> Any:  # noqa: C901
     elif isinstance(node, ast.JoinedStr):
         # f-strings - just return placeholder
         return "<f-string>"
-    elif isinstance(node, ast.JoinedStr):
-        # f-strings - just return placeholder
-        return "<f-string>"
     elif isinstance(node, ast.Tuple):
         return tuple(_eval_ast_value(e) for e in node.elts)
     return None

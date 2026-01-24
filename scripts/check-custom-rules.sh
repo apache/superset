@@ -43,8 +43,9 @@ done
 # Only run if we have JS/TS files to check
 if [ ${#js_ts_files[@]} -gt 0 ]; then
   # Process in chunks to avoid command line length limits on Windows
-  for ((i=0; i<${#js_ts_files[@]}; i+=100)); do
-    npm run check:custom-rules -- "${js_ts_files[@]:i:100}"
+  CHUNK_SIZE=100
+  for ((i=0; i<${#js_ts_files[@]}; i+=CHUNK_SIZE)); do
+    npm run check:custom-rules -- "${js_ts_files[@]:i:CHUNK_SIZE}"
   done
 else
   echo "No JavaScript/TypeScript files to check for custom rules"
