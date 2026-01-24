@@ -17,13 +17,12 @@
  * under the License.
  */
 import { theme } from 'antd';
-import type { SupersetSpecificTokens } from '@superset-ui/core/theme/types';
 
 /**
  * Superset-specific custom tokens that extend Ant Design's token system.
  * These keys are derived from the SupersetSpecificTokens interface to ensure consistency.
  */
-const SUPERSET_CUSTOM_TOKENS = new Set<keyof SupersetSpecificTokens>([
+const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
   // Font extensions
   'fontSizeXS',
   'fontSizeXXL',
@@ -52,14 +51,14 @@ const SUPERSET_CUSTOM_TOKENS = new Set<keyof SupersetSpecificTokens>([
  * Lazy-loaded cache of valid token names.
  * Combines Ant Design tokens (extracted at runtime) + Superset custom tokens.
  */
-let validTokenNamesCache: Set<string> | null = null;
+let validTokenNamesCache: Set<string> | undefined;
 
 /**
  * Get all valid token names (Ant Design + Superset custom).
  * Uses lazy loading and caching for performance.
  */
 function getValidTokenNames(): Set<string> {
-  if (!validTokenNamesCache) {
+  if (validTokenNamesCache === undefined) {
     // Extract all token names from Ant Design's default theme
     const antdTokens = theme.getDesignToken();
     const antdTokenNames = Object.keys(antdTokens);
@@ -70,7 +69,7 @@ function getValidTokenNames(): Set<string> {
       ...SUPERSET_CUSTOM_TOKENS,
     ]);
   }
-  return validTokenNamesCache;
+  return validTokenNamesCache as Set<string>;
 }
 
 /**
@@ -88,7 +87,7 @@ export function isValidTokenName(tokenName: string): boolean {
  * @returns true if it's a Superset-specific token
  */
 export function isSupersetCustomToken(tokenName: string): boolean {
-  return SUPERSET_CUSTOM_TOKENS.has(tokenName as keyof SupersetSpecificTokens);
+  return SUPERSET_CUSTOM_TOKENS.has(tokenName);
 }
 
 /**
@@ -104,7 +103,7 @@ export function getAllValidTokenNames(): {
   const antdTokens = Array.from(allTokens).filter(
     t => !isSupersetCustomToken(t),
   );
-  const supersetTokens = Array.from(SUPERSET_CUSTOM_TOKENS);
+  const supersetTokens: string[] = Array.from(SUPERSET_CUSTOM_TOKENS);
 
   return {
     antdTokens,

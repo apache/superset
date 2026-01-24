@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { AnyThemeConfig } from '@superset-ui/core/theme/types';
+import type { AnyThemeConfig } from '@apache-superset/core/ui';
 import { isValidTokenName } from './antdTokenNames';
 
 export interface ValidationIssue {
