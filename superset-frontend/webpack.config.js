@@ -205,6 +205,9 @@ if (!isDevMode) {
     new ForkTsCheckerWebpackPlugin({
       async: false,
       typescript: {
+        // CI runs with the base TYPESCRIPT_MEMORY_LIMIT (e.g. 4096 MB) to keep resource usage bounded,
+        // while local development is allowed double (e.g. 8192 MB) to reduce type-check failures and
+        // improve developer experience on machines with more memory.
         memoryLimit: TYPESCRIPT_MEMORY_LIMIT * (process.env.CI ? 1 : 2),
         build: true, // CRITICAL: Generate .d.ts files for plugins
         mode: 'write-references', // Handle project references
@@ -467,7 +470,7 @@ const config = {
         },
       },
       {
-        test: /node_modules\/(geostyler-style|geostyler-qgis-parser).*\.js$/,
+        test: /node_modules\/(geostyler-style|geostyler-qgis-parser)\/.*\.js$/,
         resolve: {
           fullySpecified: false,
         },
