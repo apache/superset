@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { addLabelMapToVerboseMap } from './forecast';
+import addLabelMapToVerboseMap from './addLabelMapToVerboseMap';
 
-test('echarts forecast should add label map to verbose map correctly', () => {
+test('addLabelMapToVerboseMap should add label map to verbose map correctly', () => {
   const result = addLabelMapToVerboseMap(
     {
       testing_count: ['testing_count'],
