@@ -238,3 +238,27 @@ def test_csv_upload_schema_not_allowed():
             "public",
             CSVReader({}),
         ).run()
+
+@pytest.mark.parametrize(
+    "schema",
+    ["", "undefined"],
+)
+def test_upload_with_empty_or_undefined_schema(
+    app_context,
+    db,
+    schema,
+):
+    from superset.commands.database.uploaders.csv import CsvUploadCommand
+
+    payload = {
+        "database_id": db.id,
+        "table_name": "test_upload_schema_default",
+        "schema": schema,
+        "delimiter": ",",
+        "file": "a,b\n1,2\n",
+    }
+
+    command = CsvUploadCommand(payload)
+    result = command.run()
+
+    assert result is not None
