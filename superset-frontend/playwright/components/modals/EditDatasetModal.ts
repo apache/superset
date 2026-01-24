@@ -124,12 +124,17 @@ export class EditDatasetModal extends Modal {
    */
   private get descriptionEditor(): AceEditor {
     // Use tabpanel role with name "Settings" for more reliable lookup
-    const settingsPanel = this.element.getByRole('tabpanel', { name: 'Settings' });
+    const settingsPanel = this.element.getByRole('tabpanel', {
+      name: 'Settings',
+    });
     // Find the form item that contains the Description button
     const descriptionFormItem = settingsPanel
       .locator('.ant-form-item')
       .filter({
-        has: this.page.getByRole('button', { name: 'Description', exact: true }),
+        has: this.page.getByRole('button', {
+          name: 'Description',
+          exact: true,
+        }),
       })
       .first();
     // The ace-editor has class .ace_editor within the form item

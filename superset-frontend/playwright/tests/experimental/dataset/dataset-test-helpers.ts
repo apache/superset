@@ -18,12 +18,8 @@
  */
 
 import type { Page, TestInfo } from '@playwright/test';
-import { expect } from '@playwright/test';
 import type { TestAssets } from '../../../helpers/fixtures/testAssets';
-import {
-  getDatasetByName,
-  duplicateDataset,
-} from '../../../helpers/api/dataset';
+import { createTestVirtualDataset } from '../../../helpers/api/dataset';
 
 interface TestDatasetResult {
   id: number;
@@ -31,25 +27,25 @@ interface TestDatasetResult {
 }
 
 interface CreateTestDatasetOptions {
-  /** Base dataset to duplicate (default: 'members_channels_2') */
-  baseName?: string;
   /** Prefix for generated name (default: 'test') */
   prefix?: string;
 }
 
 /**
- * Creates a test dataset by duplicating an existing one.
- * Handles getDatasetByName + expect + duplicate + track pattern.
+ * Creates a test virtual dataset.
+ * Uses createTestVirtualDataset() to create a simple virtual dataset for testing.
+ *
+ * Note: The dataset duplicate API only works with virtual datasets. This helper
+ * creates virtual datasets directly to avoid that limitation.
  *
  * @example
- * // Basic usage - duplicates members_channels_2
+ * // Basic usage
  * const { id, name } = await createTestDataset(page, testAssets, test.info());
  *
  * @example
- * // Custom base dataset (e.g., for tests needing specific columns)
+ * // Custom prefix
  * const { id, name } = await createTestDataset(page, testAssets, test.info(), {
- *   baseName: 'birth_names',  // has 'ds' column for date format tests
- *   prefix: 'test_date_format',
+ *   prefix: 'test_delete',
  * });
  */
 export async function createTestDataset(
@@ -58,14 +54,13 @@ export async function createTestDataset(
   testInfo: TestInfo,
   options?: CreateTestDatasetOptions,
 ): Promise<TestDatasetResult> {
-  const baseName = options?.baseName ?? 'members_channels_2';
   const prefix = options?.prefix ?? 'test';
-
-  const original = await getDatasetByName(page, baseName);
-  expect(original, `${baseName} dataset must exist`).not.toBeNull();
-
   const name = `${prefix}_${Date.now()}_${testInfo.parallelIndex}`;
-  const { id } = await duplicateDataset(page, original!.id, name);
+
+  const id = await createTestVirtualDataset(page, name);
+  if (!id) {
+    throw new Error(`Failed to create test dataset: ${name}`);
+  }
   testAssets.trackDataset(id);
 
   return { id, name };

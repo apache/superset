@@ -173,16 +173,18 @@ test('should duplicate a dataset with new name', async ({
   datasetListPage,
   testAssets,
 }) => {
-  // Use virtual example dataset (members_channels_2)
-  const originalName = 'members_channels_2';
-  const duplicateName = `duplicate_${originalName}_${Date.now()}`;
+  // Create a virtual dataset first (duplicate UI only works for virtual datasets)
+  const { id: originalId, name: originalName } = await createTestDataset(
+    page,
+    testAssets,
+    test.info(),
+    { prefix: 'test_duplicate_source' },
+  );
+  const duplicateName = `duplicate_${Date.now()}_${test.info().parallelIndex}`;
 
-  // Get the dataset by name (ID varies by environment)
-  const original = await getDatasetByName(page, originalName);
-  expect(original).not.toBeNull();
-  expect(original!.id).toBeGreaterThan(0);
-
-  // Verify original dataset is visible in list
+  // Navigate to list and verify original dataset is visible
+  await datasetListPage.goto();
+  await datasetListPage.waitForTableLoad();
   await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
 
   // Set up response intercept to capture duplicate dataset ID
@@ -233,7 +235,7 @@ test('should duplicate a dataset with new name', async ({
   // API Verification: Fetch both datasets via detail API for consistent comparison
   // (list API may return undefined for fields that detail API returns as null)
   const [originalDetailRes, duplicateDetailRes] = await Promise.all([
-    apiGetDataset(page, original!.id),
+    apiGetDataset(page, originalId),
     apiGetDataset(page, duplicateId),
   ]);
   const originalDetail = (await originalDetailRes.json()).result;
