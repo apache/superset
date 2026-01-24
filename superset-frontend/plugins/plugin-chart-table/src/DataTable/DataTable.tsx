@@ -28,7 +28,8 @@ import {
   useEffect,
   useMemo,
 } from 'react';
-import { typedMemo, usePrevious, t } from '@superset-ui/core';
+import { typedMemo, usePrevious } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   useTable,
   usePagination,
