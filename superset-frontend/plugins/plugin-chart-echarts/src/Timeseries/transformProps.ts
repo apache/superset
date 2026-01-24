@@ -20,6 +20,7 @@
 import { invert } from 'lodash';
 import { t } from '@apache-superset/core/translation';
 import {
+  addLabelMapToVerboseMap,
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
@@ -90,7 +91,6 @@ import {
   getAnnotationData,
 } from '../utils/annotation';
 import {
-  addLabelMapToVerboseMap,
   extractForecastSeriesContext,
   extractForecastSeriesContexts,
   extractForecastValuesFromTooltipParams,

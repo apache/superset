@@ -19,6 +19,7 @@
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
 import {
+  addLabelMapToVerboseMap,
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
@@ -79,7 +80,6 @@ import {
   getAnnotationData,
 } from '../utils/annotation';
 import {
-  addLabelMapToVerboseMap,
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
