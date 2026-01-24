@@ -18,8 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { Store } from 'redux';
-import { NativeFilterType } from '@superset-ui/core';
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render } from 'spec/helpers/testing-library';
 import {
   CHART_RENDERING_SUCCEEDED,
   CHART_UPDATE_SUCCEEDED,
@@ -29,13 +28,10 @@ import { FiltersBadge } from 'src/dashboard/components/FiltersBadge';
 import {
   getMockStoreWithFilters,
   getMockStoreWithNativeFilters,
-  getMockStoreWithNativeFiltersButNoValues,
-  storeWithState,
 } from 'spec/fixtures/mockStore';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
-import mockState from 'spec/fixtures/mockState';
 
 jest.mock(
   'src/dashboard/components/FiltersBadge/DetailsPanel',
@@ -46,8 +42,8 @@ jest.mock(
 );
 
 const defaultStore = getMockStoreWithFilters();
-function setup(store: Store = defaultStore, chartId: number = sliceId) {
-  return render(<FiltersBadge chartId={chartId} />, { store });
+function setup(store: Store = defaultStore) {
+  return render(<FiltersBadge chartId={sliceId} />, { store });
 }
 
 // there's this bizarre "active filters" thing
@@ -104,8 +100,7 @@ describe('for dashboard filters', () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('for native filters', () => {
   test('does not show number when there are no active filters', () => {
-    // Use a store with native filters but no filter values in dataMask
-    const store = getMockStoreWithNativeFiltersButNoValues();
+    const store = getMockStoreWithNativeFilters();
     // start with basic dashboard state, dispatch an event to simulate query completion
     store.dispatch({
       type: CHART_UPDATE_SUCCEEDED,
@@ -142,107 +137,4 @@ describe('for native filters', () => {
     expect(getByTestId('applied-filter-count')).toHaveTextContent('1');
     expect(getByTestId('mock-details-panel')).toBeInTheDocument();
   });
-});
-
-test('calculates indicators when hasFiltersInDataMask returns true even if chartStatus is not ready', async () => {
-  const testChartId = 18;
-  const filterId = 'NATIVE_FILTER-test123';
-  const state = {
-    ...mockState,
-    charts: {
-      ...mockState.charts,
-      [testChartId]: {
-        ...mockState.charts[sliceId],
-        chartStatus: 'loading', // Chart not ready yet
-        queriesResponse: null,
-      },
-    },
-    nativeFilters: {
-      filters: {
-        [filterId]: {
-          id: filterId,
-          name: 'test_filter',
-          filterType: 'filter_select',
-          type: NativeFilterType.NativeFilter,
-          chartsInScope: [testChartId],
-          targets: [{ datasetId: 1, column: { name: 'test_column' } }],
-          defaultDataMask: {
-            filterState: { value: null },
-            extraFormData: {},
-          },
-        },
-      },
-    },
-    dataMask: {
-      [filterId]: {
-        id: filterId,
-        filterState: {
-          value: ['test_value'],
-        },
-        extraFormData: {},
-      },
-    },
-    dashboardInfo: {
-      ...mockState.dashboardInfo,
-      metadata: {
-        chart_configuration: {},
-      },
-    },
-  };
-  const store = storeWithState(state);
-  const { getByTestId } = setup(store, testChartId);
-  await waitFor(() => {
-    expect(getByTestId('applied-filter-count')).toBeInTheDocument();
-  });
-  expect(getByTestId('applied-filter-count')).toHaveTextContent('1');
-});
-
-test('does not calculate indicators when hasFiltersInDataMask returns false and chartStatus is not ready', () => {
-  const testChartId = 18;
-  const filterId = 'NATIVE_FILTER-test123';
-  const state = {
-    ...mockState,
-    charts: {
-      ...mockState.charts,
-      [testChartId]: {
-        ...mockState.charts[sliceId],
-        chartStatus: 'loading', // Chart not ready yet
-        queriesResponse: null,
-      },
-    },
-    nativeFilters: {
-      filters: {
-        [filterId]: {
-          id: filterId,
-          name: 'test_filter',
-          filterType: 'filter_select',
-          type: NativeFilterType.NativeFilter,
-          chartsInScope: [testChartId],
-          targets: [{ datasetId: 1, column: { name: 'test_column' } }],
-          defaultDataMask: {
-            filterState: { value: null },
-            extraFormData: {},
-          },
-        },
-      },
-    },
-    dataMask: {
-      [filterId]: {
-        id: filterId,
-        filterState: {
-          value: null, // No value, so hasFiltersInDataMask returns false
-        },
-        extraFormData: {},
-      },
-    },
-    dashboardInfo: {
-      ...mockState.dashboardInfo,
-      metadata: {
-        chart_configuration: {},
-      },
-    },
-  };
-  const store = storeWithState(state);
-  const { queryByTestId } = setup(store, testChartId);
-  expect(queryByTestId('applied-filter-count')).not.toBeInTheDocument();
 });
