@@ -47,9 +47,11 @@ if [ ${#js_ts_files[@]} -gt 0 ]; then
   # Use quiet mode in pre-commit to reduce noise (only show errors)
   # Process in chunks to avoid command line length limits on Windows
   CHUNK_SIZE=100
+  EXIT_CODE=0
   for ((i=0; i<${#js_ts_files[@]}; i+=CHUNK_SIZE)); do
-    npx oxlint --config oxlint.json --fix --quiet "${js_ts_files[@]:i:CHUNK_SIZE}"
+    npx oxlint --config oxlint.json --fix --quiet "${js_ts_files[@]:i:CHUNK_SIZE}" || EXIT_CODE=$?
   done
+  exit $EXIT_CODE
 else
   echo "No JavaScript/TypeScript files to lint"
 fi

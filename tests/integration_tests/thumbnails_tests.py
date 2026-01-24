@@ -359,7 +359,7 @@ class TestThumbnails(SupersetTestCase):
     @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_chart_wrong_digest(self):
         """
-        Thumbnails: Simple get chart with <SAME> digest
+        Thumbnails: Simple get chart with wrong digest
         """
         with patch.object(
             ChartScreenshot,
@@ -410,7 +410,7 @@ class TestThumbnails(SupersetTestCase):
     @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_dashboard_wrong_digest(self):
         """
-        Thumbnails: Simple get dashboard with <SAME> digest
+        Thumbnails: Simple get dashboard with wrong digest
         """
         with patch.object(
             DashboardScreenshot,

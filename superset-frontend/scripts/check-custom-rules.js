@@ -208,6 +208,9 @@ function checkI18nTemplates(ast, filepath) {
  * Process a single file
  */
 function processFile(filepath) {
+  if (!parser || !traverse) {
+    return;
+  }
   const code = fs.readFileSync(filepath, 'utf8');
 
   try {
