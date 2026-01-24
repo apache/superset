@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { AnyThemeConfig } from '@superset-ui/core/theme/types';
+import type { AnyThemeConfig } from '@apache-superset/core/ui';
 import { validateTheme } from './themeStructureValidation';
 
 test('validateTheme validates a valid theme with standard tokens', () => {
