@@ -322,3 +322,50 @@ test('legend margin: right orientation sets grid.right correctly', () => {
 
   expect((transformed.echartOptions.grid as any).right).toEqual(270);
 });
+
+test('should correctly calculate stackGroup for multi-groupby scenarios', () => {
+  const formDataWithMultiGroupby: EchartsMixedTimeseriesFormData = {
+    ...formData,
+    groupby: ['city', 'gender'],
+    groupbyB: ['city', 'gender'],
+  };
+  const queriesDataWithMultiGroupby = [
+    {
+      data: [
+        { city: 'SF', gender: 'boy', num: 1, ds: 599616000000 },
+        { city: 'SF', gender: 'girl', num: 2, ds: 599616000000 },
+      ],
+      label_map: {
+        ds: ['ds'],
+        'SF, boy': ['SF', 'boy'],
+        'SF, girl': ['SF', 'girl'],
+      },
+    },
+    {
+      data: [
+        { city: 'SF', gender: 'boy', num: 1, ds: 599616000000 },
+        { city: 'SF', gender: 'girl', num: 2, ds: 599616000000 },
+      ],
+      label_map: {
+        ds: ['ds'],
+        'SF, boy': ['SF', 'boy'],
+        'SF, girl': ['SF', 'girl'],
+      },
+    },
+  ];
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: formDataWithMultiGroupby,
+    queriesData: queriesDataWithMultiGroupby,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  const series = transformed.echartOptions.series as any[];
+  // SF should be the stackGroup for both boy and girl in Query A
+  expect(series[0].stack).toEqual('SF\na');
+  expect(series[1].stack).toEqual('SF\na');
+
+  // SF should be the stackGroup for both boy and girl in Query B
+  expect(series[2].stack).toEqual('SF\nb');
+  expect(series[3].stack).toEqual('SF\nb');
+});

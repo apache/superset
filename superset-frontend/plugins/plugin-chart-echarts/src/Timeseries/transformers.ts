@@ -178,7 +178,7 @@ export function transformSeries(
     areaOpacity?: number;
     seriesType?: EchartsTimeseriesSeriesType;
     stack?: StackType;
-    stackGroup?: string; // For grouped+stacked charts: dimension value to group by
+    stackGroup?: string; // For grouped+stacked charts: the grouping dimension value (e.g., 'Sprint 1') used as the base stack ID. Series with the same stackGroup value to stack together, while different stackGroups will appear side-by-side.
     stackIdSuffix?: string;
     yAxisIndex?: number;
     showValue?: boolean;
@@ -485,7 +485,6 @@ export function transformIntervalAnnotation(
         // @ts-ignore
         emphasis: {
           fontWeight: 'bold',
-          show: true,
           position: 'insideTop',
           verticalAlign: 'top',
           backgroundColor: theme.colorPrimaryBgHover,
@@ -566,7 +565,6 @@ export function transformEventAnnotation(
         emphasis: {
           formatter: (params: CallbackDataParams) => params.name,
           fontWeight: 'bold',
-          show: true,
           backgroundColor: theme.colorPrimaryBgHover,
         },
       };

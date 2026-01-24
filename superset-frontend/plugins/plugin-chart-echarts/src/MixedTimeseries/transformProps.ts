@@ -461,7 +461,12 @@ export default function transformProps(
         // For grouped+stacked: when we have multiple groupby dimensions,
         // use the first dimension value as stackGroup to group related bars
         stackGroup: groupby.length > 1
-          ? String(labelMap?.[seriesName]?.[0] || entryName.split(', ')[0])
+          ? String(
+            labelMap?.[seriesName]?.[0] ??
+            (entryName.includes(', ')
+              ? entryName.split(', ')[0]
+              : entryName),
+          )
           : undefined,
         stackIdSuffix: '\na',
         yAxisIndex,
@@ -540,7 +545,12 @@ export default function transformProps(
         // For grouped+stacked: when we have multiple groupby dimensions,
         // use the first dimension value as stackGroup to group related bars
         stackGroup: groupbyB.length > 1
-          ? String(labelMapB?.[seriesName]?.[0] || entryName.split(', ')[0])
+          ? String(
+            labelMapB?.[seriesName]?.[0] ??
+            (entryName.includes(', ')
+              ? entryName.split(', ')[0]
+              : entryName),
+          )
           : undefined,
         stackIdSuffix: '\nb',
         yAxisIndex: yAxisIndexB,
@@ -601,7 +611,7 @@ export default function transformProps(
     convertInteger(xAxisTitleMargin),
   );
 
-  const { setDataMask = () => { }, onContextMenu } = hooks;
+  const { setDataMask = () => { }, onContextMenu } = hooks || {};
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
   const echartOptions: EChartsCoreOption = {
