@@ -239,12 +239,13 @@ def test_csv_upload_schema_not_allowed():
             CSVReader({}),
         ).run()
 
+
 @pytest.mark.parametrize("schema", ["", "undefined"])
 def test_upload_with_empty_or_undefined_schema(
     setup_csv_upload_with_context,
     schema,
 ):
-    upload_db_id, table_name, csv_file, reader = setup_csv_upload_with_context
+    upload_db_id, table_name, csv_file, reader = setup_csv_upload_with_context()
 
     UploadCommand(
         upload_db_id,
@@ -253,4 +254,3 @@ def test_upload_with_empty_or_undefined_schema(
         schema,
         reader,
     ).run()
-
