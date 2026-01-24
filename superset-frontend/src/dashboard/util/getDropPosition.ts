@@ -1,3 +1,22 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import { ComponentType } from '../types';
 import isValidChild from './isValidChild';
 import { TAB_TYPE, TABS_TYPE } from './componentTypes';
@@ -93,7 +112,7 @@ export default function getDropPosition(
     childType: draggingItem.type,
   });
 
-  // 🔥 CRITICAL FIX — restore original JS behavior (undefined, not null)
+  // CRITICAL FIX - preserve original JS behavior (undefined, not null)
   const parentType: ComponentType | undefined =
     parentComponent && parentComponent.type;
 
@@ -179,3 +198,4 @@ export default function getDropPosition(
 
   return null;
 }
+

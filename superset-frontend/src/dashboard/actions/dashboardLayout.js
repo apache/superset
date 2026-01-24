@@ -41,20 +41,18 @@ function setUnsavedChangesAfterAction(action) {
   return (...args) =>
     (dispatch, getState) => {
       const result = action(...args);
-
-      // Let redux-thunk handle functions
-      dispatch(result);
+      if (typeof result === 'function') {
+        dispatch(result(dispatch, getState));
+      } else {
+        dispatch(result);
+      }
 
       const { dashboardLayout, dashboardState } = getState();
 
-      const isPlainObject = typeof result === 'object' && result !== null;
-
       const isComponentLevelEvent =
-        isPlainObject &&
         result.type === UPDATE_COMPONENTS &&
         result.payload &&
         result.payload.nextComponents;
-
       // trigger dashboardFilters state update if dashboard layout is changed.
       if (!isComponentLevelEvent) {
         const components = dashboardLayout.present;
