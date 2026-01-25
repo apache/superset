@@ -402,7 +402,6 @@ stages:
                   echo "Environment variables (non-sensitive):"
                   echo "  SUPERSET_IMAGE: ${FULL_IMAGE_NAME}"
                   echo "  SUPERSET_PORT: ${SUPERSET_PORT}"
-                  echo "  SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER}"
                   echo "  DATABASE_DIALECT: postgresql"
                   echo "  DATABASE_USER: superset"
                   echo "  DATABASE_HOST: db"
@@ -412,6 +411,10 @@ stages:
                   echo "  REDIS_PORT: 6379"
                   echo "  DOCKER_NETWORK: ${DOCKER_NETWORK}"
                   echo "  DOCKER_INITDB_DIR: ${DOCKER_INITDB_DIR}"
+                  echo ""
+                  echo "Superset admin credentials:"
+                  echo "  SUPERSET_ADMIN_USER: ***configured***"
+                  echo "  SUPERSET_ADMIN_PASSWORD: ***configured***"
                   echo ""
                   echo "Content of .env.deploy (with secrets masked):"
                   cat .env.deploy | sed 's/PASSWORD=.*/PASSWORD=***masked***/g' | sed 's/SECRET_KEY=.*/SECRET_KEY=***masked***/g'
