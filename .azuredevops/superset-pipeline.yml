@@ -477,8 +477,8 @@ stages:
                   set +a
                   echo "✓ Sourced .env.deploy"
                   echo ""
-                  echo "Checking shell environment:"
-                  env | grep -E "SUPERSET|DATABASE|POSTGRES|REDIS|DOCKER_NETWORK" | sort
+                  echo "Checking shell environment (secrets masked):"
+                  env | grep -E "SUPERSET|DATABASE|POSTGRES|REDIS|DOCKER_NETWORK" | sort | sed 's/SUPERSET_ADMIN_PASSWORD=.*/SUPERSET_ADMIN_PASSWORD=***masked***/g' | sed 's/SUPERSET_SECRET_KEY=.*/SUPERSET_SECRET_KEY=***masked***/g' | sed 's/DATABASE_PASSWORD=.*/DATABASE_PASSWORD=***masked***/g' | sed 's/POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=***masked***/g'
                   echo ""
 
                   echo "Deploying with docker-compose..."
