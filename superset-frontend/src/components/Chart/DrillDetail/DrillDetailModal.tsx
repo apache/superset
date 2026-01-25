@@ -27,7 +27,7 @@ import {
 } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { Button, Modal, Dropdown } from '@superset-ui/core/components';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
@@ -36,6 +36,7 @@ import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Dataset } from '../types';
 import DrillDetailPane from './DrillDetailPane';
 import { getDrillPayload } from './utils';
@@ -147,6 +148,7 @@ export default function DrillDetailModal({
 }: DrillDetailModalProps) {
   const theme = useTheme();
   const history = useHistory();
+  const dispatch = useDispatch();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
@@ -157,6 +159,10 @@ export default function DrillDetailModal({
   );
   const canDownload = useSelector((state: RootState) =>
     findPermission('can_csv', 'Superset', state.user?.roles),
+  );
+  const samplesRowLimit = useSelector(
+    (state: { common: { conf: { SAMPLES_ROW_LIMIT?: number } } }) =>
+      state.common?.conf?.SAMPLES_ROW_LIMIT ?? 1000,
   );
 
   const exploreUrl = useMemo(
@@ -173,10 +179,22 @@ export default function DrillDetailModal({
       const drillPayload = getDrillPayload(formData, initialFilters);
 
       if (!drillPayload) {
+        dispatch(addDangerToast(t('Unable to generate download payload')));
         return;
       }
 
-      const [datasourceId, datasourceType] = formData.datasource.split('__');
+      if (!formData.datasource || typeof formData.datasource !== 'string') {
+        dispatch(addDangerToast(t('Invalid datasource configuration')));
+        return;
+      }
+
+      const datasourceParts = formData.datasource.split('__');
+      if (datasourceParts.length !== 2) {
+        dispatch(addDangerToast(t('Invalid datasource format')));
+        return;
+      }
+
+      const [datasourceId, datasourceType] = datasourceParts;
 
       // Build a QueryContext for drill detail (raw samples, not aggregated)
       // This matches what DrillDetailPane does when fetching data
@@ -191,7 +209,7 @@ export default function DrillDetailModal({
             columns: [],
             metrics: [],
             orderby: [],
-            row_limit: 10000,
+            row_limit: samplesRowLimit,
             row_offset: 0,
           },
         ],
@@ -204,9 +222,15 @@ export default function DrillDetailModal({
       // This matches the behavior of existing chart exports
       SupersetClient.postForm(ensureAppRoot('/api/v1/chart/data'), {
         form_data: safeStringify(payload),
+      }).catch(error => {
+        dispatch(
+          addDangerToast(
+            t('Failed to generate download: %s', error.message || error),
+          ),
+        );
       });
     },
-    [formData, initialFilters],
+    [formData, initialFilters, dispatch, samplesRowLimit],
   );
 
   const handleDownloadCSV = useCallback(() => {
