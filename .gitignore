@@ -138,3 +138,6 @@ PROJECT.md
 .env.local
 oxc-custom-build/
 .env
+
+# Security: Don't commit plan documentation (may contain sensitive examples)
+docs/plans/
