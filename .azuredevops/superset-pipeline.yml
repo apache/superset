@@ -11,13 +11,8 @@ parameters:
     displayName: Docker Agent Pool
     default: 'Linux-Hosted'
 
-  # IMPORTANT: Set this value in Azure DevOps UI when running the pipeline
-  # Pipeline → Edit → Parameters → Set SUPERSET_SECRET_KEY value
-  # This key must be consistent across deployments to avoid database decryption errors
-  - name: SUPERSET_SECRET_KEY
-    type: string
-    displayName: Superset SECRET_KEY (must be consistent across deployments)
-    # To generate: openssl rand -base64 48 | tr -d '=+/' | cut -c1-64
+  # SECRET_KEY is now sourced from blue-dev secret (client-config JSON)
+  # Removed hardcoded pipeline parameter - using centralized secret management
 
 variables:
   appName: superset
