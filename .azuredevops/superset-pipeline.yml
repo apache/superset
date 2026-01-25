@@ -256,15 +256,15 @@ stages:
                     
                     # Extract Superset (Explorer) and Postgres info
                     $appSuite = $cfg.'app-suite'[0]
-                    
+
                     if (-not $appSuite.explorer) {
                         throw "Config missing 'explorer' section in app-suite[0]"
                     }
-                    
+
                     if (-not $appSuite.postgres) {
                         throw "Config missing 'postgres' section in app-suite[0]"
                     }
-                    
+
                     $explorer = $appSuite.explorer
                     $pg = $appSuite.postgres
 
@@ -286,10 +286,21 @@ stages:
                     Write-Host "##vso[task.setvariable variable=SUPERSET_PORT]$($explorer.port)"
                     Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_USER]$($explorer.'admin-user')"
 
+                    # Extract Superset SECRET_KEY from client config
+                    $supersetSecretKey = $cfg.'superset-secret-key'
+
+                    if ([string]::IsNullOrWhiteSpace($supersetSecretKey)) {
+                        Write-Host "ERROR: superset-secret-key not found in client-config"
+                        Write-Host "ERROR: Add 'superset-secret-key' to the root of your client-config JSON"
+                        exit 1
+                    }
+
+                    Write-Host "✓ SECRET_KEY extracted from client config"
+
                     # Write SECRET_KEY to temp file (secret variables not passed to bash)
                     # IMPORTANT: Use the same SECRET_KEY across deployments to avoid decryption errors
                     $secretKeyFile = Join-Path "$(Agent.TempDirectory)" "superset-secret-key.txt"
-                    Set-Content -Path $secretKeyFile -Value "${{ parameters.SUPERSET_SECRET_KEY }}" -NoNewline
+                    Set-Content -Path $secretKeyFile -Value $supersetSecretKey -NoNewline
                     Write-Host "✓ SECRET_KEY written to temp file"
 
                     # Write admin password to temp file (secret variables not passed to bash)
