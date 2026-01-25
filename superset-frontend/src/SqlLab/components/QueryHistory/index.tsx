@@ -29,6 +29,8 @@ import { SqlLabRootState } from 'src/SqlLab/types';
 import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import PanelToolbar from 'src/components/PanelToolbar';
+import { ViewContribution } from 'src/SqlLab/contributions';
 
 interface QueryHistoryProps {
   queryEditorId: string | number;
@@ -119,6 +121,7 @@ const QueryHistory = ({
 
   return editorQueries.length > 0 ? (
     <>
+      <PanelToolbar viewId={ViewContribution.QueryHistory} />
       <QueryTable
         columns={[
           'state',

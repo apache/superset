@@ -383,6 +383,34 @@ describe('ExploreChartHeader', () => {
 
     expect(setShowModal).toHaveBeenCalledWith(false);
   });
+
+  test('renders Matrixify tag when matrixify is enabled', async () => {
+    const props = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+        matrixify_enable_vertical_layout: true,
+        matrixify_mode_rows: 'metrics',
+        matrixify_rows: [{ label: 'COUNT(*)', expressionType: 'SIMPLE' }],
+      },
+    });
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    const matrixifyTag = await screen.findByText('Matrixify');
+    expect(matrixifyTag).toBeInTheDocument();
+  });
+
+  test('does not render Matrixify tag when matrixify is disabled', async () => {
+    const props = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+      },
+    });
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Matrixify')).not.toBeInTheDocument();
+    });
+  });
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

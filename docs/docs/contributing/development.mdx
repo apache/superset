@@ -350,6 +350,12 @@ superset init
 # Note: you MUST have previously created an admin user with the username `admin` for this command to work.
 superset load-examples
 
+# The load-examples command supports various options:
+# --force / -f          Force reload data even if tables exist
+# --only-metadata / -m  Only create table metadata without loading data (fast setup)
+# --load-test-data / -t Load additional test dashboards and datasets
+# --load-big-data / -b  Generate synthetic data for stress testing (wide tables, many tables)
+
 # Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have CSS at this point.
 # See instructions below on how to build the front-end assets.
@@ -599,7 +605,7 @@ export enum FeatureFlag {
 those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
 in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 
-The current status of the usability of each flag (stable vs testing, etc) can be found in `RESOURCES/FEATURE_FLAGS.md`.
+The current status of the usability of each flag (stable vs testing, etc) can be found in the [Feature Flags](/docs/configuration/feature-flags) documentation.
 
 ## Git Hooks
 
@@ -689,6 +695,97 @@ not have in your possession. In those cases you may have to rely on remote CI or
 job further to target a different environment/sandbox or your own alongside the related
 secrets.
 :::
+
+---
+
+## Example Data and Test Loaders
+
+### Example Datasets
+
+Superset includes example datasets stored as Parquet files, organized by example name in the `superset/examples/` directory. Each example is self-contained:
+
+```
+superset/examples/
+├── _shared/                    # Shared configuration
+│   ├── database.yaml          # Database connection config
+│   └── metadata.yaml          # Import metadata
+├── birth_names/               # Example: US Birth Names
+│   ├── data.parquet          # Dataset (compressed columnar)
+│   ├── dataset.yaml          # Dataset metadata
+│   ├── dashboard.yaml        # Dashboard configuration (optional)
+│   └── charts/               # Chart configurations (optional)
+│       ├── Boys.yaml
+│       ├── Girls.yaml
+│       └── ...
+├── energy_usage/              # Example: Energy Sankey
+│   ├── data.parquet
+│   ├── dataset.yaml
+│   └── charts/
+└── ... (27 example directories)
+```
+
+#### Adding a New Example Dataset
+
+**Simple dataset (data only):**
+
+1. Create a directory: `superset/examples/my_dataset/`
+2. Add your data as `data.parquet`:
+   ```python
+   import pandas as pd
+   df = pd.read_csv("your_data.csv")
+   df.to_parquet("superset/examples/my_dataset/data.parquet", compression="snappy")
+   ```
+3. The dataset will be auto-discovered when running `superset load-examples`
+
+**Complete example with dashboard:**
+
+1. Create your dataset directory with `data.parquet`
+2. Add `dataset.yaml` with metadata (columns, metrics, etc.)
+3. Add `dashboard.yaml` with dashboard layout
+4. Add chart configs in `charts/` directory
+5. See existing examples like `birth_names/` for reference
+
+#### Exporting an Existing Dashboard
+
+To export a dashboard and its charts as YAML configs:
+
+1. In Superset, go to the dashboard you want to export
+2. Click the "..." menu → "Export"
+3. Unzip the exported file
+4. Copy the YAML files to your example directory
+5. Add the `data.parquet` file
+
+#### Why Parquet?
+
+- **Apache-friendly**: Parquet is an Apache project, ideal for ASF codebases
+- **Compressed**: Built-in Snappy compression (~27% smaller than CSV)
+- **Self-describing**: Schema is embedded in the file
+- **Widely supported**: Works with pandas, pyarrow, DuckDB, Spark, etc.
+
+### Test Data Generation
+
+For stress testing and development, Superset includes special test data generators that create synthetic data:
+
+#### Big Data Loader (`--load-big-data`)
+
+Located in `superset/cli/test_loaders.py`, this generates:
+
+- **Wide Table** (`wide_table`): 100 columns of mixed types, 1000 rows
+- **Many Small Tables** (`small_table_0` through `small_table_999`): 1000 tables for testing catalog performance
+- **Long Name Table**: Table with 60-character random name for testing UI edge cases
+
+This is primarily used for:
+- Performance testing with extreme data shapes
+- UI edge case validation
+- Database catalog stress testing
+- CI/CD pipeline validation
+
+#### Test Dashboards (`--load-test-data`)
+
+Loads additional test-specific content:
+- Tabbed dashboard example
+- Supported charts dashboard
+- Test configuration files (*.test.yaml)
 
 ---
 

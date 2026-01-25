@@ -710,9 +710,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     );
   };
 
+  // Compute visible columns before groupHeaderColumns to ensure index consistency.
+  // This filters out columns with config.visible === false.
+  const visibleColumnsMeta = useMemo(
+    () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
+    [filteredColumnsMeta],
+  );
+
+  // Use visibleColumnsMeta for groupHeaderColumns to ensure indices match the actual
+  // table columns. This fixes header misalignment when columns are filtered.
   const groupHeaderColumns = useMemo(
-    () => getHeaderColumns(filteredColumnsMeta, isUsingTimeComparison),
-    [filteredColumnsMeta, getHeaderColumns, isUsingTimeComparison],
+    () => getHeaderColumns(visibleColumnsMeta, isUsingTimeComparison),
+    [visibleColumnsMeta, getHeaderColumns, isUsingTimeComparison],
   );
 
   const renderGroupingHeaders = (): JSX.Element => {
@@ -720,12 +729,20 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const headers: any = [];
     let currentColumnIndex = 0;
 
-    Object.entries(groupHeaderColumns || {}).forEach(([key, value]) => {
+    // Sort entries by their first column index to ensure correct left-to-right order.
+    // Object.entries() maintains insertion order, but when columns are filtered,
+    // the first occurrence of each metric might not match the visual column order.
+    const sortedEntries = Object.entries(groupHeaderColumns || {}).sort(
+      (a, b) => a[1][0] - b[1][0],
+    );
+
+    sortedEntries.forEach(([key, value]) => {
       // Calculate the number of placeholder columns needed before the current header
       const startPosition = value[0];
       const colSpan = value.length;
-      // Retrieve the originalLabel from the first column in this group
-      const firstColumnInGroup = filteredColumnsMeta[startPosition];
+      // Retrieve the originalLabel from the first column in this group.
+      // Use visibleColumnsMeta to ensure consistent indexing with the actual table columns.
+      const firstColumnInGroup = visibleColumnsMeta[startPosition];
       const originalLabel = firstColumnInGroup
         ? columnsMeta.find(col => col.key === firstColumnInGroup.key)
             ?.originalLabel || key
@@ -810,6 +827,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isMetric,
         isPercentMetric,
         config = {},
+        description,
       } = column;
       const label = config.customColumnName || originalLabel;
       let displayLabel = label;
@@ -1094,7 +1112,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
             id={`header-${headerId}`}
-            title={t('Shift + Click to sort by multiple columns')}
+            title={
+              description || t('Shift + Click to sort by multiple columns')
+            }
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
               ...sharedStyle,
@@ -1199,11 +1219,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       handleContextMenu,
       allowRearrangeColumns,
     ],
-  );
-
-  const visibleColumnsMeta = useMemo(
-    () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
-    [filteredColumnsMeta],
   );
 
   const columns = useMemo(

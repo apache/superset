@@ -203,10 +203,12 @@ export function useIsFilterInScope() {
     (filter: FilterElement | Divider) => {
       if (filter.type === NativeFilterType.Divider) return true;
 
-      const isChartInScope =
-        Array.isArray(filter.chartsInScope) &&
-        filter.chartsInScope.length > 0 &&
-        filter.chartsInScope.some((chartId: number) => {
+      const hasChartsInScope =
+        Array.isArray(filter.chartsInScope) && filter.chartsInScope.length > 0;
+
+      let isChartInScope = false;
+      if (hasChartsInScope) {
+        isChartInScope = filter.chartsInScope!.some((chartId: number) => {
           const tabParents = selectChartTabParents(chartId);
           return (
             !tabParents ||
@@ -214,6 +216,7 @@ export function useIsFilterInScope() {
             tabParents.every(tab => activeTabs.includes(tab))
           );
         });
+      }
 
       if (isChartCustomization(filter)) {
         const isCustomizationInActiveTab = filter.tabsInScope?.some(tab =>
@@ -222,11 +225,13 @@ export function useIsFilterInScope() {
         return isChartInScope || isCustomizationInActiveTab;
       }
 
-      const isFilterInActiveTab = filter.scope?.rootPath?.some(tab =>
-        activeTabs.includes(tab),
-      );
+      if (hasChartsInScope) {
+        return isChartInScope;
+      }
 
-      return isChartInScope || isFilterInActiveTab;
+      return (
+        filter.scope?.rootPath?.some(tab => activeTabs.includes(tab)) ?? false
+      );
     },
     [selectChartTabParents, activeTabs],
   );
