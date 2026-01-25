@@ -35,7 +35,19 @@ Init Step ${1}/${STEP_CNT} [${2}] -- ${3}
 ######################################################################
 EOF
 }
-ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
+# Validate required credentials
+if [ -z "${SUPERSET_ADMIN_USER}" ]; then
+    echo "ERROR: SUPERSET_ADMIN_USER environment variable is required"
+    echo "ERROR: This must be set in docker-compose environment variables"
+    exit 1
+fi
+
+if [ -z "${SUPERSET_ADMIN_PASSWORD}" ]; then
+    echo "ERROR: SUPERSET_ADMIN_PASSWORD environment variable is required"
+    echo "ERROR: This must be set in docker-compose environment variables"
+    exit 1
+fi
+# No default - SUPERSET_ADMIN_PASSWORD is required
 # If Cypress run – overwrite the password for admin and export env variables
 if [ "$CYPRESS_CONFIG" == "true" ]; then
     ADMIN_PASSWORD="general"
@@ -49,14 +61,14 @@ superset db upgrade
 echo_step "1" "Complete" "Applying DB migrations"
 
 # Create an admin user
-echo_step "2" "Starting" "Setting up admin user ( admin / $ADMIN_PASSWORD )"
+echo_step "2" "Starting" "Setting up admin user (${SUPERSET_ADMIN_USER} / [hidden])"
 if [ "$CYPRESS_CONFIG" == "true" ]; then
     superset load_test_users
 else
     superset fab create-admin \
-        --username admin \
-        --email admin@superset.com \
-        --password "$ADMIN_PASSWORD" \
+        --username "${SUPERSET_ADMIN_USER}" \
+        --email "${SUPERSET_ADMIN_USER}@superset.com" \
+        --password "${SUPERSET_ADMIN_PASSWORD}" \
         --firstname Superset \
         --lastname Admin
 fi
