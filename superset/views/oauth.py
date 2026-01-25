@@ -16,13 +16,15 @@
 # under the License.
 
 from typing import Optional
+
 import jwt
-from flask import flash, g, redirect, get_flashed_messages, request, session, url_for
+from flask import flash, g, get_flashed_messages, redirect, request, session, url_for
 from flask_appbuilder import expose
+from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.security.decorators import no_cache
 from flask_appbuilder.security.utils import generate_random_string
-from flask_appbuilder.security.views import  AuthOAuthView, WerkzeugResponse
-from flask_appbuilder._compat import as_unicode
+from flask_appbuilder.security.views import AuthOAuthView, WerkzeugResponse
+
 from superset.views.base import BaseSupersetView
 
 
@@ -33,15 +35,14 @@ class SupersetOAuthView(BaseSupersetView, AuthOAuthView):
     @expose("/<provider>")
     @no_cache
     def login(self, provider: Optional[str] = None) -> WerkzeugResponse:
-    
-        get_flashed_messages(category_filter=['danger'])
+        get_flashed_messages(category_filter=["danger"])
 
         if provider is None:
             providers = [k for k in self.appbuilder.sm.oauth_remotes.keys()]
             if len(providers) == 1:
                 provider = providers[0]
         if g.user is not None and g.user.is_authenticated:
-                return redirect(self.appbuilder.get_url_for_index)
+            return redirect(self.appbuilder.get_url_for_index)
 
         if provider is None:
             return self.render_template(
@@ -73,6 +74,6 @@ class SupersetOAuthView(BaseSupersetView, AuthOAuthView):
                     ),
                     state=state.decode("ascii") if isinstance(state, bytes) else state,
                 )
-        except Exception as e:
+        except Exception:
             flash(as_unicode(self.invalid_login_message), "warning")
             return redirect(self.appbuilder.get_url_for_index)
