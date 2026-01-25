@@ -66,6 +66,9 @@ services:
       REDIS_PORT: "6379"
       # Webserver port - must match container port mapping
       SUPERSET_PORT: "5760"
+      # Superset admin credentials (from blue-dev secret)
+      SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER:?SUPERSET_ADMIN_USER is required}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:?SUPERSET_ADMIN_PASSWORD is required}
     depends_on:
       redis:
         condition: service_healthy
