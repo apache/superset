@@ -1217,7 +1217,7 @@ msgstr ""
 "dans les paramètres de fragment SQL du jeu de données virtuel."
 
 msgid "Aggregate"
-msgstr "Agrégger"
+msgstr "Agréger"
 
 msgid "Aggregate Mean"
 msgstr "Moyenne agrégée"
@@ -11781,9 +11781,8 @@ msgstr "Afficher la description de graphique"
 msgid "Show column headers"
 msgstr "L'étiquette de l'en-tête de la colonne"
 
-#, fuzzy
 msgid "Show columns subtotal"
-msgstr "Pas de colonne"
+msgstr "Afficher le sous-total des colonnes"
 
 #, fuzzy
 msgid "Show columns total"
@@ -11856,9 +11855,8 @@ msgstr "Voir les détails de la requête"
 msgid "Show row labels"
 msgstr "Afficher les étiquettes"
 
-#, fuzzy
 msgid "Show rows subtotal"
-msgstr "Pas de colonne"
+msgstr "Afficher le sous-total des rangées"
 
 msgid "Show rows total"
 msgstr "Afficher le total des rangées"
