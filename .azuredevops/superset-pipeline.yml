@@ -333,7 +333,7 @@ stages:
                   echo ""
                   echo "Pipeline variables (Azure DevOps syntax):"
                   echo "  FULL_IMAGE_NAME: '$(FULL_IMAGE_NAME)'"
-                  echo "  SUPERSET_SECRET_KEY: '$(SUPERSET_SECRET_KEY)'"
+                  echo "  SUPERSET_SECRET_KEY: '***masked***'"
                   echo "  SUPERSET_ADMIN_USER: '$(SUPERSET_ADMIN_USER)'"
                   echo "  SUPERSET_PORT: '$(SUPERSET_PORT)'"
                   echo "  DOCKER_NETWORK: '$(DOCKER_NETWORK)'"
@@ -424,6 +424,7 @@ stages:
                   echo "=== END DEBUG ==="
                 env:
                   FULL_IMAGE_NAME: $(FULL_IMAGE_NAME)
+                  SUPERSET_SECRET_KEY: $(SUPERSET_SECRET_KEY)
                   SUPERSET_ADMIN_USER: $(SUPERSET_ADMIN_USER)
                   SUPERSET_PORT: $(SUPERSET_PORT)
                   DOCKER_NETWORK: $(DOCKER_NETWORK)
