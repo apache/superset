@@ -92,14 +92,8 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
 
   return (
     <div ref={setNodeRef} style={style}>
-      <Container isDragging={isDragging}>
-        <DragIcon
-          {...attributes}
-          {...listeners}
-          isDragging={isDragging}
-          alt="Move icon"
-          viewBox="4 4 16 16"
-        />
+      <Container isDragging={isDragging} {...attributes} {...listeners}>
+        <DragIcon isDragging={isDragging} alt="Move icon" viewBox="4 4 16 16" />
         <div css={{ flex: 1 }}>{children}</div>
       </Container>
     </div>
