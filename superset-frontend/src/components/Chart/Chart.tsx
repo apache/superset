@@ -192,7 +192,18 @@ class Chart extends PureComponent<ChartProps, {}> {
     }
   }
 
+  shouldRenderChart() {
+    return (
+      this.props.isInView ||
+      !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
+      isCurrentUserBot()
+    );
+  }
+
   runQuery() {
+    if (!this.shouldRenderChart()) {
+      return;
+    }
     // Create chart with POST request
     this.props.actions.postChartFormData(
       this.props.formData,
@@ -295,9 +306,7 @@ class Chart extends PureComponent<ChartProps, {}> {
   renderChartContainer() {
     return (
       <div className="slice_container" data-test="slice-container">
-        {this.props.isInView ||
-        !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
-        isCurrentUserBot() ? (
+        {this.shouldRenderChart() ? (
           <ChartRenderer
             {...this.props}
             source={this.props.dashboardId ? 'dashboard' : 'explore'}
