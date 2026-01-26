@@ -38,7 +38,7 @@
     "@react-icons/all-files": "^4.1.0",
     "@storybook/addon-actions": "8.6.14",
     "@storybook/addon-controls": "8.6.14",
-    "@storybook/addon-links": "8.6.14",
+    "@storybook/addon-links": "10.2.0",
     "@storybook/react": "8.6.14",
     "@storybook/types": "8.6.14",
     "@types/react-loadable": "^5.5.11",
