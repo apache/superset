@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import type { CSSProperties, FC, ReactNode } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
@@ -92,18 +91,12 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
   };
 
   return (
-    <Container isDragging={isDragging}>
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        {...listeners}
-        css={{ display: 'flex', width: '100%' }}
-      >
-        <DragIcon isDragging={isDragging} alt={t('Move')} viewBox="4 4 16 16" />
+    <div ref={setNodeRef} style={style}>
+      <Container isDragging={isDragging} {...attributes} {...listeners}>
+        <DragIcon isDragging={isDragging} alt="Move icon" viewBox="4 4 16 16" />
         <div css={{ flex: 1 }}>{children}</div>
-      </div>
-    </Container>
+      </Container>
+    </div>
   );
 };
 
