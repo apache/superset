@@ -201,35 +201,35 @@ const ViewModeToggle = ({
   mode: 'table' | 'card';
   setMode: (mode: 'table' | 'card') => void;
 }) => (
-    <ViewModeContainer>
-      <Tooltip title={t('Grid view')}>
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={e => {
-            e.currentTarget.blur();
-            setMode('card');
-          }}
-          className={cx('toggle-button', { active: mode === 'card' })}
-        >
-          <Icons.AppstoreOutlined iconSize="xl" />
-        </div>
-      </Tooltip>
-      <Tooltip title={t('List view')}>
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={e => {
-            e.currentTarget.blur();
-            setMode('table');
-          }}
-          className={cx('toggle-button', { active: mode === 'table' })}
-        >
-          <Icons.UnorderedListOutlined iconSize="xl" />
-        </div>
-      </Tooltip>
-    </ViewModeContainer>
-  );
+  <ViewModeContainer>
+    <Tooltip title={t('Grid view')}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={e => {
+          e.currentTarget.blur();
+          setMode('card');
+        }}
+        className={cx('toggle-button', { active: mode === 'card' })}
+      >
+        <Icons.AppstoreOutlined iconSize="xl" />
+      </div>
+    </Tooltip>
+    <Tooltip title={t('List view')}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={e => {
+          e.currentTarget.blur();
+          setMode('table');
+        }}
+        className={cx('toggle-button', { active: mode === 'table' })}
+      >
+        <Icons.UnorderedListOutlined iconSize="xl" />
+      </div>
+    </Tooltip>
+  </ViewModeContainer>
+);
 
 export interface ListViewProps<T extends object = any> {
   columns: any[];
@@ -277,7 +277,7 @@ export function ListView<T extends object = any>({
   filters = [],
   bulkActions = [],
   bulkSelectEnabled = false,
-  disableBulkSelect = () => {},
+  disableBulkSelect = () => { },
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   showThumbnails,
