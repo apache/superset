@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, ReactNode } from 'react';
+import { forwardRef, useState } from 'react';
 
 import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { useDndMonitor } from '@dnd-kit/core';
+import {
+  verticalListSortingStrategy,
+  SortableContext,
+} from '@dnd-kit/sortable';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
 
@@ -58,9 +63,14 @@ const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
   }
 `;
 
-const Container = styled.div`
+const Container = styled.div<{ isDragging: boolean }>`
   height: 100%;
   overflow-y: auto;
+  ${({ isDragging }) =>
+    isDragging &&
+    `
+    overflow: hidden;
+  `}
 `;
 
 interface Props {
@@ -90,7 +100,6 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
       onChange,
       onRemove,
       restoreItem,
-      onRearrange,
       currentItemId,
       removedItems,
       items,
@@ -98,10 +107,23 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
       dataTestId = 'item-title-container',
       deleteAltText = 'RemoveItem',
       dragType,
-      onCrossListDrop,
     },
     ref,
   ) => {
+    const [isDragging, setIsDragging] = useState(false);
+
+    useDndMonitor({
+      onDragStart: () => {
+        setIsDragging(true);
+      },
+      onDragEnd: () => {
+        setIsDragging(false);
+      },
+      onDragCancel: () => {
+        setIsDragging(false);
+      },
+    });
+
     const renderComponent = (id: string) => {
       const isRemoved = !!removedItems[id];
       const isErrored = erroredItems.includes(id);
@@ -164,31 +186,26 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
       );
     };
 
-    const renderItemGroups = () => {
-      const itemNodes: ReactNode[] = [];
-      items.forEach((item, index) => {
-        itemNodes.push(
-          <DraggableFilter
-            key={item}
-            onRearrange={onRearrange}
-            onCrossListDrop={onCrossListDrop}
-            index={index}
-            filterIds={[item]}
-            dragType={dragType}
-          >
-            {renderComponent(item)}
-          </DraggableFilter>,
-        );
-      });
-      return itemNodes;
-    };
-
     return (
-      <Container data-test={dataTestId} ref={ref}>
-        {renderItemGroups()}
+      <Container data-test={dataTestId} ref={ref} isDragging={isDragging}>
+        <SortableContext items={items} strategy={verticalListSortingStrategy}>
+          {items.map((item, index) => (
+            <DraggableFilter
+              key={item}
+              id={item}
+              index={index}
+              filterIds={[item]}
+              dragType={dragType}
+            >
+              {renderComponent(item)}
+            </DraggableFilter>
+          ))}
+        </SortableContext>
       </Container>
     );
   },
 );
+
+ItemTitleContainer.displayName = 'ItemTitleContainer';
 
 export default ItemTitleContainer;
