@@ -301,6 +301,43 @@ TAG_DESCRIPTIONS = {
 }
 
 
+def configure_servers(spec: dict) -> bool:
+    """Configure server URLs with variables for flexible API testing."""
+    new_servers = [
+        {
+            "url": "http://localhost:8088",
+            "description": "Local development server",
+        },
+        {
+            "url": "{protocol}://{host}:{port}",
+            "description": "Custom server",
+            "variables": {
+                "protocol": {
+                    "default": "http",
+                    "enum": ["http", "https"],
+                    "description": "HTTP protocol",
+                },
+                "host": {
+                    "default": "localhost",
+                    "description": "Server hostname or IP",
+                },
+                "port": {
+                    "default": "8088",
+                    "description": "Server port",
+                },
+            },
+        },
+    ]
+
+    # Check if already configured
+    existing = spec.get("servers", [])
+    if len(existing) >= 2 and any("variables" in s for s in existing):
+        return False
+
+    spec["servers"] = new_servers
+    return True
+
+
 def add_tag_definitions(spec: dict) -> int:
     """Add tag definitions with descriptions to the OpenAPI spec."""
     # Collect all unique tags used in operations
@@ -396,8 +433,13 @@ def main() -> None:
     spec, fixed_schemas = add_missing_schemas(spec)
     fixed_ops = add_missing_operation_ids(spec)
     fixed_tags = add_tag_definitions(spec)
+    fixed_servers = configure_servers(spec)
 
     changes_made = False
+
+    if fixed_servers:
+        print("Configured server URLs with variables for flexible API testing")
+        changes_made = True
 
     if fixed_schemas:
         print(f"Added missing schemas: {', '.join(fixed_schemas)}")

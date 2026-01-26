@@ -28432,7 +28432,30 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8088"
+      "url": "http://localhost:8088",
+      "description": "Local development server"
+    },
+    {
+      "url": "{protocol}://{host}:{port}",
+      "description": "Custom server",
+      "variables": {
+        "protocol": {
+          "default": "http",
+          "enum": [
+            "http",
+            "https"
+          ],
+          "description": "HTTP protocol"
+        },
+        "host": {
+          "default": "localhost",
+          "description": "Server hostname or IP"
+        },
+        "port": {
+          "default": "8088",
+          "description": "Server port"
+        }
+      }
     }
   ],
   "tags": [

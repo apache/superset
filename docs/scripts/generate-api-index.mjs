@@ -130,10 +130,11 @@ You can use this API to programmatically interact with Superset for automation, 
 <Alert
   type="info"
   showIcon
-  message="Interactive Testing"
+  message="Interactive API Explorer"
   description={
     <span>
-      To interactively test API requests, access the Swagger UI on your Superset instance at <strong>/swagger/v1</strong>.
+      Use the "Send API Request" button on any endpoint to test requests against your Superset instance.
+      Select your server from the dropdown or configure a custom URL. Ensure CORS is enabled on your server.
     </span>
   }
   style={{ marginBottom: '24px' }}
