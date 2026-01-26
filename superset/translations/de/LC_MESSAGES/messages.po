@@ -10633,7 +10633,7 @@ msgstr "Registerkartentitel"
 msgid "Subtitle Font Size"
 msgstr "Blasengröße"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Zwischensumme"
 
 msgid "Success"

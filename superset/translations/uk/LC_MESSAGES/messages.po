@@ -10555,7 +10555,7 @@ msgstr "Назва вкладки"
 msgid "Subtitle Font Size"
 msgstr "Розмір міхура"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Суттєвий"
 
 msgid "Success"

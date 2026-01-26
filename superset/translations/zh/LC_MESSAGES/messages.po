@@ -10495,7 +10495,7 @@ msgstr "选项卡标题"
 msgid "Subtitle Font Size"
 msgstr "气泡尺寸"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

@@ -9824,7 +9824,7 @@ msgstr "サブタイトル"
 msgid "Subtitle Font Size"
 msgstr "サブタイトル フォントサイズ"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "小計"
 
 msgid "Success"

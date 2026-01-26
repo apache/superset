@@ -10701,7 +10701,7 @@ msgstr "Título da aba"
 msgid "Subtitle Font Size"
 msgstr "Tamanho da bolha"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Subtotal"
 
 msgid "Success"

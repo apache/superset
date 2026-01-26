@@ -10509,7 +10509,7 @@ msgstr "選項卡標題"
 msgid "Subtitle Font Size"
 msgstr "氣泡尺寸"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"
