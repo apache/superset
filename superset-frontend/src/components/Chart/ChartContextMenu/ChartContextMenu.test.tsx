@@ -34,12 +34,6 @@ const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
   typeof cachedSupersetGet
 >;
 
-// @ts-ignore
-global.featureFlags = {
-  [FeatureFlag.DrillToDetail]: true,
-  [FeatureFlag.DrillBy]: true,
-};
-
 const defaultFormData = {
   datasource: '1__table',
   viz_type: VizType.Pie,
@@ -97,6 +91,12 @@ const setup = () => {
 };
 
 beforeEach(() => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+    [FeatureFlag.DrillBy]: true,
+  };
+
   mockCachedSupersetGet.mockClear();
   mockCachedSupersetGet.mockResolvedValue({
     response: {} as Response,
@@ -107,6 +107,11 @@ beforeEach(() => {
       },
     },
   });
+});
+
+afterEach(() => {
+  // @ts-ignore
+  delete global.featureFlags;
 });
 
 test('tooltip is restored when user clicks outside to close context menu', async () => {
