@@ -40,6 +40,8 @@ are compatible with Superset.
 | [AWS Athena](/docs/configuration/databases#aws-athena)                   | `pip install pyathena[pandas]` , `pip install PyAthenaJDBC`                        | `awsathena+rest://{access_key_id}:{access_key}@athena.{region}.amazonaws.com/{schema}?s3_staging_dir={s3_staging_dir}&...`   |
 | [AWS DynamoDB](/docs/configuration/databases#aws-dynamodb)               | `pip install pydynamodb`                                                           | `dynamodb://{access_key_id}:{secret_access_key}@dynamodb.{region_name}.amazonaws.com?connector=superset`                                               |
 | [AWS Redshift](/docs/configuration/databases#aws-redshift)               | `pip install sqlalchemy-redshift`                                                  | `redshift+psycopg2://<userName>:<DBPassword>@<AWS End Point>:5439/<Database Name>`                                                                    |
+| [AWS Aurora PostgreSQL](/docs/configuration/databases#aws-aurora-postgresql-and-mysql) | `pip install psycopg2`                                                  | `postgresql://<userName>:<DBPassword>@<cluster-endpoint>:5432/<Database Name>`                                                                    |
+| [AWS Aurora MySQL](/docs/configuration/databases#aws-aurora-postgresql-and-mysql)      | `pip install mysqlclient`                                               | `mysql://<userName>:<DBPassword>@<cluster-endpoint>:3306/<Database Name>`                                                                    |
 | [Apache Doris](/docs/configuration/databases#apache-doris)                     | `pip install pydoris`                                                              | `doris://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>`                                            |
 | [Apache Drill](/docs/configuration/databases#apache-drill)                     | `pip install sqlalchemy-drill`                                                     | `drill+sadrill://<username>:<password>@<host>:<port>/<storage_plugin>`, often useful: `?use_ssl=True/False`                                                                                                              |
 | [Apache Druid](/docs/configuration/databases#apache-druid)                     | `pip install pydruid`                                                              | `druid://<User>:<password>@<Host>:<Port-default-9088>/druid/v2/sql`                                                                                    |
@@ -332,6 +334,224 @@ You have to define the following arguments in Superset's redshift database conne
 ```
 {"connect_args":{"iam":true,"is_serverless":true,"serverless_acct_id":"<aws account number>","serverless_work_group":"<redshift work group>","database":"<database>","user":"IAMR:<superset iam role name>"}}
 ```
+
+##### Cross-Account IAM Authentication
+
+Superset also supports cross-account IAM authentication for both Redshift Serverless and provisioned clusters. This approach uses STS AssumeRole to obtain temporary credentials and is ideal for multi-account AWS architectures.
+
+**Prerequisites:**
+- Redshift cluster or Serverless workgroup with IAM authentication enabled
+- IAM role in the data account with permissions to get Redshift credentials
+- Superset running on AWS infrastructure with an IAM role that can assume the data account role
+
+**Configuration for Redshift Serverless:**
+
+1. Set the SQLAlchemy URI:
+   ```
+   redshift+psycopg2://{username}@{workgroup}.{account_id}.{region}.redshift-serverless.amazonaws.com:5439/{database}
+   ```
+
+2. Add IAM configuration in **Secure Extra** (ADVANCED → Security → Secure Extra):
+   ```json
+   {
+     "aws_iam": {
+       "enabled": true,
+       "role_arn": "arn:aws:iam::DATA_ACCOUNT_ID:role/SupersetRedshiftAccess",
+       "external_id": "your-unique-external-id",
+       "region": "us-east-1",
+       "workgroup_name": "my-workgroup",
+       "db_name": "dev"
+     }
+   }
+   ```
+
+**Configuration for Provisioned Redshift Clusters:**
+
+1. Set the SQLAlchemy URI:
+   ```
+   redshift+psycopg2://{username}@{cluster-identifier}.{unique-id}.{region}.redshift.amazonaws.com:5439/{database}
+   ```
+
+2. Add IAM configuration in **Secure Extra** (ADVANCED → Security → Secure Extra):
+   ```json
+   {
+     "aws_iam": {
+       "enabled": true,
+       "role_arn": "arn:aws:iam::DATA_ACCOUNT_ID:role/SupersetRedshiftAccess",
+       "external_id": "your-unique-external-id",
+       "region": "us-east-1",
+       "cluster_identifier": "my-redshift-cluster",
+       "db_username": "superset_user",
+       "db_name": "analytics"
+     }
+   }
+   ```
+
+**Configuration Fields:**
+
+| Field | Serverless | Provisioned | Description |
+|-------|------------|-------------|-------------|
+| `enabled` | Required | Required | Set to `true` to enable IAM authentication |
+| `role_arn` | Required | Required | ARN of the IAM role to assume |
+| `region` | Required | Required | AWS region |
+| `db_name` | Required | Required | Database name |
+| `workgroup_name` | Required | - | Redshift Serverless workgroup name |
+| `cluster_identifier` | - | Required | Provisioned cluster identifier |
+| `db_username` | - | Required | Database username for provisioned clusters |
+| `external_id` | Optional | Optional | External ID for cross-account security |
+| `session_duration` | Optional | Optional | STS session duration in seconds (default: 3600) |
+
+**Required IAM Permissions:**
+
+For Redshift Serverless:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "redshift-serverless:GetCredentials",
+        "redshift-serverless:GetWorkgroup"
+      ],
+      "Resource": "arn:aws:redshift-serverless:REGION:ACCOUNT_ID:workgroup/WORKGROUP_ID"
+    }
+  ]
+}
+```
+
+For provisioned Redshift clusters:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "redshift:GetClusterCredentials",
+      "Resource": [
+        "arn:aws:redshift:REGION:ACCOUNT_ID:dbuser:CLUSTER_NAME/superset_user",
+        "arn:aws:redshift:REGION:ACCOUNT_ID:dbname:CLUSTER_NAME/analytics"
+      ]
+    }
+  ]
+}
+```
+
+:::resources
+- [AWS Docs: IAM Authentication for Redshift](https://docs.aws.amazon.com/redshift/latest/mgmt/generating-user-credentials.html)
+- [AWS Docs: Redshift Serverless IAM](https://docs.aws.amazon.com/redshift/latest/mgmt/serverless-iam.html)
+:::
+
+#### AWS Aurora (PostgreSQL and MySQL)
+
+Amazon Aurora is a MySQL and PostgreSQL-compatible relational database built for the cloud. Superset supports connecting to Aurora using standard PostgreSQL or MySQL drivers, with optional IAM authentication for enhanced security.
+
+##### Standard Connection (Username/Password)
+
+For Aurora PostgreSQL, use the PostgreSQL driver:
+
+```
+postgresql://{username}:{password}@{cluster-endpoint}:{port}/{database}
+```
+
+For Aurora MySQL, use the MySQL driver:
+
+```
+mysql://{username}:{password}@{cluster-endpoint}:{port}/{database}
+```
+
+##### Cross-Account IAM Authentication
+
+Superset supports AWS cross-account IAM authentication for Aurora databases. This eliminates the need to store database passwords and provides automatic credential rotation.
+
+**Prerequisites:**
+- Aurora cluster with [IAM database authentication enabled](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/UsingWithRDS.IAMDBAuth.Enabling.html)
+- Database user configured for IAM authentication
+- IAM role with `rds-db:connect` permission
+- Superset running on AWS infrastructure (EC2, ECS, or EKS) with an IAM role that can assume the database access role
+
+**Configuration:**
+
+1. Set the SQLAlchemy URI with the cluster endpoint (password will be replaced by IAM token):
+
+   For Aurora PostgreSQL:
+   ```
+   postgresql://{db_username}@{cluster-endpoint}:{port}/{database}
+   ```
+
+   For Aurora MySQL:
+   ```
+   mysql://{db_username}@{cluster-endpoint}:{port}/{database}
+   ```
+
+2. Add the IAM configuration in the **Secure Extra** field (ADVANCED → Security → Secure Extra):
+
+   ```json
+   {
+     "aws_iam": {
+       "enabled": true,
+       "role_arn": "arn:aws:iam::DATA_ACCOUNT_ID:role/SupersetDatabaseAccess",
+       "external_id": "your-unique-external-id",
+       "region": "us-east-1",
+       "db_username": "superset_iam_user"
+     }
+   }
+   ```
+
+**Configuration Fields:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `enabled` | Yes | Set to `true` to enable IAM authentication |
+| `role_arn` | Yes | ARN of the IAM role to assume for database access |
+| `region` | Yes | AWS region where the Aurora cluster is located |
+| `db_username` | Yes | Database username configured for IAM authentication |
+| `external_id` | No | External ID for cross-account role assumption (recommended for security) |
+| `session_duration` | No | STS session duration in seconds (default: 3600) |
+
+**Required IAM Permissions:**
+
+The IAM role specified in `role_arn` needs the following permission:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "rds-db:connect",
+      "Resource": "arn:aws:rds-db:REGION:ACCOUNT_ID:dbuser:CLUSTER_RESOURCE_ID/superset_iam_user"
+    }
+  ]
+}
+```
+
+For cross-account access, the role also needs a trust policy allowing Superset's IAM role to assume it:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::SUPERSET_ACCOUNT_ID:role/SupersetApplicationRole"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "your-unique-external-id"
+        }
+      }
+    }
+  ]
+}
+```
+
+:::resources
+- [AWS Docs: IAM Database Authentication for Aurora](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/UsingWithRDS.IAMDBAuth.html)
+- [AWS Docs: Cross-Account IAM Roles](https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)
+:::
 
 #### ClickHouse
 
