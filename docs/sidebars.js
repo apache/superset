@@ -107,9 +107,13 @@ const sidebars = {
       id: 'faq',
     },
     {
-      type: 'link',
+      type: 'category',
       label: 'API Reference',
-      href: '/developer_portal/api',
+      link: {
+        type: 'doc',
+        id: 'api',
+      },
+      items: require('./docs/api/sidebar.js'),
     },
   ],
 };

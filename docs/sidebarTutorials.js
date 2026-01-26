@@ -20,15 +20,6 @@
 
 // @ts-check
 
-// Import the generated API sidebar
-let apiSidebar = [];
-try {
-  apiSidebar = require('./developer_portal/api/sidebar.js');
-} catch (e) {
-  // API sidebar not generated yet, will be empty until first build
-  console.log('API sidebar not found, run "yarn generate:api-docs" to generate');
-}
-
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {
   DeveloperPortalSidebar: [
@@ -36,16 +27,6 @@ const sidebars = {
       type: 'doc',
       label: 'Overview',
       id: 'index',
-    },
-    {
-      type: 'category',
-      label: 'API Reference',
-      collapsed: true,
-      link: {
-        type: 'doc',
-        id: 'api',
-      },
-      items: apiSidebar,
     },
     {
       type: 'category',
