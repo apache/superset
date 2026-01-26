@@ -23,10 +23,8 @@ Create Date: 2025-12-18 02:20:00.000000
 """
 
 from sqlalchemy import (
-    Boolean,
     Column,
     DateTime,
-    Float,
     Integer,
     String,
     Text,
@@ -55,7 +53,7 @@ def upgrade():
     Create tasks and task_subscribers tables for the Global Task Framework (GTF).
 
     This migration creates:
-    1. tasks table - unified tracking for all async operations
+    1. tasks table - unified tracking for all long running tasks
     2. task_subscribers table - multi-user task subscriptions for shared tasks
 
     The scope feature allows tasks to be:
@@ -85,21 +83,8 @@ def upgrade():
         Column("started_at", DateTime, nullable=True),
         Column("ended_at", DateTime, nullable=True),
         Column("user_id", Integer, nullable=True),  # User context for execution
-        Column("database_id", Integer, nullable=True),  # Optional FK to dbs.id
-        Column("error_message", Text, nullable=True),  # Human-readable error message
-        Column("exception_type", String(256), nullable=True),  # Exception class name
-        Column("stack_trace", Text, nullable=True),  # Full formatted traceback
         Column("payload", Text, nullable=True),  # JSON serialized task-specific data
-        # Progress tracking - supports three modes:
-        # 1. Percentage only: progress_percent set, others null
-        # 2. Count only: progress_current set, others null
-        # 3. Count+total: progress_current and progress_total set, percent auto-computed
-        Column("progress_percent", Float, nullable=True),  # Progress 0.0-1.0
-        Column("progress_current", Integer, nullable=True),  # Current iteration count
-        Column("progress_total", Integer, nullable=True),  # Total iterations (if known)
-        # Abort handling: null=pending/finished, false=in_progress no handler,
-        # true=has abort handler
-        Column("is_abortable", Boolean, nullable=True),
+        Column("properties", Text, nullable=True),  # JSON serialized properties
     )
 
     # Create indexes for optimal query performance
@@ -125,15 +110,6 @@ def upgrade():
         table_name=TASKS_TABLE,
         referenced_table="ab_user",
         local_cols=["changed_by_fk"],
-        remote_cols=["id"],
-        ondelete="SET NULL",
-    )
-
-    create_fks_for_table(
-        foreign_key_name="fk_tasks_database_id_dbs",
-        table_name=TASKS_TABLE,
-        referenced_table="dbs",
-        local_cols=["database_id"],
         remote_cols=["id"],
         ondelete="SET NULL",
     )
@@ -224,7 +200,6 @@ def downgrade():
         [
             "fk_tasks_created_by_fk_ab_user",
             "fk_tasks_changed_by_fk_ab_user",
-            "fk_tasks_database_id_dbs",
         ],
     )
 

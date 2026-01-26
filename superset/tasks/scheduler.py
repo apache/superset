@@ -355,8 +355,10 @@ def execute_task(  # noqa: C901
                 # If status is still ABORTING, something went wrong
                 if task.status == TaskStatus.ABORTING.value:
                     task.set_status(TaskStatus.FAILURE)
-                    if not task.error_message:
-                        task.error_message = "Abort handlers did not complete"
+                    if not task.properties.error_message:
+                        task.update_properties(
+                            error_message="Abort handlers did not complete"
+                        )
                     logger.warning(
                         "Task %s (uuid=%s) stuck in ABORTING - marking as FAILURE",
                         task_type,

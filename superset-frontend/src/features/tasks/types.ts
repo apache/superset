@@ -30,6 +30,22 @@ export enum TaskScope {
   System = 'system',
 }
 
+/**
+ * Task properties - runtime state and execution config stored in JSON blob.
+ */
+export interface TaskProperties {
+  is_abortable: boolean | null;
+  progress_percent: number | null;
+  progress_current: number | null;
+  progress_total: number | null;
+  error_message: string | null;
+  exception_type: string | null;
+  stack_trace: string | null;
+  timeout: number | null;
+  max_retries: number | null;
+  retry_count: number | null;
+}
+
 export interface Task {
   id: number;
   uuid: string;
@@ -45,8 +61,8 @@ export interface Task {
     | 'aborted';
   scope: TaskScope;
   created_on: string;
+  created_on_delta_humanized?: string;
   changed_on: string;
-  changed_on_delta_humanized?: string;
   started_at: string | null;
   ended_at: string | null;
   created_by: {
@@ -59,23 +75,28 @@ export interface Task {
     last_name: string;
   } | null;
   user_id: number | null;
-  database_id: number | null;
-  error_message: string | null;
-  exception_type: string | null;
-  stack_trace: string | null;
   payload: Record<string, any>;
-  progress_percent: number | null;
-  progress_current: number | null;
-  progress_total: number | null;
+  properties: TaskProperties;
   duration_seconds: number | null;
-  is_finished: boolean;
-  is_successful: boolean;
-  is_aborted: boolean;
-  is_aborting: boolean;
-  is_abortable: boolean | null;
-  can_be_aborted: boolean;
   subscriber_count: number;
   subscribers: TaskSubscriber[];
+}
+
+// Derived status helpers (frontend computes these from status and properties)
+export function isTaskFinished(task: Task): boolean {
+  return ['success', 'failure', 'aborted'].includes(task.status);
+}
+
+export function isTaskAborting(task: Task): boolean {
+  return task.status === 'aborting';
+}
+
+export function canAbortTask(task: Task): boolean {
+  if (task.status === 'pending') return true;
+  if (task.status === 'in_progress' && task.properties.is_abortable === true)
+    return true;
+  if (task.status === 'aborting') return true; // Idempotent
+  return false;
 }
 
 export enum TaskStatus {

@@ -369,33 +369,41 @@ class Task(CoreModel):
     with concrete implementation providing actual functionality.
 
     This model represents async tasks in the Global Task Framework (GTF).
+
+    Non-filterable fields (progress, error info, execution config) are stored
+    in a `properties` JSON blob for schema flexibility.
     """
 
     __abstract__ = True
 
-    # Type hints for expected attributes (no actual field definitions)
+    # Type hints for expected column attributes
     id: int
     uuid: str
-    task_key: str
-    task_type: str
-    task_name: str | None
+    task_key: str  # For deduplication
+    task_type: str  # e.g., 'sql_execution'
+    task_name: str | None  # Human readable name
+    scope: str  # private/shared/system
     status: str
-    created_at: datetime
-    updated_at: datetime
+    dedup_key: str  # Computed deduplication key
+
+    # Timestamps (from AuditMixinNullable)
+    created_on: datetime | None
+    changed_on: datetime | None
     started_at: datetime | None
     ended_at: datetime | None
+
+    # User context
     created_by_fk: int | None
     user_id: int | None
-    database_id: int | None
-    error_message: str | None
-    payload: str  # JSON serialized data
-    progress_percent: float | None  # Progress percentage 0.0-1.0, null by default
-    progress_current: int | None  # Current item count, null by default
-    progress_total: int | None  # Total item count, null by default
+
+    # Task output data
+    payload: str  # JSON serialized task output data
 
     def get_payload(self) -> dict[str, Any]:
         """
         Get payload as parsed JSON.
+
+        Payload contains task-specific output data set by task code.
 
         Host implementations will replace this method during initialization
         with concrete implementation providing actual functionality.
@@ -414,6 +422,70 @@ class Task(CoreModel):
         :param data: Dictionary of data to merge into payload
         """
         raise NotImplementedError("Method will be replaced during initialization")
+
+    @property
+    def properties(self) -> Any:
+        """
+        Get typed properties (runtime state and execution config).
+
+        Properties contain:
+        - is_abortable: bool | None - has abort handler registered
+        - progress_percent: float | None - progress 0.0-1.0
+        - progress_current: int | None - current iteration count
+        - progress_total: int | None - total iterations
+        - error_message: str | None - human-readable error message
+        - exception_type: str | None - exception class name
+        - stack_trace: str | None - full formatted traceback
+        - timeout: int | None - timeout in seconds
+        - max_retries: int | None - maximum retry attempts
+        - retry_count: int | None - current retry count
+
+        Host implementations will replace this property during initialization.
+
+        :returns: TaskProperties dataclass instance
+        """
+        raise NotImplementedError("Property will be replaced during initialization")
+
+    def update_properties(self, **kwargs: Any) -> None:
+        """
+        Update specific properties fields.
+
+        Simple merge: pass key=value to update that field. If you pass
+        key=None, the field is set to None (cleared). If you don't pass
+        a key, it keeps its current value.
+
+        Host implementations will replace this method during initialization.
+
+        :param kwargs: Property fields to update
+        """
+        raise NotImplementedError("Method will be replaced during initialization")
+
+
+class TaskSubscriber(CoreModel):
+    """
+    Abstract TaskSubscriber model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+
+    This model tracks task subscriptions for multi-user shared tasks. When a user
+    schedules a shared task with the same parameters as an existing task,
+    they are subscribed to that task instead of creating a duplicate.
+    """
+
+    __abstract__ = True
+
+    # Type hints for expected attributes (no actual field definitions)
+    id: int
+    task_id: int
+    user_id: int
+    subscribed_at: datetime
+
+    # Audit fields from AuditMixinNullable
+    created_on: datetime | None
+    changed_on: datetime | None
+    created_by_fk: int | None
+    changed_by_fk: int | None
 
 
 def get_session() -> scoped_session:
@@ -440,6 +512,7 @@ __all__ = [
     "Tag",
     "KeyValue",
     "Task",
+    "TaskSubscriber",
     "CoreModel",
     "get_session",
 ]

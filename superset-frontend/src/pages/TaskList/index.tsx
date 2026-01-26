@@ -37,7 +37,13 @@ import TaskStatusIcon from 'src/features/tasks/TaskStatusIcon';
 import TaskPayloadPopover from 'src/features/tasks/TaskPayloadPopover';
 import TaskStackTracePopover from 'src/features/tasks/TaskStackTracePopover';
 import { formatDuration } from 'src/features/tasks/timeUtils';
-import { Task, TaskStatus, TaskScope } from 'src/features/tasks/types';
+import {
+  Task,
+  TaskStatus,
+  TaskScope,
+  canAbortTask,
+  isTaskAborting,
+} from 'src/features/tasks/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
@@ -221,25 +227,17 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: {
-              status,
-              progress_percent,
-              progress_current,
-              progress_total,
-              duration_seconds,
-              error_message,
-              exception_type,
-            },
+            original: { status, properties, duration_seconds },
           },
         }: any) => (
           <TaskStatusIcon
             status={status}
-            progressPercent={progress_percent}
-            progressCurrent={progress_current}
-            progressTotal={progress_total}
+            progressPercent={properties?.progress_percent}
+            progressCurrent={properties?.progress_current}
+            progressTotal={properties?.progress_total}
             durationSeconds={duration_seconds}
-            errorMessage={error_message}
-            exceptionType={exception_type}
+            errorMessage={properties?.error_message}
+            exceptionType={properties?.exception_type}
           />
         ),
         accessor: 'status',
@@ -340,11 +338,11 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { payload, stack_trace },
+            original: { payload, properties },
           },
         }: any) => {
           const hasPayload = payload && Object.keys(payload).length > 0;
-          const hasStackTrace = !!stack_trace;
+          const hasStackTrace = !!properties?.stack_trace;
 
           if (!hasPayload && !hasStackTrace) {
             return null;
@@ -354,7 +352,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             <div style={{ display: 'flex', gap: '8px' }}>
               {hasPayload && <TaskPayloadPopover payload={payload} />}
               {hasStackTrace && (
-                <TaskStackTracePopover stackTrace={stack_trace} />
+                <TaskStackTracePopover stackTrace={properties.stack_trace} />
               )}
             </div>
           );
@@ -372,7 +370,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           // - The backend handles the smart behavior (unsubscribe vs abort)
           const isRunning = original.status === TaskStatus.InProgress;
           const isRunningButNotCancellable =
-            isRunning && original.is_abortable === false;
+            isRunning && original.properties?.is_abortable === false;
 
           const isSharedTask = original.scope === TaskScope.Shared;
           const userIsSubscribed = original.subscribers?.some(
@@ -390,8 +388,8 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           // Show Cancel button when:
           // 1. Task can be aborted (pending, or in-progress with handler), OR
           // 2. User is subscribed to a shared task (can always unsubscribe)
-          const canCancel =
-            (original.can_be_aborted && !original.is_aborting) ||
+          const canCancelTask =
+            (canAbortTask(original) && !isTaskAborting(original)) ||
             (isSharedTask && userIsSubscribed && !isNonActiveStatus);
 
           // Show disabled button for running tasks without abort handler
@@ -401,7 +399,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             !isNonActiveStatus &&
             (!isSharedTask || (original.subscriber_count || 0) <= 1);
 
-          if (!canCancel && !showDisabledCancel) {
+          if (!canCancelTask && !showDisabledCancel) {
             return null;
           }
 
@@ -421,7 +419,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   </span>
                 </Tooltip>
               )}
-              {canCancel && (
+              {canCancelTask && (
                 <Tooltip
                   id="cancel-action-tooltip"
                   title={t('Cancel')}

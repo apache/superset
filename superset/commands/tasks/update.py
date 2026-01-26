@@ -14,7 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
+from datetime import datetime
 from functools import partial
 from typing import Any, TYPE_CHECKING
 
@@ -38,51 +41,68 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateTaskCommand(BaseCommand):
-    """Command to update a task."""
+    """
+    Command to update a task.
+
+    Uses explicit typed parameters to avoid confusion between
+    payload (task output) and properties (runtime state/config).
+    """
 
     def __init__(
         self,
         task_uuid: str,
-        data: dict[str, Any],
+        *,
+        status: str | None = None,
+        started_at: datetime | None = None,
+        ended_at: datetime | None = None,
+        payload: dict[str, Any] | None = None,
+        properties: dict[str, Any] | None = None,
         skip_security_check: bool = False,
     ):
         """
         Initialize UpdateTaskCommand.
 
         :param task_uuid: UUID of the task to update
-        :param data: Dictionary of properties to update
+        :param status: New status value (column field)
+        :param started_at: Started timestamp (column field)
+        :param ended_at: Ended timestamp (column field)
+        :param payload: Task output data to merge (stored in payload column)
+        :param properties: Runtime state/config updates as dict. Keys must be
+            valid TaskProperties field names (is_abortable, progress_percent, etc.)
         :param skip_security_check: If True, skip ownership validation.
             Use this for internal task updates (e.g., task executor updating
             its own task's progress). Default is False for API-driven updates.
         """
         self._task_uuid = task_uuid
-        self._properties = data.copy()
-        self._model: "Task" | None = None
+        self._status = status
+        self._started_at = started_at
+        self._ended_at = ended_at
+        self._payload = payload
+        self._properties = properties
+        self._model: Task | None = None
         self._skip_security_check = skip_security_check
 
     @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
-    def run(self) -> "Task":
+    def run(self) -> Task:
         """Execute the command."""
         self.validate()
         assert self._model
 
-        # Update allowed properties
-        for key, value in self._properties.items():
-            if key in [
-                "status",
-                "error_message",
-                "exception_type",
-                "stack_trace",
-                "started_at",
-                "ended_at",
-                "progress_percent",
-                "progress_current",
-                "progress_total",
-                "is_abortable",
-            ]:
-                setattr(self._model, key, value)
-            elif key == "payload":
-                self._model.set_payload(value)
+        # Update column fields
+        if self._status is not None:
+            self._model.status = self._status
+        if self._started_at is not None:
+            self._model.started_at = self._started_at
+        if self._ended_at is not None:
+            self._model.ended_at = self._ended_at
+
+        # Update payload (merges with existing)
+        if self._payload is not None:
+            self._model.set_payload(self._payload)
+
+        # Update properties (dict passed through to model)
+        if self._properties:
+            self._model.update_properties(**self._properties)
 
         # Lazy import to avoid circular dependency
         from superset.daos.tasks import TaskDAO

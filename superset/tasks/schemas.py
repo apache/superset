@@ -36,37 +36,15 @@ started_at_description = "Timestamp when the task started execution"
 ended_at_description = "Timestamp when the task completed or failed"
 created_by_description = "User who created the task"
 user_id_description = "ID of the user context for task execution"
-database_id_description = "ID of the database associated with the task"
-error_message_description = "Error message if the task failed"
-exception_type_description = "The type of exception that caused the failure"
-stack_trace_description = (
-    "Full stack trace of the error. Only included when SHOW_STACKTRACE is enabled."
-)
 payload_description = "Task-specific data in JSON format"
-progress_percent_description = (
-    "Task progress as a percentage (0.0-1.0). Set when using percentage-only mode "
-    "or auto-computed from progress_current/progress_total"
-)
-progress_current_description = (
-    "Current iteration count. Set when reporting count-only or count+total progress"
-)
-progress_total_description = (
-    "Total iterations (if known). Set when reporting count+total progress"
+properties_description = (
+    "Runtime state and execution config. Contains: is_abortable, progress_percent, "
+    "progress_current, progress_total, error_message, exception_type, stack_trace, "
+    "timeout, max_retries, retry_count"
 )
 duration_seconds_description = (
     "Duration in seconds - for finished tasks: execution time, "
     "for running tasks: time since start, for pending: queue time"
-)
-is_finished_description = "Whether the task has finished (success, failure, or aborted)"
-is_successful_description = "Whether the task completed successfully"
-is_aborted_description = "Whether the task was aborted"
-is_aborting_description = "Whether the task is in the process of being aborted"
-is_abortable_description = (
-    "Whether the task can be aborted. null for pending tasks (always abortable), "
-    "false when in progress without abort handler, true when in progress with handler"
-)
-can_be_aborted_description = (
-    "Whether the task can be aborted based on current status and is_abortable flag"
 )
 scope_description = (
     "Task scope: 'private' (user-specific), 'shared' (multi-user), "
@@ -84,6 +62,59 @@ class UserSchema(Schema):
     id = fields.Int()
     first_name = fields.String()
     last_name = fields.String()
+
+
+class TaskPropertiesSchema(Schema):
+    """
+    Schema for task properties (runtime state and execution config).
+
+    These are stored in a JSON blob in the database for flexibility.
+    """
+
+    is_abortable = fields.Boolean(
+        metadata={"description": "Has abort handler registered"}, allow_none=True
+    )
+    progress_percent = fields.Float(
+        metadata={"description": "Progress 0.0-1.0"}, allow_none=True
+    )
+    progress_current = fields.Int(
+        metadata={"description": "Current iteration count"}, allow_none=True
+    )
+    progress_total = fields.Int(
+        metadata={"description": "Total iterations"}, allow_none=True
+    )
+    error_message = Method(
+        "get_error_message",
+        metadata={"description": "Human-readable error message"},
+    )
+    exception_type = fields.String(
+        metadata={"description": "Exception class name"}, allow_none=True
+    )
+    stack_trace = Method(
+        "get_stack_trace",
+        metadata={"description": "Full stack trace (when SHOW_STACKTRACE enabled)"},
+    )
+    timeout = fields.Int(
+        metadata={"description": "Timeout in seconds"}, allow_none=True
+    )
+    max_retries = fields.Int(
+        metadata={"description": "Maximum retry attempts"}, allow_none=True
+    )
+    retry_count = fields.Int(
+        metadata={"description": "Current retry count"}, allow_none=True
+    )
+
+    def get_error_message(self, obj: object) -> str | None:
+        """Get error message."""
+        return getattr(obj, "error_message", None)
+
+    def get_stack_trace(self, obj: object) -> str | None:
+        """Get stack trace only if SHOW_STACKTRACE is enabled."""
+        from flask import current_app
+
+        if not current_app.config.get("SHOW_STACKTRACE", False):
+            return None
+        return getattr(obj, "stack_trace", None)
 
 
 class TaskResponseSchema(Schema):
@@ -116,50 +147,13 @@ class TaskResponseSchema(Schema):
     )
     created_by = fields.Nested(UserSchema, allow_none=True)
     user_id = fields.Int(metadata={"description": user_id_description}, allow_none=True)
-    database_id = fields.Int(
-        metadata={"description": database_id_description}, allow_none=True
-    )
-    error_message = fields.String(
-        metadata={"description": error_message_description}, allow_none=True
-    )
-    exception_type = fields.String(
-        metadata={"description": exception_type_description}, allow_none=True
-    )
-    stack_trace = Method(
-        "get_stack_trace",
-        metadata={"description": stack_trace_description},
-    )
     payload = Method("get_payload_dict", metadata={"description": payload_description})
-    progress_percent = fields.Float(
-        metadata={"description": progress_percent_description}, allow_none=True
-    )
-    progress_current = fields.Int(
-        metadata={"description": progress_current_description}, allow_none=True
-    )
-    progress_total = fields.Int(
-        metadata={"description": progress_total_description}, allow_none=True
+    properties = Method(
+        "get_properties", metadata={"description": properties_description}
     )
     duration_seconds = Method(
         "get_duration",
         metadata={"description": duration_seconds_description},
-    )
-    is_finished = Method(
-        "get_is_finished", metadata={"description": is_finished_description}
-    )
-    is_successful = Method(
-        "get_is_successful", metadata={"description": is_successful_description}
-    )
-    is_aborted = Method(
-        "get_is_aborted", metadata={"description": is_aborted_description}
-    )
-    is_aborting = Method(
-        "get_is_aborting", metadata={"description": is_aborting_description}
-    )
-    is_abortable = fields.Boolean(
-        metadata={"description": is_abortable_description}, allow_none=True
-    )
-    can_be_aborted = Method(
-        "get_can_be_aborted", metadata={"description": can_be_aborted_description}
     )
     scope = fields.String(metadata={"description": scope_description})
     subscriber_count = Method(
@@ -173,37 +167,14 @@ class TaskResponseSchema(Schema):
         """Get payload as dictionary"""
         return obj.get_payload()  # type: ignore[attr-defined]
 
-    def get_stack_trace(self, obj: object) -> str | None:
-        """Get stack trace only if SHOW_STACKTRACE is enabled."""
-        from flask import current_app
-
-        if not current_app.config.get("SHOW_STACKTRACE", False):
-            return None
-        return obj.stack_trace  # type: ignore[attr-defined]
+    def get_properties(self, obj: object) -> dict[str, object]:
+        """Get properties as dictionary via nested schema."""
+        props = obj.properties  # type: ignore[attr-defined]
+        return TaskPropertiesSchema().dump(props)
 
     def get_duration(self, obj: object) -> float | None:
         """Get duration in seconds"""
         return obj.duration_seconds  # type: ignore[attr-defined]
-
-    def get_is_finished(self, obj: object) -> bool:
-        """Check if task is finished"""
-        return obj.is_finished  # type: ignore[attr-defined]
-
-    def get_is_successful(self, obj: object) -> bool:
-        """Check if task is successful"""
-        return obj.is_successful  # type: ignore[attr-defined]
-
-    def get_is_aborted(self, obj: object) -> bool:
-        """Check if task is aborted"""
-        return obj.is_aborted  # type: ignore[attr-defined]
-
-    def get_is_aborting(self, obj: object) -> bool:
-        """Check if task is aborting"""
-        return obj.is_aborting  # type: ignore[attr-defined]
-
-    def get_can_be_aborted(self, obj: object) -> bool:
-        """Check if task can be aborted"""
-        return obj.can_be_aborted  # type: ignore[attr-defined]
 
     def get_created_on_delta_humanized(self, obj: object) -> str:
         """Get humanized time since creation"""

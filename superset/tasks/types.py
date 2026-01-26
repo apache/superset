@@ -14,9 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from dataclasses import dataclass
-from typing import NamedTuple
+from __future__ import annotations
 
+from dataclasses import asdict, dataclass, fields as dataclass_fields
+from typing import Any, NamedTuple
+
+from superset.utils import json
 from superset.utils.backports import StrEnum
 
 
@@ -75,3 +78,76 @@ class TaskOptions:
     """
 
     task_key: str | None = None
+
+
+@dataclass
+class TaskProperties:
+    """
+    Typed properties for task execution state and configuration.
+
+    Stored as JSON in the database `properties` column, deserialized into this
+    dataclass for type safety. The API returns this as a dict for frontend use.
+
+    Properties are divided into:
+    - Runtime state: Values set by the framework during execution
+    - Error info: Exception details when task fails
+    - Execution config: Values set by the task creator/scheduler
+
+    Frontend derives warnings from these values (e.g., timeout set without
+    abort handler, retry in progress) for i18n support.
+    """
+
+    # Runtime state - set by framework during execution
+    is_abortable: bool | None = None  # Has abort handler registered
+    progress_percent: float | None = None  # Progress 0.0-1.0
+    progress_current: int | None = None  # Current iteration count
+    progress_total: int | None = None  # Total iterations (if known)
+
+    # Error info - set when task fails
+    error_message: str | None = None  # Human-readable error message
+    exception_type: str | None = None  # Exception class name (e.g., "ValueError")
+    stack_trace: str | None = None  # Full formatted traceback
+
+    # Execution config - set at task creation/scheduling
+    timeout: int | None = None  # Timeout in seconds (soft limit)
+    max_retries: int | None = None  # Maximum retry attempts
+    retry_count: int | None = None  # Current retry count
+
+    @classmethod
+    def from_json(cls, json_str: str | None) -> TaskProperties:
+        """
+        Deserialize from JSON string.
+
+        :param json_str: JSON string or None
+        :returns: TaskProperties instance with parsed values
+        """
+        if not json_str:
+            return cls()
+        try:
+            data = json.loads(json_str)
+            # Only pass known fields to avoid errors on unknown keys
+            known_fields = {f.name for f in dataclass_fields(cls)}
+            filtered = {k: v for k, v in data.items() if k in known_fields}
+            return cls(**filtered)
+        except (json.JSONDecodeError, TypeError):
+            return cls()
+
+    def to_json(self) -> str:
+        """
+        Serialize to JSON string.
+
+        Excludes None values to keep JSON compact.
+
+        :returns: JSON string representation
+        """
+        return json.dumps({k: v for k, v in asdict(self).items() if v is not None})
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert to dictionary for API responses.
+
+        Includes all fields, even if None, for consistent API shape.
+
+        :returns: Dictionary representation
+        """
+        return asdict(self)

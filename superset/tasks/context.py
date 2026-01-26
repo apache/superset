@@ -102,42 +102,48 @@ class TaskContext(CoreTaskContext):
         """
         from superset.commands.tasks.update import UpdateTaskCommand
 
-        update_data: dict[str, Any] = {}
-
+        # Build properties updates for progress
+        properties: dict[str, Any] | None = None
         if progress is not None:
             if isinstance(progress, float):
                 # Percentage only mode
-                update_data["progress_percent"] = progress
-                update_data["progress_current"] = None
-                update_data["progress_total"] = None
+                properties = {
+                    "progress_percent": progress,
+                    "progress_current": None,
+                    "progress_total": None,
+                }
             elif isinstance(progress, int):
                 # Count only mode (total unknown)
-                update_data["progress_percent"] = None
-                update_data["progress_current"] = progress
-                update_data["progress_total"] = None
+                properties = {
+                    "progress_percent": None,
+                    "progress_current": progress,
+                    "progress_total": None,
+                }
             elif isinstance(progress, tuple) and len(progress) == 2:
                 # Count and total mode
                 current, total = progress
-                update_data["progress_current"] = current
-                update_data["progress_total"] = total
                 # Compute percentage, handle division by zero
+                percent: float | None = None
                 try:
                     if total > 0:
-                        update_data["progress_percent"] = current / total
+                        percent = current / total
                     else:
                         logger.warning(
                             "Progress total is zero for task %s, "
                             "cannot compute percentage",
                             self._task_uuid,
                         )
-                        update_data["progress_percent"] = None
                 except Exception as ex:
                     logger.warning(
                         "Failed to compute progress percentage for task %s: %s",
                         self._task_uuid,
                         str(ex),
                     )
-                    update_data["progress_percent"] = None
+                properties = {
+                    "progress_percent": percent,
+                    "progress_current": current,
+                    "progress_total": total,
+                }
             else:
                 logger.warning(
                     "Invalid progress value for task %s: %s "
@@ -146,12 +152,13 @@ class TaskContext(CoreTaskContext):
                     progress,
                 )
 
-        if payload is not None:
-            update_data["payload"] = payload
-
-        if update_data:
+        # Only update if there's something to update
+        if properties is not None or payload is not None:
             UpdateTaskCommand(
-                self._task_uuid, update_data, skip_security_check=True
+                self._task_uuid,
+                payload=payload,
+                properties=properties,
+                skip_security_check=True,
             ).run()
 
     def on_cleanup(self, handler: Callable[[], None]) -> Callable[[], None]:
@@ -218,7 +225,9 @@ class TaskContext(CoreTaskContext):
         from superset.commands.tasks.update import UpdateTaskCommand
 
         UpdateTaskCommand(
-            self._task_uuid, {"is_abortable": True}, skip_security_check=True
+            self._task_uuid,
+            properties={"is_abortable": True},
+            skip_security_check=True,
         ).run()
 
     def _start_abort_listener(self, interval: float) -> None:
@@ -291,9 +300,9 @@ class TaskContext(CoreTaskContext):
                     with self._app.app_context():
                         UpdateTaskCommand(
                             self._task_uuid,
-                            {
-                                "status": TaskStatus.FAILURE.value,
-                                "error_message": f"Abort handler failed: {str(ex)}",
+                            status=TaskStatus.FAILURE.value,
+                            properties={
+                                "error_message": f"Abort handler failed: {str(ex)}"
                             },
                             skip_security_check=True,
                         ).run()

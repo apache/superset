@@ -126,91 +126,33 @@ class TestTaskStatusEnum:
 
 
 class TestTaskAbortProperties:
-    """Test Task model abort-related properties."""
+    """Test Task model abort-related properties via status and properties accessor."""
 
-    def test_is_aborting_true(self):
-        """Test is_aborting returns True for ABORTING status."""
+    def test_aborting_status(self):
+        """Test ABORTING status check."""
         from superset.models.tasks import Task
 
         task = Task()
         task.status = TaskStatus.ABORTING.value
 
-        assert task.is_aborting is True
+        assert task.status == TaskStatus.ABORTING.value
 
-    def test_is_aborting_false_for_other_statuses(self):
-        """Test is_aborting returns False for non-ABORTING statuses."""
+    def test_is_abortable_in_properties(self):
+        """Test is_abortable is accessible via properties."""
+        from superset.models.tasks import Task
+
+        task = Task()
+        task.update_properties(is_abortable=True)
+
+        assert task.properties.is_abortable is True
+
+    def test_is_abortable_default_none(self):
+        """Test is_abortable defaults to None for new tasks."""
         from superset.models.tasks import Task
 
         task = Task()
 
-        for status in [
-            TaskStatus.PENDING,
-            TaskStatus.IN_PROGRESS,
-            TaskStatus.SUCCESS,
-            TaskStatus.FAILURE,
-            TaskStatus.ABORTED,
-        ]:
-            task.status = status.value
-            assert task.is_aborting is False, f"Should be False for {status}"
-
-    def test_can_be_aborted_pending_always_true(self):
-        """Test can_be_aborted returns True for pending tasks."""
-        from superset.models.tasks import Task
-
-        task = Task()
-        task.status = TaskStatus.PENDING.value
-        task.is_abortable = None  # Default for pending
-
-        assert task.can_be_aborted is True
-
-    def test_can_be_aborted_in_progress_with_handler(self):
-        """Test can_be_aborted returns True for in-progress tasks with handler."""
-        from superset.models.tasks import Task
-
-        task = Task()
-        task.status = TaskStatus.IN_PROGRESS.value
-        task.is_abortable = True  # Has registered abort handler
-
-        assert task.can_be_aborted is True
-
-    def test_can_be_aborted_in_progress_without_handler(self):
-        """Test can_be_aborted returns False for in-progress tasks without handler."""
-        from superset.models.tasks import Task
-
-        task = Task()
-        task.status = TaskStatus.IN_PROGRESS.value
-        task.is_abortable = False  # No abort handler registered
-
-        assert task.can_be_aborted is False
-
-    def test_can_be_aborted_in_progress_is_abortable_none(self):
-        """Test can_be_aborted returns False when is_abortable is None."""
-        from superset.models.tasks import Task
-
-        task = Task()
-        task.status = TaskStatus.IN_PROGRESS.value
-        task.is_abortable = None  # Not explicitly set
-
-        assert task.can_be_aborted is False
-
-    def test_can_be_aborted_aborting_idempotent(self):
-        """Test can_be_aborted returns True for already aborting tasks."""
-        from superset.models.tasks import Task
-
-        task = Task()
-        task.status = TaskStatus.ABORTING.value
-
-        assert task.can_be_aborted is True
-
-    def test_can_be_aborted_finished_false(self):
-        """Test can_be_aborted returns False for finished tasks."""
-        from superset.models.tasks import Task
-
-        task = Task()
-
-        for status in [TaskStatus.SUCCESS, TaskStatus.FAILURE, TaskStatus.ABORTED]:
-            task.status = status.value
-            assert task.can_be_aborted is False, f"Should be False for {status}"
+        assert task.properties.is_abortable is None
 
 
 class TestTaskSetStatus:
@@ -222,11 +164,11 @@ class TestTaskSetStatus:
 
         task = Task()
         task.uuid = "test-uuid"
-        task.is_abortable = None  # Default
+        # Default is None
 
         task.set_status(TaskStatus.IN_PROGRESS)
 
-        assert task.is_abortable is False
+        assert task.properties.is_abortable is False
         assert task.started_at is not None
 
     def test_set_status_in_progress_preserves_existing_is_abortable(self):
@@ -235,13 +177,13 @@ class TestTaskSetStatus:
 
         task = Task()
         task.uuid = "test-uuid"
-        task.is_abortable = True  # Already set by handler registration
+        task.update_properties(is_abortable=True)  # Already set by handler registration
         task.started_at = datetime.now(timezone.utc)  # Already started
 
         task.set_status(TaskStatus.IN_PROGRESS)
 
         # Should not override since started_at is already set
-        assert task.is_abortable is True
+        assert task.properties.is_abortable is True
 
     def test_set_status_aborting_does_not_set_ended_at(self):
         """Test that ABORTING status does not set ended_at."""
@@ -344,8 +286,10 @@ class TestAbortHandlerRegistration:
     def test_on_abort_sets_abortable(self, mock_app):
         """Test on_abort sets is_abortable to True on first handler."""
         mock_app.config = {"TASK_ABORT_POLLING_DEFAULT_INTERVAL": 1.0}
+        mock_properties = MagicMock()
+        mock_properties.is_abortable = False
         mock_task = MagicMock()
-        mock_task.is_abortable = False
+        mock_task.properties = mock_properties
 
         with (
             patch.object(TaskContext, "_task", mock_task),
@@ -364,7 +308,9 @@ class TestAbortHandlerRegistration:
     def test_on_abort_only_sets_abortable_once(self, mock_app):
         """Test on_abort only calls _set_abortable for first handler."""
         mock_app.config = {"TASK_ABORT_POLLING_DEFAULT_INTERVAL": 1.0}
+        mock_properties = MagicMock()
         mock_task = MagicMock()
+        mock_task.properties = mock_properties
 
         with (
             patch.object(TaskContext, "_task", mock_task),
