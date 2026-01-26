@@ -169,11 +169,9 @@ class TestTaskDAO:
 
         Should transition to ABORTING status.
         """
-        mock_properties = MagicMock()
-        mock_properties.is_abortable = True  # Has registered abort handler
         mock_task = MagicMock(spec=Task)
         mock_task.status = TaskStatus.IN_PROGRESS.value
-        mock_task.properties = mock_properties
+        mock_task.properties = {"is_abortable": True}  # Dict, not MagicMock
         mock_task.is_shared = False
         mock_task.subscriber_count = 0
         mock_find.return_value = mock_task
@@ -191,11 +189,9 @@ class TestTaskDAO:
         """Test abort of in-progress task without abort handler - raises error"""
         from superset.commands.tasks.exceptions import TaskNotAbortableError
 
-        mock_properties = MagicMock()
-        mock_properties.is_abortable = False  # No abort handler registered
         mock_task = MagicMock(spec=Task)
         mock_task.status = TaskStatus.IN_PROGRESS.value
-        mock_task.properties = mock_properties
+        mock_task.properties = {"is_abortable": False}  # Dict, not MagicMock
         mock_task.is_shared = False
         mock_task.subscriber_count = 0
         mock_find.return_value = mock_task
@@ -205,14 +201,12 @@ class TestTaskDAO:
 
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     def test_abort_task_in_progress_is_abortable_none(self, mock_find):
-        """Test abort of in-progress task with is_abortable=None - raises error"""
+        """Test abort of in-progress task with is_abortable not set - raises error"""
         from superset.commands.tasks.exceptions import TaskNotAbortableError
 
-        mock_properties = MagicMock()
-        mock_properties.is_abortable = None  # Default value - no handler registered
         mock_task = MagicMock(spec=Task)
         mock_task.status = TaskStatus.IN_PROGRESS.value
-        mock_task.properties = mock_properties
+        mock_task.properties = {}  # Empty dict - no is_abortable key
         mock_task.is_shared = False
         mock_task.subscriber_count = 0
         mock_find.return_value = mock_task

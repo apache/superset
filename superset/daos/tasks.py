@@ -245,7 +245,7 @@ class TaskDAO(BaseDAO[Task]):
 
         # IN_PROGRESS: Check if abortable
         if task.status == TaskStatus.IN_PROGRESS.value:
-            if task.properties.is_abortable is not True:
+            if task.properties.get("is_abortable") is not True:
                 raise TaskNotAbortableError(
                     f"Task {task_uuid} is in progress but has not registered "
                     "an abort handler (is_abortable is not true)"
@@ -362,7 +362,7 @@ class TaskDAO(BaseDAO[Task]):
                                 )
                             # IN_PROGRESS: Check if abortable, go to ABORTING
                             elif task.status == TaskStatus.IN_PROGRESS.value:
-                                if task.properties.is_abortable is True:
+                                if task.properties.get("is_abortable") is True:
                                     task.status = TaskStatus.ABORTING.value
                                     db.session.merge(task)
                                     logger.info(

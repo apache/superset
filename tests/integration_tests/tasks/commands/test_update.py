@@ -201,20 +201,20 @@ def test_update_all_supported_fields(
         # Verify all fields were updated
         assert result.uuid == task.uuid
         assert result.status == TaskStatus.FAILURE.value
-        assert result.properties.error_message == "Task failed due to error"
-        assert result.properties.progress_percent == 0.75
-        assert result.properties.progress_current == 75
-        assert result.properties.progress_total == 100
-        assert result.properties.is_abortable is True
+        assert result.properties.get("error_message") == "Task failed due to error"
+        assert result.properties.get("progress_percent") == 0.75
+        assert result.properties.get("progress_current") == 75
+        assert result.properties.get("progress_total") == 100
+        assert result.properties.get("is_abortable") is True
 
         # Verify in database
         db.session.refresh(task)
         assert task.status == TaskStatus.FAILURE.value
-        assert task.properties.error_message == "Task failed due to error"
-        assert task.properties.progress_percent == 0.75
-        assert task.properties.progress_current == 75
-        assert task.properties.progress_total == 100
-        assert task.properties.is_abortable is True
+        assert task.properties.get("error_message") == "Task failed due to error"
+        assert task.properties.get("progress_percent") == 0.75
+        assert task.properties.get("progress_current") == 75
+        assert task.properties.get("progress_total") == 100
+        assert task.properties.get("is_abortable") is True
     finally:
         # Cleanup
         db.session.delete(task)
@@ -254,11 +254,11 @@ def test_update_task_skip_security_check(
 
         # Verify update succeeded
         assert result.uuid == task.uuid
-        assert result.properties.progress_percent == 0.75
+        assert result.properties.get("progress_percent") == 0.75
 
         # Verify in database
         db.session.refresh(task)
-        assert task.properties.progress_percent == 0.75
+        assert task.properties.get("progress_percent") == 0.75
     finally:
         # Cleanup
         db.session.delete(task)

@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+import traceback
 from http.client import HTTPResponse
 from typing import Optional, TYPE_CHECKING
 from urllib import request
@@ -28,7 +29,13 @@ from flask import g
 from superset_core.api.tasks import TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
-from superset.tasks.types import ChosenExecutor, Executor, ExecutorType, FixedExecutor
+from superset.tasks.types import (
+    ChosenExecutor,
+    Executor,
+    ExecutorType,
+    FixedExecutor,
+    TaskProperties,
+)
 from superset.utils import json
 from superset.utils.urls import get_url_path
 
@@ -229,3 +236,80 @@ def get_finished_dedup_key(task_uuid: str) -> str:
         'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
     """
     return task_uuid
+
+
+# -----------------------------------------------------------------------------
+# TaskProperties helper functions
+# -----------------------------------------------------------------------------
+
+
+def progress_update(progress: float | int | tuple[int, int]) -> TaskProperties:
+    """
+    Create a properties update dict for progress values.
+
+    :param progress: One of:
+        - float (0.0-1.0): Percentage only
+        - int: Count only (total unknown)
+        - tuple[int, int]: (current, total) with auto-computed percentage
+    :returns: TaskProperties dict with appropriate progress fields set
+
+    Example:
+        task.update_properties(progress_update((50, 100)))
+    """
+    if isinstance(progress, float):
+        return {"progress_percent": progress}
+    if isinstance(progress, int):
+        return {"progress_current": progress}
+    # tuple
+    current, total = progress
+    result: TaskProperties = {
+        "progress_current": current,
+        "progress_total": total,
+    }
+    if total > 0:
+        result["progress_percent"] = current / total
+    return result
+
+
+def error_update(exception: BaseException) -> TaskProperties:
+    """
+    Create a properties update dict from an exception.
+
+    :param exception: The exception that caused the failure
+    :returns: TaskProperties dict with error fields populated
+    """
+    return {
+        "error_message": str(exception),
+        "exception_type": type(exception).__name__,
+        "stack_trace": traceback.format_exc(),
+    }
+
+
+def parse_properties(json_str: str | None) -> TaskProperties:
+    """
+    Parse JSON string into TaskProperties dict.
+
+    Returns empty dict on parse errors. Unknown keys are preserved
+    for forward compatibility (allows adding new properties without
+    breaking existing code).
+
+    :param json_str: JSON string or None
+    :returns: TaskProperties dict (sparse - only contains keys that were set)
+    """
+    if not json_str:
+        return {}
+
+    try:
+        return json.loads(json_str)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
+def serialize_properties(props: TaskProperties) -> str:
+    """
+    Serialize TaskProperties to JSON string.
+
+    :param props: TaskProperties dict
+    :returns: JSON string
+    """
+    return json.dumps(props)

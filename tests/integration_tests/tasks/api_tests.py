@@ -530,25 +530,27 @@ class TestTaskApi(SupersetTestCase):
                 "task_name",
                 "status",
                 "created_on",
+                "created_on_delta_humanized",
                 "changed_on",
+                "changed_by",
                 "started_at",
                 "ended_at",
                 "created_by",
                 "user_id",
-                "database_id",
-                "error_message",
                 "payload",
+                "properties",
                 "duration_seconds",
-                "is_finished",
-                "is_successful",
-                "is_aborted",
-                "progress_percent",
-                "progress_current",
-                "progress_total",
+                "scope",
+                "subscriber_count",
+                "subscribers",
             ]
 
             for field in expected_fields:
                 assert field in result, f"Field {field} missing from response"
+
+            # Verify properties is a dict with expected structure
+            properties = result["properties"]
+            assert isinstance(properties, dict)
 
     def test_task_payload_serialization(self):
         """
@@ -601,7 +603,9 @@ class TestTaskApi(SupersetTestCase):
             data = json.loads(rv.data.decode("utf-8"))
             result = data["result"]
 
-            # Check computed properties
-            assert result["is_finished"] is True
-            assert result["is_successful"] is True
-            assert result["is_aborted"] is False
+            # Check status field (computed properties are now derived from status)
+            assert result["status"] == TaskStatus.SUCCESS.value
+
+            # Properties dict should exist and be a dict
+            assert "properties" in result
+            assert isinstance(result["properties"], dict)
