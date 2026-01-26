@@ -37,15 +37,15 @@ interface GsheetsSetupResult {
 
 /**
  * Sets up gsheets database and navigates to create dataset page.
- * Skips test if gsheets connector unavailable.
+ * Skips test if gsheets connector unavailable (test.skip() throws, so no return).
  * @param testInfo - Test info for parallelIndex to avoid name collisions in parallel runs
- * @returns Setup result with names and page object, or null if test.skip() was called
+ * @returns Setup result with names and page object
  */
 async function setupGsheetsDataset(
   page: Page,
   testAssets: TestAssets,
   testInfo: TestInfo,
-): Promise<GsheetsSetupResult | null> {
+): Promise<GsheetsSetupResult> {
   // Public Google Sheet for testing (published to web, no auth required)
   // This is a Netflix dataset that is publicly accessible via Google Visualization API
   const sheetUrl =
@@ -84,8 +84,7 @@ async function setupGsheetsDataset(
         body: `Google Sheets connector unavailable: ${errorText}`,
         contentType: 'text/plain',
       });
-      test.skip();
-      return null;
+      test.skip(); // throws, no return needed
     }
     throw new Error(`Failed to create gsheets database: ${errorText}`);
   }
@@ -117,17 +116,18 @@ async function setupGsheetsDataset(
       body: `Table "${sheetName}" not found in dropdown after timeout.`,
       contentType: 'text/plain',
     });
-    test.skip();
-    return null;
+    test.skip(); // throws, no return needed
   }
 
   return { sheetName, dbName, createDatasetPage };
 }
 
 test('should create a dataset via wizard', async ({ page, testAssets }) => {
-  const setup = await setupGsheetsDataset(page, testAssets, test.info());
-  if (!setup) return; // test.skip() was called
-  const { sheetName, createDatasetPage } = setup;
+  const { sheetName, createDatasetPage } = await setupGsheetsDataset(
+    page,
+    testAssets,
+    test.info(),
+  );
 
   // Set up response intercept to capture new dataset ID
   const createResponsePromise = waitForPost(page, ENDPOINTS.DATASET, {
@@ -177,9 +177,11 @@ test('should create a dataset without exploring', async ({
   page,
   testAssets,
 }) => {
-  const setup = await setupGsheetsDataset(page, testAssets, test.info());
-  if (!setup) return; // test.skip() was called
-  const { sheetName, createDatasetPage } = setup;
+  const { sheetName, createDatasetPage } = await setupGsheetsDataset(
+    page,
+    testAssets,
+    test.info(),
+  );
 
   // Set up response intercept to capture dataset ID
   const createResponsePromise = waitForPost(page, ENDPOINTS.DATASET, {
