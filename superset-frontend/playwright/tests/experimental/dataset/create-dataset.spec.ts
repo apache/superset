@@ -202,7 +202,7 @@ test('should create a dataset without exploring', async ({
 
   // Verify redirect to dataset list (not chart creation)
   // Note: "Create dataset" action does not show a toast
-  // await page.waitForURL(/.*tablemodelview\/list.*/);
+  await page.waitForURL(/.*tablemodelview\/list.*/);
 
   // Wait for table load, verify row visible
   const datasetListPage = new DatasetListPage(page);

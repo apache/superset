@@ -63,6 +63,12 @@ export class AceEditor {
     await this.locator
       .locator(ACE_EDITOR_SELECTORS.CONTENT)
       .waitFor({ state: 'attached' });
+    // Wait for window.ace library to be loaded (may load async)
+    await this.page.waitForFunction(
+      () =>
+        typeof (window as unknown as { ace?: unknown }).ace !== 'undefined',
+      { timeout: 10000 },
+    );
   }
 
   /**

@@ -215,7 +215,7 @@ test('should duplicate a dataset with new name', async ({
   const duplicateId = duplicateData.result?.id ?? duplicateData.id;
   expect(duplicateId, 'Duplicate API should return dataset id').toBeTruthy();
 
-  // Track duplicate for cleanup (original is example data, don't delete it)
+  // Track duplicate for cleanup (original is already tracked by createTestDataset)
   testAssets.trackDataset(duplicateId);
 
   // Modal should close
