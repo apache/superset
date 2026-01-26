@@ -195,7 +195,7 @@ stages:
               - task: PowerShell@2
                 displayName: 'Rehydrate & validate client config'
                 env:
-                  CLIENT_CONFIG: $(client-config)
+                  CLIENT_CONFIG: $(blue-dev-secret)
                 inputs:
                   pwsh: true
                   targetType: inline
