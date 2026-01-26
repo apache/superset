@@ -53,6 +53,7 @@ spec:
         checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
         checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
+        checksum/extraConfigsFiles: {{ .Values.extraConfigsFiles | toYaml | sha256sum }}           
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
         checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
@@ -117,7 +118,7 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
-            {{- if .Values.extraConfigs }}
+            {{- if or .Values.extraConfigs .Values.extraConfigsFiles }}
             - name: superset-extra-config
               mountPath: {{ .Values.extraConfigMountPath | quote }}
               readOnly: true
@@ -177,7 +178,7 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
-        {{- if .Values.extraConfigs }}
+        {{- if or .Values.extraConfigs .Values.extraConfigsFiles }}
         - name: superset-extra-config
           configMap:
             name: {{ template "superset.fullname" . }}-extra-config
