@@ -113,6 +113,11 @@ const sidebars = {
         'testing/ci-cd',
       ],
     },
+    {
+      type: 'link',
+      label: 'API Reference',
+      href: '/docs/api',
+    },
   ],
 };
 
