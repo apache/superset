@@ -243,3 +243,140 @@ def test_redshift_mask_encrypted_extra() -> None:
     assert masked_config["aws_iam"]["region"] == "us-east-1"
     assert masked_config["aws_iam"]["workgroup_name"] == "my-workgroup"
     assert masked_config["aws_iam"]["db_name"] == "dev"
+
+
+def test_redshift_update_params_with_iam_provisioned_cluster() -> None:
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+    from superset.db_engine_specs.redshift import RedshiftEngineSpec
+
+    database = MagicMock()
+    database.encrypted_extra = json.dumps(
+        {
+            "aws_iam": {
+                "enabled": True,
+                "role_arn": "arn:aws:iam::123456789012:role/RedshiftRole",
+                "region": "us-east-1",
+                "cluster_identifier": "my-redshift-cluster",
+                "db_username": "superset_user",
+                "db_name": "analytics",
+            }
+        }
+    )
+    database.sqlalchemy_uri_decrypted = (
+        "redshift+psycopg2://user@my-redshift-cluster.abc123.us-east-1"
+        ".redshift.amazonaws.com:5439/analytics"
+    )
+
+    params: dict[str, Any] = {}
+
+    with (
+        patch.object(
+            AWSIAMAuthMixin,
+            "get_iam_credentials",
+            return_value={
+                "AccessKeyId": "ASIA...",
+                "SecretAccessKey": "secret...",
+                "SessionToken": "token...",
+            },
+        ),
+        patch.object(
+            AWSIAMAuthMixin,
+            "generate_redshift_cluster_credentials",
+            return_value=("IAM:superset_user", "cluster-temp-password"),
+        ),
+    ):
+        RedshiftEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert "connect_args" in params
+    assert params["connect_args"]["password"] == "cluster-temp-password"  # noqa: S105
+    assert params["connect_args"]["user"] == "IAM:superset_user"
+    assert params["connect_args"]["sslmode"] == "verify-ca"
+
+
+def test_redshift_update_params_provisioned_cluster_with_external_id() -> None:
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+    from superset.db_engine_specs.redshift import RedshiftEngineSpec
+
+    database = MagicMock()
+    database.encrypted_extra = json.dumps(
+        {
+            "aws_iam": {
+                "enabled": True,
+                "role_arn": "arn:aws:iam::222222222222:role/CrossAccountRedshift",
+                "external_id": "superset-prod-12345",
+                "region": "us-west-2",
+                "cluster_identifier": "prod-cluster",
+                "db_username": "analytics_user",
+                "db_name": "prod_db",
+                "session_duration": 1800,
+            }
+        }
+    )
+    database.sqlalchemy_uri_decrypted = (
+        "redshift+psycopg2://user@prod-cluster.xyz789.us-west-2"
+        ".redshift.amazonaws.com:5439/prod_db"
+    )
+
+    params: dict[str, Any] = {}
+
+    with (
+        patch.object(
+            AWSIAMAuthMixin,
+            "get_iam_credentials",
+            return_value={
+                "AccessKeyId": "ASIA...",
+                "SecretAccessKey": "secret...",
+                "SessionToken": "token...",
+            },
+        ) as mock_get_creds,
+        patch.object(
+            AWSIAMAuthMixin,
+            "generate_redshift_cluster_credentials",
+            return_value=("IAM:analytics_user", "cluster-temp-password"),
+        ),
+    ):
+        RedshiftEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    mock_get_creds.assert_called_once_with(
+        role_arn="arn:aws:iam::222222222222:role/CrossAccountRedshift",
+        region="us-west-2",
+        external_id="superset-prod-12345",
+        session_duration=1800,
+    )
+
+
+def test_redshift_mask_encrypted_extra_provisioned_cluster() -> None:
+    from superset.db_engine_specs.redshift import RedshiftEngineSpec
+
+    encrypted_extra = json.dumps(
+        {
+            "aws_iam": {
+                "enabled": True,
+                "role_arn": "arn:aws:iam::123456789012:role/SecretRole",
+                "external_id": "secret-external-id-12345",
+                "region": "us-east-1",
+                "cluster_identifier": "my-cluster",
+                "db_username": "superset_user",
+                "db_name": "analytics",
+            }
+        }
+    )
+
+    masked = RedshiftEngineSpec.mask_encrypted_extra(encrypted_extra)
+    assert masked is not None
+
+    masked_config = json.loads(masked)
+
+    # role_arn and external_id should be masked
+    assert (
+        masked_config["aws_iam"]["role_arn"]
+        != "arn:aws:iam::123456789012:role/SecretRole"
+    )
+    assert masked_config["aws_iam"]["external_id"] != "secret-external-id-12345"
+
+    # Non-sensitive fields should remain unchanged
+    assert masked_config["aws_iam"]["enabled"] is True
+    assert masked_config["aws_iam"]["region"] == "us-east-1"
+    assert masked_config["aws_iam"]["cluster_identifier"] == "my-cluster"
+    assert masked_config["aws_iam"]["db_username"] == "superset_user"
+    assert masked_config["aws_iam"]["db_name"] == "analytics"
