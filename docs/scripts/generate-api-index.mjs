@@ -130,11 +130,10 @@ You can use this API to programmatically interact with Superset for automation, 
 <Alert
   type="info"
   showIcon
-  message="Interactive Documentation"
+  message="Interactive Testing"
   description={
     <span>
-      Each endpoint below has interactive "Try It Out" functionality.
-      You can also access the Swagger UI on your local instance at <strong>/swagger/v1</strong>.
+      To interactively test API requests, access the Swagger UI on your Superset instance at <strong>/swagger/v1</strong>.
     </span>
   }
   style={{ marginBottom: '24px' }}

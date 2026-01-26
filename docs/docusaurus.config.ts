@@ -211,7 +211,7 @@ const config: Config = {
               sidebarCollapsed: true,
             },
             showSchemas: false,
-            hideSendButton: false,
+            hideSendButton: true,
             showInfoPage: false,
           } satisfies OpenApiPlugin.Options,
         },
