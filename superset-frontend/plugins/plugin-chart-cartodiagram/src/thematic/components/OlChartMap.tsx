@@ -20,7 +20,7 @@ import { DataRecord } from '@superset-ui/core';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Feature, FeatureCollection } from 'geojson';
-import { debounce } from 'lodash';
+import { debounce, xor, uniq } from 'lodash';
 import Point from 'ol/geom/Point';
 import { View, Feature as OlFeature } from 'ol';
 import BaseEvent from 'ol/events/Event';
@@ -435,6 +435,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     const selectedFeatures = getSelectedFeatures(
       currentDataLayers,
       filterState,
+      crossFilterColumn,
     );
 
     if (filterState.value !== null && filterState.value !== undefined) {
@@ -450,7 +451,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     } else {
       setSelectionBackgroundOpacity(currentDataLayers, FULL_OPACITY);
     }
-  }, [filterState, currentDataLayers, olMap, filteredData]);
+  }, [filterState, currentDataLayers, olMap, filteredData, crossFilterColumn]);
 
   useEffect(() => {
     const { extentMode, fixedMaxX, fixedMaxY, fixedMinX, fixedMinY } =
@@ -607,11 +608,13 @@ export const OlChartMap = (props: OlChartMapProps) => {
 
     const evtKey = olMap.on('singleclick', evt => {
       const pixel = olMap.getEventPixel(evt.originalEvent);
+      const clickedFeatures: OlFeature[] = [];
 
-      const clickedFeature = olMap.forEachFeatureAtPixel(
+      olMap.forEachFeatureAtPixel(
         pixel,
-        // stop iteration after first feature
-        (feat: OlFeature) => feat,
+        (feat: OlFeature) => {
+          clickedFeatures.push(feat);
+        },
         {
           layerFilter: layer =>
             currentDataLayers
@@ -620,17 +623,22 @@ export const OlChartMap = (props: OlChartMapProps) => {
         },
       );
 
-      if (clickedFeature === undefined) {
+      if (!clickedFeatures.length) {
         return;
       }
 
-      const val = clickedFeature.get(crossFilterColumn);
-      if (val === undefined || val === null) {
+      const vals = uniq(
+        clickedFeatures
+          .map(f => f.get(crossFilterColumn))
+          .filter(val => val !== undefined && val !== null),
+      );
+
+      if (!vals.length) {
         return;
       }
 
       // We reset the filter if a filtered feature is clicked again.
-      const resetFilter = filterState.selectedValues === val;
+      const resetFilter = !xor(filterState.selectedValues || [], vals).length;
 
       setDataMask({
         extraFormData: {
@@ -640,14 +648,14 @@ export const OlChartMap = (props: OlChartMapProps) => {
                 {
                   col: crossFilterColumn,
                   op: 'IN',
-                  val: [val],
+                  val: vals,
                 },
               ],
         },
         filterState: {
-          label: resetFilter ? null : crossFilterColumn,
-          value: resetFilter ? null : crossFilterColumn,
-          selectedValues: resetFilter ? null : val,
+          label: resetFilter ? null : vals.join(', '),
+          value: resetFilter ? null : [vals],
+          selectedValues: resetFilter ? null : vals,
         },
       });
     });

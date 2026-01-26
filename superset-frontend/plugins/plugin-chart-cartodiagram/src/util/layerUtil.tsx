@@ -220,10 +220,10 @@ export const removeSelectionLayer = (olMap: Map) => {
 export const getSelectedFeatures = (
   dataLayers: VectorLayer<VectorSource>[],
   filterState: FilterState,
+  crossFilterColumn: string,
 ) => {
   let selectedFeatures: Feature[] = [];
   if (
-    filterState?.value &&
     filterState.selectedValues !== null &&
     filterState.selectedValues !== undefined &&
     dataLayers
@@ -232,7 +232,9 @@ export const getSelectedFeatures = (
       dataLayer
         .getSource()!
         .getFeatures()
-        .filter(f => f.get(filterState.value) === filterState.selectedValues),
+        .filter(f =>
+          filterState.selectedValues.includes(f.get(crossFilterColumn)),
+        ),
     );
   }
   return selectedFeatures;

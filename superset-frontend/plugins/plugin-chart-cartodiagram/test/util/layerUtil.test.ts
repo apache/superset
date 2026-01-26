@@ -176,10 +176,13 @@ describe('layerUtil', () => {
 
   describe('getSelectedFeatures', () => {
     it('returns the selected features from the data layers', () => {
-      const selectedFeatures = getSelectedFeatures([dataLayer], {
-        value: 'foo',
-        selectedValues: 'bar',
-      });
+      const selectedFeatures = getSelectedFeatures(
+        [dataLayer],
+        {
+          selectedValues: ['bar'],
+        },
+        'foo',
+      );
       expect(selectedFeatures).toHaveLength(1);
       expect(selectedFeatures[0]).toEqual(matchingFeature);
     });
