@@ -40,7 +40,6 @@ from flask_appbuilder.const import AUTH_OAUTH
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
-from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
@@ -626,13 +625,8 @@ def get_spa_template_context(
     }
 
 
-class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
-    template = "superset/fab_overrides/list.html"
-
-
 class SupersetModelView(ModelView):
     page_size = 100
-    list_widget = SupersetListWidget
 
     def render_app_template(self) -> FlaskResponse:
         context = get_spa_template_context()

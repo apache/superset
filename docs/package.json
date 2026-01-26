@@ -57,7 +57,7 @@
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
     "antd": "^6.2.1",
-    "caniuse-lite": "^1.0.30001765",
+    "caniuse-lite": "^1.0.30001766",
     "docusaurus-plugin-less": "^2.0.2",
     "js-yaml": "^4.1.1",
     "js-yaml-loader": "^1.2.2",
@@ -75,7 +75,7 @@
     "swagger-ui-react": "^5.31.0",
     "tinycolor2": "^1.4.2",
     "ts-loader": "^9.5.4",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.9.1",
@@ -89,7 +89,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.37.5",
-    "globals": "^17.0.0",
+    "globals": "^17.1.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.53.1",

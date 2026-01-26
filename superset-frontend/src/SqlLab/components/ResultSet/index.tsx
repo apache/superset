@@ -288,9 +288,16 @@ const ResultSet = ({
 
         all_columns: results.columns.map(column => column.column_name),
       });
-      const url = mountExploreUrl(null, {
-        [URL_PARAMS.formDataKey.name]: key,
-      });
+      const force = false;
+      const includeAppRoot = openInNewWindow;
+      const url = mountExploreUrl(
+        null,
+        {
+          [URL_PARAMS.formDataKey.name]: key,
+        },
+        force,
+        includeAppRoot,
+      );
       if (openInNewWindow) {
         window.open(url, '_blank', 'noreferrer');
       } else {
