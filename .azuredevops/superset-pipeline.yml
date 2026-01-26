@@ -369,29 +369,30 @@ stages:
                   fi
 
                   # Create .env.deploy file
+                  # Note: Values are quoted to handle special characters in passwords
                   # Note: superset_config.py constructs SQLALCHEMY_DATABASE_URI from DATABASE_* variables
                   cat > .env.deploy << EOF
-                  SUPERSET_IMAGE=${FULL_IMAGE_NAME}
+                  SUPERSET_IMAGE="${FULL_IMAGE_NAME}"
 
-                  SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
-                  SUPERSET_ADMIN_USER=${SUPERSET_ADMIN_USER}
-                  SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
-                  SUPERSET_PORT=${SUPERSET_PORT}
+                  SUPERSET_SECRET_KEY="${SUPERSET_SECRET_KEY}"
+                  SUPERSET_ADMIN_USER="${SUPERSET_ADMIN_USER}"
+                  SUPERSET_ADMIN_PASSWORD="${SUPERSET_ADMIN_PASSWORD}"
+                  SUPERSET_PORT="${SUPERSET_PORT}"
 
                   # Database configuration (for superset_config.py)
-                  DATABASE_DIALECT=postgresql
-                  DATABASE_USER=superset
-                  DATABASE_PASSWORD=superset
-                  DATABASE_HOST=db
-                  DATABASE_PORT=5432
-                  DATABASE_DB=superset
+                  DATABASE_DIALECT="postgresql"
+                  DATABASE_USER="superset"
+                  DATABASE_PASSWORD="superset"
+                  DATABASE_HOST="db"
+                  DATABASE_PORT="5432"
+                  DATABASE_DB="superset"
 
                   # Redis configuration
-                  REDIS_HOST=redis
-                  REDIS_PORT=6379
+                  REDIS_HOST="redis"
+                  REDIS_PORT="6379"
 
-                  DOCKER_NETWORK=${DOCKER_NETWORK}
-                  DOCKER_INITDB_DIR=${DOCKER_INITDB_DIR}
+                  DOCKER_NETWORK="${DOCKER_NETWORK}"
+                  DOCKER_INITDB_DIR="${DOCKER_INITDB_DIR}"
                   EOF
 
                   echo "✓ Created .env.deploy file"
