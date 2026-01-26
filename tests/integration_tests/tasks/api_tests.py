@@ -70,7 +70,7 @@ class TestTaskApi(SupersetTestCase):
                     task_name=f"Test Task {i}",
                     scope=TaskScope.PRIVATE,
                     user_id=admin.id,
-                    payload='{"test": "data"}',
+                    payload={"test": "data"},
                 )
 
                 # Set created_by for test purposes (DAO uses Flask-AppBuilder context)
@@ -91,7 +91,7 @@ class TestTaskApi(SupersetTestCase):
                 task_name="Gamma Task",
                 scope=TaskScope.PRIVATE,
                 user_id=gamma.id,
-                payload='{"user": "gamma"}',
+                payload={"user": "gamma"},
             )
             # Set created_by for test purposes
             gamma_task.created_by = gamma

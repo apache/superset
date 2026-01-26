@@ -133,7 +133,7 @@ def test_update_task_payload(mock_get_user, app_context, get_user, login_as) -> 
         task_key="payload_test",
         scope=TaskScope.PRIVATE,
         user_id=admin.id,
-        payload='{"initial": "data"}',
+        payload={"initial": "data"},
     )
     task.created_by = admin
     task.set_status(TaskStatus.IN_PROGRESS)
