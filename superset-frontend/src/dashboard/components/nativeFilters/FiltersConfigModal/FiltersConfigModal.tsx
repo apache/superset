@@ -450,9 +450,7 @@ function FiltersConfigModal({
     ? Icons.FullscreenExitOutlined
     : Icons.FullscreenOutlined;
 
-  const [formValuesVersion, setFormValuesVersion] = useState(0);
-
-  const debouncedHandleErroredItems = useMemo(
+  const handleValuesChange = useMemo(
     () =>
       debounce(() => {
         setSaveAlertVisible(false);
@@ -460,11 +458,6 @@ function FiltersConfigModal({
       }, Constants.SLOW_DEBOUNCE),
     [modalSaveLogic],
   );
-
-  const handleValuesChange = useCallback(() => {
-    setFormValuesVersion(prev => prev + 1);
-    debouncedHandleErroredItems();
-  }, [debouncedHandleErroredItems]);
 
   const handleActiveFilterPanelChange = useCallback(
     (key: string | string[]) => setActiveFilterPanelKey(key),
@@ -574,7 +567,6 @@ function FiltersConfigModal({
                 restoreItem={restoreItem}
                 onCollapseChange={setActiveCollapseKeys}
                 onCrossListDrop={handleCrossListMove}
-                formValuesVersion={formValuesVersion}
               />
 
               <ConfigModalContent
