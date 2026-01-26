@@ -12406,6 +12406,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AnnotationLayerRestApi.post"
+              },
+              "example": {
+                "descr": "string",
+                "name": "string"
               }
             }
           },
@@ -12896,6 +12900,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AnnotationLayerRestApi.put"
+              },
+              "example": {
+                "descr": "string",
+                "name": "string"
               }
             }
           },
@@ -13173,6 +13181,13 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AnnotationRestApi.post"
+              },
+              "example": {
+                "end_dttm": "2024-01-15T10:30:00Z",
+                "json_metadata": "string",
+                "long_descr": "string",
+                "short_descr": "string",
+                "start_dttm": "2024-01-15T10:30:00Z"
               }
             }
           },
@@ -13459,6 +13474,13 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AnnotationRestApi.put"
+              },
+              "example": {
+                "end_dttm": "2024-01-15T10:30:00Z",
+                "json_metadata": "string",
+                "long_descr": "string",
+                "short_descr": "string",
+                "start_dttm": "2024-01-15T10:30:00Z"
               }
             }
           },
@@ -13859,6 +13881,14 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CacheInvalidationRequestSchema"
+              },
+              "example": {
+                "datasource_uids": [
+                  "string"
+                ],
+                "datasources": [
+                  {}
+                ]
               }
             }
           },
@@ -14134,6 +14164,32 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChartRestApi.post"
+              },
+              "example": {
+                "cache_timeout": 1,
+                "certification_details": "string",
+                "certified_by": "string",
+                "dashboards": [
+                  1
+                ],
+                "datasource_id": 1,
+                "datasource_name": "string",
+                "datasource_type": "table",
+                "description": "string",
+                "external_url": "string",
+                "is_managed_externally": true,
+                "owners": [
+                  1
+                ],
+                "params": "string",
+                "query_context": "string",
+                "query_context_generation": true,
+                "slice_name": "string",
+                "viz_type": [
+                  "bar",
+                  "area",
+                  "table"
+                ]
               }
             }
           },
@@ -14352,6 +14408,20 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChartDataQueryContextSchema"
+              },
+              "example": {
+                "custom_cache_timeout": 1,
+                "datasource": {
+                  "id": {},
+                  "type": "table"
+                },
+                "force": true,
+                "form_data": {},
+                "queries": [
+                  {}
+                ],
+                "result_format": {},
+                "result_type": {}
               }
             }
           },
@@ -14823,6 +14893,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChartCacheWarmUpRequestSchema"
+              },
+              "example": {
+                "chart_id": 1,
+                "dashboard_id": 1,
+                "extra_filters": "string"
               }
             }
           },
@@ -15117,6 +15192,34 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChartRestApi.put"
+              },
+              "example": {
+                "cache_timeout": 1,
+                "certification_details": "string",
+                "certified_by": "string",
+                "dashboards": [
+                  1
+                ],
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "description": "string",
+                "external_url": "string",
+                "is_managed_externally": true,
+                "owners": [
+                  1
+                ],
+                "params": "string",
+                "query_context": "string",
+                "query_context_generation": true,
+                "slice_name": "string",
+                "tags": [
+                  1
+                ],
+                "viz_type": [
+                  "bar",
+                  "area",
+                  "table"
+                ]
               }
             }
           },
@@ -15934,6 +16037,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CssTemplateRestApi.post"
+              },
+              "example": {
+                "css": "string",
+                "template_name": "string"
               }
             }
           },
@@ -16423,6 +16530,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CssTemplateRestApi.put"
+              },
+              "example": {
+                "css": "string",
+                "template_name": "string"
               }
             }
           },
@@ -16725,6 +16836,24 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DashboardRestApi.post"
+              },
+              "example": {
+                "certification_details": "string",
+                "certified_by": "string",
+                "css": "string",
+                "dashboard_title": "string",
+                "external_url": "string",
+                "is_managed_externally": true,
+                "json_metadata": "string",
+                "owners": [
+                  1
+                ],
+                "position_json": "string",
+                "published": true,
+                "roles": [
+                  1
+                ],
+                "slug": "string"
               }
             }
           },
@@ -17508,6 +17637,12 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DashboardCopySchema"
+              },
+              "example": {
+                "css": "string",
+                "dashboard_title": "string",
+                "duplicate_slices": true,
+                "json_metadata": "string"
               }
             }
           },
@@ -17812,6 +17947,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EmbeddedDashboardConfig"
+              },
+              "example": {
+                "allowed_domains": [
+                  "string"
+                ]
               }
             }
           },
@@ -17894,6 +18034,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EmbeddedDashboardConfig"
+              },
+              "example": {
+                "allowed_domains": [
+                  "string"
+                ]
               }
             }
           },
@@ -18127,6 +18272,27 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DashboardRestApi.put"
+              },
+              "example": {
+                "certification_details": "string",
+                "certified_by": "string",
+                "css": "string",
+                "dashboard_title": "string",
+                "external_url": "string",
+                "is_managed_externally": true,
+                "json_metadata": "string",
+                "owners": [
+                  1
+                ],
+                "position_json": "string",
+                "published": true,
+                "roles": [
+                  1
+                ],
+                "slug": "string",
+                "tags": [
+                  1
+                ]
               }
             }
           },
@@ -18238,6 +18404,20 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DashboardScreenshotPostSchema"
+              },
+              "example": {
+                "dataMask": {
+                  "key": "value"
+                },
+                "activeTabs": [
+                  "string"
+                ],
+                "anchor": "string",
+                "urlParams": [
+                  [
+                    "string"
+                  ]
+                ]
               }
             }
           }
@@ -18326,6 +18506,22 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DashboardColorsConfigUpdateSchema"
+              },
+              "example": {
+                "color_namespace": "string",
+                "color_scheme": "string",
+                "map_label_colors": {
+                  "key": "value"
+                },
+                "shared_label_colors": {
+                  "key": "value"
+                },
+                "label_colors": {
+                  "key": "value"
+                },
+                "color_scheme_domain": [
+                  "string"
+                ]
               }
             }
           },
@@ -18659,6 +18855,9 @@
               },
               "schema": {
                 "$ref": "#/components/schemas/TemporaryCachePostSchema"
+              },
+              "example": {
+                "value": "string"
               }
             }
           },
@@ -18922,6 +19121,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TemporaryCachePutSchema"
+              },
+              "example": {
+                "value": "string"
               }
             }
           },
@@ -19008,6 +19210,17 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DashboardNativeFiltersConfigUpdateSchema"
+              },
+              "example": {
+                "deleted": [
+                  "string"
+                ],
+                "modified": [
+                  {}
+                ],
+                "reordered": [
+                  "string"
+                ]
               }
             }
           },
@@ -19203,6 +19416,16 @@
               },
               "schema": {
                 "$ref": "#/components/schemas/DashboardPermalinkStateSchema"
+              },
+              "example": {
+                "activeTabs": [
+                  "string"
+                ],
+                "anchor": "string",
+                "dataMask": {},
+                "urlParams": [
+                  {}
+                ]
               }
             }
           },
@@ -19608,6 +19831,30 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DatabaseRestApi.post"
+              },
+              "example": {
+                "allow_ctas": true,
+                "allow_cvas": true,
+                "allow_dml": true,
+                "allow_file_upload": true,
+                "allow_run_async": true,
+                "cache_timeout": 1,
+                "configuration_method": {},
+                "database_name": "string",
+                "driver": "string",
+                "engine": "string",
+                "expose_in_sqllab": true,
+                "external_url": "string",
+                "extra": "string",
+                "force_ctas_schema": "string",
+                "impersonate_user": true,
+                "is_managed_externally": true,
+                "masked_encrypted_extra": "string",
+                "parameters": {},
+                "server_cert": "string",
+                "sqlalchemy_uri": "string",
+                "ssh_tunnel": {},
+                "uuid": "string"
               }
             }
           },
@@ -20264,6 +20511,19 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DatabaseTestConnectionSchema"
+              },
+              "example": {
+                "configuration_method": {},
+                "database_name": "string",
+                "driver": "string",
+                "engine": "string",
+                "extra": "string",
+                "impersonate_user": true,
+                "masked_encrypted_extra": "string",
+                "parameters": {},
+                "server_cert": "string",
+                "sqlalchemy_uri": "string",
+                "ssh_tunnel": {}
               }
             }
           },
@@ -20408,6 +20668,23 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DatabaseValidateParametersSchema"
+              },
+              "example": {
+                "catalog": {
+                  "key": "value"
+                },
+                "configuration_method": {},
+                "database_name": "string",
+                "driver": "string",
+                "engine": "string",
+                "extra": "string",
+                "id": 1,
+                "impersonate_user": true,
+                "masked_encrypted_extra": "string",
+                "parameters": {
+                  "key": "value"
+                },
+                "server_cert": "string"
               }
             }
           },
@@ -20624,6 +20901,30 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DatabaseRestApi.put"
+              },
+              "example": {
+                "allow_ctas": true,
+                "allow_cvas": true,
+                "allow_dml": true,
+                "allow_file_upload": true,
+                "allow_run_async": true,
+                "cache_timeout": 1,
+                "configuration_method": {},
+                "database_name": "string",
+                "driver": "string",
+                "engine": "string",
+                "expose_in_sqllab": true,
+                "external_url": "string",
+                "extra": "string",
+                "force_ctas_schema": "string",
+                "impersonate_user": true,
+                "is_managed_externally": true,
+                "masked_encrypted_extra": "string",
+                "parameters": {},
+                "server_cert": "string",
+                "sqlalchemy_uri": "string",
+                "ssh_tunnel": {},
+                "uuid": "string"
               }
             }
           },
@@ -22071,6 +22372,12 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ValidateSQLRequest"
+              },
+              "example": {
+                "catalog": "string",
+                "schema": "string",
+                "sql": "string",
+                "template_params": {}
               }
             }
           },
@@ -22376,6 +22683,20 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DatasetRestApi.post"
+              },
+              "example": {
+                "always_filter_main_dttm": true,
+                "catalog": "string",
+                "database": 1,
+                "external_url": "string",
+                "is_managed_externally": true,
+                "normalize_columns": true,
+                "owners": [
+                  1
+                ],
+                "schema": "string",
+                "sql": "string",
+                "table_name": "string"
               }
             }
           },
@@ -22659,6 +22980,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DatasetDuplicateSchema"
+              },
+              "example": {
+                "base_model_id": 1,
+                "table_name": "string"
               }
             }
           },
@@ -22812,6 +23137,15 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GetOrCreateDatasetSchema"
+              },
+              "example": {
+                "always_filter_main_dttm": true,
+                "catalog": "string",
+                "database_id": 1,
+                "normalize_columns": true,
+                "schema": "string",
+                "table_name": "string",
+                "template_params": "string"
               }
             }
           },
@@ -23078,6 +23412,12 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DatasetCacheWarmUpRequestSchema"
+              },
+              "example": {
+                "dashboard_id": 1,
+                "db_name": "string",
+                "extra_filters": "string",
+                "table_name": "string"
               }
             }
           },
@@ -23365,6 +23705,39 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DatasetRestApi.put"
+              },
+              "example": {
+                "always_filter_main_dttm": true,
+                "cache_timeout": 1,
+                "catalog": "string",
+                "columns": [
+                  {}
+                ],
+                "database_id": 1,
+                "default_endpoint": "string",
+                "description": "string",
+                "external_url": "string",
+                "extra": "string",
+                "fetch_values_predicate": "string",
+                "filter_select_enabled": true,
+                "folders": [
+                  {}
+                ],
+                "is_managed_externally": true,
+                "is_sqllab_view": true,
+                "main_dttm_col": "string",
+                "metrics": [
+                  {}
+                ],
+                "normalize_columns": true,
+                "offset": 1,
+                "owners": [
+                  1
+                ],
+                "schema": "string",
+                "sql": "string",
+                "table_name": "string",
+                "template_params": "string"
               }
             }
           },
@@ -24127,6 +24500,12 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/FormDataPostSchema"
+              },
+              "example": {
+                "chart_id": 1,
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "form_data": "string"
               }
             }
           },
@@ -24366,6 +24745,12 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/FormDataPutSchema"
+              },
+              "example": {
+                "chart_id": 1,
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "form_data": "string"
               }
             }
           },
@@ -24442,6 +24827,12 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ExplorePermalinkStateSchema"
+              },
+              "example": {
+                "formData": {},
+                "urlParams": [
+                  {}
+                ]
               }
             }
           },
@@ -24743,6 +25134,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/LogRestApi.post"
+              },
+              "example": {
+                "id": 1
               }
             }
           },
@@ -25557,6 +25951,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/StopQuerySchema"
+              },
+              "example": {
+                "client_id": "string"
               }
             }
           },
@@ -26093,6 +26490,42 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ReportScheduleRestApi.post"
+              },
+              "example": {
+                "active": true,
+                "chart": 1,
+                "context_markdown": "string",
+                "creation_method": {},
+                "crontab": "*/5 * * * *",
+                "custom_width": 1000,
+                "dashboard": 1,
+                "database": 1,
+                "description": "Daily sales dashboard to marketing",
+                "email_subject": "[Report]  Report name: Dashboard or chart name",
+                "extra": {},
+                "force_screenshot": true,
+                "grace_period": 14400,
+                "log_retention": 90,
+                "name": "Daily dashboard email",
+                "owners": [
+                  1
+                ],
+                "recipients": [
+                  {}
+                ],
+                "report_format": "PDF",
+                "selected_tabs": [
+                  1
+                ],
+                "sql": "SELECT value FROM time_series_table",
+                "timezone": "Africa/Abidjan",
+                "type": "Alert",
+                "validator_config_json": {
+                  "op": "<",
+                  "threshold": 1.0
+                },
+                "validator_type": "not null",
+                "working_timeout": 3600
               }
             }
           },
@@ -26727,6 +27160,39 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ReportScheduleRestApi.put"
+              },
+              "example": {
+                "active": true,
+                "chart": 1,
+                "context_markdown": "string",
+                "creation_method": {},
+                "crontab": "string",
+                "custom_width": 1000,
+                "dashboard": 1,
+                "database": 1,
+                "description": "Daily sales dashboard to marketing",
+                "email_subject": "[Report]  Report name: Dashboard or chart name",
+                "extra": {},
+                "force_screenshot": true,
+                "grace_period": 14400,
+                "log_retention": 90,
+                "name": "string",
+                "owners": [
+                  1
+                ],
+                "recipients": [
+                  {}
+                ],
+                "report_format": "PDF",
+                "sql": "SELECT value FROM time_series_table",
+                "timezone": "Africa/Abidjan",
+                "type": "Alert",
+                "validator_config_json": {
+                  "op": "<",
+                  "threshold": 1.0
+                },
+                "validator_type": "not null",
+                "working_timeout": 3600
               }
             }
           },
@@ -27274,6 +27740,19 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RLSRestApi.post"
+              },
+              "example": {
+                "clause": "string",
+                "description": "string",
+                "filter_type": "Regular",
+                "group_key": "string",
+                "name": "string",
+                "roles": [
+                  1
+                ],
+                "tables": [
+                  1
+                ]
               }
             }
           },
@@ -27776,6 +28255,19 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RLSRestApi.put"
+              },
+              "example": {
+                "clause": "string",
+                "description": "string",
+                "filter_type": "Regular",
+                "group_key": "string",
+                "name": "string",
+                "roles": [
+                  1
+                ],
+                "tables": [
+                  1
+                ]
               }
             }
           },
@@ -28087,6 +28579,16 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SavedQueryRestApi.post"
+              },
+              "example": {
+                "catalog": "string",
+                "db_id": 1,
+                "description": "string",
+                "extra_json": "string",
+                "label": "string",
+                "schema": "string",
+                "sql": "string",
+                "template_parameters": "string"
               }
             }
           },
@@ -28834,6 +29336,16 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SavedQueryRestApi.put"
+              },
+              "example": {
+                "catalog": "string",
+                "db_id": 1,
+                "description": "string",
+                "extra_json": "string",
+                "label": "string",
+                "schema": "string",
+                "sql": "string",
+                "template_parameters": "string"
               }
             }
           },
@@ -28975,6 +29487,19 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GuestTokenCreate"
+              },
+              "example": {
+                "resources": [
+                  {}
+                ],
+                "rls": [
+                  {}
+                ],
+                "user": {
+                  "first_name": "string",
+                  "last_name": "string",
+                  "username": "string"
+                }
               }
             }
           },
@@ -29072,6 +29597,12 @@
                   }
                 },
                 "type": "object"
+              },
+              "example": {
+                "password": "complex-password",
+                "provider": "db",
+                "refresh": true,
+                "username": "admin"
               }
             }
           },
@@ -29289,6 +29820,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PermissionViewMenuApi.post"
+              },
+              "example": {
+                "permission_id": 1,
+                "view_menu_id": 1
               }
             }
           },
@@ -29700,6 +30235,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PermissionViewMenuApi.put"
+              },
+              "example": {
+                "permission_id": 1,
+                "view_menu_id": 1
               }
             }
           },
@@ -30392,6 +30931,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ViewMenuApi.post"
+              },
+              "example": {
+                "name": "string"
               }
             }
           },
@@ -30803,6 +31345,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ViewMenuApi.put"
+              },
+              "example": {
+                "name": "string"
               }
             }
           },
@@ -31030,6 +31575,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SupersetRoleApi.post"
+              },
+              "example": {
+                "name": "string"
               }
             }
           },
@@ -31581,6 +32129,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SupersetRoleApi.put"
+              },
+              "example": {
+                "name": "string"
               }
             }
           },
@@ -31670,6 +32221,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RolePermissionPostSchema"
+              },
+              "example": {
+                "permission_view_menu_ids": [
+                  1
+                ]
               }
             }
           },
@@ -31839,6 +32395,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RoleUserPutSchema"
+              },
+              "example": {
+                "user_ids": [
+                  1
+                ]
               }
             }
           },
@@ -32066,6 +32627,17 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SupersetUserApi.post"
+              },
+              "example": {
+                "active": true,
+                "email": "string",
+                "first_name": "string",
+                "last_name": "string",
+                "password": "string",
+                "roles": [
+                  1
+                ],
+                "username": "string"
               }
             }
           },
@@ -32491,6 +33063,17 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SupersetUserApi.put"
+              },
+              "example": {
+                "active": true,
+                "email": "string",
+                "first_name": "string",
+                "last_name": "string",
+                "password": "string",
+                "roles": [
+                  1
+                ],
+                "username": "string"
               }
             }
           },
@@ -32643,6 +33226,13 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EstimateQueryCostSchema"
+              },
+              "example": {
+                "catalog": "string",
+                "database_id": 1,
+                "schema": "string",
+                "sql": "string",
+                "template_params": {}
               }
             }
           },
@@ -32716,6 +33306,23 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ExecutePayloadSchema"
+              },
+              "example": {
+                "catalog": "string",
+                "client_id": "string",
+                "ctas_method": "string",
+                "database_id": 1,
+                "expand_data": true,
+                "json": true,
+                "queryLimit": 1,
+                "runAsync": true,
+                "schema": "string",
+                "select_as_cta": true,
+                "sql": "string",
+                "sql_editor_id": "string",
+                "tab": "string",
+                "templateParams": "string",
+                "tmp_table_name": "string"
               }
             }
           },
@@ -32896,6 +33503,12 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/FormatQueryPayloadSchema"
+              },
+              "example": {
+                "sql": "string",
+                "engine": "string",
+                "database_id": 1,
+                "template_params": "string"
               }
             }
           },
@@ -32969,6 +33582,12 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ExplorePermalinkStateSchema"
+              },
+              "example": {
+                "formData": {},
+                "urlParams": [
+                  {}
+                ]
               }
             }
           },
@@ -33438,6 +34057,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TagRestApi.post"
+              },
+              "example": {
+                "description": "string",
+                "name": "string",
+                "objects_to_tag": []
               }
             }
           },
@@ -33635,6 +34259,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TagPostBulkSchema"
+              },
+              "example": {
+                "tags": [
+                  {}
+                ]
               }
             }
           },
@@ -33965,6 +34594,11 @@
                   }
                 },
                 "type": "object"
+              },
+              "example": {
+                "tags": [
+                  "string"
+                ]
               }
             }
           },
@@ -34334,6 +34968,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TagRestApi.put"
+              },
+              "example": {
+                "description": "string",
+                "name": "string",
+                "objects_to_tag": []
               }
             }
           },

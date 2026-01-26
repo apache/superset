@@ -683,6 +683,41 @@ def add_response_examples(spec: dict[str, Any]) -> int:  # noqa: C901
     return count
 
 
+def add_request_body_examples(spec: dict[str, Any]) -> int:
+    """Add example values to API request bodies for better documentation."""
+    count = 0
+
+    for _path, methods in spec.get("paths", {}).items():
+        for method, details in methods.items():
+            if method not in ["post", "put", "patch"]:
+                continue
+            if not isinstance(details, dict):
+                continue
+
+            request_body = details.get("requestBody", {})
+            if not request_body or "$ref" in request_body:
+                continue
+
+            content = request_body.get("content", {}).get("application/json", {})
+            if not content:
+                continue
+
+            # Skip if already has an example
+            if "example" in content:
+                continue
+
+            schema = content.get("schema", {})
+            if schema:
+                example = generate_example_from_schema(
+                    schema, spec, depth=0, max_depth=4
+                )
+                if example is not None and example != {}:
+                    content["example"] = example
+                    count += 1
+
+    return count
+
+
 def make_summaries_unique(spec: dict[str, Any]) -> int:  # noqa: C901
     """Make duplicate summaries unique by adding context from the path."""
     summary_info: dict[str, list[tuple[str, str]]] = {}
@@ -726,7 +761,7 @@ def make_summaries_unique(spec: dict[str, Any]) -> int:  # noqa: C901
     return fixed_count
 
 
-def main() -> None:
+def main() -> None:  # noqa: C901
     """Main function to fix the OpenAPI spec."""
     script_dir = Path(__file__).parent
     spec_path = script_dir.parent / "static" / "resources" / "openapi.json"
@@ -757,6 +792,10 @@ def main() -> None:
 
     if fixed_examples := add_response_examples(spec):
         print(f"Added example JSON responses to {fixed_examples} response schemas")
+        changes_made = True
+
+    if fixed_request_examples := add_request_body_examples(spec):
+        print(f"Added example JSON to {fixed_request_examples} request bodies")
         changes_made = True
 
     if fixed_schemas:

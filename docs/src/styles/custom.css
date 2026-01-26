@@ -197,3 +197,54 @@ ul.dropdown__menu svg {
 .openapi-explorer__response-container {
   display: none !important;
 }
+
+/* API Method Badge Colors - Swagger-style color coding */
+/* GET - Blue */
+.api-method.get,
+.openapi-method-badge.get,
+[class*="get api-method"],
+.get.api-method {
+  background-color: #61affe !important;
+  border-color: #61affe !important;
+  color: #fff !important;
+}
+
+/* POST - Green */
+.api-method.post,
+.openapi-method-badge.post,
+[class*="post api-method"],
+.post.api-method {
+  background-color: #49cc90 !important;
+  border-color: #49cc90 !important;
+  color: #fff !important;
+}
+
+/* PUT - Orange */
+.api-method.put,
+.openapi-method-badge.put,
+[class*="put api-method"],
+.put.api-method {
+  background-color: #fca130 !important;
+  border-color: #fca130 !important;
+  color: #fff !important;
+}
+
+/* PATCH - Teal */
+.api-method.patch,
+.openapi-method-badge.patch,
+[class*="patch api-method"],
+.patch.api-method {
+  background-color: #50e3c2 !important;
+  border-color: #50e3c2 !important;
+  color: #000 !important;
+}
+
+/* DELETE - Red */
+.api-method.delete,
+.openapi-method-badge.delete,
+[class*="delete api-method"],
+.delete.api-method {
+  background-color: #f93e3e !important;
+  border-color: #f93e3e !important;
+  color: #fff !important;
+}
