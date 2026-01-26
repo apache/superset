@@ -483,7 +483,7 @@ const RightMenu = ({
           userItems.push({
             key: 'info',
             label: (
-              <Typography.Link href={navbarRight.user_info_url}>
+              <Typography.Link href={ensureAppRoot(navbarRight.user_info_url)}>
                 {t('Info')}
               </Typography.Link>
             ),
