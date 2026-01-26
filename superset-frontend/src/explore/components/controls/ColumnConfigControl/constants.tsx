@@ -58,6 +58,7 @@ const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   creatable: true,
   minWidth: '14em',
   debounceDelay: 500,
+  tokenSeparators: ['\r\n', '\n', '\t', ';'],
 };
 
 const d3TimeFormat: ControlFormItemSpec<'Select'> = {
