@@ -3091,19 +3091,45 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         raise QueryObjectValidationError(
                             _("Filter value list cannot be empty")
                         )
-                    if len(eq) > len(
-                        eq_without_none := [x for x in eq if x is not None]
+                    # Handle boolean columns specially for databases that require
+                    # boolean literals in IN clauses (e.g., Databricks)
+                    if (
+                        target_generic_type == utils.GenericDataType.BOOLEAN
+                        and hasattr(db_engine_spec, "handle_boolean_in_clause")
                     ):
-                        is_null_cond = sqla_col.is_(None)
-                        if eq:
-                            cond = or_(is_null_cond, sqla_col.in_(eq_without_none))
+                        if len(eq) > len(
+                            eq_without_none := [x for x in eq if x is not None]
+                        ):
+                            is_null_cond = sqla_col.is_(None)
+                            if eq_without_none:
+                                boolean_cond = db_engine_spec.handle_boolean_in_clause(
+                                    sqla_col, eq_without_none
+                                )
+                                cond = or_(is_null_cond, boolean_cond)
+                            else:
+                                cond = is_null_cond
                         else:
-                            cond = is_null_cond
+                            cond = db_engine_spec.handle_boolean_in_clause(
+                                sqla_col, list(eq)
+                            )
+                        if op == utils.FilterOperator.NOT_IN:
+                            cond = ~cond
+                        target_clause_list.append(cond)
                     else:
-                        cond = sqla_col.in_(eq)
-                    if op == utils.FilterOperator.NOT_IN:
-                        cond = ~cond
-                    target_clause_list.append(cond)
+                        # Default behavior for non-boolean columns or engines without special handling
+                        if len(eq) > len(
+                            eq_without_none := [x for x in eq if x is not None]
+                        ):
+                            is_null_cond = sqla_col.is_(None)
+                            if eq:
+                                cond = or_(is_null_cond, sqla_col.in_(eq_without_none))
+                            else:
+                                cond = is_null_cond
+                        else:
+                            cond = sqla_col.in_(eq)
+                        if op == utils.FilterOperator.NOT_IN:
+                            cond = ~cond
+                        target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IS_NULL,
                     utils.FilterOperator.IS_NOT_NULL,
