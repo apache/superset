@@ -103,9 +103,10 @@ def get_instance_metadata_resource() -> str:
         dataset_dao = instance_info_core.dao_classes["datasets"]
         try:
             datasets = dataset_dao.find_all()
+            # Convert to string to avoid TypeError when comparing datetime with None
             sorted_datasets = sorted(
                 datasets,
-                key=lambda d: getattr(d, "changed_on", None) or "",
+                key=lambda d: str(getattr(d, "changed_on", "") or ""),
                 reverse=True,
             )[:20]
             base_result["available_datasets"] = [
