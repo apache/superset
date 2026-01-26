@@ -38,8 +38,8 @@ const runTimezoneTest = (
   endDate = false,
   computingShift = false,
 ) => {
-  jest.setSystemTime(new Date(now_time));
   timezoneMock.register(timezone);
+  jest.setSystemTime(new Date(now_time));
   expect(parseDttmToDate(eval_time, endDate, computingShift)).toEqual(
     expected_result,
   );
