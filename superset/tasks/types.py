@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import NamedTuple, TypedDict
 
 from superset.utils.backports import StrEnum
@@ -58,25 +57,6 @@ Executor = FixedExecutor | ExecutorType
 
 # Alias type to represent the executor that was chosen from a list of Executors
 ChosenExecutor = tuple[ExecutorType, str]
-
-
-@dataclass(frozen=True)
-class TaskOptions:
-    """
-    Execution options for tasks.
-
-    NOTE: This is intentionally minimal for the initial implementation.
-    Additional options (queue, priority, run_at, delay_s, timeout_s,
-    max_retries, retry_backoff_s, tags, etc.) can be added later when needed.
-
-    Future enhancements will include:
-    - Options merging (decorator defaults + call-time overrides)
-    - Validation (e.g., run_at vs delay_s mutual exclusion)
-    - Queue routing and priority management
-    - Retry policies and backoff strategies
-    """
-
-    task_key: str | None = None
 
 
 class TaskProperties(TypedDict, total=False):
