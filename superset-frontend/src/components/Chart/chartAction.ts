@@ -633,8 +633,8 @@ export function runAnnotationQuery({
         const data = json?.result?.[0]?.annotation_data?.[annotation.name];
         return dispatch(annotationQuerySuccess(annotation, { data }, sliceKey));
       })
-      .catch((response: Response | JsonObject) =>
-        getClientErrorObject(response as Response).then(err => {
+      .catch(response =>
+        getClientErrorObject(response).then(err => {
           if (err.statusText === 'timeout') {
             dispatch(
               annotationQueryFailed(
