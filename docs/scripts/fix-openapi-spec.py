@@ -817,6 +817,7 @@ def main() -> None:  # noqa: C901
     if changes_made:
         with open(spec_path, "w", encoding="utf-8") as f:
             json.dump(spec, f, indent=2)
+            f.write("\n")  # Ensure trailing newline for pre-commit
 
         print(f"Updated {spec_path}")
     else:
