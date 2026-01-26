@@ -22,6 +22,7 @@ This module contains shared logic for chart configuration mapping and explore li
 generation that can be used by both generate_chart and generate_explore_link tools.
 """
 
+import logging
 from typing import Any, Dict
 
 from superset.mcp_service.chart.schemas import (
@@ -33,6 +34,52 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
+
+logger = logging.getLogger(__name__)
+
+# SQL types that are truly temporal and can use DATE_TRUNC
+TEMPORAL_SQL_TYPES = frozenset(
+    {
+        "DATE",
+        "DATETIME",
+        "TIMESTAMP",
+        "TIMESTAMPTZ",
+        "TIMESTAMP WITH TIME ZONE",
+        "TIMESTAMP WITHOUT TIME ZONE",
+        "TIME",
+        "TIMETZ",
+        "TIME WITH TIME ZONE",
+        "TIME WITHOUT TIME ZONE",
+        "INTERVAL",
+    }
+)
+
+# SQL types that are numeric but NOT temporal (even if named "year", "month", etc.)
+NUMERIC_NON_TEMPORAL_TYPES = frozenset(
+    {
+        "BIGINT",
+        "INT",
+        "INTEGER",
+        "SMALLINT",
+        "TINYINT",
+        "FLOAT",
+        "DOUBLE",
+        "DECIMAL",
+        "NUMERIC",
+        "REAL",
+        "FLOAT64",
+        "FLOAT32",
+        "INT64",
+        "INT32",
+        "INT16",
+        "INT8",
+        "UINT64",
+        "UINT32",
+        "UINT16",
+        "UINT8",
+        "NUMBER",
+    }
+)
 
 
 def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
@@ -105,14 +152,84 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
             )
 
 
+def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> bool:
+    """
+    Check if a column is truly temporal based on its SQL data type.
+
+    This is important because Superset may mark columns as is_dttm=True based on
+    column name heuristics (e.g., "year", "month"), but if the actual SQL type is
+    BIGINT or INTEGER, DATE_TRUNC will fail.
+
+    Args:
+        column_name: Name of the column to check
+        dataset_id: Dataset ID to look up column metadata
+
+    Returns:
+        True if the column has a real temporal SQL type, False otherwise
+    """
+    if not dataset_id:
+        return True  # Default to temporal if we can't check (backward compatible)
+
+    try:
+        from superset.daos.dataset import DatasetDAO
+
+        # Find dataset
+        if isinstance(dataset_id, int) or (
+            isinstance(dataset_id, str) and dataset_id.isdigit()
+        ):
+            dataset = DatasetDAO.find_by_id(int(dataset_id))
+        else:
+            dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+        if not dataset:
+            return True  # Default to temporal if dataset not found
+
+        # Find the column and check its actual type
+        column_lower = column_name.lower()
+        for col in dataset.columns:
+            if col.column_name.lower() == column_lower:
+                col_type = str(col.type).upper() if col.type else ""
+
+                # Extract base type (handle cases like "BIGINT(20)" -> "BIGINT")
+                base_type = col_type.split("(")[0].strip()
+
+                # Check if it's a numeric non-temporal type
+                if base_type in NUMERIC_NON_TEMPORAL_TYPES:
+                    logger.debug(
+                        "Column '%s' has numeric type '%s', treating as non-temporal",
+                        column_name,
+                        col_type,
+                    )
+                    return False
+
+                # Check if it's a truly temporal type
+                if base_type in TEMPORAL_SQL_TYPES:
+                    return True
+
+                # For other types, trust the is_dttm flag
+                return getattr(col, "is_dttm", False)
+
+        return True  # Default if column not found
+
+    except Exception as e:
+        logger.warning(
+            "Error checking column type for '%s' in dataset %s: %s",
+            column_name,
+            dataset_id,
+            e,
+        )
+        return True  # Default to temporal on error (backward compatible)
+
+
 def map_config_to_form_data(
     config: TableChartConfig | XYChartConfig,
+    dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data."""
     if isinstance(config, TableChartConfig):
         return map_table_config(config)
     elif isinstance(config, XYChartConfig):
-        return map_xy_config(config)
+        return map_xy_config(config, dataset_id=dataset_id)
     else:
         raise ValueError(f"Unsupported config type: {type(config)}")
 
@@ -259,19 +376,55 @@ def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
             form_data["legend_orientation"] = config.legend.position
 
 
-def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
+def configure_temporal_handling(
+    form_data: Dict[str, Any],
+    x_is_temporal: bool,
+    time_grain: str | None,
+) -> None:
+    """Configure form_data based on whether x-axis column is temporal.
+
+    For temporal columns, enables standard time series handling.
+    For non-temporal columns (e.g., BIGINT year), disables DATE_TRUNC
+    by setting categorical sorting options.
+    """
+    if x_is_temporal:
+        if time_grain:
+            form_data["time_grain_sqla"] = time_grain
+    else:
+        # Non-temporal column - disable temporal handling to prevent DATE_TRUNC
+        form_data["x_axis_sort_series_type"] = "name"
+        form_data["x_axis_sort_series_ascending"] = True
+        form_data["time_grain_sqla"] = None
+        form_data["granularity_sqla"] = None
+
+
+def map_xy_config(
+    config: XYChartConfig, dataset_id: int | str | None = None
+) -> Dict[str, Any]:
     """Map XY chart config to form_data with defensive validation."""
     # Early validation to prevent empty charts
     if not config.y:
         raise ValueError("XY chart must have at least one Y-axis metric")
 
-    # Map chart kind to viz_type
+    # Check if x-axis column is truly temporal (based on actual SQL type)
+    x_is_temporal = is_column_truly_temporal(config.x.name, dataset_id)
+
+    # Map chart kind to viz_type - always use the same viz types
+    # The temporal vs non-temporal handling is done via form_data configuration
     viz_type_map = {
         "line": "echarts_timeseries_line",
         "bar": "echarts_timeseries_bar",
         "area": "echarts_area",
         "scatter": "echarts_timeseries_scatter",
     }
+
+    if not x_is_temporal:
+        logger.info(
+            "X-axis column '%s' is not temporal (dataset_id=%s), "
+            "configuring as categorical dimension",
+            config.x.name,
+            dataset_id,
+        )
 
     # Convert Y columns to metrics with validation
     metrics = []
@@ -286,13 +439,12 @@ def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
 
     form_data: Dict[str, Any] = {
         "viz_type": viz_type_map.get(config.kind, "echarts_timeseries_line"),
-        "x_axis": config.x.name,
         "metrics": metrics,
+        "x_axis": config.x.name,
     }
 
-    # Add time grain if specified (for temporal x-axis columns)
-    if config.time_grain:
-        form_data["time_grain_sqla"] = config.time_grain
+    # Configure temporal handling based on whether column is truly temporal
+    configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
 
     # CRITICAL FIX: For time series charts, handle groupby carefully to avoid duplicates
     # The x_axis field already tells Superset which column to use for time grouping
