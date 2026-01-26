@@ -144,6 +144,7 @@ export const ThemedAgGridReact = forwardRef<
         height: 100%;
         .ag-cell {
           -webkit-font-smoothing: antialiased;
+          white-space: pre-wrap;
         }
       `}
       data-themed-ag-grid="true"

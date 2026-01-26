@@ -393,3 +393,44 @@ describe('FilterableTable sorting - RTL', () => {
     );
   });
 });
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('FilterableTable whitespace preservation', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
+  test('renders table with data containing multiple consecutive whitespaces', () => {
+    const whitespaceProps = {
+      orderedColumnKeys: ['text'],
+      data: [
+        { text: 'single space' },
+        { text: 'double  space' },
+        { text: 'triple   space' },
+        { text: 'multiple    spaces     here' },
+      ],
+      height: 500,
+    };
+
+    const { container } = render(<FilterableTable {...whitespaceProps} />);
+
+    // Verify the grid renders with the whitespace data
+    const grid = container.querySelector('[role="grid"]');
+    expect(grid).toBeInTheDocument();
+
+    // Find all cells and verify whitespace data is in the DOM
+    // Note: This test verifies that data with multiple spaces is present in the DOM,
+    // but does NOT verify visual rendering (JSDOM doesn't compute CSS).
+    // The white-space: pre-wrap CSS ensures spaces are displayed in real browsers.
+    // Visual verification requires manual testing or E2E tests with Playwright.
+    const cells = container.querySelectorAll(
+      '[role="gridcell"] .ag-cell-value',
+    );
+    const cellTexts = Array.from(cells).map(cell => cell.textContent);
+
+    // Check that cells with multiple spaces are in the DOM
+    expect(cellTexts).toContain('double  space'); // Two spaces
+    expect(cellTexts).toContain('triple   space'); // Three spaces
+    expect(cellTexts).toContain('multiple    spaces     here'); // Multiple groups of spaces
+  });
+});
