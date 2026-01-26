@@ -20,7 +20,20 @@
 import { Locator, Page } from '@playwright/test';
 
 /**
- * Checkbox component for checkbox interactions.
+ * Core Checkbox component used in Playwright tests to interact with checkbox
+ * elements in the Superset UI.
+ *
+ * This class wraps a Playwright {@link Locator} pointing to a checkbox input
+ * and provides convenience methods for common interactions such as checking,
+ * unchecking, toggling, and asserting checkbox state and visibility.
+ *
+ * @example
+ * const checkbox = new Checkbox(page, page.locator('input[type="checkbox"]'));
+ * await checkbox.check();
+ * await expect(await checkbox.isChecked()).toBe(true);
+ *
+ * @param page - The Playwright {@link Page} instance associated with the test.
+ * @param locator - The Playwright {@link Locator} targeting the checkbox element.
  */
 export class Checkbox {
   readonly page: Page;

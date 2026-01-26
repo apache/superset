@@ -20,7 +20,24 @@
 import { Locator, Page } from '@playwright/test';
 
 /**
- * Textarea component for multi-line text input interactions.
+ * Playwright helper for interacting with HTML {@link HTMLTextAreaElement | `<textarea>`} elements.
+ *
+ * This component wraps a Playwright {@link Locator} and provides convenience methods for
+ * filling, clearing, and reading the value of a textarea without having to work with
+ * locators directly.
+ *
+ * Typical usage:
+ * ```ts
+ * const textarea = new Textarea(page, 'textarea[name="description"]');
+ * await textarea.fill('Some multi-line text');
+ * const value = await textarea.getValue();
+ * ```
+ *
+ * You can also construct an instance from the `name` attribute:
+ * ```ts
+ * const textarea = Textarea.fromName(page, 'description');
+ * await textarea.clear();
+ * ```
  */
 export class Textarea {
   readonly page: Page;

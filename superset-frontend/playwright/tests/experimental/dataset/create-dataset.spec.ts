@@ -46,8 +46,14 @@ async function setupGsheetsDataset(
   testAssets: TestAssets,
   testInfo: TestInfo,
 ): Promise<GsheetsSetupResult> {
-  // Public Google Sheet for testing (published to web, no auth required)
-  // This is a Netflix dataset that is publicly accessible via Google Visualization API
+  // Public Google Sheet for testing (published to web, no auth required).
+  // This is a Netflix dataset that is publicly accessible via the Google Visualization API.
+  // NOTE: This sheet is hosted on an external Google account and is not created by the test itself.
+  // If this sheet is deleted, its ID changes, or its sharing settings are restricted,
+  // these tests will start failing when they attempt to create a database pointing at it.
+  // In that case, create or select a new publicly readable test sheet, update `sheetUrl`
+  // to use its URL, and update this comment to describe who owns/maintains that sheet
+  // and the expected access controls (e.g., "anyone with the link can view").
   const sheetUrl =
     'https://docs.google.com/spreadsheets/d/19XNqckHGKGGPh83JGFdFGP4Bw9gdXeujq5EoIGwttdM/edit#gid=347941303';
   // Include parallelIndex to avoid collisions when tests run in parallel
