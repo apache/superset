@@ -204,11 +204,20 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
         :param cursor: New cursor instance to the db of the query
         :param query: Query instance
-        :param cancel_query_id: impala db not need
+        :param cancel_query_id: Impala query ID in format "hex:hex"
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent URL injection
+        # Impala query IDs are in format: "hex_string:hex_string" (16 hex chars per side)
+        if not cls.validate_cancel_query_id(
+            cancel_query_id, r"[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}"
+        ):
+            return False
+
         try:
             impala_host = query.database.url_object.host
+            if not impala_host:
+                return False
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
             response = requests.post(url, timeout=3)
         except Exception:  # pylint: disable=broad-except

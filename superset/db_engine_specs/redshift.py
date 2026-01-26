@@ -271,6 +271,11 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         :param cancel_query_id: Redshift PID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Redshift pg_backend_pid() returns an integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             logger.info("Killing Redshift PID:%s", str(cancel_query_id))
             cursor.execute(
