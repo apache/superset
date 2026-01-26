@@ -428,7 +428,10 @@ const ResultSet = ({
           )}
           {canExportData && (
             <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data, columns)}
+              text={prepareCopyToClipboardTabularData(
+                data,
+                columns.map(c => c.column_name),
+              )}
               wrapped={false}
               copyNode={
                 <Button
