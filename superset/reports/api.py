@@ -470,7 +470,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    def run_now(self, pk) -> Response:
+    def run_now(self, pk: int) -> Response:
         """
         Run a report immediately, bypassing the schedule.
         ---
