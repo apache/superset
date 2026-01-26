@@ -158,7 +158,11 @@ superset init
 
 # To start a development web server on port 8088, use -p to bind to another port
 superset run -p 8088 --with-threads --reload --debugger
-```
+##  sometimes, better is to use this:
+##  superset run -p 8088 -h 0.0.0.0 --with-threads --reload --debugger
+## In the context of Apache Superset (VM deployed with Python & url HTTP), 
+## the -h 0.0.0.0 command is used to bind the Superset server to all available network interfaces on the host machine. 
+## Installing on a VM your navigator never reach Superset welcome page html
 
 If everything worked, you should be able to navigate to `hostname:port` in your browser (e.g.
 locally by default at `localhost:8088`) and login using the username and password you created.
