@@ -9,7 +9,7 @@
     "start": "yarn run _init && yarn run generate:extension-components && yarn run generate:database-docs && yarn run generate:api-docs && NODE_ENV=development docusaurus start",
     "stop": "pkill -f 'docusaurus start' || pkill -f 'docusaurus serve' || echo 'No docusaurus server running'",
     "build": "yarn run _init && yarn run generate:extension-components && yarn run generate:database-docs && yarn run generate:api-docs && DEBUG=docusaurus:* docusaurus build",
-    "generate:api-docs": "python3 scripts/fix-openapi-spec.py && docusaurus gen-api-docs superset && node scripts/convert-api-sidebar.mjs",
+    "generate:api-docs": "python3 scripts/fix-openapi-spec.py && docusaurus gen-api-docs superset && node scripts/convert-api-sidebar.mjs && node scripts/generate-api-index.mjs",
     "clean:api-docs": "docusaurus clean-api-docs superset",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",

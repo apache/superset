@@ -212,6 +212,7 @@ const config: Config = {
             },
             showSchemas: false,
             hideSendButton: false,
+            showInfoPage: false,
           } satisfies OpenApiPlugin.Options,
         },
       },
