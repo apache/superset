@@ -368,31 +368,24 @@ stages:
                     exit 1
                   fi
 
-                  # Create .env.deploy file
-                  # Note: Values are quoted to handle special characters in passwords
-                  # Note: superset_config.py constructs SQLALCHEMY_DATABASE_URI from DATABASE_* variables
+                  # Create .env.deploy file with proper escaping for special characters
+                  # Using printf to avoid shell interpretation issues
                   cat > .env.deploy << EOF
-                  SUPERSET_IMAGE="${FULL_IMAGE_NAME}"
-
-                  SUPERSET_SECRET_KEY="${SUPERSET_SECRET_KEY}"
-                  SUPERSET_ADMIN_USER="${SUPERSET_ADMIN_USER}"
-                  SUPERSET_ADMIN_PASSWORD="${SUPERSET_ADMIN_PASSWORD}"
-                  SUPERSET_PORT="${SUPERSET_PORT}"
-
-                  # Database configuration (for superset_config.py)
-                  DATABASE_DIALECT="postgresql"
-                  DATABASE_USER="superset"
-                  DATABASE_PASSWORD="superset"
-                  DATABASE_HOST="db"
-                  DATABASE_PORT="5432"
-                  DATABASE_DB="superset"
-
-                  # Redis configuration
-                  REDIS_HOST="redis"
-                  REDIS_PORT="6379"
-
-                  DOCKER_NETWORK="${DOCKER_NETWORK}"
-                  DOCKER_INITDB_DIR="${DOCKER_INITDB_DIR}"
+                  SUPERSET_IMAGE=${FULL_IMAGE_NAME}
+                  SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+                  SUPERSET_ADMIN_USER=${SUPERSET_ADMIN_USER}
+                  SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
+                  SUPERSET_PORT=${SUPERSET_PORT}
+                  DATABASE_DIALECT=postgresql
+                  DATABASE_USER=superset
+                  DATABASE_PASSWORD=superset
+                  DATABASE_HOST=db
+                  DATABASE_PORT=5432
+                  DATABASE_DB=superset
+                  REDIS_HOST=redis
+                  REDIS_PORT=6379
+                  DOCKER_NETWORK=${DOCKER_NETWORK}
+                  DOCKER_INITDB_DIR=${DOCKER_INITDB_DIR}
                   EOF
 
                   echo "✓ Created .env.deploy file"
@@ -473,17 +466,16 @@ stages:
                   echo ""
 
                   echo "Loading environment variables from .env.deploy..."
-                  set -a  # Automatically export all variables
-                  source .env.deploy
-                  set +a
-                  echo "✓ Sourced .env.deploy"
+                  # Use --env-file to pass variables to docker-compose without sourcing
+                  # This avoids shell interpretation issues with special characters in passwords
+                  echo "✓ Using .env.deploy file with docker-compose --env-file"
                   echo ""
-                  echo "Checking shell environment (secrets masked):"
-                  env | grep -E "SUPERSET|DATABASE|POSTGRES|REDIS|DOCKER_NETWORK" | sort | sed 's/SUPERSET_ADMIN_PASSWORD=.*/SUPERSET_ADMIN_PASSWORD=***masked***/g' | sed 's/SUPERSET_SECRET_KEY=.*/SUPERSET_SECRET_KEY=***masked***/g' | sed 's/DATABASE_PASSWORD=.*/DATABASE_PASSWORD=***masked***/g' | sed 's/POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=***masked***/g'
+                  echo "Checking .env.deploy content (secrets masked):"
+                  cat .env.deploy | sed 's/PASSWORD=.*/PASSWORD=***masked***/g' | sed 's/SECRET_KEY=.*/SECRET_KEY=***masked***/g'
                   echo ""
 
                   echo "Deploying with docker-compose..."
-                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops up -d
+                  docker compose -f .azuredevops/docker-compose-deploy.yml --env-file .env.deploy --project-name azuredevops up -d
 
                   echo ""
                   echo "✓ Deployment completed"
