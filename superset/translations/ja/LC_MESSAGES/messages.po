@@ -11602,7 +11602,7 @@ msgstr "提出する"
 msgid "Subtitle"
 msgstr "サブタイトル"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "小計"
 
 msgid "Success"

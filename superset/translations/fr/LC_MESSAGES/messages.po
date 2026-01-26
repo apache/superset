@@ -13194,7 +13194,7 @@ msgstr "Soumettre"
 msgid "Subtitle"
 msgstr "Titre de l’onglet"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Sous-total"
 
 msgid "Success"

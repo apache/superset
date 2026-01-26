@@ -12201,7 +12201,7 @@ msgstr "إرسال"
 msgid "Subtitle"
 msgstr "عنوان علامة التبويب"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "المجموع الفرعي"
 
 msgid "Success"

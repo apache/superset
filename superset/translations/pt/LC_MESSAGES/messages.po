@@ -12287,7 +12287,7 @@ msgstr ""
 msgid "Subtitle"
 msgstr "%s - sem título"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

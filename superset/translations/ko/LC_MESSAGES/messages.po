@@ -12024,7 +12024,7 @@ msgstr ""
 msgid "Subtitle"
 msgstr "제목"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

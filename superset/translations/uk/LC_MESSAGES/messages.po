@@ -12317,7 +12317,7 @@ msgstr "Подавати"
 msgid "Subtitle"
 msgstr "Назва вкладки"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Суттєвий"
 
 msgid "Success"
