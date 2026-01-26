@@ -139,6 +139,8 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
 
   crossFiltersEnabled?: boolean;
+
+  ownState?: object;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -427,7 +429,12 @@ const SliceHeaderControls = (
             <div data-test="view-query-menu-item">{t('View query')}</div>
           }
           modalTitle={t('View query')}
-          modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
+          modalBody={
+            <ViewQueryModal
+              latestQueryFormData={props.formData}
+              ownState={props.ownState}
+            />
+          }
           draggable
           resizable
           responsive
