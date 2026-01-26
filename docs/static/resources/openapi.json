@@ -28434,5 +28434,147 @@
     {
       "url": "http://localhost:8088"
     }
+  ],
+  "tags": [
+    {
+      "name": "Advanced Data Type",
+      "description": "Endpoints for advanced data type operations and conversions."
+    },
+    {
+      "name": "Annotation Layers",
+      "description": "Manage annotation layers and annotations for charts."
+    },
+    {
+      "name": "AsyncEventsRestApi",
+      "description": "Real-time event streaming via Server-Sent Events (SSE)."
+    },
+    {
+      "name": "Available Domains",
+      "description": "Get available domains for the Superset instance."
+    },
+    {
+      "name": "CSS Templates",
+      "description": "Manage CSS templates for custom dashboard styling."
+    },
+    {
+      "name": "CacheRestApi",
+      "description": "Cache management and invalidation operations."
+    },
+    {
+      "name": "Charts",
+      "description": "Create, read, update, and delete charts (slices)."
+    },
+    {
+      "name": "Current User",
+      "description": "Get information about the currently authenticated user."
+    },
+    {
+      "name": "Dashboard Filter State",
+      "description": "Manage temporary filter state for dashboards."
+    },
+    {
+      "name": "Dashboard Permanent Link",
+      "description": "Create and retrieve permanent links to dashboard states."
+    },
+    {
+      "name": "Dashboards",
+      "description": "Create, read, update, and delete dashboards."
+    },
+    {
+      "name": "Database",
+      "description": "Manage database connections and metadata."
+    },
+    {
+      "name": "Datasets",
+      "description": "Manage datasets (tables) used for building charts."
+    },
+    {
+      "name": "Datasources",
+      "description": "Query datasource metadata and column values."
+    },
+    {
+      "name": "Embedded Dashboard",
+      "description": "Configure embedded dashboard settings."
+    },
+    {
+      "name": "Explore",
+      "description": "Chart exploration and data querying endpoints."
+    },
+    {
+      "name": "Explore Form Data",
+      "description": "Manage temporary form data for chart exploration."
+    },
+    {
+      "name": "Explore Permanent Link",
+      "description": "Create and retrieve permanent links to chart explore states."
+    },
+    {
+      "name": "Import/export",
+      "description": "Import and export Superset assets (dashboards, charts, databases)."
+    },
+    {
+      "name": "LogRestApi",
+      "description": "Access audit logs and activity history."
+    },
+    {
+      "name": "Menu",
+      "description": "Get the Superset menu structure."
+    },
+    {
+      "name": "OpenApi",
+      "description": "Access the OpenAPI specification."
+    },
+    {
+      "name": "Queries",
+      "description": "View and manage SQL Lab query history."
+    },
+    {
+      "name": "Report Schedules",
+      "description": "Configure scheduled reports and alerts."
+    },
+    {
+      "name": "Row Level Security",
+      "description": "Manage row-level security rules for data access control."
+    },
+    {
+      "name": "SQL Lab",
+      "description": "Execute SQL queries and manage SQL Lab sessions."
+    },
+    {
+      "name": "SQL Lab Permanent Link",
+      "description": "Create and retrieve permanent links to SQL Lab states."
+    },
+    {
+      "name": "Security",
+      "description": "Authentication and token management."
+    },
+    {
+      "name": "Security Permissions",
+      "description": "View available permissions."
+    },
+    {
+      "name": "Security Permissions on Resources (View Menus)",
+      "description": "Manage permission-resource mappings."
+    },
+    {
+      "name": "Security Resources (View Menus)",
+      "description": "Manage security resources (view menus)."
+    },
+    {
+      "name": "Security Roles",
+      "description": "Manage security roles and their permissions."
+    },
+    {
+      "name": "Security Users",
+      "description": "Manage user accounts."
+    },
+    {
+      "name": "Tags",
+      "description": "Organize assets with tags."
+    },
+    {
+      "name": "User",
+      "description": "User profile and preferences."
+    }
   ]
 }

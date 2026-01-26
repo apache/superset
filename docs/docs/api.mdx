@@ -4,7 +4,7 @@ hide_title: true
 sidebar_position: 10
 ---
 
-import { Alert, Card, Row, Col } from 'antd';
+import { Alert } from 'antd';
 
 ## REST API Reference
 
@@ -17,65 +17,114 @@ You can use this API to programmatically interact with Superset for automation, 
   message="Interactive Documentation"
   description={
     <span>
-      Browse the full API reference below with interactive "Try It Out" functionality,
-      or access the Swagger UI on your local instance at <strong>/swagger/v1</strong>.
+      Each endpoint below has interactive "Try It Out" functionality.
+      You can also access the Swagger UI on your local instance at <strong>/swagger/v1</strong>.
     </span>
   }
   style={{ marginBottom: '24px' }}
 />
 
-### Quick Links
-
-<Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
-  <Col xs={24} sm={12} lg={6}>
-    <Card size="small" hoverable>
-      <a href="/docs/api/get-a-list-of-dashboards">
-        <strong>Dashboards</strong>
-        <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>Create, read, update dashboards</p>
-      </a>
-    </Card>
-  </Col>
-  <Col xs={24} sm={12} lg={6}>
-    <Card size="small" hoverable>
-      <a href="/docs/api/get-a-list-of-charts">
-        <strong>Charts</strong>
-        <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>Manage chart configurations</p>
-      </a>
-    </Card>
-  </Col>
-  <Col xs={24} sm={12} lg={6}>
-    <Card size="small" hoverable>
-      <a href="/docs/api/get-a-list-of-databases">
-        <strong>Databases</strong>
-        <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>Configure database connections</p>
-      </a>
-    </Card>
-  </Col>
-  <Col xs={24} sm={12} lg={6}>
-    <Card size="small" hoverable>
-      <a href="/docs/api/get-a-list-of-datasets">
-        <strong>Datasets</strong>
-        <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>Manage data sources</p>
-      </a>
-    </Card>
-  </Col>
-</Row>
-
 ### Authentication
 
-Most API endpoints require authentication. Superset supports several authentication methods:
+Most API endpoints require authentication. Superset supports:
 
-1. **Session-based auth** - Log in via the UI and use the session cookie
-2. **API Token** - Generate an API token from Settings > Security
-3. **OAuth2** - Configure OAuth2 for programmatic access
+1. **JWT Tokens** - Obtain via `POST /api/v1/security/login`
+2. **Session-based auth** - Log in via the UI and use the session cookie
+3. **API Token** - Generate from Settings &gt; Security (if enabled)
 
 ```bash
-# Example: Using curl with API token
-curl -H "Authorization: Bearer YOUR_API_TOKEN" \
-  https://your-superset-instance/api/v1/dashboard/
+# Get a JWT token
+curl -X POST http://localhost:8088/api/v1/security/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin", "provider": "db"}'
+
+# Use the token
+curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  http://localhost:8088/api/v1/dashboard/
 ```
 
-### Resources
+---
 
-- [Blog: The Superset REST API](https://preset.io/blog/2020-10-01-superset-api/)
-- [Blog: Accessing APIs with Superset](https://preset.io/blog/accessing-apis-with-superset/)
+### API Categories
+
+#### Core Resources
+
+| Category | Description |
+|----------|-------------|
+| [**Dashboards**](./api/dashboards) | Create, read, update, and delete dashboards |
+| [**Charts**](./api/charts) | Create, read, update, and delete charts (slices) |
+| [**Datasets**](./api/datasets) | Manage datasets (tables) used for building charts |
+| [**Database**](./api/database) | Manage database connections and metadata |
+
+#### Data Exploration
+
+| Category | Description |
+|----------|-------------|
+| [**Explore**](./api/explore) | Chart exploration and data querying endpoints |
+| [**SQL Lab**](./api/sql-lab) | Execute SQL queries and manage SQL Lab sessions |
+| [**Queries**](./api/queries) | View and manage SQL Lab query history |
+| [**Datasources**](./api/datasources) | Query datasource metadata and column values |
+| [**Advanced Data Type**](./api/advanced-data-type) | Advanced data type operations and conversions |
+
+#### Organization & Customization
+
+| Category | Description |
+|----------|-------------|
+| [**Tags**](./api/tags) | Organize assets with tags |
+| [**Annotation Layers**](./api/annotation-layers) | Manage annotation layers and annotations for charts |
+| [**CSS Templates**](./api/css-templates) | Manage CSS templates for custom dashboard styling |
+
+#### Sharing & Embedding
+
+| Category | Description |
+|----------|-------------|
+| [**Dashboard Permanent Link**](./api/dashboard-permanent-link) | Create and retrieve permanent links to dashboard states |
+| [**Explore Permanent Link**](./api/explore-permanent-link) | Create and retrieve permanent links to chart explore states |
+| [**SQL Lab Permanent Link**](./api/sql-lab-permanent-link) | Create and retrieve permanent links to SQL Lab states |
+| [**Embedded Dashboard**](./api/embedded-dashboard) | Configure embedded dashboard settings |
+| [**Dashboard Filter State**](./api/dashboard-filter-state) | Manage temporary filter state for dashboards |
+| [**Explore Form Data**](./api/explore-form-data) | Manage temporary form data for chart exploration |
+
+#### Scheduling & Alerts
+
+| Category | Description |
+|----------|-------------|
+| [**Report Schedules**](./api/report-schedules) | Configure scheduled reports and alerts |
+
+#### Security & Access Control
+
+| Category | Description |
+|----------|-------------|
+| [**Security**](./api/security) | Authentication and token management |
+| [**Security Roles**](./api/security-roles) | Manage security roles and their permissions |
+| [**Security Users**](./api/security-users) | Manage user accounts |
+| [**Security Permissions**](./api/security-permissions) | View available permissions |
+| [**Security Resources**](./api/security-resources-view-menus) | Manage security resources (view menus) |
+| [**Security Permissions on Resources**](./api/security-permissions-on-resources-view-menus) | Manage permission-resource mappings |
+| [**Row Level Security**](./api/row-level-security) | Manage row-level security rules for data access control |
+
+#### Import/Export & Administration
+
+| Category | Description |
+|----------|-------------|
+| [**Import/export**](./api/import-export) | Import and export Superset assets |
+| [**CacheRestApi**](./api/cache-rest-api) | Cache management and invalidation operations |
+| [**LogRestApi**](./api/log-rest-api) | Access audit logs and activity history |
+
+#### User & System
+
+| Category | Description |
+|----------|-------------|
+| [**Current User**](./api/current-user) | Get information about the currently authenticated user |
+| [**User**](./api/user) | User profile and preferences |
+| [**Menu**](./api/menu) | Get the Superset menu structure |
+| [**Available Domains**](./api/available-domains) | Get available domains for the Superset instance |
+| [**AsyncEventsRestApi**](./api/async-events-rest-api) | Real-time event streaming via Server-Sent Events (SSE) |
+| [**OpenApi**](./api/open-api) | Access the OpenAPI specification |
+
+---
+
+### Additional Resources
+
+- [Superset REST API Blog Post](https://preset.io/blog/2020-10-01-superset-api/)
+- [Accessing APIs with Superset](https://preset.io/blog/accessing-apis-with-superset/)

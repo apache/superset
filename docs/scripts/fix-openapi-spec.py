@@ -262,6 +262,80 @@ def add_missing_operation_ids(spec: dict) -> int:
     return fixed_count
 
 
+TAG_DESCRIPTIONS = {
+    "Advanced Data Type": "Endpoints for advanced data type operations and conversions.",
+    "Annotation Layers": "Manage annotation layers and annotations for charts.",
+    "AsyncEventsRestApi": "Real-time event streaming via Server-Sent Events (SSE).",
+    "Available Domains": "Get available domains for the Superset instance.",
+    "CSS Templates": "Manage CSS templates for custom dashboard styling.",
+    "CacheRestApi": "Cache management and invalidation operations.",
+    "Charts": "Create, read, update, and delete charts (slices).",
+    "Current User": "Get information about the currently authenticated user.",
+    "Dashboard Filter State": "Manage temporary filter state for dashboards.",
+    "Dashboard Permanent Link": "Create and retrieve permanent links to dashboard states.",
+    "Dashboards": "Create, read, update, and delete dashboards.",
+    "Database": "Manage database connections and metadata.",
+    "Datasets": "Manage datasets (tables) used for building charts.",
+    "Datasources": "Query datasource metadata and column values.",
+    "Embedded Dashboard": "Configure embedded dashboard settings.",
+    "Explore": "Chart exploration and data querying endpoints.",
+    "Explore Form Data": "Manage temporary form data for chart exploration.",
+    "Explore Permanent Link": "Create and retrieve permanent links to chart explore states.",
+    "Import/export": "Import and export Superset assets (dashboards, charts, databases).",
+    "LogRestApi": "Access audit logs and activity history.",
+    "Menu": "Get the Superset menu structure.",
+    "OpenApi": "Access the OpenAPI specification.",
+    "Queries": "View and manage SQL Lab query history.",
+    "Report Schedules": "Configure scheduled reports and alerts.",
+    "Row Level Security": "Manage row-level security rules for data access control.",
+    "SQL Lab": "Execute SQL queries and manage SQL Lab sessions.",
+    "SQL Lab Permanent Link": "Create and retrieve permanent links to SQL Lab states.",
+    "Security": "Authentication and token management.",
+    "Security Permissions": "View available permissions.",
+    "Security Permissions on Resources (View Menus)": "Manage permission-resource mappings.",
+    "Security Resources (View Menus)": "Manage security resources (view menus).",
+    "Security Roles": "Manage security roles and their permissions.",
+    "Security Users": "Manage user accounts.",
+    "Tags": "Organize assets with tags.",
+    "User": "User profile and preferences.",
+}
+
+
+def add_tag_definitions(spec: dict) -> int:
+    """Add tag definitions with descriptions to the OpenAPI spec."""
+    # Collect all unique tags used in operations
+    used_tags: set[str] = set()
+    for path, methods in spec.get("paths", {}).items():
+        for method, details in methods.items():
+            if method not in ["get", "post", "put", "delete", "patch"]:
+                continue
+            if not isinstance(details, dict):
+                continue
+            tags = details.get("tags", [])
+            used_tags.update(tags)
+
+    # Create tag definitions
+    tag_definitions = []
+    for tag in sorted(used_tags):
+        tag_def = {"name": tag}
+        if tag in TAG_DESCRIPTIONS:
+            tag_def["description"] = TAG_DESCRIPTIONS[tag]
+        else:
+            # Generate a generic description
+            tag_def["description"] = f"Endpoints related to {tag}."
+        tag_definitions.append(tag_def)
+
+    # Only update if we have new tags
+    existing_tags = {t.get("name") for t in spec.get("tags", [])}
+    new_tags = [t for t in tag_definitions if t["name"] not in existing_tags]
+
+    if new_tags or not spec.get("tags"):
+        spec["tags"] = tag_definitions
+        return len(tag_definitions)
+
+    return 0
+
+
 def make_summaries_unique(spec: dict) -> int:
     """Make duplicate summaries unique by adding context from the path."""
     summary_info: dict[str, list[tuple[str, str]]] = {}
@@ -321,6 +395,7 @@ def main() -> None:
 
     spec, fixed_schemas = add_missing_schemas(spec)
     fixed_ops = add_missing_operation_ids(spec)
+    fixed_tags = add_tag_definitions(spec)
 
     changes_made = False
 
@@ -330,6 +405,10 @@ def main() -> None:
 
     if fixed_ops:
         print(f"Added operationId/summary to {fixed_ops} operations")
+        changes_made = True
+
+    if fixed_tags:
+        print(f"Added {fixed_tags} tag definitions with descriptions")
         changes_made = True
 
     if fixed_summaries := make_summaries_unique(spec):
