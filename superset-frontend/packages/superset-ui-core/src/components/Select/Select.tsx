@@ -522,7 +522,7 @@ const Select = forwardRef(
               handleDeselectAll();
             }}
           >
-            {`${t('Deselect all')} (${bulkSelectCounts.deselectable})`}
+            {`${t('Clear')} (${bulkSelectCounts.deselectable})`}
           </Button>
         </StyledBulkActionsContainer>
       ),
@@ -776,6 +776,7 @@ const Select = forwardRef(
           options={visibleOptions}
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
+          popupMatchSelectWidth={selectAllEnabled ? 168 : true}
           css={props.css}
           {...props}
           showSearch={shouldShowSearch}
