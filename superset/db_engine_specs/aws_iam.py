@@ -70,6 +70,8 @@ class AWSIAMConfig(TypedDict, total=False):
     # Redshift Serverless fields
     workgroup_name: str
     db_name: str
+    # Redshift provisioned cluster fields
+    cluster_identifier: str
 
 
 class AWSIAMAuthMixin:
@@ -318,7 +320,68 @@ class AWSIAMAuthMixin:
         except ClientError as ex:
             raise SupersetSecurityException(
                 SupersetError(
-                    message=f"Failed to get Redshift credentials: {ex}",
+                    message=f"Failed to get Redshift Serverless credentials: {ex}",
+                    error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ) from ex
+
+    @classmethod
+    def generate_redshift_cluster_credentials(
+        cls,
+        credentials: dict[str, Any],
+        cluster_identifier: str,
+        db_user: str,
+        db_name: str,
+        region: str,
+        auto_create: bool = False,
+    ) -> tuple[str, str]:
+        """
+        Generate credentials for a provisioned Redshift cluster using temporary
+        STS credentials.
+
+        :param credentials: STS credentials from assume_role
+        :param cluster_identifier: Redshift cluster identifier
+        :param db_user: Database username to get credentials for
+        :param db_name: Redshift database name
+        :param region: AWS region
+        :param auto_create: Whether to auto-create the database user if it doesn't exist
+        :returns: Tuple of (username, password) for Redshift connection
+        :raises SupersetSecurityException: If credential generation fails
+        """
+        try:
+            import boto3
+            from botocore.exceptions import ClientError
+        except ImportError as ex:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="boto3 is required for AWS IAM authentication.",
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ) from ex
+
+        try:
+            client = boto3.client(
+                "redshift",
+                region_name=region,
+                aws_access_key_id=credentials["AccessKeyId"],
+                aws_secret_access_key=credentials["SecretAccessKey"],
+                aws_session_token=credentials["SessionToken"],
+            )
+
+            response = client.get_cluster_credentials(
+                ClusterIdentifier=cluster_identifier,
+                DbUser=db_user,
+                DbName=db_name,
+                AutoCreate=auto_create,
+            )
+            return response["DbUser"], response["DbPassword"]
+
+        except ClientError as ex:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message=f"Failed to get Redshift cluster credentials: {ex}",
                     error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                     level=ErrorLevel.ERROR,
                 )
@@ -441,7 +504,11 @@ class AWSIAMAuthMixin:
         iam_config: AWSIAMConfig,
     ) -> None:
         """
-        Apply Redshift Serverless IAM authentication to connection parameters.
+        Apply Redshift IAM authentication to connection parameters.
+
+        Supports both Redshift Serverless (workgroup_name) and provisioned
+        clusters (cluster_identifier). The method auto-detects which type
+        based on the configuration provided.
 
         Flow: assume role -> get Redshift credentials -> update connect_args -> SSL.
 
@@ -455,19 +522,55 @@ class AWSIAMAuthMixin:
         region = iam_config.get("region")
         external_id = iam_config.get("external_id")
         session_duration = iam_config.get("session_duration", DEFAULT_SESSION_DURATION)
+
+        # Serverless fields
         workgroup_name = iam_config.get("workgroup_name")
+
+        # Provisioned cluster fields
+        cluster_identifier = iam_config.get("cluster_identifier")
+        db_username = iam_config.get("db_username")
+
+        # Common field
         db_name = iam_config.get("db_name")
 
-        # Validate required fields
+        # Determine deployment type
+        is_serverless = bool(workgroup_name)
+        is_provisioned = bool(cluster_identifier)
+
+        if is_serverless and is_provisioned:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="AWS IAM configuration cannot have both workgroup_name "
+                    "(Serverless) and cluster_identifier (provisioned). "
+                    "Please specify only one.",
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+        if not is_serverless and not is_provisioned:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="AWS IAM configuration must include either workgroup_name "
+                    "(for Redshift Serverless) or cluster_identifier "
+                    "(for provisioned Redshift clusters).",
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+        # Validate common required fields
         missing_fields = []
         if not role_arn:
             missing_fields.append("role_arn")
         if not region:
             missing_fields.append("region")
-        if not workgroup_name:
-            missing_fields.append("workgroup_name")
         if not db_name:
             missing_fields.append("db_name")
+
+        # Validate provisioned cluster specific fields
+        if is_provisioned and not db_username:
+            missing_fields.append("db_username")
 
         if missing_fields:
             raise SupersetSecurityException(
@@ -482,13 +585,7 @@ class AWSIAMAuthMixin:
         # Type assertions after validation
         assert role_arn is not None
         assert region is not None
-        assert workgroup_name is not None
         assert db_name is not None
-
-        logger.debug(
-            "Applying Redshift IAM authentication for workgroup %s",
-            workgroup_name,
-        )
 
         # Step 1: Assume the IAM role
         credentials = cls.get_iam_credentials(
@@ -498,13 +595,33 @@ class AWSIAMAuthMixin:
             session_duration=session_duration,
         )
 
-        # Step 2: Get Redshift Serverless credentials
-        db_user, db_password = cls.generate_redshift_credentials(
-            credentials=credentials,
-            workgroup_name=workgroup_name,
-            db_name=db_name,
-            region=region,
-        )
+        # Step 2: Get Redshift credentials based on deployment type
+        if is_serverless:
+            assert workgroup_name is not None
+            logger.debug(
+                "Applying Redshift Serverless IAM authentication for workgroup %s",
+                workgroup_name,
+            )
+            db_user, db_password = cls.generate_redshift_credentials(
+                credentials=credentials,
+                workgroup_name=workgroup_name,
+                db_name=db_name,
+                region=region,
+            )
+        else:
+            assert cluster_identifier is not None
+            assert db_username is not None
+            logger.debug(
+                "Applying Redshift provisioned cluster IAM authentication for %s",
+                cluster_identifier,
+            )
+            db_user, db_password = cls.generate_redshift_cluster_credentials(
+                credentials=credentials,
+                cluster_identifier=cluster_identifier,
+                db_user=db_username,
+                db_name=db_name,
+                region=region,
+            )
 
         # Step 3: Update connection parameters
         connect_args = params.setdefault("connect_args", {})

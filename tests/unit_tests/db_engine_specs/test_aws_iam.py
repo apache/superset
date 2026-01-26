@@ -646,7 +646,7 @@ def test_generate_redshift_credentials_client_error() -> None:
                 region="us-east-1",
             )
 
-        assert "Failed to get Redshift credentials" in str(exc_info.value)
+        assert "Failed to get Redshift Serverless credentials" in str(exc_info.value)
 
 
 def test_apply_redshift_iam_authentication() -> None:
@@ -755,3 +755,248 @@ def test_apply_redshift_iam_authentication_missing_db_name() -> None:
         )
 
     assert "db_name" in str(exc_info.value)
+
+
+def test_generate_redshift_cluster_credentials() -> None:
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+    credentials = {
+        "AccessKeyId": "ASIA...",
+        "SecretAccessKey": "secret...",
+        "SessionToken": "token...",
+    }
+
+    with patch("boto3.client") as mock_boto3_client:
+        mock_redshift = MagicMock()
+        mock_redshift.get_cluster_credentials.return_value = {
+            "DbUser": "IAM:superset_user",
+            "DbPassword": "redshift-cluster-temp-password",
+        }
+        mock_boto3_client.return_value = mock_redshift
+
+        db_user, db_password = AWSIAMAuthMixin.generate_redshift_cluster_credentials(
+            credentials=credentials,
+            cluster_identifier="my-redshift-cluster",
+            db_user="superset_user",
+            db_name="analytics",
+            region="us-east-1",
+        )
+
+        assert db_user == "IAM:superset_user"
+        assert db_password == "redshift-cluster-temp-password"  # noqa: S105
+        mock_boto3_client.assert_called_once_with(
+            "redshift",
+            region_name="us-east-1",
+            aws_access_key_id="ASIA...",
+            aws_secret_access_key="secret...",  # noqa: S106
+            aws_session_token="token...",  # noqa: S106
+        )
+        mock_redshift.get_cluster_credentials.assert_called_once_with(
+            ClusterIdentifier="my-redshift-cluster",
+            DbUser="superset_user",
+            DbName="analytics",
+            AutoCreate=False,
+        )
+
+
+def test_generate_redshift_cluster_credentials_with_auto_create() -> None:
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+    credentials = {
+        "AccessKeyId": "ASIA...",
+        "SecretAccessKey": "secret...",
+        "SessionToken": "token...",
+    }
+
+    with patch("boto3.client") as mock_boto3_client:
+        mock_redshift = MagicMock()
+        mock_redshift.get_cluster_credentials.return_value = {
+            "DbUser": "IAM:new_user",
+            "DbPassword": "temp-password",
+        }
+        mock_boto3_client.return_value = mock_redshift
+
+        AWSIAMAuthMixin.generate_redshift_cluster_credentials(
+            credentials=credentials,
+            cluster_identifier="my-cluster",
+            db_user="new_user",
+            db_name="dev",
+            region="us-west-2",
+            auto_create=True,
+        )
+
+        mock_redshift.get_cluster_credentials.assert_called_once_with(
+            ClusterIdentifier="my-cluster",
+            DbUser="new_user",
+            DbName="dev",
+            AutoCreate=True,
+        )
+
+
+def test_generate_redshift_cluster_credentials_client_error() -> None:
+    from botocore.exceptions import ClientError
+
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+    credentials = {
+        "AccessKeyId": "ASIA...",
+        "SecretAccessKey": "secret...",
+        "SessionToken": "token...",
+    }
+
+    with patch("boto3.client") as mock_boto3_client:
+        mock_redshift = MagicMock()
+        mock_redshift.get_cluster_credentials.side_effect = ClientError(
+            {"Error": {"Code": "ClusterNotFound", "Message": "Cluster not found"}},
+            "GetClusterCredentials",
+        )
+        mock_boto3_client.return_value = mock_redshift
+
+        with pytest.raises(SupersetSecurityException) as exc_info:
+            AWSIAMAuthMixin.generate_redshift_cluster_credentials(
+                credentials=credentials,
+                cluster_identifier="nonexistent-cluster",
+                db_user="superset_user",
+                db_name="dev",
+                region="us-east-1",
+            )
+
+        assert "Failed to get Redshift cluster credentials" in str(exc_info.value)
+
+
+def test_apply_redshift_iam_authentication_provisioned_cluster() -> None:
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
+
+    mock_database = MagicMock()
+    mock_database.sqlalchemy_uri_decrypted = (
+        "redshift+psycopg2://user@my-cluster.abc123.us-east-1"
+        ".redshift.amazonaws.com:5439/analytics"
+    )
+
+    iam_config: AWSIAMConfig = {
+        "enabled": True,
+        "role_arn": "arn:aws:iam::123456789012:role/RedshiftRole",
+        "region": "us-east-1",
+        "cluster_identifier": "my-cluster",
+        "db_username": "superset_user",
+        "db_name": "analytics",
+    }
+
+    params: dict[str, Any] = {}
+
+    with (
+        patch.object(
+            AWSIAMAuthMixin,
+            "get_iam_credentials",
+            return_value={
+                "AccessKeyId": "ASIA...",
+                "SecretAccessKey": "secret...",
+                "SessionToken": "token...",
+            },
+        ) as mock_get_creds,
+        patch.object(
+            AWSIAMAuthMixin,
+            "generate_redshift_cluster_credentials",
+            return_value=("IAM:superset_user", "cluster-temp-password"),
+        ) as mock_gen_creds,
+    ):
+        AWSIAMAuthMixin._apply_redshift_iam_authentication(
+            mock_database, params, iam_config
+        )
+
+    mock_get_creds.assert_called_once_with(
+        role_arn="arn:aws:iam::123456789012:role/RedshiftRole",
+        region="us-east-1",
+        external_id=None,
+        session_duration=3600,
+    )
+
+    mock_gen_creds.assert_called_once_with(
+        credentials={
+            "AccessKeyId": "ASIA...",
+            "SecretAccessKey": "secret...",
+            "SessionToken": "token...",
+        },
+        cluster_identifier="my-cluster",
+        db_user="superset_user",
+        db_name="analytics",
+        region="us-east-1",
+    )
+
+    assert params["connect_args"]["password"] == "cluster-temp-password"  # noqa: S105
+    assert params["connect_args"]["user"] == "IAM:superset_user"
+    assert params["connect_args"]["sslmode"] == "verify-ca"
+
+
+def test_apply_redshift_iam_authentication_provisioned_missing_db_username() -> None:
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
+
+    mock_database = MagicMock()
+    mock_database.sqlalchemy_uri_decrypted = "redshift+psycopg2://user@host:5439/dev"
+
+    iam_config: AWSIAMConfig = {
+        "enabled": True,
+        "role_arn": "arn:aws:iam::123456789012:role/RedshiftRole",
+        "region": "us-east-1",
+        "cluster_identifier": "my-cluster",
+        "db_name": "dev",
+        # Missing db_username - required for provisioned clusters
+    }
+
+    params: dict[str, Any] = {}
+
+    with pytest.raises(SupersetSecurityException) as exc_info:
+        AWSIAMAuthMixin._apply_redshift_iam_authentication(
+            mock_database, params, iam_config
+        )
+
+    assert "db_username" in str(exc_info.value)
+
+
+def test_apply_redshift_iam_authentication_both_workgroup_and_cluster() -> None:
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
+
+    mock_database = MagicMock()
+    mock_database.sqlalchemy_uri_decrypted = "redshift+psycopg2://user@host:5439/dev"
+
+    iam_config: AWSIAMConfig = {
+        "enabled": True,
+        "role_arn": "arn:aws:iam::123456789012:role/RedshiftRole",
+        "region": "us-east-1",
+        "workgroup_name": "my-workgroup",
+        "cluster_identifier": "my-cluster",
+        "db_name": "dev",
+    }
+
+    params: dict[str, Any] = {}
+
+    with pytest.raises(SupersetSecurityException) as exc_info:
+        AWSIAMAuthMixin._apply_redshift_iam_authentication(
+            mock_database, params, iam_config
+        )
+
+    assert "cannot have both" in str(exc_info.value)
+
+
+def test_apply_redshift_iam_authentication_neither_workgroup_nor_cluster() -> None:
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
+
+    mock_database = MagicMock()
+    mock_database.sqlalchemy_uri_decrypted = "redshift+psycopg2://user@host:5439/dev"
+
+    iam_config: AWSIAMConfig = {
+        "enabled": True,
+        "role_arn": "arn:aws:iam::123456789012:role/RedshiftRole",
+        "region": "us-east-1",
+        "db_name": "dev",
+        # Missing both workgroup_name and cluster_identifier
+    }
+
+    params: dict[str, Any] = {}
+
+    with pytest.raises(SupersetSecurityException) as exc_info:
+        AWSIAMAuthMixin._apply_redshift_iam_authentication(
+            mock_database, params, iam_config
+        )
+
+    assert "must include either workgroup_name" in str(exc_info.value)
