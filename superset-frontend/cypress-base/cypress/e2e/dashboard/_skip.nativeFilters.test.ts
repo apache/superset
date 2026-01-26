@@ -47,7 +47,7 @@ import {
 } from './shared_dashboard_functions';
 
 function selectFilter(index: number) {
-  cy.get("[data-test='filter-title-container'] [draggable='true']")
+  cy.get("[data-test='filter-title-container'] [role='tab']")
     .eq(index)
     .click();
 }
