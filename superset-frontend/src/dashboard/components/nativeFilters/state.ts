@@ -257,7 +257,7 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
           // Only filters without explicit tab scope (rootPath is empty or contains only ROOT_ID)
           // should be shown in "Filters out of scope" when they're not applicable.
           const hasExplicitTabScope =
-            !isFilterDivider(filter) &&
+            filter.type !== NativeFilterType.Divider &&
             filter.scope?.rootPath &&
             filter.scope.rootPath.length > 0 &&
             filter.scope.rootPath.some(id => id !== DASHBOARD_ROOT_ID);
