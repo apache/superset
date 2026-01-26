@@ -88,8 +88,11 @@ export class Select {
       .locator(`${SELECT_SELECTORS.DROPDOWN}:not(.ant-select-dropdown-hidden)`)
       .last()
       .waitFor({ state: 'hidden', timeout: 5000 })
-      .catch(() => {
-        // Dropdown may already be closed or never opened
+      .catch(error => {
+        // Only ignore TimeoutError (dropdown may already be closed); re-throw others
+        if (!(error instanceof Error) || error.name !== 'TimeoutError') {
+          throw error;
+        }
       });
   }
 
@@ -151,7 +154,11 @@ export class Select {
       // Wait for search input in case dropdown is still rendering
       await searchInput.first().waitFor({ state: 'attached', timeout: 1000 });
       await searchInput.first().fill(text);
-    } catch {
+    } catch (error) {
+      // Only handle TimeoutError (search input not found); re-throw other errors
+      if (!(error instanceof Error) || error.name !== 'TimeoutError') {
+        throw error;
+      }
       // Fallback: locator might be the input itself (e.g., from getByRole('combobox'))
       await this.locator.fill(text);
     }

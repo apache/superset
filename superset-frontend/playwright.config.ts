@@ -125,9 +125,11 @@ export default defineConfig({
         const baseUrl =
           process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
         // Extract origin (scheme + host + port) for health check
-        const healthUrl = new URL('health', baseUrl).href;
+        // Health endpoint is always at /health regardless of app prefix
+        const healthUrl = new URL('/health', new URL(baseUrl).origin).href;
         return {
-          command: `curl -f ${healthUrl}`,
+          // Quote URL to prevent shell injection via PLAYWRIGHT_BASE_URL
+          command: `curl -f '${healthUrl}'`,
           url: healthUrl,
           reuseExistingServer: true,
           timeout: 5000,

@@ -121,7 +121,8 @@ export async function createTestVirtualDataset(
   }
 
   const body = await response.json();
-  return body.id ?? null;
+  // Handle both response shapes: { id } or { result: { id } }
+  return body.result?.id ?? body.id ?? null;
 }
 
 /**

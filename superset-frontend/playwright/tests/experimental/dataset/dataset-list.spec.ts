@@ -434,22 +434,28 @@ test('should bulk delete multiple datasets', async ({
   await expect(datasetListPage.getDatasetRow(dataset2.name)).not.toBeVisible();
 
   // Verify via API that datasets no longer exist (404)
-  // Use polling since deletes may be async
+  // Use polling with explicit timeout since deletes may be async
   await expect
-    .poll(async () => {
-      const response = await apiGetDataset(page, dataset1.id, {
-        failOnStatusCode: false,
-      });
-      return response.status();
-    })
+    .poll(
+      async () => {
+        const response = await apiGetDataset(page, dataset1.id, {
+          failOnStatusCode: false,
+        });
+        return response.status();
+      },
+      { timeout: 10000, message: `Dataset ${dataset1.id} should return 404` },
+    )
     .toBe(404);
   await expect
-    .poll(async () => {
-      const response = await apiGetDataset(page, dataset2.id, {
-        failOnStatusCode: false,
-      });
-      return response.status();
-    })
+    .poll(
+      async () => {
+        const response = await apiGetDataset(page, dataset2.id, {
+          failOnStatusCode: false,
+        });
+        return response.status();
+      },
+      { timeout: 10000, message: `Dataset ${dataset2.id} should return 404` },
+    )
     .toBe(404);
 });
 
@@ -582,7 +588,7 @@ test('should edit column date format via modal', async ({
 
   const createResponse = await apiPostVirtualDataset(page, {
     database: baseDataset!.database.id,
-    schema: baseDataset!.schema ?? '',
+    schema: baseDataset!.schema ?? null,
     table_name: datasetName,
     sql: "SELECT CAST('2024-01-01' AS DATE) as ds, 'test' as name",
   });
