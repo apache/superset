@@ -105,13 +105,13 @@ test('redraw with Pixels mode normalizes radius values correctly', () => {
   // Verify arc was called 3 times (once per point)
   expect(ctx.arc).toHaveBeenCalledTimes(3);
 
-  // MIN_POINT_RADIUS = 5, MAX_POINT_RADIUS = dotRadius/3 = 20
+  // MIN_POINT_RADIUS = dotRadius/6 = 10, MAX_POINT_RADIUS = dotRadius/3 = 20
   // Values: 10, 50, 100
   // Normalized: (10-10)/(100-10) = 0, (50-10)/(100-10) = 0.444, (100-10)/(100-10) = 1
-  // Scaled: 5 + 0*(20-5) = 5, 5 + 0.444*15 = 11.67, 5 + 1*15 = 20
+  // Scaled: 10 + 0*(20-10) = 10, 10 + 0.444*10 = 14.44, 10 + 1*10 = 20
   const radiusCalls = getArcRadii(ctx);
-  expect(radiusCalls[0]).toBeCloseTo(5, 1);
-  expect(radiusCalls[1]).toBeCloseTo(11.7, 1);
+  expect(radiusCalls[0]).toBeCloseTo(10, 1);
+  expect(radiusCalls[1]).toBeCloseTo(14.4, 1);
   expect(radiusCalls[2]).toBeCloseTo(20, 1);
 });
 
@@ -124,11 +124,11 @@ test('redraw with Pixels mode handles all same values', () => {
 
   const { ctx } = renderAndRedraw({ locations, pointRadiusUnit: 'Pixels' });
 
-  // MIN_POINT_RADIUS = 5, MAX_POINT_RADIUS = 20
-  // All same values should use fixed medium size: (5 + 20) / 2 = 12.5
+  // MIN_POINT_RADIUS = 10, MAX_POINT_RADIUS = 20
+  // All same values should use fixed medium size: (10 + 20) / 2 = 15
   const radiusCalls = getArcRadii(ctx);
   radiusCalls.forEach((radius: number) => {
-    expect(radius).toBeCloseTo(12.5, 1);
+    expect(radius).toBeCloseTo(15, 1);
   });
 });
 
@@ -141,9 +141,9 @@ test('redraw with Pixels mode handles non-finite values', () => {
 
   const { ctx } = renderAndRedraw({ locations, pointRadiusUnit: 'Pixels' });
 
-  // Non-finite value (NaN) should use MIN_POINT_RADIUS = 5
+  // Non-finite value (NaN) should use MIN_POINT_RADIUS = dotRadius/6 = 10
   const radiusCalls = getArcRadii(ctx);
-  expect(radiusCalls[1]).toBe(5);
+  expect(radiusCalls[1]).toBe(10);
 });
 
 test('redraw with Pixels mode coerces numeric strings', () => {
@@ -160,8 +160,8 @@ test('redraw with Pixels mode coerces numeric strings', () => {
 
   // Values should be normalized correctly from string '10', '50', '100'
   const radiusCalls = getArcRadii(ctx);
-  expect(radiusCalls[0]).toBeCloseTo(5, 1);
-  expect(radiusCalls[1]).toBeCloseTo(11.7, 1);
+  expect(radiusCalls[0]).toBeCloseTo(10, 1);
+  expect(radiusCalls[1]).toBeCloseTo(14.4, 1);
   expect(radiusCalls[2]).toBeCloseTo(20, 1);
 });
 
@@ -201,7 +201,7 @@ test('redraw with Pixels mode ignores cluster points when calculating min/max', 
   // First and third calls should be normalized based on min=10, max=100
   // (ignoring the cluster point with radius=999)
   const radiusCalls = getArcRadii(ctx);
-  expect(radiusCalls[0]).toBeCloseTo(5, 1);
+  expect(radiusCalls[0]).toBeCloseTo(10, 1);
   expect(radiusCalls[2]).toBeCloseTo(20, 1);
 });
 

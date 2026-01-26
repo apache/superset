@@ -253,9 +253,9 @@ class ScatterPlotGlowOverlay extends PureComponent {
                   zoom,
                 );
               } else if (pointRadiusUnit === 'Pixels') {
-                // Scale pixel values to a reasonable range (5px to radius/3)
+                // Scale pixel values to a reasonable range (radius/6 to radius/3)
                 // This ensures points are visible and proportional to their values
-                const MIN_POINT_RADIUS = 5;
+                const MIN_POINT_RADIUS = radius / 6;
                 const MAX_POINT_RADIUS = radius / 3;
 
                 if (
