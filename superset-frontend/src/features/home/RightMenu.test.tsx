@@ -88,7 +88,7 @@ const dropdownItems = [
   },
   {
     label: 'Dashboard',
-    url: '/dashboard/new',
+    url: '/dashboard/new/',
     icon: 'fa-fw fa-dashboard',
     perm: 'can_write',
     view: 'Dashboard',
