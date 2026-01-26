@@ -42,6 +42,7 @@ const customIcons = [
   'Error',
   'Full',
   'Layers',
+  'Multiple',
   'Queued',
   'Redo',
   'Running',
