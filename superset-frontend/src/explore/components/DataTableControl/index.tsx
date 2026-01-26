@@ -240,7 +240,7 @@ const DataTableHeaderCell = ({
   if (columnLabel && columnLabel !== columnName) {
     return (
       <Popover
-        content={`Column name: ${columnName}`}
+        content={`${t('Column name')}: ${columnName}`}
         placement="bottomLeft"
         arrow={{ pointAtCenter: true }}
       >
