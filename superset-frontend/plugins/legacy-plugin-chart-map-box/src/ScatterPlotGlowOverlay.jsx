@@ -29,6 +29,7 @@ const propTypes = {
   aggregation: PropTypes.string,
   compositeOperation: PropTypes.string,
   dotRadius: PropTypes.number,
+  globalOpacity: PropTypes.number,
   lngLatAccessor: PropTypes.func,
   locations: PropTypes.arrayOf(PropTypes.object).isRequired,
   pointRadiusUnit: PropTypes.string,
@@ -121,6 +122,7 @@ class ScatterPlotGlowOverlay extends PureComponent {
       aggregation,
       compositeOperation,
       dotRadius,
+      globalOpacity,
       lngLatAccessor,
       locations,
       pointRadiusUnit,
@@ -200,7 +202,7 @@ class ScatterPlotGlowOverlay extends PureComponent {
 
             gradient.addColorStop(
               1,
-              `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, 0.8)`,
+              `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, ${0.8 * globalOpacity})`,
             );
             gradient.addColorStop(
               0,
@@ -315,7 +317,7 @@ class ScatterPlotGlowOverlay extends PureComponent {
               0,
               Math.PI * 2,
             );
-            ctx.fillStyle = `rgb(${rgb[1]}, ${rgb[2]}, ${rgb[3]})`;
+            ctx.fillStyle = `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, ${globalOpacity})`;
             ctx.fill();
 
             if (pointLabel !== undefined) {

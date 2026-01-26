@@ -139,3 +139,4 @@ PROJECT.md
 .env.local
 oxc-custom-build/
 *.code-workspace
+*.duckdb

@@ -29,9 +29,6 @@ export const DatePicker = (props: DatePickerProps) => (
   />
 );
 
-// Disable ESLint rule to allow tsc to infer proper type for RangePicker.
-// eslint-disable-next-line prefer-destructuring
-export const RangePicker: typeof AntdDatePicker.RangePicker =
-  AntdDatePicker.RangePicker;
+export const { RangePicker } = AntdDatePicker;
 
 export type { DatePickerProps, RangePickerProps };

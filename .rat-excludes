@@ -75,6 +75,9 @@ postgresql.svg
 snowflake.svg
 ydb.svg
 loading.svg
+apache-solr.svg
+azure.svg
+superset.svg
 
 # docs third-party logos, i.e. docs/static/img/logos/*
 logos/*
