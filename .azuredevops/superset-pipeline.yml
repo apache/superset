@@ -124,15 +124,15 @@ stages:
 # =====================================================
 # DEPLOY STAGE
 # =====================================================
-- stage: Deploy_blue_dev
-  displayName: Deploy to blue-dev
+- stage: Deploy_${{ replace('-', '_', parameters.targetEnvironment) }}
+  displayName: Deploy to ${{ parameters.targetEnvironment }}
   dependsOn: Build
   variables:
-    - group: blue-dev-secret   # This loads the variable named "blue-dev-secret" from Key Vault
+    - group: ${{ parameters.targetEnvironment }}-secret   # Dynamic variable group based on targetEnvironment
   
   jobs:
     - deployment: DeploySuperset
-      displayName: Deploy Superset to blue-dev
+      displayName: Deploy Superset to ${{ parameters.targetEnvironment }}
       environment:
         name: ${{ parameters.targetEnvironment }}
         resourceType: VirtualMachine
