@@ -21,11 +21,12 @@ from datetime import datetime
 from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import relationship
+from superset_core.api.models import TaskSubscriber as CoreTaskSubscriber
 
 from superset.models.helpers import AuditMixinNullable
 
 
-class TaskSubscriber(AuditMixinNullable, Model):
+class TaskSubscriber(CoreTaskSubscriber, AuditMixinNullable, Model):
     """
     Model for tracking task subscriptions in shared tasks.
 

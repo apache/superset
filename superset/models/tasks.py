@@ -16,18 +16,17 @@
 # under the License.
 """Task model for Global Task Framework (GTF)"""
 
+from __future__ import annotations
+
 import traceback
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from flask_appbuilder import Model
 from sqlalchemy import (
-    Boolean,
     Column,
     DateTime,
-    Float,
-    ForeignKey,
     Integer,
     String,
     Text,
@@ -41,6 +40,9 @@ from superset.models.task_subscribers import TaskSubscriber  # noqa: F401
 from superset.tasks.utils import get_finished_dedup_key
 from superset.utils import json
 
+if TYPE_CHECKING:
+    from superset.tasks.types import TaskProperties
+
 
 class Task(CoreTask, AuditMixinNullable, Model):
     """
@@ -49,14 +51,20 @@ class Task(CoreTask, AuditMixinNullable, Model):
     This model represents async tasks in Superset, providing unified tracking
     for all background operations including SQL queries, thumbnail generation,
     reports, and other async operations.
+
+    Non-filterable fields (progress, error info, execution config) are stored
+    in a `properties` JSON blob for schema flexibility.
     """
 
     __tablename__ = "tasks"
 
+    # Primary key and identifiers
     id = Column(Integer, primary_key=True)
     uuid = Column(
         String(36), nullable=False, unique=True, default=lambda: str(uuid.uuid4())
     )
+
+    # Task metadata (filterable)
     task_key = Column(String(256), nullable=False, index=True)  # For deduplication
     task_type = Column(String(100), nullable=False, index=True)  # e.g., 'sql_execution'
     task_name = Column(String(256), nullable=True)  # Human readable name
@@ -69,31 +77,34 @@ class Task(CoreTask, AuditMixinNullable, Model):
     dedup_key = Column(
         String(512), nullable=False, unique=True, index=True
     )  # Computed deduplication key
+
+    # Timestamps
     started_at = Column(DateTime, nullable=True)
     ended_at = Column(DateTime, nullable=True)
-    user_id = Column(Integer, nullable=True)  # User context for execution
-    database_id = Column(
-        Integer, ForeignKey("dbs.id", ondelete="SET NULL"), nullable=True
-    )
-    error_message = Column(Text, nullable=True)  # Human-readable error message
-    exception_type = Column(String(256), nullable=True)  # Exception class name
-    stack_trace = Column(Text, nullable=True)  # Full formatted traceback
-    payload = Column(
-        Text, nullable=True, default="{}"
-    )  # JSON serialized task-specific data
-    # Progress tracking - supports three modes:
-    # 1. Percentage only: progress_percent set, others null
-    # 2. Count only: progress_current set, others null
-    # 3. Count+total: progress_current and progress_total set, percent auto-computed
-    progress_percent = Column(Float, nullable=True)  # Progress 0.0-1.0
-    progress_current = Column(Integer, nullable=True)  # Current iteration count
-    progress_total = Column(Integer, nullable=True)  # Total iterations (if known)
-    # Abort handling: null=pending/finished, false=in_progress no handler,
-    # true=has abort handler
-    is_abortable = Column(Boolean, nullable=True)
+
+    # User context for execution
+    user_id = Column(Integer, nullable=True)
+
+    # Task-specific output data (set by task code via ctx.update_task(payload=...))
+    payload = Column(Text, nullable=True, default="{}")
+
+    # Properties JSON blob - contains runtime state and execution config:
+    # - is_abortable: bool - has abort handler registered
+    # - progress_percent: float - progress 0.0-1.0
+    # - progress_current: int - current iteration count
+    # - progress_total: int - total iterations
+    # - error_message: str - human-readable error message
+    # - exception_type: str - exception class name
+    # - stack_trace: str - full formatted traceback
+    # - timeout: int - timeout in seconds
+    # - max_retries: int - maximum retry attempts
+    # - retry_count: int - current retry count
+    _properties = Column("properties", Text, nullable=True, default="{}")
+
+    # Transient cache for parsed properties (not persisted)
+    _properties_cache: "TaskProperties | None" = None
 
     # Relationships
-    database = relationship("Database", foreign_keys=[database_id])
     subscribers = relationship(
         "TaskSubscriber",
         back_populates="task",
@@ -103,9 +114,62 @@ class Task(CoreTask, AuditMixinNullable, Model):
     def __repr__(self) -> str:
         return f"<Task {self.task_type}:{self.task_key} [{self.status}]>"
 
+    # -------------------------------------------------------------------------
+    # Properties accessor
+    # -------------------------------------------------------------------------
+
+    @property
+    def properties(self) -> "TaskProperties":
+        """
+        Get typed properties (cached for performance).
+
+        Properties contain runtime state and execution config that doesn't
+        need database filtering. Parsed once and cached until next write.
+
+        :returns: TaskProperties dataclass instance
+        """
+        # Lazy import to avoid circular dependency
+        from superset.tasks.types import TaskProperties
+
+        if self._properties_cache is None:
+            self._properties_cache = TaskProperties.from_json(self._properties)
+        return self._properties_cache
+
+    def update_properties(self, **kwargs: Any) -> None:
+        """
+        Update specific properties fields.
+
+        Simple merge: pass key=value to update that field. If you pass
+        key=None, the field is set to None (cleared). If you don't pass
+        a key, it keeps its current value.
+
+        Valid keys: is_abortable, progress_percent, progress_current,
+        progress_total, error_message, exception_type, stack_trace,
+        timeout, max_retries, retry_count
+
+        :param kwargs: Property fields to update
+        """
+        props = self.properties  # Get current (cached)
+
+        # Simple merge: set each provided field
+        for key, value in kwargs.items():
+            if hasattr(props, key):
+                setattr(props, key, value)
+
+        # Serialize back to JSON
+        self._properties = props.to_json()
+        # Cache stays valid (we updated it in place)
+
+    # -------------------------------------------------------------------------
+    # Payload accessor (for task-specific output data)
+    # -------------------------------------------------------------------------
+
     def get_payload(self) -> dict[str, Any]:
         """
         Get payload as parsed JSON.
+
+        Payload contains task-specific output data set by task code via
+        ctx.update_task(payload=...).
 
         :returns: Dictionary containing payload data
         """
@@ -126,6 +190,10 @@ class Task(CoreTask, AuditMixinNullable, Model):
         current.update(data)
         self.payload = json.dumps(current)
 
+    # -------------------------------------------------------------------------
+    # Error handling
+    # -------------------------------------------------------------------------
+
     def set_error_from_exception(self, exception: BaseException) -> None:
         """
         Set error fields from an exception.
@@ -135,9 +203,15 @@ class Task(CoreTask, AuditMixinNullable, Model):
 
         :param exception: The exception that caused the failure
         """
-        self.error_message = str(exception)
-        self.exception_type = type(exception).__name__
-        self.stack_trace = traceback.format_exc()
+        self.update_properties(
+            error_message=str(exception),
+            exception_type=type(exception).__name__,
+            stack_trace=traceback.format_exc(),
+        )
+
+    # -------------------------------------------------------------------------
+    # Status management
+    # -------------------------------------------------------------------------
 
     def set_status(self, status: TaskStatus | str) -> None:
         """
@@ -159,8 +233,8 @@ class Task(CoreTask, AuditMixinNullable, Model):
             self.started_at = now
             # Set is_abortable to False when task starts executing
             # (will be set to True if/when an abort handler is registered)
-            if self.is_abortable is None:
-                self.is_abortable = False
+            if self.properties.is_abortable is None:
+                self.update_properties(is_abortable=False)
         elif status in [
             TaskStatus.SUCCESS.value,
             TaskStatus.FAILURE.value,
@@ -196,34 +270,6 @@ class Task(CoreTask, AuditMixinNullable, Model):
     def is_successful(self) -> bool:
         """Check if task completed successfully."""
         return self.status == TaskStatus.SUCCESS.value
-
-    @property
-    def is_aborted(self) -> bool:
-        """Check if task was aborted."""
-        return self.status == TaskStatus.ABORTED.value
-
-    @property
-    def is_aborting(self) -> bool:
-        """Check if task is in the process of being aborted."""
-        return self.status == TaskStatus.ABORTING.value
-
-    @property
-    def can_be_aborted(self) -> bool:
-        """
-        Check if task can be aborted based on status and is_abortable flag.
-
-        - Pending tasks: Always abortable
-        - In-progress tasks: Only if is_abortable=True (has abort handler)
-        - Aborting tasks: Already aborting (idempotent)
-        - Finished tasks: Cannot be aborted
-        """
-        if self.is_pending:
-            return True
-        if self.is_running:
-            return self.is_abortable is True
-        if self.is_aborting:
-            return True  # Already aborting (idempotent)
-        return False
 
     @property
     def duration_seconds(self) -> float | None:
@@ -310,6 +356,9 @@ class Task(CoreTask, AuditMixinNullable, Model):
         """
         Convert task to dictionary representation.
 
+        Minimal API payload - frontend derives status booleans and abort logic
+        from status and properties.is_abortable.
+
         :returns: Dictionary representation of the task
         """
         return {
@@ -320,27 +369,14 @@ class Task(CoreTask, AuditMixinNullable, Model):
             "task_name": self.task_name,
             "scope": self.scope,
             "status": self.status,
-            "created_at": self.created_on.isoformat() if self.created_on else None,
-            "updated_at": self.changed_on.isoformat() if self.changed_on else None,
+            "created_on": self.created_on.isoformat() if self.created_on else None,
+            "changed_on": self.changed_on.isoformat() if self.changed_on else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "ended_at": self.ended_at.isoformat() if self.ended_at else None,
-            "created_by": self.created_by_fk,
+            "created_by_fk": self.created_by_fk,
             "user_id": self.user_id,
-            "database_id": self.database_id,
-            "error_message": self.error_message,
-            "exception_type": self.exception_type,
-            "stack_trace": self.stack_trace,
             "payload": self.get_payload(),
-            "progress_percent": self.progress_percent,
-            "progress_current": self.progress_current,
-            "progress_total": self.progress_total,
-            "duration_seconds": self.duration_seconds,
-            "is_finished": self.is_finished,
-            "is_successful": self.is_successful,
-            "is_aborted": self.is_aborted,
+            "properties": self.properties.to_dict(),
             "subscriber_count": self.subscriber_count,
             "subscriber_ids": self.get_subscriber_ids(),
-            "is_abortable": self.is_abortable,
-            "is_aborting": self.is_aborting,
-            "can_be_aborted": self.can_be_aborted,
         }

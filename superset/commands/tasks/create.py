@@ -55,7 +55,6 @@ class CreateTaskCommand(BaseCommand):
                 scope=self._properties.get("scope", TaskScope.PRIVATE.value),
                 task_name=self._properties.get("task_name"),
                 user_id=self._properties.get("user_id"),
-                database_id=self._properties.get("database_id"),
                 payload=self._properties.get("payload", "{}"),
             )
         except DAOCreateFailedError as ex:

@@ -50,7 +50,7 @@ def test_update_task_success(mock_get_user, app_context, get_user, login_as) -> 
         # Update the task status
         command = UpdateTaskCommand(
             task_uuid=task.uuid,
-            data={"status": TaskStatus.SUCCESS.value},
+            status=TaskStatus.SUCCESS.value,
         )
         result = command.run()
 
@@ -73,7 +73,7 @@ def test_update_task_not_found(app_context, login_as) -> None:
 
     command = UpdateTaskCommand(
         task_uuid="00000000-0000-0000-0000-000000000000",
-        data={"status": TaskStatus.SUCCESS.value},
+        status=TaskStatus.SUCCESS.value,
     )
 
     with pytest.raises(TaskNotFoundError):
@@ -104,7 +104,7 @@ def test_update_task_forbidden(mock_get_user, app_context, get_user, login_as) -
         # Try to update admin's task as gamma user
         command = UpdateTaskCommand(
             task_uuid=task.uuid,
-            data={"status": TaskStatus.SUCCESS.value},
+            status=TaskStatus.SUCCESS.value,
         )
 
         # Should raise NotFoundError because base filter hides the task
@@ -143,7 +143,7 @@ def test_update_task_payload(mock_get_user, app_context, get_user, login_as) -> 
         # Update payload
         command = UpdateTaskCommand(
             task_uuid=task.uuid,
-            data={"payload": {"progress": 50, "message": "halfway"}},
+            payload={"progress": 50, "message": "halfway"},
         )
         result = command.run()
 
@@ -187,8 +187,8 @@ def test_update_all_supported_fields(
         # Update all field types at once
         command = UpdateTaskCommand(
             task_uuid=task.uuid,
-            data={
-                "status": TaskStatus.FAILURE.value,
+            status=TaskStatus.FAILURE.value,
+            properties={
                 "error_message": "Task failed due to error",
                 "progress_percent": 0.75,
                 "progress_current": 75,
@@ -201,20 +201,20 @@ def test_update_all_supported_fields(
         # Verify all fields were updated
         assert result.uuid == task.uuid
         assert result.status == TaskStatus.FAILURE.value
-        assert result.error_message == "Task failed due to error"
-        assert result.progress_percent == 0.75
-        assert result.progress_current == 75
-        assert result.progress_total == 100
-        assert result.is_abortable is True
+        assert result.properties.error_message == "Task failed due to error"
+        assert result.properties.progress_percent == 0.75
+        assert result.properties.progress_current == 75
+        assert result.properties.progress_total == 100
+        assert result.properties.is_abortable is True
 
         # Verify in database
         db.session.refresh(task)
         assert task.status == TaskStatus.FAILURE.value
-        assert task.error_message == "Task failed due to error"
-        assert task.progress_percent == 0.75
-        assert task.progress_current == 75
-        assert task.progress_total == 100
-        assert task.is_abortable is True
+        assert task.properties.error_message == "Task failed due to error"
+        assert task.properties.progress_percent == 0.75
+        assert task.properties.progress_current == 75
+        assert task.properties.progress_total == 100
+        assert task.properties.is_abortable is True
     finally:
         # Cleanup
         db.session.delete(task)
@@ -247,18 +247,18 @@ def test_update_task_skip_security_check(
         # With skip_security_check=True, should succeed even though gamma doesn't own it
         command = UpdateTaskCommand(
             task_uuid=task.uuid,
-            data={"progress_percent": 0.75},
+            properties={"progress_percent": 0.75},
             skip_security_check=True,
         )
         result = command.run()
 
         # Verify update succeeded
         assert result.uuid == task.uuid
-        assert result.progress_percent == 0.75
+        assert result.properties.progress_percent == 0.75
 
         # Verify in database
         db.session.refresh(task)
-        assert task.progress_percent == 0.75
+        assert task.properties.progress_percent == 0.75
     finally:
         # Cleanup
         db.session.delete(task)

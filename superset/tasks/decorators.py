@@ -257,7 +257,7 @@ class TaskWrapper(Generic[P]):
         # Update status to IN_PROGRESS
         task = UpdateTaskCommand(
             task_uuid=task.uuid,
-            data={"status": TaskStatus.IN_PROGRESS.value},
+            status=TaskStatus.IN_PROGRESS.value,
             skip_security_check=True,
         ).run()
 
@@ -269,7 +269,7 @@ class TaskWrapper(Generic[P]):
             # Update to SUCCESS and return completed task
             task = UpdateTaskCommand(
                 task_uuid=task.uuid,
-                data={"status": TaskStatus.SUCCESS.value},
+                status=TaskStatus.SUCCESS.value,
                 skip_security_check=True,
             ).run()
 
@@ -286,10 +286,8 @@ class TaskWrapper(Generic[P]):
             # Update to FAILURE and return failed task
             task = UpdateTaskCommand(
                 task_uuid=task.uuid,
-                data={
-                    "status": TaskStatus.FAILURE.value,
-                    "error_message": str(ex),
-                },
+                status=TaskStatus.FAILURE.value,
+                properties={"error_message": str(ex)},
                 skip_security_check=True,
             ).run()
 

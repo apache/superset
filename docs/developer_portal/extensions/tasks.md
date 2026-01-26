@@ -260,7 +260,7 @@ TASKS_BACKEND = {
 |---------|---------|-------------|
 | `TASKS_BACKEND` | None | Redis config for pub/sub |
 | `TASKS_ABORT_CHANNEL_PREFIX` | `"gtf:abort:"` | Channel prefix |
-| `TASK_ABORT_POLLING_DEFAULT_INTERVAL` | 10 | Polling interval (seconds, only needed when using database polling) |
+| `TASK_ABORT_POLLING_DEFAULT_INTERVAL` | 10 | Polling interval (seconds, only relevant for database polling) |
 
 ## API Reference
 
