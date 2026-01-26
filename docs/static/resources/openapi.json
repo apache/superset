@@ -11,6 +11,9 @@
                 }
               },
               "type": "object"
+            },
+            "example": {
+              "message": "Bad request: Invalid parameters provided"
             }
           }
         },
@@ -26,6 +29,9 @@
                 }
               },
               "type": "object"
+            },
+            "example": {
+              "message": "Unauthorized: Authentication required"
             }
           }
         },
@@ -41,6 +47,9 @@
                 }
               },
               "type": "object"
+            },
+            "example": {
+              "message": "Forbidden: You don't have permission to access this resource"
             }
           }
         },
@@ -56,6 +65,9 @@
                 }
               },
               "type": "object"
+            },
+            "example": {
+              "message": "Not found: The requested resource does not exist"
             }
           }
         },
@@ -167,6 +179,9 @@
                 }
               },
               "type": "object"
+            },
+            "example": {
+              "message": "Unprocessable entity: Validation error"
             }
           }
         },
@@ -182,6 +197,9 @@
                 }
               },
               "type": "object"
+            },
+            "example": {
+              "message": "Internal server error: An unexpected error occurred"
             }
           }
         },
@@ -12035,6 +12053,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdvancedDataTypeSchema"
+                },
+                "example": {
+                  "display_value": "string",
+                  "error_message": "string",
+                  "valid_filter_operators": [
+                    "string"
+                  ],
+                  "values": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -12100,6 +12128,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -12172,6 +12205,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -12297,6 +12333,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -12368,6 +12426,13 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "descr": "string",
+                    "name": "string"
+                  }
                 }
               }
             },
@@ -12472,6 +12537,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -12547,6 +12624,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -12617,6 +12698,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -12729,6 +12813,24 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "descr": "string",
+                    "id": 1,
+                    "name": "string"
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -12814,6 +12916,13 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "descr": "string",
+                    "name": "string"
+                  }
                 }
               }
             },
@@ -12895,6 +13004,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -12990,6 +13102,15 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "ids": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -13072,6 +13193,16 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "end_dttm": "2024-01-15T10:30:00Z",
+                    "json_metadata": "string",
+                    "long_descr": "string",
+                    "short_descr": "string",
+                    "start_dttm": "2024-01-15T10:30:00Z"
+                  }
                 }
               }
             },
@@ -13151,6 +13282,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -13240,6 +13374,17 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": "string",
+                  "result": {
+                    "end_dttm": "2024-01-15T10:30:00Z",
+                    "id": 1,
+                    "json_metadata": "string",
+                    "long_descr": "string",
+                    "short_descr": "string",
+                    "start_dttm": "2024-01-15T10:30:00Z"
+                  }
                 }
               }
             },
@@ -13334,6 +13479,16 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "end_dttm": "2024-01-15T10:30:00Z",
+                    "json_metadata": "string",
+                    "long_descr": "string",
+                    "short_descr": "string",
+                    "start_dttm": "2024-01-15T10:30:00Z"
+                  }
                 }
               }
             },
@@ -13483,6 +13638,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -13582,6 +13740,19 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": [
+                    {
+                      "channel_id": "string",
+                      "errors": [],
+                      "id": "string",
+                      "job_id": "string",
+                      "result_url": "string",
+                      "status": "string",
+                      "user_id": 1
+                    }
+                  ]
                 }
               }
             },
@@ -13635,6 +13806,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "domains": []
+                  }
                 }
               }
             },
@@ -13754,6 +13930,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -13882,6 +14061,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -13953,6 +14154,31 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "cache_timeout": 1,
+                    "certification_details": "string",
+                    "certified_by": "string",
+                    "dashboards": [],
+                    "datasource_id": 1,
+                    "datasource_name": "string",
+                    "datasource_type": "table",
+                    "description": "string",
+                    "external_url": "string",
+                    "is_managed_externally": true,
+                    "owners": [],
+                    "params": "string",
+                    "query_context": "string",
+                    "query_context_generation": true,
+                    "slice_name": "string",
+                    "viz_type": [
+                      "bar",
+                      "area",
+                      "table"
+                    ]
+                  }
                 }
               }
             },
@@ -14060,6 +14286,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -14126,6 +14364,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChartDataResponseSchema"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -14136,6 +14377,13 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChartDataAsyncResponseSchema"
+                },
+                "example": {
+                  "channel_id": "string",
+                  "job_id": "string",
+                  "result_url": "string",
+                  "status": "string",
+                  "user_id": "string"
                 }
               }
             },
@@ -14198,6 +14446,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChartDataResponseSchema"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -14336,6 +14587,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetFavStarIdsSchema"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -14432,6 +14686,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -14508,6 +14765,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -14574,6 +14835,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChartCacheWarmUpResponseSchema"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -14640,6 +14904,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -14758,6 +15025,34 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "cache_timeout": 1,
+                    "certification_details": "string",
+                    "certified_by": "string",
+                    "changed_on_delta_humanized": {},
+                    "description": "string",
+                    "id": 1,
+                    "is_managed_externally": true,
+                    "params": "string",
+                    "query_context": "string",
+                    "slice_name": "string",
+                    "thumbnail_url": {},
+                    "url": {},
+                    "viz_type": "string"
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -14842,6 +15137,31 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "cache_timeout": 1,
+                    "certification_details": "string",
+                    "certified_by": "string",
+                    "dashboards": [],
+                    "datasource_id": 1,
+                    "datasource_type": "table",
+                    "description": "string",
+                    "external_url": "string",
+                    "is_managed_externally": true,
+                    "owners": [],
+                    "params": "string",
+                    "query_context": "string",
+                    "query_context_generation": true,
+                    "slice_name": "string",
+                    "tags": [],
+                    "viz_type": [
+                      "bar",
+                      "area",
+                      "table"
+                    ]
+                  }
                 }
               }
             },
@@ -14923,6 +15243,13 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChartCacheScreenshotResponseSchema"
+                },
+                "example": {
+                  "cache_key": "string",
+                  "chart_url": "string",
+                  "image_url": "string",
+                  "task_status": "string",
+                  "task_updated_at": "string"
                 }
               }
             },
@@ -14933,6 +15260,13 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChartCacheScreenshotResponseSchema"
+                },
+                "example": {
+                  "cache_key": "string",
+                  "chart_url": "string",
+                  "image_url": "string",
+                  "task_status": "string",
+                  "task_updated_at": "string"
                 }
               }
             },
@@ -15023,6 +15357,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChartDataResponseSchema"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -15033,6 +15370,13 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChartDataAsyncResponseSchema"
+                },
+                "example": {
+                  "channel_id": "string",
+                  "job_id": "string",
+                  "result_url": "string",
+                  "status": "string",
+                  "user_id": "string"
                 }
               }
             },
@@ -15099,6 +15443,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {}
                 }
               }
             },
@@ -15163,6 +15510,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {}
                 }
               }
             },
@@ -15383,6 +15733,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -15508,6 +15861,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -15579,6 +15954,13 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": "string",
+                  "result": {
+                    "css": "string",
+                    "template_name": "string"
+                  }
                 }
               }
             },
@@ -15683,6 +16065,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -15758,6 +16152,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -15827,6 +16225,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -15939,6 +16340,25 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "changed_on_delta_humanized": {},
+                    "css": "string",
+                    "id": 1,
+                    "template_name": "string"
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -16020,6 +16440,12 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "css": "string",
+                    "template_name": "string"
+                  }
                 }
               }
             },
@@ -16095,6 +16521,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -16223,6 +16652,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -16294,6 +16745,23 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "certification_details": "string",
+                    "certified_by": "string",
+                    "css": "string",
+                    "dashboard_title": "string",
+                    "external_url": "string",
+                    "is_managed_externally": true,
+                    "json_metadata": "string",
+                    "owners": [],
+                    "position_json": "string",
+                    "published": true,
+                    "roles": [],
+                    "slug": "string"
+                  }
                 }
               }
             },
@@ -16398,6 +16866,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -16535,6 +17015,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetFavStarIdsSchema"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -16631,6 +17114,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -16701,6 +17187,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "state": {}
                 }
               }
             },
@@ -16780,6 +17269,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -16850,6 +17343,30 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "certification_details": "string",
+                    "certified_by": "string",
+                    "changed_by_name": "string",
+                    "changed_on": "2024-01-15T10:30:00Z",
+                    "changed_on_delta_humanized": "string",
+                    "charts": [],
+                    "created_on_delta_humanized": "string",
+                    "css": "string",
+                    "dashboard_title": "string",
+                    "id": 1,
+                    "is_managed_externally": true,
+                    "json_metadata": "string",
+                    "owners": [],
+                    "position_json": "string",
+                    "published": true,
+                    "roles": [],
+                    "slug": "string",
+                    "tags": [],
+                    "thumbnail_url": "string",
+                    "url": "string"
+                  }
                 }
               }
             },
@@ -16922,6 +17439,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -17005,6 +17527,10 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "last_modified_time": 1.0
                 }
               }
             },
@@ -17082,6 +17608,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -17152,6 +17683,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -17214,6 +17748,14 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "allowed_domains": [],
+                    "changed_on": "2024-01-15T10:30:00Z",
+                    "dashboard_id": "string",
+                    "uuid": "string"
+                  }
                 }
               }
             },
@@ -17287,6 +17829,14 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "allowed_domains": [],
+                    "changed_on": "2024-01-15T10:30:00Z",
+                    "dashboard_id": "string",
+                    "uuid": "string"
+                  }
                 }
               }
             },
@@ -17361,6 +17911,14 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "allowed_domains": [],
+                    "changed_on": "2024-01-15T10:30:00Z",
+                    "dashboard_id": "string",
+                    "uuid": "string"
+                  }
                 }
               }
             },
@@ -17430,6 +17988,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {}
                 }
               }
             },
@@ -17499,6 +18060,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -17586,6 +18150,25 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "last_modified_time": 1.0,
+                  "result": {
+                    "certification_details": "string",
+                    "certified_by": "string",
+                    "css": "string",
+                    "dashboard_title": "string",
+                    "external_url": "string",
+                    "is_managed_externally": true,
+                    "json_metadata": "string",
+                    "owners": [],
+                    "position_json": "string",
+                    "published": true,
+                    "roles": [],
+                    "slug": "string",
+                    "tags": []
+                  }
                 }
               }
             },
@@ -17665,6 +18248,13 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DashboardCacheScreenshotResponseSchema"
+                },
+                "example": {
+                  "cache_key": "string",
+                  "dashboard_url": "string",
+                  "image_url": "string",
+                  "task_status": "string",
+                  "task_updated_at": "string"
                 }
               }
             },
@@ -17753,6 +18343,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -17828,6 +18421,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {}
                 }
               }
             },
@@ -17892,6 +18488,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {}
                 }
               }
             },
@@ -18077,6 +18676,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "key": "string"
                 }
               }
             },
@@ -18156,6 +18758,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -18235,6 +18840,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "value": "string"
                 }
               }
             },
@@ -18331,6 +18939,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "key": "string"
                 }
               }
             },
@@ -18414,6 +19025,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -18610,6 +19224,10 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "key": "string",
+                  "url": "string"
                 }
               }
             },
@@ -18784,6 +19402,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -18914,6 +19535,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -18985,6 +19628,33 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "allow_ctas": true,
+                    "allow_cvas": true,
+                    "allow_dml": true,
+                    "allow_file_upload": true,
+                    "allow_run_async": true,
+                    "cache_timeout": 1,
+                    "configuration_method": {},
+                    "database_name": "string",
+                    "driver": "string",
+                    "engine": "string",
+                    "expose_in_sqllab": true,
+                    "external_url": "string",
+                    "extra": "string",
+                    "force_ctas_schema": "string",
+                    "impersonate_user": true,
+                    "is_managed_externally": true,
+                    "masked_encrypted_extra": "string",
+                    "parameters": {},
+                    "server_cert": "string",
+                    "sqlalchemy_uri": "string",
+                    "ssh_tunnel": {},
+                    "uuid": "string"
+                  }
                 }
               }
             },
@@ -19089,6 +19759,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -19193,7 +19875,24 @@
                     "type": "object"
                   },
                   "type": "array"
-                }
+                },
+                "example": [
+                  {
+                    "available_drivers": [
+                      "string"
+                    ],
+                    "default_driver": "string",
+                    "engine": "string",
+                    "engine_information": {
+                      "disable_ssh_tunneling": true,
+                      "supports_file_upload": true
+                    },
+                    "name": "string",
+                    "parameters": {},
+                    "preferred": true,
+                    "sqlalchemy_uri_placeholder": "string"
+                  }
+                ]
               }
             },
             "description": "Database names"
@@ -19348,6 +20047,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -19505,6 +20207,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -19575,6 +20281,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -19641,6 +20350,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "items": []
+                  }
                 }
               }
             },
@@ -19711,6 +20425,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -19777,6 +20494,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -19924,6 +20644,33 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "allow_ctas": true,
+                    "allow_cvas": true,
+                    "allow_dml": true,
+                    "allow_file_upload": true,
+                    "allow_run_async": true,
+                    "cache_timeout": 1,
+                    "configuration_method": {},
+                    "database_name": "string",
+                    "driver": "string",
+                    "engine": "string",
+                    "expose_in_sqllab": true,
+                    "external_url": "string",
+                    "extra": "string",
+                    "force_ctas_schema": "string",
+                    "impersonate_user": true,
+                    "is_managed_externally": true,
+                    "masked_encrypted_extra": "string",
+                    "parameters": {},
+                    "server_cert": "string",
+                    "sqlalchemy_uri": "string",
+                    "ssh_tunnel": {},
+                    "uuid": "string"
+                  }
                 }
               }
             },
@@ -20006,6 +20753,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CatalogsResponseSchema"
+                },
+                "example": {
+                  "result": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -20071,6 +20823,32 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DatabaseConnectionSchema"
+                },
+                "example": {
+                  "allow_ctas": true,
+                  "allow_cvas": true,
+                  "allow_dml": true,
+                  "allow_file_upload": true,
+                  "allow_run_async": true,
+                  "backend": "string",
+                  "cache_timeout": 1,
+                  "configuration_method": "string",
+                  "database_name": "string",
+                  "driver": "string",
+                  "engine_information": {},
+                  "expose_in_sqllab": true,
+                  "extra": "string",
+                  "force_ctas_schema": "string",
+                  "id": 1,
+                  "impersonate_user": true,
+                  "is_managed_externally": true,
+                  "masked_encrypted_extra": "string",
+                  "parameters": {},
+                  "parameters_schema": {},
+                  "server_cert": "string",
+                  "sqlalchemy_uri": "string",
+                  "ssh_tunnel": {},
+                  "uuid": "string"
                 }
               }
             },
@@ -20135,6 +20913,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DatabaseFunctionNamesResponse"
+                },
+                "example": {
+                  "function_names": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -20196,6 +20979,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DatabaseRelatedObjectsResponse"
+                },
+                "example": {
+                  "charts": {},
+                  "dashboards": {}
                 }
               }
             },
@@ -20269,6 +21056,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SchemasResponseSchema"
+                },
+                "example": {
+                  "result": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -20333,6 +21125,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DatabaseSchemaAccessForFileUploadResponse"
+                },
+                "example": {
+                  "schemas": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -20413,6 +21210,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SelectStarResponseSchema"
+                },
+                "example": {
+                  "result": "string"
                 }
               }
             },
@@ -20499,6 +21299,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SelectStarResponseSchema"
+                },
+                "example": {
+                  "result": "string"
                 }
               }
             },
@@ -20571,6 +21374,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -20644,6 +21450,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -20727,6 +21536,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TableMetadataResponseSchema"
+                },
+                "example": {
+                  "columns": [],
+                  "foreignKeys": [],
+                  "indexes": [],
+                  "name": "string",
+                  "primaryKey": {},
+                  "selectStar": "string"
                 }
               }
             },
@@ -20814,6 +21631,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TableExtraMetadataResponseSchema"
+                },
+                "example": {
+                  "clustering": {},
+                  "metadata": {},
+                  "partitions": {}
                 }
               }
             },
@@ -20908,6 +21730,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TableExtraMetadataResponseSchema"
+                },
+                "example": {
+                  "clustering": {},
+                  "metadata": {},
+                  "partitions": {}
                 }
               }
             },
@@ -20996,6 +21823,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TableExtraMetadataResponseSchema"
+                },
+                "example": {
+                  "clustering": {},
+                  "metadata": {},
+                  "partitions": {}
                 }
               }
             },
@@ -21081,6 +21913,12 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1,
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -21163,6 +22001,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -21251,6 +22092,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -21323,6 +22169,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -21454,6 +22303,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -21525,6 +22396,21 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "always_filter_main_dttm": true,
+                    "catalog": "string",
+                    "database": 1,
+                    "external_url": "string",
+                    "is_managed_externally": true,
+                    "normalize_columns": true,
+                    "owners": [],
+                    "schema": "string",
+                    "sql": "string",
+                    "table_name": "string"
+                  }
                 }
               }
             },
@@ -21629,6 +22515,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -21704,6 +22602,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DistincResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -21777,6 +22679,13 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "base_model_id": 1,
+                    "table_name": "string"
+                  }
                 }
               }
             },
@@ -21924,6 +22833,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "table_id": 1
+                  }
                 }
               }
             },
@@ -22028,6 +22942,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -22103,6 +23020,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -22169,6 +23090,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DatasetCacheWarmUpResponseSchema"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -22235,6 +23159,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -22330,6 +23257,46 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": "string",
+                  "result": {
+                    "always_filter_main_dttm": true,
+                    "cache_timeout": 1,
+                    "catalog": "string",
+                    "changed_on": "2024-01-15T10:30:00Z",
+                    "changed_on_humanized": {},
+                    "column_formats": {},
+                    "created_on": "2024-01-15T10:30:00Z",
+                    "created_on_humanized": {},
+                    "datasource_name": {},
+                    "datasource_type": {},
+                    "default_endpoint": "string",
+                    "description": "string",
+                    "extra": "string",
+                    "fetch_values_predicate": "string",
+                    "filter_select_enabled": true,
+                    "folders": {},
+                    "granularity_sqla": {},
+                    "id": 1,
+                    "is_managed_externally": true,
+                    "is_sqllab_view": true,
+                    "kind": {},
+                    "main_dttm_col": "string",
+                    "name": {},
+                    "normalize_columns": true,
+                    "offset": 1,
+                    "order_by_choices": {},
+                    "schema": "string",
+                    "select_star": {},
+                    "sql": "string",
+                    "table_name": "string",
+                    "template_params": "string",
+                    "time_grain_sqla": {},
+                    "uid": {},
+                    "url": {},
+                    "verbose_map": {}
+                  }
                 }
               }
             },
@@ -22418,6 +23385,34 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "always_filter_main_dttm": true,
+                    "cache_timeout": 1,
+                    "catalog": "string",
+                    "columns": [],
+                    "database_id": 1,
+                    "default_endpoint": "string",
+                    "description": "string",
+                    "external_url": "string",
+                    "extra": "string",
+                    "fetch_values_predicate": "string",
+                    "filter_select_enabled": true,
+                    "folders": [],
+                    "is_managed_externally": true,
+                    "is_sqllab_view": true,
+                    "main_dttm_col": "string",
+                    "metrics": [],
+                    "normalize_columns": true,
+                    "offset": 1,
+                    "owners": [],
+                    "schema": "string",
+                    "sql": "string",
+                    "table_name": "string",
+                    "template_params": "string"
+                  }
                 }
               }
             },
@@ -22503,6 +23498,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -22585,6 +23583,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -22657,6 +23658,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -22724,6 +23728,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DatasetRelatedObjectsResponse"
+                },
+                "example": {
+                  "charts": {},
+                  "dashboards": {}
                 }
               }
             },
@@ -22828,6 +23836,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -22941,6 +23954,14 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "allowed_domains": [],
+                    "changed_on": "2024-01-15T10:30:00Z",
+                    "dashboard_id": "string",
+                    "uuid": "string"
+                  }
                 }
               },
               "text/html": {
@@ -23035,6 +24056,12 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ExploreContextSchema"
+                },
+                "example": {
+                  "dataset": {},
+                  "form_data": {},
+                  "message": "string",
+                  "slice": {}
                 }
               }
             },
@@ -23117,6 +24144,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "key": "string"
                 }
               }
             },
@@ -23188,6 +24218,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -23259,6 +24292,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "form_data": "string"
                 }
               }
             },
@@ -23347,6 +24383,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "key": "string"
                 }
               }
             },
@@ -23424,6 +24463,10 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "key": "string",
+                  "url": "string"
                 }
               }
             },
@@ -23494,6 +24537,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "state": {}
                 }
               }
             },
@@ -23624,6 +24670,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -23695,6 +24763,12 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": "string",
+                  "result": {
+                    "id": 1
+                  }
                 }
               }
             },
@@ -23772,6 +24846,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RecentActivityResponseSchema"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -23889,6 +24966,29 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "action": "string",
+                    "dashboard_id": 1,
+                    "dttm": "2024-01-15T10:30:00Z",
+                    "duration_ms": 1,
+                    "json": "string",
+                    "referrer": "string",
+                    "slice_id": 1,
+                    "user_id": 1
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -23952,6 +25052,17 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "email": "string",
+                    "first_name": "string",
+                    "id": 1,
+                    "is_active": true,
+                    "is_anonymous": true,
+                    "last_name": "string",
+                    "username": "string"
+                  }
                 }
               }
             },
@@ -23998,6 +25109,17 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "email": "string",
+                    "first_name": "string",
+                    "id": 1,
+                    "is_active": true,
+                    "is_anonymous": true,
+                    "last_name": "string",
+                    "username": "string"
+                  }
                 }
               }
             },
@@ -24072,6 +25194,17 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": [
+                    {
+                      "childs": [],
+                      "icon": "string",
+                      "label": "string",
+                      "name": "string",
+                      "url": "string"
+                    }
+                  ]
                 }
               }
             },
@@ -24191,6 +25324,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -24266,6 +25421,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DistincResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -24341,6 +25500,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -24411,6 +25574,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": "string"
                 }
               }
             },
@@ -24487,6 +25653,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -24604,6 +25775,45 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "changed_on": "2024-01-15T10:30:00Z",
+                    "client_id": "string",
+                    "end_result_backend_time": 1.0,
+                    "end_time": 1.0,
+                    "error_message": "string",
+                    "executed_sql": "string",
+                    "id": 1,
+                    "limit": 1,
+                    "progress": 1,
+                    "results_key": "string",
+                    "rows": 1,
+                    "schema": "string",
+                    "select_as_cta": true,
+                    "select_as_cta_used": true,
+                    "select_sql": "string",
+                    "sql": "string",
+                    "sql_editor_id": "string",
+                    "start_running_time": 1.0,
+                    "start_time": 1.0,
+                    "status": "string",
+                    "tab_name": "string",
+                    "tmp_schema_name": "string",
+                    "tmp_table_name": "string",
+                    "tracking_url": {}
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -24679,6 +25889,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -24807,6 +26020,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -24878,6 +26113,35 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "active": true,
+                    "chart": 1,
+                    "context_markdown": "string",
+                    "creation_method": {},
+                    "crontab": "*/5 * * * *",
+                    "custom_width": 1000,
+                    "dashboard": 1,
+                    "database": 1,
+                    "description": "Daily sales dashboard to marketing",
+                    "email_subject": "[Report]  Report name: Dashboard or chart name",
+                    "extra": {},
+                    "force_screenshot": true,
+                    "grace_period": 14400,
+                    "log_retention": 90,
+                    "name": "Daily dashboard email",
+                    "owners": [],
+                    "recipients": [],
+                    "report_format": "PDF",
+                    "selected_tabs": [],
+                    "sql": "SELECT value FROM time_series_table",
+                    "timezone": "Africa/Abidjan",
+                    "type": "Alert",
+                    "validator_type": "not null",
+                    "working_timeout": 3600
+                  }
                 }
               }
             },
@@ -24985,6 +26249,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -25060,6 +26336,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -25144,6 +26424,14 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": [
+                    {
+                      "id": "string",
+                      "name": "string"
+                    }
+                  ]
                 }
               }
             },
@@ -25217,6 +26505,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -25332,6 +26623,45 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "active": true,
+                    "context_markdown": "string",
+                    "creation_method": "string",
+                    "crontab": "string",
+                    "custom_width": 1,
+                    "description": "string",
+                    "email_subject": "string",
+                    "extra": {},
+                    "force_screenshot": true,
+                    "grace_period": 1,
+                    "id": 1,
+                    "last_eval_dttm": "2024-01-15T10:30:00Z",
+                    "last_state": "string",
+                    "last_value": 1.0,
+                    "last_value_row_json": "string",
+                    "log_retention": 1,
+                    "name": "string",
+                    "report_format": "string",
+                    "sql": "string",
+                    "timezone": "string",
+                    "type": "string",
+                    "validator_config_json": "string",
+                    "validator_type": "string",
+                    "working_timeout": 1
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -25417,6 +26747,34 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "active": true,
+                    "chart": 1,
+                    "context_markdown": "string",
+                    "creation_method": {},
+                    "crontab": "string",
+                    "custom_width": 1000,
+                    "dashboard": 1,
+                    "database": 1,
+                    "description": "Daily sales dashboard to marketing",
+                    "email_subject": "[Report]  Report name: Dashboard or chart name",
+                    "extra": {},
+                    "force_screenshot": true,
+                    "grace_period": 14400,
+                    "log_retention": 90,
+                    "name": "string",
+                    "owners": [],
+                    "recipients": [],
+                    "report_format": "PDF",
+                    "sql": "SELECT value FROM time_series_table",
+                    "timezone": "Africa/Abidjan",
+                    "type": "Alert",
+                    "validator_type": "not null",
+                    "working_timeout": 3600
+                  }
                 }
               }
             },
@@ -25520,6 +26878,15 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "ids": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -25614,6 +26981,20 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": "string",
+                  "result": {
+                    "end_dttm": "2024-01-15T10:30:00Z",
+                    "error_message": "string",
+                    "id": 1,
+                    "scheduled_dttm": "2024-01-15T10:30:00Z",
+                    "start_dttm": "2024-01-15T10:30:00Z",
+                    "state": "string",
+                    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+                    "value": 1.0,
+                    "value_row_json": "string"
+                  }
                 }
               }
             },
@@ -25689,6 +27070,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -25817,6 +27201,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -25888,6 +27294,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "clause": "string",
+                    "description": "string",
+                    "filter_type": "Regular",
+                    "group_key": "string",
+                    "name": "string",
+                    "roles": [],
+                    "tables": []
+                  }
                 }
               }
             },
@@ -25995,6 +27413,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -26070,6 +27500,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -26139,6 +27573,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -26251,6 +27688,29 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "clause": "string",
+                    "description": "string",
+                    "filter_type": "Regular",
+                    "group_key": "string",
+                    "id": 1,
+                    "name": "string",
+                    "roles": [],
+                    "tables": []
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -26336,6 +27796,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "clause": "string",
+                    "description": "string",
+                    "filter_type": "Regular",
+                    "group_key": "string",
+                    "name": "string",
+                    "roles": [],
+                    "tables": []
+                  }
                 }
               }
             },
@@ -26414,6 +27886,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -26539,6 +28014,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -26610,6 +28107,19 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": "string",
+                  "result": {
+                    "catalog": "string",
+                    "db_id": 1,
+                    "description": "string",
+                    "extra_json": "string",
+                    "label": "string",
+                    "schema": "string",
+                    "sql": "string",
+                    "template_parameters": "string"
+                  }
                 }
               }
             },
@@ -26714,6 +28224,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -26789,6 +28311,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DistincResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -26953,6 +28479,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -27028,6 +28557,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -27097,6 +28630,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -27209,6 +28745,31 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "catalog": "string",
+                    "changed_on": "2024-01-15T10:30:00Z",
+                    "changed_on_delta_humanized": {},
+                    "description": "string",
+                    "id": 1,
+                    "label": "string",
+                    "schema": "string",
+                    "sql": "string",
+                    "sql_tables": {},
+                    "template_parameters": "string"
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -27290,6 +28851,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "catalog": "string",
+                    "db_id": 1,
+                    "description": "string",
+                    "extra_json": "string",
+                    "label": "string",
+                    "schema": "string",
+                    "sql": "string",
+                    "template_parameters": "string"
+                  }
                 }
               }
             },
@@ -27352,6 +28925,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": "string"
                 }
               }
             },
@@ -27416,6 +28992,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "token": "string"
                 }
               }
             },
@@ -27512,6 +29091,10 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "access_token": "string",
+                  "refresh_token": "string"
                 }
               }
             },
@@ -27632,6 +29215,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -27704,6 +29309,13 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": "string",
+                  "result": {
+                    "permission_id": 1,
+                    "view_menu_id": 1
+                  }
                 }
               }
             },
@@ -27809,6 +29421,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -27879,6 +29503,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -27992,6 +29619,22 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "id": 1
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -28074,6 +29717,12 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "permission_id": 1,
+                    "view_menu_id": 1
+                  }
                 }
               }
             },
@@ -28205,6 +29854,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -28310,6 +29981,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -28428,6 +30111,23 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "id": 1,
+                    "name": "string"
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -28493,6 +30193,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "access_token": "string"
                 }
               }
             },
@@ -28615,6 +30318,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -28687,6 +30412,12 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": "string",
+                  "result": {
+                    "name": "string"
+                  }
                 }
               }
             },
@@ -28792,6 +30523,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -28862,6 +30605,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -28975,6 +30721,23 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "id": 1,
+                    "name": "string"
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -29057,6 +30820,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "name": "string"
+                  }
                 }
               }
             },
@@ -29188,6 +30956,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -29260,6 +31050,12 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": "string",
+                  "result": {
+                    "name": "string"
+                  }
                 }
               }
             },
@@ -29365,6 +31161,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -29475,6 +31283,13 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RolesResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "ids": [
+                    1
+                  ],
+                  "result": []
                 }
               }
             },
@@ -29490,6 +31305,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "error": "string"
                 }
               }
             },
@@ -29505,6 +31323,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "error": "string"
                 }
               }
             },
@@ -29562,6 +31383,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -29675,6 +31499,23 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "id": 1,
+                    "name": "string"
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -29757,6 +31598,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "name": "string"
+                  }
                 }
               }
             },
@@ -29841,6 +31687,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "permission_view_menu_ids": []
+                  }
                 }
               }
             },
@@ -29914,6 +31765,13 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "id": 1,
+                    "permission_name": "string",
+                    "view_menu_name": "string"
+                  }
                 }
               }
             },
@@ -29998,6 +31856,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "user_ids": []
+                  }
                 }
               }
             },
@@ -30129,6 +31992,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -30198,6 +32083,17 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "active": true,
+                    "email": "string",
+                    "first_name": "string",
+                    "last_name": "string",
+                    "password": "string",
+                    "roles": [],
+                    "username": "string"
+                  }
                 }
               }
             },
@@ -30306,6 +32202,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -30376,6 +32284,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -30489,6 +32400,32 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "active": true,
+                    "changed_on": "2024-01-15T10:30:00Z",
+                    "created_on": "2024-01-15T10:30:00Z",
+                    "email": "string",
+                    "fail_login_count": 1,
+                    "first_name": "string",
+                    "id": 1,
+                    "last_login": "2024-01-15T10:30:00Z",
+                    "last_name": "string",
+                    "login_count": 1,
+                    "username": "string"
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -30571,6 +32508,17 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {
+                    "active": true,
+                    "email": "string",
+                    "first_name": "string",
+                    "last_name": "string",
+                    "password": "string",
+                    "roles": [],
+                    "username": "string"
+                  }
                 }
               }
             },
@@ -30630,6 +32578,18 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SQLLabBootstrapSchema"
+                },
+                "example": {
+                  "active_tab": {},
+                  "databases": {
+                    "key": "value"
+                  },
+                  "queries": {
+                    "key": "value"
+                  },
+                  "tab_state_ids": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -30700,6 +32660,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {}
                 }
               }
             },
@@ -30765,6 +32728,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/QueryExecutionResponseSchema"
+                },
+                "example": {
+                  "columns": [
+                    {}
+                  ],
+                  "data": [
+                    {}
+                  ],
+                  "expanded_columns": [
+                    {}
+                  ],
+                  "query": {},
+                  "query_id": 1,
+                  "selected_columns": [
+                    {}
+                  ],
+                  "status": "string"
                 }
               }
             },
@@ -30775,6 +32755,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/QueryExecutionResponseSchema"
+                },
+                "example": {
+                  "columns": [
+                    {}
+                  ],
+                  "data": [
+                    {}
+                  ],
+                  "expanded_columns": [
+                    {}
+                  ],
+                  "query": {},
+                  "query_id": 1,
+                  "selected_columns": [
+                    {}
+                  ],
+                  "status": "string"
                 }
               }
             },
@@ -30916,6 +32913,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": "string"
                 }
               }
             },
@@ -30990,6 +32990,10 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "key": "string",
+                  "url": "string"
                 }
               }
             },
@@ -31060,6 +33064,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "state": {}
                 }
               }
             },
@@ -31130,6 +33137,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/QueryExecutionResponseSchema"
+                },
+                "example": {
+                  "columns": [
+                    {}
+                  ],
+                  "data": [
+                    {}
+                  ],
+                  "expanded_columns": [
+                    {}
+                  ],
+                  "query": {},
+                  "query_id": 1,
+                  "selected_columns": [
+                    {}
+                  ],
+                  "status": "string"
                 }
               }
             },
@@ -31209,6 +33233,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -31337,6 +33364,28 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "count": 1.0,
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "ids": [
+                    "string"
+                  ],
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "list_columns": [
+                    "string"
+                  ],
+                  "list_title": "List Items",
+                  "order_columns": [
+                    "string"
+                  ],
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -31409,6 +33458,14 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "description": "string",
+                    "name": "string",
+                    "objects_to_tag": []
+                  }
                 }
               }
             },
@@ -31513,6 +33570,18 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "add_columns": {},
+                  "edit_columns": {},
+                  "filters": {
+                    "column_name": [
+                      {}
+                    ]
+                  },
+                  "permissions": [
+                    "string"
+                  ]
                 }
               }
             },
@@ -31578,6 +33647,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TagPostBulkResponseSchema"
+                },
+                "example": {
+                  "result": {}
                 }
               }
             },
@@ -31649,6 +33721,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetFavStarIdsSchema"
+                },
+                "example": {
+                  "result": []
                 }
               }
             },
@@ -31722,6 +33797,11 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": [
+                    {}
+                  ]
                 }
               }
             },
@@ -31800,6 +33880,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelatedResponseSchema"
+                },
+                "example": {
+                  "count": 1,
+                  "result": []
                 }
               }
             },
@@ -31974,6 +34058,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -32046,6 +34133,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "message": "string"
                 }
               }
             },
@@ -32158,6 +34248,27 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "description_columns": {
+                    "column_name": "A Nice description for the column"
+                  },
+                  "id": "string",
+                  "label_columns": {
+                    "column_name": "A Nice label for the column"
+                  },
+                  "result": {
+                    "changed_on_delta_humanized": {},
+                    "created_on_delta_humanized": {},
+                    "description": "string",
+                    "id": 1,
+                    "name": "string",
+                    "type": {}
+                  },
+                  "show_columns": [
+                    "string"
+                  ],
+                  "show_title": "Show Item Details"
                 }
               }
             },
@@ -32243,6 +34354,14 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "id": 1.0,
+                  "result": {
+                    "description": "string",
+                    "name": "string",
+                    "objects_to_tag": []
+                  }
                 }
               }
             },
@@ -32319,6 +34438,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {}
                 }
               }
             },
@@ -32388,6 +34510,9 @@
                     }
                   },
                   "type": "object"
+                },
+                "example": {
+                  "result": {}
                 }
               }
             },

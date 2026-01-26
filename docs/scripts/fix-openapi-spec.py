@@ -25,9 +25,10 @@ that are referenced but not defined.
 import json  # noqa: TID251 - standalone docs script
 import sys
 from pathlib import Path
+from typing import Any
 
 
-def add_missing_schemas(spec: dict) -> tuple[dict, list[str]]:
+def add_missing_schemas(spec: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     """Add missing schema definitions to the OpenAPI spec."""
     schemas = spec.get("components", {}).get("schemas", {})
     fixed = []
@@ -197,9 +198,6 @@ def path_to_operation_id(path: str, method: str) -> str:
     # Replace path parameters
     clean_path = clean_path.replace("{", "by_").replace("}", "")
 
-    # Convert to snake_case
-    parts = clean_path.replace("/", "_").split("_")
-
     # Create operation name
     method_prefix = {
         "get": "get",
@@ -239,7 +237,7 @@ def path_to_summary(path: str, method: str) -> str:
     return f"{method_verb} {resource}"
 
 
-def add_missing_operation_ids(spec: dict) -> int:
+def add_missing_operation_ids(spec: dict[str, Any]) -> int:
     """Add operationId and summary to operations that are missing them."""
     fixed_count = 0
 
@@ -263,16 +261,16 @@ def add_missing_operation_ids(spec: dict) -> int:
 
 
 TAG_DESCRIPTIONS = {
-    "Advanced Data Type": "Endpoints for advanced data type operations and conversions.",
+    "Advanced Data Type": "Advanced data type operations and conversions.",
     "Annotation Layers": "Manage annotation layers and annotations for charts.",
     "AsyncEventsRestApi": "Real-time event streaming via Server-Sent Events (SSE).",
     "Available Domains": "Get available domains for the Superset instance.",
     "CSS Templates": "Manage CSS templates for custom dashboard styling.",
     "CacheRestApi": "Cache management and invalidation operations.",
     "Charts": "Create, read, update, and delete charts (slices).",
-    "Current User": "Get information about the currently authenticated user.",
+    "Current User": "Get information about the authenticated user.",
     "Dashboard Filter State": "Manage temporary filter state for dashboards.",
-    "Dashboard Permanent Link": "Create and retrieve permanent links to dashboard states.",
+    "Dashboard Permanent Link": "Permanent links to dashboard states.",
     "Dashboards": "Create, read, update, and delete dashboards.",
     "Database": "Manage database connections and metadata.",
     "Datasets": "Manage datasets (tables) used for building charts.",
@@ -280,19 +278,19 @@ TAG_DESCRIPTIONS = {
     "Embedded Dashboard": "Configure embedded dashboard settings.",
     "Explore": "Chart exploration and data querying endpoints.",
     "Explore Form Data": "Manage temporary form data for chart exploration.",
-    "Explore Permanent Link": "Create and retrieve permanent links to chart explore states.",
-    "Import/export": "Import and export Superset assets (dashboards, charts, databases).",
+    "Explore Permanent Link": "Permanent links to chart explore states.",
+    "Import/export": "Import and export Superset assets.",
     "LogRestApi": "Access audit logs and activity history.",
     "Menu": "Get the Superset menu structure.",
     "OpenApi": "Access the OpenAPI specification.",
     "Queries": "View and manage SQL Lab query history.",
     "Report Schedules": "Configure scheduled reports and alerts.",
-    "Row Level Security": "Manage row-level security rules for data access control.",
+    "Row Level Security": "Manage row-level security rules for data access.",
     "SQL Lab": "Execute SQL queries and manage SQL Lab sessions.",
-    "SQL Lab Permanent Link": "Create and retrieve permanent links to SQL Lab states.",
+    "SQL Lab Permanent Link": "Permanent links to SQL Lab states.",
     "Security": "Authentication and token management.",
     "Security Permissions": "View available permissions.",
-    "Security Permissions on Resources (View Menus)": "Manage permission-resource mappings.",
+    "Security Permissions on Resources (View Menus)": "Permission-resource mappings.",
     "Security Resources (View Menus)": "Manage security resources (view menus).",
     "Security Roles": "Manage security roles and their permissions.",
     "Security Users": "Manage user accounts.",
@@ -301,7 +299,9 @@ TAG_DESCRIPTIONS = {
 }
 
 
-def generate_code_sample(method: str, path: str, has_body: bool = False) -> list[dict]:
+def generate_code_sample(
+    method: str, path: str, has_body: bool = False
+) -> list[dict[str, str]]:
     """Generate code samples for an endpoint in multiple languages."""
     # Clean up path for display
     example_path = path.replace("{pk}", "1").replace("{id_or_slug}", "1")
@@ -313,67 +313,71 @@ def generate_code_sample(method: str, path: str, has_body: bool = False) -> list
     curl_cmd += ' \\\n  -H "Authorization: Bearer $ACCESS_TOKEN"'
     if has_body:
         curl_cmd += ' \\\n  -H "Content-Type: application/json"'
-        curl_cmd += " \\\n  -d '{\"key\": \"value\"}'"
+        curl_cmd += ' \\\n  -d \'{"key": "value"}\''
 
-    samples.append({
-        "lang": "cURL",
-        "label": "cURL",
-        "source": curl_cmd,
-    })
+    samples.append(
+        {
+            "lang": "cURL",
+            "label": "cURL",
+            "source": curl_cmd,
+        }
+    )
 
     # Python sample
     if method.lower() == "get":
-        python_code = f'''import requests
+        python_code = f"""import requests
 
 response = requests.get(
     "http://localhost:8088{example_path}",
     headers={{"Authorization": "Bearer " + access_token}}
 )
-print(response.json())'''
+print(response.json())"""
     elif method.lower() == "post":
-        python_code = f'''import requests
+        python_code = f"""import requests
 
 response = requests.post(
     "http://localhost:8088{example_path}",
     headers={{"Authorization": "Bearer " + access_token}},
     json={{"key": "value"}}
 )
-print(response.json())'''
+print(response.json())"""
     elif method.lower() == "put":
-        python_code = f'''import requests
+        python_code = f"""import requests
 
 response = requests.put(
     "http://localhost:8088{example_path}",
     headers={{"Authorization": "Bearer " + access_token}},
     json={{"key": "value"}}
 )
-print(response.json())'''
+print(response.json())"""
     elif method.lower() == "delete":
-        python_code = f'''import requests
+        python_code = f"""import requests
 
 response = requests.delete(
     "http://localhost:8088{example_path}",
     headers={{"Authorization": "Bearer " + access_token}}
 )
-print(response.status_code)'''
+print(response.status_code)"""
     else:
-        python_code = f'''import requests
+        python_code = f"""import requests
 
 response = requests.{method.lower()}(
     "http://localhost:8088{example_path}",
     headers={{"Authorization": "Bearer " + access_token}}
 )
-print(response.json())'''
+print(response.json())"""
 
-    samples.append({
-        "lang": "Python",
-        "label": "Python",
-        "source": python_code,
-    })
+    samples.append(
+        {
+            "lang": "Python",
+            "label": "Python",
+            "source": python_code,
+        }
+    )
 
     # JavaScript sample
     if method.lower() == "get":
-        js_code = f'''const response = await fetch(
+        js_code = f"""const response = await fetch(
   "http://localhost:8088{example_path}",
   {{
     headers: {{
@@ -382,9 +386,9 @@ print(response.json())'''
   }}
 );
 const data = await response.json();
-console.log(data);'''
+console.log(data);"""
     elif method.lower() in ["post", "put", "patch"]:
-        js_code = f'''const response = await fetch(
+        js_code = f"""const response = await fetch(
   "http://localhost:8088{example_path}",
   {{
     method: "{method.upper()}",
@@ -396,9 +400,9 @@ console.log(data);'''
   }}
 );
 const data = await response.json();
-console.log(data);'''
+console.log(data);"""
     else:
-        js_code = f'''const response = await fetch(
+        js_code = f"""const response = await fetch(
   "http://localhost:8088{example_path}",
   {{
     method: "{method.upper()}",
@@ -407,18 +411,20 @@ console.log(data);'''
     }}
   }}
 );
-console.log(response.status);'''
+console.log(response.status);"""
 
-    samples.append({
-        "lang": "JavaScript",
-        "label": "JavaScript",
-        "source": js_code,
-    })
+    samples.append(
+        {
+            "lang": "JavaScript",
+            "label": "JavaScript",
+            "source": js_code,
+        }
+    )
 
     return samples
 
 
-def add_code_samples(spec: dict) -> int:
+def add_code_samples(spec: dict[str, Any]) -> int:
     """Add code samples to all endpoints."""
     count = 0
 
@@ -442,7 +448,7 @@ def add_code_samples(spec: dict) -> int:
     return count
 
 
-def configure_servers(spec: dict) -> bool:
+def configure_servers(spec: dict[str, Any]) -> bool:
     """Configure server URLs with variables for flexible API testing."""
     new_servers = [
         {
@@ -479,11 +485,11 @@ def configure_servers(spec: dict) -> bool:
     return True
 
 
-def add_tag_definitions(spec: dict) -> int:
+def add_tag_definitions(spec: dict[str, Any]) -> int:
     """Add tag definitions with descriptions to the OpenAPI spec."""
     # Collect all unique tags used in operations
     used_tags: set[str] = set()
-    for path, methods in spec.get("paths", {}).items():
+    for _path, methods in spec.get("paths", {}).items():
         for method, details in methods.items():
             if method not in ["get", "post", "put", "delete", "patch"]:
                 continue
@@ -514,7 +520,170 @@ def add_tag_definitions(spec: dict) -> int:
     return 0
 
 
-def make_summaries_unique(spec: dict) -> int:
+def generate_example_from_schema(  # noqa: C901
+    schema: dict[str, Any],
+    spec: dict[str, Any],
+    depth: int = 0,
+    max_depth: int = 5,
+) -> dict[str, Any] | list[Any] | str | int | float | bool | None:
+    """Generate an example value from an OpenAPI schema definition."""
+    if depth > max_depth:
+        return None
+
+    # Handle $ref
+    if "$ref" in schema:
+        ref_path = schema["$ref"]
+        if ref_path.startswith("#/components/schemas/"):
+            schema_name = ref_path.split("/")[-1]
+            ref_schema = (
+                spec.get("components", {}).get("schemas", {}).get(schema_name, {})
+            )
+            return generate_example_from_schema(ref_schema, spec, depth + 1, max_depth)
+        return None
+
+    # If schema already has an example, use it
+    if "example" in schema:
+        return schema["example"]
+
+    schema_type = schema.get("type", "object")
+
+    if schema_type == "object":
+        properties = schema.get("properties", {})
+        if not properties:
+            # Check for additionalProperties
+            if schema.get("additionalProperties"):
+                return {"key": "value"}
+            return {}
+
+        result = {}
+        for prop_name, prop_schema in properties.items():
+            # Limit object depth and skip large nested objects
+            if depth < max_depth:
+                example_val = generate_example_from_schema(
+                    prop_schema, spec, depth + 1, max_depth
+                )
+                if example_val is not None:
+                    result[prop_name] = example_val
+        return result
+
+    elif schema_type == "array":
+        items_schema = schema.get("items", {})
+        if items_schema:
+            item_example = generate_example_from_schema(
+                items_schema, spec, depth + 1, max_depth
+            )
+            if item_example is not None:
+                return [item_example]
+        return []
+
+    elif schema_type == "string":
+        # Check for enum
+        if "enum" in schema:
+            return schema["enum"][0]
+        # Check for format
+        fmt = schema.get("format", "")
+        if fmt == "date-time":
+            return "2024-01-15T10:30:00Z"
+        elif fmt == "date":
+            return "2024-01-15"
+        elif fmt == "email":
+            return "user@example.com"
+        elif fmt == "uri" or fmt == "url":
+            return "https://example.com"
+        elif fmt == "uuid":
+            return "550e8400-e29b-41d4-a716-446655440000"
+        # Use description hints or prop name
+        return "string"
+
+    elif schema_type == "integer":
+        if "minimum" in schema:
+            return schema["minimum"]
+        return 1
+
+    elif schema_type == "number":
+        if "minimum" in schema:
+            return schema["minimum"]
+        return 1.0
+
+    elif schema_type == "boolean":
+        return True
+
+    elif schema_type == "null":
+        return None
+
+    # Handle oneOf, anyOf
+    if "oneOf" in schema and schema["oneOf"]:
+        return generate_example_from_schema(
+            schema["oneOf"][0], spec, depth + 1, max_depth
+        )
+    if "anyOf" in schema and schema["anyOf"]:
+        return generate_example_from_schema(
+            schema["anyOf"][0], spec, depth + 1, max_depth
+        )
+
+    return None
+
+
+def add_response_examples(spec: dict[str, Any]) -> int:  # noqa: C901
+    """Add example values to API responses for better documentation."""
+    count = 0
+
+    # First, add examples to standard error responses in components
+    standard_errors = {
+        "400": {"message": "Bad request: Invalid parameters provided"},
+        "401": {"message": "Unauthorized: Authentication required"},
+        "403": {
+            "message": "Forbidden: You don't have permission to access this resource"
+        },
+        "404": {"message": "Not found: The requested resource does not exist"},
+        "422": {"message": "Unprocessable entity: Validation error"},
+        "500": {"message": "Internal server error: An unexpected error occurred"},
+    }
+
+    responses = spec.get("components", {}).get("responses", {})
+    for code, example_value in standard_errors.items():
+        if code in responses:
+            response = responses[code]
+            content = response.get("content", {}).get("application/json", {})
+            if content and "example" not in content:
+                content["example"] = example_value
+                count += 1
+
+    # Now add examples to inline response schemas in operations
+    for _path, methods in spec.get("paths", {}).items():
+        for method, details in methods.items():
+            if method not in ["get", "post", "put", "delete", "patch"]:
+                continue
+            if not isinstance(details, dict):
+                continue
+
+            responses_dict = details.get("responses", {})
+            for _status_code, response in responses_dict.items():
+                # Skip $ref responses (already handled above)
+                if "$ref" in response:
+                    continue
+
+                content = response.get("content", {}).get("application/json", {})
+                if not content:
+                    continue
+
+                # Skip if already has an example
+                if "example" in content:
+                    continue
+
+                schema = content.get("schema", {})
+                if schema:
+                    example = generate_example_from_schema(
+                        schema, spec, depth=0, max_depth=3
+                    )
+                    if example is not None and example != {}:
+                        content["example"] = example
+                        count += 1
+
+    return count
+
+
+def make_summaries_unique(spec: dict[str, Any]) -> int:  # noqa: C901
     """Make duplicate summaries unique by adding context from the path."""
     summary_info: dict[str, list[tuple[str, str]]] = {}
     fixed_count = 0
@@ -575,7 +744,6 @@ def main() -> None:
     fixed_ops = add_missing_operation_ids(spec)
     fixed_tags = add_tag_definitions(spec)
     fixed_servers = configure_servers(spec)
-    fixed_samples = add_code_samples(spec)
 
     changes_made = False
 
@@ -583,8 +751,12 @@ def main() -> None:
         print("Configured server URLs with variables for flexible API testing")
         changes_made = True
 
-    if fixed_samples:
-        print(f"Added code samples (cURL, Python, JavaScript) to {fixed_samples} endpoints")
+    if fixed_samples := add_code_samples(spec):
+        print(f"Added code samples to {fixed_samples} endpoints")
+        changes_made = True
+
+    if fixed_examples := add_response_examples(spec):
+        print(f"Added example JSON responses to {fixed_examples} response schemas")
         changes_made = True
 
     if fixed_schemas:
