@@ -69,7 +69,6 @@ def test_create_task_with_all_fields(app_context, login_as, get_user) -> None:
             "task_key": "test-key-full",
             "task_name": "Test Task Full",
             "user_id": admin.id,
-            "database_id": 1,
             "payload": '{"key": "value"}',
         }
     )
@@ -82,7 +81,6 @@ def test_create_task_with_all_fields(app_context, login_as, get_user) -> None:
         assert result.task_key == "test-key-full"
         assert result.task_name == "Test Task Full"
         assert result.user_id == admin.id
-        assert result.database_id == 1
         assert result.payload == '{"key": "value"}'
     finally:
         # Cleanup
