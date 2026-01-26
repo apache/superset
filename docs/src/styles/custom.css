@@ -187,3 +187,13 @@ ul.dropdown__menu svg {
 [data-theme='dark'] .ant-collapse-header {
   color: var(--ifm-font-base-color);
 }
+
+/* Hide the non-functional "Send API Request" button and Response block in API docs */
+/* The interactive API testing doesn't work due to CORS restrictions */
+.openapi-explorer__request-btn {
+  display: none !important;
+}
+
+.openapi-explorer__response-container {
+  display: none !important;
+}
