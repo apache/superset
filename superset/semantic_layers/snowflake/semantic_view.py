@@ -51,6 +51,7 @@ from superset.semantic_layers.types import (
     NUMBER,
     OBJECT,
     Operator,
+    OrderDirection,
     OrderTuple,
     PredicateType,
     SemanticRequest,
@@ -479,6 +480,49 @@ class SnowflakeSemanticView(SemanticViewImplementation):
             for element, direction in order
         )
 
+    def _get_temporal_dimension(
+        self,
+        dimensions: list[Dimension],
+    ) -> Dimension | None:
+        """
+        Find the first temporal dimension in the list.
+
+        Returns the first dimension with a temporal type (DATE, DATETIME, TIME),
+        or None if no temporal dimension is found.
+        """
+        temporal_types = {DATE, DATETIME, TIME}
+        for dimension in dimensions:
+            if dimension.type in temporal_types:
+                return dimension
+        return None
+
+    def _get_default_order(
+        self,
+        dimensions: list[Dimension],
+        order: list[OrderTuple] | None,
+    ) -> list[OrderTuple] | None:
+        """
+        Get the order to use, prepending temporal sort if needed.
+
+        If there's a temporal dimension in the query and it's not already
+        in the order, prepends an ascending sort by that dimension.
+        This ensures time-series data is always sorted chronologically first.
+        """
+        temporal_dimension = self._get_temporal_dimension(dimensions)
+        if not temporal_dimension:
+            return order
+
+        # Check if temporal dimension is already in the order
+        if order:
+            for element, _ in order:
+                if isinstance(element, Dimension) and element.id == temporal_dimension.id:
+                    return order
+            # Prepend temporal dimension to existing order
+            return [(temporal_dimension, OrderDirection.ASC)] + list(order)
+
+        # No order specified, use temporal dimension
+        return [(temporal_dimension, OrderDirection.ASC)]
+
     def _build_simple_query(
         self,
         metrics: list[Metric],
@@ -495,7 +539,9 @@ class SnowflakeSemanticView(SemanticViewImplementation):
             self._alias_element(dimension) for dimension in dimensions
         )
         metric_arguments = ", ".join(self._alias_element(metric) for metric in metrics)
-        order_clause = self._build_order_clause(order)
+        # Use default temporal ordering if no explicit order is provided
+        effective_order = self._get_default_order(dimensions, order)
+        order_clause = self._build_order_clause(effective_order)
 
         return dedent(
             f"""
@@ -740,7 +786,9 @@ class SnowflakeSemanticView(SemanticViewImplementation):
         select_clause = ",\n    ".join(select_columns)
 
         # Build ORDER BY clause (need to reference the aliased columns)
-        order_clause = self._build_order_clause(order)
+        # Use default temporal ordering if no explicit order is provided
+        effective_order = self._get_default_order(dimensions, order)
+        order_clause = self._build_order_clause(effective_order)
 
         query = dedent(
             f"""
@@ -794,7 +842,9 @@ class SnowflakeSemanticView(SemanticViewImplementation):
             self._alias_element(dimension) for dimension in dimensions
         )
         metric_arguments = ", ".join(self._alias_element(metric) for metric in metrics)
-        order_clause = self._build_order_clause(order)
+        # Use default temporal ordering if no explicit order is provided
+        effective_order = self._get_default_order(dimensions, order)
+        order_clause = self._build_order_clause(effective_order)
 
         top_groups_cte, cte_params = self._build_top_groups_cte(
             group_limit,

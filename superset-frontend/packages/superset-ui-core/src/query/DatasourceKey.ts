@@ -35,9 +35,10 @@ export default class DatasourceKey {
 
   constructor(key: string) {
     const [idStr, typeStr] = key.split('__');
-    // Try to parse as integer, fall back to string (UUID) if NaN
-    const parsedId = parseInt(idStr, 10);
-    this.id = Number.isNaN(parsedId) ? idStr : parsedId;
+    // Only parse as integer if the entire string is numeric
+    // (parseInt would incorrectly parse "85d3139f..." as 85)
+    const isNumeric = /^\d+$/.test(idStr);
+    this.id = isNumeric ? parseInt(idStr, 10) : idStr;
     this.type = DATASOURCE_TYPE_MAP[typeStr] ?? DatasourceType.Table;
   }
 

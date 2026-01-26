@@ -270,6 +270,27 @@ def map_semantic_result_to_query_result(
     )
 
 
+def _normalize_column(column: str | dict, dimension_names: set[str]) -> str:
+    """
+    Normalize a column to its dimension name.
+
+    Columns can be either:
+    - A string (dimension name directly)
+    - A dict with isColumnReference=True and sqlExpression containing the dimension name
+    """
+    if isinstance(column, str):
+        return column
+
+    if isinstance(column, dict):
+        # Handle column references (e.g., from time-series charts)
+        if column.get("isColumnReference") and column.get("sqlExpression"):
+            sql_expr = column["sqlExpression"]
+            if sql_expr in dimension_names:
+                return sql_expr
+
+    raise ValueError("Adhoc dimensions are not supported in Semantic Views.")
+
+
 def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     """
     Convert a `QueryObject` into a list of `SemanticQuery`.
@@ -277,13 +298,17 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     This function maps the `QueryObject` into query objects that focus less on
     visualization and more on semantics.
     """
-    print("BETO")
-    print(query_object)
     semantic_view = query_object.datasource.implementation
 
     all_metrics = {metric.name: metric for metric in semantic_view.metrics}
     all_dimensions = {
         dimension.name: dimension for dimension in semantic_view.dimensions
+    }
+
+    # Normalize columns (may be dicts with isColumnReference=True for time-series)
+    dimension_names = set(all_dimensions.keys())
+    normalized_columns = {
+        _normalize_column(column, dimension_names) for column in query_object.columns
     }
 
     metrics = [all_metrics[metric] for metric in (query_object.metrics or [])]
@@ -296,7 +321,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     dimensions = [
         dimension
         for dimension in semantic_view.dimensions
-        if dimension.name in query_object.columns
+        if dimension.name in normalized_columns
         and (
             # if a grain is specified, only include the time dimension if its grain
             # matches the requested grain
@@ -794,12 +819,14 @@ def _validate_dimensions(query_object: ValidatedQueryObject) -> None:
     Make sure all dimensions are defined in the semantic view.
     """
     semantic_view = query_object.datasource.implementation
-
-    if any(not isinstance(column, str) for column in query_object.columns):
-        raise ValueError("Adhoc dimensions are not supported in Semantic Views.")
-
     dimension_names = {dimension.name for dimension in semantic_view.dimensions}
-    if not set(query_object.columns) <= dimension_names:
+
+    # Normalize all columns to dimension names
+    normalized_columns = [
+        _normalize_column(column, dimension_names) for column in query_object.columns
+    ]
+
+    if not set(normalized_columns) <= dimension_names:
         raise ValueError("All dimensions must be defined in the Semantic View.")
 
 
