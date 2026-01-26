@@ -218,7 +218,7 @@ class TestAbortHandlers(SupersetTestCase):
 
         # Manually set to IN_PROGRESS and then ABORTING to simulate abort
         task_obj.status = TaskStatus.IN_PROGRESS.value
-        task_obj.update_properties(is_abortable=True)
+        task_obj.update_properties({"is_abortable": True})
         db.session.merge(task_obj)
         db.session.commit()
 
@@ -251,7 +251,7 @@ class TestAbortHandlers(SupersetTestCase):
         )
 
         task_obj.status = TaskStatus.IN_PROGRESS.value
-        task_obj.update_properties(is_abortable=True)
+        task_obj.update_properties({"is_abortable": True})
         db.session.merge(task_obj)
         db.session.commit()
 
@@ -326,7 +326,7 @@ class TestTaskContextMethods(SupersetTestCase):
             scope=TaskScope.SYSTEM,
         )
 
-        assert task_obj.properties.is_abortable is not True
+        assert task_obj.properties.get("is_abortable") is not True
 
         ctx = TaskContext(task_uuid=task_obj.uuid)
 
@@ -336,7 +336,7 @@ class TestTaskContextMethods(SupersetTestCase):
 
         db.session.expire_all()
         task_obj = db.session.query(Task).filter_by(uuid=task_obj.uuid).first()
-        assert task_obj.properties.is_abortable is True
+        assert task_obj.properties.get("is_abortable") is True
 
 
 class TestAbortBeforeExecution(SupersetTestCase):

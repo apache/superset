@@ -142,9 +142,9 @@ class TestTaskAbortProperties:
         from superset.models.tasks import Task
 
         task = Task()
-        task.update_properties(is_abortable=True)
+        task.update_properties({"is_abortable": True})
 
-        assert task.properties.is_abortable is True
+        assert task.properties.get("is_abortable") is True
 
     def test_is_abortable_default_none(self):
         """Test is_abortable defaults to None for new tasks."""
@@ -152,7 +152,7 @@ class TestTaskAbortProperties:
 
         task = Task()
 
-        assert task.properties.is_abortable is None
+        assert task.properties.get("is_abortable") is None
 
 
 class TestTaskSetStatus:
@@ -168,7 +168,7 @@ class TestTaskSetStatus:
 
         task.set_status(TaskStatus.IN_PROGRESS)
 
-        assert task.properties.is_abortable is False
+        assert task.properties.get("is_abortable") is False
         assert task.started_at is not None
 
     def test_set_status_in_progress_preserves_existing_is_abortable(self):
@@ -177,13 +177,15 @@ class TestTaskSetStatus:
 
         task = Task()
         task.uuid = "test-uuid"
-        task.update_properties(is_abortable=True)  # Already set by handler registration
+        task.update_properties(
+            {"is_abortable": True}
+        )  # Already set by handler registration
         task.started_at = datetime.now(timezone.utc)  # Already started
 
         task.set_status(TaskStatus.IN_PROGRESS)
 
         # Should not override since started_at is already set
-        assert task.properties.is_abortable is True
+        assert task.properties.get("is_abortable") is True
 
     def test_set_status_aborting_does_not_set_ended_at(self):
         """Test that ABORTING status does not set ended_at."""

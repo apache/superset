@@ -64,59 +64,6 @@ class UserSchema(Schema):
     last_name = fields.String()
 
 
-class TaskPropertiesSchema(Schema):
-    """
-    Schema for task properties (runtime state and execution config).
-
-    These are stored in a JSON blob in the database for flexibility.
-    """
-
-    is_abortable = fields.Boolean(
-        metadata={"description": "Has abort handler registered"}, allow_none=True
-    )
-    progress_percent = fields.Float(
-        metadata={"description": "Progress 0.0-1.0"}, allow_none=True
-    )
-    progress_current = fields.Int(
-        metadata={"description": "Current iteration count"}, allow_none=True
-    )
-    progress_total = fields.Int(
-        metadata={"description": "Total iterations"}, allow_none=True
-    )
-    error_message = Method(
-        "get_error_message",
-        metadata={"description": "Human-readable error message"},
-    )
-    exception_type = fields.String(
-        metadata={"description": "Exception class name"}, allow_none=True
-    )
-    stack_trace = Method(
-        "get_stack_trace",
-        metadata={"description": "Full stack trace (when SHOW_STACKTRACE enabled)"},
-    )
-    timeout = fields.Int(
-        metadata={"description": "Timeout in seconds"}, allow_none=True
-    )
-    max_retries = fields.Int(
-        metadata={"description": "Maximum retry attempts"}, allow_none=True
-    )
-    retry_count = fields.Int(
-        metadata={"description": "Current retry count"}, allow_none=True
-    )
-
-    def get_error_message(self, obj: object) -> str | None:
-        """Get error message."""
-        return getattr(obj, "error_message", None)
-
-    def get_stack_trace(self, obj: object) -> str | None:
-        """Get stack trace only if SHOW_STACKTRACE is enabled."""
-        from flask import current_app
-
-        if not current_app.config.get("SHOW_STACKTRACE", False):
-            return None
-        return getattr(obj, "stack_trace", None)
-
-
 class TaskResponseSchema(Schema):
     """
     Schema for task response.
@@ -168,9 +115,16 @@ class TaskResponseSchema(Schema):
         return obj.get_payload()  # type: ignore[attr-defined]
 
     def get_properties(self, obj: object) -> dict[str, object]:
-        """Get properties as dictionary via nested schema."""
-        props = obj.properties  # type: ignore[attr-defined]
-        return TaskPropertiesSchema().dump(props)
+        """Get properties dict, filtering stack_trace if SHOW_STACKTRACE is disabled."""
+        from flask import current_app
+
+        properties = dict(obj.properties)  # type: ignore[attr-defined]
+
+        # Remove stack_trace unless SHOW_STACKTRACE is enabled
+        if not current_app.config.get("SHOW_STACKTRACE", False):
+            properties.pop("stack_trace", None)
+
+        return properties
 
     def get_duration(self, obj: object) -> float | None:
         """Get duration in seconds"""

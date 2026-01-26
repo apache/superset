@@ -18,10 +18,9 @@
 
 from __future__ import annotations
 
-import traceback
 import uuid
 from datetime import datetime, timezone
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -37,11 +36,14 @@ from superset_core.api.tasks import TaskStatus
 
 from superset.models.helpers import AuditMixinNullable
 from superset.models.task_subscribers import TaskSubscriber  # noqa: F401
-from superset.tasks.utils import get_finished_dedup_key
+from superset.tasks.types import TaskProperties
+from superset.tasks.utils import (
+    error_update,
+    get_finished_dedup_key,
+    parse_properties,
+    serialize_properties,
+)
 from superset.utils import json
-
-if TYPE_CHECKING:
-    from superset.tasks.types import TaskProperties
 
 
 class Task(CoreTask, AuditMixinNullable, Model):
@@ -102,7 +104,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
     _properties = Column("properties", Text, nullable=True, default="{}")
 
     # Transient cache for parsed properties (not persisted)
-    _properties_cache: "TaskProperties | None" = None
+    _properties_cache: TaskProperties | None = None
 
     # Relationships
     subscribers = relationship(
@@ -119,46 +121,37 @@ class Task(CoreTask, AuditMixinNullable, Model):
     # -------------------------------------------------------------------------
 
     @property
-    def properties(self) -> "TaskProperties":
+    def properties(self) -> TaskProperties:
         """
         Get typed properties (cached for performance).
 
         Properties contain runtime state and execution config that doesn't
         need database filtering. Parsed once and cached until next write.
 
-        :returns: TaskProperties dataclass instance
-        """
-        # Lazy import to avoid circular dependency
-        from superset.tasks.types import TaskProperties
+        Always use .get() for reads since keys may be absent.
 
+        :returns: TaskProperties dict (sparse - only contains keys that were set)
+        """
         if self._properties_cache is None:
-            self._properties_cache = TaskProperties.from_json(self._properties)
+            self._properties_cache = parse_properties(self._properties)
         return self._properties_cache
 
-    def update_properties(self, **kwargs: Any) -> None:
+    def update_properties(self, updates: TaskProperties) -> None:
         """
-        Update specific properties fields.
+        Update specific properties fields (merge semantics).
 
-        Simple merge: pass key=value to update that field. If you pass
-        key=None, the field is set to None (cleared). If you don't pass
-        a key, it keeps its current value.
+        Only updates fields present in the updates dict.
 
-        Valid keys: is_abortable, progress_percent, progress_current,
-        progress_total, error_message, exception_type, stack_trace,
-        timeout, max_retries, retry_count
+        :param updates: TaskProperties dict with fields to update
 
-        :param kwargs: Property fields to update
+        Example:
+            task.update_properties({"is_abortable": True})
+            task.update_properties(progress_update((50, 100)))
         """
-        props = self.properties  # Get current (cached)
-
-        # Simple merge: set each provided field
-        for key, value in kwargs.items():
-            if hasattr(props, key):
-                setattr(props, key, value)
-
-        # Serialize back to JSON
-        self._properties = props.to_json()
-        # Cache stays valid (we updated it in place)
+        current: TaskProperties = dict(self.properties)  # type: ignore[assignment]
+        current.update(updates)  # Merge updates
+        self._properties = serialize_properties(current)
+        self._properties_cache = current  # Update cache
 
     # -------------------------------------------------------------------------
     # Payload accessor (for task-specific output data)
@@ -203,11 +196,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
 
         :param exception: The exception that caused the failure
         """
-        self.update_properties(
-            error_message=str(exception),
-            exception_type=type(exception).__name__,
-            stack_trace=traceback.format_exc(),
-        )
+        self.update_properties(error_update(exception))
 
     # -------------------------------------------------------------------------
     # Status management
@@ -233,8 +222,8 @@ class Task(CoreTask, AuditMixinNullable, Model):
             self.started_at = now
             # Set is_abortable to False when task starts executing
             # (will be set to True if/when an abort handler is registered)
-            if self.properties.is_abortable is None:
-                self.update_properties(is_abortable=False)
+            if self.properties.get("is_abortable") is None:
+                self.update_properties({"is_abortable": False})
         elif status in [
             TaskStatus.SUCCESS.value,
             TaskStatus.FAILURE.value,
@@ -376,7 +365,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
             "created_by_fk": self.created_by_fk,
             "user_id": self.user_id,
             "payload": self.get_payload(),
-            "properties": self.properties.to_dict(),
+            "properties": self.properties,  # Already a dict
             "subscriber_count": self.subscriber_count,
             "subscriber_ids": self.get_subscriber_ids(),
         }

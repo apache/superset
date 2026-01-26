@@ -17,10 +17,13 @@
 """Concrete TaskContext implementation for GATF"""
 
 import logging
-from typing import Any, Callable, TYPE_CHECKING, TypeVar
+from typing import Callable, TYPE_CHECKING, TypeVar
 
 from flask import current_app
 from superset_core.api.tasks import TaskContext as CoreTaskContext, TaskStatus
+
+from superset.tasks.types import TaskProperties
+from superset.tasks.utils import progress_update
 
 if TYPE_CHECKING:
     from superset.models.tasks import Task
@@ -83,7 +86,7 @@ class TaskContext(CoreTaskContext):
     def update_task(
         self,
         progress: float | int | tuple[int, int] | None = None,
-        payload: dict[str, Any] | None = None,
+        payload: dict[str, object] | None = None,
     ) -> None:
         """
         Update task progress and/or payload atomically.
@@ -102,55 +105,19 @@ class TaskContext(CoreTaskContext):
         """
         from superset.commands.tasks.update import UpdateTaskCommand
 
-        # Build properties updates for progress
-        properties: dict[str, Any] | None = None
+        # Build properties updates for progress using the helper
+        properties: TaskProperties | None = None
         if progress is not None:
-            if isinstance(progress, float):
-                # Percentage only mode
-                properties = {
-                    "progress_percent": progress,
-                    "progress_current": None,
-                    "progress_total": None,
-                }
-            elif isinstance(progress, int):
-                # Count only mode (total unknown)
-                properties = {
-                    "progress_percent": None,
-                    "progress_current": progress,
-                    "progress_total": None,
-                }
-            elif isinstance(progress, tuple) and len(progress) == 2:
-                # Count and total mode
-                current, total = progress
-                # Compute percentage, handle division by zero
-                percent: float | None = None
-                try:
-                    if total > 0:
-                        percent = current / total
-                    else:
-                        logger.warning(
-                            "Progress total is zero for task %s, "
-                            "cannot compute percentage",
-                            self._task_uuid,
-                        )
-                except Exception as ex:
-                    logger.warning(
-                        "Failed to compute progress percentage for task %s: %s",
-                        self._task_uuid,
-                        str(ex),
-                    )
-                properties = {
-                    "progress_percent": percent,
-                    "progress_current": current,
-                    "progress_total": total,
-                }
-            else:
+            properties = progress_update(progress)
+            if not properties:
+                # Invalid progress format - progress_update returns empty dict
                 logger.warning(
                     "Invalid progress value for task %s: %s "
                     "(expected float, int, or tuple[int, int])",
                     self._task_uuid,
                     progress,
                 )
+                properties = None
 
         # Only update if there's something to update
         if properties is not None or payload is not None:

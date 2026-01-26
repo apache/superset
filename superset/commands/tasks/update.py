@@ -32,6 +32,7 @@ from superset.commands.tasks.exceptions import (
     TaskUpdateFailedError,
 )
 from superset.exceptions import SupersetSecurityException
+from superset.tasks.types import TaskProperties
 from superset.utils.decorators import on_error, transaction
 
 if TYPE_CHECKING:
@@ -56,7 +57,7 @@ class UpdateTaskCommand(BaseCommand):
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
         payload: dict[str, Any] | None = None,
-        properties: dict[str, Any] | None = None,
+        properties: TaskProperties | None = None,
         skip_security_check: bool = False,
     ):
         """
@@ -102,7 +103,7 @@ class UpdateTaskCommand(BaseCommand):
 
         # Update properties (dict passed through to model)
         if self._properties:
-            self._model.update_properties(**self._properties)
+            self._model.update_properties(self._properties)
 
         # Lazy import to avoid circular dependency
         from superset.daos.tasks import TaskDAO
