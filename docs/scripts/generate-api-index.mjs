@@ -30,7 +30,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SPEC_PATH = path.join(__dirname, '..', 'static', 'resources', 'openapi.json');
-const OUTPUT_PATH = path.join(__dirname, '..', 'docs', 'api.mdx');
+const OUTPUT_PATH = path.join(__dirname, '..', 'developer_portal', 'api.mdx');
 
 // Category groupings for better organization
 const CATEGORY_GROUPS = {

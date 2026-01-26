@@ -158,7 +158,7 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       },
       {
         label: 'API Reference',
-        href: '/docs/api',
+        href: '/developer_portal/api',
       },
     ],
   });
@@ -199,11 +199,11 @@ const config: Config = {
       'docusaurus-plugin-openapi-docs',
       {
         id: 'api',
-        docsPluginId: 'classic',
+        docsPluginId: 'developer_portal',
         config: {
           superset: {
             specPath: 'static/resources/openapi.json',
-            outputDir: 'docs/api',
+            outputDir: 'developer_portal/api',
             sidebarOptions: {
               groupPathsBy: 'tag',
               categoryLinkSource: 'tag',
@@ -279,7 +279,7 @@ const config: Config = {
             from: '/docs/creating-charts-dashboards/first-dashboard',
           },
           {
-            to: '/docs/api',
+            to: '/developer_portal/api',
             from: '/docs/rest-api',
           },
           {

@@ -17,9 +17,22 @@
  * under the License.
  */
 
+// Import the generated API sidebar
+const apiSidebar = require('./api/sidebar.js');
+
 module.exports = {
   developerPortalSidebar: [
     'index',
+    {
+      type: 'category',
+      label: 'API Reference',
+      collapsed: true,
+      link: {
+        type: 'doc',
+        id: 'api',
+      },
+      items: apiSidebar,
+    },
     {
       type: 'category',
       label: 'Contributing',
