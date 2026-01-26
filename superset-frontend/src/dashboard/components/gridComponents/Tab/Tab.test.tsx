@@ -53,9 +53,9 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Droppable: jest.fn(props => {
     const childProps = props.editMode
       ? {
-        dragSourceRef: props.dragSourceRef,
-        dropIndicatorProps: props.dropIndicatorProps,
-      }
+          dragSourceRef: props.dragSourceRef,
+          dropIndicatorProps: props.dropIndicatorProps,
+        }
       : {};
     const handleClick = () => {
       if (props.onDrop) {
@@ -104,7 +104,9 @@ const createProps = () => ({
   parentId: 'TABS-L-d9eyOE-b',
   depth: 2,
   index: 1,
-  renderType: RENDER_TAB_CONTENT as typeof RENDER_TAB | typeof RENDER_TAB_CONTENT,
+  renderType: RENDER_TAB_CONTENT as
+    | typeof RENDER_TAB
+    | typeof RENDER_TAB_CONTENT,
   availableColumnCount: 12,
   columnWidth: 120,
   isFocused: false,
