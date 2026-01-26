@@ -42,7 +42,7 @@
     "@storybook/react": "8.6.14",
     "@storybook/types": "8.6.14",
     "@types/react-loadable": "^5.5.11",
-    "core-js": "3.40.0",
+    "core-js": "3.48.0",
     "gh-pages": "^6.3.0",
     "jquery": "^4.0.0",
     "memoize-one": "^5.2.1",
