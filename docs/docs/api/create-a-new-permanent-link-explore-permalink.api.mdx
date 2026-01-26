@@ -1,0 +1,72 @@
+---
+id: create-a-new-permanent-link-explore-permalink
+title: "Create a new permanent link (explore-permalink)"
+description: "Create a new permanent link (explore-permalink)"
+sidebar_label: "Create a new permanent link (explore-permalink)"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVlFv2zgM/isCn+4Ad2mLO6Dw2623PRwGXLG22EMQHBibrdXIkkbRSTPD//1A2U3TZNiw9WEvhiyR9MfvIyn3wPS5oyRvQ72FsocqeCEvusQYna1QbPCzhxS87qWqoRZ1FTlEYrGU9O0ucPs3Sj6pKVVso/pBCZcNshg9N7UaFCDbSFBCWD5QJTAU0LG7QsY2HXvffvxg8hkJcYICrNB37cyKtidrdB2ZiJahAN85h0tHUAp3NBxu7DAhM25hGIpMi2WqoZw/J7c4BF+AWNEo8O4xusB0Rdyis351LSh0PbI1vAw4QWBKMfg08nd+evYK9le0PabkpiElwkgwTMKW1mSkIRMVoicvRnFmUd48q5KErb+fVDkO+tL5K37Dkb66dYzsAMUGk0kSmGqTuqqilO4657ZvFMgfp6ev4KallPCedPkTUN9ibaYOGaG8RqbXQbn12EkT2H6hOmM5P/9lWC5D52rjg5jIQdUy5MXKVnH9+Qvleo+CzhBz4OyQqOpYcZXzHh42AuV8MWgX433Szp661lztqvGD9Svt84N8mVDIoPG0OSzd32gMchKfev93KKAlaUKtHROSzomI0kAJM4x2tj6bTT6znQ8oWF7rkFOsufmgEYnlbOZCha4JScqL04sL0ASeEssTZmQup9fDkpCJ3wduUaCEfz7daOhsBuV0+ty2+gUV7WEj/zHdMaXmZ4NolBT8x+f75N0jttHRwf3wcuDPdRIvhgKsvwvH8+a6i8SJ9ift3pbSNdqtzzQL5brFXF8eM9QfF+7F93dFKPQos+jQ+r3ROGo6B4xWwZxBAVNIFXyn7KIAFU8t+36JiW7ZDYNuf+6ItTYXBayR7XghzZWNhrAmzqWQhztcju10cqN41Nx1+cI6bK2hePL4q6ooyjdtF3t1evXvtYq8nP4D2lCrD+MGivwsAQoImZdcbnmvB4f+vssNC2NMrQMdVHvk7eplWmhWTxeu3+4h7PvR4iasyA8DFFMqou8wLIZh+B9tYAad
+sidebar_class_name: "post api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create a new permanent link (explore-permalink)"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/explore/permalink"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create a new permanent link (explore-permalink)
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"properties":{"formData":{"description":"Chart form data","type":"object"},"urlParams":{"description":"URL Parameters","items":{"description":"URL Parameter key-value pair","nullable":true},"nullable":true,"type":"array"}},"required":["formData"],"type":"object","title":"ExplorePermalinkStateSchema"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"content":{"application/json":{"schema":{"properties":{"key":{"description":"The key to retrieve the permanent link data.","type":"string"},"url":{"description":"permanent link.","type":"string"}},"type":"object"}}},"description":"The permanent link was stored successfully."},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

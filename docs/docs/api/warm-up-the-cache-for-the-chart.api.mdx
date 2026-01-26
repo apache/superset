@@ -1,0 +1,72 @@
+---
+id: warm-up-the-cache-for-the-chart
+title: "Warm up the cache for the chart"
+description: "Warms up the cache for the chart. Note for slices a force refresh occurs. In terms of the `extra_filters` these can be obtained from records in the JSON encoded `logs.json` column associated with the `explore_json` action."
+sidebar_label: "Warm up the cache for the chart"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVsFu2zgQ/RViLnvRxsmiCwS6td0USA/ZRZOgByNwxtLYYiqRLDmy4wr698WQkmPHzrZoDgX2RlEzb2bePA7ZQUmh8NqxtgZy+Iy+Cap1iitSBRYVqYX16atCzyfqynLaC7UuKCiUj4KUp4WnUClbFK0PJ+rSKCYBs4vofk+P7HG20DWTD/eyFySEUXNSds6oDZVq4W2jPBXWl0FpEz0/Xv99pcgUtqRS3dd2GU4egjX3qrB12xiFIdhCI1Op1pqrMZqrradZssRC6juBDDx9bSnwO1tuIO+gsIbJsCzRuVoXKIYT8ZK9UFTUoKyct448awrRTbiY6VLW+wTeVKQu/xqLjnaKrVqjb4TWLaWQAW8cQQ7aMC3JQ59BiaGaW/TlD0BvbQV+SawGZmNv1hWZGFObZYp5NN5eSw4DXsjvLS5bJRRt9sHHmp7wA3ttltD3iWztqYR8+kTZ3dbSzh+oYPHUXMvGe7F5L3Ciw1v3KTXrOnWhF8j9DC9LMqwXmsJ36M4UmlKh2SgsSy3eWO9QaP1QpoqCeIwgbaBRMakI9i3FqoKzJiQl/HF6+godeQptzYfMv1W1DiytJiyqVNdvIZbVOhUYuQ2xIvLe+qD0QmqDDDRTE16t14rGGHOqrVlK848KaKW/zWIKR8Qj24or5DQSvBzPA1lGtcaohwJK8CmRQ/zrlOCQeGtK8vVGcL+25DfbqbXS345K88clmJp9rc2yJnjyRO9x83NQL8r54sVmS+A3r5JaQyHgkmT5PTaOZPYOSzWMzpTKm1+WypVltbCtKSWRP38hJx+QsU4nMDoEKlqveQP5tIOHNUM+vetl2uEyyASMeggy/xriypaQg2tFMA65ghwm6PRkdTaJAphI+2etm43TNZBfxSk97aD1NeRQMbt8MqltgXVlA+fnp+fnIBHHTKLSUqkxnw7mhJ78B+sbZMjh4+cbgY5mkA9/n86LRBCWH9Y8G+73nwURlGDNp6fr9+IRG1fT/ng6fX4Jnh7cUjvzQZuFPTIZWkc+0O5R3NkSEpPd6kwwnA3cYJSJwVjA5+HyeOEJBM90sKO+///zaeipXJETV6M2QmGUYzfIeArotPB8BhmMhO2L+S4D0avYdt0cA936uu9lO85uOTcZrNBrnEv3pnd9BhVhST6q/wttZLom0n+/kYzEvG7jWH5+/Pts9HhbFOT4P213z+Y/tyLr+fBQbGwpLh7X8iTANeQAGdiogXSVy14HNZplG2cKJEhRPrZc7QyZ7QkZFlLUeKvEW3xMsOuSxY39QqbvIRsqYfmG/q7v+38B+IYeJA==
+sidebar_class_name: "put api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Warm up the cache for the chart"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/chart/warm_up_cache"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Warms up the cache for the chart. Note for slices a force refresh occurs. In terms of the `extra_filters` these can be obtained from records in the JSON encoded `logs.json` column associated with the `explore_json` action.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"properties":{"chart_id":{"description":"The ID of the chart to warm up cache for","type":"integer"},"dashboard_id":{"description":"The ID of the dashboard to get filters for when warming cache","type":"integer"},"extra_filters":{"description":"Extra filters to apply when warming up cache","type":"string"}},"required":["chart_id"],"type":"object","title":"ChartCacheWarmUpRequestSchema"}}},"description":"Identifies the chart to warm up cache for, and any additional dashboard or filter context to use.","required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"description":"A list of each chart's warmup status and errors if any","items":{"properties":{"chart_id":{"description":"The ID of the chart the status belongs to","type":"integer"},"viz_error":{"description":"Error that occurred when warming cache for chart","type":"string"},"viz_status":{"description":"Status of the underlying query for the viz","type":"string"}},"type":"object","title":"ChartCacheWarmUpResponseSingle"},"type":"array"}},"type":"object","title":"ChartCacheWarmUpResponseSchema"}}},"description":"Each chart's warmup status"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

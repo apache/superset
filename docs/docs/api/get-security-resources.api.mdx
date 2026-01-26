@@ -1,0 +1,72 @@
+---
+id: get-security-resources
+title: "Get security resources"
+description: "Get a list of models"
+sidebar_label: "Get security resources"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV21v2zYQ/ivEfdkGCHUStECgb9mwFh3aDVjS9UMQGJR0tphQpHI8xXEN/ffiKMmWZzlIugH5JpH38twLHx43UGDIydRsvIMUPiArrawJrPxCVb5AGyCBWpOukJECpNcbyL1jdAzpBnRdW5NrUZ/dBrGxgZCXWGn5qsnXSGwwyF/ubVO5+GkYq/jB6xohhcBk3BLaZFjQRHot/wtjO78jpQOzk5Z8TZPrD9o2GLG79V+LGFAv45oqQ4I2OdTarmTeW9RuvNRjvWnbBAjvG0NYQHodgXUwBqc32/h8dos5TwV8h+v9aNE1lZiTqsyHHCbgqUAa/VudoR39jwo7lhIjbNgiJOC8G2M6XoSxr+lcR4HCEOZdJ+1g65D3aCZd1XqJI5PGMS5jDeLOPJhvR7YDWsx3CXlBU7X/rkICXUZSWCLPY4r6Hm5F2MjJuG+Q1pIzXYngPbQ3Uu1Qexe6Pjw7Oena8QcPR9Mp7R/IqxIVe9ZWEeaeChXllHeKS1SZzu/QFZAcdPBk+Y+cyHkX05Tr0YpaeIpOOyUlSm/UV2OtylAxaResZixUtlaZ9CIkgI+6qmNiL9SfJn/KHhz0xkGZpBRFOAR6sSUs6QBlipCoJuCisWpVolNr36jCu59Y3Tm/GsdgJHXP56L9I/bybEb9/yWPU5ael8E9FnkilTvKeEF+duQyYTluKPaK0BVIz4/5k0D6GFFMEMg+Dz4RkbbWr7AYIhMkwRO/KELC0Ngjx7TbUwvyVazKErnzPVDHkfvLFNMEN/RRpR8/oVtyCenZu5OpIo8vnah1cM/sGO4fg6vP6JqL2rwZ2O4ZFBmJcD/mWJEu3M8yKIiVt/+JAysMYf86ON7Jh3h+1YWSTGAX0NuT01eD8sXphktP5hsWEcvZ2ath+c03tlDOs6rJ5xiCQseGYzu/e8VyvddyqyGRp6gQMG9IcMlAdrtiSK9v5I5lvZSpEy77ffU3Bt9QjkH9LM2spJvDL9LzAi5C/1j0d/lgdE6DEiRQIZe+l4jDrRwtmOnazB5OZ4PKbKsyA0FHD8P425CFFErmOp3NrM+1LX3g9Pzk/DxOBYOFS8lbl6oYzwYy1IT03lOlGVL44+uVmI5iMlrG3R3HiQep0u2K54QLwlD+qJE4xSz8IXFdNjVSwDFDjJYk5E7u4TSOZD5wpWNT9HOQPBiGeNU4yXtuRi127InRw2V85FlttZEJu8v0pq/QNejaCKhTGHVL5OStV+kCKYZIbzaZDviFbNvKcsfCUr+j0I7BuMN1HPm2bweIdX7QZHQmObu+aRMoURdI0UOncJHnWPNI6+BwiZVtN374XQopxDE6Udty9h+j14p265HtzaaTuPJ36NoWBtQs//Fx0n4HoUPTJg==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get security resources"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/security/resources/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get a list of models
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"filters":{"items":{"properties":{"col":{"type":"string"},"opr":{"type":"string"},"value":{"anyOf":[{"type":"number"},{"type":"string"},{"type":"boolean"},{"type":"array"}]}},"required":["col","opr","value"],"type":"object"},"type":"array"},"keys":{"items":{"enum":["list_columns","order_columns","label_columns","description_columns","list_title","none"],"type":"string"},"type":"array"},"order_column":{"type":"string"},"order_direction":{"enum":["asc","desc"],"type":"string"},"page":{"type":"integer"},"page_size":{"type":"integer"},"select_columns":{"items":{"type":"string"},"type":"array"}},"type":"object","title":"get_list_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"description":"The total record count on the backend","type":"number"},"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"ids":{"description":"A list of item ids, useful when you don't know the column id","items":{"type":"string"},"type":"array"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"list_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"list_title":{"description":"A title to render. Will be translated by babel","example":"List Items","type":"string"},"order_columns":{"description":"A list of allowed columns to sort","items":{"type":"string"},"type":"array"},"result":{"description":"The result from the get list query","items":{"properties":{"id":{"type":"integer"},"name":{"maxLength":250,"type":"string"}},"required":["name"],"type":"object","title":"ViewMenuApi.get_list"},"type":"array"}},"type":"object"}}},"description":"Items from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

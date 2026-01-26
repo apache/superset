@@ -1,0 +1,72 @@
+---
+id: delete-a-dashboards-filter-state-value
+title: "Delete a dashboard's filter state value"
+description: "Delete a dashboard's filter state value"
+sidebar_label: "Delete a dashboard's filter state value"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVU1v2kAQ/SurubSVrDhEqRT51jbJoap6aIh6QCga7AEvGO9mdkxKrf3v1dhAQOQQoUpcYD27M/Pm600LHhmXJMQBslELtoYMPEoJCdS4JP1aQAJMz41lKiATbiiBkJe0RMhakLXXV7YWmhFDjEkLBYWcrRfr1NywJLPCqiGzoPUFJG85WdD6PV6CsK1nEONYHwfv6kBB768uL/Uvd7VQLXpE7yubo2JI50GBtHv2PDtPLLbXXlIIOCM9HkNnCk0lxk2NlGRUrTMKyRGoncRN5pQLRBUdGrylioSKzlQQx1T0qbmAmMD1/wriBGBfsTCafgrSQxmcDcpjjY2Uju1fKnos12fD8tOJmbqm7oFcXZ0NyDfXVIWpnRjPLqcQDNViZa24Pp+xb+5RsDLE7LrZh0B5w4pL2WT+IpCNxjqtgjNlGLjFUE4ccmHubSXE5kFQCMZvD4pBU2wVPgQz7VWCqvRzAwksSUpXQAZFpwJJTy0ZpOhtuhqkOwtp6xcx7Y08dUbSdkHrCAqbV1sObLiCDEoRn6Vp5XKsShcku7m8uQENZRvigya0z2EXaAsTQia+d7xEgQy+/x7ChsQ0if3tK2+oBy3f/EWemKZMoTzVSFRSnbpjAntoPHEgUQUrFR2KNOT+3WqgSLwLssSuWza8/P4yHPjdtZLQH0l9hbZW+11m2019RoDeKoiBam/NQwJZt3H2y6RC3RDjBLQUqtu2Ewz0yFWMKn5uiLXnxgmskC1ONNRRC4UNei4gm2IV6Ajmbmbg46/N8vlkXrN7CH8jxFp3VR93BpB0y6vbk93uO8Xj0Yo8wb/+xnFMoCQsiLvw+5sveU5e9nSO6EHbejdHt3c/7oZ3kIDS8F4td623OaiDNyG1bf9i6BZUx7hDKPqtGGP8BwyN6S0=
+sidebar_class_name: "delete api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete a dashboard's filter state value"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/dashboard/{pk}/filter_state/{key}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete a dashboard's filter state value
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"description":"The value key.","in":"path","name":"key","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"description":"The result of the operation","type":"string"}},"type":"object"}}},"description":"Deleted the stored value."},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

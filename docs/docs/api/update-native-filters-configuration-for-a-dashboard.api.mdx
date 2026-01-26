@@ -1,0 +1,72 @@
+---
+id: update-native-filters-configuration-for-a-dashboard
+title: "Update native filters configuration for a dashboard."
+description: "Update native filters configuration for a dashboard."
+sidebar_label: "Update native filters configuration for a dashboard."
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVt9v2zYQ/leEe9oALUqyDgj0tqYLsGEohjbBHgxjoMWzxUQi2ePJrifofy+OlGR77oauG+A3ibwf39135McevCLVIiMFKBc9GAsleMU15GBVi/L3AjkQfugMoYaSqcMcQlVjq6DsgfderIxl3CDBMCyTNQZ+7fReTCpnGS3Lp/K+MZVi42zxHJyVtbNYbvWMFUMOnpxHYoNBdjU2yAJhNlREag85GMY2HK0HJmM3MOSgMVRkvOSDEn41gTO3zsZI2do0jJT9/CZciXHrtFmbL8owQvzbDFOoKUXl7NpsOoqVp2yEjjTS/1LQoZDM2MziLouxr2AYcmDDjQR5o0K9cor0W8Vmiw/RJ9xHZE9eK8b3iYlhOEuUXMY84bScs/GIxQXvbEjE3V5f/6sxOKWdMHQNnzUpVnZKxjnsueTMnhbQxXq1dPTVf0LXYghqg5/h6kvwvVY6Gw9LgnJzMShPVnVcOzJ/Tm35/mJYHhytjNZoE5BXFwPy1nG2dp1NHbm9vRiQe9c1OrOOM0+uwhAytGx4L7h+uOAAPyhWTYZEjqJDwKojwSVi8rxjKBdLUQRWGxGYw4EMsDybwHgm/3pST66abO0oU5meolxBDi1y7bQIVRc1Q8SrhEJ5U2xvitm06P3LUIxRQZDSdlK9jhoooWb2ZVE0rlJN7QKXd9d3dyDop6ri/ZjaFmvrYYWKkB4ctYqhhF9+f4RRHKVvaRfmPkoGYex5x38QrglD/bVBJEpw9t1BaX/6qFrf4IlSLiYyl8fqtuiTSM/6czAbcjB27VKQY3Ledx4poHR40pOjJelkstveSIHeBW5VnLvxFfGV5J6AmCeU8SMXvlEmXhCRvX4kfgHKG0F0I95TKMihjO+Yif9lDkKx2Pf9SgV8omYYZPlDhyTju8xhq8ioldS66EGbIN8ayrVqAp5Bm48ffPNuVMNvswNrp5AnJbMi9lvVdPIHObzgPr24BmGiRqWRYva0cZ9yfPco7gfHs+M+5JPHj1WFnv/Rdnl0hH57ktFbje+21mlxIbUTiVe7hNHFkpM0y1oPjbKbLt4hkELKdIqaHFE2T/H4IUV9tgt9nywe3QvaYZibwvIvfRmGT/RKuBE=
+sidebar_class_name: "put api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update native filters configuration for a dashboard."}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/dashboard/{pk}/filters"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update native filters configuration for a dashboard.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"deleted":{"type":"array","items":{"type":"string"},"description":"List of deleted filter IDs."},"modified":{"type":"array","items":{"type":"object"},"description":"List of modified filter configurations."},"reordered":{"type":"array","items":{"type":"string"},"description":"List of filter IDs in new order."}},"title":"DashboardNativeFiltersConfigUpdateSchema"}}},"description":"Native filters configuration","required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"type":"array"}},"type":"object"}}},"description":"Dashboard native filters updated"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"403":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Forbidden"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

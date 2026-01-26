@@ -1,0 +1,72 @@
+---
+id: get-charts-and-dashboards-count-associated-to-a-database
+title: "Get charts and dashboards count associated to a database"
+description: "Get charts and dashboards count associated to a database"
+sidebar_label: "Get charts and dashboards count associated to a database"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVktv2zAM/isGTxtgwMnQAYVvw7oW2GHD+sAOQRAwNhOrsSVVotOlhv/7QMtxkiWHdjn0ZEl86OPHh9yARYcVMTkP6aQBpSEFi1xADBorkt0KYnD0VCtHOaTsaorBZwVVCGkDvLGipTTTkhy07VS0vTXakxeFT6ORfDKjmTTLEq0tVYasjE4evdFytnNonbHkWAXrrEDH/sS5qYOznHzmlBVnkMJXUY+CMD7C1iGryxN2X6JSeY7MIsrRF3ODLvcQg2KqTlyu8lORx+BLldEs8DbIPTullyJeq5dZODwStgNYM3+krAOvuJSDK2Sco6dbKpEp7yKEnT46h5s3O/DiYS/U1/J7tTV5N46lYGYVMebI+wXYh91loV6e5L8n5Azyh/DPScDVLvo3WP3s5P62by1oxfaQ4F81uU3U09/GcDEan9F5FXmPy1fxdQLLg8aaC+PUC+UBy8W7YflhOFqYWndAPp81js4Dco2MZUTOGdcZeMpqp3jTjd7HZ4Z0MpX5ybiUcTyUAEz/9XRDHIXRGKHO9xoq9GWE3ptMSd1EbCKM8q2nGCriwuSQwpKk3Lphn0KCViXrcbJVTBq7ahMXam8WQvIJCGa33r4WtSshhYLZpklSmgzLwnhOL0eXlyBxbOO7EzYDgV2UDcwJHblr4ypkSOH773voHxVhMEh3w0Vu6Hr/mWeOFo588b9O2hiUXpjj6XRXW3Ke9jtw70hCDnrrsSCxxnOFXan0z+QZGTkAMhQW0x9ObIlKy4Ud1U2frQmgVYJqLNY7R2n/Vh8kDWKQ+pHMiGXTiPKDK9tWjp9kZkjdxbBGp3AukU8ayJWXdQ7pAktPRyCH/oEPt/2/wcdoR/Yh+O2k1BsBjWUtO4hhRZvwg9FO2xgKwpxcd3sQfMkysrxnctSpUmRDPd98k/zL2NljcaiCfiHeT8JpmqBxb1ak23ZAx7IXgG37F5IpK+U=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get charts and dashboards count associated to a database"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/{pk}/related_objects/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get charts and dashboards count associated to a database
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"charts":{"properties":{"count":{"description":"Chart count","type":"integer"},"result":{"description":"A list of dashboards","items":{"properties":{"id":{"type":"integer"},"slice_name":{"type":"string"},"viz_type":{"type":"string"}},"type":"object","title":"DatabaseRelatedChart"},"type":"array"}},"type":"object","title":"DatabaseRelatedCharts"},"dashboards":{"properties":{"count":{"description":"Dashboard count","type":"integer"},"result":{"description":"A list of dashboards","items":{"properties":{"id":{"type":"integer"},"json_metadata":{"type":"object"},"slug":{"type":"string"},"title":{"type":"string"}},"type":"object","title":"DatabaseRelatedDashboard"},"type":"array"}},"type":"object","title":"DatabaseRelatedDashboards"}},"type":"object","title":"DatabaseRelatedObjectsResponse"}}},"description":"Query result"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

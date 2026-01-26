@@ -1,0 +1,72 @@
+---
+id: delete-a-database
+title: "Delete a database"
+description: "Delete a database"
+sidebar_label: "Delete a database"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFlcFu2zAMhl/F4GkDDDjpOqDQbVjbwzDssLbYIQgGxmZiJbakUnS6zNC7D4wTN0F72iUnSzQpfv5F0j0EZGxJiCOYWQ/WgYGAUkMODlvS3QZyYHruLFMFRrijHGJZU4tgepBdUC/rhFbEkNJcvWPwLlJUh6vJRB+ld0JOdIkhNLZEsd4V6+id2l4PDOwDsdghuqUYcUUnmaKwdStIKT9a/GJNpUBSU0WxZBv0bDBwi4ILjJRV1JBQBSmH68n0YjxPDjupPdu/R5ZPF2O597ywVUVuALm+GMgPL9nSd25Q5OrqYiBffddUmfOSBfYlxZiREys75fp8wSq+R8EmI2bP+4BIZcfKpR27fhEws7m2neBKu3isepi/6Yd9G2SYVUeXHFqS2ldgYOgRyIf+N1BgsMV2Whx9iz5sEmh63h7nRccNGKhFgimKxpfY1D6KuZnc3IAiHVEfVJhBiz1wDwtCJr733KKAgW+/HuEwVlSM4S2M4mgGvYb1i/xmWjLF+n8PSTlYt/Qafi7OQxeII4kGWGno3KSfPPhtp0oSfJQW97d+GJTviXuWYbx8oT9ShAbtvvf2GvYH1WeAwWq6qUa/HmTCRq9T1VWnvlf7Ezcpqfm5I9ZymOewRba4UPpZD5WNuq7ALLGJ9IZnLGf48PMw4T9mr4Kdcx6M6HbKh02nO8hhQ7vhN5HmKYeasCLeZx9efClLCnIS8qZxtFDGKry9+373eAc56KQ80Wy8zMNCE7xL1PeDx6PfkEtpBBTdK2NK/wD+5GOw
+sidebar_class_name: "delete api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete a database"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/database/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete a database
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Database deleted"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"403":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Forbidden"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

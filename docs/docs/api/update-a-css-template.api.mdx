@@ -1,0 +1,72 @@
+---
+id: update-a-css-template
+title: "Update a CSS template"
+description: "Update a CSS template"
+sidebar_label: "Update a CSS template"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVttq20AQ/RUxTy2odRISCHpLQgMtbSmxQx+MCWNpYm282t3sjuy4Yv+9jC6Oc2uheQh9sjSey9kzM2fVgEOPFTH5ANm0AWUgA4dcQgoGK5K3JaTg6bZWngrI2NeUQshLqhCyBnjjxEsZpgV5iHHWeVPgU1tsxCW3hsmwPKJzWuXIyprRTbBGbPe5nLeOPCsKbVhof0ytNc41DaX7goG9MguIKTBVTiPTVQe4gQrvvpJZcAnZwdFe+rcMcWux8xvKGVJgxeIOZyFM+uwXFPjEqY+uZogSU1DIvXJyFMjgmy1IJ/1RHvMVxRCcNaE72cHe3it48RRqzf8XX49DnmHwM1OV5CWaBRUC8/BVJFUUAi5oZ0JfhP8MllMskn6IOyj7bwbl0mDNpfXq10DL4Zth+W45uba16YAcHLwZkDNb6yIxlhPnbU4hJGRY8UZwHb3h3Jwjo07Ie+vbgEB57QWXaOvNmiGbzkQgGReit3A2HifDwgSYPem9K5ApwUT8hrWFFCri0haizbVsX6vXGYzQqdFqf5SHcDU4jxq3jCBA/GrQ+NpryKBkdtlopG2OurSBs+O942MQcAPosVDUsdJCb2BO6MmfW18hQwZffk6gvwqElu5f2NIkFaQhN2u+8nTtKZT/mkSyBGsu7u+VT3dYOU1b3Rva9ETedoRPmWsrAQ9JHteOfKBdGdsxCWud32pfcjgbuMJ2hPr8LzXpQZXtNDHd8chpVEayta1o+gZOAZ2SkvuQwm4TIYXMLWU8pFHi2DRzDHTpdYxivq3Jy4zNUlihV512TxsoVJDnArJr1IGeYNruCLy76C+s98k99w+x9kY0G8GIupY3SGFJm+4rIc5iCiVhQb6t3v1x1tX4MJHw+8AnOxnTIeIkz8nxH31nOzvw41IGaN5/a1S2kBCPa7mFcd1htO2Ru9tTbA1oNIu6XXToUsqMidLu9Go7i/2DHOpZFpqm85jYJZkYt6SwvAsvMf4GKcM/fQ==
+sidebar_class_name: "put api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update a CSS template"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/css_template/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update a CSS template
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"properties":{"css":{"nullable":true,"type":"string"},"template_name":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"CssTemplateRestApi.put"}}},"description":"Model schema","required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"properties":{"css":{"nullable":true,"type":"string"},"template_name":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"CssTemplateRestApi.put"}},"type":"object"}}},"description":"Item changed"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

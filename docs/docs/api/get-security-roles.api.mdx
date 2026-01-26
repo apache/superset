@@ -1,0 +1,72 @@
+---
+id: get-security-roles
+title: "Get security roles"
+description: "Get a list of models"
+sidebar_label: "Get security roles"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV99v2zYQ/leIe9mLUCdBNgR6S4e26NBtwJKiD0ZgUNLZYkKRyvGUxDX0vw9HSbY8y0HSDsibRN6P7+47Ho8bKDDkZGo23kEKn5CVVtYEVn6pKl+gDZBArUlXyEgB0vkGcu8YHUO6AV3X1uRa1Ge3QWxsIOQlVlq+avI1EhsM8pd721QufhrGKn7wukZIITAZt4I2GRY0kV7L/9LYzu9I6cDspCVf0+T6g7YNRuxu/fcyBtTLuKbKkKBNDrW2K5n3FrUbL/VYb9o2AcL7xhAWkM4jsA7G4PRmG5/PbjHnqYDvcL0fLbqmEnPCymLIYQKeCqTRv9UZ2tH/iNixlBhhwxYhAefdGNNxEsa+pnMdBQpDmHeVtIOtQ96jmXRV6xWOTBrHuIocxJ1FMN+PbAe0mO8S8oqiav/LQgJdRlJYIS9iivoabkXYyMm4b5DWkjNdieA9tDfCdqi9C10dnp2cdOX4g4ej6ZT2D+R1iYo9a6sIc0+FinLKO8Ulqkznd+gKSA4qeJL+Iydy0cU05Xq0opaeotNOSYnSO/XNWKsyVEzaBasZC5WtVSa1CAngk67qmNhL9ZfJn7MHB7VxQJNQUYRDoJfbhiUVoEwREtUEXDZWPZbo1No3qvDuF1Z3zj+OYzCSupf3ov0j9vpsRv3/JY9Tll6Wwb0u8kwqdy3jFfnZNZcJy3FDsVeErkB6ecxfBNLniGKigez3wWci0tb6RyyGyARJ8MSvipAwNPbIMe321JJ8FVlZIXe+h9Zx5P4yxXSDG+qo0k9f0K24hPS38ymOx3dOVDq4ZnYN7qqpkQLyP97iZW3eDQ3vBV0y9sL9sCMpXcR/yqwgVs5/qg1WGML+jXC8mA/xvNeFkmxgF9D5yembQfnqdMOlJ/Mdi4jl7OzNsPzuG1so51nV5HMMQaFjw7Gif31Duj5qudiQyFNUCJg3JLhkJrt9ZEjnN3LNsl7J4AlX/b6S6g1S5oIlIv1c9Lf3YGNBUSaBCrn0/W4cZeUgwUzXZvZwOhvEZ1F8BgKCHoZBtyELKZTMdTqbWZ9rW/rA6cXJxUW8/wftK0lPl5EIewMZakL66KnSDCn88e1aTEcxGSLj7q6biQch4/aRF4RLwlD+qJE4ryz9YYsaTv5EM5D5FCl0cg+ncfjygSsdue8nHnkaDPGqIbl7LkZVdOwh0UNlfOJZbbWRObrL8qZnZg66NgLoFEYFkcDgUVgXEkRys8l0wK9k21aWuz4rvB2FdQzCHa7jULd9HUDk90GT0Znkan7TJlCiLpCih07hMs+x5pHWwdkRK9sK/PRBCJS+MDowWxr7j9F7RLv1yPZm00lc+zt0bQsDapb/+Pxo/wX0w8f0
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get security roles"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/security/roles/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get a list of models
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"filters":{"items":{"properties":{"col":{"type":"string"},"opr":{"type":"string"},"value":{"anyOf":[{"type":"number"},{"type":"string"},{"type":"boolean"},{"type":"array"}]}},"required":["col","opr","value"],"type":"object"},"type":"array"},"keys":{"items":{"enum":["list_columns","order_columns","label_columns","description_columns","list_title","none"],"type":"string"},"type":"array"},"order_column":{"type":"string"},"order_direction":{"enum":["asc","desc"],"type":"string"},"page":{"type":"integer"},"page_size":{"type":"integer"},"select_columns":{"items":{"type":"string"},"type":"array"}},"type":"object","title":"get_list_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"description":"The total record count on the backend","type":"number"},"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"ids":{"description":"A list of item ids, useful when you don't know the column id","items":{"type":"string"},"type":"array"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"list_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"list_title":{"description":"A title to render. Will be translated by babel","example":"List Items","type":"string"},"order_columns":{"description":"A list of allowed columns to sort","items":{"type":"string"},"type":"array"},"result":{"description":"The result from the get list query","items":{"properties":{"id":{"type":"integer"},"name":{"maxLength":64,"type":"string"}},"required":["name"],"type":"object","title":"SupersetRoleApi.get_list"},"type":"array"}},"type":"object"}}},"description":"Items from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,72 @@
+---
+id: get-distinct-values-from-field-data-dataset-distinct-column-name
+title: "Get distinct values from field data (dataset-distinct-column-name)"
+description: "Get distinct values from field data (dataset-distinct-column-name)"
+sidebar_label: "Get distinct values from field data (dataset-distinct-column-name)"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVktr20AQ/itiTg0oKC4pBN1a0gR66CEPejDGjKWRtc5qV9kdOXWE/nsZSbbk2KaQFnLSPubxzetb1VCiw4KYnId4WoMyEEOJnEMIBguCGBKrq8LM210Ijp4r5SiFmF1FIfgkpwIhroE3pYh7dsosoWnCGhJrmAzLLZalVgmysiZaeWvkbNAtnS3JsSIvu0xpJnfEZgjKJLpKaa7SVlIxFX4kqAzTkpxI9ifoHG5kX+KSjkvKzdyr16PXgyW7WFHCEAIr1nKwJJ470siUzvtQmqbFCDE8V+Q2QxKfoZlJ8nxpje+i/HxxIZ935iixVaeUkk+cKkUJYnjIKWDLqANTFQtygc2CVHlWJuFgjboiD+GRHDjylea9lO77Y/p9wt3OvGgOxoc+OJnA617zrnV+1yfnsHh/N7HVvR+VYR/p1leQKdJpkCKjOLr8pyIU5P1+W52M+gikb5gGMk7kuYMy+TAojwYrzq1Tr5R2WC4/DMtPy0FmK9MC+fKB9blBmSNyznY84CmpnOJNS5SrF4Z4OpOpZlwKecI1MnpiD7O3lm6J305hkDlbjJox+JR26udbwfOOeM+FQc4ghII4t2nHOxB2JB1DhKWK1pOo14622lE94u0GBL1bb1m+chpiyJnLOIq0TVDn1nN8dXF11fLUNtJ2nLpUtvHWsCB05G6sK5Ahhh+/HqB/AySX3e3AAeJBqrh6EabMHPn8vUZaXs3sIQXdVyU5T2NSGB1JyJ3cetJyvfVcYNs0PTP/l9rsQdo1m3BmVGpURly3Sa/7uk0BSyX4JqLdWZdVbx9CiMfv7iwEqZDo1fUCPT063TRy3L0zUtQ3GHYjA0Mq9wE90aZ9mUJowxZJKf4ancKFJFKMKi/rFOIMtaeDSAcvn+76P4Oz4JTDLaubzdjnFsg43mbWhJATpvIbMK17ia9JQiWPdA+4QPDv5uT2u/SVENuoJrvu6hdi/Siuuu4kHuwTmabZwWTZC8Cm+QP9pzMP
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get distinct values from field data (dataset-distinct-column-name)"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/dataset/distinct/{column_name}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get distinct values from field data (dataset-distinct-column-name)
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"column_name","required":true,"schema":{"type":"string"}},{"content":{"application/json":{"schema":{"properties":{"filter":{"type":"string"},"include_ids":{"items":{"type":"integer"},"type":"array"},"page":{"type":"integer"},"page_size":{"type":"integer"}},"type":"object","title":"get_related_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"description":"The total number of distinct values","type":"integer"},"result":{"items":{"properties":{"text":{"description":"The distinct item","type":"string"}},"type":"object","title":"DistinctResultResponse"},"type":"array"}},"type":"object","title":"DistincResponseSchema"}}},"description":"Distinct field data"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

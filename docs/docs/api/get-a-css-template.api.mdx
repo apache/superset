@@ -1,0 +1,72 @@
+---
+id: get-a-css-template
+title: "Get a CSS template"
+description: "Get an item model"
+sidebar_label: "Get a CSS template"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdV99v2zYQ/leIe1oBIU6CdAj0lmVrsWHrgDpBH4xAoKWzxZgiGfLkxBP0vxdHWYkSy6nbDQiwN/HX8bvv7j6eGigw5F45UtZACh+RhDRCEVaisgVqSMBJLysk9AHSWQOK9zlJJSRgZIU8WkECHu9q5bGAlHyNCYS8xEpC2gBtHO9ShnCJHto2aSC3htAQL0vntMolI5jcBobRDA47bx16Uhh4lFtdVyZ+MsYwMB/IK7OENuknpPdyw+MVbp6fQFNXkM4glPY+600mQyoGs1rOUQ/G8RAp0sgEWINwk3wLw9OEnd9iTpBAZyGFJVLGwLKtyy1vjhzf1eg3TyTfQXvDLAdnTejYOD0+7kj5IS7H3N1DeNZhaF5ky1WJYjAjFtYLKlF0hwQfOhJflNZijoK8NEFLwkLMN2LOrEIC+CArF4m4EJ9U/po92KF5h1amrhjHGVNaFbtGXkb4+ymI5/8T58csHea2x1BrGgFfSrPEIptvdtcWygd69KuSD3+iWVIJ6c9nIyx1xL6sZWbvYCPtUCVmw/uHZm72F8tlCFdYOSbyMwa6cOpoiXR0HToovbPWZAVqkllZV9KofzBC9yiLv43edALF2z1yRP7/3JxEckJ0zNRayzmf6GT6YF9oa3zMn9P3x8m3LL+igePQ+dJnCr1TfBdCq0DCLsSTPB/+LAyEfMRyXBBkhUdToD+8lKelvRe/s9r8iiSVDocUME89RxAtLLytxF/xHW4TOPtXcl9hCHKJI9QcAucXWQjOTwzUQTl5MyjXRtZUWh/rOmI5ezMsnyyJha1NB+T09M2AXNpaF8JYEs7bHEMQaEhRTPT3b5g3HyRJLdB7Gxs/CJjXnnFxK3l7T5DObrivIbnk9hIup1PRa0FguauQSlt0jVJsRllvYCKdmqxPJnkIWS9Mk8atWm7Q0K/7ZrX2GlIoiVw6mWibS13aQOn58fl5bKd6OFN2vvM3gmpgjtKj/2B9JQlS+OPLFWx7Wna4W32qbL6Bqb69p8zjwmMof9RIbP8WdleTprVDH3AonIMpdrnbt45y72ygSsbIbhvI2NsLJrhnDF5Ea5Ajo38CW5yEDzRxWirDF0WKm21gZiCdYjQnEF+cbHBV6lYcUA4Ab2yauQx47XXb8nTX7XLM9kLah2CFm9gfJ7CWuub1GNu19Kp7j9ioCvxdQLqQOuArjv/0efsMvxP7LuxfErMZ3tkDcStob9oESpQF+nh7t3CR5+hocGSnDNthwn/8jbOFtW5Qe485s/1g66NwmqbbcWVXaNr2ER3xmAG27VcvyNUC
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a CSS template"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/css_template/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get an item model
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"keys":{"items":{"enum":["show_columns","description_columns","label_columns","show_title","none"],"type":"string"},"type":"array"}},"type":"object","title":"get_item_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"id":{"description":"The item id","type":"string"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"result":{"properties":{"changed_by":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"CssTemplateRestApi.get.User"},"changed_on_delta_humanized":{"readOnly":true},"created_by":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"CssTemplateRestApi.get.User1"},"css":{"nullable":true,"type":"string"},"id":{"type":"integer"},"template_name":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"CssTemplateRestApi.get"},"show_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"show_title":{"description":"A title to render. Will be translated by babel","example":"Show Item Details","type":"string"}},"type":"object"}}},"description":"Item from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

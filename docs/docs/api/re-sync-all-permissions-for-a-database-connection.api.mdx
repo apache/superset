@@ -1,0 +1,72 @@
+---
+id: re-sync-all-permissions-for-a-database-connection
+title: "Re-sync all permissions for a database connection"
+description: "Re-sync all permissions for a database connection"
+sidebar_label: "Re-sync all permissions for a database connection"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVU1v2zAM/SsGTxvgzc3QAYVvG4oC22EbmhQ7FEHB2EysxJZUik6XGfrvA20nSNpih15ysj5I6vHxke7AI2NDQhwgv++gpFCw8WKchRxmFSUlCi4wUFI4a6nQm+TbNaRg1MKjVJCCxYZ0t4EUmB5bw1RCLtxSCqGoqEHIO5CdVytjhVbEEONcrYN3NlBQg08XF/opnBWyokv0vjYF6qvZOiio7iigZ+eJxQzeDYWAKzp6KQgbu4IY0/2JW6ypEIh69CxXDJukYEKhMhGXhJ0tEk/cmBCMs+EjxBQuzwjwK5aJcktBBiiTs0G5s9hK5dj8pXLAcnk2LD+cJEvX2h7I5zPW5wYF64SYHfcOgYqWjez6vlo/CeT3c1W84Ep7Da7HxoL580i39KFXH9b1sQKTpeMEX2tISKEhqVypPeiCQDo0Zg4ZepNtJ9neKev8JmYa/eEocgYKl7f7KdByDTlUIj7PstoVWFcuSH51cXUFmsI+takSOXDXJ9jBgpCJbxw3KJDD998zGCeAkjfcwoFMfUHLtn6SB6YlU6jeGiTqQFo6dT8lc9p64kDKiRip6fRIUx7sthNFouw12KtknGlvKcYJgoOYhP5I5ms0Vl/qOe7GOt0DeqNwJuq9F0YKeT9Rn5cLUlDRaE3UtevU+o7rGPX4sSVW0c1T2CIbXGjOOtpN0HUJ+RLrQC9QHpoG3t2OI/x98t8/wKt5jYdod5oP1q3uIIUN7YY/RJzHFCrCkrjHNVx8KQrycuTyonFVeAeV//o5VVHoGDpi+CCNcaHhX8XTdYPFzG3IxniAJ7pXhDH+A2Sgc74=
+sidebar_class_name: "post api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Re-sync all permissions for a database connection"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/database/{pk}/sync_permissions/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Re-sync all permissions for a database connection
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The database connection ID","in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Task created to sync permissions."},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

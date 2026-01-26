@@ -1,0 +1,72 @@
+---
+id: delete-a-dashboards-embedded-configuration
+title: "Delete a dashboard's embedded configuration"
+description: "Delete a dashboard's embedded configuration"
+sidebar_label: "Delete a dashboard's embedded configuration"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVE1r20AQ/StiLm1BILu0EPZWSHIoPTUOPQQTxtqxtc5Ku5kdOXWF/nsZyVbiJATaS05azeebmTfTQUTGmoQ4gbnpwFIq2UVxoQEDi4oyi6laBWSbOZsFzpJvN5CDU31EqSCHBmsCA87eBr496JnuW8dkwQi3lEMqK6oRTAeyj2qdhF2zgb5fqnGKoUmUVP95NtNPGRqhRvSJMXpXooIqtkmRdU/iRQ6RWNzoXVNKuKHXEuVHSVhtqRToVXRa8FVblpTSuvV+nzHVYUc2k4qyMjRrt2l5AAF9Dl9m83dDed1gK1Vg94esYvn6jh27REGfEXPgwSFR2bKT/cCm7YOAuVnqiAU3yjA4P9IpwfJ5rHPyJJThI+c+pIzqFVlL9tkIcqhJqmDBgB3cIB/paKDA6IrdvJiiFN0jNfviGBAULO+OzG/Zg4FKJJqi8KFEX4Uk5mx2dgZawLGwK23j2LmhvA5WhEx8GbhGAQPffy3gwHdt3aiFqZWaQYe2fZBbpjVTqv43SK9ruA7q/pzGkTiRqIMTT6ciLXm0280VSQxJahw4ctjkfxvESe6JREK/pYge3bAuQ3e7w4RuAKNTIHP1PqaAHMzJCZkGtcxBZ6GOXbfCRNfs+17F9y2xUm2Zww7Z4Upr1TPmkr4tmDX6RC8wTqsCH38eDtWn7I1r92pNByE2e60Ffat/kMMd7U+vYb/sc6gILfGAbjT4VpYU5Ynri6VV2k0sP7/4cbG4gBx095/0eaLG4aEJXkXWdaPFItxR0/cTUNF/xdj3fwHLdxd+
+sidebar_class_name: "delete api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete a dashboard's embedded configuration"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/dashboard/{id_or_slug}/embedded"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete a dashboard's embedded configuration
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The dashboard id or slug","in":"path","name":"id_or_slug","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Successfully removed the configuration"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

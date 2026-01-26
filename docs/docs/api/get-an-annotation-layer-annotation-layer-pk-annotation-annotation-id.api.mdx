@@ -1,0 +1,72 @@
+---
+id: get-an-annotation-layer-annotation-layer-pk-annotation-annotation-id
+title: "Get an annotation layer (annotation-layer-pk-annotation-annotation-id)"
+description: "Get an annotation layer (annotation-layer-pk-annotation-annotation-id)"
+sidebar_label: "Get an annotation layer (annotation-layer-pk-annotation-annotation-id)"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVk1v2zgQ/SvCnFpAqZygAQLdsou26KK7hzbFHgzDoKWxxZgiGXLk1Cvovy+Gsi268q6btEAuAjkih2/efLZghRM1EjoP+bSFEn3hpCVpNORwV2EitDYkWJAosUWX2HWyNC6hSvroJ6Qg+YoVVEEKWtTIuzWk4PChkQ5LyMk1mIIvKqwF5C3Q1vIpqQlX6KDr0jMIgr4T7wxH5rJ88pOF0YSa+LewVskiaMruPUNoo8vWGYuOJHreFUY1tQ5LSVj7SL0nJ/UKunQvEM6JLe/XuD2+gbqpIZ+Cr8zjfK8yjWmIpEosUEX7cIkkKWQujEaYpecwDAKzuMeCIIVeQw4rpDkDm+9M7vhwoPuhQbcd+H6AbsYse2u079m4mkx6Up7FpSz5O/Y9o0mCS0dWOfSNorEq1OW8JKp5vTSuFgQ5lILwgmQdeGqUEgs2uA+OkeYezPeRkgIbMa+RRCko2HBWU8iY/7J2/EDPbgu1+PYJ9YoqyK+uJ2cR/49Hbw+J8Rk93Vr5ZoX0ZpB+CgAZqdGreeD/hwzzlXE0nI8AX0/OA07Bk+D7P+GmLs7y6Y7p2ROZOMFdiPnjQPzIQbh0pk7+NCUqxv/2p6K9Ru/FCk8UjB+B85soEzYdPfVQLl8MylctGqqMk/9g2WN5+2JY/jKULE2jeyBXVy8G5HfTqDLRhhLrTIHeJ6hJUij/1y8YN+8FCZWgcyb0PfBYNI5xceO/fyTIpzMu6yRWPAxEGZOEMuE5vY5VfkBKhB7PCK8GyUWQXNj1RSSLlrJ8DSnUSJUp+xYEad/dc8iEldnmMovae9CWtXbdRdKsPRoAOu6M6Db7oaZxCnKoiGyeZcoUQlXGU34zubkJfWxPxBemvWc60NHCAoVD935fnv74+w52wwRT3f8dehO/EPrEI80dLh366rlKQt9dmnFT/NJYdB7jyhaJ2OT+3OaSkVjjqRYhpnad+5d57AjWIR4Jv1FmlZCanw/EtztvTkFYyRgvIYXvPQop5GG4O5oo8+O5bpYCO45Vte1CePzqVNexuB9PRgNslGgwMHyMcY3bMNCksBGq4f8hJjbCyb77sFLpeV1CvhTK48j44ZVXn3c96XXytOH5JLb94Ka3Mbw9ZruGMDD/AnCB+mdAOPZPN+tSqFCUPPNM292Z26JAS9HtUcVjvg8F4MM7Tg9uK1FYHZJkt2DtJ5G1bX/izqxRd90BKPGeAXbdv2lYf4k=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get an annotation layer (annotation-layer-pk-annotation-annotation-id)"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/annotation_layer/{pk}/annotation/{annotation_id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get an annotation layer (annotation-layer-pk-annotation-annotation-id)
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The annotation layer pk for this annotation","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"description":"The annotation pk","in":"path","name":"annotation_id","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"keys":{"items":{"enum":["show_columns","description_columns","label_columns","show_title","none"],"type":"string"},"type":"array"}},"type":"object","title":"get_item_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"id":{"description":"The item id","type":"string"},"result":{"properties":{"end_dttm":{"format":"date-time","nullable":true,"type":"string"},"id":{"type":"integer"},"json_metadata":{"nullable":true,"type":"string"},"layer":{"properties":{"id":{"type":"integer"},"name":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"AnnotationRestApi.get.AnnotationLayer"},"long_descr":{"nullable":true,"type":"string"},"short_descr":{"maxLength":500,"nullable":true,"type":"string"},"start_dttm":{"format":"date-time","nullable":true,"type":"string"}},"required":["layer"],"type":"object","title":"AnnotationRestApi.get"}},"type":"object"}}},"description":"Item from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

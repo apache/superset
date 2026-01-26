@@ -1,0 +1,72 @@
+---
+id: get-table-extra-metadata-database-pk-table-extra-table-name-schema-name
+title: "Get table extra metadata (database-pk-table-extra-table-name-schema-name)"
+description: "Response depends on each DB engine spec normally focused on partitions."
+sidebar_label: "Get table extra metadata (database-pk-table-extra-table-name-schema-name)"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVt9v1DAM/lciP4HU0W0a0tQ3YBsSEjyMIR6m0+S1vmt2vSQk7uCo8r8jp71dtysgNqQ9NY0d+4t/fE4HFYXSa8faGijgnIKzJpCqyJGpgrJGEZa1OnmryCy0IRUclcpYv8KmWau5LdtAleg59KzFTngFGTj0uCImH6C47B64uahJVch4jYGUriADLdsOuYYMDK5I/paQgadvrfZUQcG+pQxCWdMKoeiA1060tGFakIcYsx0veN2QStYmHbDIrwb5Xx0F9tosfu9nODDpqZf9u6uZKPcZCSI/3N+XT2kNk2FZonONLlGQ5DdB4HQje85bR551f7ps2sCUTG992esbKhliBitilKRMCrfJnRDH7MFOBqy5oU1sTn+wx4+D+U2Jfe5RRjk9FU+SQ2oDSmkzl5pLKjGDoydFYkUh4IIms7tzuR18b7FSkkMK3EM5eDYoXwy2XFuvf1LVYzl6NiyfLKu5bU0P5PDw2YC8s21TKWNZOW9LCkGRYc1rwfX6GevmDBkbRd7bRFcQqGy94BKCvPnOUFzOpOUZF0KacDIwJMxSc9a2ggIWxIlduYYCcnQ6vz3IN1yad24Z857XUv/k3ZbkYt6NeCjmIAj87YahW99AATWzK/K8sSU2tQ1cHO8fH4Og2qBNfduHI2Hu4JrQkz9L7QkFfPh6AQOpSTx6KdzFRzxIJm6+85WnuadQP9ZIFLKdWzl+P9KfW0c+0JiIRlty5V7v9iBxmw28wpT4ga/fEyueYqEXm0jvueVe0thLGsNaju/1QU7rl/CgBkaV9x9n7RAUph+cuwZ1YsiUz26olEtAp+XqB4JoU1cZFGnIjgpG9u7NxeL+7JJalLoQk10nVr74JkbZ/taSl1qeZXCLXouRfvTrIOsKijk2gf4QkRfnw2R8qXZfCJOXHDbRrOVy2LTyBxksad2/INK0fhSA8ePhEb5HQXwihruHxSNQjJMXZzGDmrAin/LSa7wpS3I8OrvDh3FMP+9PpS9l6IxI8K47h4VYn8TVdb3GhV2SiXEbLPkXgDH+AnCxpYk=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get table extra metadata (database-pk-table-extra-table-name-schema-name)"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/{pk}/table_extra/{table_name}/{schema_name}/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Response depends on each DB engine spec normally focused on partitions.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The database id","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"description":"Table name","in":"path","name":"table_name","required":true,"schema":{"type":"string"}},{"description":"Table schema","in":"path","name":"schema_name","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"clustering":{"type":"object"},"metadata":{"type":"object"},"partitions":{"type":"object"}},"type":"object","title":"TableExtraMetadataResponseSchema"}}},"description":"Table extra metadata information"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

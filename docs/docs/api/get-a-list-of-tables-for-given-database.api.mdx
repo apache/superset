@@ -1,0 +1,72 @@
+---
+id: get-a-list-of-tables-for-given-database
+title: "Get a list of tables for given database"
+description: "Get a list of tables for given database"
+sidebar_label: "Get a list of tables for given database"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVktv4zgM/isCT7OAAbfFLFD4Nm9gsdjDTAd7KIqAsZlYjW2pFJ1O1tB/X1COE6dpMYvZQ2+2+Pr4kSI1gEfGloQ4QHE7QEWhZOvFug4KuKnJVCi4xEDGVpCB1WOPUkMGHbakfxvIgOmht0wVFMI9ZRDKmlqEYgDZedWyndCaGGLMBihdJ9SJitH7xpaoAfP7oFGHmbFn54nFUtC/EgUbt16MgQ+ug7Dt1hAzWDku55Klcw1hp6LR50umcZ7B7YnyXTYpu+U9lQIZiJVGDyZqFoLLhsLioSfeLfboozpNdKXjI18PEO80XPCuC2NiVxcXKb9fpMX1o9FTqlOUvkmy08K+M3/aIMatzAjdrBybtd1Sd6i3FluoDefx6Icwnvv8pMfJ3PSBKiPOBE+lXe1M6Zq+7UxLgiqHp5TG6eCpz4TOODZbS49Hs2PFt9j0z9hp457YmkT+mYP4cnE/7nm4SQR93ZfrCBWQGXfPuEiFfwJnJLmxIeX69n+Vu6UQcP1CF/8UynusjLY6TVAuXw3K9w57qR3bf6gasbx9NSx/OTEr13cjkKurVwPywfVNZTonxrMrKQRDnVjZKa7fX7FvPuvsNcTs0gyHQGXPiku3xv2jQHF7p3NNcK2b5HB9dH6eevpCYjDdhZ/Nn5akdhUUsCa9mWntFJCjt/n2Mp8U88FvYj76yUGR8XZaZz03UEAt4os8b1yJTe2CFNcX19dpCk9ZfFPORppSLgMsCZn4s+MWBQr44+8b2C+RtFiS9DhPNIJW6P5RFkwrplD/qpO0NVbufKZ96z1xoPmMmh1pyqPe9lKReBekxdQQ+73z33k/iXvoFqEfkvsGbdqnidlhX5NbQG8VxKVaHx0V6W0whoIMtBeUfzUYBtX5zk2MejzuyLMXyKzZ4UjUKZIN7dJWPSwDSKXdIlsNPDq1Qb8rKFbYBDpL8Rjlzdf9O+A3c/76eTb+tA663RzChMtvIN7FDGrCijiBGQXvypK8zEzO7rJmcbgCXz5p7+jAnL9vpg7af6j3Z+EMw6hx4zbUxXhAJ/qvAGP8F85NdS0=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a list of tables for given database"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/{pk}/tables/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get a list of tables for given database
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The database id","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"catalog_name":{"type":"string"},"force":{"type":"boolean"},"schema_name":{"type":"string"}},"required":["schema_name"],"type":"object","title":"database_tables_query_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"type":"integer"},"result":{"description":"A List of tables for given database","items":{"properties":{"extra":{"description":"Extra data used to specify column metadata","type":"object"},"type":{"description":"table or view","type":"string"},"value":{"description":"The table or view name","type":"string"}},"type":"object","title":"DatabaseTablesResponse"},"type":"array"}},"type":"object"}}},"description":"Tables list"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

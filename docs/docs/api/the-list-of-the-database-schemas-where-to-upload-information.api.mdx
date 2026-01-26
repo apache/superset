@@ -1,0 +1,72 @@
+---
+id: the-list-of-the-database-schemas-where-to-upload-information
+title: "The list of the database schemas where to upload information"
+description: "The list of the database schemas where to upload information"
+sidebar_label: "The list of the database schemas where to upload information"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVU2L2zAQ/StmTi0YnJQtLL4V2hR66GE/6CGEoNjjWIlsaUfjpKnRfy8jO9ks2e2hKfRkaTwzem/0ZtSDU6QaZCQP+bwH3UIOTnENKbSqQdltIQXCp04TlpAzdZiCL2psFOQ98MGJl24Z10gQwkK8vbOtRy8OHyYT+RS2ZWxZlso5owvF2rbZxttWbM8JHVmHxHqIHuxxWaIvSDsJgxweakyM9pzYKhmdEmWM3WOZVJYSrjEpFauV8piwTTpnrCoT3VaWmng2pKAZG3/GwjPpdg0hPRoUkTpAeDbY1QYLhhRYsxHD5/GM+4jhU1Gg9zNLM23wMR55NxYDgqR5m8QLwEdG+xrpLfghhZvJ9IraNui9WuMr/C/4voL9sVUd15b0LywHLDf/Dct3y0lluzYC+XiV4K4DMlOsTIJElmKAx6IjzYfYXJs9Qz5fSIewWkvDndQDi38qjRQa5NqWkMMaRa2xpXPIlNPZbpodk2W924ZszLhUUbzLytKy0gaXQ+IMhAbtjiOiIwM51MwuzzJjC2Vq6zm/ndzeglA7Uo4NMdQ0Eu9hhYqQZhEl5PDtxwOMk0SKOvyFU5HlBLnOzZ6XhBWhr/82SUhBqnM5RO47h+TxvJ/PTEJ58NtNBYmznhsV1TPOxisv6QWYk94Yf3LmjNKxxWO5+/EC56CcFmRTiT5qJ4U8Duk/3yOkICqTy5JEfS+xj2RCEPNThyQqXaSwU6TVSoox76HUXtYl5JUyHi8wn7oM3t2Nb8T75Ln+L7kch2p7EA7KdLKDFLZ4GB6asAgp1KhKpHj68EOGquOzkIt+Ft2dFP/1i0hChtNZUU/CGBeS/VU4fT94PNgttiGc0LHsBWAIvwElCH/r
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"The list of the database schemas where to upload information"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/{pk}/schemas_access_for_file_upload/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+The list of the database schemas where to upload information
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"schemas":{"description":"The list of schemas allowed for the database to upload information","items":{"type":"string"},"type":"array"}},"type":"object","title":"DatabaseSchemaAccessForFileUploadResponse"}}},"description":"The list of the database schemas where to upload information"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

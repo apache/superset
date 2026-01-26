@@ -1,0 +1,72 @@
+---
+id: get-database-table-metadata
+title: "Get database table metadata"
+description: "Get database table metadata"
+sidebar_label: "Get database table metadata"
+hide_title: true
+hide_table_of_contents: true
+api: eJztWEtv3DYQ/isETy0gQLaRAoZuaVoHbdomjR30YBjGrDS7ok2RCjly4gr678GQ0kq2tI6zRmGgyEmPeX3zIjlsZQ0OKiR0XmbnrSzQ507VpKyRmTwrURRAsAKPQhUykYp/10ClTKSBCvnrWibS4cdGOSxkRq7BRPq8xApk1kq6rZlLGcINOtl1ycwKrDSKoG3RADH9sqd/1ZAnp8xmt51eYNFSpH27qQtm9rU1Hj3Tjw4O+JFbQ2iIX6GutcqBkaRXnuG0E321szU6UlE6t7qpTHi968BLoZUnYdeiZxFgCkElKicqJOBUsWOElZ+rLZoIAf1lbo0nBypiu+dNIq/xdsH6VPNMpP8BzsEtf2trNmfh31JNQU4NaLGC/BpNIZhZsAaxto796f2TydxQzNSS0igz1NEOhA8IBoaZ4OibXV1hTsyhSONQT3/2cX8VM/K+L4OlmKytQ7UxbxajO+a2ZxOchW9KcPQjVG/43rI9XEUhYl5QCSRyW9XWY8jBBIewTghlCvy8O7Kjn7tTxBQ2vKB+p3YbFCzVM67ROc7BpCJX1moEw4LKKFKg9e0yuQLKy2WSNQVqpB16rWnqApapj62Wt9GpabW44A4Wl5P2f3y/baV3LlITHroXtHmT7NkEJ2OF/8b5xAf7QUWWhyq0Z/neBt/b4H/bBo+rkwh2oTBqpypwt28wJBi0frsOJ7n/tCl6o1y1T2uFiaJY+1/dv/fMybttmMZcXCT3EL0b0fhxpekS6VFjTqcEbu7G6d9/iEgXnhn2PkIMwE5j7XYsuHSCHYAJZdbWVeFQySBfPOnUWaH3sHlUiBeQ/QyF4PMyeopQDp8NygcDDZXWqX+xiFhePBuWvyyJtW1MBHJ09GxAXtlGF8JYErWzOXov0JCi0J0/PWPdnACBFuicDaOh9Jg3jnHxEnb1iWR2fsF9SrDhAVX+0k+jcta7r5HGWZXuNIpMZIVU2kJmcoPcf2Hsy2QKtUpvDtNBLm3r6y4Nwmk7jp1d2k4mwy6VjNPdDDNz47TMZElUZ2mqbQ66tJ6y44Pj47DGDD6Fvo5BC561coXg0J2EJpaZ/P2fM9mPmWE7DdRxPWELnK+rT3TpcO3Ql/sqCeeCtV1YzJoancfpGjX5xS5HvpvDsPdYTxWE8ugn6IezcMfWtl4IP1Naa1BhFQvRbPsMnUuoFRs+ZOkh94nMwqXDsCdmd24IsrtTPFcK54OVtS3Lf3C66/j3xwYdV9pFIm/AqXgc4EsQ5fm9kNkatMcZ7m2nyB/e93cEP4r5Xcmie8PWaHjjvAHdYByteScNdynh3mIvANNrlD1sT4L4RAzbK5Y9UEyT1110iSwRCnQhL5HjZZ5jTRPZ2WrFTbdt+Ne/cj/wljA9qQ5d0b+w9kVcbRs5zuw1mq4bg8XfDLDrvgAAmrGL
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get database table metadata"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/{pk}/table/{table_name}/{schema_name}/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get database table metadata
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The database id","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"description":"Table name","in":"path","name":"table_name","required":true,"schema":{"type":"string"}},{"description":"Table schema","in":"path","name":"schema_name","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"columns":{"description":"A list of columns and their metadata","items":{"properties":{"duplicates_constraint":{"type":"string"},"keys":{"description":"","items":{"type":"string"},"type":"array"},"longType":{"description":"The actual backend long type for the column","type":"string"},"name":{"description":"The column name","type":"string"},"type":{"description":"The column type","type":"string"}},"type":"object","title":"TableMetadataColumnsResponse"},"type":"array"},"foreignKeys":{"description":"A list of foreign keys and their metadata","items":{"properties":{"column_names":{"items":{"description":"A list of column names that compose the foreign key or  index","type":"string"},"type":"array"},"name":{"description":"The name of the foreign key or index","type":"string"},"options":{"properties":{"deferrable":{"type":"boolean"},"initially":{"type":"boolean"},"match":{"type":"boolean"},"ondelete":{"type":"boolean"},"onupdate":{"type":"boolean"}},"type":"object","title":"TableMetadataOptionsResponse"},"referred_columns":{"items":{"type":"string"},"type":"array"},"referred_schema":{"type":"string"},"referred_table":{"type":"string"},"type":{"type":"string"}},"type":"object","title":"TableMetadataForeignKeysIndexesResponse"},"type":"array"},"indexes":{"description":"A list of indexes and their metadata","items":{"properties":{"column_names":{"items":{"description":"A list of column names that compose the foreign key or  index","type":"string"},"type":"array"},"name":{"description":"The name of the foreign key or index","type":"string"},"options":{"properties":{"deferrable":{"type":"boolean"},"initially":{"type":"boolean"},"match":{"type":"boolean"},"ondelete":{"type":"boolean"},"onupdate":{"type":"boolean"}},"type":"object","title":"TableMetadataOptionsResponse"},"referred_columns":{"items":{"type":"string"},"type":"array"},"referred_schema":{"type":"string"},"referred_table":{"type":"string"},"type":{"type":"string"}},"type":"object","title":"TableMetadataForeignKeysIndexesResponse"},"type":"array"},"name":{"description":"The name of the table","type":"string"},"primaryKey":{"allOf":[{"properties":{"column_names":{"items":{"description":"A list of column names that compose the primary key","type":"string"},"type":"array"},"name":{"description":"The primary key index name","type":"string"},"type":{"type":"string"}},"type":"object","title":"TableMetadataPrimaryKeyResponse"}],"description":"Primary keys metadata"},"selectStar":{"description":"SQL select star","type":"string"}},"type":"object","title":"TableMetadataResponseSchema"}}},"description":"Table metadata information"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

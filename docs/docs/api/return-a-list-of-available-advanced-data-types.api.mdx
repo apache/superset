@@ -1,0 +1,64 @@
+---
+id: return-a-list-of-available-advanced-data-types
+title: "Return a list of available advanced data types"
+description: "Return a list of available advanced data types"
+sidebar_label: "Return a list of available advanced data types"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVMFu2zAM/RWBZ2NOtg4ofCuwdcAOO6wpdgiCgrGZWKkiaRSdLjP87wPlJGu7YdiWQ0+WaT6S7/FZPTClGHyiBFUPrycTfdTBC3nRI8bobI1igy83KXiNpbqlLeopcojEYkc0U+pcRlmhbQ7JPhJUkIStX8NQHAPIjHsYfgbCckO1wKChhlLNNmpPTTWpq2tKadU5wyQdexNWRloyuEPrcOnIYLNDX1NjGhQ0WjOZFpMRvCdvosOaXmn7i8n0DIJbSgnX9Btif0Pk1mMnbWD7nZpxljcvNst14KVtGvLjIBcvNsinIGYVOp8VeXuW/c5UBAWdIebAGZCo7tjKHqp5D5sHgWq+GBYFCK4TVHO4OjrunTpupuUXz2t+Ht2Kxtkkato/GhYK2JK0oYEK1iRQQERpoYISoy130/KIuVPMnWLKIzAR74hTHrZjBxW0IrEqSxdqdG1IUl1OLi9BGRyZ3aiOo3SZXw9LQia+DrxFgQo+fplp6ZwG1eErnLTUDrq1zYPcMa2YUvu/RYYCrF8FhT9V8KaLxCmLIVYcPQ0p5TFvN9VJYkiyxWwSj7ndP2/gSfuTkYS+SRkd2vy/ZIH7w3bmgNHqLFMo4NcNHZgmNYeuQQF9v8REt+yGQcNfO2K12aKAHbLV4bLZCmgJG+K81HvaQwVXdU0xM0fX5Xv0+f+hCz656MN71V5vnUdcThs4HLT68Vb2+0e1+37MmIV78sMAxWEI0XcYFsMw/AAKYynN
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Return a list of available advanced data types"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/advanced_data_type/types"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Return a list of available advanced data types
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"items":{"type":"string"},"type":"array"}},"type":"object"}}},"description":"a successful return of the available advanced data types has taken place."},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"403":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Forbidden"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

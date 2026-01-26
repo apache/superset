@@ -1,0 +1,72 @@
+---
+id: import-saved-queries-with-associated-databases
+title: "Import saved queries with associated databases"
+description: "Import saved queries with associated databases"
+sidebar_label: "Import saved queries with associated databases"
+hide_title: true
+hide_table_of_contents: true
+api: eJztV21r3DgQ/itiPl3BjZNwB8FfjuuVQgp3TdmUg26Wzaw9XiuxJVUa79Zn/N+PkfctTQJpoOQO7pssjR4988xIM+7B05eWAr+xRQdZD7k1TIZl2LQ1a4ee09L65nWBjDId8oqaOHLeOvKsKciXGL3d2BQUcq8da2sgg9bVFgtV6prUT5/PL15BEq2RIYOFNug7SIA7R5BBYK/NEoYE7Ir82mum+4i7JUVfdWBtlirgigr1pSWvKfy6x1tYWxMaAXQYwtr6ItwHfD/58Kdq0Clbqp2ZKq1XhHmlSkJuPRVKRFhgIKWN4orU5/OL6NeROi93E9rkdVtQULi3z60p9XK7zSFX6nq7GNI/ureb8VGHTX2dbKxGIipUtq0LtSDlvF3pgootUGnr2q7F/1HQTF33V/Ao8BVk6gqabr6FvoLh+ugh8UOo5twaQ/X8+bLtQRSGYHONTIViq/D5ih5g/pc19XqFTPNb6p6s70Nb/t1a7xn/CLkf0OM7pX+64v8LHdEf0XfYzdjFDeUMg0xJZdGeCsjYtxQngrMmjOXi9Pj4m3qDztU6RwlEehMkGo8Xm4ZCwGWsDE/icjfIk1grPrbkO6UbZz0rT6GtWVLl5xck9gYLtSnII5WTF6PyyWDLlfX6byoil9PTF+Pye0xpY1lyOqcQFBnW3AmvX14wXO+QsVbkvfVxQ6C89cIrm/Zws2bIprNhlgDjMkA2hY9jdwKzb4HOxyS808Ootebq8InZ3VRIoCGubAEZOBsYpLXhCjJI0el0dZJGoLkAdemY4CkIPb8iHyK71teQQcXssjStbY51ZQNnZ8dnZyCUt65MRLhRq+hQDwtCT/7dtn97/9elQEczabfi6v6JkBMkTDdrnnsqPYXquSBDAtqU9v6bPWkd+UCiA2uu6e6UuDzarU5iF2gDNxizwmA87rvVv3P8LnOYvnLqatSx2YwC95vATAGdFi4n4uY+OJDAGB5IQLJCYiDWfS9HffL1MMj0aJtNZwms0GtciI/T2ZBARViQjxG9pS5elXgPXl8KJzGvW+H2UC8/JNtNv+U5OT4wv3eFJCV2OXfxYSLhWmx+GRpbyB4BjrjJfjiSlIfkQKdddDcDIb9ZQtMdsOj70eLS3pIZBkg2dFm+YZgNw/AP0n+CPw==
+sidebar_class_name: "post api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Import saved queries with associated databases"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/saved_query/import/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Import saved queries with associated databases
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"multipart/form-data":{"schema":{"properties":{"formData":{"description":"upload file (ZIP)","format":"binary","type":"string"},"overwrite":{"description":"overwrite existing saved queries?","type":"boolean"},"passwords":{"description":"JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.","type":"string"},"ssh_tunnel_passwords":{"description":"JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.","type":"string"},"ssh_tunnel_private_key_passwords":{"description":"JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.","type":"string"},"ssh_tunnel_private_keys":{"description":"JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.","type":"string"}},"type":"object"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Saved Query import result"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

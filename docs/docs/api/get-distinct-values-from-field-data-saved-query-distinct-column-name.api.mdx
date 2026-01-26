@@ -1,0 +1,72 @@
+---
+id: get-distinct-values-from-field-data-saved-query-distinct-column-name
+title: "Get distinct values from field data (saved-query-distinct-column-name)"
+description: "Get distinct values from field data (saved-query-distinct-column-name)"
+sidebar_label: "Get distinct values from field data (saved-query-distinct-column-name)"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVt9r2zAQ/lfMPa3g4GZ0UPy2sbWwh8H6gz2EEBT7EiuVJVU6p0uN//dxsh07bcKgG/TJlnT33Xc/9Nk1WOFEiYTOQzqrQWpIwQoqIAYtSoQUMqOqUi/CKgaHj5V0mENKrsIYfFZgKSCtgXaWzT05qdfQNHENmdGEmvhUWKtkJkganWy80bw3+FpnLDqS6Hm1korQHcGMQepMVTkuZB4sJWHpR4ZSE67RsWW3I5wTO15bscbjlnyy8PL56PGAZJYbzAhiIEmKN9ZIC4dKEOaLLpWmCRwhhccK3W4o4iM0cy6et0b7NsuP5+f8eGONMlO1Tjn6zEnLTpDCXYERGRIq0lW5RBeZVZRLT1JnFG2FqtBDfKQGDn2l6KCkh/EIf58It4dnzwF8mIOTBfzaed6E4DddcV437+8Qve/tqA2HTPtY0UqiyqNckOBAF//UhBK9Pxyrk1kfofRF5BFfJ/TUUpm+G5V7LSoqjJPPmLdcLt6Nyw9D0cpUOhD59I79uRJ8j9A50+qAx6xyknZBKDdPBOlszreaxJrFE35W6Djw/CXQNdLLSxitnClHsxh98GKL+STIxqQ3nrTaO2EROYMYSqTC5K30QNzqdAqJsDLZTpOAsAgISY+Q1CP5boCTcNte7CunIIWCyKZJokwmVGE8pZfnl5dBrvqEw61qKxrSrmGJwqG7Mq4UBCl8/3UH3aeAS9qeDlLAEbiZmycWzJVDX7wVJMjryrxWotvKovM41obRFqfc2m2nQfKNp1KE2ekE+r/16IDWfu5YPhOrhNQcPhS+7vo3A2Elc5xy+kMPGauLATGk48/wPAbuFPvW9VJ4vHeqaXi79eTmvuCxv0EwlPSQ1APuwocqhpA+W/IQbIWTYskFZVDp+T2HdCWUx1fZDlE+3HQ/CmfRqYC9yOvdOGZPZJxvM29iKFDk/FcwqzuLz1mGlka+r6SB+e/vzPU3ni/WuVFf9lPWvTD6UV513VrcmQfUTbOnSbxmgk3zB2eWOVg=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get distinct values from field data (saved-query-distinct-column-name)"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/saved_query/distinct/{column_name}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get distinct values from field data (saved-query-distinct-column-name)
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"column_name","required":true,"schema":{"type":"string"}},{"content":{"application/json":{"schema":{"properties":{"filter":{"type":"string"},"include_ids":{"items":{"type":"integer"},"type":"array"},"page":{"type":"integer"},"page_size":{"type":"integer"}},"type":"object","title":"get_related_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"description":"The total number of distinct values","type":"integer"},"result":{"items":{"properties":{"text":{"description":"The distinct item","type":"string"}},"type":"object","title":"DistinctResultResponse"},"type":"array"}},"type":"object","title":"DistincResponseSchema"}}},"description":"Distinct field data"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,72 @@
+---
+id: get-a-saved-query
+title: "Get a saved query"
+description: "Get an item model"
+sidebar_label: "Get a saved query"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdV21v2zYQ/ivEfVoBLU6MpAj0LWvXYsPWYU2CfggMg5bOFmOKVMiTE1fQfx+OtGPFlhM3GxBg3/h2x+ce3hsbyNFnTlWkrIEUPiMJaYQiLEVpc9SQQCWdLJHQeUhvGlB8rpJUQAJGlsizOSTg8K5WDnNIydWYgM8KLCWkDdCy4lPKEM7QQdsmDWTWEBribVlVWmWSEQxuPcNoOsKVsxU6Uuh5llldlyYMGaPvqPfklJlBm6wXpHNyyfM5Lp9KoKlLSG/AF/Z+vFaZdKnorGo5Qd2ZByFSpJEJsAZhlLyEYbNgJ7eYESQQNaQwQxozsPHK5JYPB47vanTLDcl30I6YZV9Z4yMbw+PjSMqruOwzdw/h44ih2fKWqwJFZ0VMrRNUoIhCgoWOxDeltZigICeN15IwF5OlmDCrkAA+yLIKRFyILyp7Th/s0LxDK1OX9+MMLq3yXSXbL/zjFAT5/8T4Pk2Hme3Q15p6wEuS2s54WMqHP9DMqIB0ePY+AVNrLSd8fQzYHV6yQpoZ5uPJclfvVDlPj5x0VL8/7dEUH2U7DzDzBytpuxnmpnt/V81of6BdygXmf3NMfUVPF5U6miEdXfuIZG1rDJmpdaUkSCGXhD+TCrcczJc14xw1yXFRl9Ko7xisdyjzv4xeRnE+7pAd4n9P7wlDySXJifTYk4ZWO31Ah2fHB5u7ZcFTtT8M/OMab5s8jfjmZT/Y/xwc9q+JxE0K74ieDM8PEb3TB4H2d3pMfML3OithWXH+Gne7gRfVPlP3emkPQLpFeSffXgitPAk7FZuKfHgn0KndPZrDhiArHJoc3eHZ+7Kw9+I3LjAfkaTS/pCc3W57FgQNU2dL8WdovdoETv9VhS/ReznDHmoOgfOLzAVHFHqKUE7eDMq1kTUV1oVcGrCcvhmWL5bE1NYmAhkO3wzIB1vrXBhLonI2Q+8FGlIUHP3sDf3mE7ccAp2zMSt7zGrHuPj3cHtPkN6MuJUlOeMfBXAS4ItHCZRIhc1jVxx+HpznYCArNVicDDynjHFoiwdNNW+5GUe3WH9MaqchhYKoSgcDbTOpC+spPT8+Pw+t8xrHJVsdDQ1oGpigdOg+rYv+79+uYJVz2dK4uwlpvoE5vr2nscOpQ1+8Vklo9ad2Nxld1hU6j08S5maJTY7nFqG4VtZTKWNxip+F8I8TgTCx/kdslbFH3+j99K1gEj7QoNJSGb4nMNysnuUGZKUYzAnbuXkaSCCt5vyaTD+faxqupNdOty0vx1P8YnsR7QMwx2X4CSWwkLrm/fCyC+lUrEKsVHke55BOpfb4jN0/fV31C+/EvgvXBcQsu3eugVRzaEdtAgXKHF24PW5cZBlW1BHZib626+2ff2Vf4RTXCblHj1kNWHsvnKaJJ67sHE3bPqIjnjPAtv0HILh/dw==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a saved query"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/saved_query/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get an item model
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"keys":{"items":{"enum":["show_columns","description_columns","label_columns","show_title","none"],"type":"string"},"type":"array"}},"type":"object","title":"get_item_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"id":{"description":"The item id","type":"string"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"result":{"properties":{"catalog":{"maxLength":256,"nullable":true,"type":"string"},"changed_by":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"SavedQueryRestApi.get.User"},"changed_on":{"format":"date-time","nullable":true,"type":"string"},"changed_on_delta_humanized":{"readOnly":true},"created_by":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"SavedQueryRestApi.get.User1"},"database":{"properties":{"database_name":{"maxLength":250,"type":"string"},"id":{"type":"integer"}},"required":["database_name"],"type":"object","title":"SavedQueryRestApi.get.Database"},"description":{"nullable":true,"type":"string"},"id":{"type":"integer"},"label":{"maxLength":256,"nullable":true,"type":"string"},"schema":{"maxLength":128,"nullable":true,"type":"string"},"sql":{"nullable":true,"type":"string"},"sql_tables":{"readOnly":true},"template_parameters":{"nullable":true,"type":"string"}},"type":"object","title":"SavedQueryRestApi.get"},"show_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"show_title":{"description":"A title to render. Will be translated by babel","example":"Show Item Details","type":"string"}},"type":"object"}}},"description":"Item from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

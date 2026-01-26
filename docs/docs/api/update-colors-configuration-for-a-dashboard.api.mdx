@@ -1,0 +1,72 @@
+---
+id: update-colors-configuration-for-a-dashboard
+title: "Update colors configuration for a dashboard."
+description: "Update colors configuration for a dashboard."
+sidebar_label: "Update colors configuration for a dashboard."
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVk1vGzcQ/SvEnBpgG9luChh7a5z6ULRFENvIwRCE0e5IS4tLMiRXjrrgfw+G3NVHpBT5QKCbxCXfezOc4bweLDpsKZDzUD72IDWUYDE0UIDGlvjfCgpw9KGTjmoog+uoAF811CKUPYSN5V1SB1qSgxiLAeVDR26zg2nRrWadrTFQDfsANfnKSRuk4VPvGwoNORGMyJtFaEjU6Ju5QVeLqkG9pHpmtFhIUgw1KJgbowg1xDjNesmH16beMEdldCAd+Cdaq2SFTDd58szZH0dj5k9UBSjAOmPJBUk+wyjjZhyQt1jR3gEfnNRLjrZTCueKxkQdRnffkEggYgvyEmIxACcZP4SaERJ4wm3RzhTOSc3Sd38qRKxryUCo3h4Ee6ghfk76D1or9VKYhUgMnq8ssyRq36Cj+mex3yX0zDywCqyc8Z4rxIWs4SeR/51Yx3BFmzNxdJGz2rQo9R4gOofcEjJQ+zVEN/uXmtHEGlVHHF4sIMjANQFvxvZIB/yN0Qu5fEjtc5dLO8bT4F5UaXPnUkccdXrkBW+N9jkzVxcX39RPh/3jyHcqHCUkhXJwNSfkvtk9AVn4+JbEAl79kKqWvMflib77Kl2vsRbDa5OlXJ5NyoPGLjTGyf/GtPx2Ni23xs1lXZPOQl6dTci/JoiF6XTOyNXV2YTcmE7VQpsgrDMVeS9IBxk2rOv3MxbwLQZUgpwzaXqDp6pzrIv9wNNzgPJxyiM14JI9wq4RPUyPKjCP7OrE0yIWxgncTfKXUEBLoTE1e4wuDVv2HSVM0MrJ+nKy3Trp7SpOhmecBbr16Fc6p6CEJgRbTibKVKga40N5fXF9DSx6DCY9gzlbKaQe5oSO3K1xLQYo4a/396MrSWYifd2ZC2bgi3p6DjNHC0e++V4QRvFGv9s5lD8/YmsVnXQYOw9w6BF26ydm/BfH7/FM/NLMehwJprEAqRfm2KrddZacJ765cRDtLfEV5X3rS86cNT60mOp4cITfWCwH5NtKD/QxTKxizbHI5dAPhfQIaCUrueTTIxQUUCZLO6RgWgCXDG/v+zl6enAqRl7OBparrJae3VcN5QKVpwJWtDm2tGkyQwmp8NboZHZsp85/Fsu27+GXd8P4fSF2dXMY4zg69Wafc9RkVxD5yhrCmlxizx9uMsev93x8d/DonWH/nk/8UVVkw//une718NsHLv754LhbU/MRh8/sKfA5azQp5OwFeK0HhXrZpccLMiT3B4+xvTve9tHwg4M6mYW+zzvuzYp0jNukBP7PeYnxE9EKhh8=
+sidebar_class_name: "put api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update colors configuration for a dashboard."}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/dashboard/{pk}/colors"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update colors configuration for a dashboard.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"in":"query","name":"mark_updated","schema":{"description":"Whether to update the dashboard changed_on field","type":"boolean"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"color_namespace":{"type":"string","nullable":true,"description":"The color namespace."},"color_scheme":{"type":"string","nullable":true,"description":"The color scheme name."},"map_label_colors":{"type":"object","additionalProperties":{"type":"string"},"description":"Mapping of labels to colors."},"shared_label_colors":{"type":"object","additionalProperties":{"type":"string"},"description":"Shared label colors across charts."},"label_colors":{"type":"object","additionalProperties":{"type":"string"},"description":"Label to color mapping."},"color_scheme_domain":{"type":"array","items":{"type":"string"},"description":"Color scheme domain values."}},"title":"DashboardColorsConfigUpdateSchema"}}},"description":"Colors configuration","required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"type":"array"}},"type":"object"}}},"description":"Dashboard colors updated"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"403":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Forbidden"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

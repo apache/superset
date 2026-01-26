@@ -1,0 +1,72 @@
+---
+id: get-related-fields-data-chart-related-column-name
+title: "Get related fields data (chart-related-column-name)"
+description: "Get a list of all possible owners for a chart. Use `owners` has the `column_name` parameter"
+sidebar_label: "Get related fields data (chart-related-column-name)"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVktv3EYM/isDnhJAruwiBQzd0iIJ0EMPjo0ejMWaK1GrcUYz4xlqnY2g/15wpPVqvesiTVD4pMfw8ZH8SE4PFcUyaM/aWSjgE7FCZXRk5WqFxijvYtQrQ8o9WgpR1S4oVGWDgX9RN5HU3XhwpxqMihtSd6UzXWuXFlu6Ux4DtsQUIIOn9wjFbQ9aPHrkBjIQYShgpgoZBHrodKAKCg4dZRDLhlqEogfeehGPHLRdwzBkPZTOMlmWU/Te6BIlpvw+SmD9TNcH5ymwpihftTYC7thmBtqWpqtoqaskqZnaOBPUlmlNQSSnPxgCbuXb45pOS8rJMupvJ4/3ltzqnkqGDFizkR9r4mUgg0zVcgplGBJGKOCho7DdJ/EBhoUkL3pn4xjlr+fn8vjBHJWuG5UOyXLdkGLHaJTt2hUFocyEUW3QdBQhO5GCQLEzfJDRQ3f0lQOedpeOVEuMFTImMu48ijF4nkDJKH19AftcU41lV4F8oEiWU2b29vasSJF9h0FdkWVd68T8/1Dpq9HIVcrS1VTEY5J9l4Wk+3lGl0PMk6Aau05JSsXRu58iS0sxHtJ/36XPq3MM6XeslLQ9RR6hXLwalBuLHTcu6G9UjVjevRqWvxyr2nU2AfntFevzEaXfKQQ3sjhS2QXN2zTQ7x8ZituFTB/GtQx5+EMWRYRFBi1x46pxlKVdwA0UkKPX+eYiTwslnxoo72d7YADxEja7rdEFAwU0zL7Ic+NKNI2LXFyeX16mubdDlGg/hpxw9bAiDBQ+utAiQwF//n0N006RmMfTfa+KB8n2/aNM3jpQbH7USJrTtTseGp87TyHSvHlnvyTkUW5zkXaHi9xiKu406WVd74ZOrclUMTWxepPSeTYdnY3ZPBOlt/CsojMe/c/bf0qJzOPcG9RWYkrV7Cc23AJ6LYFfQAbJSboEpCAgg2J+O1hkIHUXpb5fYaSbYIZBfo/bUKjyYqAvoflC27Q/n6Y8JEptMGhcSXnEqI7yXkFRo4n0L+l8czXdX96qlxzuZrrdzn3ugMzjHRZDBg1hJZeV236SeF+W5HmmezQJhnnrffogbJWxNmv/J85OL2L9JK6+HyWu3Reyw/AEk+VbAA7DP64Ckvw=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get related fields data (chart-related-column-name)"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/chart/related/{column_name}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get a list of all possible owners for a chart. Use `owners` has the `column_name` parameter
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"column_name","required":true,"schema":{"type":"string"}},{"content":{"application/json":{"schema":{"properties":{"filter":{"type":"string"},"include_ids":{"items":{"type":"integer"},"type":"array"},"page":{"type":"integer"},"page_size":{"type":"integer"}},"type":"object","title":"get_related_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"description":"The total number of related values","type":"integer"},"result":{"items":{"properties":{"extra":{"description":"The extra metadata for related item","type":"object"},"text":{"description":"The related item string representation","type":"string"},"value":{"description":"The related item identifier","type":"integer"}},"type":"object","title":"RelatedResultResponse"},"type":"array"}},"type":"object","title":"RelatedResponseSchema"}}},"description":"Related column data"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

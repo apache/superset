@@ -1,0 +1,72 @@
+---
+id: download-multiple-dashboards-as-yaml-files
+title: "Download multiple dashboards as YAML files"
+description: "Download multiple dashboards as YAML files"
+sidebar_label: "Download multiple dashboards as YAML files"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFlUtr20AQx7+KmLNAcUgh6JY+UihtL0koxRgzlsbWOtLuZnbk1BX73ctIsqM8KLQXnyyt5vHb/zzcgUfGhoQ4QD7voHBWyArkHaD3tSlQjLPZNjirZ6GoqEF9MkJN0AfZe4IcjBXaEENMDyfIjHtIQYzU+r4hWdIv71iWpgzLMVSMMQVjIYeHlljtLTZq/gBxkQJT8M4G6lOdn53pz4RR6Jdkvkbzgm5ECMLGboYcJYWCjdfrQA4fMVQrh1wmA5JyX7wK/3cJPDtPLGaAaygE3NBb2Y+SuNWWCnmL5z2WCdNDS2FEmZ0M5c5iK5Vj85vKgeXiZCzfnSRr19oB5Pz8ZCAfXFuXiXWSeHYFhZCQFSN75Xp3wr65RsE6IWbHvUOgomXl0mHePgrk84XOkeBGB/yp7wMsXs2Ee7S1wzJp2lqMrykpj9YJhuTn1bevydrUFCCFhqRy5TDWkIJHqSCHDL3JdrPs6JgN45WBovHusGZariGHSsTnWVa7AuvKBckvzy4v+7E/XONGRRt06i/TwYqQia8dNyiQw5cftxq6N4N8/ApH4TSDlmj7KEumNVOo/jdIv6bWTt2fy3bTeuLQq3BYdZMjvfJgt5spiXdBGuw7Ylx0/yT7s9THjpmswZgO4nZjSeaA3ijHTL0PgSGFce+loI2g6qtt160w0B3XMerxsJK1YC/yHnsdnmR6DnFP+36Jp7DDutXvfWF3yAZXKtJ8EVOoCEviPsPgcFUU5GXiNY26mLTd509aM91UEx2OlRsfNO7h38juJ1G7brC4dfdkY4QDr+g7xEWM8Q84aHKe
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Download multiple dashboards as YAML files"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/dashboard/export/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Download multiple dashboards as YAML files
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"items":{"type":"integer"},"type":"array","title":"get_export_ids_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"text/plain":{"schema":{"type":"string"}}},"description":"Dashboard export"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

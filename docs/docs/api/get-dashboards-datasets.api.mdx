@@ -1,0 +1,72 @@
+---
+id: get-dashboards-datasets
+title: "Get dashboard's datasets"
+description: "Returns a list of a dashboard's datasets. Each dataset includes only the information necessary to render the dashboard's charts."
+sidebar_label: "Get dashboard's datasets"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNV0uP2zYQ/isCL20Boc62OQS6tcgD6KEo8kAPiwUxJscWdylSOxx54xj+78VQsiN76UWSFkhPtsiZ4TdPftwpi8mQ69nFoBr1FnmgkCqovEtcxVUFlYXULiOQ/SFVFhgScvq5egWmPXxWLhg/WExVDH5bcYuVC6tIHYjZKqDBlIC2FceKMFikLDM3bFogTj+rWvVA0CEjJdVc787wvXLcTtrOCrwTO3UVqXKcquSHtaqVE5UeuFW1CtChapSzOpKe9gnvB0doVcM0YK2SabED1ewUb3uRTkwurNV+fyPCqY8hYZL9X549kx8TA2Ng+Qt9753JDi9uk4Ddzez1FHskdqM2YRp81nKMXXosAP4BtkmvnGck3YEL2jJ3M2TLGD1CUPtaGTAtanYdxoFnIi4wrpGySPRDF/SYkjSTictbNDwTkTClE2RnoagPC0AE25mmLBc1ZzjKqkWtz8jOlaTolpCwFDYfH3Q3eHbaAIOP63LIsmDSJibWmNh1wPikZBqW9wPS9kmhjSMewGuGpUeNH3sf6YLZJZg7DLYYX+tSNiB+6p5w4/ChbOUoSc57zVFbZHC+LDzh0YfwaWfLSbq0PnbQ496oz1JWK3bsZeHlIVNT1lIcyKC+YKhWFlcweNYYbB9d4KIQWsd6IF/cXCGbVm/AD5gkdlZasnzY1FwJvYAuhuxERGOQYNuy6JogDB7I8Vanew8nJf3lvXT+3SJ4brVp0dzpTqbouuzNxWQmgeNhqS+X0XG+aBPLYe2QyZmv7NOLaQ4yhrz7hHrW/49hxdUq4YWBFski6eVWmzY6czZ3vj3c8SHke+dr3Mz3Vfm4Hqkrbly8aGo1FVtioPL+fTlF49C5GHPGrvfAqJ+AK1eIXpNUw39YwuN3QXFw5fm3QVrGhLqDPg91a53cquD/Ohn2l4AcMvXkXJoIw8uRv7wb0/EIfMFonlJzRnK0dSRDFlcuZMhJTD7/V1Thcs9/CbjfwVZCcjDxCOXqu0H5EGDgNpL7hHbE8ut3w/I60tJZi2EE8vy7AfkzcrWKQ7BZPKEZ5ALJvPf2gVVzfSPMk2EtXPhzqSV1k2dyG61q1Bo502ZuVaMW0LvF5mpx5MSL3WfKu18c+LuS02hzINn5OlUtc98sFj4a8G1M3Lx49uKFEgQHZLlRRsczvp1aIhDS60wsVaP++Pu9msZbnuZ5Vx0jISdIzG8fWBOuCFP7rUbkbgurKOqnMX039EgJ5/0+WxKXR7nNVR7RMXEHOcXTC+GNtHDhyaPOkjcrmf/Ds2kKDuNHXvQeXK7tiSaNtXGtoHcSgitx5WBE1ao5eRQd/b2plVSBKO52QuM+kN/vZXmiwtc3tdoAObl5xrfayEetalbgEz4RsB/fTk+vn6qve9IV3TxM7bAV94T8qUapWt3h9vTJt78ZOZVFyoBHgd+MwZ5nqo8GwH7eb29eSXnKNJvzlkORTn/EehHWbjdKvI93GPb7I0qWbwG43/8DIwdywg==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get dashboard's datasets"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/dashboard/{id_or_slug}/datasets"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Returns a list of a dashboard's datasets. Each dataset includes only the information necessary to render the dashboard's charts.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"Either the id of the dashboard, or its slug","in":"path","name":"id_or_slug","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"items":{"properties":{"always_filter_main_dttm":{"type":"boolean"},"cache_timeout":{"type":"integer"},"column_formats":{"type":"object"},"column_names":{"items":{"type":"string"},"type":"array"},"column_types":{"items":{"type":"integer"},"type":"array"},"columns":{"items":{"type":"object"},"type":"array"},"database":{"properties":{"allow_multi_catalog":{"type":"boolean"},"allows_cost_estimate":{"type":"boolean"},"allows_subquery":{"type":"boolean"},"allows_virtual_table_explore":{"type":"boolean"},"backend":{"type":"string"},"disable_data_preview":{"type":"boolean"},"disable_drill_to_detail":{"type":"boolean"},"explore_database_id":{"type":"integer"},"id":{"type":"integer"},"name":{"type":"string"}},"type":"object","title":"Database"},"datasource_name":{"type":"string"},"default_endpoint":{"type":"string"},"edit_url":{"type":"string"},"fetch_values_predicate":{"type":"string"},"filter_select":{"type":"boolean"},"filter_select_enabled":{"type":"boolean"},"granularity_sqla":{"items":{"items":{"type":"string"},"type":"array"},"type":"array"},"health_check_message":{"type":"string"},"id":{"type":"integer"},"is_sqllab_view":{"type":"boolean"},"main_dttm_col":{"type":"string"},"metrics":{"items":{"type":"object"},"type":"array"},"name":{"type":"string"},"normalize_columns":{"type":"boolean"},"offset":{"type":"integer"},"order_by_choices":{"items":{"items":{"type":"string"},"type":"array"},"type":"array"},"owners":{"items":{"type":"object"},"type":"array"},"params":{"type":"string"},"perm":{"type":"string"},"schema":{"type":"string"},"select_star":{"type":"string"},"sql":{"type":"string"},"table_name":{"type":"string"},"template_params":{"type":"string"},"time_grain_sqla":{"items":{"items":{"type":"string"},"type":"array"},"type":"array"},"type":{"type":"string"},"uid":{"type":"string"},"verbose_map":{"additionalProperties":{"type":"string"},"type":"object"}},"type":"object","title":"DashboardDatasetSchema"},"type":"array"}},"type":"object"}}},"description":"Dashboard dataset definitions"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"403":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Forbidden"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,72 @@
+---
+id: bulk-delete-tags
+title: "Bulk delete tags"
+description: "Bulk deletes tags. This will remove all tagged objects with this tag."
+sidebar_label: "Bulk delete tags"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVUtv00AQ/ivWnK06KUWqfAPaHhDi0iAOUVRN7Gm86dq7nR2nBGv/O5p1UlygEkJIOXl35/XN6/MANYWKjRfjOijhfW8fsposCYVMcBPOskVjQvZkrM2YWrejDK1V0YbqzK23VImKpclEFQU3Z5CDR8aWhDhAuRygcp1QJ1AOgN5bU6HGK7ZBgw4QqoZa1JMRaoMeZO8JSgjCpttAzI8PyIx7yEGMWL2PWO8U6t3BTYwxB6PZPPbEqtxhq7qPEFc5MAXvukApzPlspp+/xufZeWIxo3VLIeCG/oD3J+CxRCOol7W+OpS57a0Ybylb4CZoqhez+clAfemwl8ax+U71iOXNybDcOF6buqZuBHJxMiCfnWT3ru/GipyfnwzIB9fbOuucZJ5dRSFk1ImRveJ6e8JRvkFBmxGz42QQqOpZcenyb58EyuVKd0/XFMolpElf5dCSNK5+XuNEHNJACQV6U+zmheCmAPXHuyOX9GyhhEbEl0VhXYW2cUHKy9nlZdrvY+xbzXRMLiEYYE3IxDeOWxQo4ePXhbpOalAepPCcrUbQum6f5I7pnik0/+ok8dG9U/OXdbvtPXEgmRDa5ElTHvV2c0XiXZAWUxsPjDah68TW8EtjJuPw36j9kJnQNym8RZO2MzVlOHRvCeiN4p9DajnkoM3WNqlwGNYY6AvbGPV5JGnt7KvQX4v6QPtE6zns0PYqTxOwQza41mouVzGHhrAmThFGg3dVRV4mVr8tSpzO5tX1p+vFNeSgzDhZkOdeHw4a4PiX6vYT98MwaizcA3UxwhG46B3iKsb4A5Hal+w=
+sidebar_class_name: "delete api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Bulk delete tags"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/tag/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Bulk deletes tags. This will remove all tagged objects with this tag.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"items":{"type":"string"},"type":"array","title":"delete_tags_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Deletes multiple Tags"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"403":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Forbidden"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

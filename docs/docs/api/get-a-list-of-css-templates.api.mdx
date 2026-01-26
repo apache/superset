@@ -1,0 +1,72 @@
+---
+id: get-a-list-of-css-templates
+title: "Get a list of CSS templates"
+description: "Gets a list of CSS templates, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata."
+sidebar_label: "Get a list of CSS templates"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlV99P3DgQ/lcsv9xLjgVET1XeOHRFV/WKVKj6gNBqEs9uDI4d7Al0u8r/fhp7s2TZLAXuJE66t8Qez4/P38x4llJhKL1uSDsrc3mKFAQIowMJNxMn5+eCsG4MEIZMtAHFFx2cFc6Lj+dnn8Vti34hGvBQI6EPYua8mGlD6LWdZyI4T/Gjgbm2wFYEWBXFAhoseVeEBks906UonWlrG6JIjQQKCPZkJh8MyPxyKUtnCS3JfCmhaYwuo+LJdeAYljKUFdbAX413DXrSGPhvpZ0/NWEdP2jRoMxlIPZXdlm/AN7Dgv9TMJuHttSOanKNH12/A9Ni9N0uzmYxoJWMbesCveyy7VPrlcI5g2CHSytfr7oukx5vW+1RyfwyOpbc6I1ereNzxTWWNBbwDS42o0Xb1qyOSTHtMcyk8wr94N9AgWbwPyDWUIqVkCaDMpPW2aFPuy9haGsc6yigtGdGJRb0bkMoV96MmmpgjgOV2hLO4x3EnWnQP3ZsJ/pOX0Gq7vEtZDIhkss50jRCtOJwx8KaMzNmGmMGNQveyu6Kbzs0zobEw8P9/UTHVyZHmw5tFoSLCgU5AiM8ls4rEeWEs4IqFAWUN2iVzLYYPHr9OzJymmIaMz1YiTWDjaZDgg/tiW/aGFGgIA82cJlSoliIgrkoM4nfoW4isMfisy6f0ie3uLF1TXwVKmw7eryul8wAoVUqlbPWiPsKrVi4VihnfyFxY939MAbN0D2/Fm2m2MvRjOf/FRzHND0PwY0q8gSUDyXjBfg8FJcRzXFDkBMerUL//Jg/sUt/Ri9GCshmHXwiIjDG3aNaNzlysT2+KEKPoTU70jTtiZl3dbyVOVKy3ZeOXf2rAjtHNS0W23sz7QOtGVXD909o51TJ/LejESi0Gi+VBp6t5FELG9gfqtnqYw8V9CSEi9WL5QsGOm70Xl9U976G5E8fsbNThYZgWrU1WP0Do/8eQZ1Zs5A5+RZZ3COT438C0IEchJx6xsz5GkjmUgHhr6SjMdsaAwWrZJhGgi1DROincrtA6R+eY8Acvtv/qQdPtNknMHhGu45NeTP/YnVIqfeXU2hYy9E/6sc1hrD5NNldVbf9+R2UYJpgCuho/+DNXPlqoaXK+Zhe7Mvh4Zv5cuJao4R1JBrvSgxBoCVNsbS+e8Pr+gD8wkLvnY8HApatZ794OLi+J5lfXvF7j2DOE5DkuawncOBkr5Eqp9IDMs5LnCRyAo2e3B1MyhCmfTZNJKv3d/0s1Xojc1kRNflkYlwJpnKB8vf779/HJ2bvyjkHnmKNDi1lgeDRf+hrw8dvF6w6ivGcEncfGiZbYJiv72nqceYxVK9VEp/EM7fdBc/bBn3AYaYPljjkJHcXa1zjAtUQb3X1qD5F2jX8ykdXNiDKf3VoXmFG+J0mjQHNM2O67uWKIJcSGs3IHMhYrtckkZlkVjETWGq5LCDgV2+6jpfTe4LJsxOSXeZvcBGHl/UULCPJ7sDrVMkvr7pMVggKfbSQDhyXJTY0OLWVmt0wCU7/YBZx2Rnk45pLq4/B3A12MdC9XCaJC3eDtutk7zXxfxyzu78BHiH7Jg==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a list of CSS templates"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/css_template/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Gets a list of CSS templates, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"filters":{"items":{"properties":{"col":{"type":"string"},"opr":{"type":"string"},"value":{"anyOf":[{"type":"number"},{"type":"string"},{"type":"boolean"},{"type":"array"}]}},"required":["col","opr","value"],"type":"object"},"type":"array"},"keys":{"items":{"enum":["list_columns","order_columns","label_columns","description_columns","list_title","none"],"type":"string"},"type":"array"},"order_column":{"type":"string"},"order_direction":{"enum":["asc","desc"],"type":"string"},"page":{"type":"integer"},"page_size":{"type":"integer"},"select_columns":{"items":{"type":"string"},"type":"array"}},"type":"object","title":"get_list_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"description":"The total record count on the backend","type":"number"},"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"ids":{"description":"A list of item ids, useful when you don't know the column id","items":{"type":"string"},"type":"array"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"list_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"list_title":{"description":"A title to render. Will be translated by babel","example":"List Items","type":"string"},"order_columns":{"description":"A list of allowed columns to sort","items":{"type":"string"},"type":"array"},"result":{"description":"The result from the get list query","items":{"properties":{"changed_by":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"CssTemplateRestApi.get_list.User"},"changed_on_delta_humanized":{"readOnly":true},"created_by":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"CssTemplateRestApi.get_list.User1"},"created_on":{"format":"date-time","nullable":true,"type":"string"},"css":{"nullable":true,"type":"string"},"id":{"type":"integer"},"template_name":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"CssTemplateRestApi.get_list"},"type":"array"}},"type":"object"}}},"description":"Items from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

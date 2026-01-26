@@ -1,0 +1,64 @@
+---
+id: export-all-assets
+title: "Export all assets"
+description: "Gets a ZIP file with all the Superset assets (databases, datasets, charts, dashboards, saved queries) as YAML files."
+sidebar_label: "Export all assets"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVFFrGzEM/itGTxuYXTI6KPfWh7Z0bGPQlrGFMJQ7Jef0Ynu2Lm16+L8P+S5dGkYfBqNPp5NlfZ+kT+6hplgF49k4CyVcEkeF6sfVV7U0Lal7w43CtlXckLruPIVIrDBGiXtTI+MCI0WtxBSnVlWDgbMnNguHoY5aRdxSrX51FAzFtwqj+n72+VOGiO9AQ6DonY0Uoezh/WQin8pZJstiovetqVA4Fo/GiytWDW1QrKULG2QoYWEshh1o4J0nKCFyMHYFKSV9VOW+PEgaTibTF9DWUS4cwvngPAU2A9cNxYgrEvMY9YmHW6yp4r/xuLXYceOCeaR64HLyaly+OFZL19lM5MOLI/i/RC6QsVUUggv5QqSqC4Z3UM56WN8zlLN5mmtgXEUoZ3C18S5wQQ/ygbmGDXHjaihhRQwaPHIDJRToTbGdFoN2x/ACJH/YUog5fRdaKKFh9mVRtK7CtnGRy9PJ6SkI5p7LtVQ+FJsZ9bAgDBQu9lr8+O1GUucwkWY+/SNNQZA+r+/5Z6BloNj8a5Kkwdilk+vP+7jfVrlguKXnLil5iNtOhYl3kTeYx2oxw53nDuXlH3oGR5M60MdrvRtjJ5geuPAtGiul5CH249xngN5IvVPQ8FTHKBYNohcZsQT2vXC6DW1K4hZUEd1cwxaDwYW0cDZPGhrCmkIWzB3toISzqiKfu4ptJ4SOH6x0KMvLcxmrbP7BhjwNdzQk+XiEdneQuu+HiBt3RzYl0CMHln9I85TSb740AFI=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Export all assets"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/assets/export/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Gets a ZIP file with all the Superset assets (databases, datasets, charts, dashboards, saved queries) as YAML files.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/zip":{"schema":{"format":"binary","type":"string"}}},"description":"ZIP file"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

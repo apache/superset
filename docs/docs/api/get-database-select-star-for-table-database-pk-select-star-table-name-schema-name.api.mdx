@@ -1,0 +1,72 @@
+---
+id: get-database-select-star-for-table-database-pk-select-star-table-name-schema-name
+title: "Get database select star for table (database-pk-select-star-table-name-schema-name)"
+description: "Get database select star for table (database-pk-select-star-table-name-schema-name)"
+sidebar_label: "Get database select star for table (database-pk-select-star-table-name-schema-name)"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVt9r20AM/leMnlpwcFM6KH7brxbGGKxp2UMJRbGV+BLHd72T02XG//vQ2UmcxmMsZeTJZ0knfTrpPl0FBi0uick6iB8rSMklVhlWuoAY7jMKUmScoKNApRCCErFBziCEApckfwsIwdJzqSylELMtKQSXZLREiCvgtRErVTDNyEJdhwdRcJJT4L31BmDRP7X6vwZybFUx+3OcdkNvpEb376HGYuyMLhw50V9eXMgn0QVTwbJEY3KVoCCJ5k7gVB1/xmpDllWz25Irc79rH//o+9fAUU4JB47RQniY8kaiJ3NKWCwU5yIY+X0jRnvXAh010WvZ1ROHkWlJBQdTbQPsxvUSXxOoQ7h6U6pLcg5n1Fu+V7n0AP2AaSBFIscNlOHJoDwUWHKmrfpFaYPl6mRYvmmpWlk0QC4vTwbkoy7zNCg0B8bqhJwLqGDFa8H17oR9c4OMeUDWas9H4CgpreASBpy/MMSPY7nTjDNhRfjUUiCMX3u6Jd4RZO8dCc42+oFZDBqTgZgMvHogXDNo0vTrcwhhSZzpFGKYkdxhz1ExRGhUtBpGG39RZRZ11Hh8Eo9RtWPKOqo6ZFZHIFna1YbmS5tDDBmziaMo1wnmmXYcX19cX4NkvjkRTxLNkftzqWBCaMneaLtEhhi+/LiHlhnlzBvtjpkkglR7/sJPlqaWXHask1oYe6p7aLE0ZB3tsd1OJCk3dquhIDHa8RJ9c7Wk/39quIdx26VMPzkyOapCsPgqVG19HwGNEsBD2b3puBBiP187ZRbZ3kiM98eWdKlUU1xWlXh5sHldi/i5JCtdPg5hhVZ5DvdTXzlZpxBPMXd0gH57S+Hsrh2K58Hh46A3yVaIxVqSw7yUPwhhQevm8eAH9VEAuu+GI2J3DvGNGLZviiNQdItXj+sQMsKUrK9LY/E+SchwZ+8BU8qV3ZLG7We5TTKOOo23vVPtQrz34qqqxuJeL6io691hyb8ArOvf6haDQQ==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get database select star for table (database-pk-select-star-table-name-schema-name)"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/{pk}/select_star/{table_name}/{schema_name}/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get database select star for table (database-pk-select-star-table-name-schema-name)
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The database id","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"description":"Table name","in":"path","name":"table_name","required":true,"schema":{"type":"string"}},{"description":"Table schema","in":"path","name":"schema_name","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"description":"SQL select star","type":"string"}},"type":"object","title":"SelectStarResponseSchema"}}},"description":"SQL statement for a select star for table"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

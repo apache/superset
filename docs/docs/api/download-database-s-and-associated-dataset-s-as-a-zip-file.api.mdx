@@ -1,0 +1,72 @@
+---
+id: download-database-s-and-associated-dataset-s-as-a-zip-file
+title: "Download database(s) and associated dataset(s) as a zip file"
+description: "Download database(s) and associated dataset(s) as a zip file"
+sidebar_label: "Download database(s) and associated dataset(s) as a zip file"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVE1r20AQ/StiTi0IZJcUgm6BNoXS9pKEUowxY2lsrSPtbnZHdhyx/73MylJsp82hpfQk7e58vJn3Zjqw6LAhJuchn3VQGM2kGfIO0NpaFcjK6GzjjZY7X1TUoPwppsbLD+8tQQ5KM63JQUiHG3QO95ACK67lvCZe0KM1jheq9ItDqBBCCkpDDg8tObHX2Ij5A4R5Co68NdpTTPVuMpHPbzA+KXsKcWVcgww5LJXGGPqAzLNTet2nLskXTlmJADlcJU/KJitVU7JTXCUlMi7R0xv/NkFdxrMnjkef/Lj6+kUKvphMX8H1snfWGUuOVV9VQ97jmo56OeIbEZvlhgr+FeI7jS1XxqknKnssF/8NyzfDycq0OgJ5/ypZ/xbINTLWCTlnXHTwVLRO8T5KfLNjyGdzURfjWmQPHw40w/w80gez07XB8oUS0HtTKGQ6FwWOEoIUGuLKlL34IQWLXEEOGVqVbafZEDPrxyIDQeq2wyy2roYcKmabZ1ltCqwr4zm/nFxextkYqrqRHvZti7V1sCR05K4H/X/+fiuho5mMQ3x9HgfJIIxtdrxwtHLkqz8NEmd5ZcT9tI83rSXnYxOGfXB0JSX3dtupILHGc4NRIIdt8Jc8nIAZJcX0yJmtUWlJGtvdHTiaAVolyKbiPcgjhZ4pSEGkInSIadfJ652rQ5DrfpEJg2dpx1mA576dYrinfVx9KWyxbuU9Mr1Fp3ApXZvNQwoVYUkuZugdroqCLB95ne9FCTJq8dNHYVLWxlEvRj4PPxJ8WOR6fxS663qLW3NPOgQYQLOcIcxDCD8BHP0qyQ==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Download database(s) and associated dataset(s) as a zip file"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/export/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Download database(s) and associated dataset(s) as a zip file
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"items":{"type":"integer"},"type":"array","title":"get_export_ids_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/zip":{"schema":{"format":"binary","type":"string"}}},"description":"A zip file with database(s) and dataset(s) as YAML"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

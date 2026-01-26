@@ -1,0 +1,72 @@
+---
+id: get-a-list-of-report-schedule-logs
+title: "Get a list of report schedule logs"
+description: "Gets a list of report schedule logs, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata."
+sidebar_label: "Get a list of report schedule logs"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNV99P3DgQ/lcsP91JuS6gVkJ5404tuqq6SkB1DwitvMlsYtaxzXgCbFf5309jJ0sguwelD/Qttscz34y/+ZGNLCEUqD1pZ2UuT4GCUMLoQMItBYJ3SCIUNZStAWFcFTLRBhBnOjgrHIrP51//ETct4Fp4haoBAgxi6VAstSFAbatMBIcUP7yqtFVsTChbRrEABgo+FcFDoZe6EIUzbWNDFGmAVKlIvZOZfDAg88vNE+gXNUzw6mSCaggJvMykZmGvqJaZtKoBXq1kJhFuWo1QypywhUyykkbJfCNp7VlKW4IKUHZdtpGFswSW+Fh5b3QRnZpdB8ayGV326DwgaQi86j3jT03QhJH6QBwr2WXDhkJUa16nQD6+NFG7U5PzuHP/VpkWIna7/rqMwexlbNss2Mdsemu7s3DOgLLjrR7rVdeNA3kZgSUYg9GrrX9ucQ0F7XJ4BevH3oJtG1bHvJwPMcykwxJwtDZqAWa0HhFkLMVKSJMBZoCzY0z7H2Fsa3eso0CpkdmcWDDAVqHo0ew05VUFu3iWTuZBf99znFJn/gpSdU9fIZMpIrmsgOYxRD2HOxaOSROz/CFrbmR3xa8dvLMh8fDo4CDR8ZXJ0aZL08QmR8oIhMJhKaKccJbzWixUsQJbymzCYKnLMNV2si1uxlWCRbIfSEWE0Jo9GNOZWKJrIrIKKNka4rYnecGW85Ko4e+lw0aRzGWpCP4g3USOtsaoBT9OqkwTlIDocN5ACD2Tnr2hyz2M6ivnM4gm+gIppJ/0IpCiiL5R91/AVlTL/MPBDsG2TfC3ZuLGCyxsy94eyQfqRMk5urv5QNpnlD+pe0/iODg3KX4PaXcWW9fHeyha5tQXV51BoBOv3w0J+YIsjrn6mJl/M+kSKWMD7DL5/qeydESzaQyehfOnKgUHCpI/7w8O3wzKN6taqh3q71BGLEdHb4blL9eaUlhHwqMrIAQBljTFmvPhDZ/rk+K6G+tLvBCgaJFx8chwfUcyv7ziLkCq4pmsZ7E47+kfmPENUO3K1FniEMeJLWfK69nt4SyNbLONX3Uz46oZ5wrg7TDjtWhkLmsin89mxhXK1C5QfnxwfBzbzwCILTbJ4whrIxegEPDTUCM+/3sh+6EuzjDx9KGUsQUO9vUdzRGWCKF+rZLYLpdu2iTOWw8YYJz1oy12OcndHsbe7wI1KtWe1HBPgZ6ZzeWT9xux5hcf7fsIEtzTzBulbSz0GMfaxJhLqbzmOB3GYZ3Ry0zmcXY3rpKZZLIxO1h2s1moAN/QdB1vpxY8+WkYx2cfiBWs47CzbR8yEu9WoU79gJXqwN+lzJfKBPifV/jtrO8Sv4uX/rDsRDU0ArseAxvQ+hXP4pmsQZWAEWI6OCkK8DS6Mikl3ThjTz8y37lMjurHlvX9x+jv4TGczSZJXLgV2K7boiNex5+F7j/ufAVw
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a list of report schedule logs"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/report/{pk}/log/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Gets a list of report schedule logs, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The report schedule id for these logs","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"filters":{"items":{"properties":{"col":{"type":"string"},"opr":{"type":"string"},"value":{"anyOf":[{"type":"number"},{"type":"string"},{"type":"boolean"},{"type":"array"}]}},"required":["col","opr","value"],"type":"object"},"type":"array"},"keys":{"items":{"enum":["list_columns","order_columns","label_columns","description_columns","list_title","none"],"type":"string"},"type":"array"},"order_column":{"type":"string"},"order_direction":{"enum":["asc","desc"],"type":"string"},"page":{"type":"integer"},"page_size":{"type":"integer"},"select_columns":{"items":{"type":"string"},"type":"array"}},"type":"object","title":"get_list_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"description":"The total record count on the backend","type":"number"},"ids":{"description":"A list of log ids","items":{"type":"string"},"type":"array"},"result":{"description":"The result from the get list query","items":{"properties":{"end_dttm":{"format":"date-time","nullable":true,"type":"string"},"error_message":{"nullable":true,"type":"string"},"id":{"type":"integer"},"scheduled_dttm":{"format":"date-time","type":"string"},"start_dttm":{"format":"date-time","nullable":true,"type":"string"},"state":{"maxLength":50,"type":"string"},"uuid":{"format":"uuid","nullable":true,"type":"string"},"value":{"nullable":true,"type":"number"},"value_row_json":{"nullable":true,"type":"string"}},"required":["scheduled_dttm","state"],"type":"object","title":"ReportExecutionLogRestApi.get_list"},"type":"array"}},"type":"object"}}},"description":"Items from logs"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

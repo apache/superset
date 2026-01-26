@@ -1,0 +1,72 @@
+---
+id: read-off-of-the-redis-events-stream
+title: "Read off of the Redis events stream"
+description: "Reads off of the Redis events stream, using the user's JWT token and optional query params for last event received."
+sidebar_label: "Read off of the Redis events stream"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVE1v2kAQ/SurufRi1VC1UuRbpCZVo57yoRwihAZ7wEvsXXdnTEot//dq1kAhkKZqDj1h5vPtzHvTQUGcB9uI9Q4yuCYs2Pj53Pi5kZLMNRWWDa3ICRuWQFgnpmXrFtHdMoV3bK7ub434R3IGXWF8rIaV+d5SWJsGA9Zs5j6YClmGYiZQTnZFxXtIIEaQUGDIHrpnkL5pztfPuwQzW8fWeWXJCSRgNSq2ggQc1gQZaKOpLSABzkuqEbIOZN2oiyVYt4C+nyQQiBvvmFj9H0Yj/cm9Ey2cdYBNU9kcFUi6ZEXT7dVrgm8oiB2yA3FbxSwrVPNxQF6ic1QpqmMwCVAIPvBB/ibGz5aUi8ZsDBgCrvX/C6WWfvZSlwHltA3VSTcLSssnXbrpw6rWCS0oQP8b2UtQjyPUdLjnc167fEcOhcla6ONo/Iat1MSMCzq1/r+AdOewldIH+5MKxfLpTQx5G5ZLFKxMZElMYMrbYGUdFbN8EsgeJkppwYWqaBjnRdTtNbGcNxYmCdQkpS8ggwVJFJ6UkEGKjU1X4xQ1ZxpXkKp0KKy2moyMgVKkydK08jlWpWfJzkZnZ6Btt3Bu9PHDeyOoDmaEgcKlDzUKZHB1f7tVpT548MJuANohcvhJpoHmgbj81yIqEDf3mn44ypu2ocBxAGKlokOTPnmIW40VSeNZaoyb3RwXPZKv3Eh4tr490vynG7sZjdAPSZsKrYuiHu7AQIMHwMbqAMaQwB4VIAGlju5bg7puhkx3oep7NQ+HN55tyzirqIBsjhXTHybw6kk/CfaR1geXfYVVq1GRfysMVrtHGSRQEhYUIqwh7TzPqZG9rCPl9vvy+HKhBFP178l1R7PNh1bf3jm33qvddUPEra6r72GLPa4P+knf978A8OKTzA==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Read off of the Redis events stream"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/async_event/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Reads off of the Redis events stream, using the user's JWT token and optional query params for last event received.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"Last ID received by the client","in":"query","name":"last_id","schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"items":{"properties":{"channel_id":{"type":"string"},"errors":{"items":{"type":"object"},"type":"array"},"id":{"type":"string"},"job_id":{"type":"string"},"result_url":{"type":"string"},"status":{"type":"string"},"user_id":{"type":"integer"}},"type":"object"},"type":"array"}},"type":"object"}}},"description":"Async event results"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

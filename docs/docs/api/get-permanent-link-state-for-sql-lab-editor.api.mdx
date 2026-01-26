@@ -1,0 +1,72 @@
+---
+id: get-permanent-link-state-for-sql-lab-editor
+title: "Get permanent link state for SQLLab editor."
+description: "Get permanent link state for SQLLab editor."
+sidebar_label: "Get permanent link state for SQLLab editor."
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVUtv2zAM/isGTxtg1E3RAYVv27AWGIJhbVrsEAQFYzOxEltSKTpdZui/D7ST9HnY49CTZYoiP358deCRsSEhDpBPOzAWcvAoFaRgsSHIYU1bSIHprjVMJeTCLaUQiooahLwD2XpVC8LGLiHGmSoH72ygoPcnx8f6KZwVsqJH9L42BYpxNlsFZ1X2YM+z88RihtdBUEgPJYWCjddHkMN1RUkQx1Qmg0a6x+HmKyoEYnwpiekzK1ckLduQyIO1hePmtkTBI4gpnP4X9oZCwCW9RtIfgPuEZaKsU5AByujNoNxYbKVybH5ROWA5fTMs35wkC9faAcjJyZsB+ezaukysk8SzKyiEhKwY2SquD29YN+coWCfE7Lh/EKhoWXFpf6/uBfLpTJtUcKk9D5PLcTLGefKduEFLVpKxsWuYPbd7QZL4g05t7HpoPW2ZZHI5VhtUGnF8BCk0JJUrIYclCaTDSMkhQ2+yzSgLd3WN86w3p5aybk3bCAqWN/tZ1HINOVQiPs+y2hVYVy5IfnZ8dgYawD6widI4MNeH18GckInPHTcokMPXH9ewm1hK3XD7MDHUgyZtdS+3TAumUP2rkZiCsQv3cl5NWk8ceirESE1PRRryoLcZKRLvgjTY18huCP8d+U98H4pI6KdkvkZj1UfPbrdLzBTQGwUy0hj75GjS9umBFHJdA7MUNAWq33VzDHTDdYwqvmuJtcJmKWyQDc41xGkHpQl6LiFfYB3oBbRDh8C7q92GeZ88sPoU8k6IVhfSButW/yDtN9Swp+IsplARlsS9++HmY1GQl0dvXjSjltOhYi++aKZ14j0i75Dv3UGtv4qn6waNa7cmG+MBnui/AozxN8x5kTE=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get permanent link state for SQLLab editor."}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/sqllab/permalink/{key}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get permanent link state for SQLLab editor.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"key","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"state":{"description":"The stored state","type":"object"}},"type":"object"}}},"description":"Returns the stored form_data."},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

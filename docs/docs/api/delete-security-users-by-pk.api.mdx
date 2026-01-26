@@ -1,0 +1,72 @@
+---
+id: delete-security-users-by-pk
+title: "Delete security users by pk"
+description: "Delete security users by pk"
+sidebar_label: "Delete security users by pk"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVMFu2zAM/RWDpw0Q4LTogEK3YW2BDsMOS4odgiBQbCZWYksqRacLDP37QNtJE7TYYZeeLFOP5CP5qA6CIdMgI0XQ8w6sAw3BcAUKnGlQ/naggPC5tYQlaKYWFcSiwsaA7oAPQVDWMW6QIKWFoGPwLmIUwPVkIp/CO0bHcjQh1LYwbL3Lt9E7sb0GDOQDEtvBu8EYzQbPMkUm6zaQkjpa/GqLBUMSU4mxIBskNmh4ZGyyEmtkLCEpuJncfBiXn56ztW/dQOT6+sOIfPNtXWbOcxbIFxhjho4tH4TXlw8c1oNhU2dI5Kl3iFi0JLxEmNsXBj1fiLrYbESsMB3vs6co8l0oEC4908cSNAxzXx7DLFuBLVeHZa/oy9x3PTY7YrMem60OWY9tkCv/GhLUsCIachNsvr/Kj35575d3YZdACqD9cbFaqkFDxRx0nte+MHXlI+vbye0tSFHHCFNp7dDNvuQOVmgI6cFTYxg0fP89g3H/pJ3DLZzaKxlkkNsXXhKuCWP1v0GSAuvWXtwvmzVtA1JEFgfLNV6apOQBt78SJsFHbkyvm/FF+XezL3KdhMT4h/NQG+skZt/NbpzCHEywkvgKzkSjoA8LCnTYiTik3wLuupWJ+ER1SmJ+bpFEYgsFe0PWrKSeeQeljXIuQa9NHfENr9OKwKdf4+P4OXtt4SXf0Wic8NqbupU/ULDDw/DCpkVSUKEpkfrsw8XXosDAZy5vllGkc1Ln3f2P+9k9KDAtV2e9O413PEiCdxl13YCY+R26lE4EWf6FY0p/AdgJIX4=
+sidebar_class_name: "delete api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete security users by pk"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/security/users/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete security users by pk
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Item deleted"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

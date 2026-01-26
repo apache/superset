@@ -1,0 +1,72 @@
+---
+id: mark-the-dashboard-as-favorite-for-the-current-user
+title: "Mark the dashboard as favorite for the current user"
+description: "Mark the dashboard as favorite for the current user"
+sidebar_label: "Mark the dashboard as favorite for the current user"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVE2L20AM/StGpxYGnJQtLL4Vyh4K/aC7Sw8hFMVW4knsmVmNnDY189+L7KyTdHsou4eePNaMpKenJ/UQkLElIY5QLHqwDgoIKDUYcNiS/u3AANNDZ5kqKIQ7MhDLmlqEogc5BH1lndCGGFJa6usYvIsU9cGb2Uw/pXdCTvSIITS2RLHe5dvondpOAQP7QCx29GaKXSNnifxqS6VASuaJJRmoKJZsg4aGAt5jrFceucqwqqjKxGdr3Hu2QhGSgavZ/AXQWooRN3SGLQpbt/k3bPcOO6k9219UjViu/huWT16yte/cAOTti/r1MiA3KNhkxOx5cIhUdmzlMGhz+0OgWCxVYIIb1eupwRGWf8b6iLzLpKasOqkgTv3P1p6H27JjJidZF4nBQEtS+0pl76OAGWehgByDzffzfIqV92GX8klNOShY3j/OUccNFFCLhCLPG19iU/soxfXs+hq0gMfCbpXGkbmhvB5WhEx847lFgQI+fLuD47gpdeMtTFRqBm3a9od8Z1ozxfq5QZIB69Ze3S+JvO0CcSRlQ6w0dGnSksd3+7kiUd5aHDRyXCDPa8QFhklMQj8lDw1ap7kGlvtjjxaAwSqguXo/pgIDxbDBToNvQMWi/VCnvl9hpHtuUlLzQ0esclsa2CNbXGm9ix4qG/VcQbHGJtITfNO4wKuvx135OjtRfIn7aER3ULzYdPoHBnZ0GBduWiYDNWFFPGQfL96VJQU5c3kymCqtScFfPt9q23XNnDE4Nf940PB/xdP344s7vyOX0gRP9F8RpvQbrqQlOA==
+sidebar_class_name: "post api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Mark the dashboard as favorite for the current user"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/dashboard/{pk}/favorites/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Mark the dashboard as favorite for the current user
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"type":"object"}},"type":"object"}}},"description":"Dashboard added to favorites"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

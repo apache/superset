@@ -1,0 +1,72 @@
+---
+id: get-metadata-information-about-this-api-resource-dashboard-info
+title: "Get metadata information about this API resource (dashboard--info)"
+description: "Get metadata information about this API resource"
+sidebar_label: "Get metadata information about this API resource (dashboard--info)"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVlFv3DYM/isCn1bA3SXBBgR+a9e16IABBZqiD8HhQNu8sxJZcij6uqvh/z5QPie+3KVDuwHZk23pI/mJ/ES6h4piybYVGzzk8I7ENCRYoaCxfh24Qd0yWIROjNQ2mlcf3humGDouCTJokbEhIY6QX/dQBi/kBfIesG2dLZP94iaq/x5iWVOD+tZyaInFUkzYqlqVwXWNnz6t2qH7cAA7NGpxQ/qUXUuQg/VCG2IYsrSzivbrye0hm5ZCcUOlwKkFqqz8vxjd0i7FsEJNeiHfNZBfH+TuEfEM1tal2mTQEjc2RhvSuhqJFUeTyfThgydY3sePwtZvZoSQGXcnKGcweshhQ7JS7az2xR4UbFVedx3xTmNgo8A7GJYZMMU2+Dgm8OLsTB//jYr+sahHgClbR55Ho9VIfFaDQ9S0fXiprmoyo2OjgJ/NZ+ucKcgIo48OhSpT7EyBBTk4kXiNgBL4m55HkF7VW9oZCaaLZII3zkYxDyJ45PwbwnuqzsOhkk5y6iKxmaHMOvDJ5nGfx+9VW9LUYeD3Qo1Zc2jMn6Eip05++VdqaijGw/v8dNqO6bzGyjDddRRlpHL+bFQ+eeykDmy/UpW4XFw8G5ffQucq44OYlkNJMRryYmWnvH59xnK9RUFniDmM/ThS2bHy0qF280Ugv15qtxLc6KCDNxjrIiBXUZtlQ1KHaux9aSZKDTkssLWL7fmimrCL1BdBvfN2mpgdO8ihFmnzxcKFEl0douSXZ5eXqT9OTD7qucejJj49FIRM/DYNacjhj89X6jrBIN/vPtx5jaBZvvkiK6Y1U6x/1Enq5+twfPk/di1xpPk0mC3pkUfc9jz1kRClQf/QOb/7/8P8dJ/bly8V/wIeFXYmpx/5u9kfW+gvWbQOrVfeqWL9vsrXgK3Vw51r6IkNZDDWepmBllNxfV9gpE/shkGXx2GoCniS8FMEbmmXxmcGW3Sd7ielbJEtFpr16+WQQU1YEacIo8GrsqRWZlZH12uYa/nd7yoFbR2zO3UviP2Lep96td/NfPf9iLgKt+SHASbWot8wLIdh+BugTaXG
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get metadata information about this API resource (dashboard--info)"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/dashboard/_info"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get metadata information about this API resource
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"properties":{"add_columns":{"additionalProperties":{"properties":{"page":{"type":"integer"},"page_size":{"type":"integer"}},"type":"object"},"type":"object"},"edit_columns":{"additionalProperties":{"properties":{"page":{"type":"integer"},"page_size":{"type":"integer"}},"type":"object"},"type":"object"},"keys":{"items":{"enum":["add_columns","edit_columns","filters","permissions","add_title","edit_title","none"],"type":"string"},"type":"array"}},"type":"object","title":"get_info_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"add_columns":{"type":"object"},"edit_columns":{"type":"object"},"filters":{"properties":{"column_name":{"items":{"properties":{"name":{"description":"The filter name. Will be translated by babel","type":"string"},"operator":{"description":"The filter operation key to use on list filters","type":"string"}},"type":"object"},"type":"array"}},"type":"object"},"permissions":{"description":"The user permissions for this API resource","items":{"type":"string"},"type":"array"}},"type":"object"}}},"description":"Item from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

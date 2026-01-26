@@ -1,0 +1,72 @@
+---
+id: add-tags-to-an-object
+title: "Add tags to an object"
+description: "Adds tags to an object. Creates new tags if they do not already exist."
+sidebar_label: "Add tags to an object"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVcFu3EYM/ZUBTy2gRrupCxi6OUFy6KEJbAc9LBYGV8OVxpFmFA7l9VbQvxfUaJ21nRhJWsQnSdSQfHxDPg5gKZbsOnHBQwFn1kYjWEUjwaA3YXNNpbwwr5lQKBpPu/TbbY3UtDc2GB/EYMOEdm/o1kV5ARl0yNiSEEcoVgM4Dd6h1JCBx5aggBT6SvYdQQZMn3rHZKEQ7imDWNbUIhQDTAcKcF6oIoZxzJ4K5+z3BVun0xTlVbB7PVIGL+RFX7HrGleicpNfRyVoOIrVceiIxVGcImM1Pe/z2bgoJmyVM6NAE6/W6iMhhgycUBuP0EVh5ysYs4MBmXGvlR8Ms+uopvsJL7EyM8SHPIxqiF3wMSF+uVg+Bqz+aC1ZTf/74uXjE+dkHVMpUylSkyl7ZvJirKsoivqdLBb/gcmWYsSKvkDItxDwCq2ZbzRBWT4blA8ee6kDu38SnSeLk2fD8lcQsw29n4D88Yz38xYFG0PMYZpliFT27GQ/ycT1TqBYrXUq0zyttCEjrDNoSepgdexDlElgpIYCcuxcfrPMBat8OJKU8e7L2TEHzcM3BzXquYECapGuyPMmlNjUIUpxujg9Bc19wHShDKSiJ2QDbAiZ+G3gFgUK+PPvS5jlRatOf+GOBc2gfF/v5IppyxTrHw2iUWLw55+16s0ttl1Dn7VndbiH9ZiB89vweHYv+o44kvInTtT52KT8pHM3S4WtTLc49cIssmeqXA+3Azy44qPG+v/2yUyG0K3kXYPOK8DpHoe5FVaAndMqljB1D2RQ3N8xxfGO0J7SW1fHYdhgpA/cjKOaP/XE2o/rDG6QHW6UqNUA1kV9t1BssYn0RNm/nM/K+6v5GvaDtPu9Ysam1y/I4CPtHyxHXXg/P7WzMGoj1YSWeKo//X+dUv12mUg9+D9SEIWdPM7Kkjp58uzxgL9/d6EDsZn3cRus+jDudKPhLmENU+nTaE62ARr0VT/pEqSYOjMqwEdCdTdb84tW9UU2hiGduAwfyY/jHTmi30rMOP4Lf1oqGw==
+sidebar_class_name: "post api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Add tags to an object"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/tag/{object_type}/{object_id}/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Adds tags to an object. Creates new tags if they do not already exist.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"object_type","required":true,"schema":{"type":"integer"}},{"in":"path","name":"object_id","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"properties":{"tags":{"description":"list of tag names to add to object","items":{"type":"string"},"type":"array"}},"type":"object"}}},"description":"Tag schema","required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"description":"Tag added"},"302":{"description":"Redirects to the current digest"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

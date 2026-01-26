@@ -1,0 +1,72 @@
+---
+id: delete-annotation-layer-annotation-layer-pk
+title: "Delete annotation layer (annotation-layer-pk)"
+description: "Delete annotation layer (annotation-layer-pk)"
+sidebar_label: "Delete annotation layer (annotation-layer-pk)"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVE1P40AM/SuRTyAFpSBWQrkhPqRdoT0sXe0BVchN3GaaZGbwOGWraP77ykkpLXBhL5wy8fiNn+1n9+CRsSUhDpA/9FBSKNh4Mc5CDtOKErTWCaohaXBDnPg6WThOpDJh7xJSMArxKBWkYLEl/ashBaanzjCVkAt3lEIoKmoR8h5k49XLWKElMcQ4U+/gnQ0U1OFsMtFP4ayQFT2i940phpDZKijLfu9Bz84TixnRLYWAS9qLFISNXUKM6YvFzVdUCEQ1HSb/XahNSmpIqISYwvnk/Mu4/HSSLFxnRyJnZ19G5Mp1TZlYJ4lnV1AICVkxslFe376wWbco2CTE7HgABCo6Vl4q6tWzQP4wU3UJLlXocPmq6jtVdYDZ2yevh9a/1//Rq+VksJz4+hhSaEkqV0IOo2YgHWchhwy9ydan2SvuccBlva8jKFdev8xfxw3kUIn4PMsaV2BTuSD5xeTiApT/S173WsWxcEN2PcwJmfjWcYsCOfz4M4XtqGnlxlvYVVIjaM9Wz/LItGAK1f8+EnXyF07hhwW87zxxIFGAkYYOTZry6Lc+VSbeBWlxkMh2eXy2AQfRdyoS+iuZb9BYjTLUt9925gHQG6VyCim87Q6kkPtaZaEdUOe+n2Og39zEqOanjlj1NUthjWxwrhnqCjVBzyXkC2wCveO1mw84+rXdjMfJ5zbth6ltjWg3mhI2nf5BCjVtxk0cZzGFirAkHoiOF5dFQV72IO+GVnW3E/f1zd3N9Ebr1Um1V+adNrYHDfAho74fPaauJhvjjqDov3KM8R/SaUb5
+sidebar_class_name: "delete api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete annotation layer (annotation-layer-pk)"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/annotation_layer/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete annotation layer (annotation-layer-pk)
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The annotation layer pk for this annotation","in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Item deleted"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

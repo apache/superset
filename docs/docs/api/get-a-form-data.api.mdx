@@ -1,0 +1,72 @@
+---
+id: get-a-form-data
+title: "Get a form_data"
+description: "Get a form_data"
+sidebar_label: "Get a form_data"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFlU1v2zAMhv+KwdMGGHNTdECh27q1BXbYoR/YIQgKxmZipbakUnTazPB/H2i7SbP0MGyHnCxTIvXoFUm1EJCxJiGOYKYtWAcGAkoJKTisCQw80gZSYHpqLFMBRrihFGJeUo1gWpBN0GVR2LoldN1MF8fgXaSo86cnJ/rJvRNyokMMobI5ivUuW0Xv1LaLF9gHYrGD98Jz/VCg9FMFxZxtUEcwcFdSEsUzFcluVXrAs7X4+YpygU5N+5FuSBp2MZF3In6CLoWz/zpDTTHikt4T6y/gLrBIVH2KMqBMjoZy77CR0rP9RcXAcnY0lh9ekoVv3AByeno0kK++qYrEeUkC+5xiTMiJlY1yfT5i3lyhYJUQs+feIVLesHJpna+eBcx0psUquNTah8uXUHmm5MpznXzTWpr9GfKaJMG9YqtJSl+AgSUJpEPnMJBhsNl6ktEQMtt6ZO0jbTpQGF6/9pyGKzBQigSTZZXPsSp9FHN+cn4OCvgKfqsyDcr0+C3MCZlYgVHAwPefdzB2JpVmmN11BN1BL2X1LA9MC6ZY/muQLgXrFv6wJ902gTj2WoiVivZNeuRh3XqiJMFHqbHPgbHZHiq8F3+bCEIvkoUKrdM4vYLtqP4UMFjdbAIpjDcAKbyNabSnz1JQndWhbecY6Z6rrlPzU0OsaTJLYY1sca7nmLZQ2KjjAswCq0gHbNs0hw8343PxMdlJt888GtHp67LGqtE/SPvnZnh0ulmXQklYEPfbDzNf8pyCvPE5qCjNmW1eXl/qdWrbeqPe9lLHgUZ/l6dthxV3/pFc123xRP8VsOt+A750f8c=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a form_data"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/explore/form_data/{key}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get a form_data
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"key","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"form_data":{"description":"The stored form_data","type":"string"}},"type":"object"}}},"description":"Returns the stored form_data."},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

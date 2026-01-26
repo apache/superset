@@ -1,0 +1,72 @@
+---
+id: bulk-delete-saved-queries
+title: "Bulk delete saved queries"
+description: "Bulk delete saved queries"
+sidebar_label: "Bulk delete saved queries"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVUtr20AQ/itizgLZIYWwtz7SQymFkoQejDFjaWKtI+1uZkdOXbH/vYzkh5JCKb34pH3M49tvvhn1EJCxJSGOYBY9lN4JOQHTA4bQ2BLFeldso3d6FsuaWtSVFWqjLmQfCAxYJ7QhhpQfT5AZ95CDWGl0vyFZVdSQ0MpWcXUIlVLKwTow8NwRq73DVs2fIS1zYIrBu0hDqqvZTD//jDGwD8RiR++WYsQNTTBHYes2kM6Y/XpLpYygKool26CxwcAd7qjKFKOlmK275ikbH6Mvvp7NLwbswWEntWf7i6oRy/XFsHzzkj36zo1Arq4uBuSj75oqc16ywL6kGDNyYmWvuN5dUEWfUbDJiNnz4BCp7Fhxae9tXwTMYqmyF9xoP8L3UW+wfBvow1mAWZxKE3JoSWpfgYGDQHMIKDUYKDDYYjcvBofV0G8FKAjeHfu/4wYM1CLBFEXjS2xqH8XczG5uhn48Ar5TekZGBtg9rAmZ+LPnFgUMfPlxr6EHMzCHWzhRpBm0GNsXWTE9MsX6f4MM8+PRq/ublu0CcSSZzKDJkT55tNvNFUnwUVocan+YQH/j+FWmkxSEfkoRGrROIw5c9gfyF4DBatq5vuhcAMhBq6ssq1HfrzHSAzcp6fFoooV5k/CkXjjT8Tr7E+2HKZrDDptO74cC7pAtrpWMxTLlUBNWxEOG0eF9WVKQidcfzaFRThL7dPv19v4WctAhNGHiVKrDQhMc/wtuPwnf96PFvX8ilxIcgYvuIS1TSr8BqylKGw==
+sidebar_class_name: "delete api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Bulk delete saved queries"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/saved_query/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Bulk delete saved queries
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"items":{"type":"integer"},"type":"array","title":"get_delete_ids_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Saved queries bulk delete"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

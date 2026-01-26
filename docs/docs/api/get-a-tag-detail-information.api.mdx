@@ -1,0 +1,72 @@
+---
+id: get-a-tag-detail-information
+title: "Get a tag detail information"
+description: "Get an item model"
+sidebar_label: "Get a tag detail information"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV9tu20YQ/ZXFPLUAG9mKHRh8cy8JWrQpENvIgyEII3IkrrXcpXeHthWC/17MUpIpS3Jkp4DfyL3MnDlz22kgp5B5XbF2FlL4RKzQKs1UqtLlZCCBCj2WxOQDpNcNaDlXIReQgMWS5G8OCXi6rbWnHFL2NSUQsoJKhLQBXlRySlumGXlo26SBzFkmy7KNVWV0hoJgcBMERtO7XHlXkWdNQf4yZ+rSxk/BGHriA3ttZ9AmqwX0HhfyP6fF5g2ydQnpNYTC3Y9XIpM+Fb1VgxMyvf94iTUbEgKcJRgl38PwuOAmN5QxJNBJSGFGPBZg46XJrRyOHN/W5BePJN9COxKWQ+Vs6NgYHh11pLyKy13m7iF83GFonkTLZUGqt6KmzisuSHWXlFx6p75qY9SEFHu0wSBTriYLNRFWIQF6wLKKRJyrzzp7Th5s0bxFq1CX78YZQ1rn20KeevjlFMT7/4vxuyQdZranUBveAb5AO6N8PFls7021D7y2q8SHv8nOuID0w8lOlg4+3ParwXVfT1/MaH9SXOLsCwU+r/S7GfG7qyBlI1kb4+w4J8M4LuoSrf5G0eeeMP/XmkVXgOS4J2F8p+2Ysb6LptjaGJyI2q5uLTFNnDOEdlNtZM35EhlSyJHpF9bRqj1CHtlbYfkRGVSiNk/Yfz882nFyitqMjZtpyey6Kw17xK+rcvLCeOgSbVtKdHDU/XpLXxBrCbzYzgpDuHc+fyJ8ePrhAGh1IP+qLOi8l+zLhp7klyXG8WZ4HZQZGzVsL2Xf9/UOIoanRwew2C2sO/FxMkzeJyej5xrlpukiZKN9b1Xmc2V0YOWm6rF3H/5m6HX5HZLjhmKnPNmc/OF1/qJw9+pPaUW/E6M24ZDq3j71GEQJU+9K9U98pLUJnPzQW6CkEHBGO6g5BM6vmCsJdQrcQTl+MyhXFmsunI+hH7GcvBmWz47V1NW2AzIcvhmQ31xtcmUdq8q7jEJQZFlzDPTTN4ybj8hoFHnv4lQAgbLaCy6ZM27uGdLrkTx6GWcye0gJCFIdS+LC5d3jOQ4oUnhggJUe3B0PGGeDppq38lYnf7eaW2pvIIWCuUoHA+MyNIULnJ4dnZ3Fl/VK+YWY2lkXITQwIfTkP6462V9fL2E53sSHQtx9zGPRIMTe3PPY09RTKF4rJE4CU7ddgS7qinygfnnsLYnJ3bm72BwqF7jErtJ3s0Qc8xTjTOWxDClRI8jk2lZ7WMfGzvFwiZjpgQeVQR2fTJHsZumZa8BKC65jiL6EBNJqLo4UD8h+00ww0JU3bSvL3eQjTtuLZJ/iOS3irJTAHZpa9qNz79DrriGJUB3kO4d0iibQM/b+9GXZwH9W+xSuGodd9HWugFRzaEdtAgVhTj5q7zbOs4wq7l3Zyrq2H+if/pBwkdLWS7V10Cw/RPpOOE3Tnbh0c7Jtu0bH8i8A2/Y/GGiH+g==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a tag detail information"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/tag/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get an item model
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"keys":{"items":{"enum":["show_columns","description_columns","label_columns","show_title","none"],"type":"string"},"type":"array"}},"type":"object","title":"get_item_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"id":{"description":"The item id","type":"string"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"result":{"properties":{"changed_by":{"properties":{"first_name":{"maxLength":64,"type":"string"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"TagRestApi.get.User"},"changed_on_delta_humanized":{"readOnly":true},"created_by":{"properties":{"active":{"nullable":true,"type":"boolean"},"changed_on":{"format":"date-time","nullable":true,"type":"string"},"created_on":{"format":"date-time","nullable":true,"type":"string"},"email":{"maxLength":320,"type":"string"},"fail_login_count":{"nullable":true,"type":"integer"},"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_login":{"format":"date-time","nullable":true,"type":"string"},"last_name":{"maxLength":64,"type":"string"},"login_count":{"nullable":true,"type":"integer"},"password":{"maxLength":256,"nullable":true,"type":"string"},"username":{"maxLength":64,"type":"string"}},"required":["email","first_name","last_name","username"],"type":"object","title":"TagRestApi.get.User1"},"created_on_delta_humanized":{"readOnly":true},"description":{"nullable":true,"type":"string"},"id":{"type":"integer"},"name":{"maxLength":250,"nullable":true,"type":"string"},"type":{"enum":[1,2,3,4]}},"type":"object","title":"TagRestApi.get"},"show_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"show_title":{"description":"A title to render. Will be translated by babel","example":"Show Item Details","type":"string"}},"type":"object"}}},"description":"Item from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

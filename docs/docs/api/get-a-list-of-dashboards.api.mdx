@@ -1,0 +1,72 @@
+---
+id: get-a-list-of-dashboards
+title: "Get a list of dashboards"
+description: "Gets a list of dashboards, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata."
+sidebar_label: "Get a list of dashboards"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlWEtv2zgQ/isEL3sR4sSbLArfso8WW3RboE3RQxAYI2lsMaFIlRwlcQ3998WQsk3HcuqkC2Sxe5PI4Ty++TgccilL9IVTDSlr5ES+QfIChFaehJ2JEnyVW3Clz0TrUXxU3hphnXj76cN78bVFtxANOKiR0Hkxs07MlCZ0yswz4a2j8NHAXBlgEwJMKYKcR40FTwvfYKFmqhCF1W1tfJCpkaAEgiOZyY0FOblcysIaQkNyspTQNFoVQfPo2nMES+mLCmvgr8bZBh0p9PzXa+dPRViHD1o0KCfSEzssu2w1AM7Bgv9jNNuLdtQOarKNGxy/Bd1i8N0sPsxCQL2Maescneyy3VXrkdxajWDSod7Xq67LpMOvrXJYysllcCy6sTJ6tY7P5tdY0FDAN7jYjhZNW7M6psR0hWEmrSvRJf8actTJf0KrVIqVkCKNMpPGmtSn/UlIbQ1jHQRK5ZhRkQUrt8EXvTeDphqYY6JSGcJ5yEGYmXr1bc90pO/0GaTqHmYhkxGRiZwjTQNEPYc7Fla8L8NWY8ygZsGvsrvibPvGGh95OD4+jnR85uZo46LtcnBRoSBLoIXDwrpSBDlhjaAKRQ7FDZpSZjsMHkz/nh05jTENmU5GQs1go3GR4EVH4ovSWuQoyIHxGghLkS9EzlyUmcR7qJsA7Ll4r4rH9MkdbuykiVNR+l1Hz9fVkhkgVF8rZ60WdxUasbCtKK35icSNsXdpDIqhO7wWbW+xp6MZ1v8jOA5pOgzBrSryCJSbkvEEfDbFZUBzmBBkhUNTojs85nfs0p/Bi4ECsl0HH4kItLZ3WK4PObLhfHxShA59q/ds0zgnZs7WIStzpGh7VTr2nV/8OevrxLREAqXDhGm1hpwhINfiQOj9Siyn+eKwBRWY+Vp8242Zcp7W5K3h/h2aOVVy8svpgCZVDldlDQcreXBaJvZTNTtH5qZY/77qjT6ip/NGHa2q99FnH73ZxLv2ySGUH4xeRIwSmYC9JphWbQ1GfcPye+ItFcMiDpnM/wuUT2QS8IEQrnvaTa1IYjg7Ps6+z+R9yCg/rcEAZwjvCZ0BrReJ6KZ9k/bO9I3lfztF49BMtblWvooZ2YNugo2zGgeg2Rfss+J8flQfrcbQAup2/sDs+OzsAPZ4Amr9IDkJ5j8W+PjsEP7GgXWXfJKNs5+z06vHetP9eFxA1Fm1dW5A6Wnr9GBwe8fbGODMuhpITuLAd8N4jrMHtOOh6d4+X8PpH4/Wv2yJmrWc/lC/XaP321eP/V3Trj+/QimYyxgDOj0+eTFXPhtoqbIulFv2ZTx+MV9+s60uhbEkGmcL9F6gIUWhdTp7wXS9Br5BoXPWhQUei9axX3z5v74jObm84vtc3PyXG/Z6LlA1UmXLeDsMjyG8zeUIGjW6PRmtT7ORZMXudvVKEjabrIiayWikbQG6sp4mr45fvQqXx5UTnzjkGGVwZSlzBIfu9Wozvv1ywaqDGJfpMLtphdkCA3x9R1OHM4e+eq6ScNmd2d3+9lPboPOY7vBkiEOOcrehH2ispxpCPvvr8hukwUct+SBTCT/+nS9hPVyE9zRqNKhwWvZlNRLjUkKjGJQTmbQ6MpNMJWYAiyyXOXj87HTX8XC8ITBp9qKxz/YNLsJzxPpdSwZy3YJTsXJfXnWZrBBKdMFCXHBeFNhQsmpnM3Yp89/8wezhQpP2UisO9R/JSxqYRaJ7uYwSF/YGTdfJldfE/+HhrPsbF9xPvg==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a list of dashboards"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/dashboard/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Gets a list of dashboards, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"filters":{"items":{"properties":{"col":{"type":"string"},"opr":{"type":"string"},"value":{"anyOf":[{"type":"number"},{"type":"string"},{"type":"boolean"},{"type":"array"}]}},"required":["col","opr","value"],"type":"object"},"type":"array"},"keys":{"items":{"enum":["list_columns","order_columns","label_columns","description_columns","list_title","none"],"type":"string"},"type":"array"},"order_column":{"type":"string"},"order_direction":{"enum":["asc","desc"],"type":"string"},"page":{"type":"integer"},"page_size":{"type":"integer"},"select_columns":{"items":{"type":"string"},"type":"array"}},"type":"object","title":"get_list_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"description":"The total record count on the backend","type":"number"},"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"ids":{"description":"A list of item ids, useful when you don't know the column id","items":{"type":"string"},"type":"array"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"list_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"list_title":{"description":"A title to render. Will be translated by babel","example":"List Items","type":"string"},"order_columns":{"description":"A list of allowed columns to sort","items":{"type":"string"},"type":"array"},"result":{"description":"The result from the get list query","items":{"properties":{"certification_details":{"nullable":true,"type":"string"},"certified_by":{"nullable":true,"type":"string"},"changed_by":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"DashboardRestApi.get_list.User"},"changed_by_name":{"readOnly":true},"changed_on_delta_humanized":{"readOnly":true},"changed_on_utc":{"readOnly":true},"created_by":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"DashboardRestApi.get_list.User1"},"created_on_delta_humanized":{"readOnly":true},"dashboard_title":{"maxLength":500,"nullable":true,"type":"string"},"id":{"type":"integer"},"is_managed_externally":{"type":"boolean"},"owners":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"DashboardRestApi.get_list.User2"},"published":{"nullable":true,"type":"boolean"},"roles":{"properties":{"id":{"type":"integer"},"name":{"maxLength":64,"type":"string"}},"required":["name"],"type":"object","title":"DashboardRestApi.get_list.Role"},"slug":{"maxLength":255,"nullable":true,"type":"string"},"status":{"readOnly":true},"tags":{"properties":{"id":{"type":"integer"},"name":{"maxLength":250,"nullable":true,"type":"string"},"type":{"enum":[1,2,3,4]}},"type":"object","title":"DashboardRestApi.get_list.Tag"},"thumbnail_url":{"readOnly":true},"url":{"readOnly":true},"uuid":{"format":"uuid","nullable":true,"type":"string"}},"type":"object","title":"DashboardRestApi.get_list"},"type":"array"}},"type":"object"}}},"description":"Items from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

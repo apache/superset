@@ -1,0 +1,72 @@
+---
+id: get-recent-activity-data-for-a-user
+title: "Get recent activity data for a user"
+description: "Get recent activity data for a user"
+sidebar_label: "Get recent activity data for a user"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVt9v4zYM/lcEPm2A17T7ARR+64D1hqFPuRZ7KIqAsRlbrSypEp0uZ/h/HyjHjVOnt8PtoU9xRIr8SH4k1YHHgA0xhQj5fQclxSJoz9pZyOG2JqVL5TaKa1JtpAAZaJF45BoysNgQ5CCSlS4hg0DPrQ5UQs6hpQxiUVODkHfAOy+q2jJVFKDvsw4KZ5ksixi9N7pAcbx4jOK9m1z2wXkKrCkm3ULU0qdmauLEfOSgbQV9Nh5gCLiT/6WOrG3BE+W1c4bQitRjRROJbZu1gBwEq6i/nJIevLj1IxUMGbBmIwcV8SpQQZZXgnarebfah9PLvZTE55bC7pDFZ+gfJIPROxuHSH8+P5ef78xToNiadOu4rFfK6MhS1gGiGiGqIY4oVR4Teyr1J0ymc8X4RFYNorW2lZL8iKPRA2TzSomr1T5xMwbKsRgQpfcvp9PZ3b1vUckUnVVnKhpdkHJBlRjrtcNQvmuzDWZu8m55o9i9C4Z1czKG5igHmdJWkXdFrRptjI5UOFvGg8ED+8TgqiTDuKrbBq3+Iq311sGfIvopEJa4NqQmQnFbuxdlnK0UVu5QaXbuSXmDBZ3NI/kKsZeJMVdjOWeN9s1Xl3uef550xVua3vwHTfsMfv1fHdJQjMed/24KTgD8HUslA48iD1AuPgzKncWWaxcSQRKWXz4My7ULa12WlAbrbx9Yn2tkNIpCcMOwjlS0QVgrm+7xhSG/f5CRy1jJ9oMbVy0p8pXX8PDW1ifiGQ1LZFQbFxSOu7Ehrl05zH/Ihi2ZwwK9XmwvFsZVizdLYQECK2zH/ZumDtTMPl8sjCvQ1C5yfnl+eZm2wxhC6pohRymQDtaEgcK1Cw0y5PDX37ewX79p1SXpodPFg5Tn8UX21CZQrL/XSNpmGzcfS59bTyHSdARMjiTkQW97kRati9xgYsN+H35byo98vtKE6R9eeIM6kXA/y4dy3AN6LQAuIAPjqvRqOSoKZCAEkMyLetetMdJdMH0vx8PWnj2WJhyHQ4qOcTzRLu35DLZoWpGnom4xaJncg1Ed5buEfIMm0izAg5cflvvH1o/q5EPtJIRxWtvdFMUIbXzI9Q99BjVhSSGBGqRXRUGeJ/dmrSzRvPbApz+EPTKXpm+ukUP7D7F+ElPXDRq37ols379CZPkvAPv+X38at7U=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get recent activity data for a user"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/log/recent_activity/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get recent activity data for a user
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The id of the user","in":"path","name":"user_id","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"actions":{"items":{"type":"string"},"type":"array"},"distinct":{"type":"boolean"},"page":{"type":"number"},"page_size":{"type":"number"}},"type":"object","title":"get_recent_activity_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"description":"A list of recent activity objects","items":{"properties":{"action":{"description":"Action taken describing type of activity","type":"string"},"item_title":{"description":"Title of item","type":"string"},"item_type":{"description":"Type of item, e.g. slice or dashboard","type":"string"},"item_url":{"description":"URL to item","type":"string"},"time":{"description":"Time of activity, in epoch milliseconds","type":"number"},"time_delta_humanized":{"description":"Human-readable description of how long ago activity took place.","type":"string"}},"type":"object","title":"RecentActivity"},"type":"array"}},"type":"object","title":"RecentActivityResponseSchema"}}},"description":"A List of recent activity objects"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"403":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Forbidden"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

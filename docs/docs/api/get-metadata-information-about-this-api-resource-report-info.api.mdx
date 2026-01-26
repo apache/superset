@@ -1,0 +1,72 @@
+---
+id: get-metadata-information-about-this-api-resource-report-info
+title: "Get metadata information about this API resource (report--info)"
+description: "Get metadata information about this API resource"
+sidebar_label: "Get metadata information about this API resource (report--info)"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVlFv2zgM/isCn26Ad2mLO6Dw2zZswwYcMNw67CEIAtlmYrWypFJ0dp7h/36gHLdOk27Y7oDuybb0kfxEfiLdQ4WxJBPYeAc5vEVWDbKuNGtl3MZTo2VL6cK3rLg2Ub348E4RRt9SiZBB0KQbZKQI+bKH0jtGx5D3oEOwpkz2i+so/nuIZY2NlrdAPiCxwZiwVbUuvW0bN30asdP2wwHs0CjoLcqTu4CQg3GMWyQYsrSzjubrye0hm5Z8cY0lw6kFrAz/WoxusEsxDGOTXtC1DeTLg9w9IJ7BxthUmwwCUmNiND6tixEbtjiZTB/OO4TVXfzIZNx2RkgT6e4E5QxGDzlskdeinfW+2IOAjcjrtkXqJIZuBHgLwyoDwhi8i2MCL87O5PH/qOi7RT0CTNk68jwarUfisxocoqbtw0t1VaMaHSsB/K4+G2tVgYpJu2g1Y6WKThW6QAsnEi8RNHv6pucRJFf1BjvFXrURlXfKmsjqXgQPnH9DeI/VeThU0klObURSM5TaeDrZPO7y+KNqS5o6DPyOsVEb8o36y1doxckf/0lNDcZ4eJ8fT9sxnZe6UoS3LUYeqZw/GZVPTrdcezJfsUpcLi6ejMsr39pKOc8qkC8xRoWODXfC688nLNcbzdoqJPJjP45YtiS8ZKhdf2HIlyvpVqy3MujgbwyeWH0sa6xai1FaZoNc+2rsgGkycg05LHQwi935gpLFIrVGkAC0m4ZmSxZyqJlDvlhYX2pb+8j55dnlZWqRExmJ1oynTZR6KFAT0ps0pyGH95+vxHWCQb7fvb/2EkESff2F14Qbwlj/rJPU0jf++P5/bANSxPlAmC3JkUfc7jy1Eh+50e6+ef7wL4j6bUzs8+cCfgYPCjuT08/83ezPzPgPL4LVxgnpVK5+X98l6GDkZOcgs0yoQAZjlVcZSCEF1PeFjviJ7DDI8jgJpfaPsn0s+g12aXZmsNO2lf2kkZ0mowvJ93I1ZFCjrpBShNHgRVli4JnV0d0a5hJ++1pEIH1jdqHupLB/Ee9To3bdzHffj4grf4NuGGBizfINw2oYhn8BNhqk4w==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get metadata information about this API resource (report--info)"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/report/_info"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get metadata information about this API resource
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"properties":{"add_columns":{"additionalProperties":{"properties":{"page":{"type":"integer"},"page_size":{"type":"integer"}},"type":"object"},"type":"object"},"edit_columns":{"additionalProperties":{"properties":{"page":{"type":"integer"},"page_size":{"type":"integer"}},"type":"object"},"type":"object"},"keys":{"items":{"enum":["add_columns","edit_columns","filters","permissions","add_title","edit_title","none"],"type":"string"},"type":"array"}},"type":"object","title":"get_info_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"add_columns":{"type":"object"},"edit_columns":{"type":"object"},"filters":{"properties":{"column_name":{"items":{"properties":{"name":{"description":"The filter name. Will be translated by babel","type":"string"},"operator":{"description":"The filter operation key to use on list filters","type":"string"}},"type":"object"},"type":"array"}},"type":"object"},"permissions":{"description":"The user permissions for this API resource","items":{"type":"string"},"type":"array"}},"type":"object"}}},"description":"Item from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

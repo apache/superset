@@ -1,0 +1,72 @@
+---
+id: get-a-chart-detail-information
+title: "Get a chart detail information"
+description: "Get an item model"
+sidebar_label: "Get a chart detail information"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV99v2zYQ/lcIPm2AECdZMhR6y9q12LB1QJOgD4YhnKSzxZgiFfLkxBX0vw9H2rEa26mdDcibRPLuvvt4vB+dLNEXTjWkrJGp/IQkwAhFWIvalqhlIhtwUCOh8zIdd1LxuQaokok0UCP/zWUiHd63ymEpU3ItJtIXFdYg007SsuFTyhDO0Mm+TzpZWENoiLehabQqgBGM7jzD6AbCjbMNOlLo+a+wuq1N+GSMfqDek1NmJvtkvQDOwZL/57j8XgJNW8t0LH1lH7K1ymRIxWBVQ4568B+ESJFGJsAalJPkRxg2Cza/w4JkIqOGVM6QMgaWrVzu+XDg+L5Ft9yQfC/7CbPsG2t8ZOP89DSS8ioud7m7h/AsYuieRctNhWKwIqbWCapQRCHBQifiq9Ja5CjIgfEaCEuRL0XOrMpE4iPUTSDiSnxWxUv65BbNW7QydeVunCGkVbmt5PkNH09BkP9fnN+l6TC3HfpW0w7wUFSYkarRtmHbtFpDzkbjM33+OBNZsPR0FUVZiQRK+xdEN0SuJLHM8uVhAhWYGZZZsKMJsqqtwahvGC7RIZT/GL2M4n0iS/BVbsGVO27paW/1NtNO1vD4F5oZVTK9PD1Nfgwnxs42I/ySshoJSiA4wLEXnvv7Chx9QU9XjTqZIZ18WONmQ9/F1gH87QOsfFaDAaYWHwmdAa2Xg6O5tRrB8FH7YEJmf87nVDlPT0E/oPLXiyOAaDhYST8sIeOh/aGayRHU3voIIhSwwyI45NwsJNTHl57LRsJrVeAuF88vDwk5gtkO8vfR+XozYeGp8p0l58kvycXkqEi9gaiqauvcgNJZ6/TOZ7pvfaG+ZWsgR3pwBM5wKcPCvpWzr4RWnoSdik1VP7ybGNT/HZrDhiArHJoS3eEV4LqyD+IPLlIfVhn3gLzfP88ZMmiYOluLv0P71ify4j91CTV6DzPcQc0hcH6DUvCrRk8RytmbQbk10FJlXaguAcvFm2H5bElMbWsikPPzNwPy3ra6FMaSaJwt0HuBhhSFQL98w7j5CARaoHM2zAvSY9E6xsUTyN0DyXQ84XY4ps9xTAKeq0ONVNkyNtZheOEUI0fQqNHibFTwuVHXzHvu5NEt1lNNyFmyImrS0UjbAnRlPaXvTt+9C333GsA1uxs9DDA6mSM4dB+tq4FkKv/8eiNXw0+otGF385bZQmgpHihzOHXoq9cqCXPC1G5noeu2QedxmCQHS+xyPLc4C9XReqoh9htx0ghDoAhUidj+CTbE2Fhwq015ipCd4+MKMxfUUaNBha5jVSLi7YwlNIqRncnQEjqGmTZzvk6+BT7RdTl4vHW673k5zkZ8cXux7DM9x2WYphK5AN3yfrjgBTgVCxArVZ6/S5lOQXt8weOfvqx6lp/FPoPrAmKWQ5trIM1c9pM+kRVCiS5YjxtXRYENDUS2Xl8/DPdPv3PIcIob9nnrwFl9sPadcLounrixczR9/4SO+J8B9v2/lhiYZw==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a chart detail information"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/chart/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get an item model
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"keys":{"items":{"enum":["show_columns","description_columns","label_columns","show_title","none"],"type":"string"},"type":"array"}},"type":"object","title":"get_item_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"id":{"description":"The item id","type":"string"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"result":{"properties":{"cache_timeout":{"nullable":true,"type":"integer"},"certification_details":{"nullable":true,"type":"string"},"certified_by":{"nullable":true,"type":"string"},"changed_on_delta_humanized":{"readOnly":true},"dashboards":{"properties":{"dashboard_title":{"maxLength":500,"nullable":true,"type":"string"},"id":{"type":"integer"},"json_metadata":{"nullable":true,"type":"string"}},"type":"object","title":"ChartRestApi.get.Dashboard"},"description":{"nullable":true,"type":"string"},"id":{"type":"integer"},"is_managed_externally":{"type":"boolean"},"owners":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"ChartRestApi.get.User"},"params":{"nullable":true,"type":"string"},"query_context":{"nullable":true,"type":"string"},"slice_name":{"maxLength":250,"nullable":true,"type":"string"},"tags":{"properties":{"id":{"type":"integer"},"name":{"maxLength":250,"nullable":true,"type":"string"},"type":{"enum":[1,2,3,4]}},"type":"object","title":"ChartRestApi.get.Tag"},"thumbnail_url":{"readOnly":true},"url":{"readOnly":true},"viz_type":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"ChartRestApi.get"},"show_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"show_title":{"description":"A title to render. Will be translated by babel","example":"Show Item Details","type":"string"}},"type":"object"}}},"description":"Item from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

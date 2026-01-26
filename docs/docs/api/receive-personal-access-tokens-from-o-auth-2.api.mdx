@@ -1,0 +1,72 @@
+---
+id: receive-personal-access-tokens-from-o-auth-2
+title: "Receive personal access tokens from OAuth2"
+description: "-> Receive and store personal access tokens from OAuth for user-level authorization"
+sidebar_label: "Receive personal access tokens from OAuth2"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVNtq20AQ/ZVlnhWUhBSCHgopbVpKL9Ck9CGYMl6NrXVW2s3syKkr9O9lJCtx0qQNgdInWzu3MzNnTgclJcsuigsNFLD30nwhS25NBpvSJAlMJhKn0KA3aC2lZCRcUpPMgkNtPp+0UplFYNMm4j1Pa/IGW6kCu584ZM0gImNNQpyguOjAaaWrlngDGTRYExSQBIUgg2QrqhGKDmQTRwO7Zgl9nz0caEP5rLhkQ3xWIDEH/mPgLAOmFEOTKKn9cH9ff2xohBoZIuiH5JXUXj8eT9Rn99ZzYsq2rjcmkV/sWR+Sa5bm3fnHDybikqDP4Oi3Whijd3ZYRb5Kmma3ZOQQicWNSGtKSRM9NI3pJcxXZOUhdK+wNExXLSUZoRz9NyifgphFaJtSgbz4jzM5RUFvRs6oNZFt2clmOITVtUBxMVPCCC71OOA1Cs4xEcwyqEmqUEIBS5LhiqSCAnKMLl8f5OXWMw96boe5UpJ4PR1Zyx4KqERikec+WPRVSFIc7x8fgxacgJxp22OnA5wO5oRMfBq4RoEC3n87n9iurY5WuGldK+iQV9fynWnBlKrnJukzcM0iaPjdIZ61KkHDEMSJp7tP2vLotz5QJDEkqXHY6fZkJ0n7q5Adwr397bDmH2njdgKDIkSPrtEWhuV1241fAEanfR4ouokfGYx7hwyUK7pcde06tX5l3/f6PGqX8qF0CeeeSigW6BNlcEmbHd1do28VB6jsPeK7ldqnuE7q+hTfSVBvfWf6wU6dh/vIoCIsiYdGxqATaynKTtStpPa7p/P2jRJPJ7VzwDf02/7RtFsTNpudpF03epzrVvseJsjDlqGf9X3/C6g2eJA=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Receive personal access tokens from OAuth2"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/oauth2/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+-&gt; Receive and store personal access tokens from OAuth for user-level authorization
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"query","name":"state","schema":{"type":"string"}},{"in":"query","name":"code","schema":{"type":"string"}},{"in":"query","name":"scope","schema":{"type":"string"}},{"in":"query","name":"error","schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"text/html":{"schema":{"type":"string"}}},"description":"A dummy self-closing HTML page"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

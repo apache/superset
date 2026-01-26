@@ -1,0 +1,72 @@
+---
+id: update-security-users-by-pk
+title: "Update security users by pk"
+description: "Update security users by pk"
+sidebar_label: "Update security users by pk"
+hide_title: true
+hide_table_of_contents: true
+api: eJztV01v4zYQ/SvEXLYF1DoOdoFAl2J30QVStEWxSdCDYRhjaWwxlkguOXLiCvrvxZCS7SROWnQP6WFvIvlmODN886EOHHpsiMkHyGcdaAM5OOQKMjDYkKw2kIGnL632VELOvqUMQlFRg5B3wDsnKG2Y1uSh7+cJTYE/2HInkMIaJsPyic7VukDW1kxugzWyd9DlvHXkWVOI2IL1luSrpFB47UQKcrgMqg3kVTr/6ZLfBGUsK1Rra0vlbK2LnWKrPDV2SwojPFO3bWDV4IaUZqXNoD4bPVhaWxMa6DOgBnX99OLriqKqN0ElxF42sNdmLaIr7QMvUuhekI8wFWEnlNT4b3QI6lkVDkO4s758UcMIUivrFbZckeHhdU7p9LZOL/OswoTIQDM14RQ7Mmi0uUyn0/0V6D3u5FDU/KPfe1AGDd7/SmbNFeTn786i8nE9feJAv9+xy1sqWFzUXMvGVevIB+KbQP690z+6lqEXgYdG/GZLqtXA18dJIQGi4KwJKUjnZ2dfQX5Poa35W1J8S4r/WVI8xp9IE3FFFRWaNZXiwNuvyoSGQsA1HQXuWdtP2PIBSzW0o2TK9NVMuTHCJuv1X2NY3r6aLb9bVivbmmTI+fmrGfLRtnUZK5XztqAQlKQbR+K/e0XefELGWpH31keBQEXrxS6Zkm7vGPLZXEYdxrVMTnA1nCvJlgDzDMSWaOllCTm0rkSmxahmIfkaFsvdIo5Xj4gSsWrExtwOarlTEdsQV1ZUSj5maVjLYYJOT7bTySg0iUKTzm16EOv9dhzxWl9DDhWzyyeT2hZYVzZwfnF2cQHi0ajhSuKaQhn97WBJ6Ml/sr5Bhhx++fMahkkwtop4eiiRcoO84u0dLzytPIXqvyoRLcGaz4ex8ud7bFxNxx0xDaZDlxrf+mHvOeweNZPD5qE9HPaG8j47mx8X4qP6r83KPq3MY+08UU4hA3mLhNtOY1+ygRuMbB70v0yBB3ft6c10zxNXo47tOj5zN9BjBui0XDyFIyonj6Q15W4jlBUiCLjrlhjoxtd9L9tfWvJC/HkGW/Qal+LPrINSB/kuIV9hHeiJXfvEhe8+D6PS9+rwtg/tHbueEbu2WLeyggw2tEs/If28z6AiLMnH29PBx3THD9cifhB8Uij6bJR4XxTk+EXs/CjL/rgRgi6HX5nGliLi8U64gXfJRhtdTnOb7HVQo1m3sfpAUikclvJ/9F57rg8f4tTJKHRdQlzbDZm+3weFZS1x6fu/ASGoxno=
+sidebar_class_name: "put api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update security users by pk"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/security/users/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update security users by pk
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"properties":{"active":{"description":"Is user active?It's not a good policy to remove a user, just make it inactive","type":"boolean"},"email":{"description":"The user's email","type":"string"},"first_name":{"description":"The user's first name","type":"string"},"last_name":{"description":"The user's last name","type":"string"},"password":{"description":"The user's password for authentication","type":"string"},"roles":{"description":"The user's roles","items":{"type":"integer"},"minItems":1,"type":"array"},"username":{"description":"The user's username","maxLength":250,"minLength":1,"type":"string"}},"type":"object","title":"SupersetUserApi.put"}}},"description":"Model schema","required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"properties":{"active":{"description":"Is user active?It's not a good policy to remove a user, just make it inactive","type":"boolean"},"email":{"description":"The user's email","type":"string"},"first_name":{"description":"The user's first name","type":"string"},"last_name":{"description":"The user's last name","type":"string"},"password":{"description":"The user's password for authentication","type":"string"},"roles":{"description":"The user's roles","items":{"type":"integer"},"minItems":1,"type":"array"},"username":{"description":"The user's username","maxLength":250,"minLength":1,"type":"string"}},"type":"object","title":"SupersetUserApi.put"}},"type":"object"}}},"description":"Item changed"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

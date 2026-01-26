@@ -1,0 +1,72 @@
+---
+id: delete-a-dataset
+title: "Delete a dataset"
+description: "Delete a dataset"
+sidebar_label: "Delete a dataset"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFlU1v2zAMhv+KwdMGGHDSdUDh27C2h2HYYW2xQxAMjM3ESmxJpeh0maH/PtB23AbpaZecLNGU+PjlhzvwyNiQEAfIFx0YCzl4lApSsNiQ7naQAtNza5hKyIVbSiEUFTUIeQdy8OplrNCGGGJcqnfwzgYK6nA1m+mjcFbIii7R+9oUKMbZbBucVdvrhZ6dJxYznG4oBNzQm0hB2NgNxJgeLW61pUIgqqmkULDxejfkcIuCgSQpqSYhiClcz+YXo3my2Erl2PylcmD5dDGWe8crU5ZkB5Dri4H8cJKsXWsHRa6uLgby1bV1mVgniWdXUAgJWTFyUK7PF6zhexSsE2J23B8IVLSsXNqv2xeBfLHUphPcaA8faz7A8qwb+i5IMCkHF0ihIalcCTmMHZIOzZ9Dht5k+3k2umad30XQ4Lw/zoqWa8ihEvF5ltWuwLpyQfKb2c0NKNAR9EFlGZTocTtYETLxveMGBXL49usRxpGiUgxvYZJGI2gSti/ym2nNFKr/vSSmYOza6fFTaR5aTzxIIkZqOjXpJw9++7mSeBekwT7n45B8R9qTAFPmhf5I5ms0feP1Enaj5gtAbzTaXE9P9+R+p6lUbdWn61YY6InrGNX83BJrKSxT2CMbXCn7ooPSBF2XkK+xDnSGM5UyfPg5zvaPyatcp5ijEe1B8bBudQcp7Ogw/CDiMqZQEZbEffThxZeiIC9vjpw1jZbJVIK3d9/vHu8gBZ2SbySbUjkuNMC7RF03eDy6HdkYJ0DRvTLG+A8+CWHl
+sidebar_class_name: "delete api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete a dataset"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/dataset/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete a dataset
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Dataset delete"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"403":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Forbidden"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,72 @@
+---
+id: return-an-advanced-data-type-response
+title: "Return an AdvancedDataTypeResponse"
+description: "Returns an AdvancedDataTypeResponse object populated with the passed in args."
+sidebar_label: "Return an AdvancedDataTypeResponse"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVU2P20YM/SsDnlpAiNdpCix0S9Fu0B56SDbowTAEWqKt2UgzsxzKW1fQfy84kh05XrdAEmBP+hiS88hHPvZQUSzZBrHeQQ7vSTp20aAzb6s9upKqX1Hw/hDoPcXgXSTjNw9Uigk+dA0KVebJSm2kJhMwRqqMdQZ5F19BBgEZWxLiCPmqh9I7ISeQ94AhNLZEvXfxEPXyHmJZU4v6FtgHYrEU9UsOgfRZ0Ra7RiCH4Fkgmw4gClu3gyGDPTbd6GOF2njuVIsENWqt+308XZ5CIDMeYBgyYHrsLFMF+Wo8PEVdn6zHEigAK01yn4pVVChYqFVRercnlmJKatDYVmv82BEfIAOHrbo+wrDWW8fqJsivb2708ZXVqmwMDR6KhHqswJzi+5rMWDDDFJgiOUmBjd9OLLKyOCX9TJGJ2XPRUoy4o8/8nNNgq2JrGyEuFBuK53NaLnzOibhC5TyROU7zQ4nObMigO4x/fnwO+QXZ1/j8svk/zEg8R/F/Y1JjNBsiZziNFlWvFMibb2L4eukvUnoG8S9YGW1yijJCWb4YlI8OO6k923+oGrH89GJY7jxvbFWRG4G8eTEgf3oxW9+5VJGfX7BR7lCwMWnak0OksmMrhyTlD08C+Wqt2iW4U3k/jYLRWTA6DCqZLUntK8hhR5I2gtSQwwKDXeyXi0vhXEzCCXoh74+ro+NmkvB8sWh8iU3to+S3N7e3SUCP4NKkjtkniD1sCJn4znOLugX++OteQyczyKfTz2JxXBIPT1IwbZli/bVBkuBv/aVyfegCcaS54Mx+acqj3X6pSIKP0mLieVoZ45b+ryUNX3A566DvvuOnnIX+lkVo0KYBSnT1E9srwGA1syVkz6xKyODI+ToDpVVd+n6DkT5yMwz6e9ya2glXE7uG5RMd0p6ddopaasfskS1utPqr9ZBBTVgRpxtGh7dlSUFmXheTN8zb+91v2hKqZ7NxOzXG9KLRj0vIHWax+360uPefyA0DHFGLfsOwHobhXwfHXwU=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Return an AdvancedDataTypeResponse"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/advanced_data_type/convert"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Returns an AdvancedDataTypeResponse object populated with the passed in args.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"properties":{"type":{"default":"port","type":"string"},"values":{"items":{"default":"http"},"minItems":1,"type":"array"}},"required":["type","values"],"type":"object","title":"advanced_data_type_convert_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"display_value":{"description":"The string representation of the parsed values","type":"string"},"error_message":{"type":"string"},"valid_filter_operators":{"items":{"type":"string"},"type":"array"},"values":{"items":{"description":"parsed value (can be any value)","type":"string"},"type":"array"}},"type":"object","title":"AdvancedDataTypeSchema"}}},"description":"AdvancedDataTypeResponse object has been returned."},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"403":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Forbidden"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

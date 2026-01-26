@@ -1,0 +1,72 @@
+---
+id: get-a-log-detail-information
+title: "Get a log detail information"
+description: "Get an item model"
+sidebar_label: "Get a log detail information"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVktv4zYQ/ivEnFpAjeMgWwS6pY9dtNjuYZNgD4Zh0NJYYkyRDDlK4gr678WQdqzEduJuC+TG18x8882D00GJofDKkbIGcviEJKQRirARjS1RQwZOetkgoQ+QTzpQ/M5JqiEDIxvk3RIy8HjXKo8l5ORbzCAUNTYS8g5o5fiVMoQVeuj7rIPCGkJDfC2d06qQjGB0GxhGNxB23jr0pDDwrrC6bUxcMsYwUB/IK1NBn20OpPdyxfslrp5LoGkbyCcQavsw26jMhlQMTrWcox7soxAp0sgEWIMwzd7CsD2w81ssCDJIGnKokGYMbLZ2uefHkeO7Fv1qS/Id9FNmOThrQmLj7PQ0kfJdXO5z9wDhs4She5Et1zWKwYlYWC+oRpGEBAudiG9KazFHQV6aoCVhKeYrMWdWIQN8lI2LRFyKL6p4TR/s0LxDK1NX7scZU1qVu0peRvjfUxDl/xfn92k6zm2PodW0C14WCWgHjXz8jKaiGvIP47MMTKu1nLP1VK87tJQy1HMrfTlLnB4QeCrrDEqihl8urG8kQQ6lJPyJVBNL5U17rY+JO0tF+ra5TYK/qdnjAr1H/4KG8enZ+RG4glYFHs1BG5Kd52Hg000CDRD8fL4vuNtOOtkKTg+3kM+2+oqBLp06qZBObsIWyZGwX+lPz5VHPoZdc6cgLoVWgYRdiG3LPL5VD5rrHs3xQpAVHk2J/vjyuqrtg/iDO8BvSFLpcExR8dFzBFHDwttG/BX/xj6D8//UghsMQVa4h5pj4PwiS8G5goESlPG7QbkxsqXaevU3lgnL+bth+WJJLGxrEpCzs3cD8qttdSmMJeG8LTAEgYYUxUT/8I5581GS1AK9t6n0AxatZ1w83t0+EOSTKc8aJCse+QYtgLtQg1TbMk0ucTrkRgYj6dTofjzSthp1btnzoIT+fjM0tl5DDjWRy0cjbQupaxsovzi9uIhjzQbCFTucfIxAOpij9Og/bn6UP79dw3q2ZCfT7baa2UL8Gh5o5nHhMdTfqySOYQu724euWoc+4LBJDo7Y5fTufsxInA3UyPRPpUEuzthC20qUsRkJNsPIWOxFrAYZsnc2XyMmfKSR01KZ2PiZ7G4dmQlIpxjXmGdZW0EGuVtyIDkCfN91cxnwxuu+5+M0dnLQDiI5ZHiJqzioZnAvdcv3Mbj30qv0+7BSFXhdQr6QOuAr/v7wdf0P/igOGdx8H2Y1tLkB4pbQT/sMapQlf8qTbn1xWRToaCCyU3v9MNE//c7pwg1uUHBPSbNesPa9cLouvbi2SzR9/4SOeM8A+/4fZoyqHg==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a log detail information"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/log/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get an item model
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"keys":{"items":{"enum":["show_columns","description_columns","label_columns","show_title","none"],"type":"string"},"type":"array"}},"type":"object","title":"get_item_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"id":{"description":"The item id","type":"string"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"result":{"properties":{"action":{"maxLength":512,"nullable":true,"type":"string"},"dashboard_id":{"nullable":true,"type":"integer"},"dttm":{"format":"date-time","nullable":true,"type":"string"},"duration_ms":{"nullable":true,"type":"integer"},"json":{"nullable":true,"type":"string"},"referrer":{"maxLength":1024,"nullable":true,"type":"string"},"slice_id":{"nullable":true,"type":"integer"},"user":{"properties":{"username":{"maxLength":64,"type":"string"}},"required":["username"],"type":"object","title":"LogRestApi.get.User"},"user_id":{"nullable":true,"type":"integer"}},"type":"object","title":"LogRestApi.get"},"show_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"show_title":{"description":"A title to render. Will be translated by babel","example":"Show Item Details","type":"string"}},"type":"object"}}},"description":"Item from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

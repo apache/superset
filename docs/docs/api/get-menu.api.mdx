@@ -1,0 +1,64 @@
+---
+id: get-menu
+title: "Get menu"
+description: "Get the menu data structure. Returns a forest like structure with the menu the user has access to"
+sidebar_label: "Get menu"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VE1v2zAM/SsCz8acDDsUvu2wFR02YOgHdgiCQlHYSKktaRSdLDP83wfKaT7qdhg2YCfTNPX0yPfoDpaYDLnILnio4BJZsUXVoG/VUrNWiak13BK+UdfILfmktHoIhIlV7R7xWKC2ju3xtARtQlJWJ6WNwZQUByiAMMXgEyaoOng7mcjDBM/oWUIdY+2MFkLlOgmrDpKx2GiJIoWIxG44TZjaOp86b+OLEHCMTVLOP+N73hUUkOvG2Ma6epmjQwHvIkIFYbFGw9AXTwlNpHfy7szA95zNlQleed2g4qCSDVvho9i6NExK8OEAlpicXwlarRdYj+G+EjLvBsABCH+PI5VjmFuLynlG8ro+ns+whWp0FLVURGpcSi74+4zyAnpLL3AU8Lvrz3/C7zjG1+Y6rpDU2LgH0wrEu8n0H4zVYEp6hSeiv053TObO65ZtIPcTl/lEQtOS4x1Usw7WW4ZqNu/nBbBeJahm2a8wL0AoZIJXS6hghXwvPUEBDbIN+xwUEDVbqKDU0ZWbaSlFJcg1tEFK+ZYsC1jmWJVlHYyubUhcXUwuLkCufqJ0IxMYms7EOligJqSPgRrNUMGnb7cCncug2n89yig3yLzXW74nfCBM9m9BZIH8Qxi76aaNSCl3zo5rPE9Jy0PdZipMYkjc6Czv4PyDOeCZUCf2+C9/vn23jD+4jLV2/mR/BklnoKOTnqZZ9ExZjCHaydeuW+iEd1T3vaS/t0hiqnkBG01OL2Q2s3lfgEW9RMpOeMQdVPDeGIx5XLpu83I9XwdxxcFnlx9EMLHxyQ4cZNsHgv60qn53gt11Q8VteETf91DsSbC8Qz/v+/4XzPo7jA==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get menu"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/menu/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get the menu data structure. Returns a forest like structure with the menu the user has access to
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"description":"Menu items in a forest like data structure","items":{"properties":{"childs":{"items":{"type":"object"},"type":"array"},"icon":{"description":"Icon name to show for this menu item","type":"string"},"label":{"description":"Pretty name for the menu item","type":"string"},"name":{"description":"The internal menu item name, maps to permission_name","type":"string"},"url":{"description":"The URL for the menu item","type":"string"}},"type":"object"},"type":"array"}},"type":"object"}}},"description":"Get menu data"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"}}}
+>
+  
+</StatusCodes>
+
+
+      

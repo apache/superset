@@ -1,0 +1,72 @@
+---
+id: get-security-users
+title: "Get security users"
+description: "Get a list of models"
+sidebar_label: "Get security users"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFWN9P5DYQ/lcsv/QlZYHSCuWNVr3TVddWKqB7QGjlJLMbg2OH8QTYW+V/r8ZOdrOXLFq4qrzF9njmmx/+PM5aFuBz1DVpZ2UqPwIJJYz2JNxCVK4A42Uia4WqAgL0Mr1Zy9xZAksyXUtV10bnirfP7jzrWEufl1Ap/qrR1YCkwfMod6apbPjUBFX4oFUNMpWeUNulbJN+QiGqFY8X2kS7g00jtZOaXI2T84/KNBCw29Xfi+BQJ2ObKgOUbTLetZnJnDOg7HCqw3rbtolEeGg0QiHTmwAswuiN3m78c9kd5DTl8D2sdr0F21SsjrMy72OYSIcF4GBsVAZmMB4kdijFSkiTAZlI6+wQ0/4kDG1NxzoIFBohj5W0ha183qGZNFWrJQxUakuwDDkIK3Ovv+5Z9mAg3wbkFUXVfpuFRMaIpHIJNA8h6mq4ZWHNJ+OhAVxxzFTFgg+yveVs+9pZH+vw9Pg4luMbD0cTN+0eyKsSBDlSRiDkDgsR5ISzgkoQmcrvwRYyGVXwZPr3nMh59GnK9GBGLBwGo3GT4E1H4os2RmQgCJX1RhEUIluJjGtRJhKeVVWHwF6Iv3T+kj45qo1RmjgVhR8DvdgQFleA0IVPRONh0RjxVIIVK9eIwtkfSNxb9zT0QXPoDuei3SP2+miG/f9JHKc0HRbBHRZ5IZRbynhFfLbkMqE5LAhyAsEWgIf7/JkhfQooJghklwdf8EgZ456g6D1jJN4hvcpDBN+YPcc0rokFuipkZQkUbffUsef+UjnpxxAx2xijMvaZsIFkfOXIvFR2CcU8W4316GKKKF8gu8umBvRA1x7wotZHPfkd8cTJ0FykroXDSpFMZaEIfiRdhTtkGvM2hDkCp/Z/gDy09j2IoVI6tBSVev4MdkmlTH86PZ6QXCht5sYtNXNsx9971A9uroVGTxuaGBj55WzCxnSMmIw8Rdtv9zToOBTIq/1EZ2Ci3vc5dBiOb3qssGnUVh1QMP84A2y18YBvshyrZCebw4AONL8B3gFNS2hNdlkocGQkoD+5dWctZ9/VlVTg/W6Dtv9uGeP5VRWCQwbRobPjk3eDcm1VQ6VD/RWKgOX09N2w/OYaUwjrSNTocvBegCVN4YL5+R3T9UFxnwmILpKwh7xBxsVPpLsnkunNLXe9pJb8DpSX3brg6vVc5owlIP1UdM10r2PeBJlEVkCl61bDy5JPm5ypWs8eT2a9+CyIzySDwMf+3dmgkaksiep0NjMuV6Z0ntLz4/Pz0I73uy85PDEiAfZaZqAQ8ENPkn98uWLVQYwv2LC6bS7YAifj7onmCAsEX75VSXg+LNy4Y+hP/gQZ8HMR0Ee5x3AR185TpULuuwcIv9R7f0Uf3B0Tgyra967voBI806w2SoceI0R53WXmRqpaM6ATOSiISG6sgbPOSWDJ9TpTHq7RtC1Px7aH87YX1j4I97AKb6zNY12G/D4q1PHKubltE1mCKgCDhbjhIs+hpsGu0dlhLZsK/Pg7J5B5YXBgNmnsPga/B5RdDXSv11Hiyt2DbVvZoyYeh78B7b/hkgRr
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get security users"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/security/users/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get a list of models
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"filters":{"items":{"properties":{"col":{"type":"string"},"opr":{"type":"string"},"value":{"anyOf":[{"type":"number"},{"type":"string"},{"type":"boolean"},{"type":"array"}]}},"required":["col","opr","value"],"type":"object"},"type":"array"},"keys":{"items":{"enum":["list_columns","order_columns","label_columns","description_columns","list_title","none"],"type":"string"},"type":"array"},"order_column":{"type":"string"},"order_direction":{"enum":["asc","desc"],"type":"string"},"page":{"type":"integer"},"page_size":{"type":"integer"},"select_columns":{"items":{"type":"string"},"type":"array"}},"type":"object","title":"get_list_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"description":"The total record count on the backend","type":"number"},"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"ids":{"description":"A list of item ids, useful when you don't know the column id","items":{"type":"string"},"type":"array"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"list_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"list_title":{"description":"A title to render. Will be translated by babel","example":"List Items","type":"string"},"order_columns":{"description":"A list of allowed columns to sort","items":{"type":"string"},"type":"array"},"result":{"description":"The result from the get list query","items":{"properties":{"active":{"nullable":true,"type":"boolean"},"changed_by":{"properties":{"id":{"type":"integer"}},"type":"object","title":"SupersetUserApi.get_list.User1"},"changed_on":{"format":"date-time","nullable":true,"type":"string"},"created_by":{"properties":{"id":{"type":"integer"}},"type":"object","title":"SupersetUserApi.get_list.User"},"created_on":{"format":"date-time","nullable":true,"type":"string"},"email":{"maxLength":320,"type":"string"},"fail_login_count":{"nullable":true,"type":"integer"},"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_login":{"format":"date-time","nullable":true,"type":"string"},"last_name":{"maxLength":64,"type":"string"},"login_count":{"nullable":true,"type":"integer"},"roles":{"properties":{"id":{"type":"integer"},"name":{"maxLength":64,"type":"string"}},"required":["name"],"type":"object","title":"SupersetUserApi.get_list.Role"},"username":{"maxLength":64,"type":"string"}},"required":["email","first_name","last_name","username"],"type":"object","title":"SupersetUserApi.get_list"},"type":"array"}},"type":"object"}}},"description":"Items from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

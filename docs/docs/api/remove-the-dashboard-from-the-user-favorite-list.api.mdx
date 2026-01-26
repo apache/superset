@@ -1,0 +1,72 @@
+---
+id: remove-the-dashboard-from-the-user-favorite-list
+title: "Remove the dashboard from the user favorite list"
+description: "Remove the dashboard from the user favorite list"
+sidebar_label: "Remove the dashboard from the user favorite list"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVE1v2zAM/SsGTxsgwM3QAYVvA9YehmGHfmCHIBgYm4mV2JJK0ekyQ/99oJ06ybrD0B52skTz4+nxkT0EZGxJiCMU8x6sgwICSg0GHLakty0YYHrsLFMFhXBHBmJZU4tQ9CD7oF7WCa2JIaWFesfgXaSoDh8uLvRTeifkRI8YQmNLFOtdvoneqe2YMLAPxGLHaKbYNXJSyC83VAqkZF5YkoGKYsk2aGoo4DPGeumRq4yp9TuqshX7NlvhzrMVipAMXF7M3gCvpRhxTSf4orB163/D9+Cwk9qz/UXViOXyv2H55iVb+c4NQD6+qWdvA3KDgk1GzJ6HgEhlx1b2gz43TwLFfKEiE1yrZo9NjrD4M9ft0PZMasqqSQuDBtTUReJJDFljo4CBlqT2FRRQUUNCYMZxKCDHYPPdLJ8S5X3YpnwSUw6KlXfPo9RxAwXUIqHI88aX2NQ+SnF1cXUFiv/5XXfK4kjc8LoeloRMfOO5RYECvny/h8PEKXPjX5iY1Aras82T/GBaMcX6tUmSAetWXsPPebzrAnEk5UesNHRu0iePfruZIgk+SouDRA475BV9OAMwCUnop+ShQeu00EBxf2jQHDBYRTPT6OcqYKAYNthx6A2oULQZGtT3S4z0wE1Kan7siFVqCwM7ZItLfey8h8pGPVdQrLCJ9ALfNCrw7vawK99nR37PcR+M6PaKF5tOb2BgS/tx4aZFMlATVsRD9fHHp7KkICchL4ZSdTUJ+PP11+v7azCgS+aEw6n3h4MW+Cuivh897v2WXEoTQNG7YkzpN782Jk0=
+sidebar_class_name: "delete api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Remove the dashboard from the user favorite list"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/dashboard/{pk}/favorites/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Remove the dashboard from the user favorite list
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"type":"object"}},"type":"object"}}},"description":"Dashboard removed from favorites"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

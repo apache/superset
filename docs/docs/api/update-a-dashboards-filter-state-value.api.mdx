@@ -1,0 +1,72 @@
+---
+id: update-a-dashboards-filter-state-value
+title: "Update a dashboard's filter state value"
+description: "Update a dashboard's filter state value"
+sidebar_label: "Update a dashboard's filter state value"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVk1v2zgQ/SvEXHYX0FZJ0AUC3dq0OfTQLRoHewiMYCyNLcYSyZIju1pB/30xpD+U2ugWW2BzMaQx5/E9zvCNBnDosSUmH6B4GEAbKMAh15CBwZbkbQ0ZePrSaU8VFOw7yiCUNbUIxQDcO1mlDdOKPIxjdhZlTf2PwAT22qwmKF868v0RhnHxqCv4LoF52ocCv7VVL0tKa5gMyyM61+gSWVuTPwVrJHbEct468qwpyNsGm47koaJQeu0kCQp4Y3olmyq7VB/u/vyoQuec9UyVYvrKryA7VTNR/rDDnR+W2cUTlSxpmhsJzKh11qPvb7Cs6VPHd4nh+BxJzjAGgrMmJM5XFxc/oViqdKJ3VpNaU6/YKk/sNW1IcU0qyjiv9rmwSPsUM+arLQYV2HqqVOjKkkJYdk3Tv4Ixg9c/JaalEHBFZ7vr3xm+xUrt2ihRuXwxKvcGO66t139Tlbi8fjEuHy2rpe1MInJ19WJEbmzXVMpYVs5baRtFhjX3wuuPF+ybW2RsFHlvoxlCoLLzwkvs9WnLUDzMxaIYV2K58A5DvbDoK3WrGyav7hg5usM3TeAqZFKoqn3CL0EtU0qQlHSfIIOWuLaVOHAnphJ9uIAcnc43l/khPR/ceswTwmNEyIc19aOYK/nNfiJ0voECamZX5HljS2xqG7i4vri+BtGx1xctKh1gVDnAgtCTv7W+RYYCPvw12/u2nGD69+gesoPU7mnLj56WnkL9X0EEJVjz+TgE3n/F1jU0MfVDTTPQZmlPXe+uc+QDTW15EpLjSes2l4LhbOAWY1vtJtWP1+vZvoeek1GSuwa1EfxYhWFXywdAp4XEpWTv4SGDIs7qaUklKKY+z0DKJrnDsMBA974ZRwmnASuVrnTARSODZYlNoCxNg+PI3Z9cLPsGvZbV5zO/kXS4iPDr5930+k0dq/Zc6i6Ipp/uuWfj1iDfBv/jjvI7zscMasKKfBSc/rlJm/w+k/xj5onXCOGU8aYsyfF3184nF/jTvXT7YvcV09pKUjxu5UsKt4mkjZrjvYuxARo0qy4aGCRIuRAyQSbddbg4uwcRdfYYhiGtmNk1mXE8nArLu5zLOP4DD3WIxg==
+sidebar_class_name: "put api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update a dashboard's filter state value"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/dashboard/{pk}/filter_state/{key}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update a dashboard's filter state value
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"in":"path","name":"key","required":true,"schema":{"type":"string"}},{"in":"query","name":"tab_id","schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"properties":{"value":{"description":"Any type of JSON supported text.","type":"string"}},"required":["value"],"type":"object","title":"TemporaryCachePutSchema"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"key":{"description":"The key to retrieve the value.","type":"string"}},"type":"object"}}},"description":"The value was stored successfully."},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -964,8 +964,12 @@
           "id": {
             "description": "Datasource id/uuid",
             "oneOf": [
-              { "type": "integer" },
-              { "type": "string" }
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
             ]
           },
           "type": {
@@ -11834,6 +11838,159 @@
           }
         },
         "type": "object"
+      },
+      "DashboardScreenshotPostSchema": {
+        "type": "object",
+        "properties": {
+          "dataMask": {
+            "type": "object",
+            "description": "An object representing the data mask.",
+            "additionalProperties": true
+          },
+          "activeTabs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A list representing active tabs."
+          },
+          "anchor": {
+            "type": "string",
+            "description": "A string representing the anchor."
+          },
+          "urlParams": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "description": "A list of tuples, each containing two strings."
+          }
+        }
+      },
+      "DashboardNativeFiltersConfigUpdateSchema": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of deleted filter IDs."
+          },
+          "modified": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "List of modified filter configurations."
+          },
+          "reordered": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of filter IDs in new order."
+          }
+        }
+      },
+      "DashboardColorsConfigUpdateSchema": {
+        "type": "object",
+        "properties": {
+          "color_namespace": {
+            "type": "string",
+            "nullable": true,
+            "description": "The color namespace."
+          },
+          "color_scheme": {
+            "type": "string",
+            "nullable": true,
+            "description": "The color scheme name."
+          },
+          "map_label_colors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Mapping of labels to colors."
+          },
+          "shared_label_colors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Shared label colors across charts."
+          },
+          "label_colors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Label to color mapping."
+          },
+          "color_scheme_domain": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Color scheme domain values."
+          }
+        }
+      },
+      "FormatQueryPayloadSchema": {
+        "type": "object",
+        "required": [
+          "sql"
+        ],
+        "properties": {
+          "sql": {
+            "type": "string",
+            "description": "The SQL query to format."
+          },
+          "engine": {
+            "type": "string",
+            "nullable": true,
+            "description": "The database engine."
+          },
+          "database_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The database id."
+          },
+          "template_params": {
+            "type": "string",
+            "nullable": true,
+            "description": "The SQL query template params as JSON string."
+          }
+        }
+      },
+      "get_slack_channels_schema": {
+        "type": "object",
+        "properties": {
+          "search_string": {
+            "type": "string",
+            "description": "String to search for in channel names."
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "public_channel",
+                "private_channel"
+              ]
+            },
+            "description": "Types of channels to search."
+          },
+          "exact_match": {
+            "type": "boolean",
+            "description": "Whether to match channel names exactly."
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -12112,7 +12269,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get a list of annotation layers",
+        "summary": "Get a list of annotation layers (annotation-layer)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12166,7 +12323,7 @@
             "jwt": []
           }
         ],
-        "summary": "Create an annotation layer",
+        "summary": "Create an annotation layer (annotation-layer)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12253,7 +12410,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get metadata information about this API resource",
+        "summary": "Get metadata information about this API resource (annotation-layer--info)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12311,7 +12468,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (annotation-layer-related-column-name)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12361,7 +12518,7 @@
             "jwt": []
           }
         ],
-        "summary": "Delete annotation layer",
+        "summary": "Delete annotation layer (annotation-layer-pk)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12462,7 +12619,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get an annotation layer",
+        "summary": "Get an annotation layer (annotation-layer-pk)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12527,7 +12684,7 @@
             "jwt": []
           }
         ],
-        "summary": "Update an annotation layer",
+        "summary": "Update an annotation layer (annotation-layer-pk)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12669,7 +12826,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get a list of annotation layers",
+        "summary": "Get a list of annotation layers (annotation-layer-pk-annotation)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12734,7 +12891,7 @@
             "jwt": []
           }
         ],
-        "summary": "Create an annotation layer",
+        "summary": "Create an annotation layer (annotation-layer-pk-annotation)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12793,7 +12950,7 @@
             "jwt": []
           }
         ],
-        "summary": "Delete annotation layer",
+        "summary": "Delete annotation layer (annotation-layer-pk-annotation-annotation-id)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12871,7 +13028,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get an annotation layer",
+        "summary": "Get an annotation layer (annotation-layer-pk-annotation-annotation-id)",
         "tags": [
           "Annotation Layers"
         ]
@@ -12945,7 +13102,7 @@
             "jwt": []
           }
         ],
-        "summary": "Update an annotation layer",
+        "summary": "Update an annotation layer (annotation-layer-pk-annotation-annotation-id)",
         "tags": [
           "Annotation Layers"
         ]
@@ -13518,7 +13675,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get metadata information about this API resource",
+        "summary": "Get metadata information about this API resource (chart--info)",
         "tags": [
           "Charts"
         ]
@@ -13574,7 +13731,7 @@
             "jwt": []
           }
         ],
-        "summary": "Return payload data response for the given query",
+        "summary": "Return payload data response for the given query (chart-data)",
         "tags": [
           "Charts"
         ]
@@ -13625,7 +13782,7 @@
             "jwt": []
           }
         ],
-        "summary": "Return payload data response for the given query",
+        "summary": "Return payload data response for the given query (chart-data-cache-key)",
         "tags": [
           "Charts"
         ]
@@ -13864,7 +14021,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (chart-related-column-name)",
         "tags": [
           "Charts"
         ]
@@ -14204,7 +14361,7 @@
             "jwt": []
           }
         ],
-        "summary": "Compute and cache a screenshot",
+        "summary": "Compute and cache a screenshot (chart-pk-cache-screenshot)",
         "tags": [
           "Charts"
         ]
@@ -14436,7 +14593,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get a computed screenshot from cache",
+        "summary": "Get a computed screenshot from cache (chart-pk-screenshot-digest)",
         "tags": [
           "Charts"
         ]
@@ -14801,7 +14958,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get metadata information about this API resource",
+        "summary": "Get metadata information about this API resource (css-template--info)",
         "tags": [
           "CSS Templates"
         ]
@@ -14859,7 +15016,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (css-template-related-column-name)",
         "tags": [
           "CSS Templates"
         ]
@@ -15380,7 +15537,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get metadata information about this API resource",
+        "summary": "Get metadata information about this API resource (dashboard--info)",
         "tags": [
           "Dashboards"
         ]
@@ -15677,7 +15834,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (dashboard-related-column-name)",
         "tags": [
           "Dashboards"
         ]
@@ -16118,7 +16275,9 @@
         ],
         "tags": [
           "Dashboards"
-        ]
+        ],
+        "operationId": "update_dashboard_by_id_or_slug_embedded",
+        "summary": "Update dashboard by id_or_slug embedded"
       }
     },
     "/api/v1/dashboard/{id_or_slug}/tabs": {
@@ -16356,7 +16515,7 @@
             "jwt": []
           }
         ],
-        "summary": "Compute and cache a screenshot",
+        "summary": "Compute and cache a screenshot (dashboard-pk-cache-dashboard-screenshot)",
         "tags": [
           "Dashboards"
         ]
@@ -17215,7 +17374,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get a computed screenshot from cache",
+        "summary": "Get a computed screenshot from cache (dashboard-pk-screenshot-digest)",
         "tags": [
           "Dashboards"
         ]
@@ -17542,7 +17701,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get metadata information about this API resource",
+        "summary": "Get metadata information about this API resource (database--info)",
         "tags": [
           "Database"
         ]
@@ -17873,7 +18032,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (database-related-column-name)",
         "tags": [
           "Database"
         ]
@@ -18563,7 +18722,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get database select star for table",
+        "summary": "Get database select star for table (database-pk-select-star-table-name)",
         "tags": [
           "Database"
         ]
@@ -18632,7 +18791,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get database select star for table",
+        "summary": "Get database select star for table (database-pk-select-star-table-name-schema-name)",
         "tags": [
           "Database"
         ]
@@ -18879,7 +19038,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get table extra metadata",
+        "summary": "Get table extra metadata (database-pk-table-extra-table-name-schema-name)",
         "tags": [
           "Database"
         ]
@@ -19021,7 +19180,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get table extra metadata",
+        "summary": "Get table extra metadata (database-pk-table-metadata-extra)",
         "tags": [
           "Database"
         ]
@@ -19538,7 +19697,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get metadata information about this API resource",
+        "summary": "Get metadata information about this API resource (dataset--info)",
         "tags": [
           "Datasets"
         ]
@@ -19596,7 +19755,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get distinct values from field data",
+        "summary": "Get distinct values from field data (dataset-distinct-column-name)",
         "tags": [
           "Datasets"
         ]
@@ -19910,7 +20069,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (dataset-related-column-name)",
         "tags": [
           "Datasets"
         ]
@@ -20580,7 +20739,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get a report schedule log",
+        "summary": "Get a report schedule log (embedded-dashboard-uuid)",
         "tags": [
           "Embedded Dashboard"
         ]
@@ -20959,7 +21118,7 @@
             "jwt": []
           }
         ],
-        "summary": "Create a new permanent link",
+        "summary": "Create a new permanent link (explore-permalink)",
         "tags": [
           "Explore Permanent Link"
         ]
@@ -21181,7 +21340,9 @@
         ],
         "tags": [
           "LogRestApi"
-        ]
+        ],
+        "operationId": "create_log",
+        "summary": "Create log"
       }
     },
     "/api/v1/log/recent_activity/": {
@@ -21462,7 +21623,9 @@
         ],
         "tags": [
           "Menu"
-        ]
+        ],
+        "operationId": "get_menu",
+        "summary": "Get menu"
       }
     },
     "/api/v1/query/": {
@@ -21627,7 +21790,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get distinct values from field data",
+        "summary": "Get distinct values from field data (query-distinct-column-name)",
         "tags": [
           "Queries"
         ]
@@ -21685,7 +21848,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (query-related-column-name)",
         "tags": [
           "Queries"
         ]
@@ -22210,7 +22373,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get metadata information about this API resource",
+        "summary": "Get metadata information about this API resource (report--info)",
         "tags": [
           "Report Schedules"
         ]
@@ -22268,7 +22431,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (report-related-column-name)",
         "tags": [
           "Report Schedules"
         ]
@@ -22723,7 +22886,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get a report schedule log",
+        "summary": "Get a report schedule log (report-pk-log-log-id)",
         "tags": [
           "Report Schedules"
         ]
@@ -23033,7 +23196,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get metadata information about this API resource",
+        "summary": "Get metadata information about this API resource (rowlevelsecurity--info)",
         "tags": [
           "Row Level Security"
         ]
@@ -23091,7 +23254,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (rowlevelsecurity-related-column-name)",
         "tags": [
           "Row Level Security"
         ]
@@ -23616,7 +23779,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get metadata information about this API resource",
+        "summary": "Get metadata information about this API resource (saved-query--info)",
         "tags": [
           "Queries"
         ]
@@ -23674,7 +23837,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get distinct values from field data",
+        "summary": "Get distinct values from field data (saved-query-distinct-column-name)",
         "tags": [
           "Queries"
         ]
@@ -23862,7 +24025,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (saved-query-related-column-name)",
         "tags": [
           "Queries"
         ]
@@ -24238,7 +24401,9 @@
         },
         "tags": [
           "Security"
-        ]
+        ],
+        "operationId": "create_security_login",
+        "summary": "Create security login"
       }
     },
     "/api/v1/security/permissions-resources/": {
@@ -24347,7 +24512,9 @@
         ],
         "tags": [
           "Security Permissions on Resources (View Menus)"
-        ]
+        ],
+        "operationId": "get_security_permissions_resources",
+        "summary": "Get security permissions resources"
       },
       "post": {
         "requestBody": {
@@ -24400,7 +24567,9 @@
         ],
         "tags": [
           "Security Permissions on Resources (View Menus)"
-        ]
+        ],
+        "operationId": "create_security_permissions_resources",
+        "summary": "Create security permissions resources"
       }
     },
     "/api/v1/security/permissions-resources/_info": {
@@ -24486,7 +24655,9 @@
         ],
         "tags": [
           "Security Permissions on Resources (View Menus)"
-        ]
+        ],
+        "operationId": "get_security_permissions_resources__info",
+        "summary": "Get security permissions resources  info"
       }
     },
     "/api/v1/security/permissions-resources/{pk}": {
@@ -24534,7 +24705,9 @@
         ],
         "tags": [
           "Security Permissions on Resources (View Menus)"
-        ]
+        ],
+        "operationId": "delete_security_permissions_resources_by_pk",
+        "summary": "Delete security permissions resources by pk"
       },
       "get": {
         "description": "Get an item model",
@@ -24634,7 +24807,9 @@
         ],
         "tags": [
           "Security Permissions on Resources (View Menus)"
-        ]
+        ],
+        "operationId": "get_security_permissions_resources_by_pk",
+        "summary": "Get security permissions resources by pk"
       },
       "put": {
         "parameters": [
@@ -24697,7 +24872,9 @@
         ],
         "tags": [
           "Security Permissions on Resources (View Menus)"
-        ]
+        ],
+        "operationId": "update_security_permissions_resources_by_pk",
+        "summary": "Update security permissions resources by pk"
       }
     },
     "/api/v1/security/permissions/": {
@@ -24806,7 +24983,9 @@
         ],
         "tags": [
           "Security Permissions"
-        ]
+        ],
+        "operationId": "get_security_permissions",
+        "summary": "Get security permissions"
       }
     },
     "/api/v1/security/permissions/_info": {
@@ -24892,7 +25071,9 @@
         ],
         "tags": [
           "Security Permissions"
-        ]
+        ],
+        "operationId": "get_security_permissions__info",
+        "summary": "Get security permissions  info"
       }
     },
     "/api/v1/security/permissions/{pk}": {
@@ -24994,7 +25175,9 @@
         ],
         "tags": [
           "Security Permissions"
-        ]
+        ],
+        "operationId": "get_security_permissions_by_pk",
+        "summary": "Get security permissions by pk"
       }
     },
     "/api/v1/security/refresh": {
@@ -25031,7 +25214,9 @@
         ],
         "tags": [
           "Security"
-        ]
+        ],
+        "operationId": "create_security_refresh",
+        "summary": "Create security refresh"
       }
     },
     "/api/v1/security/resources/": {
@@ -25140,7 +25325,9 @@
         ],
         "tags": [
           "Security Resources (View Menus)"
-        ]
+        ],
+        "operationId": "get_security_resources",
+        "summary": "Get security resources"
       },
       "post": {
         "requestBody": {
@@ -25193,7 +25380,9 @@
         ],
         "tags": [
           "Security Resources (View Menus)"
-        ]
+        ],
+        "operationId": "create_security_resources",
+        "summary": "Create security resources"
       }
     },
     "/api/v1/security/resources/_info": {
@@ -25279,7 +25468,9 @@
         ],
         "tags": [
           "Security Resources (View Menus)"
-        ]
+        ],
+        "operationId": "get_security_resources__info",
+        "summary": "Get security resources  info"
       }
     },
     "/api/v1/security/resources/{pk}": {
@@ -25327,7 +25518,9 @@
         ],
         "tags": [
           "Security Resources (View Menus)"
-        ]
+        ],
+        "operationId": "delete_security_resources_by_pk",
+        "summary": "Delete security resources by pk"
       },
       "get": {
         "description": "Get an item model",
@@ -25427,7 +25620,9 @@
         ],
         "tags": [
           "Security Resources (View Menus)"
-        ]
+        ],
+        "operationId": "get_security_resources_by_pk",
+        "summary": "Get security resources by pk"
       },
       "put": {
         "parameters": [
@@ -25490,7 +25685,9 @@
         ],
         "tags": [
           "Security Resources (View Menus)"
-        ]
+        ],
+        "operationId": "update_security_resources_by_pk",
+        "summary": "Update security resources by pk"
       }
     },
     "/api/v1/security/roles/": {
@@ -25599,7 +25796,9 @@
         ],
         "tags": [
           "Security Roles"
-        ]
+        ],
+        "operationId": "get_security_roles",
+        "summary": "Get security roles"
       },
       "post": {
         "requestBody": {
@@ -25652,7 +25851,9 @@
         ],
         "tags": [
           "Security Roles"
-        ]
+        ],
+        "operationId": "create_security_roles",
+        "summary": "Create security roles"
       }
     },
     "/api/v1/security/roles/_info": {
@@ -25738,7 +25939,9 @@
         ],
         "tags": [
           "Security Roles"
-        ]
+        ],
+        "operationId": "get_security_roles__info",
+        "summary": "Get security roles  info"
       }
     },
     "/api/v1/security/roles/search/": {
@@ -25896,7 +26099,9 @@
         ],
         "tags": [
           "Security Roles"
-        ]
+        ],
+        "operationId": "delete_security_roles_by_pk",
+        "summary": "Delete security roles by pk"
       },
       "get": {
         "description": "Get an item model",
@@ -25996,7 +26201,9 @@
         ],
         "tags": [
           "Security Roles"
-        ]
+        ],
+        "operationId": "get_security_roles_by_pk",
+        "summary": "Get security roles by pk"
       },
       "put": {
         "parameters": [
@@ -26059,7 +26266,9 @@
         ],
         "tags": [
           "Security Roles"
-        ]
+        ],
+        "operationId": "update_security_roles_by_pk",
+        "summary": "Update security roles by pk"
       }
     },
     "/api/v1/security/roles/{role_id}/permissions": {
@@ -26124,7 +26333,9 @@
         ],
         "tags": [
           "Security Roles"
-        ]
+        ],
+        "operationId": "create_security_roles_by_role_id_permissions",
+        "summary": "Create security roles by role_id permissions"
       }
     },
     "/api/v1/security/roles/{role_id}/permissions/": {
@@ -26178,7 +26389,9 @@
         ],
         "tags": [
           "Security Roles"
-        ]
+        ],
+        "operationId": "get_security_roles_by_role_id_permissions",
+        "summary": "Get security roles by role_id permissions"
       }
     },
     "/api/v1/security/roles/{role_id}/users": {
@@ -26243,7 +26456,9 @@
         ],
         "tags": [
           "Security Roles"
-        ]
+        ],
+        "operationId": "update_security_roles_by_role_id_users",
+        "summary": "Update security roles by role_id users"
       }
     },
     "/api/v1/security/users/": {
@@ -26352,7 +26567,9 @@
         ],
         "tags": [
           "Security Users"
-        ]
+        ],
+        "operationId": "get_security_users",
+        "summary": "Get security users"
       },
       "post": {
         "requestBody": {
@@ -26405,7 +26622,9 @@
         ],
         "tags": [
           "Security Users"
-        ]
+        ],
+        "operationId": "create_security_users",
+        "summary": "Create security users"
       }
     },
     "/api/v1/security/users/_info": {
@@ -26491,7 +26710,9 @@
         ],
         "tags": [
           "Security Users"
-        ]
+        ],
+        "operationId": "get_security_users__info",
+        "summary": "Get security users  info"
       }
     },
     "/api/v1/security/users/{pk}": {
@@ -26539,7 +26760,9 @@
         ],
         "tags": [
           "Security Users"
-        ]
+        ],
+        "operationId": "delete_security_users_by_pk",
+        "summary": "Delete security users by pk"
       },
       "get": {
         "description": "Get an item model",
@@ -26639,7 +26862,9 @@
         ],
         "tags": [
           "Security Users"
-        ]
+        ],
+        "operationId": "get_security_users_by_pk",
+        "summary": "Get security users by pk"
       },
       "put": {
         "parameters": [
@@ -26702,7 +26927,9 @@
         ],
         "tags": [
           "Security Users"
-        ]
+        ],
+        "operationId": "update_security_users_by_pk",
+        "summary": "Update security users by pk"
       }
     },
     "/api/v1/sqllab/": {
@@ -27012,7 +27239,7 @@
             "jwt": []
           }
         ],
-        "summary": "Create a new permanent link",
+        "summary": "Create a new permanent link (sqllab-permalink)",
         "tags": [
           "SQL Lab Permanent Link"
         ]
@@ -27537,7 +27764,9 @@
         ],
         "tags": [
           "Tags"
-        ]
+        ],
+        "operationId": "get_tag_favorite_status",
+        "summary": "Get tag favorite status"
       }
     },
     "/api/v1/tag/get_objects/": {
@@ -27650,7 +27879,7 @@
             "jwt": []
           }
         ],
-        "summary": "Get related fields data",
+        "summary": "Get related fields data (tag-related-column-name)",
         "tags": [
           "Tags"
         ]
@@ -28069,7 +28298,9 @@
         ],
         "tags": [
           "Tags"
-        ]
+        ],
+        "operationId": "delete_tag_by_pk_favorites",
+        "summary": "Delete tag by pk favorites"
       },
       "post": {
         "description": "Marks the tag as favorite for the current user",
@@ -28119,7 +28350,9 @@
         ],
         "tags": [
           "Tags"
-        ]
+        ],
+        "operationId": "create_tag_by_pk_favorites",
+        "summary": "Create tag by pk favorites"
       }
     },
     "/api/v1/user/{user_id}/avatar.png": {
@@ -28191,7 +28424,9 @@
         ],
         "tags": [
           "OpenApi"
-        ]
+        ],
+        "operationId": "get_api_by_version__openapi",
+        "summary": "Get api by version  openapi"
       }
     }
   },

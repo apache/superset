@@ -1,0 +1,72 @@
+---
+id: get-charts-permanent-link-state
+title: "Get chart's permanent link state"
+description: "Get chart's permanent link state"
+sidebar_label: "Get chart's permanent link state"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVUtr20AQ/itiLm1BVHFIIejWliRQSilJSg/GhLE0ttaWdjezIyeu2P9eRvIjiXMI7cEnrWbn8e03rw48MjYkxAHycQfGQg4epYIULDYEOSxpDSkw3beGqYRcuKUUQlFRg5B3IGuvakHY2DnEOFHl4J0NFPT+9OREP4WzQlb0iN7XpkAxzmaL4KzK9v48O08sZrAOgkJ6KCkUbLwaQQ63FSVBHFOZDBrpFoebLqgQiPFQEtMXXq5JWrYhkb23mePmrkTBjxBTOPsv7A2FgHN6jaQ3gPuCZaKsU5AByuhoUH5ZbKVybP5QOWA5OxqWH06SmWvtAOT09GhAvrq2LhPrJPHsCgohIStG1orr0xHr5hIF64SYHfcGgYqWFZf29+JBIB9PtEkF59rzcPHoa8eU/CRu0JKV5LuxS5i89HtFkhQVsrwLid/p1sYudy3YkFSuhBzmJJAOcySHDL3JVqOMhkBZb6x2WbekdQSFyKvtBGq5hhwqEZ9nWe0KrCsXJD8/OT8Hhb19zo2SN/DVP6qDKSETXzpuUCCHb79vYTOnlLDhdj8nNIKmavEgd0wzplD9q5OYgrEzdzilblpPHHouxEhNz0X65EFvNVIk3gVpsK+Mzeh9A+XPAu7qRehRMl+jseq4p7TbpGMM6I1GH0EKm5RorrZJgRRyHfmTFJR4Nei6KQb6xXWMKr5vibWaJimskA1O9WHjDkoT9FxCPsM60AG2XTfA++vNNvmQ7Ll8jnkjRKvLZ4V1q3+Q9tto2ElxElOoCEviPvxw87koyMsTm4PG0yLaFerVheZXp9sT9nZZ3hzU+6t4um7QuHVLsjHu4In+K8AY/wJ6EovT
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get chart's permanent link state"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/explore/permalink/{key}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get chart's permanent link state
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"key","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"state":{"description":"The stored state","type":"object"}},"type":"object"}}},"description":"Returns the stored form_data."},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

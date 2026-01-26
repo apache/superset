@@ -1,0 +1,72 @@
+---
+id: download-multiple-datasets-as-yaml-files
+title: "Download multiple datasets as YAML files"
+description: "Download multiple datasets as YAML files"
+sidebar_label: "Download multiple datasets as YAML files"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVNtq20AQ/RUxzwLFJYWgt5Q2hdL2JQmlGGPG0thaR9rdzI6cuGL/vYwurnKh0L7kSavZuZw9c2Y68MjYkBAHyJcdFM4KWYG8A/S+NgWKcTbbB2fVFoqKGtSTEWqCHuToCXIwVmhHDDGdLMiMR0hBjNT6vyNZ06N3LGtThvWYKsaYgrGQw31LrP4WG3W/h7hKgSl4ZwP1pd6dnelnhlHoUTJfo3mGboQQhI3dDTVKCgUbr8+BHD6iYCBJBkCK+vxF8r8T4Nl5YjEDtIZCwB29VvtEiNvsqZDX0HzAMmG6bymMUBZvBuXWYiuVY/OLygHL+Zth+e4k2brW9kDev2F/rlCwTojZcR8QqGjZyLEfmf2DQL5cqVoFdzpGk7oCrF7ozj3Y2mGZNG0txteUlKNvgiH5efnta7I1NQVIoSGpXDkMDqTgUSrIIUNvssMiG8OyQcAZKCg+TGPccg05VCI+z7LaFVhXLkh+cXZx0Y/V9IBrpWtgqH9GBxtCJr5y3KBADl9+3Gjq3g3y8RZOlGkFbc7+QdZMW6ZQ/W+Sfg1snYY/pey69cSh52BaJTOTPnnwOywUiXdBGuy1MC6Sf6D8SeGTUmZLJqYDtd3YjiWgN4piodFDWkhh3CopqACUefXsug0GuuU6RjUP606b9azqSeHwh6KnEO7o2C/IFA5Yt3rfN/WAbHCjBC1XMYWKsCTuKwwBl0VBXmZR86yrmeA+f9J+6R6YsXDq2njQvNOmt8dZ1q4bPG7cHdkYYcIr+g9xFWP8DX+MOFc=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Download multiple datasets as YAML files"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/dataset/export/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Download multiple datasets as YAML files
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"items":{"type":"integer"},"type":"array","title":"get_export_ids_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"text/plain":{"schema":{"type":"string"}}},"description":"Dataset export"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,72 @@
+---
+id: upload-a-file-and-returns-file-metadata
+title: "Upload a file and returns file metadata"
+description: "Upload a file and returns file metadata"
+sidebar_label: "Upload a file and returns file metadata"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVttu20YQ/ZXFPCUAY9pFChh8ywUGWvQS1Hb7IAjGiByJ65C7m9mhFFXgvwezK6mSpQJx++C33eFczsw5HHIDTF8GivLeN2uoNlB7J+REj/3QiQ3IUs49928aFFRzrFvq0ymwD8RiKeqtoc72VojzJdZsg1jvoIK7lkzdImMtxGaI1BjxJlJARiGzxG6gaKwz0pL5cPunmduOzCu6WFwUBk3t+x4LE6m3te+8K4xnIzh7fQEFyDoQVBCFrVvAWIDGnoeQsoo3Q+g8NlCA9oUCFcysQ16fy9YSNsQP7FenOf/wK6PzQuusWyTw2T2mKpEMRlP7buidcdhTfHVpbDRzy1FMZx0ZPzc61tcX5hfCJRnqg6yNnWsuJnV2fpvTsF8d9Gud0IJYIWbLU3A3qdl1OO6Y3NBDNYE6LvX2taYOCsgYkWE6jkVShGVq1C8Nc1tiui/uZ49Ui9qt6LDhPuXXkr+SoLb0yUe5zUoZj5MKD5QMMXgXs3Z+uLx8Ij4MobM1ajPlY9SO/l15THHo5NRuhfrjw/Hz3PZDouZ0gO9MZ6MoRdkvZg53Mo0tkY5gn/tEOlsDMuNa7ykiVTsvT32i5Q6zP0k6PoeCn4T6UxzPSnHGPbF5DD7HmR2jWvPt/yK0pxhxQWem+j1w3icsaatlKFcvBuXe4SCtZ/s3NRnL2xfD8psXM/eDS0B+fEF+blCwM8TsOQVEqge2soZqsoHHlUA1mY66bHARdQd9RMEZxrSAzgoP82ZHp7zLwC5mQ79TcQE9SesbqCD4qJIPKC1UUGKw5fKqbLYlyrwoH3aRJSg8XhLHhG7gDipoRUJVlp2vsWt9lOr68voaFPKulbT58qxSQxuYETLxze6D8/Nfd5o6uen3Jz39533XCkrT40oemOZMsf2vScYCrJv705VzOwTiSIcL4MCkLWe/5ZUi0bn1mFSRN9gzhn9Udy8Zoa9Shg6t0/xpspstLxPAYBXElUbv6C/gCTtQgGpCKdCYzUbd7rkbRzV/GYhVU9MClsgWZ9riZLr/pidCP9MaKviQX4M3d4pM3btBEZ77ARqLXdC7uqYgB+4nb5AqYi+8T7/fKluz7X9W7xuN0cTbVvbHDFIXx8G09uRuDwp+t9jd+gDFZpM97vxncuMIxRau6B3G6TiO3wDIqHI2
+sidebar_class_name: "post api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Upload a file and returns file metadata"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/database/upload_metadata/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Upload a file and returns file metadata
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"multipart/form-data":{"schema":{"properties":{"delimiter":{"description":"The character used to separate values in the CSV file (e.g., a comma, semicolon, or tab).","type":"string"},"file":{"description":"The file to upload","format":"binary","type":"string"},"header_row":{"description":"Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.","type":"integer"},"type":{"description":"File type to upload","enum":["csv","excel","columnar"]}},"required":["file","type"],"type":"object","title":"UploadFileMetadataPostSchema"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"properties":{"items":{"items":{"properties":{"column_names":{"description":"A list of columns names in the sheet","items":{"type":"string"},"type":"array"},"sheet_name":{"description":"The name of the sheet","type":"string"}},"type":"object","title":"UploadFileMetadataItem"},"type":"array"}},"type":"object","title":"UploadFileMetadata"}},"type":"object"}}},"description":"Upload response"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,72 @@
+---
+id: check-favorited-dashboards-for-current-user
+title: "Check favorited dashboards for current user"
+description: "Check favorited dashboards for current user"
+sidebar_label: "Check favorited dashboards for current user"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVctu20AM/JUFzwIUFykQ6JamTdAecsgDPRiGQUu0tYm8q3Appa6gfy+4smU7CYo+DjlZWnOGsxyS6qBGxjUJcYBs2kHunZATyDrAuq5sjmK9Sx+Cd3oW8pLWqE9WaB30QTY1QQbWCa2IoU92J8iMG0hArFT6viKZL7GdB0Ge2yLMt2R93ydgHWTw1BArwuFaAU/QzxJgCrV3gWKyDycn+vPHKmv2NbHYAc0UmiqiCgo521pRkMG5qWwQ45dmiAhm6dkQ5qXJPQ8CCutWJi+RxVhnpCTD9NRQEEj2tThOZ4vXqe5KMhcDSwHJG8VrsWrobdwltnQryGaIGdEL7ytCB/2+9n7xQLkcFD/mvMRW8Tfbit4M5Xjp2O9ormhH8rUItwf+Hau99o6U9/S/7FpTCLiigyYLwtat3lD4hoZPWIwWRSmTd5Ny77CR0rP9ScWg5fTdtFx7MUvfuCjk4zv6c4mClSFmzxEQKG/YyiauoYdngWw60/kXXOlqgs8YyoVHLgLMXnJdlJQ/miW2nq1QYYoxNk5y3jCTE9MEYkhgTVL6YthIkECNUkIGKdY2bSfpiE13fLqxpAkpqEhud6uy4QoyKEXqLE0rn2NV+iDZ2cnZWVxcuwvFMRkqFq/VwYKQiS89r1Egg2/f75Q6huk4x3/3460Z1KyHZ5kzLZlC+a8kcdEu/ev1ctvUxIEOR/3gSK88xLUTVVL7IGuMvbFd1X9nwFHusXmEfkhaV2id5ojV7bbmTAFrq0Imit5xQwIvLIIEtDnUBwV13QID3XPV93o8fF7UuhcCxv6HfcGO1TzSJn6Qxv0M0eIW2eJCyzWd9QmUhAVxzDAAzvOcajlAvRovZRn78eqLeqi74qAso5PbB2Xf7Wu3OeDuuiHizj+S63vYqRZ9h37W9/0vuXe/Kw==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Check favorited dashboards for current user"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/dashboard/favorite_status/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Check favorited dashboards for current user
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"items":{"type":"integer"},"type":"array","title":"get_fav_star_ids_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"description":"A list of results for each corresponding chart in the request","items":{"properties":{"id":{"description":"The Chart id","type":"integer"},"value":{"description":"The FaveStar value","type":"boolean"}},"type":"object","title":"ChartFavStarResponseResult"},"type":"array"}},"type":"object","title":"GetFavStarIdsSchema"}}},"description":"None"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

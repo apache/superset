@@ -1,0 +1,72 @@
+---
+id: get-function-names-supported-by-a-database
+title: "Get function names supported by a database"
+description: "Get function names supported by a database"
+sidebar_label: "Get function names supported by a database"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVEtv2zAM/isGTxtgwMnQAYVvA7YW2KHA+sAOQVAwNhMrsSWVotNlhv77QNt5tb1sPewkieLjI/mRHXhkbEiIA+SzDoyFHDxKBSlYbEhfG0iB6ak1TCXkwi2lEIqKGoS8A9l51TJWaEUMMc5VO3hnAwVV+DSZ6FE4K2RFr+h9bQoU42y2Ds6q7OjQs/PEYgbrZWsLVXxUNL3ECDXhJHIQNnYFMd0LkBl3EI8Ct1hTIZCCGKlV8BUFFxjoanR+o75vR9AQ1bSkULDx+gs5/GiJdwlTaGvRSBeT6TtyaigEXNEbObzC/AaWB4utVI7NbyoHLBf/DcuNk2TpWtsD+fyuRr8PyBUK1gkxO+4NAhUtG9n1pF4/C+SzuTJTcKVEPzAA5i89XZMke9IlPemS0HrvWKhMFrsEk3Jvm0JDUrkScliR8qsfnBwy9CbbTrO9Ytb5TczOmZyBguTtfvBariGHSsTnWVa7AuvKBckvJ5eXoMD3Cd1p+YaK9Wl1sCBk4ivHDQrk8P3nPYzzqSUbfuFQQo2gzVo/yyPTkilU/+okpmDs0qn5eQnvWk8c6HTiTkSa8qC3nSoS74I02HNj3Dh/1YKz0AfuCP2SzNdorIboi9uN7ZkBeqM4pmp9dJT3i+7FvklBGaKtUMOuU90HrmNU8ZNuBWVWCltkgwtNddZBaYLeS8iXWAd6hfEwIfDhdtyrH5Njdc+x75ea3SlmrFt9QQob2g3LOc5jChVhSdxHHz6+FAV5OTF5NYvKqgN/r79pw3WxnBTx0Pbxot7fhNN1g8a925CN8YBO9K0AY/wDBao0vg==
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get function names supported by a database"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/{pk}/function_names/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get function names supported by a database
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"function_names":{"items":{"type":"string"},"type":"array"}},"type":"object","title":"DatabaseFunctionNamesResponse"}}},"description":"Query result"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

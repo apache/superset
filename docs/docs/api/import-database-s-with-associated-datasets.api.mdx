@@ -1,0 +1,72 @@
+---
+id: import-database-s-with-associated-datasets
+title: "Import database(s) with associated datasets"
+description: "Import database(s) with associated datasets"
+sidebar_label: "Import database(s) with associated datasets"
+hide_title: true
+hide_table_of_contents: true
+api: eJztV+9r3DgQ/VfEfGrBjZNwB8FfjuuFQgptA0k56GbZaO3xWoksqdJ4tz7j//0Yee3dNAmkgSNX6Dd5NHp6evP0wx14/NpgoLe2aCHrILeG0BA360aTctJTWlpfvykkSQ6HvMI6tpy3Dj0pDPzFSafbnAJD7pUjZQ1k0DhtZSFKpVG8+nJ2/hqSmC0JMlgqI30LCVDrEDII5JVZQZ+AXaPfeEV4H3HqEvhNBVJmJZjeUgYMf+ywltZqlIbBnAxhY30R7oO9v/j0UdTSCVuKKU2U1guUeSVKlNR4LKYZhDKCKhRfzs7jmg7EWTkFlMl1U2AQcpefW1Oq1TjMSarE9UQ3/dCebtsHraz1dbLNGoiIUNlGF2KJwnm7VgUWI1BptbYbXvsgZiauuyt4FPgKMnEFdbsYoa+gvz54SPgQqgU1xqBePF+2HYiQIdhcScJCkBXy+YruYf7Mmnq1loSLW2yfrO9DQ/7fWu8Y/xdyP6DHD0r/dMV/CR3RH9G3nyJ2eYM5Qc8hvlWUxwIy8g3GQHDWhOGqOD48/O6ukc5plUsuRHoTuBqPXzQ1hiBX8VZ4Epe7RT6dylM760l4DI0m9slvL8jqrSzE9iYeqBy9GJXPRjZUWa/+wSJyOT5+MS5/RT8bS2zoHEMQaEhRy7x+f8FyvZMktUDvrY8DAuaNZ17ZrIObDUE2m/fzBEiuAmSzyXQw/x7pbHDhuBNfhddio6jaP164LyAFSKBGqmwBGTgbCPhVQxVkkEqn0vVROqKkg7dTYGZ+jT5EYo3XkEFF5LI01TaXurKBspPDkxNgtuMqLlizQaa4lg6WKD36d+Ob7f3flwwd0/iZFXt3RwPPwBW62dDCY+kxVM8F6RNQprT3z+qLxqEPyCKQIo13Q7zkIW99FF9/NlAtoyGMjNP9mO535p4cQ/iNUqelii/MqG63LckMpFNM5IhHj9VPYCgMJMBOYPU5teu497PXfc/hrw16dtI8gbX0Si55dbN5n0CFskAfa3mLbdwf0fxvLpkQp+uGiT30cu+TcdCfeY6O9tLv7Rs2w2S1808XXKjl9gehtgWPYeCIm+yaA0k+PfZEmuq6bTD5bZc07R6LrhsyLu0tmr6HZEuX+Bv6ed/3/wKRjXnl
+sidebar_class_name: "post api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Import database(s) with associated datasets"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/database/import/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Import database(s) with associated datasets
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"multipart/form-data":{"schema":{"properties":{"formData":{"description":"upload file (ZIP)","format":"binary","type":"string"},"overwrite":{"description":"overwrite existing databases?","type":"boolean"},"passwords":{"description":"JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.","type":"string"},"ssh_tunnel_passwords":{"description":"JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.","type":"string"},"ssh_tunnel_private_key_passwords":{"description":"JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.","type":"string"},"ssh_tunnel_private_keys":{"description":"JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.","type":"string"}},"type":"object"}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Database import result"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,72 @@
+---
+id: get-a-report-schedule
+title: "Get a report schedule"
+description: "Get an item model"
+sidebar_label: "Get a report schedule"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFWNtu4zYQ/RWCTy2gru1gUyz0lna7ixa9AMku9iEIBFoaW4wpUiFHdryC/r0YUooVW3YUt0DeJF5mzpy5kax5Bi61skRpNI/5Z0AmNJMIBStMBopHvBRWFIBgHY9vay5pXSkw5xHXogD6W/GIW3iopIWMx2griLhLcygEj2uO25JWSY2wBMubJqp5ajSCRpoWZalkKgjB5N4RjLq3ubSmBIsSHP2lRlWF9p+E0fXEO7RSL3kTdQPCWrGl/xVsn+8AXRU8vuUuN5ukExn1qeiNKjEH1fv3m1CiAiLAaOB30UsYdgNmfg8p8ogHCTFfAiYELGlNbmix5/ihArvdkfzAmzti2ZVGu8DGxXQaSDmLyyFzjxCeBAz1XrR8yYH1RtjCWIY5sLCJ0aZ37JtUis2BoRXaKYGQsfmWzYlVHnF4FEXpibhif8v0lDx+QPMBrURdNozTh7TMDoXse/j1FPj9/4vxQ5LGmW3BVQoPwYsU5drj1pVSYk7aQn62IubGKBCaZKS5sAMiAqP7SRxxp2QKT7QU4vFP0EvMeXxxOY2OqduxvpbfkzD46s0n0ukaSmPxJs0hqxRcg8OrUr5bAr67IbjeTEqXR0wKYVeZ2egT5OzQphZ8ViUFYG6yA9CXIyxOrdEo5nt7Z9PpdGhx5dAUyUZmtOgowp4/MuHyuRE2G0j1bqotXM8RXE7H+Gs4DM5yxccnpB42irlwMIQ6zByNsfEYd83pdk/s3XkGtJib6Hk9GBFJUAipElcFbefEETyi9fXcgsj+0WobVjYRXxibQuJSC6BdbnBc3i+tSCEpwcoQ2C+H2rGSoITDBNZCJRliQWsWxhYCeUysw08oC981X7LQy3Eo8DBUx+5eC1Wdqnu6KuY90H55Ys0m6drmy2rMMrFAnfe063v8DATybDCQzUb789Z+SiykdTiUDz+/H50OrcXjhOzlTk9/X8xZSfTVBTQWUllK0Dhg7zELnvYkqdELuRzvtYGWM+CBPbP97FlGhpnrnYleMo0lXWq8PsDdgxpnqyzgO51QDzrO2cREfC2UzAQa+2rqdzsHdM1GNaGNsSuplwlZZqpT9e1Y9e+acJuMz8IvOt/R3i3968TBSfGKKemQmQXb3SXG32F6t44ByX6CoWEWdAZ2/LnzJjcb9jsdjT8CCqncmNNms9/1uJewsKZgf/lLYxPx9//pblKAc2IJA9SMgfOLyBj5HBwGKLM3g/JViwpzY+V3yAKW92+G5W+DbGEqHYBcXLwZkF9NpTKmDbLSmhScY9RE0Qf65RvGzSeBQjGw1oS64SCtLOGid4/7DfL49o4u4SiW9BbSVgPWlQNHlaO7H9DF3j+eUHHjE1HKyXo2CaV/Uperhp4SwK67Z5XKKh7zHLGMJxNlUqFy4zD+MP3wwV/8OyykrAjGekQ1n4OwYD91B60/vn3h7euLP+f52V1akwbi+X6DiYWFBZefK8Q/VCzMYUG6qUqwDvqFszdEJod16xkhKY3DQoQWEp46/CsUC1wx17LLD47aTzEy+GzVQqWr3qRUQvqjrme5br1yy0UpCdCMd02ZRzwuV+RHYp+W1DUd9L9a1TQ0HB5lyGFHwRzTvYKtf8bxjZDOptw7di2sDP2LhEpH3xmPF0I5OGHyD9dtU/uRHVPY9RC97evsgJQr3tw1Ec9BZGC99jBxlaZQYm/LQQI2/Tj//BuFClW5XtY9BUz7QdIH4dR1WPHFrEA3zRM6pH8C2DT/As/BKUA=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a report schedule"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/report/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get an item model
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"keys":{"items":{"enum":["show_columns","description_columns","label_columns","show_title","none"],"type":"string"},"type":"array"}},"type":"object","title":"get_item_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"id":{"description":"The item id","type":"string"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"result":{"properties":{"active":{"nullable":true,"type":"boolean"},"chart":{"properties":{"id":{"type":"integer"},"slice_name":{"maxLength":250,"nullable":true,"type":"string"},"viz_type":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"ReportScheduleRestApi.get.Slice"},"context_markdown":{"nullable":true,"type":"string"},"creation_method":{"maxLength":255,"nullable":true,"type":"string"},"crontab":{"maxLength":1000,"type":"string"},"custom_width":{"nullable":true,"type":"integer"},"dashboard":{"properties":{"dashboard_title":{"maxLength":500,"nullable":true,"type":"string"},"id":{"type":"integer"}},"type":"object","title":"ReportScheduleRestApi.get.Dashboard"},"database":{"properties":{"database_name":{"maxLength":250,"type":"string"},"id":{"type":"integer"}},"required":["database_name"],"type":"object","title":"ReportScheduleRestApi.get.Database"},"description":{"nullable":true,"type":"string"},"email_subject":{"maxLength":255,"nullable":true,"type":"string"},"extra":{"readOnly":true},"force_screenshot":{"nullable":true,"type":"boolean"},"grace_period":{"nullable":true,"type":"integer"},"id":{"type":"integer"},"last_eval_dttm":{"format":"date-time","nullable":true,"type":"string"},"last_state":{"maxLength":50,"nullable":true,"type":"string"},"last_value":{"nullable":true,"type":"number"},"last_value_row_json":{"nullable":true,"type":"string"},"log_retention":{"nullable":true,"type":"integer"},"name":{"maxLength":150,"type":"string"},"owners":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"},"last_name":{"maxLength":64,"type":"string"}},"required":["first_name","last_name"],"type":"object","title":"ReportScheduleRestApi.get.User"},"recipients":{"properties":{"id":{"type":"integer"},"recipient_config_json":{"nullable":true,"type":"string"},"type":{"maxLength":50,"type":"string"}},"required":["type"],"type":"object","title":"ReportScheduleRestApi.get.ReportRecipients"},"report_format":{"maxLength":50,"nullable":true,"type":"string"},"sql":{"nullable":true,"type":"string"},"timezone":{"maxLength":100,"type":"string"},"type":{"maxLength":50,"type":"string"},"validator_config_json":{"nullable":true,"type":"string"},"validator_type":{"maxLength":100,"nullable":true,"type":"string"},"working_timeout":{"nullable":true,"type":"integer"}},"required":["crontab","name","recipients","type"],"type":"object","title":"ReportScheduleRestApi.get"},"show_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"show_title":{"description":"A title to render. Will be translated by babel","example":"Show Item Details","type":"string"}},"type":"object"}}},"description":"Item from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

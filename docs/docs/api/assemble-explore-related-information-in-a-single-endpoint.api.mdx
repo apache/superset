@@ -1,0 +1,72 @@
+---
+id: assemble-explore-related-information-in-a-single-endpoint
+title: "Assemble Explore related information in a single endpoint"
+description: "Assembles Explore related information (form_data, slice, dataset) in a single endpoint.<br/><br/> The information can be assembled from:<br/> - The cache using a form_data_key<br/> - The metadata database using a permalink_key<br/> - Build from scratch using dataset or slice identifiers."
+sidebar_label: "Assemble Explore related information in a single endpoint"
+hide_title: true
+hide_table_of_contents: true
+api: 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
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Assemble Explore related information in a single endpoint"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/explore/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Assembles Explore related information (form_data, slice, dataset) in a single endpoint.<br/><br/> The information can be assembled from:<br/> - The cache using a form_data_key<br/> - The metadata database using a permalink_key<br/> - Build from scratch using dataset or slice identifiers.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"query","name":"form_data_key","schema":{"type":"string"}},{"in":"query","name":"permalink_key","schema":{"type":"string"}},{"in":"query","name":"slice_id","schema":{"type":"integer"}},{"in":"query","name":"datasource_id","schema":{"type":"integer"}},{"in":"query","name":"datasource_type","schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"dataset":{"properties":{"cache_timeout":{"description":"Duration (in seconds) of the caching timeout for this dataset.","type":"integer"},"column_formats":{"description":"Column formats.","type":"object"},"columns":{"description":"Columns metadata.","items":{"type":"object"},"type":"array"},"database":{"description":"Database associated with the dataset.","type":"object"},"datasource_name":{"description":"Dataset name.","type":"string"},"default_endpoint":{"description":"Default endpoint for the dataset.","type":"string"},"description":{"description":"Dataset description.","type":"string"},"edit_url":{"description":"The URL for editing the dataset.","type":"string"},"extra":{"description":"JSON string containing extra configuration elements.","type":"object"},"fetch_values_predicate":{"description":"Predicate used when fetching values from the dataset.","type":"string"},"filter_select":{"description":"SELECT filter applied to the dataset.","type":"boolean"},"filter_select_enabled":{"description":"If the SELECT filter is enabled.","type":"boolean"},"granularity_sqla":{"description":"Name of temporal column used for time filtering for SQL datasources. This field is deprecated, use `granularity` instead.","items":{"items":{"type":"object"},"type":"array"},"type":"array"},"health_check_message":{"description":"Health check message.","type":"string"},"id":{"description":"Dataset ID.","type":"integer"},"is_sqllab_view":{"description":"If the dataset is a SQL Lab view.","type":"boolean"},"main_dttm_col":{"description":"The main temporal column.","type":"string"},"metrics":{"description":"Dataset metrics.","items":{"type":"object"},"type":"array"},"name":{"description":"Dataset name.","type":"string"},"offset":{"description":"Dataset offset.","type":"integer"},"order_by_choices":{"description":"List of order by columns.","items":{"items":{"type":"string"},"type":"array"},"type":"array"},"owners":{"description":"List of owners identifiers","items":{"type":"integer"},"type":"array"},"params":{"description":"Extra params for the dataset.","type":"object"},"perm":{"description":"Permission expression.","type":"string"},"schema":{"description":"Dataset schema.","type":"string"},"select_star":{"description":"Select all clause.","type":"string"},"sql":{"description":"A SQL statement that defines the dataset.","type":"string"},"table_name":{"description":"The name of the table associated with the dataset.","type":"string"},"template_params":{"description":"Table template params.","type":"object"},"time_grain_sqla":{"description":"List of temporal granularities supported by the dataset.","items":{"items":{"type":"string"},"type":"array"},"type":"array"},"type":{"description":"Dataset type.","type":"string"},"uid":{"description":"Dataset unique identifier.","type":"string"},"verbose_map":{"description":"Mapping from raw name to verbose name.","type":"object"}},"type":"object","title":"Dataset"},"form_data":{"description":"Form data from the Explore controls used to form the chart's data query.","type":"object"},"message":{"description":"Any message related to the processed request.","type":"string"},"slice":{"properties":{"cache_timeout":{"description":"Duration (in seconds) of the caching timeout for this chart.","type":"integer"},"certification_details":{"description":"Details of the certification.","type":"string"},"certified_by":{"description":"Person or group that has certified this dashboard.","type":"string"},"changed_on":{"description":"Timestamp of the last modification.","format":"date-time","type":"string"},"changed_on_humanized":{"description":"Timestamp of the last modification in human readable form.","type":"string"},"datasource":{"description":"Datasource identifier.","type":"string"},"description":{"description":"Slice description.","type":"string"},"description_markeddown":{"description":"Sanitized HTML version of the chart description.","type":"string"},"edit_url":{"description":"The URL for editing the slice.","type":"string"},"form_data":{"description":"Form data associated with the slice.","type":"object"},"is_managed_externally":{"description":"If the chart is managed outside externally.","type":"boolean"},"modified":{"description":"Last modification in human readable form.","type":"string"},"owners":{"description":"Owners identifiers.","items":{"type":"integer"},"type":"array"},"query_context":{"description":"The context associated with the query.","type":"object"},"slice_id":{"description":"The slice ID.","type":"integer"},"slice_name":{"description":"The slice name.","type":"string"},"slice_url":{"description":"The slice URL.","type":"string"}},"type":"object","title":"Slice"}},"type":"object","title":"ExploreContextSchema"}}},"description":"Returns the initial context."},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

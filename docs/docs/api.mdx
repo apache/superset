@@ -1,40 +1,81 @@
 ---
-title: API
+title: API Reference
 hide_title: true
 sidebar_position: 10
 ---
 
-import SwaggerUI from 'swagger-ui-react';
-import openapi from '/resources/openapi.json';
-import 'swagger-ui-react/swagger-ui.css';
-import { Alert } from 'antd';
+import { Alert, Card, Row, Col } from 'antd';
 
-## API
+## REST API Reference
 
-Superset's public **REST API** follows the
-[OpenAPI specification](https://swagger.io/specification/), and is
-documented here. The docs below are generated using
-[Swagger React UI](https://www.npmjs.com/package/swagger-ui-react).
-
-:::resources
-- [Blog: The Superset REST API](https://preset.io/blog/2020-10-01-superset-api/)
-- [Blog: Accessing APIs with Superset](https://preset.io/blog/accessing-apis-with-superset/)
-:::
+Superset exposes a comprehensive **REST API** that follows the [OpenAPI specification](https://swagger.io/specification/).
+You can use this API to programmatically interact with Superset for automation, integrations, and custom applications.
 
 <Alert
   type="info"
-  message={
-    <div>
-      <strong>NOTE! </strong>
-      You can find an interactive version of this documentation on your local Superset
-      instance at <strong>/swagger/v1</strong> (unless disabled)
-    </div>
+  showIcon
+  message="Interactive Documentation"
+  description={
+    <span>
+      Browse the full API reference below with interactive "Try It Out" functionality,
+      or access the Swagger UI on your local instance at <strong>/swagger/v1</strong>.
+    </span>
   }
+  style={{ marginBottom: '24px' }}
 />
 
-<br />
-<br />
-<hr />
-<div className="swagger-container">
-  <SwaggerUI spec={openapi} />
-</div>
+### Quick Links
+
+<Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
+  <Col xs={24} sm={12} lg={6}>
+    <Card size="small" hoverable>
+      <a href="/docs/api/get-a-list-of-dashboards">
+        <strong>Dashboards</strong>
+        <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>Create, read, update dashboards</p>
+      </a>
+    </Card>
+  </Col>
+  <Col xs={24} sm={12} lg={6}>
+    <Card size="small" hoverable>
+      <a href="/docs/api/get-a-list-of-charts">
+        <strong>Charts</strong>
+        <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>Manage chart configurations</p>
+      </a>
+    </Card>
+  </Col>
+  <Col xs={24} sm={12} lg={6}>
+    <Card size="small" hoverable>
+      <a href="/docs/api/get-a-list-of-databases">
+        <strong>Databases</strong>
+        <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>Configure database connections</p>
+      </a>
+    </Card>
+  </Col>
+  <Col xs={24} sm={12} lg={6}>
+    <Card size="small" hoverable>
+      <a href="/docs/api/get-a-list-of-datasets">
+        <strong>Datasets</strong>
+        <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>Manage data sources</p>
+      </a>
+    </Card>
+  </Col>
+</Row>
+
+### Authentication
+
+Most API endpoints require authentication. Superset supports several authentication methods:
+
+1. **Session-based auth** - Log in via the UI and use the session cookie
+2. **API Token** - Generate an API token from Settings > Security
+3. **OAuth2** - Configure OAuth2 for programmatic access
+
+```bash
+# Example: Using curl with API token
+curl -H "Authorization: Bearer YOUR_API_TOKEN" \
+  https://your-superset-instance/api/v1/dashboard/
+```
+
+### Resources
+
+- [Blog: The Superset REST API](https://preset.io/blog/2020-10-01-superset-api/)
+- [Blog: Accessing APIs with Superset](https://preset.io/blog/accessing-apis-with-superset/)

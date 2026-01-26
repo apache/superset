@@ -1,0 +1,72 @@
+---
+id: update-dashboard-by-id-or-slug-embedded
+title: "Update dashboard by id_or_slug embedded"
+description: "Sets a dashboard's embedded configuration."
+sidebar_label: "Update dashboard by id_or_slug embedded"
+hide_title: true
+hide_table_of_contents: true
+api: eJytVsGO2zYQ/RVhLm0Bpd4tWmChW5smQHsqdtfoYWEIlDi2uKFEZjhaRxX078VQki3HjtFke5PImdHjm8c36kFjKMl4Nq6BDB6QQ6ISrUJVOEX6u5BgXaDWqJPSNVuza0lJ7I+QglekamSkANlT/1mlxwqPZRKjE0dJsO0OUjCy7xVXkEKjaoQMjM4d5dM+4cfWEGrImFpMIZQV1gqyHrjzEh2YTLODYdiMwRj4N6c7iShdw9iwPCrvrSkj2tVzEFD9opQn55HYYIix1ro96ly7WpkmLhnGOlz4aDovKCLVwTAsAT+dVdoc4l3xjCVDCmzYysK7idnfZ5reRoZhkJrnbF5uRMIuCchntEVYwbsmjCf86ebmFfwQhtby/8pbCmWlmh3qvOjOC28NBc5HdVwoZfRi2TSMOyRZt+paVhuQvrA5fLlN64B0u8Q7UrV1VCuGDLRifMOmRkjPP3m4AvkJ5AWm9uLGFTxnsrmf+vwwNu8894KgHtqyxBC2rbWd6CfhCk+FJeB+vrl9hWhqDEHt/hPbFxCuG9Vy5cj8g1qw/PIqAb8Oy3vFyiZI5CgmBCxbMtxF33veM2RPGzEjVjvxQji0Jt5/wRFR/qEhg9aLYPKjMIouP9pfPt9ySKFGrpyk+Jaj3XIFGayUN6uX29WhwKo/pg+rRX5AepnNuSULGVTMPlutrCuVrVzg7O7m7g4E+XyiqKGRsniuHgpUhPR+Vvuffz/CZMnC2bh7VL58Qbr1vOeccEsYqm8tIlWCa+6PBv/uk6q9xYvG8zQ3dCP20GydRH2ueY80euV8lxZLQtUY9xJvu3eBaxVFNQ2pdezcYqoVXXKkPlkwf/LdhWa/br5ObDB+4pW3ysQrGRvZT2J4AuWNYL+FhdVACtnJQD0g26QgbZfEvi9UwDXZYZDljy2SyHmTwosiowqhR4a6CfKsIdsqG/DK0b6/n+bPD8mV2X/xTPNgaDo5i7KtvEEKH7A7/TcYpLkVKo0U0Y0Bb0cMbx6lzLHAmT0M6Zzxa1mi56uxm8X9+2stci2mX4zaaUkhtZehq/YjVhcpGYelrPVgVbNro+fAWFIULZ62MKGD8qcHOdRFNvp+jHh0H7AZhgM5LO/CyzD8C+9PaW4=
+sidebar_class_name: "put api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update dashboard by id_or_slug embedded"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/dashboard/{id_or_slug}/embedded"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Sets a dashboard's embedded configuration.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The dashboard id or slug","in":"path","name":"id_or_slug","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"properties":{"allowed_domains":{"items":{"type":"string"},"type":"array"}},"required":["allowed_domains"],"type":"object","title":"EmbeddedDashboardConfig"}}},"description":"The embedded configuration to set","required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"properties":{"allowed_domains":{"items":{"type":"string"},"type":"array"},"changed_by":{"properties":{"first_name":{"type":"string"},"id":{"type":"integer"},"last_name":{"type":"string"},"username":{"type":"string"}},"type":"object","title":"User1"},"changed_on":{"format":"date-time","type":"string"},"dashboard_id":{"type":"string"},"uuid":{"type":"string"}},"type":"object","title":"EmbeddedDashboardResponseSchema"}},"type":"object"}}},"description":"Successfully set the configuration"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

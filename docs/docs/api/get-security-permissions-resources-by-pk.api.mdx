@@ -1,0 +1,72 @@
+---
+id: get-security-permissions-resources-by-pk
+title: "Get security permissions resources by pk"
+description: "Get an item model"
+sidebar_label: "Get security permissions resources by pk"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVt9v2zYQ/leIe2oBLXaCFgj0lq1r0WEthiZdHwzDoKWzxZgiGfJkxxP0vw9HWbYc26nXbcgbf93xu4/H766GHEPmlSNlDaTwAUlIIxRhKUqbo4YEnPSyREIfIB3VoPick1RAAkaWyLMFJODxoVIec0jJV5hAyAosJaQ10NrxKWUI5+ihaZIaMmsIDfG2dE6rTDKCwX1gGHXP2Hnr0JPCwLPM6qo0ccgYQ899IK/MHJqkW5DeyzXPF7jet0BTlZCOIBR2NelcJn0qeqtaTlH35tGIFGlkAqxBGCffw7BbsNN7zAgSaD2kMEeaMLDJJuSGD0eOHyr06x3JD9CMmeXgrAktG1fDYUvKD3F5LNwThE9aDPWTbLkrUPRWxMx6QQWK1kiw0YX4prQWUxTkpQlaEuZiuhZTZhUSwEdZukjEjfissuf8wQHNB7QydflxnDGlVX7o5OkL/3MKov1/EvwxT+eF7TFUmg7Bt3Q8/YEJOPSlCkG1KbJv00Vaysff0cypgPRyODwGY/fnR63V+HSi/7G98U+Fq09oqhunLuZIF7sdRrZUuJqUaKqzgF29/R+BdfNnP/BJcw5mT2EOkudGaBVI2JnYycv5stYToiOe44YgKzyaHP35qXhb2JX4yL/lHZJUOpyTgLy0jyB6mHlbik+xjjQJvPlXclViCHKOR6g5B87PMhecFBiohXL5YlC+GllRYb36C/MWy5sXw/LZkpjZyrRArq5eDMgvttK5MJaE8zbDEAQaUhQT/e0L5s17SVIL9N7GxgUCZpVnXNwK3a8I0tGY6zLJObdHcLvZFztZCMIa8QWDrXyGQbximRCsE+E1yxJjjZF8zDftQHfHZCfSYeI7B5PpehIbrhKpsBub2KaxHsJAOjVYXg46J4Oek5+2Tga1WzTczKBfdo1d5TWkUBC5dDDQNpO6sIHS6+H1dWw9Oo+3THTLbSSghilKj/699aUkSOG3b3ew6f+Y3HZ3pyJ8Az/r/YomHmceQ/GjTmKrNLOH+ndbOfQB+zrdW+KQ23PLy1gMbaBSml2JiX1wF6/oMSi2DLJ4xmfYu7iXpUd76Q16wkcaOC1VrHiR+HrzgCOQTjHGS+hlW79g954REkjdgrOIn4qN63oqA371uml4ue0h+XVPwjyFaoHr2HUmsJS64v2YBUvplZwyo+xUBR7nkM6kDvgMGa++bCrya3Hqwq6+mXX/zg6IW0AzbhIoUObo4+3txk2WoaOeyYE4MOztZ/nwK+cVK3BPEbbZtRmw96Nw6ro9cWcXaJpmi454zgCb5m8qc6G7
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get security permissions resources by pk"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/security/permissions-resources/{pk}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get an item model
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"keys":{"items":{"enum":["show_columns","description_columns","label_columns","show_title","none"],"type":"string"},"type":"array"}},"type":"object","title":"get_item_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"id":{"description":"The item id","type":"string"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"result":{"properties":{"id":{"type":"integer"},"permission":{"properties":{"name":{"maxLength":100,"type":"string"}},"required":["name"],"type":"object","title":"PermissionViewMenuApi.get.Permission"},"view_menu":{"properties":{"name":{"maxLength":250,"type":"string"}},"required":["name"],"type":"object","title":"PermissionViewMenuApi.get.ViewMenu"}},"type":"object","title":"PermissionViewMenuApi.get"},"show_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"show_title":{"description":"A title to render. Will be translated by babel","example":"Show Item Details","type":"string"}},"type":"object"}}},"description":"Item from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,72 @@
+---
+id: get-all-schemas-from-a-database
+title: "Get all schemas from a database"
+description: "Get all schemas from a database"
+sidebar_label: "Get all schemas from a database"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVU1v2zAM/SsGTxtgwM3QAYVvHbYWGIYd+oEdiqBgbCZWIluqRKfLDP/3gbJdO3WwAduhN4mSyEfy8akBiw5LYnIe0ocGcvKZU5aVqSCFu4KiHBlX6ClSOcSgxGyRC4ihwpJkt4MYHD3VylEOKbuaYvBZQSVC2gAfrNxSFdOGHLRt3EBmKqaK5Rit1SpDCZhsvURtJo+tM5YcK/Kyy5BRm83Eq2enqg20MayNy2hysjJGE1ZyVFttMH9Erc2zIJzfaePBZFZbyhhiYMVaDEP6jx0o//hUkzv0O2jlaahJMI9FeYJ2KVXx1lS+Q//h7Cwk8W+5O/K1Dq8UUxlMx726HDvV+YgClHheqt6AzuHhj7nfdinf9FncTnJ+Hfub8hyZdYRa9+F9tHamjHhCIQl+/l9VKMl73NAJBszSOAHzE+aREJU8d1AWbwblvsKaC+PUL8o7LOdvhuW74Wht6ioA+fiG/bmS+Y7IORN0AjxltVN8CMq0fWZIH5YyVowbUSv4PPBq+drTNfGcijgSMYaSuDA5pLAhoXyQtBQStCrZL5LhYtLYXZv0XhIQSG4/aGXtNKRQMNs0SbTJUBfGc3pxdnERpn+AH+amq09IooEVoSN3ZVyJDCl8/XEHvWQGWQqn4+RKBGnN9pkfHa0d+eJfnQS1Wpu5etzWlpyno+kfTZJyd2+/ECTWeC4xMKHXu78X/CjeCz2YfnJiNapOqaWiTd+MB0CrJPhCXo+O0vDh9IEgBum+FF5eNI1cune6bcXcifLsX5vQG8YKHUPZ0SHIeAx71LWch57u0SlcSX3EqfKyziFdo/Y0y3GM8u6m/x/fR/M/9WT8QaSrwxTCgMvuoF22MRSEObkApju4zDKyPHkym17J4oX811+ENCJF029xoE6/EO8n4TRNd+PO7Khq2xd0LHsB2La/ATNc35M=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get all schemas from a database"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/database/{pk}/schemas/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get all schemas from a database
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"The database id","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"catalog":{"type":"string"},"force":{"type":"boolean"},"upload_allowed":{"type":"boolean"}},"type":"object","title":"database_schemas_query_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"result":{"items":{"description":"A database schema name","type":"string"},"type":"array"}},"type":"object","title":"SchemasResponseSchema"}}},"description":"A List of all schemas from the database"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

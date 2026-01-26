@@ -1,0 +1,72 @@
+---
+id: get-a-list-of-queries
+title: "Get a list of queries"
+description: "Gets a list of queries, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata."
+sidebar_label: "Get a list of queries"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNV0tv4zYQ/isEL72ocRJsgUC39LFBF+0G3STYQxAYY3FsM6ZIhRwl8Rr678WQfsgryU3SAulNIofz/OYbciUVhsLrirSzMpcXSEGAMDqQcFPxUKPXGDJRBxRfdHBWOC8+XV1+jltLUYGHEgl9EFPnxVQbQq/tLBPBeYofFcy0BdYvwCoR5QIaLHhbhAoLPdWFKJypSxuiTIkECgiOZCZ3FmR+u5KFs4SWZL6SUFVGF1Hz6D6w+ysZijmWwF+VdxV60hj4b62dPzVhGT9oWaHMZSB2WDbZZgG8hyX/p2j2D3XU9mpyle9dfwRTY/TdLi+nMaC1jK3LCXrZZN1T25WJcwbBtpfWvt41TSY9PtTao5L5bXQsubExereNz03usaC+gBe43I8WbV2yOsbDeJPDTDqv0Lf+DUzQtP5bmGpLsRLSZFBm0jrb9mm4CG1b/bmOAkp7RlRCwcZtCMXam15TFcywpVJbwlmsQdwZB/1tYDvBd/wGUDXfVyGTKSO5nCGNY4rWGG5YWHNTxlbjnEHJgg+yueNqh8rZkHB4enyc4PjG5qjToX0uuJ6jIEdghMfCeSWinHBW0BzFBIoFWiWzDoJ7yz/QkeMUU5/p1krkDDaaDgk+dCS+amPEBAV5sMEAoRKTpZgwFmUm8RnKKib2XHzWxSF9soONTpm4FCp0HT3fUiUjQGiVuHJaG/E0RyuWrhbK2R9ILKx7asegOXUv56L9Fnt9NuP5/ySPfZpelsE9FjmQyh1lvCI/O3Lp0Rw3BDnh0Sr0L4/5D3bp9+hFD4Hs8+CBiMAY94RqO+TIxfn4qgg9htoMtGnaE1PvyliVGVKyvaGOofk1BztDNU78MHW+BJK5VED4I+kS+4LmwTyBgF1tm50tDP8JEzvy+3V99IQtoFXjaD3vjkeJz1jUhGocHvpnr1b9pO3dU+jf2fFiR9mQkfBgxgQTkwL3COrSmqXMydfI2wSehmMIBFQPVB0mQ+nLJJVVsnpAxEOx0HY2rn2/53VA3y3dVPtAw1qHcmpg+NSBat+wD4cE/mLYfsFA55U+2gzGF0zTODP32yM2b+qMP51Cw1o+/KtxWWII+zeHYdLr+vMzKME3NUwBfTg+eTdXbizUNHdef0MVfTk9fTdffnG1UcI6EpV3BYYg0JKmyHw/vWO5PgJfgNB7lxAbsKg9+8V39/snkvntHV/HCGb8QInIZcN3mSyR5k6lm118yNBc5nIElR49nowiM48ka/SPm9dNbFo5J6ry0ci4AszcBcrPjs/O4qVvY/2KY03hRR9WcoLg0X/cMPinr9dyTWzx5RB3d2zOFjiz90809jj1GOZvVRIvqVPXnUtXdYU+YLutW0sccpJ7jJxfuUAlxEKur7kXSN2XqPyuPi1U/A/frutEET7TqDKgbSTgRMwJDrcSKs3pOJHZ9p7P4OG68/ZqxWPxxpum4eUkwlAZTMOQ3QUu4+Nh+wqVEVKP4DWPlAjkTM4RFA+I29X6wHlRYEWtU53ea9pYv/iNMcO80mq4LXLWH613L9hlS/dqlSSu3QJt08iN18T/8Znb/A3+y8uC
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get a list of queries"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/query/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Gets a list of queries, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"content":{"application/json":{"schema":{"properties":{"columns":{"items":{"type":"string"},"type":"array"},"filters":{"items":{"properties":{"col":{"type":"string"},"opr":{"type":"string"},"value":{"anyOf":[{"type":"number"},{"type":"string"},{"type":"boolean"},{"type":"array"}]}},"required":["col","opr","value"],"type":"object"},"type":"array"},"keys":{"items":{"enum":["list_columns","order_columns","label_columns","description_columns","list_title","none"],"type":"string"},"type":"array"},"order_column":{"type":"string"},"order_direction":{"enum":["asc","desc"],"type":"string"},"page":{"type":"integer"},"page_size":{"type":"integer"},"select_columns":{"items":{"type":"string"},"type":"array"}},"type":"object","title":"get_list_schema"}}},"in":"query","name":"q"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"description":"The total record count on the backend","type":"number"},"description_columns":{"properties":{"column_name":{"description":"The description for the column name. Will be translated by babel","example":"A Nice description for the column","type":"string"}},"type":"object"},"ids":{"description":"A list of item ids, useful when you don't know the column id","items":{"type":"string"},"type":"array"},"label_columns":{"properties":{"column_name":{"description":"The label for the column name. Will be translated by babel","example":"A Nice label for the column","type":"string"}},"type":"object"},"list_columns":{"description":"A list of columns","items":{"type":"string"},"type":"array"},"list_title":{"description":"A title to render. Will be translated by babel","example":"List Items","type":"string"},"order_columns":{"description":"A list of allowed columns to sort","items":{"type":"string"},"type":"array"},"result":{"description":"The result from the get list query","items":{"properties":{"changed_on":{"format":"date-time","type":"string"},"database":{"properties":{"database_name":{"type":"string"}},"type":"object","title":"Database1"},"end_time":{"type":"number"},"executed_sql":{"type":"string"},"id":{"type":"integer"},"rows":{"type":"integer"},"schema":{"type":"string"},"sql":{"type":"string"},"sql_tables":{"readOnly":true},"start_time":{"type":"number"},"status":{"type":"string"},"tab_name":{"type":"string"},"tmp_table_name":{"type":"string"},"tracking_url":{"type":"string"},"user":{"properties":{"first_name":{"type":"string"},"id":{"type":"integer"},"last_name":{"type":"string"}},"type":"object","title":"User"}},"type":"object","title":"QueryRestApi.get_list"},"type":"array"}},"type":"object"}}},"description":"Items from Model"},"400":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Bad request"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      

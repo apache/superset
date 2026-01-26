@@ -1,0 +1,72 @@
+---
+id: get-dashboards-thumbnail
+title: "Get dashboard's thumbnail"
+description: "Computes async or get already computed dashboard thumbnail from cache."
+sidebar_label: "Get dashboard's thumbnail"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFlUtv2zgQx78KMZdtC6Fysl0g0K3oC+hhD22KPQRGMZbGFmOJZIYjN67A774YSX40cYs2KJqTKD6Gv3nwPz1UFEu2Qax3UMAr34ZOKBqMW1caz2ZFYrBhwmprynG1MhXGeuGRKyN11y4c2sYs2bemxLKm55BBQMaWhDhCcdWDVeMBpYYMHLakf2vIgOmms0wVFMIdZRDLmlqEogfZBt1lndCKGFLK+jusL01Nt6ayK4pipEYxLa4pGqltPCLsnL3pCLJTDOPhn+GIwtatIKW5bo7Bu0hR189nM/2U3gk50aFtcUX5Mx0ezCw9tyhQwMI65C1k9wyn7I5/r08EebANKYPz2fmdazGExpaoh/PrqBaO7w/sA7HYEbqlGNXQCf/2YH5xTaWcArvc41SeonFeDN3aKMa7sQAys9RgTkUkflc4Cv73CP6txQ9UWaZSom6WmkzZMZOTKbt67sXs7NEc/uSwk9qz/UrVyPLi0Vj+9WKWvnMjyPnjVcEr3zXVkPzAvqQYDTmxslWuf+49ij/H9RYFG0PMflANiFR2rFyqQ9dfBIqrub5iwZVq0+GZRZhn0JLUvoICViSDjEkNBeQYbL45y/eqkvdhnfL9u8z7sVBTDnohb3a613EDBdQiocjzxpfY1D5KcTG7uACF2MF91FCM3g+IPSwImfjtTjbe/3cJkyyp++PqQUX0Bg389Rf5zLRkivVDjSRVyqW//0g/doE4DmERKw19O6Uuj/s2Z0oSfJQWhzxPYvuO5CDLf8WDqsGdFB4Vzu9rSJOPQreShwatU8ghPf2U5SvAYNWTMwXaGYQMiqFVHeMW+8ahNaMp1eN9v8BIn7hJSadvOmKtunkGG2SLCw3ZVQ+VjTquoFhiE+kHzj/5MLWlp+Z7HkyT6LSlbLDp9A8yWNN27LFD33zIjb/aXh+At1P3ecqgJqyIhwCNiy/LkoIcHdv11XT8TN+90ZJWeT6Si31hTwM1epKk78cdl35NLqU9mOi/cqX0P8tNJZI=
+sidebar_class_name: "get api-method"
+info_path: docs/api/superset
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get dashboard's thumbnail"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/dashboard/{pk}/thumbnail/{digest}/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Computes async or get already computed dashboard thumbnail from cache.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"description":"A hex digest that makes this dashboard unique","in":"path","name":"digest","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"content":{"image/*":{"schema":{"format":"binary","type":"string"}}},"description":"Dashboard thumbnail image"},"202":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Thumbnail does not exist on cache, fired async to compute"},"302":{"description":"Redirects to the current digest"},"401":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Unauthorized"},"404":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Not found"},"422":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Could not process entity"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"type":"string"}},"type":"object"}}},"description":"Fatal error"}}}
+>
+  
+</StatusCodes>
+
+
+      
