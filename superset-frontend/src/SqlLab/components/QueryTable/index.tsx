@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { t } from '@apache-superset/core/translation';
-import { QueryResponse, QueryState } from '@superset-ui/core';
+import { QueryResponse } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
