@@ -37,68 +37,24 @@ from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
-# SQL types that are truly temporal and can use DATE_TRUNC
-TEMPORAL_SQL_TYPES = frozenset(
-    {
-        "DATE",
-        "DATETIME",
-        "TIMESTAMP",
-        "TIMESTAMPTZ",
-        "TIMESTAMP WITH TIME ZONE",
-        "TIMESTAMP WITHOUT TIME ZONE",
-        "TIME",
-        "TIMETZ",
-        "TIME WITH TIME ZONE",
-        "TIME WITHOUT TIME ZONE",
-        "INTERVAL",
-    }
-)
-
-# SQL types that are numeric but NOT temporal (even if named "year", "month", etc.)
-NUMERIC_NON_TEMPORAL_TYPES = frozenset(
-    {
-        "BIGINT",
-        "INT",
-        "INTEGER",
-        "SMALLINT",
-        "TINYINT",
-        "FLOAT",
-        "DOUBLE",
-        "DECIMAL",
-        "NUMERIC",
-        "REAL",
-        "FLOAT64",
-        "FLOAT32",
-        "INT64",
-        "INT32",
-        "INT16",
-        "INT8",
-        "UINT64",
-        "UINT32",
-        "UINT16",
-        "UINT8",
-        "NUMBER",
-    }
-)
-
 
 def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
     """Generate an explore link for the given dataset and form data."""
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from superset.commands.exceptions import CommandException
+    from superset.commands.explore.form_data.parameters import CommandParameters
+    from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.commands.create_form_data import (
+        MCPCreateFormDataCommand,
+    )
+    from superset.utils.core import DatasourceType
+
     base_url = get_superset_base_url()
     numeric_dataset_id = None
+    dataset = None
 
     try:
-        from superset.commands.explore.form_data.parameters import CommandParameters
-
-        # Find the dataset to get its numeric ID
-        from superset.daos.dataset import DatasetDAO
-        from superset.mcp_service.commands.create_form_data import (
-            MCPCreateFormDataCommand,
-        )
-        from superset.utils.core import DatasourceType
-
-        dataset = None
-
         if isinstance(dataset_id, int) or (
             isinstance(dataset_id, str) and dataset_id.isdigit()
         ):
@@ -139,17 +95,14 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         # Return URL with just the form_data_key
         return f"{base_url}/explore/?form_data_key={form_data_key}"
 
-    except Exception:
+    except (CommandException, SQLAlchemyError, ValueError, AttributeError):
         # Fallback to basic explore URL with numeric ID if available
         if numeric_dataset_id is not None:
             return (
                 f"{base_url}/explore/?datasource_type=table"
                 f"&datasource_id={numeric_dataset_id}"
             )
-        else:
-            return (
-                f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
-            )
+        return f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
 
 
 def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> bool:
@@ -160,6 +113,9 @@ def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> 
     column name heuristics (e.g., "year", "month"), but if the actual SQL type is
     BIGINT or INTEGER, DATE_TRUNC will fail.
 
+    Uses the database engine spec's column type mapping to determine the actual
+    GenericDataType, bypassing the is_dttm flag which may be set incorrectly.
+
     Args:
         column_name: Name of the column to check
         dataset_id: Dataset ID to look up column metadata
@@ -167,12 +123,13 @@ def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> 
     Returns:
         True if the column has a real temporal SQL type, False otherwise
     """
+    from superset.daos.dataset import DatasetDAO
+    from superset.utils.core import GenericDataType
+
     if not dataset_id:
         return True  # Default to temporal if we can't check (backward compatible)
 
     try:
-        from superset.daos.dataset import DatasetDAO
-
         # Find dataset
         if isinstance(dataset_id, int) or (
             isinstance(dataset_id, str) and dataset_id.isdigit()
@@ -184,34 +141,38 @@ def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> 
         if not dataset:
             return True  # Default to temporal if dataset not found
 
-        # Find the column and check its actual type
+        # Find the column and check its actual type using db_engine_spec
         column_lower = column_name.lower()
         for col in dataset.columns:
             if col.column_name.lower() == column_lower:
-                col_type = str(col.type).upper() if col.type else ""
+                col_type = col.type
+                if not col_type:
+                    # No type info, trust is_dttm flag
+                    return getattr(col, "is_dttm", False)
 
-                # Extract base type (handle cases like "BIGINT(20)" -> "BIGINT")
-                base_type = col_type.split("(")[0].strip()
+                # Use the db_engine_spec to get the actual GenericDataType
+                # This bypasses the is_dttm flag and checks the real SQL type
+                db_engine_spec = dataset.database.db_engine_spec
+                column_spec = db_engine_spec.get_column_spec(col_type)
 
-                # Check if it's a numeric non-temporal type
-                if base_type in NUMERIC_NON_TEMPORAL_TYPES:
-                    logger.debug(
-                        "Column '%s' has numeric type '%s', treating as non-temporal",
-                        column_name,
-                        col_type,
-                    )
-                    return False
+                if column_spec:
+                    is_temporal = column_spec.generic_type == GenericDataType.TEMPORAL
+                    if not is_temporal:
+                        logger.debug(
+                            "Column '%s' has type '%s' (generic: %s), "
+                            "treating as non-temporal",
+                            column_name,
+                            col_type,
+                            column_spec.generic_type,
+                        )
+                    return is_temporal
 
-                # Check if it's a truly temporal type
-                if base_type in TEMPORAL_SQL_TYPES:
-                    return True
-
-                # For other types, trust the is_dttm flag
+                # If no column_spec, trust is_dttm flag
                 return getattr(col, "is_dttm", False)
 
         return True  # Default if column not found
 
-    except Exception as e:
+    except (ValueError, AttributeError) as e:
         logger.warning(
             "Error checking column type for '%s' in dataset %s: %s",
             column_name,

@@ -32,8 +32,6 @@ from superset.mcp_service.chart.chart_utils import (
     map_filter_operator,
     map_table_config,
     map_xy_config,
-    NUMERIC_NON_TEMPORAL_TYPES,
-    TEMPORAL_SQL_TYPES,
 )
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -43,6 +41,7 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     XYChartConfig,
 )
+from superset.utils.core import GenericDataType
 
 
 class TestCreateMetricObject:
@@ -428,7 +427,9 @@ class TestGenerateExploreLink:
         mock_get_base_url.return_value = "https://superset.example.com"
         form_data = {"viz_type": "table", "metrics": ["count"]}
 
-        result = generate_explore_link("123", form_data)
+        # Mock dataset not found to trigger fallback URL
+        with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None):
+            result = generate_explore_link("123", form_data)
 
         # Should use the configured base URL - use urlparse to avoid CodeQL warning
         parsed_url = urlparse(result)
@@ -476,13 +477,15 @@ class TestGenerateExploreLink:
 
     @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
     def test_generate_explore_link_exception_handling(self, mock_get_base_url) -> None:
-        """Test generate_explore_link handles exceptions gracefully"""
+        """Test generate_explore_link handles SQLAlchemy exceptions gracefully"""
+        from sqlalchemy.exc import SQLAlchemyError
+
         mock_get_base_url.return_value = "http://localhost:9001"
 
-        # Mock exception during form_data creation
+        # Mock SQLAlchemy exception during dataset lookup
         with patch(
             "superset.daos.dataset.DatasetDAO.find_by_id",
-            side_effect=Exception("DB error"),
+            side_effect=SQLAlchemyError("DB error"),
         ):
             result = generate_explore_link("123", {"viz_type": "table"})
 
@@ -612,29 +615,38 @@ class TestCriticalBugFixes:
             assert form_data["viz_type"] == expected_viz_type
 
 
-class TestTemporalColumnTypeConstants:
-    """Test temporal and non-temporal SQL type constants"""
-
-    def test_temporal_sql_types_contains_expected_types(self) -> None:
-        """Test TEMPORAL_SQL_TYPES contains expected date/time types"""
-        expected_types = ["DATE", "DATETIME", "TIMESTAMP", "TIMESTAMPTZ", "TIME"]
-        for sql_type in expected_types:
-            assert sql_type in TEMPORAL_SQL_TYPES
-
-    def test_numeric_non_temporal_types_contains_expected_types(self) -> None:
-        """Test NUMERIC_NON_TEMPORAL_TYPES contains expected numeric types"""
-        expected_types = ["BIGINT", "INT", "INTEGER", "FLOAT", "DOUBLE", "DECIMAL"]
-        for sql_type in expected_types:
-            assert sql_type in NUMERIC_NON_TEMPORAL_TYPES
-
-    def test_no_overlap_between_temporal_and_numeric_types(self) -> None:
-        """Test there's no overlap between temporal and numeric type sets"""
-        overlap = TEMPORAL_SQL_TYPES & NUMERIC_NON_TEMPORAL_TYPES
-        assert len(overlap) == 0
-
-
 class TestIsColumnTrulyTemporal:
-    """Test is_column_truly_temporal function"""
+    """Test is_column_truly_temporal function using db_engine_spec"""
+
+    def _create_mock_dataset(
+        self,
+        column_name: str,
+        column_type: str,
+        generic_type: GenericDataType,
+    ):
+        """Helper to create a mock dataset with proper db_engine_spec"""
+        from unittest.mock import MagicMock
+
+        from superset.utils.core import ColumnSpec
+
+        mock_column = MagicMock()
+        mock_column.column_name = column_name
+        mock_column.type = column_type
+
+        mock_db_engine_spec = MagicMock()
+        mock_column_spec = ColumnSpec(
+            sqla_type=MagicMock(), generic_type=generic_type, is_dttm=False
+        )
+        mock_db_engine_spec.get_column_spec.return_value = mock_column_spec
+
+        mock_database = MagicMock()
+        mock_database.db_engine_spec = mock_db_engine_spec
+
+        mock_dataset = MagicMock()
+        mock_dataset.columns = [mock_column]
+        mock_dataset.database = mock_database
+
+        return mock_dataset
 
     def test_returns_true_when_no_dataset_id(self) -> None:
         """Test returns True (default) when dataset_id is None"""
@@ -649,10 +661,11 @@ class TestIsColumnTrulyTemporal:
         assert result is True
 
     @patch("superset.daos.dataset.DatasetDAO")
-    def test_returns_false_for_bigint_column(self, mock_dao) -> None:
-        """Test returns False for BIGINT column type"""
-        mock_column = type("Column", (), {"column_name": "year", "type": "BIGINT"})()
-        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+    def test_returns_false_for_numeric_column(self, mock_dao) -> None:
+        """Test returns False for NUMERIC generic type (e.g., BIGINT)"""
+        mock_dataset = self._create_mock_dataset(
+            "year", "BIGINT", GenericDataType.NUMERIC
+        )
         mock_dao.find_by_id.return_value = mock_dataset
 
         result = is_column_truly_temporal("year", 123)
@@ -660,21 +673,21 @@ class TestIsColumnTrulyTemporal:
 
     @patch("superset.daos.dataset.DatasetDAO")
     def test_returns_false_for_integer_column(self, mock_dao) -> None:
-        """Test returns False for INTEGER column type"""
-        mock_column = type("Column", (), {"column_name": "month", "type": "INTEGER"})()
-        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        """Test returns False for INTEGER column (NUMERIC generic type)"""
+        mock_dataset = self._create_mock_dataset(
+            "month", "INTEGER", GenericDataType.NUMERIC
+        )
         mock_dao.find_by_id.return_value = mock_dataset
 
         result = is_column_truly_temporal("month", 123)
         assert result is False
 
     @patch("superset.daos.dataset.DatasetDAO")
-    def test_returns_true_for_timestamp_column(self, mock_dao) -> None:
-        """Test returns True for TIMESTAMP column type"""
-        mock_column = type(
-            "Column", (), {"column_name": "created_at", "type": "TIMESTAMP"}
-        )()
-        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+    def test_returns_true_for_temporal_column(self, mock_dao) -> None:
+        """Test returns True for TEMPORAL generic type (e.g., TIMESTAMP)"""
+        mock_dataset = self._create_mock_dataset(
+            "created_at", "TIMESTAMP", GenericDataType.TEMPORAL
+        )
         mock_dao.find_by_id.return_value = mock_dataset
 
         result = is_column_truly_temporal("created_at", 123)
@@ -682,55 +695,92 @@ class TestIsColumnTrulyTemporal:
 
     @patch("superset.daos.dataset.DatasetDAO")
     def test_returns_true_for_date_column(self, mock_dao) -> None:
-        """Test returns True for DATE column type"""
-        mock_column = type(
-            "Column", (), {"column_name": "order_date", "type": "DATE"}
-        )()
-        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        """Test returns True for DATE column (TEMPORAL generic type)"""
+        mock_dataset = self._create_mock_dataset(
+            "order_date", "DATE", GenericDataType.TEMPORAL
+        )
         mock_dao.find_by_id.return_value = mock_dataset
 
         result = is_column_truly_temporal("order_date", 123)
         assert result is True
 
     @patch("superset.daos.dataset.DatasetDAO")
-    def test_handles_column_type_with_size(self, mock_dao) -> None:
-        """Test handles column types like BIGINT(20)"""
-        mock_column = type(
-            "Column", (), {"column_name": "year", "type": "BIGINT(20)"}
-        )()
-        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
-        mock_dao.find_by_id.return_value = mock_dataset
-
-        result = is_column_truly_temporal("year", 123)
-        assert result is False
-
-    @patch("superset.daos.dataset.DatasetDAO")
     def test_case_insensitive_column_name_lookup(self, mock_dao) -> None:
         """Test column name lookup is case insensitive"""
-        mock_column = type("Column", (), {"column_name": "Year", "type": "BIGINT"})()
-        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        mock_dataset = self._create_mock_dataset(
+            "Year", "BIGINT", GenericDataType.NUMERIC
+        )
         mock_dao.find_by_id.return_value = mock_dataset
 
         result = is_column_truly_temporal("year", 123)
         assert result is False
 
     @patch("superset.daos.dataset.DatasetDAO")
-    def test_returns_true_on_exception(self, mock_dao) -> None:
-        """Test returns True (default) when exception occurs"""
-        mock_dao.find_by_id.side_effect = Exception("DB error")
+    def test_returns_true_on_value_error(self, mock_dao) -> None:
+        """Test returns True (default) when ValueError occurs"""
+        mock_dao.find_by_id.side_effect = ValueError("Invalid ID")
+        result = is_column_truly_temporal("year", 123)
+        assert result is True
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_true_on_attribute_error(self, mock_dao) -> None:
+        """Test returns True (default) when AttributeError occurs"""
+        mock_dao.find_by_id.side_effect = AttributeError("Missing attribute")
         result = is_column_truly_temporal("year", 123)
         assert result is True
 
     @patch("superset.daos.dataset.DatasetDAO")
     def test_handles_uuid_dataset_id(self, mock_dao) -> None:
         """Test handles UUID string as dataset_id"""
-        mock_column = type("Column", (), {"column_name": "year", "type": "BIGINT"})()
-        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        mock_dataset = self._create_mock_dataset(
+            "year", "BIGINT", GenericDataType.NUMERIC
+        )
         mock_dao.find_by_id.return_value = mock_dataset
 
         result = is_column_truly_temporal("year", "abc-123-uuid")
         assert result is False
         mock_dao.find_by_id.assert_called_with("abc-123-uuid", id_column="uuid")
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_falls_back_to_is_dttm_when_no_column_spec(self, mock_dao) -> None:
+        """Test falls back to is_dttm flag when get_column_spec returns None"""
+        from unittest.mock import MagicMock
+
+        mock_column = MagicMock()
+        mock_column.column_name = "year"
+        mock_column.type = "UNKNOWN_TYPE"
+        mock_column.is_dttm = False
+
+        mock_db_engine_spec = MagicMock()
+        mock_db_engine_spec.get_column_spec.return_value = None
+
+        mock_database = MagicMock()
+        mock_database.db_engine_spec = mock_db_engine_spec
+
+        mock_dataset = MagicMock()
+        mock_dataset.columns = [mock_column]
+        mock_dataset.database = mock_database
+        mock_dao.find_by_id.return_value = mock_dataset
+
+        result = is_column_truly_temporal("year", 123)
+        assert result is False
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_falls_back_to_is_dttm_when_no_type(self, mock_dao) -> None:
+        """Test falls back to is_dttm flag when column has no type"""
+        from unittest.mock import MagicMock
+
+        mock_column = MagicMock()
+        mock_column.column_name = "year"
+        mock_column.type = None
+        mock_column.is_dttm = True
+
+        mock_dataset = MagicMock()
+        mock_dataset.columns = [mock_column]
+        mock_dao.find_by_id.return_value = mock_dataset
+
+        result = is_column_truly_temporal("year", 123)
+        assert result is True
 
 
 class TestConfigureTemporalHandling:
