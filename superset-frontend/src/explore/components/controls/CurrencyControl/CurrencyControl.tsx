@@ -29,7 +29,7 @@ import ControlHeader from '../../ControlHeader';
 
 export interface CurrencyControlProps {
   onChange: (currency: Partial<Currency>) => void;
-  value?: Partial<Currency>;
+  value?: Partial<Currency> | string | null;
   symbolSelectOverrideProps?: Partial<SelectProps>;
   currencySelectOverrideProps?: Partial<SelectProps>;
   symbolSelectAdditionalStyles?: CSSObject;
@@ -59,9 +59,12 @@ export const CURRENCY_SYMBOL_POSITION_OPTIONS = [
   { value: 'suffix', label: t('Suffix') },
 ];
 
+const isCurrencyObject = (value: unknown): value is Partial<Currency> =>
+  !!value && typeof value === 'object' && !Array.isArray(value);
+
 export const CurrencyControl = ({
   onChange,
-  value: currency = {},
+  value: rawCurrency = {},
   symbolSelectOverrideProps = {},
   currencySelectOverrideProps = {},
   symbolSelectAdditionalStyles,
@@ -69,6 +72,24 @@ export const CurrencyControl = ({
   ...props
 }: CurrencyControlProps) => {
   const theme = useTheme();
+  const normalizedCurrency = useMemo<Partial<Currency>>(() => {
+    if (isCurrencyObject(rawCurrency)) {
+      return rawCurrency;
+    }
+
+    if (typeof rawCurrency === 'string') {
+      try {
+        const parsed = JSON.parse(rawCurrency) as unknown;
+        if (isCurrencyObject(parsed)) {
+          return parsed;
+        }
+      } catch {
+        return {};
+      }
+    }
+
+    return {};
+  }, [rawCurrency]);
   const currencies = useSelector<ViewState, string[]>(
     state => state.common?.currencies,
   );
@@ -155,10 +176,12 @@ export const CurrencyControl = ({
           options={CURRENCY_SYMBOL_POSITION_OPTIONS}
           placeholder={t('Prefix or suffix')}
           onChange={(symbolPosition: string) => {
-            onChange({ ...currency, symbolPosition });
+            onChange({ ...normalizedCurrency, symbolPosition });
           }}
-          onClear={() => onChange({ ...currency, symbolPosition: undefined })}
-          value={currency?.symbolPosition}
+          onClear={() =>
+            onChange({ ...normalizedCurrency, symbolPosition: undefined })
+          }
+          value={normalizedCurrency?.symbolPosition}
           allowClear
           {...symbolSelectOverrideProps}
         />
@@ -167,10 +190,10 @@ export const CurrencyControl = ({
           options={currenciesOptions}
           placeholder={t('Currency')}
           onChange={(symbol: string) => {
-            onChange({ ...currency, symbol });
+            onChange({ ...normalizedCurrency, symbol });
           }}
-          onClear={() => onChange({ ...currency, symbol: undefined })}
-          value={currency?.symbol}
+          onClear={() => onChange({ ...normalizedCurrency, symbol: undefined })}
+          value={normalizedCurrency?.symbol}
           allowClear
           allowNewOptions
           sortComparator={currencySortComparator}
