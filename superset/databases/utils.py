@@ -55,7 +55,7 @@ def get_indexes_metadata(
 
 def get_col_type(col: dict[Any, Any]) -> str:
     try:
-        dtype = f"{col['type']}"
+        dtype = repr(col["type"])
     except Exception:  # pylint: disable=broad-except
         # sqla.types.JSON __str__ has a bug, so using __class__.
         dtype = col["type"].__class__.__name__
