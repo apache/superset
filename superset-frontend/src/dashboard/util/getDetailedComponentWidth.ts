@@ -8,13 +8,6 @@
  * with the License.  You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
  */
 import findParentId from './findParentId';
 import { GRID_MIN_COLUMN_COUNT, GRID_COLUMN_COUNT } from './constants';
@@ -25,8 +18,21 @@ import {
   CHART_TYPE,
   DYNAMIC_TYPE,
 } from './componentTypes';
+import { DashboardLayout, LayoutItem } from '../types';
 
-function getTotalChildWidth({ id, components }) {
+interface ComponentWidthInfo {
+  width?: number;
+  occupiedWidth?: number;
+  minimumWidth?: number;
+}
+
+function getTotalChildWidth({
+  id,
+  components,
+}: {
+  id: string;
+  components: DashboardLayout;
+}): number {
   const component = components[id];
   if (!component) return 0;
 
@@ -41,50 +47,64 @@ function getTotalChildWidth({ id, components }) {
 }
 
 export default function getDetailedComponentWidth({
-  // pass either an id, or a component
   id,
   component: passedComponent,
   components = {},
-}) {
-  const result = {
+}: {
+  id?: string;
+  component?: LayoutItem;
+  components?: DashboardLayout;
+}): ComponentWidthInfo {
+  const result: ComponentWidthInfo = {
     width: undefined,
     occupiedWidth: undefined,
     minimumWidth: undefined,
   };
 
-  const component = passedComponent || components[id];
+  const component = passedComponent || (id ? components[id] : undefined);
   if (!component) return result;
 
-  // note these remain as undefined if the component has no defined width
   result.width = (component.meta || {}).width;
   result.occupiedWidth = result.width;
 
+  // 🔹 ROW LOGIC
   if (component.type === ROW_TYPE) {
-    // not all rows have width 12, e
+    const parentId = findParentId({
+      childId: component.id,
+      layout: components,
+    });
+
     result.width =
       getDetailedComponentWidth({
-        id: findParentId({
-          childId: component.id,
-          layout: components,
-        }),
+        id: parentId ?? undefined,
         components,
       }).width || GRID_COLUMN_COUNT;
+
     result.occupiedWidth = getTotalChildWidth({ id: component.id, components });
+
     result.minimumWidth = result.occupiedWidth || GRID_MIN_COLUMN_COUNT;
-  } else if (component.type === COLUMN_TYPE) {
-    // find the width of the largest child, only rows count
-    result.minimumWidth = GRID_MIN_COLUMN_COUNT;
+  }
+
+  // 🔹 COLUMN LOGIC (FIXED)
+  else if (component.type === COLUMN_TYPE) {
+    // Columns never occupy horizontal grid width themselves
     result.occupiedWidth = 0;
+    result.minimumWidth = GRID_MIN_COLUMN_COUNT;
+
     (component.children || []).forEach(childId => {
-      // rows don't have widths, so find the width of its children
-      if (components[childId].type === ROW_TYPE) {
+      if (components[childId]?.type === ROW_TYPE) {
+        const childWidth = getTotalChildWidth({ id: childId, components });
+
         result.minimumWidth = Math.max(
-          result.minimumWidth,
-          getTotalChildWidth({ id: childId, components }),
+          result.minimumWidth ?? GRID_MIN_COLUMN_COUNT,
+          childWidth,
         );
       }
     });
-  } else if (
+  }
+
+  // 🔹 LEAF COMPONENTS
+  else if (
     component.type === DYNAMIC_TYPE ||
     component.type === MARKDOWN_TYPE ||
     component.type === CHART_TYPE

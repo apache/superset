@@ -17,10 +17,42 @@
  * under the License.
  */
 
+import { LayoutItemMeta, ComponentType } from '../types';
 import { TABS_TYPE } from './componentTypes';
-import { DROP_LEFT, DROP_RIGHT } from './getDropPosition';
+import { DROP_LEFT, DROP_RIGHT, DropPosition } from './getDropPosition';
 
-export function reorder(list, startIndex, endIndex) {
+type LayoutItemLike = {
+  id: string;
+  children: string[];
+  // Accept loose type strings to match test fixtures and runtime
+  type?: string;
+  meta?: Partial<LayoutItemMeta>;
+};
+
+type EntitiesMap = Record<string, LayoutItemLike>;
+
+export interface DropResult {
+  source: {
+    id: string;
+    index?: number;
+  };
+  destination?: {
+    id: string;
+    index?: number;
+  };
+  dragging: {
+    id?: string;
+    type?: ComponentType;
+  };
+}
+
+type DragLocation = {
+  id: string;
+  index: number;
+  type?: ComponentType;
+};
+
+export function reorder<T>(list: T[], startIndex: number, endIndex: number) {
   const result = [...list];
   const [removed] = result.splice(startIndex, 1);
   result.splice(endIndex, 0, removed);
@@ -28,20 +60,29 @@ export function reorder(list, startIndex, endIndex) {
   return result;
 }
 
+interface ReorderItemArgs {
+  entitiesMap: EntitiesMap;
+  source: DragLocation;
+  destination: DragLocation;
+  position?: DropPosition | null;
+}
+
 export default function reorderItem({
   entitiesMap,
   source,
   destination,
   position,
-}) {
-  const current = [...entitiesMap[source.id].children];
-  const next = [...entitiesMap[destination.id].children];
+}: ReorderItemArgs): EntitiesMap {
+  const sourceEntity = entitiesMap[source.id];
+  const destinationEntity = entitiesMap[destination.id];
+
+  const current = [...sourceEntity.children];
+  const next = [...destinationEntity.children];
   const target = current[source.index];
 
   const isSameSource = source.id === destination.id;
   const isTabsType = source.type && destination.type === TABS_TYPE;
 
-  // moving to same list
   let dropIndex = destination.index;
 
   if (isSameSource) {
@@ -60,22 +101,19 @@ export default function reorderItem({
       const sameTabSourceIndex = isRightPosition || isLeftPosition;
 
       if (sameTabSourceIndex) {
-        // If the source tab is dropped to be the same index as the source
-        // tab, no change is needed in entitiesMap
         return entitiesMap;
       }
 
-      // Adjust dropIndex to account for the source tab being removed
       if (dropIndex > source.index) {
         dropIndex -= 1;
       }
     }
     const reordered = reorder(current, source.index, dropIndex);
 
-    const result = {
+    const result: EntitiesMap = {
       ...entitiesMap,
       [source.id]: {
-        ...entitiesMap[source.id],
+        ...sourceEntity,
         children: reordered,
       },
     };
@@ -84,7 +122,6 @@ export default function reorderItem({
   }
 
   if (isTabsType) {
-    // Ensure the dropIndex is within the bounds of the destination children
     if (position === DROP_LEFT) {
       dropIndex = Math.max(dropIndex, 0);
     } else if (position === DROP_RIGHT) {
@@ -92,18 +129,17 @@ export default function reorderItem({
     }
   }
 
-  // moving to different list
-  current.splice(source.index, 1); // remove from original
-  next.splice(dropIndex, 0, target); // insert into next
+  current.splice(source.index, 1);
+  next.splice(dropIndex, 0, target);
 
-  const result = {
+  const result: EntitiesMap = {
     ...entitiesMap,
     [source.id]: {
-      ...entitiesMap[source.id],
+      ...sourceEntity,
       children: current,
     },
     [destination.id]: {
-      ...entitiesMap[destination.id],
+      ...destinationEntity,
       children: next,
     },
   };

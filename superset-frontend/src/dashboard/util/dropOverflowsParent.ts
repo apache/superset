@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import type { ComponentType, Layout } from 'src/dashboard/types';
 import getComponentWidthFromDrop from './getComponentWidthFromDrop';
 
