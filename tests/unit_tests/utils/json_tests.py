@@ -54,7 +54,7 @@ def test_json_loads_exception():
 
 
 def test_json_loads_encoding():
-    unicode_data = br'{"a": "\u0073\u0074\u0072"}'
+    unicode_data = rb'{"a": "\u0073\u0074\u0072"}'
     data = json.loads(unicode_data)
     assert data["a"] == "str"
     utf16_data = b'\xff\xfe{\x00"\x00a\x00"\x00:\x00 \x00"\x00s\x00t\x00r\x00"\x00}\x00'
