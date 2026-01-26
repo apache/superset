@@ -59,24 +59,6 @@ try {
     // Use Function constructor instead of eval for safer evaluation
     const sidebarObj = new Function(`return ${sidebarMatch[1]}`)();
 
-    // Track labels and add keys to duplicates
-    const labelCounts = {};
-    const addKeysToItems = (items) => {
-      for (const item of items) {
-        if (item.type === 'doc' && item.label) {
-          const label = item.label;
-          labelCounts[label] = (labelCounts[label] || 0) + 1;
-          if (labelCounts[label] > 1) {
-            // Add a unique key based on the doc id
-            item.key = item.id;
-          }
-        }
-        if (item.items) {
-          addKeysToItems(item.items);
-        }
-      }
-    };
-
     // First pass: count labels
     const countLabels = (items) => {
       const counts = {};
@@ -127,8 +109,9 @@ module.exports = sidebar.apisidebar;
   );
 }
 
-// Add header
-const header = `// @ts-nocheck
+// Add header with eslint-disable to allow @ts-nocheck
+const header = `/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 /**
  * Auto-generated CommonJS sidebar from sidebar.ts
  * Do not edit directly - run 'yarn generate:api-docs' to regenerate

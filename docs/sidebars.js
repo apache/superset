@@ -113,6 +113,7 @@ const sidebars = {
         type: 'doc',
         id: 'api',
       },
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       items: require('./docs/api/sidebar.js'),
     },
   ],

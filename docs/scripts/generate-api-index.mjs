@@ -52,15 +52,6 @@ const CATEGORY_GROUPS = {
   'User & System': ['Current User', 'User', 'Menu', 'Available Domains', 'AsyncEventsRestApi', 'OpenApi'],
 };
 
-// Method badge colors
-const METHOD_COLORS = {
-  get: '#61affe',
-  post: '#49cc90',
-  put: '#fca130',
-  patch: '#50e3c2',
-  delete: '#f93e3e',
-};
-
 function slugify(text) {
   return text
     .toLowerCase()
@@ -192,7 +183,6 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
     mdx += `#### ${groupName}\n\n`;
 
     for (const tag of tagsInGroup) {
-      const tagSlug = slugify(tag);
       const description = tagDescriptions[tag] || '';
       const endpoints = tagEndpoints[tag];
 
