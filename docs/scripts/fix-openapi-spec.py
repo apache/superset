@@ -321,7 +321,6 @@ def main() -> None:
 
     spec, fixed_schemas = add_missing_schemas(spec)
     fixed_ops = add_missing_operation_ids(spec)
-    fixed_summaries = make_summaries_unique(spec)
 
     changes_made = False
 
@@ -333,7 +332,7 @@ def main() -> None:
         print(f"Added operationId/summary to {fixed_ops} operations")
         changes_made = True
 
-    if fixed_summaries:
+    if fixed_summaries := make_summaries_unique(spec):
         print(f"Made {fixed_summaries} duplicate summaries unique")
         changes_made = True
 
