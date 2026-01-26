@@ -226,17 +226,36 @@ a > span > svg {
   font-size: 15px;
 }
 
-.footer__applitools {
+.footer__ci-services {
   background-color: #0d3e49;
   color: #e1e1e1;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  padding: 16px 0;
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+
+  span {
+    font-size: 13px;
+    opacity: 0.85;
+  }
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    transition: opacity 0.2s;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
 
   img {
-    height: 34px;
+    height: 28px;
   }
 }
 
@@ -252,7 +271,16 @@ a > span > svg {
 }
 
 @media only screen and (max-width: 996px) {
-  .footer__applitools img {
-    height: 28px;
+  .footer__ci-services {
+    gap: 12px;
+    padding: 10px 16px;
+
+    span {
+      font-size: 12px;
+    }
+
+    img {
+      height: 22px;
+    }
   }
 }
