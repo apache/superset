@@ -68,6 +68,10 @@ beartype==0.22.5
     # via
     #   py-key-value-aio
     #   py-key-value-shared
+beautifulsoup4==4.14.3
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 billiard==4.2.1
     # via
     #   -c requirements/base-constraint.txt
@@ -960,6 +964,10 @@ sortedcontainers==2.4.0
     #   -c requirements/base-constraint.txt
     #   fakeredis
     #   trio
+soupsieve==2.8
+    # via
+    #   -c requirements/base-constraint.txt
+    #   beautifulsoup4
 sqlalchemy==1.4.54
     # via
     #   -c requirements/base-constraint.txt
@@ -1028,6 +1036,7 @@ typing-extensions==4.15.0
     #   anyio
     #   apache-superset
     #   apache-superset-core
+    #   beautifulsoup4
     #   cattrs
     #   exceptiongroup
     #   limits

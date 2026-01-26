@@ -1662,6 +1662,7 @@ class TestRolePermission(SupersetTestCase):
             ["SupersetAuthView", "logout"],
             ["SupersetRegisterUserView", "register"],
             ["SupersetRegisterUserView", "activation"],
+            ["RedirectView", "redirect_warning"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
