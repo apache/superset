@@ -25,7 +25,6 @@ import errno
 import logging
 import os
 import platform
-import pytz
 import re
 import signal
 import smtplib
@@ -66,6 +65,7 @@ from zipfile import ZipFile
 import markdown as md
 import nh3
 import pandas as pd
+import pytz
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
@@ -1851,6 +1851,7 @@ class DateColumn:
     offset: int | None = None
     time_shift: str | None = None
     timezone: str | None = None  # IANA timezone name
+
     def __hash__(self) -> int:
         return hash(self.col_label)
 
