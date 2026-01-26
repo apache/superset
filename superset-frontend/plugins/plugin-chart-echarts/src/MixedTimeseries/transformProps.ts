@@ -196,6 +196,9 @@ export default function transformProps(
     yAxisIndexB,
     yAxisTitleSecondary,
     zoomable,
+    zoomableClipYAxis,
+    zoomableStart,
+    zoomableEnd,
     richTooltip,
     tooltipSortByMetric,
     xAxisBounds,
@@ -788,10 +791,12 @@ export default function transformProps(
     dataZoom: zoomable
       ? [
           {
+            id: 'dataZoomX',
             type: 'slider',
-            start: TIMESERIES_CONSTANTS.dataZoomStart,
-            end: TIMESERIES_CONSTANTS.dataZoomEnd,
+            start: zoomableStart,
+            end: zoomableEnd,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
+            filterMode: zoomableClipYAxis ? 'empty' : 'filter',
           },
         ]
       : [],
