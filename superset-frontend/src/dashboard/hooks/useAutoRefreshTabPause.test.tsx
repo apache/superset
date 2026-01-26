@@ -50,7 +50,7 @@ const createMockStore = (overrides = {}) => {
           ...state,
           dashboardState: {
             ...state.dashboardState,
-            autoRefreshPausedByTab: action.pausedByTab,
+            autoRefreshPausedByTab: action.isPausedByTab,
           },
         };
       case SET_AUTO_REFRESH_STATUS:
@@ -128,6 +128,30 @@ test('does nothing when not a real-time dashboard (refreshFrequency = 0)', () =>
   });
 
   expect(onStopTimer).not.toHaveBeenCalled();
+});
+
+test('pauses immediately when mounted in a hidden tab', () => {
+  const store = createMockStore({
+    refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: true,
+  });
+  const onRefresh = jest.fn().mockResolvedValue(undefined);
+  const onRestartTimer = jest.fn();
+  const onStopTimer = jest.fn();
+
+  mockVisibilityState('hidden');
+
+  renderHook(
+    () =>
+      useAutoRefreshTabPause({
+        onRefresh,
+        onRestartTimer,
+        onStopTimer,
+      }),
+    { wrapper: createWrapper(store) },
+  );
+
+  expect(onStopTimer).toHaveBeenCalledTimes(1);
 });
 
 test('stops timer when tab becomes hidden for real-time dashboard', () => {
@@ -328,4 +352,27 @@ test('does nothing when pause-on-inactive is disabled', () => {
   });
 
   expect(onStopTimer).not.toHaveBeenCalled();
+});
+
+test('clears tab pause and restarts timer when pause-on-inactive is disabled', () => {
+  const store = createMockStore({
+    refreshFrequency: 5,
+    autoRefreshPauseOnInactiveTab: false,
+    autoRefreshPausedByTab: true,
+  });
+  const onRefresh = jest.fn().mockResolvedValue(undefined);
+  const onRestartTimer = jest.fn();
+  const onStopTimer = jest.fn();
+
+  renderHook(
+    () =>
+      useAutoRefreshTabPause({
+        onRefresh,
+        onRestartTimer,
+        onStopTimer,
+      }),
+    { wrapper: createWrapper(store) },
+  );
+
+  expect(onRestartTimer).toHaveBeenCalledTimes(1);
 });

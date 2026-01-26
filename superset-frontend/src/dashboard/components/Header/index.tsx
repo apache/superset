@@ -302,6 +302,7 @@ const Header = (): JSX.Element => {
     isPaused,
     setStatus,
     setPaused,
+    setPausedByTab,
     recordSuccess,
     recordError,
     setFetchStartTime,
@@ -890,6 +891,7 @@ const Header = (): JSX.Element => {
     if (isPaused) {
       // Resume: fetch immediately, then restart timer
       setPaused(false);
+      setPausedByTab(false);
       const affectedCharts = chartIds.filter(
         chartId => timedRefreshImmuneSlices.indexOf(chartId) === -1,
       );
@@ -905,6 +907,7 @@ const Header = (): JSX.Element => {
   }, [
     isPaused,
     setPaused,
+    setPausedByTab,
     setStatus,
     timedRefreshImmuneSlices,
     chartIds,

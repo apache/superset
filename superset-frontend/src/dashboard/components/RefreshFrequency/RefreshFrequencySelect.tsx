@@ -73,6 +73,20 @@ const isPresetValue = (frequency: number) =>
 const getCustomValue = (frequency: number) =>
   !isPresetValue(frequency) && frequency > 0 ? frequency.toString() : '';
 
+const normalizeRefreshLimitSeconds = (
+  refreshLimit?: number,
+): number | undefined => {
+  if (!refreshLimit || refreshLimit <= 0) {
+    return undefined;
+  }
+
+  if (refreshLimit >= 1000 && refreshLimit % 1000 === 0) {
+    return refreshLimit / 1000;
+  }
+
+  return refreshLimit;
+};
+
 interface RefreshFrequencySelectProps {
   value: number;
   onChange: (value: number) => void;
@@ -160,9 +174,10 @@ export const validateRefreshFrequency = (
   refreshLimit?: number,
 ): string[] => {
   const errors = [];
-  if (refreshLimit && frequency > 0 && frequency < refreshLimit) {
+  const normalizedLimit = normalizeRefreshLimitSeconds(refreshLimit);
+  if (normalizedLimit && frequency > 0 && frequency < normalizedLimit) {
     errors.push(
-      t('Refresh frequency must be at least %s seconds', refreshLimit / 1000),
+      t('Refresh frequency must be at least %s seconds', normalizedLimit),
     );
   }
   return errors;
@@ -176,10 +191,11 @@ export const getRefreshWarningMessage = (
   refreshLimit?: number,
   refreshWarning?: string,
 ): string | null => {
+  const normalizedLimit = normalizeRefreshLimitSeconds(refreshLimit);
   if (
     frequency > 0 &&
-    refreshLimit &&
-    frequency < refreshLimit &&
+    normalizedLimit &&
+    frequency < normalizedLimit &&
     refreshWarning
   ) {
     return refreshWarning;

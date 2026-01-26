@@ -170,6 +170,7 @@ const setFetchStartTime = jest.fn();
 const recordSuccess = jest.fn();
 const recordError = jest.fn();
 const setPaused = jest.fn();
+const setPausedByTab = jest.fn();
 
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
   useUnsavedChangesPrompt: jest.fn(),
@@ -238,6 +239,7 @@ beforeEach(() => {
     isPaused: false,
     setStatus,
     setPaused,
+    setPausedByTab,
     recordSuccess,
     recordError,
     setFetchStartTime,
@@ -630,6 +632,39 @@ test('auto-refresh uses fetchCharts and toggles refresh state', async () => {
     window.requestAnimationFrame = originalRequestAnimationFrame;
     jest.useRealTimers();
   }
+});
+
+test('resume clears tab pause flag', () => {
+  useRealTimeDashboardMock.mockReturnValue({
+    isRealTimeDashboard: true,
+    isPaused: true,
+    isPausedByTab: true,
+    effectiveStatus: AutoRefreshStatus.Paused,
+    lastSuccessfulRefresh: null,
+    lastAutoRefreshTime: null,
+    refreshErrorCount: 0,
+    refreshFrequency: 10,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+    autoRefreshPauseOnInactiveTab: true,
+    setPauseOnInactiveTab: jest.fn(),
+  });
+
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      refreshFrequency: 10,
+    },
+  });
+
+  userEvent.click(screen.getByTestId('auto-refresh-toggle'));
+
+  expect(setPaused).toHaveBeenCalledWith(false);
+  expect(setPausedByTab).toHaveBeenCalledWith(false);
 });
 
 test('should render an extension component if one is supplied', () => {

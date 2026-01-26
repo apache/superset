@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { useTabVisibility } from './useTabVisibility';
 import { useRealTimeDashboard } from './useRealTimeDashboard';
 import { AutoRefreshStatus } from '../types/autoRefresh';
@@ -45,6 +45,7 @@ export function useAutoRefreshTabPause({
   const {
     isRealTimeDashboard,
     isManuallyPaused,
+    isPausedByTab,
     autoRefreshPauseOnInactiveTab,
     setPausedByTab,
     setStatus,
@@ -104,6 +105,42 @@ export function useAutoRefreshTabPause({
     onHidden: handleHidden,
     enabled: isRealTimeDashboard && autoRefreshPauseOnInactiveTab,
   });
+
+  useEffect(() => {
+    if (!isRealTimeDashboard || !autoRefreshPauseOnInactiveTab) {
+      return;
+    }
+
+    if (document.visibilityState === 'hidden') {
+      handleHidden();
+    }
+  }, [isRealTimeDashboard, autoRefreshPauseOnInactiveTab, handleHidden]);
+
+  useEffect(() => {
+    if (!isRealTimeDashboard || autoRefreshPauseOnInactiveTab) {
+      return;
+    }
+
+    if (!isPausedByTab) {
+      return;
+    }
+
+    shouldResumeRef.current = false;
+    setPausedByTab(false);
+
+    if (!isManuallyPaused) {
+      setStatus(AutoRefreshStatus.Idle);
+      onRestartTimer();
+    }
+  }, [
+    isRealTimeDashboard,
+    autoRefreshPauseOnInactiveTab,
+    isPausedByTab,
+    isManuallyPaused,
+    setPausedByTab,
+    setStatus,
+    onRestartTimer,
+  ]);
 }
 
 export default useAutoRefreshTabPause;

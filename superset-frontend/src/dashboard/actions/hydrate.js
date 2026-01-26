@@ -52,6 +52,7 @@ import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import extractUrlParams from '../util/extractUrlParams';
 import updateComponentParentsList from '../util/updateComponentParentsList';
 import { FilterBarOrientation } from '../types';
+import { AUTO_REFRESH_STATE_DEFAULTS } from '../types/autoRefresh';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -286,6 +287,7 @@ export const hydrateDashboard =
         dashboardFilters,
         nativeFilters,
         dashboardState: {
+          ...AUTO_REFRESH_STATE_DEFAULTS,
           preselectNativeFilters: getUrlParam(URL_PARAMS.nativeFilters),
           sliceIds: Array.from(sliceIds),
           directPathToChild,

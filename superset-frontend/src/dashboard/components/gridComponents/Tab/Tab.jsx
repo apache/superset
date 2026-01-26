@@ -181,7 +181,7 @@ const Tab = props => {
           }
           requestAnimationFrame(() => {
             setTimeout(() => {
-              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id));
+              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id, false, true));
             }, CHART_MOUNT_DELAY);
           });
         }

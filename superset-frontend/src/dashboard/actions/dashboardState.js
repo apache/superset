@@ -605,13 +605,16 @@ export function onRefresh(
   interval = 0,
   dashboardId,
   skipFiltersRefresh = false,
+  isLazyLoad = false,
 ) {
   return dispatch => {
-    dispatch({ type: ON_REFRESH });
+    if (!isLazyLoad) {
+      dispatch({ type: ON_REFRESH });
+    }
     return dispatch(fetchCharts(chartList, force, interval, dashboardId)).then(
       () => {
         dispatch(onRefreshSuccess());
-        if (!skipFiltersRefresh) {
+        if (!skipFiltersRefresh && !isLazyLoad) {
           dispatch(onFiltersRefresh());
         }
       },

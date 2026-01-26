@@ -342,4 +342,28 @@ describe('dashboardState actions', () => {
     );
     expect(dispatchedTypes).not.toContain(ON_FILTERS_REFRESH);
   });
+
+  test('onRefresh skips ON_REFRESH and filters refresh for lazy-loaded tabs', async () => {
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: {},
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatched = [];
+    const dispatch = action => {
+      if (typeof action === 'function') {
+        return action(dispatch, getState);
+      }
+      dispatched.push(action);
+      return action;
+    };
+
+    await onRefresh([1], true, 0, 10, false, true)(dispatch);
+
+    const dispatchedTypes = dispatched.map(action => action.type);
+    expect(dispatchedTypes).toContain(ON_REFRESH_SUCCESS);
+    expect(dispatchedTypes).not.toContain(ON_REFRESH);
+    expect(dispatchedTypes).not.toContain(ON_FILTERS_REFRESH);
+  });
 });
