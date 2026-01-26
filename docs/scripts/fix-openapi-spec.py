@@ -301,6 +301,147 @@ TAG_DESCRIPTIONS = {
 }
 
 
+def generate_code_sample(method: str, path: str, has_body: bool = False) -> list[dict]:
+    """Generate code samples for an endpoint in multiple languages."""
+    # Clean up path for display
+    example_path = path.replace("{pk}", "1").replace("{id_or_slug}", "1")
+
+    samples = []
+
+    # cURL sample
+    curl_cmd = f'curl -X {method.upper()} "http://localhost:8088{example_path}"'
+    curl_cmd += ' \\\n  -H "Authorization: Bearer $ACCESS_TOKEN"'
+    if has_body:
+        curl_cmd += ' \\\n  -H "Content-Type: application/json"'
+        curl_cmd += " \\\n  -d '{\"key\": \"value\"}'"
+
+    samples.append({
+        "lang": "cURL",
+        "label": "cURL",
+        "source": curl_cmd,
+    })
+
+    # Python sample
+    if method.lower() == "get":
+        python_code = f'''import requests
+
+response = requests.get(
+    "http://localhost:8088{example_path}",
+    headers={{"Authorization": "Bearer " + access_token}}
+)
+print(response.json())'''
+    elif method.lower() == "post":
+        python_code = f'''import requests
+
+response = requests.post(
+    "http://localhost:8088{example_path}",
+    headers={{"Authorization": "Bearer " + access_token}},
+    json={{"key": "value"}}
+)
+print(response.json())'''
+    elif method.lower() == "put":
+        python_code = f'''import requests
+
+response = requests.put(
+    "http://localhost:8088{example_path}",
+    headers={{"Authorization": "Bearer " + access_token}},
+    json={{"key": "value"}}
+)
+print(response.json())'''
+    elif method.lower() == "delete":
+        python_code = f'''import requests
+
+response = requests.delete(
+    "http://localhost:8088{example_path}",
+    headers={{"Authorization": "Bearer " + access_token}}
+)
+print(response.status_code)'''
+    else:
+        python_code = f'''import requests
+
+response = requests.{method.lower()}(
+    "http://localhost:8088{example_path}",
+    headers={{"Authorization": "Bearer " + access_token}}
+)
+print(response.json())'''
+
+    samples.append({
+        "lang": "Python",
+        "label": "Python",
+        "source": python_code,
+    })
+
+    # JavaScript sample
+    if method.lower() == "get":
+        js_code = f'''const response = await fetch(
+  "http://localhost:8088{example_path}",
+  {{
+    headers: {{
+      "Authorization": `Bearer ${{accessToken}}`
+    }}
+  }}
+);
+const data = await response.json();
+console.log(data);'''
+    elif method.lower() in ["post", "put", "patch"]:
+        js_code = f'''const response = await fetch(
+  "http://localhost:8088{example_path}",
+  {{
+    method: "{method.upper()}",
+    headers: {{
+      "Authorization": `Bearer ${{accessToken}}`,
+      "Content-Type": "application/json"
+    }},
+    body: JSON.stringify({{ key: "value" }})
+  }}
+);
+const data = await response.json();
+console.log(data);'''
+    else:
+        js_code = f'''const response = await fetch(
+  "http://localhost:8088{example_path}",
+  {{
+    method: "{method.upper()}",
+    headers: {{
+      "Authorization": `Bearer ${{accessToken}}`
+    }}
+  }}
+);
+console.log(response.status);'''
+
+    samples.append({
+        "lang": "JavaScript",
+        "label": "JavaScript",
+        "source": js_code,
+    })
+
+    return samples
+
+
+def add_code_samples(spec: dict) -> int:
+    """Add code samples to all endpoints."""
+    count = 0
+
+    for path, methods in spec.get("paths", {}).items():
+        for method, details in methods.items():
+            if method not in ["get", "post", "put", "delete", "patch"]:
+                continue
+            if not isinstance(details, dict):
+                continue
+
+            # Skip if already has code samples
+            if "x-codeSamples" in details:
+                continue
+
+            # Check if endpoint has a request body
+            has_body = "requestBody" in details
+
+            details["x-codeSamples"] = generate_code_sample(method, path, has_body)
+            count += 1
+
+    return count
+
+
 def configure_servers(spec: dict) -> bool:
     """Configure server URLs with variables for flexible API testing."""
     new_servers = [
@@ -434,11 +575,16 @@ def main() -> None:
     fixed_ops = add_missing_operation_ids(spec)
     fixed_tags = add_tag_definitions(spec)
     fixed_servers = configure_servers(spec)
+    fixed_samples = add_code_samples(spec)
 
     changes_made = False
 
     if fixed_servers:
         print("Configured server URLs with variables for flexible API testing")
+        changes_made = True
+
+    if fixed_samples:
+        print(f"Added code samples (cURL, Python, JavaScript) to {fixed_samples} endpoints")
         changes_made = True
 
     if fixed_schemas:

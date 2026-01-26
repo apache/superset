@@ -130,11 +130,11 @@ You can use this API to programmatically interact with Superset for automation, 
 <Alert
   type="info"
   showIcon
-  message="Interactive API Explorer"
+  message="Code Samples & Schema Documentation"
   description={
     <span>
-      Use the "Send API Request" button on any endpoint to test requests against your Superset instance.
-      Select your server from the dropdown or configure a custom URL. Ensure CORS is enabled on your server.
+      Each endpoint includes ready-to-use code samples in <strong>cURL</strong>, <strong>Python</strong>, and <strong>JavaScript</strong>.
+      Browse the <a href="./api/schemas">Schema definitions</a> for detailed data model documentation.
     </span>
   }
   style={{ marginBottom: '24px' }}
