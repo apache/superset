@@ -305,9 +305,13 @@ function mapDispatchToProps(
   dispatch: ThunkDispatch<any, undefined, AnyAction>,
 ) {
   return {
-    refreshAnnotationData: (payload: Payload) =>
+    // Note: There's a type mismatch between the local Annotation interface
+    // and RunAnnotationQueryParams. This cast preserves existing runtime behavior.
+    refreshAnnotationData: (annotation: Annotation) =>
       dispatch(
-        runAnnotationQuery(payload as Parameters<typeof runAnnotationQuery>[0]),
+        runAnnotationQuery(
+          annotation as unknown as Parameters<typeof runAnnotationQuery>[0],
+        ),
       ),
   };
 }
