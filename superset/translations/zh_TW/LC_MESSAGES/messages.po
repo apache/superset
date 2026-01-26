@@ -12246,7 +12246,7 @@ msgstr "提交"
 msgid "Subtitle"
 msgstr "選項卡標題"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

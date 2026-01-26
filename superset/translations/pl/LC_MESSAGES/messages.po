@@ -12768,7 +12768,7 @@ msgstr "Zatwierdź"
 msgid "Subtitle"
 msgstr "Tytuł zakładki"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Suma częściowa"
 
 msgid "Success"

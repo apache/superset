@@ -12164,7 +12164,7 @@ msgstr "Enviar"
 msgid "Subtitle"
 msgstr "Subtítol"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Subtotal"
 
 msgid "Success"

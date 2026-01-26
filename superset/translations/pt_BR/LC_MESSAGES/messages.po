@@ -12339,7 +12339,7 @@ msgstr "Enviar"
 msgid "Subtitle"
 msgstr "Título da aba"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Subtotal"
 
 msgid "Success"

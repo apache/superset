@@ -12152,7 +12152,7 @@ msgstr "Pošlji"
 msgid "Subtitle"
 msgstr "Naslov zavihka"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Delna vsota"
 
 msgid "Success"

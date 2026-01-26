@@ -12233,7 +12233,7 @@ msgstr "提交"
 msgid "Subtitle"
 msgstr "选项卡标题"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

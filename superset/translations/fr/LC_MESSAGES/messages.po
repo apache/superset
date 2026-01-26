@@ -12443,7 +12443,7 @@ msgstr "Soumettre"
 msgid "Subtitle"
 msgstr "Sous titre"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Sous-total"
 
 msgid "Success"

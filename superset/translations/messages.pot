@@ -11076,7 +11076,7 @@ msgstr ""
 msgid "Subtitle"
 msgstr ""
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

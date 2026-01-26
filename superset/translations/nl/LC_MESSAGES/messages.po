@@ -12300,7 +12300,7 @@ msgstr "Bevestigen"
 msgid "Subtitle"
 msgstr "Titel tabblad"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Subtotaal"
 
 msgid "Success"
