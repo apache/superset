@@ -70,6 +70,7 @@ def test_create_task_with_all_fields(app_context, login_as, get_user) -> None:
             "task_name": "Test Task Full",
             "user_id": admin.id,
             "payload": '{"key": "value"}',
+            "properties": {"timeout": 300},
         }
     )
 
@@ -82,6 +83,7 @@ def test_create_task_with_all_fields(app_context, login_as, get_user) -> None:
         assert result.task_name == "Test Task Full"
         assert result.user_id == admin.id
         assert result.payload == '{"key": "value"}'
+        assert result.properties.get("timeout") == 300  # Verify timeout
     finally:
         # Cleanup
         db.session.delete(result)

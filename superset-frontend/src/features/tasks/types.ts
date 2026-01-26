@@ -42,8 +42,6 @@ export interface TaskProperties {
   exception_type: string | null;
   stack_trace: string | null;
   timeout: number | null;
-  max_retries: number | null;
-  retry_count: number | null;
 }
 
 export interface Task {

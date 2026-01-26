@@ -292,6 +292,15 @@ def execute_task(  # noqa: C901
     db.session.merge(task)
     db.session.commit()
 
+    # Start timeout timer if configured (timer starts from execution time)
+    if timeout := task.properties.get("timeout"):
+        ctx.start_timeout_timer(timeout)
+        logger.debug(
+            "Started timeout timer for task %s: %d seconds",
+            task_uuid,
+            timeout,
+        )
+
     try:
         # Get registered executor function
         executor_fn = TaskRegistry.get_executor(task_type)
@@ -336,7 +345,7 @@ def execute_task(  # noqa: C901
         db.session.commit()
 
     finally:
-        # ALWAYS run cleanup handlers
+        # ALWAYS run cleanup handlers (also stops timeout timer)
         ctx._run_cleanup()
 
         # Check if task was aborting and needs to transition to aborted

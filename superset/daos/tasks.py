@@ -29,6 +29,7 @@ from superset.extensions import db
 from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
 from superset.tasks.filters import TaskFilter
+from superset.tasks.types import TaskProperties
 from superset.tasks.utils import get_active_dedup_key
 from superset.utils.core import get_user_id
 from superset.utils.decorators import transaction
@@ -89,6 +90,8 @@ class TaskDAO(BaseDAO[Task]):
         task_key: str | None = None,
         scope: TaskScope | str = TaskScope.PRIVATE,
         user_id: int | None = None,
+        payload: dict[str, Any] | None = None,
+        properties: TaskProperties | None = None,
         **kwargs: Any,
     ) -> Task:
         """
@@ -101,6 +104,8 @@ class TaskDAO(BaseDAO[Task]):
         :param task_key: Optional task identifier for deduplication
         :param scope: Task scope (private/shared/system), defaults to private
         :param user_id: User ID creating the task (required for subscription)
+        :param payload: Optional user-defined context data (dict)
+        :param properties: Optional framework-managed runtime state (e.g., timeout)
         :param kwargs: Additional task attributes
         :returns: Created or existing Task instance
         :raises DAOCreateFailedError: If duplicate private task exists
@@ -153,6 +158,8 @@ class TaskDAO(BaseDAO[Task]):
         # Handle both TaskScope enum and string values
         scope_value = scope.value if isinstance(scope, TaskScope) else scope
 
+        # Note: properties is handled separately via update_properties()
+        # because it's a hybrid property with only a getter
         task_data = {
             "task_type": task_type,
             "task_key": task_key,
@@ -162,10 +169,20 @@ class TaskDAO(BaseDAO[Task]):
             **kwargs,
         }
 
+        # Handle payload - serialize to JSON if dict provided
+        if payload:
+            from superset.utils import json
+
+            task_data["payload"] = json.dumps(payload)
+
         if effective_user_id is not None:
             task_data["user_id"] = effective_user_id
 
         task = cls.create(attributes=task_data)
+
+        # Set properties after creation (hybrid property with getter only)
+        if properties:
+            task.update_properties(properties)
 
         # Flush to get the task ID (auto-incremented primary key)
         db.session.flush()

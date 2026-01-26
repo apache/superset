@@ -195,6 +195,58 @@ The framework automatically skips execution if a task was aborted while pending:
 Always implement an abort handler for long-running tasks. This allows users to cancel unneeded tasks and free up worker capacity for other operations.
 :::
 
+## Timeouts
+
+Set a timeout to automatically abort tasks that run too long:
+
+```python
+from superset_core.api.types import task, get_context, TaskOptions
+
+# Set default timeout in decorator
+@task(timeout=300)  # 5 minutes
+def process_data(dataset_id: int) -> None:
+    ctx = get_context()
+    should_stop = False
+
+    @ctx.on_abort
+    def handle_abort():
+        nonlocal should_stop
+        should_stop = True
+
+    for chunk in fetch_large_dataset(dataset_id):
+        if should_stop:
+            return
+        process(chunk)
+
+# Override timeout at call time
+task = process_data.schedule(
+    dataset_id=123,
+    options=TaskOptions(timeout=600)  # Override to 10 minutes
+)
+```
+
+### How Timeouts Work
+
+The timeout timer starts when the task begins executing (status changes to `IN_PROGRESS`). When the timeout expires:
+
+1. **With an abort handler registered:** The abort flow triggers normally—abort handlers run, then cleanup handlers run, and the task transitions to `ABORTED` status.
+
+2. **Without an abort handler:** The framework cannot forcibly terminate the task. A warning is logged, and the task continues running. The Task List UI shows a warning indicator (⚠️) in the Details column to alert users that the timeout cannot be enforced.
+
+### Timeout Precedence
+
+| Source | Priority | Example |
+|--------|----------|---------|
+| `TaskOptions.timeout` | Highest | `options=TaskOptions(timeout=600)` |
+| `@task(timeout=...)` | Default | `@task(timeout=300)` |
+| Not set | No timeout | Task runs indefinitely |
+
+Call-time options always override decorator defaults, allowing tasks to have sensible defaults while permitting callers to extend or shorten the timeout for specific use cases.
+
+:::warning
+Timeouts require an abort handler to be effective. Without one, the timeout triggers only a warning and the task continues running. Always implement an abort handler when using timeouts.
+:::
+
 ## Deduplication
 
 Use `task_key` to prevent duplicate task execution. Behavior varies by scope:
@@ -267,11 +319,16 @@ TASKS_BACKEND = {
 ### @task Decorator
 
 ```python
-@task(name: str | None = None, scope: TaskScope = TaskScope.PRIVATE)
+@task(
+    name: str | None = None,
+    scope: TaskScope = TaskScope.PRIVATE,
+    timeout: int | None = None
+)
 ```
 
 - `name`: Task identifier (defaults to function name)
 - `scope`: `PRIVATE`, `SHARED`, or `SYSTEM`
+- `timeout`: Default timeout in seconds (can be overridden via `TaskOptions`)
 
 ### TaskContext Methods
 
@@ -284,11 +341,16 @@ TASKS_BACKEND = {
 ### TaskOptions
 
 ```python
-TaskOptions(task_key: str | None = None, task_name: str | None = None)
+TaskOptions(
+    task_key: str | None = None,
+    task_name: str | None = None,
+    timeout: int | None = None
+)
 ```
 
 - `task_key`: Deduplication key (also used as display name if `task_name` is not set)
 - `task_name`: Human-readable display name for the Task List UI
+- `timeout`: Timeout in seconds (overrides decorator default)
 
 :::tip
 Provide a descriptive `task_name` for better readability in the Task List UI. While `task_key` is used for deduplication and may be technical (e.g., `chart_export_123`), `task_name` can be user-friendly (e.g., `"Export Sales Chart 123"`).

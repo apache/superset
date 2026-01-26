@@ -42,6 +42,7 @@ def task(
     *,
     name: str | None = None,
     scope: TaskScope = TaskScope.PRIVATE,
+    timeout: int | None = None,
 ) -> Callable[[Callable[P, R]], "TaskWrapper[P]"] | "TaskWrapper[P]":
     """
     Decorator to register a task with default scope.
@@ -56,12 +57,18 @@ def task(
         @task(name="custom_name", scope=TaskScope.SHARED)
         def my_func(): ...
 
+        @task(timeout=300)  # 5-minute timeout
+        def long_running_func(): ...
+
     Args:
         func: The function to decorate (when used without parentheses).
         name: Optional unique task name (e.g., "superset.generate_thumbnail").
               If not provided, uses the function name as the task name.
         scope: Task scope (TaskScope.PRIVATE, SHARED, or SYSTEM).
                Defaults to TaskScope.PRIVATE.
+        timeout: Optional timeout in seconds. When the timeout is reached,
+                 abort handlers are triggered if registered. Can be overridden
+                 at call time via TaskOptions(timeout=...).
 
     Usage:
         # Private task (default scope) - no parentheses
@@ -81,6 +88,16 @@ def task(
         def cleanup_task() -> None:
             ctx = get_context()
             ...
+
+        # Task with timeout
+        @task(timeout=300)
+        def long_task() -> None:
+            ctx = get_context()
+
+            @ctx.on_abort
+            def handle_abort():
+                # Called when timeout is reached or user cancels
+                ...
 
     Note:
         Both direct calls and .schedule() return Task, regardless of the
@@ -108,8 +125,8 @@ def task(
         # Register task
         TaskRegistry.register(task_name, f)
 
-        # Create wrapper with schedule() method, default options, and scope
-        wrapper = TaskWrapper(task_name, f, default_options, scope)
+        # Create wrapper with schedule() method, default options, scope, and timeout
+        wrapper = TaskWrapper(task_name, f, default_options, scope, timeout)
 
         # Preserve signature for introspection
         wrapper.__signature__ = sig  # type: ignore[attr-defined]
@@ -140,11 +157,13 @@ class TaskWrapper(Generic[P]):
         func: Callable[P, R],
         default_options: TaskOptions,
         scope: TaskScope = TaskScope.PRIVATE,
+        default_timeout: int | None = None,
     ) -> None:
         self.name = name
         self.func = func
         self.default_options = default_options
         self.scope = scope
+        self.default_timeout = default_timeout
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__module__ = func.__module__
@@ -171,6 +190,7 @@ class TaskWrapper(Generic[P]):
         Merge decorator defaults with call-time overrides.
 
         Call-time options take precedence over decorator defaults.
+        For timeout, an explicit None in TaskOptions disables the decorator timeout.
 
         Args:
             override_options: Options provided at call time, or None
@@ -179,12 +199,21 @@ class TaskWrapper(Generic[P]):
             Merged TaskOptions with overrides applied
         """
         if override_options is None:
-            return self.default_options
+            return TaskOptions(
+                task_key=self.default_options.task_key,
+                task_name=self.default_options.task_name,
+                timeout=self.default_timeout,  # Use decorator default
+            )
 
         # Merge: use override if provided, otherwise use default
+        # For timeout: if override_options.timeout is explicitly set (even to None),
+        # use it; otherwise fall back to decorator default
         return TaskOptions(
             task_key=override_options.task_key or self.default_options.task_key,
             task_name=override_options.task_name or self.default_options.task_name,
+            timeout=override_options.timeout
+            if override_options.timeout is not None
+            else self.default_timeout,
         )
 
     def _validate_task(self, options: TaskOptions) -> None:
@@ -242,12 +271,16 @@ class TaskWrapper(Generic[P]):
         task_key = options.task_key or generate_random_task_key()
         scope = self.scope  # Use scope from decorator
 
+        # Build properties with timeout if configured
+        properties = {"timeout": options.timeout} if options.timeout else None
+
         task = CreateTaskCommand(
             {
                 "task_type": self.name,
                 "task_key": task_key,
                 "task_name": task_name,
                 "scope": scope.value,
+                "properties": properties,
             }
         ).run()
 
@@ -356,6 +389,7 @@ class TaskWrapper(Generic[P]):
             task_name=task_name,
             task_key=task_key,
             scope=scope,
+            timeout=options.timeout,
             args=args,
             kwargs=kwargs,
         )
