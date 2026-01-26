@@ -10218,7 +10218,7 @@ msgstr "Subtítol"
 msgid "Subtitle Font Size"
 msgstr "Mida de Font del Subtítol"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Subtotal"
 
 msgid "Success"

@@ -10464,7 +10464,7 @@ msgstr "%s - senza nome"
 msgid "Subtitle Font Size"
 msgstr "Grandezza della bolla"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

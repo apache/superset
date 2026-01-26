@@ -10539,7 +10539,7 @@ msgstr "Titel tabblad"
 msgid "Subtitle Font Size"
 msgstr "Bubbelgrootte"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Subtotaal"
 
 msgid "Success"
