@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Fragment, useCallback, memo, useEffect, useRef, FC } from 'react';
+import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { t, styled } from '@apache-superset/core/ui';
@@ -32,8 +33,7 @@ import {
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
-import { Link } from 'react-router-dom';
-import { LayoutItem, RootState } from 'src/dashboard/types';
+import type { LayoutItem, RootState } from 'src/dashboard/types';
 
 export const RENDER_TAB = 'RENDER_TAB' as const;
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT' as const;
@@ -63,9 +63,9 @@ interface TabProps {
   // grid related
   availableColumnCount?: number;
   columnWidth?: number;
-  onResizeStart?: (...args: unknown[]) => void;
-  onResize?: (...args: unknown[]) => void;
-  onResizeStop?: (...args: unknown[]) => void;
+  onResizeStart?: ResizeStartCallback;
+  onResizeStop?: ResizeCallback;
+  onResize?: ResizeCallback;
 
   // redux
   handleComponentDrop: (...args: unknown[]) => unknown;
@@ -139,7 +139,7 @@ const Tab: FC<TabProps> = props => {
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
 
   // Track which refresh we've already handled to prevent duplicates
-  const handledRefreshRef = useRef(null);
+  const handledRefreshRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
