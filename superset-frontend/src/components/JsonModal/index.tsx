@@ -30,9 +30,8 @@ import type { JsonModalProps } from './types';
  * Preserve line breaks for multiline cell content (e.g. stack traces)
  * while keeping the change scoped to this component only.
  */
-const PreWrap = styled.pre`
+const PreWrap = styled.span`
   white-space: pre-wrap;
-  margin: 0;
 `;
 
 function renderBigIntStrToNumber(value: string | number) {
