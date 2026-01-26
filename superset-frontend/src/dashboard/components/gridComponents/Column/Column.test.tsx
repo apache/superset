@@ -81,10 +81,6 @@ jest.mock('src/dashboard/components/DeleteComponentButton', () => {
 const columnWithoutChildren = {
   ...mockLayout.present.COLUMN_ID,
   children: [],
-  meta: {
-    ...mockLayout.present.COLUMN_ID.meta,
-    width: 4, // or whatever number you expect
-  },
 };
 
 interface ColumnTestProps {
@@ -223,7 +219,7 @@ test('should call deleteComponent when deleted', () => {
 test('should pass its own width as availableColumnCount to children', () => {
   const { getByTestId } = setup();
   expect(getByTestId('mock-dashboard-component')).toHaveTextContent(
-    `${columnWithoutChildren.meta.width}`,
+    props.component.meta.width,
   );
 });
 
