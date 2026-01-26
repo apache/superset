@@ -27,6 +27,7 @@ from redis.sentinel import Sentinel
 from superset_core.api.tasks import TaskScope, TaskStatus
 
 from superset.commands.tasks.exceptions import TaskCreateFailedError
+from superset.tasks.types import TaskProperties
 from superset.tasks.utils import generate_random_task_key
 
 if TYPE_CHECKING:
@@ -489,6 +490,7 @@ class TaskManager:
         task_key: str | None,
         task_name: str | None,
         scope: TaskScope,
+        timeout: int | None,
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
     ) -> "Task":
@@ -506,12 +508,16 @@ class TaskManager:
         :param task_key: Optional deduplication key (None for random UUID)
         :param task_name: Human readable task name
         :param scope: Task scope (TaskScope.PRIVATE, SHARED, or SYSTEM)
+        :param timeout: Optional timeout in seconds
         :param args: Positional arguments for the task function
         :param kwargs: Keyword arguments for the task function
         :returns: Task model representing the scheduled task
         """
         if task_key is None:
             task_key = generate_random_task_key()
+
+        # Build properties with timeout if configured
+        properties: TaskProperties | None = {"timeout": timeout} if timeout else None
 
         try:
             # Create task entry in metastore
@@ -525,6 +531,7 @@ class TaskManager:
                     "task_type": task_type,
                     "task_name": task_name,
                     "scope": scope.value,
+                    "properties": properties,
                 }
             ).run()
 
@@ -575,5 +582,5 @@ class TaskManager:
                 scope.value,
             )
             return TaskManager.submit_task(
-                task_type, task_key, task_name, scope, args, kwargs
+                task_type, task_key, task_name, scope, timeout, args, kwargs
             )

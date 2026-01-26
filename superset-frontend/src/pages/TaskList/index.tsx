@@ -18,7 +18,7 @@
  */
 
 import { SupersetClient } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t, useTheme } from '@apache-superset/core';
 import { useMemo, useCallback, useState } from 'react';
 import { Tooltip, Label, Modal, Checkbox } from '@superset-ui/core/components';
 import {
@@ -338,18 +338,43 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { payload, properties },
+            original: { payload, properties, status },
           },
         }: any) => {
+          const theme = useTheme();
           const hasPayload = payload && Object.keys(payload).length > 0;
           const hasStackTrace = !!properties?.stack_trace;
 
-          if (!hasPayload && !hasStackTrace) {
+          // Show warning if timeout is set but no abort handler during execution
+          // Only show for IN_PROGRESS (abort handler registers at runtime, not during PENDING)
+          const hasTimeoutWithoutHandler =
+            status === TaskStatus.InProgress &&
+            properties?.timeout &&
+            !properties?.is_abortable;
+
+          if (!hasPayload && !hasStackTrace && !hasTimeoutWithoutHandler) {
             return null;
           }
 
           return (
             <div style={{ display: 'flex', gap: '8px' }}>
+              {hasTimeoutWithoutHandler && (
+                <Tooltip
+                  title={t(
+                    'Timeout configured (%s seconds) but no abort handler defined. ' +
+                      'Task will continue running past the timeout.',
+                    properties.timeout,
+                  )}
+                  placement="top"
+                >
+                  <span>
+                    <Icons.WarningOutlined
+                      iconSize="l"
+                      iconColor={theme.colorWarningText}
+                    />
+                  </span>
+                </Tooltip>
+              )}
               {hasPayload && <TaskPayloadPopover payload={payload} />}
               {hasStackTrace && (
                 <TaskStackTracePopover stackTrace={properties.stack_trace} />
@@ -369,8 +394,10 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           // - Show Cancel for any active task that the user can cancel
           // - The backend handles the smart behavior (unsubscribe vs abort)
           const isRunning = original.status === TaskStatus.InProgress;
+          // Task is not cancellable if running without abort handler
+          // Use !== true to catch false, undefined, and null
           const isRunningButNotCancellable =
-            isRunning && original.properties?.is_abortable === false;
+            isRunning && !original.properties?.is_abortable;
 
           const isSharedTask = original.scope === TaskScope.Shared;
           const userIsSubscribed = original.subscribers?.some(
@@ -385,19 +412,21 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             TaskStatus.Aborting,
           ].includes(original.status);
 
-          // Show Cancel button when:
-          // 1. Task can be aborted (pending, or in-progress with handler), OR
-          // 2. User is subscribed to a shared task (can always unsubscribe)
-          const canCancelTask =
-            (canAbortTask(original) && !isTaskAborting(original)) ||
-            (isSharedTask && userIsSubscribed && !isNonActiveStatus);
-
           // Show disabled button for running tasks without abort handler
           // (only for non-shared tasks or when user is the only subscriber)
           const showDisabledCancel =
             isRunningButNotCancellable &&
             !isNonActiveStatus &&
             (!isSharedTask || (original.subscriber_count || 0) <= 1);
+
+          // Show Cancel button when:
+          // 1. Task can be aborted (pending, or in-progress with handler), OR
+          // 2. User is subscribed to a shared task (can always unsubscribe)
+          // But NOT when disabled cancel is shown (mutually exclusive)
+          const canCancelTask =
+            !showDisabledCancel &&
+            ((canAbortTask(original) && !isTaskAborting(original)) ||
+              (isSharedTask && userIsSubscribed && !isNonActiveStatus));
 
           if (!canCancelTask && !showDisabledCancel) {
             return null;

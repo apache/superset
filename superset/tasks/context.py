@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Concrete TaskContext implementation for GATF"""
+"""Concrete TaskContext implementation for GTF"""
 
 import logging
+import threading
 from typing import Callable, TYPE_CHECKING, TypeVar
 
 from flask import current_app
@@ -55,6 +56,10 @@ class TaskContext(CoreTaskContext):
         self._abort_listener: "AbortListener | None" = None
         self._abort_detected = False
         self._abort_handlers_completed = False  # Track if all abort handlers finished
+
+        # Timeout timer state
+        self._timeout_timer: threading.Timer | None = None
+        self._timeout_triggered = False
 
         # Store Flask app reference for background thread database access
         # Use _get_current_object() to get actual app, not proxy
@@ -284,6 +289,82 @@ class TaskContext(CoreTaskContext):
             self._abort_listener.stop()
             self._abort_listener = None
 
+    def start_timeout_timer(self, timeout_seconds: int) -> None:
+        """
+        Start a timeout timer that triggers abort when elapsed.
+
+        Called by execute_task when task transitions to IN_PROGRESS.
+        Timer only triggers abort handlers if task is abortable.
+
+        :param timeout_seconds: Timeout duration in seconds
+        """
+        if self._timeout_timer is not None:
+            return  # Already started
+
+        def on_timeout() -> None:
+            if self._abort_detected:
+                return  # Already aborting
+
+            self._timeout_triggered = True
+
+            # Check if task has abort handler (requires app context)
+            if not self._app:
+                logger.error(
+                    "Timeout fired for task %s but no app context available",
+                    self._task_uuid,
+                )
+                return
+
+            with self._app.app_context():
+                from superset.commands.tasks.update import UpdateTaskCommand
+
+                task = self._task
+                if task.properties.get("is_abortable", False):
+                    logger.info(
+                        "Timeout reached for task %s after %d seconds - "
+                        "marking as failed and triggering abort handlers",
+                        self._task_uuid,
+                        timeout_seconds,
+                    )
+                    # Set status to FAILURE (timeout is an error, not user cancellation)
+                    UpdateTaskCommand(
+                        self._task_uuid,
+                        status=TaskStatus.FAILURE.value,
+                        properties={"error_message": "Task timed out"},
+                        skip_security_check=True,
+                    ).run()
+
+                    # Trigger abort handlers for cleanup
+                    self._on_abort_detected()
+                else:
+                    # No abort handler - just log warning
+                    logger.warning(
+                        "Timeout reached for task %s after %d seconds, but no "
+                        "abort handler is registered. Task will continue running.",
+                        self._task_uuid,
+                        timeout_seconds,
+                    )
+
+        self._timeout_timer = threading.Timer(timeout_seconds, on_timeout)
+        self._timeout_timer.daemon = True
+        self._timeout_timer.start()
+        logger.debug(
+            "Started timeout timer for task %s: %d seconds",
+            self._task_uuid,
+            timeout_seconds,
+        )
+
+    def stop_timeout_timer(self) -> None:
+        """Cancel the timeout timer if running."""
+        if self._timeout_timer is not None:
+            self._timeout_timer.cancel()
+            self._timeout_timer = None
+
+    @property
+    def timeout_triggered(self) -> bool:
+        """Check if the timeout was triggered."""
+        return self._timeout_triggered
+
     @property
     def abort_handlers_completed(self) -> bool:
         """Check if all abort handlers have completed successfully."""
@@ -297,8 +378,9 @@ class TaskContext(CoreTaskContext):
         1. Abort handlers if task was aborting/aborted (but not yet detected)
         2. All cleanup handlers (always)
         """
-        # Stop abort listener
+        # Stop abort listener and timeout timer
         self.stop_abort_polling()
+        self.stop_timeout_timer()
 
         # If aborting/aborted but handlers haven't run yet, run them now
         # (This catches the case where task ended before listener detected abort)

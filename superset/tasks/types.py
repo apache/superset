@@ -93,5 +93,3 @@ class TaskProperties(TypedDict, total=False):
 
     # Execution config - set at task creation
     timeout: int
-    max_retries: int
-    retry_count: int

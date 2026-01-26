@@ -57,11 +57,10 @@ class TaskOptions:
     Execution metadata for tasks.
 
     NOTE: This is intentionally minimal for the initial implementation.
-    Additional options (queue, priority, run_at, delay_s, timeout_s,
+    Additional options (queue, priority, run_at, delay_s,
     max_retries, retry_backoff_s, tags, etc.) can be added later when needed.
 
     Future enhancements will include:
-    - Options merging (decorator defaults + call-time overrides)
     - Validation (e.g., run_at vs delay_s mutual exclusion)
     - Queue routing and priority management
     - Retry policies and backoff strategies
@@ -85,10 +84,16 @@ class TaskOptions:
         task = admin_task.schedule(
             options=TaskOptions(task_name="Admin Operation")
         )
+
+        # Task with timeout (overrides decorator default)
+        task = long_task.schedule(
+            options=TaskOptions(timeout=600)  # 10 minute timeout
+        )
     """
 
     task_key: str | None = None
     task_name: str | None = None
+    timeout: int | None = None  # Timeout in seconds
 
 
 class TaskContext(ABC):
@@ -193,6 +198,7 @@ class TaskContext(ABC):
 def task(
     name: str | None = None,
     scope: TaskScope = TaskScope.PRIVATE,
+    timeout: int | None = None,
 ) -> Callable[[Callable[P, R]], "TaskWrapper[P]"]:
     """
     Decorator to register a task.
@@ -204,6 +210,9 @@ def task(
                  If not provided, uses the function name as the task name.
     :param scope: Task scope (TaskScope.PRIVATE, SHARED, or SYSTEM).
                   Defaults to TaskScope.PRIVATE.
+    :param timeout: Optional timeout in seconds. When the timeout is reached,
+                    abort handlers are triggered if registered. Can be overridden
+                    at call time via TaskOptions(timeout=...).
     :returns: TaskWrapper with .schedule() method
 
     Note:
@@ -239,6 +248,16 @@ def task(
         def cleanup_old_data() -> None:
             ctx = get_context()
             # ... cleanup implementation
+
+        # Task with timeout
+        @task(timeout=300)  # 5-minute timeout
+        def long_running_task() -> None:
+            ctx = get_context()
+
+            @ctx.on_abort
+            def handle_abort():
+                # Called when timeout or manual abort
+                pass
 
         # Schedule async execution
         task = generate_chart_thumbnail.schedule(chart_id=123)  # Returns Task

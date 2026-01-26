@@ -89,9 +89,9 @@ class UpdateTaskCommand(BaseCommand):
         self.validate()
         assert self._model
 
-        # Update column fields
+        # Update status via set_status() for proper timestamp handling
         if self._status is not None:
-            self._model.status = self._status
+            self._model.set_status(self._status)
         if self._started_at is not None:
             self._model.started_at = self._started_at
         if self._ended_at is not None:
