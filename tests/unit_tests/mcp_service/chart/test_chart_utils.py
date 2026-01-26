@@ -17,18 +17,23 @@
 
 """Tests for chart utilities module"""
 
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 
 from superset.mcp_service.chart.chart_utils import (
+    configure_temporal_handling,
     create_metric_object,
     generate_chart_name,
     generate_explore_link,
+    is_column_truly_temporal,
     map_config_to_form_data,
     map_filter_operator,
     map_table_config,
     map_xy_config,
+    NUMERIC_NON_TEMPORAL_TYPES,
+    TEMPORAL_SQL_TYPES,
 )
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -605,3 +610,221 @@ class TestCriticalBugFixes:
 
             form_data = map_xy_config(config)
             assert form_data["viz_type"] == expected_viz_type
+
+
+class TestTemporalColumnTypeConstants:
+    """Test temporal and non-temporal SQL type constants"""
+
+    def test_temporal_sql_types_contains_expected_types(self) -> None:
+        """Test TEMPORAL_SQL_TYPES contains expected date/time types"""
+        expected_types = ["DATE", "DATETIME", "TIMESTAMP", "TIMESTAMPTZ", "TIME"]
+        for sql_type in expected_types:
+            assert sql_type in TEMPORAL_SQL_TYPES
+
+    def test_numeric_non_temporal_types_contains_expected_types(self) -> None:
+        """Test NUMERIC_NON_TEMPORAL_TYPES contains expected numeric types"""
+        expected_types = ["BIGINT", "INT", "INTEGER", "FLOAT", "DOUBLE", "DECIMAL"]
+        for sql_type in expected_types:
+            assert sql_type in NUMERIC_NON_TEMPORAL_TYPES
+
+    def test_no_overlap_between_temporal_and_numeric_types(self) -> None:
+        """Test there's no overlap between temporal and numeric type sets"""
+        overlap = TEMPORAL_SQL_TYPES & NUMERIC_NON_TEMPORAL_TYPES
+        assert len(overlap) == 0
+
+
+class TestIsColumnTrulyTemporal:
+    """Test is_column_truly_temporal function"""
+
+    def test_returns_true_when_no_dataset_id(self) -> None:
+        """Test returns True (default) when dataset_id is None"""
+        result = is_column_truly_temporal("year", None)
+        assert result is True
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_true_when_dataset_not_found(self, mock_dao) -> None:
+        """Test returns True when dataset is not found"""
+        mock_dao.find_by_id.return_value = None
+        result = is_column_truly_temporal("year", 123)
+        assert result is True
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_false_for_bigint_column(self, mock_dao) -> None:
+        """Test returns False for BIGINT column type"""
+        mock_column = type("Column", (), {"column_name": "year", "type": "BIGINT"})()
+        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        mock_dao.find_by_id.return_value = mock_dataset
+
+        result = is_column_truly_temporal("year", 123)
+        assert result is False
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_false_for_integer_column(self, mock_dao) -> None:
+        """Test returns False for INTEGER column type"""
+        mock_column = type("Column", (), {"column_name": "month", "type": "INTEGER"})()
+        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        mock_dao.find_by_id.return_value = mock_dataset
+
+        result = is_column_truly_temporal("month", 123)
+        assert result is False
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_true_for_timestamp_column(self, mock_dao) -> None:
+        """Test returns True for TIMESTAMP column type"""
+        mock_column = type(
+            "Column", (), {"column_name": "created_at", "type": "TIMESTAMP"}
+        )()
+        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        mock_dao.find_by_id.return_value = mock_dataset
+
+        result = is_column_truly_temporal("created_at", 123)
+        assert result is True
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_true_for_date_column(self, mock_dao) -> None:
+        """Test returns True for DATE column type"""
+        mock_column = type(
+            "Column", (), {"column_name": "order_date", "type": "DATE"}
+        )()
+        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        mock_dao.find_by_id.return_value = mock_dataset
+
+        result = is_column_truly_temporal("order_date", 123)
+        assert result is True
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_handles_column_type_with_size(self, mock_dao) -> None:
+        """Test handles column types like BIGINT(20)"""
+        mock_column = type(
+            "Column", (), {"column_name": "year", "type": "BIGINT(20)"}
+        )()
+        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        mock_dao.find_by_id.return_value = mock_dataset
+
+        result = is_column_truly_temporal("year", 123)
+        assert result is False
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_case_insensitive_column_name_lookup(self, mock_dao) -> None:
+        """Test column name lookup is case insensitive"""
+        mock_column = type("Column", (), {"column_name": "Year", "type": "BIGINT"})()
+        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        mock_dao.find_by_id.return_value = mock_dataset
+
+        result = is_column_truly_temporal("year", 123)
+        assert result is False
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_returns_true_on_exception(self, mock_dao) -> None:
+        """Test returns True (default) when exception occurs"""
+        mock_dao.find_by_id.side_effect = Exception("DB error")
+        result = is_column_truly_temporal("year", 123)
+        assert result is True
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_handles_uuid_dataset_id(self, mock_dao) -> None:
+        """Test handles UUID string as dataset_id"""
+        mock_column = type("Column", (), {"column_name": "year", "type": "BIGINT"})()
+        mock_dataset = type("Dataset", (), {"columns": [mock_column]})()
+        mock_dao.find_by_id.return_value = mock_dataset
+
+        result = is_column_truly_temporal("year", "abc-123-uuid")
+        assert result is False
+        mock_dao.find_by_id.assert_called_with("abc-123-uuid", id_column="uuid")
+
+
+class TestConfigureTemporalHandling:
+    """Test configure_temporal_handling function"""
+
+    def test_temporal_column_with_time_grain(self) -> None:
+        """Test temporal column sets time_grain_sqla"""
+        form_data: dict[str, Any] = {}
+        configure_temporal_handling(form_data, x_is_temporal=True, time_grain="P1M")
+        assert form_data["time_grain_sqla"] == "P1M"
+
+    def test_temporal_column_without_time_grain(self) -> None:
+        """Test temporal column without time_grain doesn't set time_grain_sqla"""
+        form_data: dict[str, Any] = {}
+        configure_temporal_handling(form_data, x_is_temporal=True, time_grain=None)
+        assert "time_grain_sqla" not in form_data
+
+    def test_non_temporal_column_sets_categorical_config(self) -> None:
+        """Test non-temporal column sets categorical configuration"""
+        form_data: dict[str, Any] = {}
+        configure_temporal_handling(form_data, x_is_temporal=False, time_grain=None)
+
+        assert form_data["x_axis_sort_series_type"] == "name"
+        assert form_data["x_axis_sort_series_ascending"] is True
+        assert form_data["time_grain_sqla"] is None
+        assert form_data["granularity_sqla"] is None
+
+    def test_non_temporal_column_ignores_time_grain(self) -> None:
+        """Test non-temporal column ignores time_grain parameter"""
+        form_data: dict[str, Any] = {}
+        configure_temporal_handling(form_data, x_is_temporal=False, time_grain="P1M")
+
+        # Should still set categorical config, not time_grain
+        assert form_data["time_grain_sqla"] is None
+        assert form_data["x_axis_sort_series_type"] == "name"
+
+
+class TestMapXYConfigWithNonTemporalColumn:
+    """Test map_xy_config with non-temporal columns (DATE_TRUNC fix)"""
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_non_temporal_column_disables_time_grain(self, mock_is_temporal) -> None:
+        """Test non-temporal column sets categorical config"""
+        mock_is_temporal.return_value = False
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="year"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config, dataset_id=123)
+
+        assert result["x_axis"] == "year"
+        assert result["x_axis_sort_series_type"] == "name"
+        assert result["x_axis_sort_series_ascending"] is True
+        assert result["time_grain_sqla"] is None
+        assert result["granularity_sqla"] is None
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_temporal_column_allows_time_grain(self, mock_is_temporal) -> None:
+        """Test temporal column allows time_grain to be set"""
+        mock_is_temporal.return_value = True
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="created_at"),
+            y=[ColumnRef(name="count", aggregate="COUNT")],
+            kind="line",
+            time_grain="P1W",
+        )
+
+        result = map_xy_config(config, dataset_id=123)
+
+        assert result["x_axis"] == "created_at"
+        assert result["time_grain_sqla"] == "P1W"
+        assert "x_axis_sort_series_type" not in result
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_non_temporal_ignores_time_grain_param(self, mock_is_temporal) -> None:
+        """Test non-temporal column ignores time_grain even if specified"""
+        mock_is_temporal.return_value = False
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="year"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            time_grain="P1M",  # This should be ignored for non-temporal
+        )
+
+        result = map_xy_config(config, dataset_id=123)
+
+        # time_grain_sqla should be None, not P1M
+        assert result["time_grain_sqla"] is None
+        assert result["x_axis_sort_series_type"] == "name"
