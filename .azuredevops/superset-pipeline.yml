@@ -124,7 +124,7 @@ stages:
 # =====================================================
 # DEPLOY STAGE
 # =====================================================
-- stage: Deploy_${{ replace('-', '_', parameters.targetEnvironment) }}
+- stage: Deploy
   displayName: Deploy to ${{ parameters.targetEnvironment }}
   dependsOn: Build
   variables:
