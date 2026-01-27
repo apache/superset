@@ -125,7 +125,7 @@ You can use this API to programmatically interact with Superset for automation, 
   description={
     <span>
       Each endpoint includes ready-to-use code samples in <strong>cURL</strong>, <strong>Python</strong>, and <strong>JavaScript</strong>.
-      Browse the <a href="./api/schemas">Schema definitions</a> for detailed data model documentation.
+      Browse the <a href="./schemas">Schema definitions</a> for detailed data model documentation.
     </span>
   }
   style={{ marginBottom: '24px' }}
@@ -165,7 +165,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
     mdx += `| Method | Endpoint | Description |\n`;
     mdx += `|--------|----------|-------------|\n`;
     for (const ep of tagEndpoints['Security']) {
-      mdx += `| \`${ep.method}\` | [${ep.summary}](./api/${ep.slug}) | \`${ep.path}\` |\n`;
+      mdx += `| \`${ep.method}\` | [${ep.summary}](./${ep.slug}) | \`${ep.path}\` |\n`;
     }
     mdx += '\n';
     renderedTags.add('Security');
@@ -192,7 +192,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
       mdx += `|--------|----------|-------------|\n`;
 
       for (const ep of endpoints) {
-        mdx += `| \`${ep.method}\` | [${ep.summary}](./api/${ep.slug}) | \`${ep.path}\` |\n`;
+        mdx += `| \`${ep.method}\` | [${ep.summary}](./${ep.slug}) | \`${ep.path}\` |\n`;
       }
 
       mdx += `\n</details>\n\n`;
@@ -215,7 +215,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
       mdx += `|--------|----------|-------------|\n`;
 
       for (const ep of endpoints) {
-        mdx += `| \`${ep.method}\` | [${ep.summary}](./api/${ep.slug}) | \`${ep.path}\` |\n`;
+        mdx += `| \`${ep.method}\` | [${ep.summary}](./${ep.slug}) | \`${ep.path}\` |\n`;
       }
 
       mdx += `\n</details>\n\n`;
