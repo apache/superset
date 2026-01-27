@@ -1625,6 +1625,16 @@ class DeckGLMultiLayer(BaseViz):
             form_data = slc.form_data
             form_data = self._apply_layer_filtering(form_data, layer_index)
 
+            # Preserve dashboard context from parent form for embedded dashboards
+            # This allows guest users to access datasources in embedded mode
+            if "dashboardId" in self.form_data:
+                form_data["dashboardId"] = self.form_data["dashboardId"]
+            # Preserve parent slice_id for permission checks
+            if "slice_id" in self.form_data:
+                form_data["parent_slice_id"] = self.form_data["slice_id"]
+                # Also preserve the individual layer's slice_id for proper association
+                form_data["slice_id"] = slc.id
+
             viz_type_name = form_data.get("viz_type")
             viz_class = viz_types.get(viz_type_name)
             if not viz_class:
