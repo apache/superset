@@ -17,90 +17,99 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Feature, MapBrowserEvent } from 'ol';
-import { Pixel } from 'ol/pixel';
-import Handlebars from 'handlebars';
 import { FeatureTooltipProps } from '../types';
+import {
+  setTooltipInvisible,
+  renderTooltip,
+  setTooltipVisible,
+  positionTooltip,
+  getTemplateProps,
+  getHoverFeature,
+  clearTooltip,
+} from '../util/tooltipUtil';
 
 export const FeatureTooltip = (props: FeatureTooltipProps) => {
-  const { className, olMap, tooltipTemplate, showTooltip, dataLayers } = props;
+  const { className, olMap, tooltipTemplate, dataLayers, geomColumn, mapId } =
+    props;
 
-  const infoTooltip = document.getElementById('infoTooltip');
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const currentFeatureRef = useRef<Feature | undefined>(undefined);
 
   useEffect(() => {
-    let currentFeature: Feature | undefined;
-    const displayFeatureInfo = (pixel: Pixel, evt: MapBrowserEvent<any>) => {
-      if (!infoTooltip) {
+    const onPointerMove = (evt: MapBrowserEvent<any>) => {
+      const infoTooltip = tooltipRef.current;
+      const isEmptyTemplate = tooltipTemplate === '';
+
+      if (!infoTooltip || isEmptyTemplate) {
         return;
       }
+
+      if (evt.dragging) {
+        setTooltipInvisible(infoTooltip);
+        clearTooltip(infoTooltip);
+        currentFeatureRef.current = undefined;
+        return;
+      }
+
+      const pixel = olMap.getEventPixel(evt.originalEvent);
       const { clientX, clientY, target, view } = evt.originalEvent;
       const { innerHeight, innerWidth } = view;
 
       const feature = target.closest('.ol-control')
         ? undefined
-        : olMap.forEachFeatureAtPixel(pixel, feat => feat as Feature, {
-            layerFilter: layer =>
-              dataLayers
-                ? dataLayers.some(dataLayer => dataLayer === layer)
-                : false,
-          });
+        : getHoverFeature(pixel, olMap, dataLayers || []);
 
       if (feature) {
-        if (feature !== currentFeature) {
-          infoTooltip.style.visibility = 'visible';
-          const template = Handlebars.compile(tooltipTemplate);
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { geometry, ...templateProps } = feature.getProperties();
-          const result = template(templateProps);
-          infoTooltip.innerHTML = result;
+        positionTooltip(infoTooltip, clientX, clientY, innerWidth, innerHeight);
+
+        const shouldRenderTooltip = feature !== currentFeatureRef.current;
+        if (shouldRenderTooltip) {
+          const ignoreProps = ['geometry', geomColumn];
+          const templateProps = getTemplateProps(feature, ignoreProps);
+
+          renderTooltip(tooltipTemplate, templateProps, infoTooltip);
+          setTooltipVisible(infoTooltip);
         }
-        const { offsetHeight, offsetWidth } = infoTooltip;
-        let tooltipY = clientY;
-        let tooltipX = clientX;
-        // check if tooltip will float over screen bottom
-        if (clientY + offsetHeight >= innerHeight) {
-          tooltipY = clientY - offsetHeight;
-        }
-        // check if tooltip will float over screen right
-        if (clientX + offsetWidth >= innerWidth) {
-          const tooltipCssOffset = 10;
-          tooltipX = clientX - offsetWidth - tooltipCssOffset;
-        }
-        infoTooltip.style.left = `${tooltipX}px`;
-        infoTooltip.style.top = `${tooltipY}px`;
       } else {
-        infoTooltip.style.visibility = 'hidden';
-        infoTooltip.innerHTML = '';
+        setTooltipInvisible(infoTooltip);
+        clearTooltip(infoTooltip);
       }
-      currentFeature = feature;
+      currentFeatureRef.current = feature;
     };
 
-    const pointerMove = (evt: MapBrowserEvent<any>) => {
-      if (tooltipTemplate !== '') {
-        if (evt.dragging && infoTooltip) {
-          infoTooltip.style.visibility = 'hidden';
-          currentFeature = undefined;
-          infoTooltip.innerHTML = '';
-          return;
-        }
-        const pixel = olMap.getEventPixel(evt.originalEvent);
-        displayFeatureInfo(pixel, evt);
+    const onMouseLeave = () => {
+      if (!tooltipRef.current) {
+        return;
       }
+      setTooltipInvisible(tooltipRef.current);
+      clearTooltip(tooltipRef.current);
+      currentFeatureRef.current = undefined;
     };
 
-    if (showTooltip) {
-      olMap.on('pointermove', pointerMove);
-    }
+    olMap.on('pointermove', onPointerMove);
+    document
+      .querySelector(`#${mapId}`)
+      ?.addEventListener('mouseleave', onMouseLeave);
 
     return () => {
-      if (showTooltip) {
-        olMap.un('pointermove', pointerMove);
-      }
+      olMap.un('pointermove', onPointerMove);
+      document
+        .querySelector(`#${mapId}`)
+        ?.removeEventListener('mouseleave', onMouseLeave);
     };
-  }, [infoTooltip, olMap, tooltipTemplate, showTooltip, dataLayers]);
+  }, [
+    tooltipRef,
+    currentFeatureRef,
+    olMap,
+    tooltipTemplate,
+    dataLayers,
+    geomColumn,
+    mapId,
+  ]);
 
-  return <div id="infoTooltip" className={className} />;
+  return <div ref={tooltipRef} className={className} />;
 };
 
 // eslint-disable-next-line theme-colors/no-literal-colors

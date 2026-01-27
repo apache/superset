@@ -680,12 +680,15 @@ export const OlChartMap = (props: OlChartMapProps) => {
         width: `${width}px`,
       }}
     >
-      <StyledFeatureTooltip
-        olMap={olMap}
-        dataLayers={currentDataLayers}
-        tooltipTemplate={tooltipTemplate}
-        showTooltip={showTooltip}
-      />
+      {showTooltip && (
+        <StyledFeatureTooltip
+          olMap={olMap}
+          dataLayers={currentDataLayers}
+          tooltipTemplate={tooltipTemplate}
+          geomColumn={geomColumn}
+          mapId={mapId}
+        />
+      )}
       {showLegend && <Legend olMap={olMap} layerConfigs={layerConfigs} />}
     </div>
   );

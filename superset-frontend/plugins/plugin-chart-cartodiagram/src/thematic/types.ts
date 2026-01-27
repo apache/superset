@@ -94,7 +94,8 @@ export type FeatureTooltipProps = {
   olMap: Map;
   dataLayers?: VectorLayer<VectorSource>[];
   tooltipTemplate: string;
-  showTooltip: boolean;
+  geomColumn: string;
+  mapId: string;
 };
 
 export type LegendProps = {
