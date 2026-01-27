@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppSection,
   DataMask,
@@ -110,8 +110,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [formData.groupby],
   );
   const [col] = groupby;
-  const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
+  const [isSearchPending, setIsSearchPending] = useState(false);
+  // ref for synchronous access in filterOption callback
+  const isSearchPendingRef = useRef(false);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
@@ -170,7 +172,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const isDisabled =
     appSection === AppSection.FilterConfigModal && defaultToFirstItem;
 
-  const onSearch = useMemo(
+  const debouncedSearch = useMemo(
     () =>
       debounce((search: string) => {
         setSearch(search);
@@ -178,13 +180,28 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           dispatchDataMask({
             type: 'ownState',
             ownState: {
-              coltypeMap: initialColtypeMap,
+              coltypeMap,
               search,
             },
           });
         }
       }, SLOW_DEBOUNCE),
-    [dispatchDataMask, initialColtypeMap, searchAllOptions],
+    [dispatchDataMask, coltypeMap, searchAllOptions],
+  );
+
+  const onSearch = useCallback(
+    (search: string) => {
+      if (searchAllOptions && search) {
+        // wait for server results instead of showing client-side filtered results
+        isSearchPendingRef.current = true;
+        setIsSearchPending(true);
+      } else if (searchAllOptions) {
+        isSearchPendingRef.current = false;
+        setIsSearchPending(false);
+      }
+      debouncedSearch(search);
+    },
+    [debouncedSearch, searchAllOptions],
   );
 
   const handleBlur = useCallback(() => {
@@ -231,7 +248,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [data, datatype, col, labelFormatter]);
 
   const options = useMemo(() => {
-    if (search && !multiSelect && !hasOption(search, uniqueOptions, true)) {
+    // only add typed value as option when not using server-side search
+    if (
+      search &&
+      !multiSelect &&
+      !searchAllOptions &&
+      !hasOption(search, uniqueOptions, true)
+    ) {
       uniqueOptions.unshift({
         label: search,
         value: search,
@@ -239,7 +262,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       });
     }
     return uniqueOptions;
-  }, [multiSelect, search, uniqueOptions]);
+  }, [multiSelect, search, searchAllOptions, uniqueOptions]);
 
   const sortComparator = useCallback(
     (a: AntdLabeledValue, b: AntdLabeledValue) => {
@@ -286,6 +309,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
 
+  // clear pending state when new data arrives from server
+  useEffect(() => {
+    if (searchAllOptions) {
+      isSearchPendingRef.current = false;
+      setIsSearchPending(false);
+    }
+  }, [data, searchAllOptions]);
+
   return (
     <FilterPluginStyle height={height} width={width}>
       <StyledFormItem
@@ -317,12 +348,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           // @ts-ignore
           onChange={handleChange}
           ref={inputRef}
-          loading={isRefreshing}
+          loading={isRefreshing || isSearchPending}
           oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
           invertSelection={inverseSelection}
           options={options}
           sortComparator={sortComparator}
           onDropdownVisibleChange={setFilterActive}
+          {...(searchAllOptions && {
+            // hide options while waiting for server results
+            filterOption: () => !isSearchPendingRef.current,
+          })}
         />
       </StyledFormItem>
     </FilterPluginStyle>
