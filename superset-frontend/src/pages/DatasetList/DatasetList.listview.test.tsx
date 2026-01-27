@@ -1913,10 +1913,17 @@ test('bulk select shows "N Selected (Virtual)" for virtual-only selection', asyn
   const checkboxes = screen.getAllByRole('checkbox');
   await userEvent.click(checkboxes[1]);
 
-  // Verify label shows "Virtual"
+  // Wait for selection state to update, then verify label
   await waitFor(() => {
-    expect(screen.getByText(/1 Selected \(Virtual\)/i)).toBeInTheDocument();
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
   });
+
+  // Verify the specific text shows "Virtual"
+  expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+    /1 Selected \(Virtual\)/i,
+  );
 });
 
 test('bulk select shows "N Selected (Physical)" for physical-only selection', async () => {
@@ -1949,10 +1956,17 @@ test('bulk select shows "N Selected (Physical)" for physical-only selection', as
   const checkboxes = screen.getAllByRole('checkbox');
   await userEvent.click(checkboxes[1]);
 
-  // Verify label shows "Physical"
+  // Wait for selection state to update, then verify label
   await waitFor(() => {
-    expect(screen.getByText(/1 Selected \(Physical\)/i)).toBeInTheDocument();
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
   });
+
+  // Verify the specific text shows "Physical"
+  expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+    /1 Selected \(Physical\)/i,
+  );
 });
 
 test('bulk select shows mixed count for virtual and physical selection', async () => {
