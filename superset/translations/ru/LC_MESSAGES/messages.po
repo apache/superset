@@ -10238,6 +10238,9 @@ msgstr "Выберите тип визуализации"
 msgid "Select aggregate options"
 msgstr "Выберите настройки агрегации"
 
+msgid "Select all"
+msgstr "Выбрать все"
+
 msgid "Select all data"
 msgstr "Выбрать все данные"
 
