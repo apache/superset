@@ -565,7 +565,84 @@ test('Add extension to SliceHeader', () => {
   expect(screen.getByText('This is an extension')).toBeInTheDocument();
 });
 
-test('Should NOT render warning for non-table chart when row limit is hit', () => {
+test('Should render RowCountLabel when row limit is hit, and hide it otherwise', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.Table,
+      row_limit: 10,
+    },
+    slice: {
+      ...createProps().slice,
+      viz_type: VizType.Table,
+      form_data: {
+        ...createProps().slice.form_data,
+        viz_type: VizType.Table,
+        row_limit: 10,
+      },
+    },
+  });
+  const rowCountState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+            data: Array(10).fill({}),
+          },
+        ],
+      },
+    },
+  };
+
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  const { rerender } = render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: rowCountState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+
+  rerender(
+    <SliceHeader
+      {...props}
+      formData={{ ...props.formData, row_limit: 1000 }}
+    />,
+  );
+
+  expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
+
+  mockUseUiConfig.mockRestore();
+});
+
+test('Should render warning for non-table chart when row limit is hit', () => {
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
   const props = createProps({
     formData: {
       ...createProps().formData,
@@ -591,13 +668,27 @@ test('Should NOT render warning for non-table chart when row limit is hit', () =
     initialState: rowCountState,
   });
 
-  expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
-  expect(screen.queryByTestId('row-count-label')).not.toBeInTheDocument();
+  // Non-table charts should also show warning when limit is hit
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+
+  mockUseUiConfig.mockRestore();
 });
 
 test('Should hide warning in embedded by default for non-table charts', () => {
   const mockIsEmbedded = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+
   mockIsEmbedded.mockReturnValue(true);
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: false,
+  });
 
   const props = createProps({
     formData: {
@@ -628,9 +719,10 @@ test('Should hide warning in embedded by default for non-table charts', () => {
   expect(screen.queryByTestId('row-count-label')).not.toBeInTheDocument();
 
   mockIsEmbedded.mockRestore();
+  mockUseUiConfig.mockRestore();
 });
 
-test('Should NOT show warning in embedded for non-table charts even when uiConfig.showRowLimitWarning is true', () => {
+test('Should show warning in embedded when uiConfig.showRowLimitWarning is true', () => {
   const mockIsEmbedded = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
   const mockUseUiConfig = useUiConfig as jest.MockedFunction<
     typeof useUiConfig
@@ -671,8 +763,8 @@ test('Should NOT show warning in embedded for non-table charts even when uiConfi
     initialState: rowCountState,
   });
 
-  expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
-  expect(screen.queryByTestId('row-count-label')).not.toBeInTheDocument();
+  // When showRowLimitWarning is true in embedded mode, warning should show
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
 
   mockIsEmbedded.mockRestore();
   mockUseUiConfig.mockRestore();

@@ -73,7 +73,7 @@ export const ChartPills = forwardRef(
     const countFromSecondQuery = hasCountQuery
       ? queriesResponse[1]?.data?.[0]?.rowcount
       : null;
-    
+
     const actualRowCount =
       isTableChart && countFromSecondQuery != null
         ? countFromSecondQuery
