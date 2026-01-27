@@ -130,7 +130,7 @@ export const PageHeaderWithActions = ({
       <Flex align="center" gap={theme.sizeUnit * 12}>
         <DynamicEditableTitle {...editableTitleProps} />
         {showTitlePanelItems && (
-          <div css={buttonsStyles}>
+          <div css={buttonsStyles(theme)}>
             {certificatiedBadgeProps?.certifiedBy && (
               <CertifiedBadge {...certificatiedBadgeProps} />
             )}
