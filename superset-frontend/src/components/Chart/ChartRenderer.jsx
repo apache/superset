@@ -65,6 +65,7 @@ const propTypes = {
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
   onChartStateChange: PropTypes.func,
+  dashboardEmptyStateConfig: PropTypes.object,
 };
 
 const BLANK = {};
@@ -327,13 +328,17 @@ class ChartRenderer extends Component {
         : '';
 
     let noResultsComponent;
-    const noResultTitle = t('No results were returned for this query');
+    const { dashboardEmptyStateConfig } = this.props;
+    const noResultTitle =
+      dashboardEmptyStateConfig?.no_results_message ||
+      t('No results were returned for this query');
     const noResultDescription =
-      this.props.source === ChartSource.Explore
+      dashboardEmptyStateConfig?.no_results_subtitle ||
+      (this.props.source === ChartSource.Explore
         ? t(
             'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
           )
-        : undefined;
+        : undefined);
     const noResultImage = 'chart.svg';
     if (width > BIG_NO_RESULT_MIN_WIDTH && height > BIG_NO_RESULT_MIN_HEIGHT) {
       noResultsComponent = (

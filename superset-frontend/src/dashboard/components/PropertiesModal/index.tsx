@@ -59,7 +59,9 @@ import {
   RefreshSection,
   CertificationSection,
   AdvancedSection,
+  EmptyStateSection,
 } from './sections';
+import { EmptyStateConfig } from 'src/dashboard/types/EmptyStateConfig';
 
 type PropertiesModalProps = {
   dashboardId: number;
@@ -135,6 +137,7 @@ const PropertiesModal = ({
       theme_name: string;
     }>
   >([]);
+  const [emptyStateConfig, setEmptyStateConfig] = useState<EmptyStateConfig>({});
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
 
@@ -172,6 +175,7 @@ const PropertiesModal = ({
         is_managed_externally,
         theme,
         css,
+        empty_state_config,
       } = dashboardData;
       const dashboardInfo = {
         id,
@@ -203,6 +207,17 @@ const PropertiesModal = ({
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
       setRefreshFrequency(metadata?.refresh_frequency || 0);
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
+      
+      // Parse empty_state_config if it exists
+      try {
+        const parsedEmptyStateConfig = empty_state_config
+          ? JSON.parse(empty_state_config)
+          : {};
+        setEmptyStateConfig(parsedEmptyStateConfig);
+      } catch (error) {
+        setEmptyStateConfig({});
+      }
+      
       originalDashboardMetadata.current = metadata;
     },
     [form],
@@ -394,6 +409,9 @@ const PropertiesModal = ({
         dashboard_title: title,
         slug: slug || null,
         json_metadata: currentJsonMetadata || null,
+        empty_state_config: Object.keys(emptyStateConfig).length > 0
+          ? JSON.stringify(emptyStateConfig)
+          : null,
         owners: (owners || []).map(o => o.id),
         certified_by: certifiedBy || null,
         certification_details:
@@ -743,6 +761,23 @@ const PropertiesModal = ({
                 <RefreshSection
                   refreshFrequency={refreshFrequency}
                   onRefreshFrequencyChange={handleRefreshFrequencyChange}
+                />
+              ),
+            },
+            {
+              key: 'empty-state',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Empty state messages')}
+                  subtitle={t('Customize messages when charts have no data')}
+                  validateCheckStatus
+                  testId="empty-state-section"
+                />
+              ),
+              children: (
+                <EmptyStateSection
+                  emptyStateConfig={emptyStateConfig}
+                  onEmptyStateConfigChange={setEmptyStateConfig}
                 />
               ),
             },

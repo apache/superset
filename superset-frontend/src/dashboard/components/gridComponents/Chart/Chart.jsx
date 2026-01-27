@@ -388,6 +388,9 @@ const Chart = props => {
       state.dashboardInfo?.metadata?.shared_label_colors,
     ),
   );
+  const dashboardEmptyStateConfig = useSelector(
+    state => state.dashboardInfo?.metadata?.empty_state_config || EMPTY_OBJECT,
+  );
 
   const formData = useMemo(
     () =>
@@ -715,6 +718,7 @@ const Chart = props => {
           formData={formData}
           labelsColor={labelsColor}
           labelsColorMap={labelsColorMap}
+          dashboardEmptyStateConfig={dashboardEmptyStateConfig}
           ownState={createOwnStateWithChartState(
             dataMask[props.id]?.ownState || EMPTY_OBJECT,
             {
