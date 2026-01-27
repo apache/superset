@@ -455,7 +455,7 @@ stages:
                   docker rm -f superset_db superset_cache superset_init superset_app 2>/dev/null || echo "No named containers to remove"
 
                   echo "Stopping docker-compose project containers (without removing volumes)..."
-                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops down 2>/dev/null || echo "No project containers to stop"
+                  docker compose -f .azuredevops/docker-compose-deploy.yml --env-file .env.deploy --project-name azuredevops down 2>/dev/null || echo "No project containers to stop"
 
                   echo "✓ Cleanup completed (volumes preserved)"
                   echo ""
@@ -511,7 +511,7 @@ stages:
                   echo "✓ Deployment completed"
                   echo ""
                   echo "Running containers:"
-                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops ps
+                  docker ps --filter "name=azuredevops" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
                   echo ""
                   echo "=== END DEBUG ==="
                 env:
@@ -539,7 +539,7 @@ stages:
 
                   # First check if containers are running
                   echo "Checking container status..."
-                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops ps
+                  docker ps --filter "name=azuredevops" --format "table {{.Names}}\t{{.Status}}"
                   echo ""
 
                   for i in {1..60}; do
@@ -556,7 +556,7 @@ stages:
                   echo "✗ Superset failed health check after 10 minutes"
                   echo ""
                   echo "Container logs:"
-                  docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops logs --tail=50
+                  docker compose -f .azuredevops/docker-compose-deploy.yml --env-file .env.deploy --project-name azuredevops logs --tail=50
                   exit 1
                 env:
                   SUPERSET_PORT: $(SUPERSET_PORT)
