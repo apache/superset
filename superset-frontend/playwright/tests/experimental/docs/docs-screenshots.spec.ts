@@ -62,8 +62,17 @@ test('chart gallery screenshot', async ({ page }) => {
 });
 
 test('dashboard screenshot', async ({ page }) => {
-  // Navigate to the World Bank dashboard via its slug (reliable example data)
-  await page.goto('superset/dashboard/world_health/');
+  // Navigate to Sales Dashboard via the dashboard list (slug is null)
+  await page.goto(URL.DASHBOARD_LIST);
+  const searchInput = page.getByPlaceholder('Type a value');
+  await expect(searchInput).toBeVisible({ timeout: 15000 });
+  await searchInput.fill('Sales Dashboard');
+  await searchInput.press('Enter');
+
+  // Click the Sales Dashboard link
+  const dashboardLink = page.getByRole('link', { name: /sales dashboard/i });
+  await expect(dashboardLink).toBeVisible({ timeout: 10000 });
+  await dashboardLink.click();
 
   // Wait for dashboard to fully render
   const dashboardWrapper = page.locator(
@@ -71,13 +80,24 @@ test('dashboard screenshot', async ({ page }) => {
   );
   await expect(dashboardWrapper).toBeVisible({ timeout: 30000 });
 
-  // Wait for charts to load inside the dashboard
+  // Wait for chart holders to appear, then wait for all loading spinners to clear
   await expect(
     page.locator('.dashboard-component-chart-holder').first(),
   ).toBeVisible({ timeout: 15000 });
+  await expect(
+    dashboardWrapper.locator('[data-test="loading-indicator"]'),
+  ).toHaveCount(0, { timeout: 30000 });
 
-  // Allow charts a moment to finish rendering
-  await page.waitForTimeout(3000);
+  // Open the filter bar (collapsed by default)
+  const expandButton = page.locator(
+    '[data-test="filter-bar-expand-button"]',
+  );
+  if (await expandButton.isVisible()) {
+    await expandButton.click();
+  }
+
+  // Allow filter bar animation and final chart paint to settle
+  await page.waitForTimeout(2000);
 
   await page.addStyleTag({ content: 'body { zoom: 0.8 }' });
   await dashboardWrapper.screenshot({
@@ -102,9 +122,14 @@ test('chart editor screenshot', async ({ page }) => {
 
   // Wait for explore page to fully load
   await page.waitForURL('**/explore/**', { timeout: 15000 });
-  await expect(page.locator('[data-test="slice-container"]')).toBeVisible({
-    timeout: 15000,
-  });
+  const sliceContainer = page.locator('[data-test="slice-container"]');
+  await expect(sliceContainer).toBeVisible({ timeout: 15000 });
+
+  // Wait for the chart to finish rendering (loading spinners clear)
+  await expect(
+    sliceContainer.locator('[data-test="loading-indicator"]'),
+  ).toHaveCount(0, { timeout: 15000 });
+  await page.waitForTimeout(2000);
 
   await page.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'explore.jpg'),
@@ -129,10 +154,38 @@ test('SQL Lab screenshot', async ({ page }) => {
   }
   await expect(aceEditor).toBeVisible({ timeout: 15000 });
 
-  // The examples database is typically pre-selected; type a query and run it
+  // Select the "public" schema so we can pick a table from the left panel
+  const schemaSelect = page.locator('#select-schema');
+  await expect(schemaSelect).toBeEnabled({ timeout: 10000 });
+  await schemaSelect.click({ force: true });
+  await schemaSelect.fill('public');
+  await page.getByRole('option', { name: 'public' }).click();
+
+  // Wait for table list to load after schema change, then select birth_names
+  const tableSelectWrapper = page
+    .locator('.ant-select')
+    .filter({ has: page.locator('#select-table') });
+  await expect(tableSelectWrapper).toBeVisible({ timeout: 10000 });
+  await tableSelectWrapper.click();
+  await page.keyboard.type('birth_names');
+  // Select the filtered option via keyboard
+  await page.keyboard.press('Enter');
+
+  // Wait for table schema to load and show columns in the left panel
+  await expect(
+    page.locator('[data-test="col-name"]').first(),
+  ).toBeVisible({ timeout: 10000 });
+
+  // Close the table dropdown by clicking elsewhere, then switch to the query tab
+  await page.locator('[data-test="sql-editor-tabs"]').first().click();
+  await page.getByText('Untitled Query').first().click();
+
+  // Write a multi-line SELECT with explicit columns to fill the editor
   await aceEditor.click();
   const editor = page.getByRole('textbox', { name: /cursor/i });
-  await editor.fill('SELECT * FROM birth_names LIMIT 100');
+  await editor.fill(
+    'SELECT\n  ds,\n  name,\n  gender,\n  state,\n  num\nFROM birth_names\nLIMIT 100',
+  );
 
   // Run the query
   const runButton = page.getByText('Run', { exact: true });
@@ -144,8 +197,12 @@ test('SQL Lab screenshot', async ({ page }) => {
     timeout: 30000,
   });
 
-  // Click editor area to deselect results
-  await aceEditor.click();
+  // Switch to the Results tab (close the public.birth_names metadata tab)
+  await page.getByText('Results').click();
+
+  // Move mouse away from buttons to dismiss any tooltips
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(500);
 
   await page.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'sql_lab.jpg'),
