@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useRef, useCallback } from 'react';
+import { useMemo, useRef, useCallback, memo } from 'react';
 import { GridSize } from 'src/components/GridTable/constants';
 import { GridTable } from 'src/components/GridTable';
 import { type ColDef } from 'src/components/GridTable/types';
@@ -137,3 +137,4 @@ export const FilterableTable = ({
 };
 
 export type { FilterableTableProps };
+export default memo(FilterableTable);
