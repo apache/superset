@@ -114,12 +114,15 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   const showForceCancelOption = useCallback(
     (task: Task) => {
       const isSharedTask = task.scope === TaskScope.Shared;
-      // Show for admins on shared tasks:
-      // - If not subscribed: they can only abort (checkbox pre-checked, disabled)
-      // - If subscribed with multiple subscribers: they can choose
-      return isAdmin && isSharedTask;
+      const subscriberCount = task.subscriber_count || 0;
+      const userSubscribed = isUserSubscribed(task);
+      // Show for admins on shared tasks when:
+      // - Not subscribed (can only abort, so show checkbox pre-checked disabled), OR
+      // - Multiple subscribers (can choose between unsubscribe and force abort)
+      // Don't show when admin is the sole subscriber - cancel will abort anyway
+      return isAdmin && isSharedTask && (subscriberCount > 1 || !userSubscribed);
     },
-    [isAdmin],
+    [isAdmin, isUserSubscribed],
   );
 
   // Check if force cancel checkbox should be disabled (admin not subscribed)
