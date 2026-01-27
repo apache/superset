@@ -141,7 +141,7 @@ export const PageHeaderWithActions = ({
       </Flex>
       <div className="right-button-panel">
         {rightPanelAdditionalItems}
-        <div css={additionalActionsContainerStyles}>
+        <div css={additionalActionsContainerStyles(theme)}>
           {showMenuDropdown && (
             <Dropdown
               trigger={['click']}
