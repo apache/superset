@@ -104,15 +104,23 @@ def refresh_oauth2_token(
                 config,
                 token.refresh_token,
             )
-        except Exception:
-            # If token refresh failed, delete the invalid token to prevent retry loops
+        except db_engine_spec.oauth2_exception:
+            # OAuth token is no longer valid, delete it and start OAuth2 dance
             logger.warning(
                 "OAuth2 token refresh failed for user=%s db=%s, deleting invalid token",
                 user_id,
                 database_id,
             )
             db.session.delete(token)
-            return None
+            raise
+        except Exception:
+            # non-OAuth related failure, log the exception
+            logger.warning(
+                "OAuth2 token refresh failed for user=%s db=%s",
+                user_id,
+                database_id,
+            )
+            raise
 
         # store new access token; note that the refresh token might be revoked, in which
         # case there would be no access token in the response
