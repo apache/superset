@@ -24,7 +24,7 @@ import { theme as antdThemeImport } from 'antd';
  * Get AntdThemeConfig type from the theme object
  */
 import type { ThemeConfig } from 'antd';
-import { DirectionType } from 'antd/es/config-provider';
+import type { DirectionType } from 'antd/es/config-provider';
 import { Theme } from '.';
 
 /**
