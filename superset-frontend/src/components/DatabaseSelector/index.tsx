@@ -42,7 +42,7 @@ import {
   Label,
   LabeledValue as AntdLabeledValue,
   Button,
-  Modal,
+  Popconfirm,
   Icons,
 } from '@superset-ui/core/components';
 
@@ -64,6 +64,19 @@ const DatabaseSelectorWrapper = styled.div<{ horizontal?: boolean }>`
       align-items: center;
       min-width: 0;
       overflow: hidden;
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.borderRadius}px;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+
+      &:hover {
+        color: ${theme.colorPrimary};
+        border-color: ${theme.colorPrimary};
+
+        & > button {
+          color: ${theme.colorPrimary};
+        }
+      }
 
       & .ant-space-compact button {
         padding: ${theme.sizeUnit * 2}px;
@@ -73,7 +86,8 @@ const DatabaseSelectorWrapper = styled.div<{ horizontal?: boolean }>`
         min-width: 0;
         overflow: hidden;
         padding: 0 ${theme.sizeUnit * 2}px;
-
+        border: 0;
+        pointer-events: none;
 
         & > span {
           overflow: hidden;
@@ -131,7 +145,7 @@ const SelectButton = styled(Button)<{ empty: boolean }>`
     empty ? theme.colorTextPlaceholder : theme.colorTextBase};
 `;
 
-const SelectLabel = ({
+export const SelectLabel = ({
   backend,
   databaseName,
 }: {
@@ -436,6 +450,7 @@ export function DatabaseSelector({
     select: ReactNode,
     refreshBtn: ReactNode,
     sqlLabModeConfig?: {
+      icon?: ReactNode;
       displayValue?: ReactNode;
       disabled?: boolean;
       loading?: boolean;
@@ -444,17 +459,18 @@ export function DatabaseSelector({
     if (sqlLabMode && sqlLabModeConfig) {
       const displayValue = sqlLabModeConfig.displayValue ?? label;
       return (
-        <SelectButton
-          buttonStyle="tertiary"
-          disabled={sqlLabModeConfig.disabled}
-          loading={sqlLabModeConfig.loading}
-          onClick={openSelectorModal}
-          icon={<Icons.DownOutlined iconSize="s" />}
-          iconPosition="end"
-          empty={!sqlLabModeConfig.displayValue}
-        >
-          {displayValue}
-        </SelectButton>
+        <>
+          {sqlLabModeConfig.icon}
+          <SelectButton
+            buttonStyle="tertiary"
+            disabled={sqlLabModeConfig.disabled}
+            loading={sqlLabModeConfig.loading}
+            onClick={openSelectorModal}
+            empty={!sqlLabModeConfig.displayValue}
+          >
+            {displayValue}
+          </SelectButton>
+        </>
       );
     }
     return (
@@ -518,6 +534,7 @@ export function DatabaseSelector({
           displayValue: currentCatalog?.label,
           disabled: !currentDb || readOnly,
           loading: loadingCatalogs,
+          icon: <Icons.RightOutlined />,
         },
       );
     }
@@ -562,6 +579,7 @@ export function DatabaseSelector({
           displayValue: currentSchema?.label,
           disabled: !currentDb || readOnly,
           loading: loadingSchemas,
+          icon: <Icons.RightOutlined />,
         },
       );
     }
@@ -603,16 +621,10 @@ export function DatabaseSelector({
   }
 
   function renderSelectorModal() {
-    return (
-      <Modal
-        title={t('Select Database and Schema')}
-        show={selectorModalOpen}
-        onHide={closeSelectorModal}
-        onHandledPrimaryAction={handleModalOk}
+    const popconfirmDescription = (
+      <div
         css={css`
-          .ant-modal-body {
-            overflow: visible;
-          }
+          min-width: 500px;
         `}
       >
         <DatabaseSelector
@@ -643,7 +655,30 @@ export function DatabaseSelector({
           isDatabaseSelectEnabled={isDatabaseSelectEnabled}
           readOnly={readOnly}
         />
-      </Modal>
+      </div>
+    );
+
+    return (
+      <Popconfirm
+        title={t('Select Database and Schema')}
+        description={popconfirmDescription}
+        open={selectorModalOpen}
+        onOpenChange={open => !open && closeSelectorModal()}
+        onConfirm={e => {
+          e?.stopPropagation();
+          handleModalOk();
+        }}
+        onCancel={e => {
+          e?.stopPropagation();
+          closeSelectorModal();
+        }}
+        okText={t('Select')}
+        cancelText={t('Cancel')}
+        placement="bottomLeft"
+        icon={null}
+      >
+        <span />
+      </Popconfirm>
     );
   }
 
@@ -651,12 +686,24 @@ export function DatabaseSelector({
     <DatabaseSelectorWrapper
       data-test="DatabaseSelector"
       horizontal={Boolean(sqlLabMode)}
+      onClick={sqlLabMode ? openSelectorModal : undefined}
+      role={sqlLabMode ? 'button' : undefined}
+      tabIndex={sqlLabMode ? 0 : undefined}
+      onKeyDown={
+        sqlLabMode
+          ? e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                openSelectorModal();
+              }
+            }
+          : undefined
+      }
     >
+      {renderSelectorModal()}
       {renderDatabaseSelect()}
       {renderError()}
       {showCatalogSelector && renderCatalogSelect()}
       {renderSchemaSelect()}
-      {renderSelectorModal()}
     </DatabaseSelectorWrapper>
   );
 }

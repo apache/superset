@@ -335,6 +335,24 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     [],
   );
 
+  // Check if any nodes match the search term
+  const hasMatchingNodes = useMemo(() => {
+    if (!searchTerm) return true;
+
+    const lowerTerm = searchTerm.toLowerCase();
+
+    const checkNode = (node: TreeNodeData): boolean => {
+      if (node.type === 'empty') return false;
+      if (node.name.toLowerCase().includes(lowerTerm)) return true;
+      if (node.children) {
+        return node.children.some(child => checkNode(child));
+      }
+      return false;
+    };
+
+    return treeData.some(node => checkNode(node));
+  }, [searchTerm, treeData]);
+
   // Handle async loading when node is toggled open
   const handleToggle = useCallback(
     async (id: string, isOpen: boolean) => {
@@ -610,11 +628,47 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
 
   return (
     <>
-      <Flex align="center" gap="small">
+      <Flex
+        css={css`
+          flex-direction: row-reverse;
+        `}
+      >
         <PanelToolbar
           viewId={ViewContribution.LeftSidebar}
           defaultPrimaryActions={
             <>
+              <Button
+                color="primary"
+                variant="text"
+                icon={<Icons.FolderOpenOutlined />}
+                onClick={() => {
+                  treeRef.current?.openAll();
+                  const allNodeIds: Record<string, boolean> = {};
+                  const collectNodeIds = (nodes: TreeNodeData[]) => {
+                    nodes.forEach(node => {
+                      if (node.type !== 'empty' && node.type !== 'column') {
+                        allNodeIds[node.id] = true;
+                        if (node.children) {
+                          collectNodeIds(node.children);
+                        }
+                      }
+                    });
+                  };
+                  collectNodeIds(treeData);
+                  setManuallyOpenedNodes(allNodeIds);
+                }}
+                tooltip={t('Expand all')}
+              />
+              <Button
+                color="primary"
+                variant="text"
+                icon={<Icons.FolderOutlined />}
+                onClick={() => {
+                  treeRef.current?.closeAll();
+                  setManuallyOpenedNodes({});
+                }}
+                tooltip={t('Collapse all')}
+              />
               <Button
                 color="primary"
                 variant="text"
@@ -626,15 +680,15 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
             </>
           }
         />
-        <Input
-          allowClear
-          type="text"
-          className="form-control input-sm"
-          placeholder={t('Enter a part of the object name')}
-          onChange={handleSearchChange}
-          value={searchTerm}
-        />
       </Flex>
+      <Input
+        allowClear
+        type="text"
+        className="form-control input-sm"
+        placeholder={t('Enter a part of the object name')}
+        onChange={handleSearchChange}
+        value={searchTerm}
+      />
       <StyledTreeContainer>
         <AutoSizer disableWidth>
           {({ height }) => {
@@ -642,7 +696,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
               return <Skeleton active />;
             }
 
-            if (searchTerm && treeData.length === 0) {
+            if (searchTerm && !hasMatchingNodes) {
               return (
                 <Empty
                   description={t('No matching results found')}

@@ -16,19 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useState } from 'react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 
-import { SqlLabRootState, Table } from 'src/SqlLab/types';
-import { addTable, removeTables, resetState } from 'src/SqlLab/actions/sqlLab';
+import { resetState } from 'src/SqlLab/actions/sqlLab';
 import { Button, EmptyState, Icons } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core';
 import { styled, css } from '@apache-superset/core/ui';
-import TableSelector from 'src/components/TableSelector';
-import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { noop } from 'lodash';
 import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
 import TableExploreTree from '../TableExploreTree';
+import { DatabaseSelector } from 'src/components';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
@@ -51,69 +48,15 @@ const LeftBarStyles = styled.div`
   `}
 `;
 
+const StyledDivider = styled.div`
+  border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
+  margin: 0 -${({ theme }) => theme.sizeUnit * 2.5}px 0;
+`;
+
 const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
-  const { db: userSelectedDb, ...dbSelectorProps } =
-    useDatabaseSelector(queryEditorId);
-  const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
-    ({ sqlLab }) =>
-      sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
-    shallowEqual,
-  );
+  const dbSelectorProps = useDatabaseSelector(queryEditorId);
+
   const dispatch = useDispatch();
-  const queryEditor = useQueryEditor(queryEditorId, [
-    'dbId',
-    'catalog',
-    'schema',
-    'tabViewId',
-  ]);
-  const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
-  const { dbId, schema } = queryEditor;
-  const tables = useMemo(
-    () =>
-      allSelectedTables.filter(
-        table => table.dbId === dbId && table.schema === schema,
-      ),
-    [allSelectedTables, dbId, schema],
-  );
-
-  noop(_emptyResultsWithSearch); // This is to avoid unused variable warning, can be removed if not needed
-
-  const onEmptyResults = useCallback((searchText?: string) => {
-    setEmptyResultsWithSearch(!!searchText);
-  }, []);
-
-  const selectedTableNames = useMemo(
-    () => tables?.map(table => table.name) || [],
-    [tables],
-  );
-
-  const onTablesChange = (
-    tableNames: string[],
-    catalogName: string | null,
-    schemaName: string,
-  ) => {
-    if (!schemaName) {
-      return;
-    }
-
-    const currentTables = [...tables];
-    const tablesToAdd = tableNames.filter(name => {
-      const index = currentTables.findIndex(table => table.name === name);
-      if (index >= 0) {
-        currentTables.splice(index, 1);
-        return false;
-      }
-
-      return true;
-    });
-
-    tablesToAdd.forEach(tableName => {
-      dispatch(addTable(queryEditor, tableName, catalogName, schemaName));
-    });
-
-    dispatch(removeTables(currentTables));
-  };
-
   const shouldShowReset = window.location.search === '?reset=1';
 
   const handleResetState = useCallback(() => {
@@ -122,15 +65,12 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
 
   return (
     <LeftBarStyles data-test="sql-editor-left-bar">
-      <TableSelector
+      <DatabaseSelector
         {...dbSelectorProps}
-        onEmptyResults={onEmptyResults}
         emptyState={<EmptyState />}
-        database={userSelectedDb}
-        onTableSelectChange={onTablesChange}
-        tableValue={selectedTableNames}
         sqlLabMode
       />
+      <StyledDivider />
       <TableExploreTree queryEditorId={queryEditorId} />
       {shouldShowReset && (
         <Button

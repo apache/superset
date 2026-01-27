@@ -240,6 +240,6 @@ test('renders refresh button for schema list', async () => {
     expect(screen.getByText('public')).toBeInTheDocument();
   });
 
-  const refreshButton = screen.getByRole('button', { name: /refresh/i });
+  const refreshButton = screen.getByRole('button', { name: /reload/i });
   expect(refreshButton).toBeInTheDocument();
 });

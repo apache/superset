@@ -22,7 +22,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  within,
 } from 'spec/helpers/testing-library';
 import SqlEditorLeftBar, {
   SqlEditorLeftBarProps,
@@ -31,7 +30,6 @@ import {
   table,
   initialState,
   defaultQueryEditor,
-  extraQueryEditor1,
   extraQueryEditor2,
 } from 'src/SqlLab/fixtures';
 import type { RootState } from 'src/views/store';
@@ -47,25 +45,14 @@ jest.mock('../TableExploreTree', () => ({
 
 // Helper to switch from default TreeView to SelectView
 const switchToSelectView = async () => {
-  // Find all segmented items and click the second one (SelectView)
-  const segmentedItems = document.querySelectorAll('.ant-segmented-item');
-  if (segmentedItems.length >= 2) {
-    await userEvent.click(segmentedItems[1]);
-    // Wait for the view to switch
-    await waitFor(() => {
-      expect(
-        screen.queryByTestId('mock-table-explore-tree'),
-      ).not.toBeInTheDocument();
-    });
-    const changeButton = screen.getByRole('button', { name: 'Change' });
-    // Click Change button to open database selector modal
-    await userEvent.click(changeButton);
+  const changeButton = screen.getByTestId('DatabaseSelector');
+  // Click Change button to open database selector modal
+  await userEvent.click(changeButton);
 
-    // Verify modal is opened
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-    });
-  }
+  // Verify popup is opened
+  await waitFor(() => {
+    expect(screen.getByText('Select Database and Schema')).toBeInTheDocument();
+  });
 };
 
 const mockedProps = {
@@ -140,296 +127,115 @@ const renderAndWait = (
     }),
   );
 
-describe('SelectView', () => {
-  test('renders a TableElement', async () => {
-    const { getAllByTestId } = await renderAndWait(mockedProps, undefined, {
-      ...initialState,
-      sqlLab: {
-        ...initialState.sqlLab,
-        tables: [table],
-        databases: { [mockData.database.id]: { ...mockData.database } },
+test('catalog selector should be visible when enabled in the database', async () => {
+  const { getByRole } = await renderAndWait(mockedProps, undefined, {
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      unsavedQueryEditor: {
+        id: mockedProps.queryEditorId,
+        dbId: mockData.database.id,
       },
-    });
-    await switchToSelectView();
-    const tableElement = getAllByTestId('table-element');
-    expect(tableElement.length).toBeGreaterThanOrEqual(1);
+      tables: [table],
+      databases: {
+        [mockData.database.id]: {
+          ...mockData.database,
+          allow_multi_catalog: true,
+        },
+      },
+    },
+  });
+  await switchToSelectView();
+
+  const dbSelect = getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  const catalogSelect = getByRole('combobox', {
+    name: 'Select catalog or type to search catalogs',
+  });
+  const schemaSelect = getByRole('combobox', {
+    name: 'Select schema or type to search schemas',
   });
 
-  test('table should be visible when expanded is true', async () => {
-    const { container, getByText, getByRole, getAllByLabelText } =
-      await renderAndWait(mockedProps, undefined, {
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          tables: [table],
-          databases: { [mockData.database.id]: { ...mockData.database } },
-        },
-      });
-    await switchToSelectView();
-    const dbSelect = getByRole('combobox', {
-      name: 'Select database or type to search databases',
-    });
-    const schemaSelect = getByRole('combobox', {
-      name: 'Select schema or type to search schemas: main',
-    });
-    const tableSelect = getAllByLabelText(
-      /Select table or type to search tables/i,
-    )[0];
-    const tableOption = within(tableSelect).getByText(/ab_user/i);
+  expect(dbSelect).toBeInTheDocument();
+  expect(catalogSelect).toBeInTheDocument();
+  expect(schemaSelect).toBeInTheDocument();
+});
 
-    expect(dbSelect).toBeInTheDocument();
-    expect(schemaSelect).toBeInTheDocument();
-    expect(tableSelect).toBeInTheDocument();
-    expect(tableOption).toBeInTheDocument();
+test('display no compatible schema found when schema api throws errors', async () => {
+  const reduxState = {
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      queryEditors: [
+        {
+          ...extraQueryEditor2,
+          dbId: 3,
+          schema: undefined,
+        },
+      ],
+      databases: {
+        [mockData.database.id]: {
+          ...mockData.database,
+          allow_multi_catalog: true,
+        },
+        3: {
+          id: 3,
+          database_name: 'unauth_db',
+          backend: 'minervasql',
+        },
+      },
+    },
+  };
+  await renderAndWait(
+    {
+      ...mockedProps,
+      queryEditorId: extraQueryEditor2.id,
+    },
+    undefined,
+    reduxState,
+  );
+  await switchToSelectView();
+
+  await waitFor(() =>
     expect(
-      container.querySelector('.ant-collapse-content-active'),
-    ).toBeInTheDocument();
-    table.columns.forEach(({ name }) => {
-      expect(getByText(name)).toBeInTheDocument();
-    });
+      fetchMock.callHistory.calls('glob:*/api/v1/database/3/schemas/?*').length,
+    ).toBeGreaterThanOrEqual(1),
+  );
+  const select = screen.getByRole('combobox', {
+    name: 'Select schema or type to search schemas',
   });
+  userEvent.click(select);
+  expect(
+    await screen.findByText('No compatible schema found'),
+  ).toBeInTheDocument();
+});
 
-  test('catalog selector should be visible when enabled in the database', async () => {
-    const { container, getByText, getByRole } = await renderAndWait(
-      mockedProps,
-      undefined,
-      {
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor: {
-            id: mockedProps.queryEditorId,
-            dbId: mockData.database.id,
-          },
-          tables: [table],
-          databases: {
-            [mockData.database.id]: {
-              ...mockData.database,
-              allow_multi_catalog: true,
-            },
-          },
+test('ignore schema api when current schema is deprecated', async () => {
+  const invalidSchemaName = 'None';
+  await renderAndWait(mockedProps, undefined, {
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      unsavedQueryEditor: {
+        id: defaultQueryEditor.id,
+        schema: invalidSchemaName,
+        dbId: mockData.database.id,
+      },
+      tables: [table],
+      databases: {
+        [mockData.database.id]: {
+          ...mockData.database,
         },
       },
-    );
-    await switchToSelectView();
-
-    const dbSelect = getByRole('combobox', {
-      name: 'Select database or type to search databases',
-    });
-    const catalogSelect = getByRole('combobox', {
-      name: 'Select catalog or type to search catalogs',
-    });
-    const schemaSelect = getByRole('combobox', {
-      name: 'Select schema or type to search schemas',
-    });
-
-    expect(dbSelect).toBeInTheDocument();
-    expect(catalogSelect).toBeInTheDocument();
-    expect(schemaSelect).toBeInTheDocument();
-    expect(
-      container.querySelector('.ant-collapse-content-active'),
-    ).toBeInTheDocument();
-    table.columns.forEach(({ name }) => {
-      expect(getByText(name)).toBeInTheDocument();
-    });
+    },
   });
-
-  test('should toggle the table when the header is clicked', async () => {
-    const { container } = await renderAndWait(mockedProps, undefined, {
-      ...initialState,
-      sqlLab: {
-        ...initialState.sqlLab,
-        tables: [table],
-        unsavedQueryEditor: {
-          id: mockedProps.queryEditorId,
-          dbId: mockData.database.id,
-        },
-        databases: {
-          [mockData.database.id]: {
-            ...mockData.database,
-            allow_multi_catalog: true,
-          },
-        },
-      },
-    });
-    await switchToSelectView();
-
-    const header = container.querySelector('.ant-collapse-header');
-    expect(header).toBeInTheDocument();
-
-    if (header) {
-      await userEvent.click(header);
-    }
-
-    await waitFor(() =>
-      expect(
-        container.querySelector('.ant-collapse-content-inactive'),
-      ).toBeInTheDocument(),
-    );
-  });
-
-  test('When changing database the schema and table list must be updated', async () => {
-    const reduxState = {
-      ...initialState,
-      sqlLab: {
-        ...initialState.sqlLab,
-        unsavedQueryEditor: {
-          id: defaultQueryEditor.id,
-          schema: 'db1_schema',
-          dbId: mockData.database.id,
-        },
-        queryEditors: [
-          defaultQueryEditor,
-          {
-            ...extraQueryEditor1,
-            schema: 'new_schema',
-            dbId: 2,
-          },
-        ],
-        tables: [
-          {
-            ...table,
-            dbId: defaultQueryEditor.dbId,
-            schema: 'db1_schema',
-          },
-          {
-            ...table,
-            dbId: 2,
-            schema: 'new_schema',
-            name: 'new_table',
-            queryEditorId: extraQueryEditor1.id,
-          },
-        ],
-        databases: {
-          [mockData.database.id]: {
-            ...mockData.database,
-            allow_multi_catalog: true,
-          },
-          2: {
-            id: 2,
-            database_name: 'new_db',
-            backend: 'postgresql',
-          },
-        },
-      },
-    };
-    const { rerender } = await renderAndWait(
-      mockedProps,
-      undefined,
-      reduxState,
-    );
-    await switchToSelectView();
-
-    expect(screen.getAllByText(/main/i)[0]).toBeInTheDocument();
-    expect(screen.getAllByText(/ab_user/i)[0]).toBeInTheDocument();
-
-    rerender(
-      <SqlEditorLeftBar
-        {...mockedProps}
-        queryEditorId={extraQueryEditor1.id}
-      />,
-    );
-
-    // Switch to SelectView again after rerender
-    await switchToSelectView();
-
-    const updatedDbSelector = await screen.findAllByText(/new_db/i);
-    expect(updatedDbSelector[0]).toBeInTheDocument();
-
-    const select = screen.getByRole('combobox', {
-      name: 'Select schema or type to search schemas',
-    });
-    userEvent.click(select);
-
-    expect(
-      await screen.findByRole('option', { name: 'main' }),
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByRole('option', { name: 'new_schema' }),
-    ).toBeInTheDocument();
-
-    userEvent.click(screen.getByText('new_schema'));
-
-    const updatedTableSelector = await screen.findAllByText(/new_table/i);
-    expect(updatedTableSelector[0]).toBeInTheDocument();
-  });
-
-  test('display no compatible schema found when schema api throws errors', async () => {
-    const reduxState = {
-      ...initialState,
-      sqlLab: {
-        ...initialState.sqlLab,
-        queryEditors: [
-          {
-            ...extraQueryEditor2,
-            dbId: 3,
-            schema: undefined,
-          },
-        ],
-        databases: {
-          [mockData.database.id]: {
-            ...mockData.database,
-            allow_multi_catalog: true,
-          },
-          3: {
-            id: 3,
-            database_name: 'unauth_db',
-            backend: 'minervasql',
-          },
-        },
-      },
-    };
-    await renderAndWait(
-      {
-        ...mockedProps,
-        queryEditorId: extraQueryEditor2.id,
-      },
-      undefined,
-      reduxState,
-    );
-    await switchToSelectView();
-
-    await waitFor(() =>
-      expect(
-        fetchMock.callHistory.calls('glob:*/api/v1/database/3/schemas/?*')
-          .length,
-      ).toBeGreaterThanOrEqual(1),
-    );
-    const select = screen.getByRole('combobox', {
-      name: 'Select schema or type to search schemas',
-    });
-    userEvent.click(select);
-    expect(
-      await screen.findByText('No compatible schema found'),
-    ).toBeInTheDocument();
-  });
-
-  test('ignore schema api when current schema is deprecated', async () => {
-    const invalidSchemaName = 'None';
-    await renderAndWait(mockedProps, undefined, {
-      ...initialState,
-      sqlLab: {
-        ...initialState.sqlLab,
-        unsavedQueryEditor: {
-          id: defaultQueryEditor.id,
-          schema: invalidSchemaName,
-          dbId: mockData.database.id,
-        },
-        tables: [table],
-        databases: {
-          [mockData.database.id]: {
-            ...mockData.database,
-          },
-        },
-      },
-    });
-    await switchToSelectView();
-    expect(fetchMock.callHistory.calls()).not.toContainEqual(
-      expect.arrayContaining([
-        expect.stringContaining(
-          `/tables/${mockData.database.id}/${invalidSchemaName}/`,
-        ),
-      ]),
-    );
-  });
+  await switchToSelectView();
+  expect(fetchMock.callHistory.calls()).not.toContainEqual(
+    expect.arrayContaining([
+      expect.stringContaining(
+        `/tables/${mockData.database.id}/${invalidSchemaName}/`,
+      ),
+    ]),
+  );
 });
