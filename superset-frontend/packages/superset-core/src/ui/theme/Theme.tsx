@@ -205,7 +205,6 @@ export class Theme {
       if (typeof document !== 'undefined' && document.documentElement) {
         document.documentElement.setAttribute('dir', dir);
         document.documentElement.setAttribute('data-direction', dir);
-        document?.documentElement?.setAttribute('data-direction', 'rtl');
       }
     };
 
