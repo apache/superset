@@ -18,6 +18,7 @@
  */
 import userEvent from '@testing-library/user-event';
 import { AppSection } from '@superset-ui/core';
+import { act } from 'react-dom/test-utils';
 import { render, screen } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
@@ -238,5 +239,44 @@ describe('SelectFilterPlugin', () => {
     userEvent.tab();
     // One call for the search term and other for the empty search
     expect(setDataMask).toHaveBeenCalledTimes(2);
+  });
+
+  describe('searchAllOptions behavior', () => {
+    test('dispatches ownState with search term when searchAllOptions is enabled', async () => {
+      getWrapper({ searchAllOptions: true });
+      userEvent.click(screen.getByRole('combobox'));
+      await userEvent.type(screen.getByRole('combobox'), 'girl');
+      // advance past SLOW_DEBOUNCE (500ms) and flush all state updates
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
+      // run all remaining timers to process debounce
+      await act(async () => {
+        jest.runAllTimers();
+      });
+      // verify the ownState values
+      const calls = setDataMask.mock.calls;
+      const ownStateCall = calls.find(
+        (call: any) => call[0]?.ownState?.search !== undefined,
+      );
+      expect(ownStateCall).toBeDefined();
+      expect(ownStateCall[0].ownState.search).toBe('girl');
+      expect(ownStateCall[0].ownState.coltypeMap).toBeDefined();
+    });
+
+    test('does not add typed value as option when searchAllOptions is enabled', async () => {
+      getWrapper({ searchAllOptions: true, multiSelect: false });
+      userEvent.click(screen.getByRole('combobox'));
+      await userEvent.type(screen.getByRole('combobox'), 'nonexistent');
+      // advance past SLOW_DEBOUNCE (500ms) and flush all state updates
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
+      await act(async () => {
+        jest.runAllTimers();
+      });
+      // typed value should not appear as selectable option
+      expect(screen.queryByTitle('nonexistent')).not.toBeInTheDocument();
+    });
   });
 });

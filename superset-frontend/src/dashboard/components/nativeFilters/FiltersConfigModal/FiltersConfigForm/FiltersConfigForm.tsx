@@ -355,6 +355,11 @@ const FiltersConfigForm = (
 ) => {
   const isRemoved = !!removedFilters[filterId];
   const [error, setError] = useState<ClientErrorObject>();
+  // track ownState for search functionality in default value selector
+  const [defaultValueOwnState, setDefaultValueOwnState] = useState<{
+    search?: string;
+    coltypeMap?: Record<string, number>;
+  }>({});
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
@@ -478,7 +483,11 @@ const FiltersConfigForm = (
   const dependenciesText = JSON.stringify(dependenciesDefaultValues);
 
   const refreshHandler = useCallback(
-    (force = false) => {
+    (
+      force = false,
+      ownState: Record<string, any> = {},
+      keepCurrentData = false,
+    ) => {
       if (!hasDataset || !formFilter?.dataset?.value) {
         forceUpdate();
         return;
@@ -492,13 +501,17 @@ const FiltersConfigForm = (
 
       formData.extra_form_data = dependenciesDefaultValues;
 
-      setNativeFilterFieldValuesWrapper({
-        defaultValueQueriesData: null,
-        isDataDirty: false,
-      });
+      // when searching, keep current data to prevent dropdown from closing
+      if (!keepCurrentData) {
+        setNativeFilterFieldValuesWrapper({
+          defaultValueQueriesData: null,
+          isDataDirty: false,
+        });
+      }
       getChartDataRequest({
         formData,
         force,
+        ownState,
       })
         .then(({ response, json }) => {
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -1269,6 +1282,21 @@ const FiltersConfigForm = (
                         ) : (
                           <DefaultValue
                             setDataMask={dataMask => {
+                              // handle search from ownState for searchAllOptions
+                              const newSearch = dataMask?.ownState?.search;
+                              if (
+                                newSearch !== undefined &&
+                                newSearch !== defaultValueOwnState.search
+                              ) {
+                                const newOwnState = {
+                                  search: newSearch,
+                                  coltypeMap: dataMask?.ownState?.coltypeMap,
+                                };
+                                setDefaultValueOwnState(newOwnState);
+                                // keep current data to prevent dropdown from closing
+                                refreshHandler(false, newOwnState, true);
+                                return;
+                              }
                               if (
                                 !isEqual(
                                   initialDefaultValue?.filterState?.value,

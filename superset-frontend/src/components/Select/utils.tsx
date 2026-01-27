@@ -194,7 +194,7 @@ export const handleFilterOptionHelper = (
     }
   }
 
-  return false;
+  return true;
 };
 
 export const hasCustomLabels = (options: SelectOptionsType) =>
