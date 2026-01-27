@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ScatterplotLayer } from '@deck.gl/layers';
-import { JsonObject, QueryFormData, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';

@@ -202,7 +202,6 @@ import {
   authentication,
   core,
   commands,
-  environment,
   extensions,
   sqlLab,
 } from 'src/extensions';
@@ -213,7 +212,6 @@ export default function setupExtensionsAPI() {
     authentication,
     core,
     commands,
-    environment,
     extensions,
     sqlLab,
   };

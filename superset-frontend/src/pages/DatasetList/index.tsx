@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getExtensionsRegistry, SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getExtensionsRegistry, SupersetClient } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/ui';
 import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
 import { Link, useHistory } from 'react-router-dom';

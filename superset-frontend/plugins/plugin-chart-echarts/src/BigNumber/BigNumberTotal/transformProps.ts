@@ -42,7 +42,11 @@ export default function transformProps(
     formData,
     rawFormData,
     hooks,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      currencyCodeColumn,
+    },
     theme,
   } = chartProps;
   const {
@@ -60,7 +64,11 @@ export default function transformProps(
     subheaderFontSize,
   } = formData;
   const refs: Refs = {};
-  const { data = [], coltypes = [] } = queriesData[0] || {};
+  const {
+    data = [],
+    coltypes = [],
+    detected_currency: detectedCurrency,
+  } = queriesData[0] || {};
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const metrics = chartProps.datasource?.metrics || [];
   const originalLabel = getOriginalLabel(metric, metrics);
@@ -92,6 +100,10 @@ export default function transformProps(
     columnFormats,
     metricEntry?.d3format || yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   const headerFormatter =

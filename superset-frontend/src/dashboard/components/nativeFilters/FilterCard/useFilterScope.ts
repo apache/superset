@@ -18,18 +18,19 @@
  */
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { Filter, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Layout, LayoutItem, RootState } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
+import { FilterElement } from '../FilterBar/FilterControls/types';
 
 const extractTabLabel = (tab?: LayoutItem) =>
   tab?.meta?.text || tab?.meta?.defaultText || '';
 const extractChartLabel = (chart?: LayoutItem) =>
   chart?.meta?.sliceNameOverride || chart?.meta?.sliceName || chart?.id || '';
 
-export const useFilterScope = (filter: Filter) => {
+export const useFilterScope = (filter: FilterElement) => {
   const layout = useSelector<RootState, Layout>(
     state => state.dashboardLayout.present,
   );

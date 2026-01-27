@@ -16,24 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useCallback, memo, useEffect } from 'react';
+import { Fragment, useCallback, memo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t, styled } from '@apache-superset/core/ui';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
+import { Typography } from '@superset-ui/core/components/Typography';
 import {
   DragDroppable,
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
+import { Link } from 'react-router-dom';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -130,6 +131,9 @@ const Tab = props => {
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
 
+  // Track which refresh we've already handled to prevent duplicates
+  const handledRefreshRef = useRef(null);
+
   useEffect(() => {
     if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
       if (
@@ -137,13 +141,20 @@ const Tab = props => {
         tabActivationTime &&
         lastRefreshTime > tabActivationTime
       ) {
-        const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
-        if (chartIds.length > 0) {
-          requestAnimationFrame(() => {
+        // Create a unique key for this specific refresh
+        const refreshKey = `${props.id}-${lastRefreshTime}`;
+
+        // Only proceed if we haven't already handled this refresh
+        if (handledRefreshRef.current !== refreshKey) {
+          handledRefreshRef.current = refreshKey;
+
+          const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
+          if (chartIds.length > 0) {
+            // Use lazy load flag to avoid updating global refresh time
             setTimeout(() => {
-              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id));
+              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id, true));
             }, CHART_MOUNT_DELAY);
-          });
+          }
         }
       }
     }
@@ -253,41 +264,55 @@ const Tab = props => {
           </Droppable>
         )}
         {shouldDisplayEmptyState && (
-          <EmptyState
-            title={
-              editMode
-                ? t('Drag and drop components to this tab')
-                : t('There are no components added to this tab')
-            }
-            description={
-              canEdit &&
-              (editMode ? (
-                <span>
-                  {t('You can')}{' '}
-                  <a
-                    href={`/chart/add?dashboard_id=${dashboardId}`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {t('create a new chart')}
-                  </a>{' '}
-                  {t('or use existing ones from the panel on the right')}
-                </span>
-              ) : (
-                <span>
-                  {t('You can add the components in the')}{' '}
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => dispatch(setEditMode(true))}
-                  >
-                    {t('edit mode')}
-                  </span>
-                </span>
-              ))
-            }
-            image="chart.svg"
-          />
+          <Droppable
+            component={tabComponent}
+            orientation="column"
+            index={editMode ? 1 : 0}
+            depth={depth}
+            onDrop={handleTopDropTargetDrop}
+            editMode={editMode}
+            dropToChild
+          >
+            {() => (
+              <div data-test="emptystate-drop-indicator">
+                <EmptyState
+                  title={
+                    editMode
+                      ? t('Drag and drop components to this tab')
+                      : t('There are no components added to this tab')
+                  }
+                  description={
+                    canEdit &&
+                    (editMode ? (
+                      <span>
+                        {t('You can')}{' '}
+                        <Typography.Link
+                          href={`/chart/add?dashboard_id=${dashboardId}`}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          {t('create a new chart')}
+                        </Typography.Link>{' '}
+                        {t('or use existing ones from the panel on the right')}
+                      </span>
+                    ) : (
+                      <span>
+                        {t('You can add the components in the')}{' '}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => dispatch(setEditMode(true))}
+                        >
+                          {t('edit mode')}
+                        </span>
+                      </span>
+                    ))
+                  }
+                  image="chart.svg"
+                />
+              </div>
+            )}
+          </Droppable>
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
           <Fragment key={componentId}>

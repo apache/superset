@@ -38,6 +38,7 @@ import DeckGL from '@deck.gl/react';
 import type { Layer } from '@deck.gl/core';
 import { JsonObject, JsonValue, usePrevious } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
+import { Device } from '@luma.gl/core';
 import Tooltip, { TooltipProps } from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Viewport } from './utils/fitViewport';
@@ -168,7 +169,10 @@ export const DeckGLContainer = memo(
             layers={layers()}
             viewState={viewState}
             onViewStateChange={onViewStateChange}
-            onAfterRender={(context: any) => {
+            onAfterRender={(context: {
+              device: Device;
+              gl: WebGL2RenderingContext;
+            }) => {
               glContextRef.current = context.gl;
             }}
           >

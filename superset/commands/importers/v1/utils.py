@@ -29,6 +29,7 @@ from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import feature_flag_manager
 from superset.models.core import Database
+from superset.models.dashboard import dashboard_slices
 from superset.tags.models import Tag, TaggedObject
 from superset.utils.core import check_is_safe_zip
 from superset.utils.decorators import transaction
@@ -318,6 +319,48 @@ def import_tag(
             db_session.delete(tag)
 
     return new_tag_ids
+
+
+def safe_insert_dashboard_chart_relationships(
+    dashboard_chart_ids: list[tuple[int, int]],
+) -> None:
+    """
+    Safely insert dashboard-chart relationships, handling duplicates.
+
+    This function checks for existing relationships and only inserts new ones
+    to avoid duplicate key constraint errors.
+    """
+    from sqlalchemy.sql import select
+
+    if not dashboard_chart_ids:
+        return
+
+    # Get existing relationships only for dashboards being updated
+    dashboard_ids = {dashboard_id for dashboard_id, _ in dashboard_chart_ids}
+    existing_relationships = db.session.execute(
+        select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id]).where(
+            dashboard_slices.c.dashboard_id.in_(dashboard_ids)
+        )
+    ).fetchall()
+    existing_relationships_set = {(row[0], row[1]) for row in existing_relationships}
+
+    # Filter out relationships that already exist
+    new_relationships = [
+        (dashboard_id, chart_id)
+        for dashboard_id, chart_id in dashboard_chart_ids
+        if (dashboard_id, chart_id) not in existing_relationships_set
+    ]
+
+    # Insert new relationships in bulk, deduplicating to avoid unique constraint issues
+
+    if unique_new_relationships := set(new_relationships):
+        db.session.execute(
+            dashboard_slices.insert(),
+            [
+                {"dashboard_id": dashboard_id, "slice_id": chart_id}
+                for dashboard_id, chart_id in unique_new_relationships
+            ],
+        )
 
 
 def get_resource_mappings_batched(

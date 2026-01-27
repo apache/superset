@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useContext, useMemo, useState } from 'react';
-import { DatasourceType, Metric, QueryFormData, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { DatasourceType, Metric, QueryFormData } from '@superset-ui/core';
 import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 
 import { ControlConfig } from '@superset-ui/chart-controls';

@@ -19,11 +19,10 @@
 import { useSelector } from 'react-redux';
 import { noop } from 'lodash';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { styled } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Grid } from '@superset-ui/core/components';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
-import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import { Splitter } from 'src/components/Splitter';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
@@ -31,11 +30,15 @@ import {
   SQL_EDITOR_LEFTBAR_WIDTH,
   SQL_EDITOR_RIGHTBAR_WIDTH,
 } from 'src/SqlLab/constants';
+import { ViewContribution } from 'src/SqlLab/contributions';
+import ViewListExtension from 'src/components/ViewListExtension';
 
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import StatusBar from '../StatusBar';
 
 const StyledContainer = styled.div`
+  display: flex;
+  flex-direction: column;
   height: 100%;
 
   & .ant-splitter-panel:not(.sqllab-body):not(.queryPane) {
@@ -93,11 +96,17 @@ const AppLayout: React.FC = ({ children }) => {
     ExtensionsManager.getInstance().getViewContributions(
       ViewContribution.RightSidebar,
     ) || [];
-  const { getView } = useExtensionsContext();
 
   return (
     <StyledContainer>
-      <Splitter lazy onResizeEnd={onSidebarChange} onResize={noop}>
+      <Splitter
+        css={css`
+          flex: 1;
+        `}
+        lazy
+        onResizeEnd={onSidebarChange}
+        onResize={noop}
+      >
         <Splitter.Panel
           collapsible={{
             start: true,
@@ -126,11 +135,12 @@ const AppLayout: React.FC = ({ children }) => {
             min={SQL_EDITOR_RIGHTBAR_WIDTH}
           >
             <ContentWrapper>
-              {contributions.map(contribution => getView(contribution.id))}
+              <ViewListExtension viewId={ViewContribution.RightSidebar} />
             </ContentWrapper>
           </Splitter.Panel>
         )}
       </Splitter>
+      <StatusBar />
     </StyledContainer>
   );
 };

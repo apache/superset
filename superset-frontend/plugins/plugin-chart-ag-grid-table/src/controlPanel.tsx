@@ -40,17 +40,15 @@ import {
   isRegularMetric,
   isPercentMetric,
 } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
-  FeatureFlag,
   isAdhocColumn,
-  isFeatureEnabled,
   isPhysicalColumn,
   validateInteger,
   QueryFormColumn,
   QueryMode,
   SMART_DATE_ID,
-  t,
   validateMaxValue,
   validateServerPagination,
 } from '@superset-ui/core';
@@ -752,9 +750,7 @@ const config: ControlPanelConfig = {
         showCalculationType: false,
         showFullChoices: false,
       }),
-      visibility: ({ controls }) =>
-        isAggMode({ controls }) &&
-        isFeatureEnabled(FeatureFlag.TableV2TimeComparisonEnabled),
+      visibility: isAggMode,
     },
   ],
   formDataOverrides: formData => ({

@@ -20,7 +20,7 @@ import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
 import { kebabCase } from 'lodash';
 // eslint-disable-next-line no-restricted-imports
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { SupersetTheme } from '@apache-superset/core/ui';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 

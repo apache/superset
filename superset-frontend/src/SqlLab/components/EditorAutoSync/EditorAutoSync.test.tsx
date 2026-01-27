@@ -38,11 +38,11 @@ import fetchMock from 'fetch-mock';
 import { render, act } from 'spec/helpers/testing-library';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import { logging } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import EditorAutoSync, { INTERVAL } from '.';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+jest.mock('@apache-superset/core', () => ({
+  ...jest.requireActual('@apache-superset/core'),
   logging: {
     warn: jest.fn(),
   },

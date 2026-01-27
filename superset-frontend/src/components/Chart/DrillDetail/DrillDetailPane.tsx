@@ -26,12 +26,12 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core';
 import {
   BinaryQueryObjectFilterClause,
   ensureIsArray,
   JsonObject,
   QueryFormData,
-  t,
 } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';

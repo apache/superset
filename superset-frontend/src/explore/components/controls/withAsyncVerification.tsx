@@ -21,7 +21,8 @@ import {
   ExtraControlProps,
   sharedControlComponents,
 } from '@superset-ui/chart-controls';
-import { JsonArray, JsonValue, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { JsonArray, JsonValue } from '@superset-ui/core';
 import { ControlProps } from 'src/explore/components/Control';
 import builtInControlComponents from 'src/explore/components/controls';
 import useEffectEvent from 'src/hooks/useEffectEvent';

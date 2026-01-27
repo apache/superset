@@ -32,6 +32,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Guard to prevent multiple initializations
+_watcher_initialized = False
+_watcher_lock = threading.Lock()
+
 
 def _get_file_handler_class() -> Any:
     """Get the file handler class, importing watchdog only when needed."""
@@ -44,6 +48,11 @@ def _get_file_handler_class() -> Any:
             def on_any_event(self, event: Any) -> None:
                 """Handle any file system event in the watched directories."""
                 if event.is_directory:
+                    return
+
+                # Only trigger on changes to files in `dist` directory
+                src = getattr(event, "src_path", None)
+                if not isinstance(src, str) or "dist" not in Path(src).parts:
                     return
 
                 logger.info(
@@ -63,6 +72,14 @@ def _get_file_handler_class() -> Any:
 
 def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
     """Set up file watcher for LOCAL_EXTENSIONS directories."""
+    global _watcher_initialized
+
+    # Prevent multiple initializations
+    with _watcher_lock:
+        if _watcher_initialized:
+            return
+        _watcher_initialized = True
+
     # Only set up watcher in debug mode or when Flask reloader is enabled
     if not (app.debug or app.config.get("FLASK_USE_RELOAD", False)):
         return
@@ -80,8 +97,11 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
     if not handler_class:
         return
 
-    # Collect dist directories to watch
-    watch_dirs = []
+    # Collect extension directories to watch
+    # We watch the parent extension directory instead of just dist/
+    # to avoid the observer stopping when dist/ is deleted/recreated
+    # Use a set to avoid duplicate entries
+    watch_dirs: set[str] = set()
     for ext_path in local_extensions:
         if not ext_path:
             continue
@@ -91,9 +111,24 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
             logger.warning("LOCAL_EXTENSIONS path does not exist: %s", ext_path)
             continue
 
-        dist_path = ext_path / "dist"
-        watch_dirs.append(str(dist_path))
-        logger.info("Watching LOCAL_EXTENSIONS dist directory: %s", dist_path)
+        # Ensure we're watching a directory, not a file
+        if ext_path.is_file():
+            logger.warning(
+                "LOCAL_EXTENSIONS path is a file, not a directory: %s. "
+                "Provide the extension directory path instead.",
+                ext_path,
+            )
+            continue
+
+        if not ext_path.is_dir():
+            logger.warning("LOCAL_EXTENSIONS path is not a directory: %s", ext_path)
+            continue
+
+        # Add to set (automatically handles duplicates)
+        watch_dir_str = str(ext_path)
+        if watch_dir_str not in watch_dirs:
+            watch_dirs.add(watch_dir_str)
+            logger.info("Watching LOCAL_EXTENSIONS directory: %s", ext_path)
 
     if not watch_dirs:
         return
