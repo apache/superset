@@ -507,6 +507,7 @@ export class TableRenderer extends Component {
       rowPartialOnTop,
       maxRowIndex,
     );
+  }
 
   sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex) {
     // Handles column sorting with direction toggling (asc/desc) and implements
