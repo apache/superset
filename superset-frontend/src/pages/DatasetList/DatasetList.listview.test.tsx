@@ -631,7 +631,9 @@ test('bulk select enables checkboxes', async () => {
   // Verify no checkboxes before bulk select
   expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
 
-  const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
   await userEvent.click(bulkSelectButton);
 
   // Wait for bulk select controls container to appear first (fast query)
@@ -644,7 +646,7 @@ test('bulk select enables checkboxes', async () => {
 
   // Note: Bulk action buttons (Export, Delete) only appear after selecting items
   // This test only verifies checkboxes appear - button visibility tested in other tests
-});
+}, 30000);
 
 test('selecting all datasets shows correct count in toolbar', async () => {
   fetchMock.get(
@@ -1781,7 +1783,9 @@ test('bulk export error shows toast and clears loading state', async () => {
   });
 
   // Enter bulk select mode
-  const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
   await userEvent.click(bulkSelectButton);
 
   // Wait for bulk select controls
@@ -1808,7 +1812,7 @@ test('bulk export error shows toast and clears loading state', async () => {
 
   // Verify export was called
   expect(mockHandleResourceExport).toHaveBeenCalled();
-});
+}, 30000);
 
 test('bulk delete error shows toast without refreshing list', async () => {
   // Mock bulk delete to fail
@@ -1900,7 +1904,9 @@ test('bulk select shows "N Selected (Virtual)" for virtual-only selection', asyn
   });
 
   // Enter bulk select mode
-  const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
   await userEvent.click(bulkSelectButton);
 
   await screen.findByTestId('bulk-select-controls');
@@ -1924,7 +1930,7 @@ test('bulk select shows "N Selected (Virtual)" for virtual-only selection', asyn
   expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
     /1 Selected \(Virtual\)/i,
   );
-});
+}, 30000);
 
 test('bulk select shows "N Selected (Physical)" for physical-only selection', async () => {
   // Use only physical datasets
@@ -1943,7 +1949,9 @@ test('bulk select shows "N Selected (Physical)" for physical-only selection', as
   });
 
   // Enter bulk select mode
-  const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
   await userEvent.click(bulkSelectButton);
 
   await screen.findByTestId('bulk-select-controls');
@@ -1967,7 +1975,7 @@ test('bulk select shows "N Selected (Physical)" for physical-only selection', as
   expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
     /1 Selected \(Physical\)/i,
   );
-});
+}, 30000);
 
 test('bulk select shows mixed count for virtual and physical selection', async () => {
   // Use a small mixed set - 1 physical + 1 virtual

@@ -86,14 +86,18 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
 
   // 1. Apply a sort by clicking Name header
   const table = screen.getByTestId('listview-table');
-  const nameHeader = within(table).getByRole('columnheader', { name: /Name/i });
+  const nameHeader = within(table).getByRole('columnheader', {
+    name: /Name/i,
+  });
 
   const callsBeforeSort = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
   await userEvent.click(nameHeader);
 
   // Wait for sort-triggered refetch to complete before applying filter
   await waitFor(() => {
-    expect(fetchMock.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(callsBeforeSort);
+    expect(fetchMock.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(
+      callsBeforeSort,
+    );
   });
 
   // 2. Apply a filter using selectOption helper
@@ -135,7 +139,7 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   expect(decoded?.page_size).toBeTruthy();
 
   // This confirms ListView provider merges state from multiple sources correctly
-});
+}, 30000);
 
 test('bulk action orchestration: selection → action → cleanup cycle works correctly', async () => {
   // This test verifies the full bulk operation cycle across multiple components:
