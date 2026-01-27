@@ -18,9 +18,7 @@
  */
 
 import { Locator, Page } from '@playwright/test';
-import { Button } from './Button';
-import { Checkbox } from './Checkbox';
-import { Table } from './Table';
+import { Button, Checkbox, Table } from '../core';
 
 const BULK_SELECT_SELECTORS = {
   CONTROLS: '[data-test="bulk-select-controls"]',

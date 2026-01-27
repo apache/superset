@@ -18,7 +18,8 @@
  */
 
 import { Page, Locator } from '@playwright/test';
-import { BulkSelect, Button, Table } from '../components/core';
+import { Button, Table } from '../components/core';
+import { BulkSelect } from '../components/ListView';
 import { URL } from '../utils/urls';
 
 /**
