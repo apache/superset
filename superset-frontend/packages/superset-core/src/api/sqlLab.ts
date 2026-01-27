@@ -239,6 +239,20 @@ export interface QueryResult {
  */
 
 /**
+ * Gets the currently active panel in the current tab.
+ * The active panel defaults to 'Results' when SQL Lab loads.
+ *
+ * @returns The current active panel object.
+ *
+ * @example
+ * ```typescript
+ * const panel = getActivePanel();
+ * console.log(`Active panel: ${panel.id}`);
+ * ```
+ */
+export declare const getActivePanel: () => Panel;
+
+/**
  * Gets the currently active tab in SQL Lab.
  *
  * @returns The current tab object, or undefined if no tab is active.

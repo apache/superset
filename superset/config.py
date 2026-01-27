@@ -436,6 +436,7 @@ LANGUAGES = {
     "sl": {"flag": "si", "name": "Slovenian"},
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "uk", "name": "Ukranian"},
+    "mi": {"flag": "nz", "name": "Māori"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -921,7 +922,7 @@ THEME_DEFAULT: Theme = {
         "colorInfo": "#66bcfe",
         # Fonts
         "fontUrls": [],
-        "fontFamily": "Inter, Helvetica, Arial",
+        "fontFamily": "Inter, Helvetica, Arial, sans-serif",
         "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
         # Extra tokens
         "transitionTiming": 0.3,

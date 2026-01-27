@@ -1299,6 +1299,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def normalize_table_name_for_upload(
+        cls,
+        table_name: str,
+        schema_name: str | None = None,
+    ) -> tuple[str, str | None]:
+        """
+        Normalize table and schema names for file upload.
+
+        Some databases (e.g., Redshift) fold unquoted identifiers to lowercase,
+        which can cause issues when the upload creates a table with one case
+        but metadata operations use a different case. Override this method
+        to normalize names according to database-specific rules.
+
+        :param table_name: The table name to normalize
+        :param schema_name: The schema name to normalize (optional)
+        :return: Tuple of (normalized_table_name, normalized_schema_name)
+        """
+        return table_name, schema_name
+
+    @classmethod
     def df_to_sql(
         cls,
         database: Database,
