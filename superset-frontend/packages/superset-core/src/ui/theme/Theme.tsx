@@ -210,7 +210,7 @@ export class Theme {
     };
 
     return (
-      <EmotionCacheProvider value={themeState.emotionCache[direction]}>
+      <EmotionCacheProvider value={themeState.emotionCache?.[direction] ?? themeState.emotionCache?.ltr}>
         <ThemeProvider theme={themeState.theme}>
           <GlobalStyles />
           <ConfigProvider theme={themeState.antdConfig} direction={direction}>
