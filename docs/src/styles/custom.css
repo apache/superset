@@ -232,36 +232,35 @@ ul.dropdown__menu svg {
   border-color: #f93e3e !important;
 }
 
-/* Sidebar method badges - color the menu items */
-.menu__link.get.api-method::before,
-.menu__link.post.api-method::before,
-.menu__link.put.api-method::before,
-.menu__link.patch.api-method::before,
-.menu__link.delete.api-method::before {
+/* Sidebar method badges - colored dots before endpoint names */
+/* The method classes (get, post, etc.) are on the <li> (menu__list-item),
+   so we target the <a> (menu__link) inside using descendant selector */
+.menu__list-item.api-method > .menu__link::before {
   content: '';
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   margin-right: 8px;
+  flex-shrink: 0;
 }
 
-.menu__link.get.api-method::before {
+.menu__list-item.get.api-method > .menu__link::before {
   background-color: #61affe;
 }
 
-.menu__link.post.api-method::before {
+.menu__list-item.post.api-method > .menu__link::before {
   background-color: #49cc90;
 }
 
-.menu__link.put.api-method::before {
+.menu__list-item.put.api-method > .menu__link::before {
   background-color: #fca130;
 }
 
-.menu__link.patch.api-method::before {
+.menu__list-item.patch.api-method > .menu__link::before {
   background-color: #50e3c2;
 }
 
-.menu__link.delete.api-method::before {
+.menu__list-item.delete.api-method > .menu__link::before {
   background-color: #f93e3e;
 }

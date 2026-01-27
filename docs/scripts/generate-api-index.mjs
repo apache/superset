@@ -20,16 +20,22 @@
 /**
  * Generates a comprehensive API index MDX file from the OpenAPI spec.
  * This creates the api.mdx landing page with all endpoints organized by category.
+ *
+ * Uses the generated sidebar to get correct endpoint slugs (the plugin's
+ * slug algorithm differs from a simple slugify, e.g. handling apostrophes
+ * and camelCase differently).
  */
 
 import fs from 'fs';
 import path from 'path';
+import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const SPEC_PATH = path.join(__dirname, '..', 'static', 'resources', 'openapi.json');
+const SIDEBAR_PATH = path.join(__dirname, '..', 'docs', 'api', 'sidebar.js');
 const OUTPUT_PATH = path.join(__dirname, '..', 'docs', 'api.mdx');
 
 // Category groupings for better organization
@@ -52,6 +58,36 @@ const CATEGORY_GROUPS = {
   'User & System': ['Current User', 'User', 'Menu', 'Available Domains', 'AsyncEventsRestApi', 'OpenApi'],
 };
 
+/**
+ * Build a map from sidebar label → doc slug by reading the generated sidebar.
+ * This ensures we use the exact same slugs that docusaurus-openapi-docs generated.
+ */
+function buildSlugMap() {
+  const labelToSlug = {};
+
+  try {
+    const sidebar = require(SIDEBAR_PATH);
+
+    const extractDocs = (items) => {
+      for (const item of items) {
+        if (item.type === 'doc' && item.label && item.id) {
+          // id is like "api/create-security-login" → slug "create-security-login"
+          const slug = item.id.replace(/^api\//, '');
+          labelToSlug[item.label] = slug;
+        }
+        if (item.items) extractDocs(item.items);
+      }
+    };
+
+    extractDocs(sidebar);
+    console.log(`Loaded ${Object.keys(labelToSlug).length} slug mappings from sidebar`);
+  } catch {
+    console.warn('Could not read sidebar, will use computed slugs');
+  }
+
+  return labelToSlug;
+}
+
 function slugify(text) {
   return text
     .toLowerCase()
@@ -59,14 +95,12 @@ function slugify(text) {
     .replace(/(^-|-$)/g, '');
 }
 
-function generateEndpointLink(summary) {
-  // Convert summary to the slug format used by docusaurus-openapi-docs
-  return slugify(summary);
-}
-
 function main() {
   console.log(`Reading OpenAPI spec from ${SPEC_PATH}`);
   const spec = JSON.parse(fs.readFileSync(SPEC_PATH, 'utf-8'));
+
+  // Build slug map from the generated sidebar
+  const labelToSlug = buildSlugMap();
 
   // Build a map of tag -> endpoints
   const tagEndpoints = {};
@@ -85,6 +119,9 @@ function main() {
       const tags = details.tags || ['Untagged'];
       const summary = details.summary || `${method.toUpperCase()} ${pathUrl}`;
 
+      // Use sidebar slug if available, fall back to computed slug
+      const slug = labelToSlug[summary] || slugify(summary);
+
       for (const tag of tags) {
         if (!tagEndpoints[tag]) {
           tagEndpoints[tag] = [];
@@ -93,7 +130,7 @@ function main() {
           method: method.toUpperCase(),
           path: pathUrl,
           summary,
-          slug: generateEndpointLink(summary),
+          slug,
         });
       }
     }
@@ -125,7 +162,7 @@ You can use this API to programmatically interact with Superset for automation, 
   description={
     <span>
       Each endpoint includes ready-to-use code samples in <strong>cURL</strong>, <strong>Python</strong>, and <strong>JavaScript</strong>.
-      Browse the <a href="./schemas">Schema definitions</a> for detailed data model documentation.
+      The sidebar includes <strong>Schema definitions</strong> for detailed data model documentation.
     </span>
   }
   style={{ marginBottom: '24px' }}
@@ -165,7 +202,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
     mdx += `| Method | Endpoint | Description |\n`;
     mdx += `|--------|----------|-------------|\n`;
     for (const ep of tagEndpoints['Security']) {
-      mdx += `| \`${ep.method}\` | [${ep.summary}](./${ep.slug}) | \`${ep.path}\` |\n`;
+      mdx += `| \`${ep.method}\` | [${ep.summary}](./api/${ep.slug}) | \`${ep.path}\` |\n`;
     }
     mdx += '\n';
     renderedTags.add('Security');
@@ -192,7 +229,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
       mdx += `|--------|----------|-------------|\n`;
 
       for (const ep of endpoints) {
-        mdx += `| \`${ep.method}\` | [${ep.summary}](./${ep.slug}) | \`${ep.path}\` |\n`;
+        mdx += `| \`${ep.method}\` | [${ep.summary}](./api/${ep.slug}) | \`${ep.path}\` |\n`;
       }
 
       mdx += `\n</details>\n\n`;
@@ -215,7 +252,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
       mdx += `|--------|----------|-------------|\n`;
 
       for (const ep of endpoints) {
-        mdx += `| \`${ep.method}\` | [${ep.summary}](./${ep.slug}) | \`${ep.path}\` |\n`;
+        mdx += `| \`${ep.method}\` | [${ep.summary}](./api/${ep.slug}) | \`${ep.path}\` |\n`;
       }
 
       mdx += `\n</details>\n\n`;
