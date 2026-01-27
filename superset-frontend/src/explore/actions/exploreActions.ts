@@ -22,6 +22,7 @@ import { Dataset } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core';
 import { SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
+import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import {
   addDangerToast,
   toastActions,
@@ -153,6 +154,27 @@ export function setForceQuery(force: boolean) {
   };
 }
 
+/**
+ * Undo an explore action and sync chart state.
+ */
+export function undoExploreAction() {
+  return UndoActionCreators.undo();
+}
+
+/**
+ * Redo an explore action and sync chart state.
+ */
+export function redoExploreAction() {
+  return UndoActionCreators.redo();
+}
+
+/**
+ * Clear explore undo/redo history.
+ */
+export function clearExploreHistory() {
+  return UndoActionCreators.clearHistory();
+}
+
 export const SET_STASH_FORM_DATA = 'SET_STASH_FORM_DATA';
 export function setStashFormData(
   isHidden: boolean,
@@ -195,6 +217,9 @@ export const exploreActions = {
   sliceUpdated,
   setForceQuery,
   syncDatasourceMetadata,
+  undoExploreAction,
+  redoExploreAction,
+  clearExploreHistory,
 };
 
 export type ExploreActions = typeof exploreActions;

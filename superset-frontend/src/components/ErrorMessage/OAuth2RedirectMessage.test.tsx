@@ -35,7 +35,11 @@ const mockStore = createStore(() => ({
     tabHistory: ['editor-id'],
   },
   explore: {
-    slice: { slice_id: 123 },
+    past: [],
+    present: {
+      slice: { slice_id: 123 },
+    },
+    future: [],
   },
   charts: { '1': {}, '2': {} },
   dashboardInfo: { id: 'dashboard-id' },

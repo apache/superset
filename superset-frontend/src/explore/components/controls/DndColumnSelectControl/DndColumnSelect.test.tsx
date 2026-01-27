@@ -156,13 +156,17 @@ test('should allow selecting columns via click interface', async () => {
 
   const store = mockStore({
     explore: {
-      datasource: {
-        type: 'table',
-        id: 1,
-        columns: [{ column_name: 'state' }, { column_name: 'city' }],
+      past: [],
+      present: {
+        datasource: {
+          type: 'table',
+          id: 1,
+          columns: [{ column_name: 'state' }, { column_name: 'city' }],
+        },
+        form_data: {},
+        controls: {},
       },
-      form_data: {},
-      controls: {},
+      future: [],
     },
   });
 
@@ -189,13 +193,17 @@ test('should display selected column values correctly', async () => {
 
   const store = mockStore({
     explore: {
-      datasource: {
-        type: 'table',
-        id: 1,
-        columns: [{ column_name: 'state' }, { column_name: 'city' }],
+      past: [],
+      present: {
+        datasource: {
+          type: 'table',
+          id: 1,
+          columns: [{ column_name: 'state' }, { column_name: 'city' }],
+        },
+        form_data: {},
+        controls: {},
       },
-      form_data: {},
-      controls: {},
+      future: [],
     },
   });
 
@@ -222,13 +230,17 @@ test('should handle multiple column selections for groupby', async () => {
 
   const store = mockStore({
     explore: {
-      datasource: {
-        type: 'table',
-        id: 1,
-        columns: [{ column_name: 'state' }, { column_name: 'city' }],
+      past: [],
+      present: {
+        datasource: {
+          type: 'table',
+          id: 1,
+          columns: [{ column_name: 'state' }, { column_name: 'city' }],
+        },
+        form_data: {},
+        controls: {},
       },
-      form_data: {},
-      controls: {},
+      future: [],
     },
   });
 
@@ -258,13 +270,17 @@ test('should support adhoc column creation workflow', async () => {
 
   const store = mockStore({
     explore: {
-      datasource: {
-        type: 'table',
-        id: 1,
-        columns: [{ column_name: 'state' }, { column_name: 'city' }],
+      past: [],
+      present: {
+        datasource: {
+          type: 'table',
+          id: 1,
+          columns: [{ column_name: 'state' }, { column_name: 'city' }],
+        },
+        form_data: {},
+        controls: {},
       },
-      form_data: {},
-      controls: {},
+      future: [],
     },
   });
 
@@ -363,13 +379,17 @@ test('should complete full column selection workflow like original Cypress test'
   // Configure Redux store for popover interaction
   const store = mockStore({
     explore: {
-      datasource: {
-        type: 'table',
-        id: 1,
-        columns: [{ column_name: 'state' }, { column_name: 'city' }],
+      past: [],
+      present: {
+        datasource: {
+          type: 'table',
+          id: 1,
+          columns: [{ column_name: 'state' }, { column_name: 'city' }],
+        },
+        form_data: {},
+        controls: {},
       },
-      form_data: {},
-      controls: {},
+      future: [],
     },
   });
 
@@ -439,13 +459,17 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
 
   const store = mockStore({
     explore: {
-      datasource: {
-        type: 'table',
-        id: 1,
-        columns: [{ column_name: 'state' }, { column_name: 'city' }],
+      past: [],
+      present: {
+        datasource: {
+          type: 'table',
+          id: 1,
+          columns: [{ column_name: 'state' }, { column_name: 'city' }],
+        },
+        form_data: {},
+        controls: {},
       },
-      form_data: {},
-      controls: {},
+      future: [],
     },
   });
 

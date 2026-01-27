@@ -29,6 +29,7 @@ import * as chartAction from 'src/components/Chart/chartAction';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
+import * as exploreActions from 'src/explore/actions/exploreActions';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import ExploreHeader, { ExploreChartHeaderProps } from '.';
@@ -1165,4 +1166,106 @@ describe('Additional actions tests', () => {
       getSpy.mockRestore();
     });
   });
+});
+
+const setupUndoRedoTest = () => {
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+    triggerManualSave: jest.fn(),
+  });
+
+  const props = createProps();
+  render(<ExploreHeader {...props} />, { useRedux: true });
+};
+
+test('Should render undo and redo buttons', async () => {
+  setupUndoRedoTest();
+
+  expect(await screen.findByTestId('undo-button')).toBeInTheDocument();
+  expect(await screen.findByTestId('redo-button')).toBeInTheDocument();
+});
+
+test('Undo button should be disabled initially', async () => {
+  setupUndoRedoTest();
+
+  const undoButton = await screen.findByTestId('undo-button');
+  expect(undoButton).toBeDisabled();
+});
+
+test('Redo button should be disabled initially', async () => {
+  setupUndoRedoTest();
+
+  const redoButton = await screen.findByTestId('redo-button');
+  expect(redoButton).toBeDisabled();
+});
+
+test('Should not dispatch undoExploreAction when undo button is disabled', async () => {
+  const undoSpy = jest.spyOn(exploreActions, 'undoExploreAction');
+  setupUndoRedoTest();
+
+  const undoButton = await screen.findByTestId('undo-button');
+  expect(undoButton).toBeDisabled();
+
+  userEvent.click(undoButton);
+
+  expect(undoSpy).not.toHaveBeenCalled();
+
+  undoSpy.mockRestore();
+});
+
+test('Should not dispatch redoExploreAction when redo button is disabled', async () => {
+  const redoSpy = jest.spyOn(exploreActions, 'redoExploreAction');
+  setupUndoRedoTest();
+
+  const redoButton = await screen.findByTestId('redo-button');
+  expect(redoButton).toBeDisabled();
+
+  userEvent.click(redoButton);
+
+  expect(redoSpy).not.toHaveBeenCalled();
+
+  redoSpy.mockRestore();
+});
+
+test('Should call undoExploreAction on Ctrl+Z keyboard shortcut', async () => {
+  const undoSpy = jest.spyOn(exploreActions, 'undoExploreAction');
+  setupUndoRedoTest();
+
+  // Simulate Ctrl+Z
+  const event = new KeyboardEvent('keydown', {
+    key: 'z',
+    keyCode: 90,
+    ctrlKey: true,
+    bubbles: true,
+  });
+  document.dispatchEvent(event);
+
+  await waitFor(() => {
+    expect(undoSpy).toHaveBeenCalledTimes(1);
+  });
+
+  undoSpy.mockRestore();
+});
+
+test('Should call redoExploreAction on Ctrl+Y keyboard shortcut', async () => {
+  const redoSpy = jest.spyOn(exploreActions, 'redoExploreAction');
+  setupUndoRedoTest();
+
+  // Simulate Ctrl+Y
+  const event = new KeyboardEvent('keydown', {
+    key: 'y',
+    keyCode: 89,
+    ctrlKey: true,
+    bubbles: true,
+  });
+  document.dispatchEvent(event);
+
+  await waitFor(() => {
+    expect(redoSpy).toHaveBeenCalledTimes(1);
+  });
+
+  redoSpy.mockRestore();
 });

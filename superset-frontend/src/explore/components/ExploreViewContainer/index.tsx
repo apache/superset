@@ -81,6 +81,7 @@ import {
   Datasource,
   ExplorePageInitialData,
   ExplorePageState,
+  ExploreState,
   SaveActionType,
 } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
@@ -281,35 +282,11 @@ function isAggregatedChartType(vizType: string | undefined): boolean {
   return vizType ? AGGREGATED_CHART_TYPES.includes(vizType) : false;
 }
 
-interface ExploreRootState {
-  explore: {
-    controls: ControlStateMapping;
-    slice: Slice | null;
-    datasource: Datasource;
-    metadata?: ExplorePageInitialData['metadata'];
-    hiddenFormData?: Partial<QueryFormData>;
-    isDatasourceMetaLoading: boolean;
-    isStarred: boolean;
-    can_add: boolean;
-    can_download: boolean;
-    can_overwrite: boolean;
-    sliceName?: string;
-    triggerRender: boolean;
-    standalone: boolean;
-    force: boolean;
-    form_data?: QueryFormData;
-    saveAction?: SaveActionType | null;
-  };
-  charts: Record<number, ChartState>;
-  common: {
-    conf: {
-      SUPERSET_WEBSERVER_TIMEOUT: number;
-    };
-  };
+// Use ExplorePageState from types.ts, but extend it with additional fields needed for mapStateToProps
+interface ExploreRootState extends ExplorePageState {
   impressionId: string;
   dataMask: Record<number, { ownState?: JsonObject }>;
   reports: JsonObject;
-  user: User;
   saveModal: {
     isVisible: boolean;
   };
@@ -349,7 +326,7 @@ interface StateProps {
   ownState?: JsonObject;
   impressionId: string;
   user: User;
-  exploreState: ExplorePageState['explore'];
+  exploreState: ExploreState;
   reports: JsonObject;
   metadata?: ExplorePageInitialData['metadata'];
   saveAction?: SaveActionType | null;
@@ -410,6 +387,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     },
     [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
   );
+
+  // Clear undo/redo history on initial mount to prevent HYDRATE_EXPLORE from being undoable
+  useComponentDidMount(() => {
+    props.actions.clearExploreHistory();
+  });
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
@@ -758,9 +740,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     }
   }, [props.ownState]);
 
-  if (chartIsStale) {
-    props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS, {});
-  }
+  useEffect(() => {
+    if (chartIsStale) {
+      props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS, {});
+    }
+  }, [chartIsStale, props.actions.logEvent]);
 
   const errorMessage = useMemo(() => {
     // Include all controls with validation errors (for button disabling)
@@ -1093,16 +1077,10 @@ function patchBigNumberTotalFormData(
 }
 
 function mapStateToProps(state: ExploreRootState) {
-  const {
-    explore,
-    charts,
-    common,
-    impressionId,
-    dataMask,
-    reports,
-    user,
-    saveModal,
-  } = state;
+  const { charts, common, impressionId, dataMask, reports, user, saveModal } =
+    state;
+  // Access explore.present because explore reducer is wrapped with redux-undo
+  const explore = state.explore.present;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
   const hasQueryMode = !!controls?.query_mode?.value;
   const fieldsToOmit = hasQueryMode
@@ -1182,8 +1160,8 @@ function mapStateToProps(state: ExploreRootState) {
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource,
-    datasource_type: datasource.type,
-    datasourceId: datasource.id,
+    datasource_type: datasource?.type,
+    datasourceId: datasource?.id,
     dashboardId,
     colorScheme,
     ownColorScheme,
@@ -1201,7 +1179,7 @@ function mapStateToProps(state: ExploreRootState) {
     sliceName: explore.sliceName ?? slice?.slice_name ?? null,
     triggerRender: explore.triggerRender,
     form_data: patchedFormData,
-    table_name: datasource.table_name,
+    table_name: datasource?.table_name,
     vizType: form_data.viz_type,
     standalone: !!explore.standalone,
     force: !!explore.force,
@@ -1210,9 +1188,8 @@ function mapStateToProps(state: ExploreRootState) {
     ownState: dataMask[slice_id]?.ownState,
     impressionId,
     user,
-    // ExploreRootState['explore'] is compatible with ExplorePageState['explore']
-    // but has additional optional fields; casting is safe here
-    exploreState: explore as unknown as ExplorePageState['explore'],
+    // explore is the .present value from the undoable reducer
+    exploreState: explore,
     reports,
     metadata,
     saveAction: explore.saveAction,
