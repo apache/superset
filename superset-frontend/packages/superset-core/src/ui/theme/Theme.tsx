@@ -28,7 +28,6 @@ import {
 import createCache from '@emotion/cache';
 import { noop, mergeWith } from 'lodash';
 import { DirectionType } from 'antd/es/config-provider';
-import { isThemeDark } from './utils/themeUtils';
 import { GlobalStyles } from './GlobalStyles';
 import {
   AntdThemeConfig,
