@@ -199,52 +199,69 @@ ul.dropdown__menu svg {
 }
 
 /* API Method Badge Colors - Swagger-style color coding */
-/* GET - Blue */
-.api-method.get,
-.openapi-method-badge.get,
-[class*="get api-method"],
-.get.api-method {
+/* These override Infima badge classes used by docusaurus-openapi-docs */
+
+/* GET - Blue (badge--primary) */
+.openapi__method-endpoint .badge--primary {
   background-color: #61affe !important;
   border-color: #61affe !important;
-  color: #fff !important;
 }
 
-/* POST - Green */
-.api-method.post,
-.openapi-method-badge.post,
-[class*="post api-method"],
-.post.api-method {
+/* POST - Green (badge--success) */
+.openapi__method-endpoint .badge--success {
   background-color: #49cc90 !important;
   border-color: #49cc90 !important;
-  color: #fff !important;
 }
 
-/* PUT - Orange */
-.api-method.put,
-.openapi-method-badge.put,
-[class*="put api-method"],
-.put.api-method {
+/* PUT - Info/Cyan -> Orange (badge--info) */
+.openapi__method-endpoint .badge--info {
   background-color: #fca130 !important;
   border-color: #fca130 !important;
-  color: #fff !important;
 }
 
-/* PATCH - Teal */
-.api-method.patch,
-.openapi-method-badge.patch,
-[class*="patch api-method"],
-.patch.api-method {
+/* PATCH - Warning/Yellow -> Teal (badge--warning) */
+.openapi__method-endpoint .badge--warning {
   background-color: #50e3c2 !important;
   border-color: #50e3c2 !important;
-  color: #000 !important;
+  color: #1b1b1d !important;
 }
 
-/* DELETE - Red */
-.api-method.delete,
-.openapi-method-badge.delete,
-[class*="delete api-method"],
-.delete.api-method {
+/* DELETE - Red (badge--danger) */
+.openapi__method-endpoint .badge--danger {
   background-color: #f93e3e !important;
   border-color: #f93e3e !important;
-  color: #fff !important;
+}
+
+/* Sidebar method badges - color the menu items */
+.menu__link.get.api-method::before,
+.menu__link.post.api-method::before,
+.menu__link.put.api-method::before,
+.menu__link.patch.api-method::before,
+.menu__link.delete.api-method::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.menu__link.get.api-method::before {
+  background-color: #61affe;
+}
+
+.menu__link.post.api-method::before {
+  background-color: #49cc90;
+}
+
+.menu__link.put.api-method::before {
+  background-color: #fca130;
+}
+
+.menu__link.patch.api-method::before {
+  background-color: #50e3c2;
+}
+
+.menu__link.delete.api-method::before {
+  background-color: #f93e3e;
 }
