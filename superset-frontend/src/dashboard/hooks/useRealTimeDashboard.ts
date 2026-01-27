@@ -62,8 +62,10 @@ export const selectIsPaused = (state: DashboardStateRoot): boolean =>
  * Priority order:
  * 1. If not a real-time dashboard → Idle
  * 2. If paused (manually or by tab) → Paused
- * 3. If fetching and exceeds delay threshold → Delayed
- * 4. Otherwise → Current status from state
+ * 3. If fetching → Fetching
+ * 4. If refreshErrorCount >= 2 → Error
+ * 5. If refreshErrorCount === 1 → Delayed
+ * 6. Otherwise → Current status from state
  */
 export const selectEffectiveRefreshStatus = (
   state: DashboardStateRoot,

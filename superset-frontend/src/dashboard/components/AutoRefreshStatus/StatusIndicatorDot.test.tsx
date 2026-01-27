@@ -39,6 +39,12 @@ test('renders with delayed status', () => {
   expect(dot).toHaveAttribute('data-status', AutoRefreshStatus.Delayed);
 });
 
+test('renders with idle status', () => {
+  render(<StatusIndicatorDot status={AutoRefreshStatus.Idle} />);
+  const dot = screen.getByTestId('status-indicator-dot');
+  expect(dot).toHaveAttribute('data-status', AutoRefreshStatus.Idle);
+});
+
 test('renders with error status', () => {
   render(<StatusIndicatorDot status={AutoRefreshStatus.Error} />);
   const dot = screen.getByTestId('status-indicator-dot');
@@ -55,7 +61,7 @@ test('has correct accessibility attributes', () => {
   render(<StatusIndicatorDot status={AutoRefreshStatus.Success} />);
   const dot = screen.getByTestId('status-indicator-dot');
   expect(dot).toHaveAttribute('role', 'status');
-  expect(dot).toHaveAttribute('aria-label');
+  expect(dot).toHaveAttribute('aria-label', 'Auto-refresh status: success');
 });
 
 test('fetching status updates immediately without debounce', async () => {
@@ -103,5 +109,5 @@ test('debounces non-fetching status changes to prevent flickering', async () => 
 test('accepts custom size prop', () => {
   render(<StatusIndicatorDot status={AutoRefreshStatus.Success} size={16} />);
   const dot = screen.getByTestId('status-indicator-dot');
-  expect(dot).toBeInTheDocument();
+  expect(dot).toHaveStyle({ width: '16px', height: '16px' });
 });

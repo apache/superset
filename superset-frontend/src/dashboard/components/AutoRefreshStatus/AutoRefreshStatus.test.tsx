@@ -110,6 +110,19 @@ test('shows error status after 2+ consecutive errors', () => {
   expect(dot).toHaveAttribute('data-status', AutoRefreshStatus.Error);
 });
 
+test('shows delayed status after one refresh error', () => {
+  render(<AutoRefreshStatusComponent />, {
+    useRedux: true,
+    initialState: createMockState({
+      refreshFrequency: 5,
+      autoRefreshStatus: AutoRefreshStatus.Success,
+      refreshErrorCount: 1,
+    }),
+  });
+  const dot = screen.getByTestId('status-indicator-dot');
+  expect(dot).toHaveAttribute('data-status', AutoRefreshStatus.Delayed);
+});
+
 test('accepts className prop', () => {
   render(<AutoRefreshStatusComponent className="custom-class" />, {
     useRedux: true,

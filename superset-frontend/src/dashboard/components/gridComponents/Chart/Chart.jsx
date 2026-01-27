@@ -88,7 +88,6 @@ const propTypes = {
   isFullSize: PropTypes.bool,
   extraControls: PropTypes.object,
   isInView: PropTypes.bool,
-  suppressLoadingSpinner: PropTypes.bool,
 };
 
 const RESIZE_TIMEOUT = 500;
