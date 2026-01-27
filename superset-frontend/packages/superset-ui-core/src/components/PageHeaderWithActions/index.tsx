@@ -126,7 +126,7 @@ export const PageHeaderWithActions = ({
 }: PageHeaderWithActionsProps) => {
   const theme = useTheme();
   return (
-    <div css={headerStyles} className="header-with-actions">
+    <div css={headerStyles(theme)} className="header-with-actions">
       <Flex align="center" gap={theme.sizeUnit * 12}>
         <DynamicEditableTitle {...editableTitleProps} />
         {showTitlePanelItems && (
