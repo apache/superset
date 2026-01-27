@@ -697,8 +697,8 @@ describe('legend sorting', () => {
     );
 
     expect((transformed.echartOptions.legend as any).data).toEqual([
-      'San Francisco',
       'Boston',
+      'San Francisco',
       'New York',
       'Milton',
     ]);

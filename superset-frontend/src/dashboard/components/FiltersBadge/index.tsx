@@ -213,12 +213,9 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
 
   useEffect(() => {
     // During auto-refresh, don't clear indicators - preserve previous state
+    // Clear indicators when chart is loading/not showing (unless auto-refreshing)
     const shouldReset =
-      (!chart ||
-        chart.chartStatus === 'failed' ||
-        chart.chartStatus === null) &&
-      nativeIndicators.length > 0 &&
-      !isAutoRefreshing;
+      !showIndicators && nativeIndicators.length > 0 && !isAutoRefreshing;
 
     const shouldRecalculate =
       chart?.queriesResponse?.[0]?.rejected_filters !==

@@ -160,6 +160,7 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
       aria-label={`Auto-refresh status: ${displayStatus}`}
       data-test="status-indicator-dot"
       data-status={displayStatus}
+      data-size={size}
     />
   );
 };

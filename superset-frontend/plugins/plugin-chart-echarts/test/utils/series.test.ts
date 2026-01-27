@@ -52,8 +52,10 @@ import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
 
 const expectedThemeProps = {
-  selector: ['all', 'inverse'],
-  selected: undefined,
+  selector: [
+    { type: 'all', title: 'All' },
+    { type: 'inverse', title: 'Inv' },
+  ],
   selectorLabel: {
     fontFamily: theme.fontFamily,
     fontSize: theme.fontSizeSM,

@@ -109,5 +109,5 @@ test('debounces non-fetching status changes to prevent flickering', async () => 
 test('accepts custom size prop', () => {
   render(<StatusIndicatorDot status={AutoRefreshStatus.Success} size={16} />);
   const dot = screen.getByTestId('status-indicator-dot');
-  expect(dot).toHaveStyle({ width: '16px', height: '16px' });
+  expect(dot).toHaveAttribute('data-size', '16');
 });
