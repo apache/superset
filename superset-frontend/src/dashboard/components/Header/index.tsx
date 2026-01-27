@@ -21,10 +21,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   isFeatureEnabled,
   FeatureFlag,
-  t,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
+import { styled, css, SupersetTheme, t } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector, useStore } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -819,6 +818,7 @@ const Header = (): JSX.Element => {
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
     findPermission('can_set_embedded', 'Dashboard', user.roles);
+  const userCanExport = !!dashboardInfo.dash_export_perm;
   const isEmbedded = !dashboardInfo?.userId;
 
   const handleOnPropertiesChange = useCallback(
@@ -1140,6 +1140,7 @@ const Header = (): JSX.Element => {
     userCanShare,
     userCanSave: userCanSaveAs,
     userCanCurate,
+    userCanExport,
     isLoading,
     showReportModal,
     showPropertiesModal,

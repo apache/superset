@@ -30,8 +30,8 @@ import {
   Icons,
   Flex,
 } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core';
 import {
-  t,
   SupersetClient,
   JsonResponse,
   JsonObject,
@@ -344,9 +344,9 @@ export const SaveDatasetModal = ({
     dispatch(
       createDatasource({
         sql: datasource.sql,
-        dbId: datasource.dbId || datasource?.database?.id,
-        catalog: datasource?.catalog,
-        schema: datasource?.schema,
+        dbId: (datasource.dbId ?? datasource?.database?.id) as number,
+        catalog: datasource?.catalog ?? null,
+        schema: datasource?.schema ?? '',
         templateParams,
         datasourceName: datasetName,
       }),

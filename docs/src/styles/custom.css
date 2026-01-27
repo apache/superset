@@ -123,6 +123,11 @@ ul.dropdown__menu svg {
   --ifm-code-padding-horizontal: 5px;
 }
 
+/* Database logo images in intro/README */
+.database-logo {
+  object-fit: contain;
+}
+
 [data-theme='dark'] {
   --ifm-color-primary: #25c2a0;
   --ifm-color-primary-dark: #21af90;
@@ -133,4 +138,52 @@ ul.dropdown__menu svg {
   --ifm-color-primary-lightest: #4fddbf;
   --ifm-font-base-color: #bbb5ac;
   --ifm-border-color: #797063;
+}
+
+/* Custom "resources" admonition for additional resources/links */
+.alert--resources {
+  --ifm-alert-background-color: #f8f9fa;
+  --ifm-alert-border-color: #6c757d;
+  --ifm-alert-foreground-color: #495057;
+  background-color: var(--ifm-alert-background-color);
+  border-left: 5px solid var(--ifm-alert-border-color);
+}
+
+.alert--resources .admonition-heading h5 {
+  color: var(--ifm-alert-foreground-color);
+}
+
+.alert--resources .admonition-icon svg {
+  fill: var(--ifm-alert-foreground-color);
+  stroke: var(--ifm-alert-foreground-color);
+}
+
+/* Resources admonition - dark mode */
+[data-theme='dark'] .alert--resources {
+  --ifm-alert-background-color: #2d3748;
+  --ifm-alert-border-color: #718096;
+  --ifm-alert-foreground-color: #e2e8f0;
+}
+
+/* Style links within resources admonition */
+.alert--resources a {
+  color: var(--ifm-link-color);
+  text-decoration: none;
+}
+
+.alert--resources a:hover {
+  text-decoration: underline;
+}
+
+[data-theme='dark'] .alert--resources a {
+  color: var(--ifm-color-primary-light);
+}
+
+/* Fix Ant Design Collapse arrow visibility in dark mode */
+[data-theme='dark'] .ant-collapse-expand-icon {
+  color: var(--ifm-font-base-color);
+}
+
+[data-theme='dark'] .ant-collapse-header {
+  color: var(--ifm-font-base-color);
 }

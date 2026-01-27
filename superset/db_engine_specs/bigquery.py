@@ -40,7 +40,11 @@ from sqlalchemy.sql.expression import table as sql_table
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicPropertiesType,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
@@ -128,6 +132,53 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     parameters_schema = BigQueryParametersSchema()
     default_driver = "bigquery"
     sqlalchemy_uri_placeholder = "bigquery://{project_id}"
+
+    metadata = {
+        "description": (
+            "Google BigQuery is a serverless, highly scalable data warehouse."
+        ),
+        "logo": "google-big-query.svg",
+        "homepage_url": "https://cloud.google.com/bigquery/",
+        "categories": [
+            DatabaseCategory.CLOUD_GCP,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-bigquery"],
+        "connection_string": "bigquery://{project_id}",
+        "install_instructions": (
+            'echo "sqlalchemy-bigquery" >> ./docker/requirements-local.txt'
+        ),
+        "authentication_methods": [
+            {
+                "name": "Service Account JSON",
+                "description": (
+                    "Upload service account credentials JSON or paste in Secure Extra"
+                ),
+                "secure_extra": {
+                    "credentials_info": {
+                        "type": "service_account",
+                        "project_id": "...",
+                        "private_key_id": "...",
+                        "private_key": "...",
+                        "client_email": "...",
+                        "client_id": "...",
+                        "auth_uri": "...",
+                        "token_uri": "...",
+                    }
+                },
+            },
+        ],
+        "notes": (
+            "Create a Service Account via GCP console with access to "
+            "BigQuery datasets. For CSV/Excel uploads, also install pandas_gbq."
+        ),
+        "warnings": [
+            "Google BigQuery Python SDK is not compatible with gevent. "
+            "Use a worker type other than gevent when deploying with gunicorn.",
+        ],
+        "docs_url": "https://github.com/googleapis/python-bigquery-sqlalchemy",
+    }
 
     # BigQuery doesn't maintain context when running multiple statements in the
     # same cursor, so we need to run all statements at once

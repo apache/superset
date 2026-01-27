@@ -232,7 +232,8 @@ test('returns column keywords among selected tables', async () => {
     );
     storeWithSqlLab.dispatch(
       addTable(
-        { id: expectQueryEditorId },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { id: expectQueryEditorId } as any,
         expectTable,
         expectCatalog,
         expectSchema,
@@ -276,7 +277,8 @@ test('returns column keywords among selected tables', async () => {
   act(() => {
     storeWithSqlLab.dispatch(
       addTable(
-        { id: expectQueryEditorId },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { id: expectQueryEditorId } as any,
         unexpectedTable,
         expectCatalog,
         expectSchema,

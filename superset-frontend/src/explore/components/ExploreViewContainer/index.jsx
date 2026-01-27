@@ -22,14 +22,13 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
-  t,
-  logging,
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
 } from '@superset-ui/core';
-import { styled, css, useTheme } from '@apache-superset/core/ui';
+import { t, styled, css, useTheme } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { Tooltip } from '@superset-ui/core/components';
@@ -292,14 +291,27 @@ function ExploreViewContainer(props) {
 
   const theme = useTheme();
 
+  // Capture original title before any effects run
+  const originalTitle = useMemo(() => document.title, []);
+
+  // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
       document.title = props.sliceName;
     }
-    return () => {
-      document.title = 'Superset';
-    };
   }, [props.sliceName]);
+
+  // Restore original title on unmount
+  useEffect(
+    () => () => {
+      document.title =
+        originalTitle ||
+        theme?.brandAppName ||
+        theme?.brandLogoAlt ||
+        'Superset';
+    },
+    [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
+  );
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {

@@ -23,11 +23,31 @@ import { Card, Carousel, Flex } from 'antd';
 import styled from '@emotion/styled';
 import GitHubButton from 'react-github-btn';
 import { mq } from '../utils';
-import { Databases } from '../resources/data';
 import SectionHeader from '../components/SectionHeader';
+import databaseData from '../data/databases.json';
 import BlurredSection from '../components/BlurredSection';
 import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
+import type { DatabaseData } from '../components/databases/types';
 import '../styles/main.less';
+
+// Build database list from databases.json (databases with logos)
+// Deduplicate by logo filename to avoid showing the same logo twice
+const typedDatabaseData = databaseData as DatabaseData;
+const seenLogos = new Set<string>();
+const Databases = Object.entries(typedDatabaseData.databases)
+  .filter(([, db]) => db.documentation?.logo && db.documentation?.homepage_url)
+  .map(([name, db]) => ({
+    title: name,
+    href: db.documentation?.homepage_url,
+    imgName: db.documentation?.logo,
+    docPath: `/docs/databases/supported/${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
+  }))
+  .sort((a, b) => a.title.localeCompare(b.title))
+  .filter((db) => {
+    if (seenLogos.has(db.imgName!)) return false;
+    seenLogos.add(db.imgName!);
+    return true;
+  });
 
 interface Organization {
   name: string;
@@ -440,22 +460,22 @@ const StyledIntegrations = styled('div')`
   padding: 0 20px;
   .database-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 14px;
-    max-width: 1160px;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 10px;
+    max-width: 1200px;
     margin: 25px auto 0;
     ${mq[1]} {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
     }
     ${mq[0]} {
-      grid-template-columns: repeat(1, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     & > .item {
       border: 1px solid var(--ifm-border-color);
-      border-radius: 10px;
+      border-radius: 8px;
       overflow: hidden;
-      height: 120px;
-      padding: 25px;
+      height: 80px;
+      padding: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -759,23 +779,19 @@ export default function Home(): JSX.Element {
         </BlurredSection>
         <BlurredSection>
           <StyledIntegrations>
-            <SectionHeader level="h2" title="Supported Databases" />
+            <SectionHeader level="h2" title="Supported Databases" link="/docs/databases" />
             <div className="database-grid">
-              {Databases.map(({ title, href, imgName }) => (
+              {Databases.map(({ title, imgName, docPath }) => (
                 <div className="item" key={title}>
-                  {href ? (
-                    <a href={href} aria-label={`Go to ${title} page`}>
-                      <img src={`/img/databases/${imgName}`} title={title} />
-                    </a>
-                  ) : (
+                  <a href={docPath} aria-label={`${title} documentation`}>
                     <img src={`/img/databases/${imgName}`} title={title} />
-                  )}
+                  </a>
                 </div>
               ))}
             </div>
             <span className="database-sub">
               ...and many other{' '}
-              <a href="/docs/configuration/databases#installing-database-drivers">
+              <a href="/docs/databases#installing-database-drivers">
                 compatible databases
               </a>
             </span>

@@ -82,7 +82,11 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     formData,
     queriesData,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      currencyCodeColumn,
+    },
     isRefreshing,
   } = chartProps;
   const {
@@ -101,8 +105,8 @@ export default function transformProps(chartProps: ChartProps) {
     subtitleFontSize,
     columnConfig = {},
   } = formData;
-  const [queryData] = queriesData;
-  const { data: dataA = [] } = queryData;
+  const { data: dataA = [], detected_currency: detectedCurrency } =
+    queriesData[0] || {};
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
   const metrics = chartProps.datasource?.metrics || [];
@@ -164,6 +168,10 @@ export default function transformProps(chartProps: ChartProps) {
     columnFormats,
     metricEntry?.d3format || yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   const compTitles = {

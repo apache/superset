@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { ModalFormField } from 'src/components/Modal';
 import { RefreshFrequencySelect } from '../../RefreshFrequency/RefreshFrequencySelect';
 

@@ -18,8 +18,8 @@
  */
 import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { t, usePrevious } from '@superset-ui/core';
-import { useTheme, styled } from '@apache-superset/core/ui';
+import { usePrevious } from '@superset-ui/core';
+import { t, useTheme, styled } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';

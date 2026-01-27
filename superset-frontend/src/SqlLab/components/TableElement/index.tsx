@@ -31,7 +31,7 @@ import {
   type CollapseProps,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 
@@ -171,7 +171,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     dispatch(
       tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: name }]),
     );
-    dispatch(syncTable(table, tableData));
+    dispatch(syncTable(table, tableData, table.queryEditorId));
   };
 
   const renderWell = () => {

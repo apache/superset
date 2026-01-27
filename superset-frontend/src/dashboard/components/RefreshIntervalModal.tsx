@@ -18,7 +18,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Form, Checkbox } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';

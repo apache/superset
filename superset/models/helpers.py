@@ -1800,6 +1800,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> tuple[pd.DataFrame, list[str]]:
         """Determine appropriate join keys and modify DataFrames if needed."""
         if time_grain and not is_date_range_offset:
+            # When there are no join keys (e.g., totals query with columns=[]),
+            # check if the first column is a datetime before attempting to use it
+            # for join column generation. If it's not a datetime (e.g., only metric
+            # columns exist), fall back to empty join keys which will trigger the
+            # __temp_join_key__ mechanism in _perform_join.
+            if not join_keys and len(df.columns) > 0:
+                first_col_dtype = df.iloc[:, 0].dtype
+                if not pd.api.types.is_datetime64_any_dtype(first_col_dtype):
+                    return offset_df, []
+
             column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
 
             # Add offset join columns for relative time offsets
@@ -2146,6 +2156,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     not in {
                         utils.FilterOperator.ILIKE,
                         utils.FilterOperator.LIKE,
+                        utils.FilterOperator.NOT_ILIKE,
+                        utils.FilterOperator.NOT_LIKE,
                     }
                 ):
                     # For backwards compatibility and edge cases
@@ -3144,11 +3156,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             target_clause_list.append(sqla_col.like(eq))
                         else:
                             target_clause_list.append(sqla_col.ilike(eq))
-                    elif op in {utils.FilterOperator.NOT_LIKE}:
+                    elif op in {
+                        utils.FilterOperator.NOT_LIKE,
+                        utils.FilterOperator.NOT_ILIKE,
+                    }:
                         if target_generic_type != GenericDataType.STRING:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
-                        target_clause_list.append(sqla_col.not_like(eq))
+                        if op == utils.FilterOperator.NOT_LIKE:
+                            target_clause_list.append(sqla_col.not_like(eq))
+                        else:
+                            target_clause_list.append(sqla_col.not_ilike(eq))
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE
                         and isinstance(eq, str)
@@ -3206,10 +3224,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
 
         if granularity:
-            qry = qry.where(and_(*(time_filters + where_clause_and)))
-        else:
+            if time_filters or where_clause_and:
+                qry = qry.where(and_(*(time_filters + where_clause_and)))
+        elif where_clause_and:
             qry = qry.where(and_(*where_clause_and))
-        qry = qry.having(and_(*having_clause_and))
+        if having_clause_and:
+            qry = qry.having(and_(*having_clause_and))
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 

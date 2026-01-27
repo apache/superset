@@ -17,8 +17,7 @@
  * under the License.
  */
 import { FC, useMemo } from 'react';
-import { t } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme, t } from '@apache-superset/core/ui';
 import { Label, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useRealTimeDashboard } from '../../hooks/useRealTimeDashboard';

@@ -189,6 +189,7 @@ class TestDatabaseApi(SupersetTestCase):
             "changed_by",
             "changed_on",
             "changed_on_delta_humanized",
+            "configuration_method",
             "created_by",
             "database_name",
             "disable_data_preview",

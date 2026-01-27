@@ -31,7 +31,7 @@ import { ColorFormatters } from '@superset-ui/chart-controls';
 import { BaseChartProps, Refs } from '../types';
 
 export interface BigNumberDatum {
-  [key: string]: number | null;
+  [key: string]: number | string | null;
 }
 
 export type BigNumberTotalFormData = QueryFormData & {

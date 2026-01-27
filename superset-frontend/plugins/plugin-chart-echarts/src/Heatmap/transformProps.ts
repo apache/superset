@@ -24,12 +24,12 @@ import {
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
-  logging,
   rgbToHex,
   addAlpha,
   tooltipHtml,
   DataRecordValue,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import memoizeOne from 'memoize-one';
 import { maxBy, minBy } from 'lodash';
@@ -208,9 +208,17 @@ export default function transformProps(
   const xAxisLabel = getColumnLabel(xAxis);
   // groupby is overridden to be a single value
   const yAxisLabel = getColumnLabel(groupby as unknown as QueryFormColumn);
-  const [queryData] = queriesData;
-  const { data, colnames, coltypes } = queryData;
-  const { columnFormats = {}, currencyFormats = {} } = datasource;
+  const {
+    data,
+    colnames,
+    coltypes,
+    detected_currency: detectedCurrency,
+  } = queriesData[0];
+  const {
+    columnFormats = {},
+    currencyFormats = {},
+    currencyCodeColumn,
+  } = datasource;
   const colorColumn = normalized ? 'rank' : metricLabel;
   const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
   const getAxisFormatter =
@@ -233,6 +241,10 @@ export default function transformProps(
     columnFormats,
     yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   let [min, max] = (valueBounds || []).map(parseAxisBound);

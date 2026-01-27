@@ -120,9 +120,12 @@ export default function transformProps(
     datasource,
     isRefreshing,
   } = chartProps;
-  const [queryData] = queriesData;
-  const { data = [] } = queryData;
-  const { columnFormats = {}, currencyFormats = {} } = datasource;
+  const { data = [], detected_currency: detectedCurrency } = queriesData[0];
+  const {
+    columnFormats = {},
+    currencyFormats = {},
+    currencyCodeColumn,
+  } = datasource;
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const BORDER_COLOR = theme.colorBgBase;
@@ -152,6 +155,10 @@ export default function transformProps(
     columnFormats,
     numberFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   const formatter = (params: TreemapSeriesCallbackDataParams) =>

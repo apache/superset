@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core';
 import {
   CategoricalColorNamespace,
   DataRecordValue,
@@ -26,7 +27,6 @@ import {
   getTimeFormatter,
   getValueFormatter,
   NumberFormats,
-  t,
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';
@@ -171,9 +171,8 @@ export default function transformProps(
     datasource,
     isRefreshing,
   } = chartProps;
-  const [queryData] = queriesData;
-  const { data = [] } = queryData;
-  const coltypeMapping = getColtypesMapping(queryData);
+  const { data = [], detected_currency: detectedCurrency } = queriesData[0];
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     groupby = [],
     columns = [],
@@ -194,6 +193,7 @@ export default function transformProps(
     currencyFormats = {},
     columnFormats = {},
     verboseMap = {},
+    currencyCodeColumn,
   } = datasource;
   const refs: Refs = {};
   const primaryValueFormatter = getValueFormatter(
@@ -202,6 +202,10 @@ export default function transformProps(
     columnFormats,
     numberFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
   const secondaryValueFormatter = secondaryMetric
     ? getValueFormatter(
@@ -210,6 +214,10 @@ export default function transformProps(
         columnFormats,
         numberFormat,
         currencyFormat,
+        undefined,
+        data,
+        currencyCodeColumn,
+        detectedCurrency,
       )
     : undefined;
 
@@ -382,6 +390,7 @@ export default function transformProps(
             text: t('Total: %s', primaryValueFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
+            fill: theme.colorText,
           },
           z: 10,
         }

@@ -39,6 +39,7 @@ import {
   EchartsTimeseriesLineChartPlugin,
 } from '../../../../../plugins/plugin-chart-echarts/src';
 import TableChartPlugin from '../../../../../plugins/plugin-chart-table/src';
+import { MultiChartPlugin } from '../../../../../plugins/legacy-preset-chart-deckgl/src';
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
 // Mock scrollIntoView to avoid errors in test environment
@@ -72,6 +73,7 @@ class MainPreset extends Preset {
         new EchartsMixedTimeseriesChartPlugin().configure({
           key: VizType.MixedTimeseries,
         }),
+        new MultiChartPlugin().configure({ key: 'deck_multi' }),
       ],
     });
   }
@@ -131,6 +133,8 @@ describe('VizTypeControl', () => {
     expect(screen.getByLabelText('area-chart')).toBeVisible();
     expect(screen.queryByLabelText('monitor')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
+    // Multi Chart should NOT appear when other charts are selected
+    expect(screen.queryByLabelText('multiple')).not.toBeInTheDocument();
 
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
@@ -150,6 +154,31 @@ describe('VizTypeControl', () => {
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Area Chart'),
     ).toBeInTheDocument();
+    // Multi Chart text should NOT appear when Line Chart is selected
+    expect(
+      within(screen.getByTestId('fast-viz-switcher')).queryByText(
+        'deck.gl Multiple Layers',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test('Multi Chart appears with custom icon when selected', async () => {
+    const props = {
+      ...defaultProps,
+      value: 'deck_multi',
+      isModalOpenInit: false,
+    };
+    await waitForRenderWrapper(props);
+
+    // Multi Chart icon should be visible when deck_multi is selected
+    expect(screen.getByLabelText('multiple')).toBeVisible();
+    expect(
+      within(screen.getByTestId('fast-viz-switcher')).getByText(
+        'deck.gl Multiple Layers',
+      ),
+    ).toBeInTheDocument();
+    // Should not show the generic check-square icon
+    expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
   });
 
   test('Render viz tiles when non-featured chart is selected', async () => {

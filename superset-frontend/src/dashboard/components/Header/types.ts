@@ -32,6 +32,7 @@ interface DashboardInfo {
   dash_edit_perm: boolean;
   dash_save_perm?: boolean;
   dash_share_perm?: boolean;
+  dash_export_perm?: boolean;
   is_managed_externally?: boolean;
   slug?: string;
   last_modified_time?: number;
@@ -77,6 +78,7 @@ export interface HeaderDropdownProps {
   userCanSave: boolean;
   userCanShare: boolean;
   userCanCurate: boolean;
+  userCanExport: boolean;
   manageEmbedded: () => void;
   dataMask?: DataMaskStateWithId;
   lastModifiedTime: number;

@@ -18,7 +18,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { sharedControlComponents } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import Echart from '../components/Echart';
 import { EchartsGanttChartTransformedProps } from './types';
 import { EventHandlers } from '../types';

@@ -21,7 +21,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
@@ -53,6 +53,7 @@ export const useHeaderActionsMenu = ({
   userCanShare,
   userCanSave,
   userCanCurate,
+  userCanExport,
   isLoading,
   lastModifiedTime,
   addSuccessToast,
@@ -168,6 +169,7 @@ export const useHeaderActionsMenu = ({
     title: t('Download'),
     disabled: isLoading,
     logEvent,
+    userCanExport,
   });
 
   const reportMenuItem = useHeaderReportMenuItems({

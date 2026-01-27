@@ -65,6 +65,24 @@ describe('isProbablyHTML', () => {
     expect(isProbablyHTML('if x < 5 and y > 10')).toBe(false);
     expect(isProbablyHTML('price < $100')).toBe(false);
   });
+
+  it('should return true for all known HTML tags', () => {
+    expect(isProbablyHTML('<section>Content</section>')).toBe(true);
+    expect(isProbablyHTML('<article>Content</article>')).toBe(true);
+    expect(isProbablyHTML('<nav>Content</nav>')).toBe(true);
+    expect(isProbablyHTML('<header>Content</header>')).toBe(true);
+    expect(isProbablyHTML('<footer>Content</footer>')).toBe(true);
+    expect(isProbablyHTML('<button>Click me</button>')).toBe(true);
+    expect(isProbablyHTML('<form>Content</form>')).toBe(true);
+    expect(isProbablyHTML('<input type="text">')).toBe(true);
+    expect(isProbablyHTML('<textarea>Content</textarea>')).toBe(true);
+    expect(isProbablyHTML('<select><option>1</option></select>')).toBe(true);
+    expect(isProbablyHTML('<blockquote>Quote</blockquote>')).toBe(true);
+    expect(isProbablyHTML('<video src="video.mp4"></video>')).toBe(true);
+    expect(isProbablyHTML('<audio src="audio.mp3"></audio>')).toBe(true);
+    expect(isProbablyHTML('<canvas></canvas>')).toBe(true);
+    expect(isProbablyHTML('<iframe src="page.html"></iframe>')).toBe(true);
+  });
 });
 
 describe('sanitizeHtmlIfNeeded', () => {

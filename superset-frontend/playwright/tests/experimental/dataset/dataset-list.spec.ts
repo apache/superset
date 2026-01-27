@@ -27,20 +27,18 @@ import {
   apiDeleteDataset,
   apiGetDataset,
   getDatasetByName,
+  createTestVirtualDataset,
   ENDPOINTS,
 } from '../../../helpers/api/dataset';
 
 /**
  * Test data constants
- * These reference example datasets loaded via --load-examples in CI.
- *
- * DEPENDENCY: Tests assume the example dataset exists and is a virtual dataset.
- * If examples aren't loaded or the dataset changes, tests will fail.
- * This is acceptable for experimental tests; stable tests should use dedicated
- * seeded test data to decouple from example data changes.
+ * PHYSICAL_DATASET: A physical dataset from examples (for navigation tests)
+ * Tests that need virtual datasets (duplicate/delete) create their own hermetic data
  */
 const TEST_DATASETS = {
-  EXAMPLE_DATASET: 'members_channels_2',
+  /** Physical dataset for basic navigation tests */
+  PHYSICAL_DATASET: 'birth_names',
 } as const;
 
 /**
@@ -87,8 +85,8 @@ test.afterEach(async ({ page }) => {
 test('should navigate to Explore when dataset name is clicked', async ({
   page,
 }) => {
-  // Use existing example dataset (hermetic - loaded in CI via --load-examples)
-  const datasetName = TEST_DATASETS.EXAMPLE_DATASET;
+  // Use existing physical dataset (loaded in CI via --load-examples)
+  const datasetName = TEST_DATASETS.PHYSICAL_DATASET;
   const dataset = await getDatasetByName(page, datasetName);
   expect(dataset).not.toBeNull();
 
@@ -111,47 +109,13 @@ test('should navigate to Explore when dataset name is clicked', async ({
 });
 
 test('should delete a dataset with confirmation', async ({ page }) => {
-  // Get example dataset to duplicate
-  const originalName = TEST_DATASETS.EXAMPLE_DATASET;
-  const originalDataset = await getDatasetByName(page, originalName);
-  expect(originalDataset).not.toBeNull();
-
-  // Create throwaway copy for deletion (hermetic - uses UI duplication)
+  // Create a virtual dataset for this test (hermetic - no dependency on examples)
   const datasetName = `test_delete_${Date.now()}`;
+  const datasetId = await createTestVirtualDataset(page, datasetName);
+  expect(datasetId).not.toBeNull();
 
-  // Verify original dataset is visible in list
-  await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
-
-  // Set up response intercept to capture duplicate dataset ID
-  const duplicateResponsePromise = page.waitForResponse(
-    response =>
-      response.url().includes(`${ENDPOINTS.DATASET}duplicate`) &&
-      response.status() === 201,
-  );
-
-  // Click duplicate action button
-  await datasetListPage.clickDuplicateAction(originalName);
-
-  // Duplicate modal should appear and be ready for interaction
-  const duplicateModal = new DuplicateDatasetModal(page);
-  await duplicateModal.waitForReady();
-
-  // Fill in new dataset name
-  await duplicateModal.fillDatasetName(datasetName);
-
-  // Click the Duplicate button
-  await duplicateModal.clickDuplicate();
-
-  // Get the duplicate dataset ID from response and track immediately
-  const duplicateResponse = await duplicateResponsePromise;
-  const duplicateData = await duplicateResponse.json();
-  const duplicateId = duplicateData.id;
-
-  // Track duplicate for cleanup immediately (before any operations that could fail)
-  testResources = { datasetIds: [duplicateId] };
-
-  // Modal should close
-  await duplicateModal.waitForHidden();
+  // Track for cleanup in case test fails partway through
+  testResources = { datasetIds: [datasetId!] };
 
   // Refresh page to see new dataset
   await datasetListPage.goto();
@@ -187,14 +151,19 @@ test('should delete a dataset with confirmation', async ({ page }) => {
 });
 
 test('should duplicate a dataset with new name', async ({ page }) => {
-  // Use virtual example dataset
-  const originalName = TEST_DATASETS.EXAMPLE_DATASET;
-  const duplicateName = `duplicate_${originalName}_${Date.now()}`;
+  // Create a virtual dataset for this test (hermetic - no dependency on examples)
+  const originalName = `test_original_${Date.now()}`;
+  const originalId = await createTestVirtualDataset(page, originalName);
+  expect(originalId).not.toBeNull();
 
-  // Get the dataset by name (ID varies by environment)
-  const original = await getDatasetByName(page, originalName);
-  expect(original).not.toBeNull();
-  expect(original!.id).toBeGreaterThan(0);
+  // Track original for cleanup
+  testResources = { datasetIds: [originalId!] };
+
+  const duplicateName = `duplicate_${originalName}`;
+
+  // Refresh page to see new dataset
+  await datasetListPage.goto();
+  await datasetListPage.waitForTableLoad();
 
   // Verify original dataset is visible in list
   await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
@@ -224,8 +193,8 @@ test('should duplicate a dataset with new name', async ({ page }) => {
   const duplicateData = await duplicateResponse.json();
   const duplicateId = duplicateData.id;
 
-  // Track duplicate for cleanup (original is example data, don't delete it)
-  testResources = { datasetIds: [duplicateId] };
+  // Track both original and duplicate for cleanup
+  testResources = { datasetIds: [originalId!, duplicateId] };
 
   // Modal should close
   await duplicateModal.waitForHidden();
@@ -242,13 +211,16 @@ test('should duplicate a dataset with new name', async ({ page }) => {
   await expect(datasetListPage.getDatasetRow(duplicateName)).toBeVisible();
 
   // API Verification: Compare original and duplicate datasets
+  const originalResponseData = await apiGetDataset(page, originalId!);
+  const originalDataFull = await originalResponseData.json();
   const duplicateResponseData = await apiGetDataset(page, duplicateId);
   const duplicateDataFull = await duplicateResponseData.json();
 
-  // Verify key properties were copied correctly (original data already fetched)
-  expect(duplicateDataFull.result.sql).toBe(original!.sql);
-  expect(duplicateDataFull.result.database.id).toBe(original!.database.id);
-  expect(duplicateDataFull.result.schema).toBe(original!.schema);
+  // Verify key properties were copied correctly
+  expect(duplicateDataFull.result.sql).toBe(originalDataFull.result.sql);
+  expect(duplicateDataFull.result.database.id).toBe(
+    originalDataFull.result.database.id,
+  );
   // Name should be different (the duplicate name)
   expect(duplicateDataFull.result.table_name).toBe(duplicateName);
 });

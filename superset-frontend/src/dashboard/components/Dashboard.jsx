@@ -18,7 +18,7 @@
  */
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 
 import { Loading } from '@superset-ui/core/components';
 import { PluginContext } from 'src/components';

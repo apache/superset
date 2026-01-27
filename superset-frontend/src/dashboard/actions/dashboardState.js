@@ -24,9 +24,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getLabelsColorMap,
-  logging,
   SupersetClient,
-  t,
   getClientErrorObject,
   getCategoricalSchemeRegistry,
   promiseTimeout,
@@ -36,6 +34,8 @@ import {
   removeChart,
   refreshChart,
 } from 'src/components/Chart/chartAction';
+import { logging } from '@apache-superset/core';
+import { t } from '@apache-superset/core/ui';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import {
@@ -583,6 +583,12 @@ export function fetchCharts(
   };
 }
 
+const refreshCharts = (chartList, force, interval, dashboardId, dispatch) =>
+  new Promise(resolve => {
+    dispatch(fetchCharts(chartList, force, interval, dashboardId));
+    resolve();
+  });
+
 export const ON_FILTERS_REFRESH = 'ON_FILTERS_REFRESH';
 export function onFiltersRefresh() {
   return { type: ON_FILTERS_REFRESH };
@@ -608,10 +614,13 @@ export function onRefresh(
   isLazyLoad = false,
 ) {
   return dispatch => {
+    // Only dispatch ON_REFRESH for dashboard-level refreshes
+    // Skip it for lazy-loaded tabs to prevent infinite loops
     if (!isLazyLoad) {
       dispatch({ type: ON_REFRESH });
     }
-    return dispatch(fetchCharts(chartList, force, interval, dashboardId)).then(
+
+    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
       () => {
         dispatch(onRefreshSuccess());
         if (!skipFiltersRefresh && !isLazyLoad) {

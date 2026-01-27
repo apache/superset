@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useRef, MouseEvent } from 'react';
+import { t } from '@apache-superset/core';
 import {
-  t,
   getNumberFormatter,
   getTimeFormatter,
   SMART_DATE_VERBOSE_ID,

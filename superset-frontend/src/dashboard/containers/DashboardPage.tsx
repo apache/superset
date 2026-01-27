@@ -19,7 +19,7 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
@@ -178,10 +178,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       // the currently stored value when hydrating
       let activeTabs: string[] | undefined;
       let chartStates: DashboardChartStates | undefined;
+      let anchor: string | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
-        if (permalinkValue) {
-          ({ dataMask, activeTabs, chartStates } = permalinkValue.state);
+        if (permalinkValue?.state) {
+          ({ dataMask, activeTabs, chartStates, anchor } =
+            permalinkValue.state);
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
@@ -204,6 +206,17 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             chartStates,
           }),
         );
+
+        // Scroll to anchor element if specified in permalink state
+        if (anchor) {
+          // Use setTimeout to ensure the DOM has been updated after hydration
+          setTimeout(() => {
+            const element = document.getElementById(anchor);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 0);
+        }
       }
       return null;
     }
@@ -211,14 +224,27 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender]);
 
+  // Capture original title before any effects run
+  const originalTitle = useMemo(() => document.title, []);
+
+  // Update document title when dashboard title changes
   useEffect(() => {
     if (dashboard_title) {
       document.title = dashboard_title;
     }
-    return () => {
-      document.title = 'Superset';
-    };
   }, [dashboard_title]);
+
+  // Restore original title on unmount
+  useEffect(
+    () => () => {
+      document.title =
+        originalTitle ||
+        theme?.brandAppName ||
+        theme?.brandLogoAlt ||
+        'Superset';
+    },
+    [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
+  );
 
   useEffect(() => {
     if (typeof css === 'string') {

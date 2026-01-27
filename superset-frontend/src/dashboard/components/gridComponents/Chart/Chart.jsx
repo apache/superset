@@ -19,8 +19,8 @@
 import cx from 'classnames';
 import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { t, logging } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core';
+import { styled, t } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 import { useHistory } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
@@ -28,6 +28,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import {
   StreamingExportModal,
   useStreamingExport,
@@ -51,6 +52,7 @@ import { useIsAutoRefreshing } from 'src/dashboard/contexts/AutoRefreshContext';
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
+
 import {
   addDangerToast,
   addSuccessToast,
@@ -69,6 +71,7 @@ import {
   getAppliedFilterValues,
 } from '../../../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../../../util/charts/getFormDataWithExtraFilters';
+import { useChartCustomizationFromRedux } from '../../nativeFilters/state';
 import { PLACEHOLDER_DATASOURCE } from '../../../constants';
 
 const propTypes = {
@@ -90,6 +93,7 @@ const propTypes = {
 
 const RESIZE_TIMEOUT = 500;
 const DEFAULT_HEADER_HEIGHT = 22;
+const QUERIED_LABEL_HEIGHT = 24;
 
 const ChartWrapper = styled.div`
   overflow: hidden;
@@ -233,6 +237,9 @@ const Chart = props => {
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
   const suppressLoadingSpinner = useIsAutoRefreshing();
+  const showChartTimestamps = useSelector(
+    state => state.dashboardInfo?.metadata?.show_chart_timestamps ?? false,
+  );
 
   const isCached = useMemo(
     // eslint-disable-next-line camelcase
@@ -337,10 +344,25 @@ const Chart = props => {
     return DEFAULT_HEADER_HEIGHT;
   }, [headerRef]);
 
+  const queriedDttm = Array.isArray(queriesResponse)
+    ? (queriesResponse[queriesResponse.length - 1]?.queried_dttm ?? null)
+    : (queriesResponse?.queried_dttm ?? null);
+
   const getChartHeight = useCallback(() => {
     const headerHeight = getHeaderHeight();
-    return Math.max(height - headerHeight - descriptionHeight, 20);
-  }, [getHeaderHeight, height, descriptionHeight]);
+    const queriedLabelHeight =
+      showChartTimestamps && queriedDttm != null ? QUERIED_LABEL_HEIGHT : 0;
+    return Math.max(
+      height - headerHeight - descriptionHeight - queriedLabelHeight,
+      20,
+    );
+  }, [
+    getHeaderHeight,
+    height,
+    descriptionHeight,
+    queriedDttm,
+    showChartTimestamps,
+  ]);
 
   const handleFilterMenuOpen = useCallback(
     (chartId, column) => {
@@ -366,10 +388,7 @@ const Chart = props => {
   const chartConfiguration = useSelector(
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
-  const chartCustomizationItems = useSelector(
-    state =>
-      state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
-  );
+  const chartCustomizationItems = useChartCustomizationFromRedux();
   const colorScheme = useSelector(state => state.dashboardState.colorScheme);
   const colorNamespace = useSelector(
     state => state.dashboardState.colorNamespace,
@@ -627,6 +646,7 @@ const Chart = props => {
         isExpanded={isExpanded}
         isCached={isCached}
         cachedDttm={cachedDttm}
+        queriedDttm={queriedDttm}
         updatedDttm={chartUpdateEndTime}
         toggleExpandSlice={toggleExpandSliceAction}
         forceRefresh={forceRefresh}
@@ -729,6 +749,10 @@ const Chart = props => {
           suppressLoadingSpinner={suppressLoadingSpinner}
         />
       </ChartWrapper>
+
+      {!isLoading && showChartTimestamps && queriedDttm != null && (
+        <LastQueriedLabel queriedDttm={queriedDttm} />
+      )}
 
       <StreamingExportModal
         visible={isStreamingModalVisible}

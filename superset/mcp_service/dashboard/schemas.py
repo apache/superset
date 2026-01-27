@@ -151,10 +151,6 @@ def serialize_role_object(role: Any) -> RoleInfo | None:
     )
 
 
-# TODO (Phase 3+): Add DashboardAvailableFilters for
-# get_dashboard_available_filters tool
-
-
 class DashboardFilter(ColumnOperator):
     """
     Filter object for dashboard listing.
@@ -169,13 +165,13 @@ class DashboardFilter(ColumnOperator):
         "favorite",
     ] = Field(
         ...,
-        description="Column to filter on. See get_dashboard_available_filters for "
-        "allowed values.",
+        description="Column to filter on. Use get_schema(model_type='dashboard') for "
+        "available filter columns.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
-        description="Operator to use. See get_dashboard_available_filters for "
-        "allowed values.",
+        description="Operator to use. Use get_schema(model_type='dashboard') for "
+        "available operators.",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
@@ -197,15 +193,7 @@ class ListDashboardsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "dashboard_title",
-                "slug",
-                "published",
-                "changed_on",
-                "created_on",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns "
             "if not specified.",
         ),
@@ -359,8 +347,22 @@ class DashboardList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] | None = None
-    columns_loaded: List[str] | None = None
+    columns_requested: List[str] = Field(
+        default_factory=list,
+        description="Requested columns for the response",
+    )
+    columns_loaded: List[str] = Field(
+        default_factory=list,
+        description="Columns that were actually loaded for each dashboard",
+    )
+    columns_available: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
     filters_applied: List[DashboardFilter] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",
@@ -418,22 +420,6 @@ class GenerateDashboardResponse(BaseModel):
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
     error: str | None = Field(None, description="Error message, if creation failed")
-
-
-# TODO (Phase 3+): Add GetDashboardAvailableFiltersRequest for
-# get_dashboard_available_filters tool
-class DashboardAvailableFilters(BaseModel):
-    column_operators: Dict[str, Any] = Field(
-        ..., description="Available filter operators and metadata for each column"
-    )
-
-
-class GetDashboardAvailableFiltersRequest(BaseModel):
-    """
-    Request schema for get_dashboard_available_filters tool.
-    """
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
 def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:

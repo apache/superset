@@ -109,7 +109,7 @@ test('CurrencyFormatter:getNormalizedD3Format', () => {
     currency: { symbol: 'USD', symbolPosition: 'prefix' },
     d3Format: ',.1%',
   });
-  expect(currencyFormatter4.getNormalizedD3Format()).toEqual(',.1');
+  expect(currencyFormatter4.getNormalizedD3Format()).toEqual(',.1%');
 });
 
 test('CurrencyFormatter:format', () => {
@@ -146,13 +146,44 @@ test('CurrencyFormatter:format', () => {
 
   const currencyFormatterWithPercentD3 = new CurrencyFormatter({
     currency: { symbol: 'USD', symbolPosition: 'prefix' },
-    d3Format: ',.1f%',
+    d3Format: ',.1%',
   });
-  expect(currencyFormatterWithPercentD3(VALUE)).toEqual('$ 56,100,057.0');
+  expect(currencyFormatterWithPercentD3(VALUE)).toEqual('$ 5,610,005,700.0');
 
   const currencyFormatterWithCurrencyD3 = new CurrencyFormatter({
     currency: { symbol: 'PLN', symbolPosition: 'suffix' },
     d3Format: '$,.1f',
   });
   expect(currencyFormatterWithCurrencyD3(VALUE)).toEqual('56,100,057.0 PLN');
+});
+
+test('CurrencyFormatter AUTO mode uses row context', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  const row = { currency: 'EUR' };
+  expect(formatter.format(1000, row, 'currency')).toContain('€');
+  expect(formatter.format(1000)).toBe('1,000.00');
+});
+
+test('CurrencyFormatter static mode ignores row context', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'USD', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  const row = { currency: 'EUR' };
+  expect(formatter.format(1000, row, 'currency')).toContain('$');
+});
+
+test('CurrencyFormatter gracefully handles invalid currency code', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'INVALID_CODE', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  // Should not throw, should return formatted value without currency symbol
+  expect(formatter.format(1000)).toBe('1,000.00');
 });
