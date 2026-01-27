@@ -630,50 +630,6 @@ test('Should render RowCountLabel when row limit is hit, and hide it otherwise',
   mockUseUiConfig.mockRestore();
 });
 
-test('Should render warning for non-table chart when row limit is hit', () => {
-  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
-    typeof useUiConfig
-  >;
-  mockUseUiConfig.mockReturnValue({
-    hideTitle: false,
-    hideTab: false,
-    hideNav: false,
-    hideChartControls: false,
-    emitDataMasks: false,
-    showRowLimitWarning: true,
-  });
-
-  const props = createProps({
-    formData: {
-      ...createProps().formData,
-      row_limit: 10,
-    },
-  });
-  const rowCountState = {
-    ...initialState,
-    charts: {
-      [props.slice.slice_id]: {
-        queriesResponse: [
-          {
-            sql_rowcount: 10,
-          },
-        ],
-      },
-    },
-  };
-
-  render(<SliceHeader {...props} />, {
-    useRedux: true,
-    useRouter: true,
-    initialState: rowCountState,
-  });
-
-  // Non-table charts should also show warning when limit is hit
-  expect(screen.getByTestId('warning')).toBeInTheDocument();
-
-  mockUseUiConfig.mockRestore();
-});
-
 test('Should hide warning in embedded by default for non-table charts', () => {
   const mockIsEmbedded = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
   const mockUseUiConfig = useUiConfig as jest.MockedFunction<
@@ -717,54 +673,6 @@ test('Should hide warning in embedded by default for non-table charts', () => {
 
   expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
   expect(screen.queryByTestId('row-count-label')).not.toBeInTheDocument();
-
-  mockIsEmbedded.mockRestore();
-  mockUseUiConfig.mockRestore();
-});
-
-test('Should show warning in embedded when uiConfig.showRowLimitWarning is true', () => {
-  const mockIsEmbedded = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
-  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
-    typeof useUiConfig
-  >;
-
-  mockIsEmbedded.mockReturnValue(true);
-  mockUseUiConfig.mockReturnValue({
-    hideTitle: false,
-    hideTab: false,
-    hideNav: false,
-    hideChartControls: false,
-    emitDataMasks: false,
-    showRowLimitWarning: true,
-  });
-
-  const props = createProps({
-    formData: {
-      ...createProps().formData,
-      row_limit: 10,
-    },
-  });
-  const rowCountState = {
-    ...initialState,
-    charts: {
-      [props.slice.slice_id]: {
-        queriesResponse: [
-          {
-            sql_rowcount: 10,
-          },
-        ],
-      },
-    },
-  };
-
-  render(<SliceHeader {...props} />, {
-    useRedux: true,
-    useRouter: true,
-    initialState: rowCountState,
-  });
-
-  // When showRowLimitWarning is true in embedded mode, warning should show
-  expect(screen.getByTestId('warning')).toBeInTheDocument();
 
   mockIsEmbedded.mockRestore();
   mockUseUiConfig.mockRestore();

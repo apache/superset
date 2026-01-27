@@ -186,25 +186,26 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
     );
 
-    const queriesResponse = useSelector<
-      RootState,
-      QueryData[] | null | undefined
-    >(state => state.charts[slice.slice_id].queriesResponse);
+    const firstQueryResponse = useSelector<RootState, QueryData | undefined>(
+      state => state.charts[slice.slice_id].queriesResponse?.[0],
+    );
+
+    const secondQueryResponse = useSelector<RootState, QueryData | undefined>(
+      state => state.charts[slice.slice_id].queriesResponse?.[1],
+    );
 
     const theme = useTheme();
 
     const rowLimit = Number(formData.row_limit ?? 0);
 
     const isTableChart = formData.viz_type === 'table';
-    const hasCountQuery = queriesResponse && queriesResponse.length > 1;
-    const countFromSecondQuery = hasCountQuery
-      ? queriesResponse[1]?.data?.[0]?.rowcount
-      : null;
+    const countFromSecondQuery =
+      isTableChart && secondQueryResponse?.data?.[0]?.rowcount;
 
     const sqlRowCount =
-      isTableChart && countFromSecondQuery != null
+      countFromSecondQuery != null
         ? countFromSecondQuery
-        : Number(queriesResponse?.[0]?.sql_rowcount ?? 0);
+        : Number(firstQueryResponse?.sql_rowcount ?? 0);
 
     const canExplore = !editMode && supersetCanExplore;
     const showRowLimitWarning =
