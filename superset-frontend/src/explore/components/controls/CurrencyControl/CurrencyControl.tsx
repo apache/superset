@@ -73,7 +73,7 @@ export const CurrencyControl = ({
     state => state.common?.currencies,
   );
   const currencyCodeColumn = useSelector<ExplorePageState, string | undefined>(
-    state => state?.explore?.datasource?.currency_code_column,
+    state => state?.explore?.present?.datasource?.currency_code_column,
   );
 
   const currenciesOptions = useMemo(() => {

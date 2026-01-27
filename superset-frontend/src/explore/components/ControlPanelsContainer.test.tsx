@@ -47,7 +47,7 @@ const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const FormDataMock = () => {
   const formData = useSelector(
-    (state: ExplorePageState) => state.explore.form_data,
+    (state: ExplorePageState) => state.explore.present.form_data,
   );
 
   return <div data-test="mock-formdata">{Object.keys(formData).join(':')}</div>;
