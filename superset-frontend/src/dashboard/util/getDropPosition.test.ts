@@ -57,7 +57,7 @@ type DropTargetMonitor = {
 type DropTargetComponent = {
   props: {
     depth: number;
-    parentComponent: {
+    parentComponent?: {
       type: ComponentType;
     };
     component: {
