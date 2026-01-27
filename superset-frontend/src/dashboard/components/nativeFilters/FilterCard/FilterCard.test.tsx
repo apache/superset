@@ -327,13 +327,13 @@ test('open modal on edit filter button click', async () => {
 
   expect(
     screen.queryByRole('dialog', {
-      name: /filters and customization settings/i,
+      name: /add or edit display controls/i,
     }),
   ).not.toBeInTheDocument();
   userEvent.click(editButton);
   expect(
     await screen.findByRole('dialog', {
-      name: /filters and customization settings/i,
+      name: /add or edit display controls/i,
     }),
   ).toBeInTheDocument();
 });

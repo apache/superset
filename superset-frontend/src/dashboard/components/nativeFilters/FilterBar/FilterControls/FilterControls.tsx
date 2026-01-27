@@ -373,7 +373,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                     lineHeight: 1.3,
                   }}
                 >
-                  {t('Chart Customization')}
+                  {t('Display controls')}
                 </Title>
                 <StyledIcon
                   iconSize="m"

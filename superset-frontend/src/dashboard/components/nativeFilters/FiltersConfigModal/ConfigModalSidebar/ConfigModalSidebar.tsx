@@ -130,7 +130,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
 
   const customizationsHeader: ReactNode = (
     <div>
-      {t('Chart customizations')} ({chartCustomizationIds.length})
+      {t('Display controls')} ({chartCustomizationIds.length})
     </div>
   );
 
