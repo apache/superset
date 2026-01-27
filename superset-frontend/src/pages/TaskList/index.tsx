@@ -120,7 +120,9 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       // - Not subscribed (can only abort, so show checkbox pre-checked disabled), OR
       // - Multiple subscribers (can choose between unsubscribe and force abort)
       // Don't show when admin is the sole subscriber - cancel will abort anyway
-      return isAdmin && isSharedTask && (subscriberCount > 1 || !userSubscribed);
+      return (
+        isAdmin && isSharedTask && (subscriberCount > 1 || !userSubscribed)
+      );
     },
     [isAdmin, isUserSubscribed],
   );
