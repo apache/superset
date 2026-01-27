@@ -293,7 +293,11 @@ stages:
                     Write-Host "✓ SECRET_KEY extracted from client config"
                     Write-Host "##vso[task.setvariable variable=SUPERSET_SECRET_KEY;issecret=true]$supersetSecretKey"
 
-                    # Write admin password to temp file (secret variables not passed to bash)
+                    # Set admin password as pipeline variable (for deployment stage)
+                    Write-Host "##vso[task.setvariable variable=SUPERSET_ADMIN_PASSWORD;issecret=true]$($explorer.'admin-password')"
+                    Write-Host "✓ Admin password set as pipeline variable"
+
+                    # Write admin password to temp file (for Create .env.deploy task on build agent)
                     $adminPasswordFile = Join-Path "$(Agent.TempDirectory)" "superset-admin-password.txt"
                     Set-Content -Path $adminPasswordFile -Value $explorer.'admin-password' -NoNewline
                     Write-Host "✓ Admin password written to temp file"
@@ -434,6 +438,7 @@ stages:
                   FULL_IMAGE_NAME: $(FULL_IMAGE_NAME)
                   SUPERSET_SECRET_KEY: $(SUPERSET_SECRET_KEY)
                   SUPERSET_ADMIN_USER: $(SUPERSET_ADMIN_USER)
+                  SUPERSET_ADMIN_PASSWORD: $(SUPERSET_ADMIN_PASSWORD)
                   SUPERSET_PORT: $(SUPERSET_PORT)
                   DOCKER_NETWORK: $(DOCKER_NETWORK)
                   DOCKER_INITDB_DIR: $(DOCKER_INITDB_DIR)
@@ -468,23 +473,32 @@ stages:
                   cd "$(Pipeline.Workspace)/s" || { echo "✗ ERROR: Failed to cd to $(Pipeline.Workspace)/s"; exit 1; }
                   echo "✓ Changed directory to: $(pwd)"
                   echo ""
-                  echo "Checking for .env.deploy file..."
-                  if [ -f ".env.deploy" ]; then
-                    echo "✓ .env.deploy exists in current directory"
-                    ls -la .env.deploy
-                  else
-                    echo "✗ ERROR: .env.deploy NOT found in current directory"
-                    echo ""
-                    echo "Searching for .env.deploy in workspace..."
-                    find "$(Pipeline.Workspace)" -name ".env.deploy" -type f 2>/dev/null || echo "No .env.deploy file found anywhere"
-                    exit 1
-                  fi
-                  echo ""
 
-                  echo "Loading environment variables from .env.deploy..."
-                  # Use --env-file to pass variables to docker-compose without sourcing
-                  # This avoids shell interpretation issues with special characters in passwords
-                  echo "✓ Using .env.deploy file with docker-compose --env-file"
+                  # Recreate .env.deploy file on deployment target
+                  # (previous .env.deploy was on build agent, this is on deployment VM)
+                  echo "Creating .env.deploy file..."
+
+                  # SUPERSET_ADMIN_PASSWORD is now available via env: block from pipeline variable
+
+                  cat > .env.deploy << EOF
+                  SUPERSET_IMAGE=${FULL_IMAGE_NAME}
+                  SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+                  SUPERSET_ADMIN_USER=${SUPERSET_ADMIN_USER}
+                  SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
+                  SUPERSET_PORT=${SUPERSET_PORT}
+                  DATABASE_DIALECT=postgresql
+                  DATABASE_USER=superset
+                  DATABASE_PASSWORD=superset
+                  DATABASE_HOST=db
+                  DATABASE_PORT=5432
+                  DATABASE_DB=superset
+                  REDIS_HOST=redis
+                  REDIS_PORT=6379
+                  DOCKER_NETWORK=${DOCKER_NETWORK}
+                  DOCKER_INITDB_DIR=${DOCKER_INITDB_DIR}
+                  EOF
+
+                  echo "✓ Created .env.deploy file"
                   echo ""
                   echo "Checking .env.deploy content (secrets masked):"
                   cat .env.deploy | sed 's/PASSWORD=.*/PASSWORD=***masked***/g' | sed 's/SECRET_KEY=.*/SECRET_KEY=***masked***/g'
@@ -504,6 +518,7 @@ stages:
                   FULL_IMAGE_NAME: $(FULL_IMAGE_NAME)
                   SUPERSET_SECRET_KEY: $(SUPERSET_SECRET_KEY)
                   SUPERSET_ADMIN_USER: $(SUPERSET_ADMIN_USER)
+                  SUPERSET_ADMIN_PASSWORD: $(SUPERSET_ADMIN_PASSWORD)
                   SUPERSET_PORT: $(SUPERSET_PORT)
                   DOCKER_NETWORK: $(DOCKER_NETWORK)
                   DOCKER_INITDB_DIR: $(DOCKER_INITDB_DIR)
