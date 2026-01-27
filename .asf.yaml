@@ -83,6 +83,7 @@ github:
           - cypress-matrix (5, chrome)
           - dependency-review
           - frontend-build
+          - playwright-tests (chromium)
           - pre-commit (current)
           - pre-commit (previous)
           - test-mysql

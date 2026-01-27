@@ -25,14 +25,10 @@ import {
   ChangeEvent,
 } from 'react';
 
+import { t } from '@apache-superset/core';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { styled, Alert } from '@apache-superset/core/ui';
 import {
-  SupersetClient,
-  t,
-  styled,
-  getClientErrorObject,
-} from '@superset-ui/core';
-import {
-  Alert,
   Button,
   Constants,
   EmptyWrapperType,
@@ -285,7 +281,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         {!confirmChange && (
           <>
             <Alert
-              roomBelow
               type="warning"
               css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
               message={

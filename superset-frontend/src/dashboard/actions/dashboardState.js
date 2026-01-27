@@ -24,9 +24,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getLabelsColorMap,
-  logging,
   SupersetClient,
-  t,
   getClientErrorObject,
   getCategoricalSchemeRegistry,
   promiseTimeout,
@@ -36,6 +34,8 @@ import {
   removeChart,
   refreshChart,
 } from 'src/components/Chart/chartAction';
+import { logging } from '@apache-superset/core';
+import { t } from '@apache-superset/core/ui';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import {
@@ -262,7 +262,7 @@ export const setDashboardMetadata =
     dispatch(
       dashboardInfoChanged({
         metadata: {
-          ...(dashboardInfo?.metadata || {}),
+          ...dashboardInfo?.metadata,
           ...updatedMetadata,
         },
       }),
@@ -458,7 +458,7 @@ export function saveDashboardRequest(data, id, saveType) {
               tags: cleanedData.tags || [],
               theme_id: cleanedData.theme_id,
               json_metadata: safeStringify({
-                ...(cleanedData?.metadata || {}),
+                ...cleanedData?.metadata,
                 default_filters: safeStringify(serializedFilters),
                 filter_scopes: serializedFilterScopes,
                 chart_configuration: chartConfiguration,
@@ -603,13 +603,21 @@ export function onRefresh(
   force = false,
   interval = 0,
   dashboardId,
+  isLazyLoad = false,
 ) {
   return dispatch => {
-    dispatch({ type: ON_REFRESH });
+    // Only dispatch ON_REFRESH for dashboard-level refreshes
+    // Skip it for lazy-loaded tabs to prevent infinite loops
+    if (!isLazyLoad) {
+      dispatch({ type: ON_REFRESH });
+    }
+
     refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
       () => {
         dispatch(onRefreshSuccess());
-        dispatch(onFiltersRefresh());
+        if (!isLazyLoad) {
+          dispatch(onFiltersRefresh());
+        }
       },
     );
   };
@@ -746,6 +754,32 @@ export function unsetFocusedFilterField(chartId, column) {
 export const SET_FULL_SIZE_CHART_ID = 'SET_FULL_SIZE_CHART_ID';
 export function setFullSizeChartId(chartId) {
   return { type: SET_FULL_SIZE_CHART_ID, chartId };
+}
+
+export const UPDATE_CHART_STATE = 'UPDATE_CHART_STATE';
+export function updateChartState(chartId, vizType, chartState) {
+  return {
+    type: UPDATE_CHART_STATE,
+    chartId,
+    vizType,
+    chartState,
+    lastModified: Date.now(),
+  };
+}
+
+export const REMOVE_CHART_STATE = 'REMOVE_CHART_STATE';
+export function removeChartState(chartId) {
+  return { type: REMOVE_CHART_STATE, chartId };
+}
+
+export const RESTORE_CHART_STATES = 'RESTORE_CHART_STATES';
+export function restoreChartStates(chartStates) {
+  return { type: RESTORE_CHART_STATES, chartStates };
+}
+
+export const CLEAR_ALL_CHART_STATES = 'CLEAR_ALL_CHART_STATES';
+export function clearAllChartStates() {
+  return { type: CLEAR_ALL_CHART_STATES };
 }
 
 // Undo history ---------------------------------------------------------------

@@ -221,11 +221,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return json.loads(self._recipient.recipient_config_json)["target"]
 
     def _get_cc(self) -> str:
-        # To accomadate backward compatability
+        # To accommodate backward compatibility
         return json.loads(self._recipient.recipient_config_json).get("ccTarget", "")
 
     def _get_bcc(self) -> str:
-        # To accomadate backward compatability
+        # To accommodate backward compatibility
         return json.loads(self._recipient.recipient_config_json).get("bccTarget", "")
 
     @statsd_gauge("reports.email.send")
@@ -253,7 +253,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 header_data=content.header_data,
             )
             logger.info(
-                "Report sent to email, notification content is %s", content.header_data
+                "Report sent to email, task_id: %s, notification content is %s",
+                content.header_data.get("execution_id")
+                if content.header_data
+                else None,
+                content.header_data,
             )
         except SupersetErrorsException as ex:
             raise NotificationError(

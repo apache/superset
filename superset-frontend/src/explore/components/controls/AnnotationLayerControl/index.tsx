@@ -18,15 +18,14 @@
  */
 import { connect } from 'react-redux';
 import { PureComponent } from 'react';
+import { t } from '@apache-superset/core';
 import {
   HandlerFunction,
   JsonObject,
   Payload,
   QueryFormData,
-  SupersetTheme,
-  t,
-  withTheme,
 } from '@superset-ui/core';
+import { SupersetTheme, withTheme } from '@apache-superset/core/ui';
 import {
   AsyncEsmComponent,
   List,

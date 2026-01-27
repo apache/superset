@@ -226,7 +226,7 @@ def test_extension_json_content_is_correct(
     frontend = content["frontend"]
     assert "contributions" in frontend
     assert "moduleFederation" in frontend
-    assert frontend["contributions"] == {"commands": [], "views": [], "menus": []}
+    assert frontend["contributions"] == {"commands": [], "views": {}, "menus": {}}
     assert frontend["moduleFederation"] == {"exposes": ["./index"]}
 
     # Verify backend section exists and has correct structure
@@ -296,10 +296,34 @@ def test_init_command_output_messages(cli_runner, isolated_filesystem, cli_input
     output = result.output
 
     # Check for expected success messages
-    assert "✅ Created extension.json" in output
-    assert "✅ Created frontend folder structure" in output
-    assert "✅ Created backend folder structure" in output
-    assert "🎉 Extension Test Extension (ID: test_extension) initialized" in output
+    assert "Created extension.json" in output
+    assert "Created .gitignore" in output
+    assert "Created frontend folder structure" in output
+    assert "Created backend folder structure" in output
+    assert "Extension Test Extension (ID: test_extension) initialized" in output
+
+
+@pytest.mark.cli
+def test_gitignore_content_is_correct(cli_runner, isolated_filesystem, cli_input_both):
+    """Test that the generated .gitignore has the correct content."""
+    result = cli_runner.invoke(app, ["init"], input=cli_input_both)
+    assert result.exit_code == 0
+
+    extension_path = isolated_filesystem / "test_extension"
+    gitignore_path = extension_path / ".gitignore"
+
+    assert_file_exists(gitignore_path, ".gitignore")
+
+    content = gitignore_path.read_text()
+
+    # Verify key patterns are present
+    assert "node_modules/" in content
+    assert "dist/" in content
+    assert "*.supx" in content
+    assert "__pycache__" in content
+    assert ".venv/" in content
+    assert ".DS_Store" in content
+    assert ".env" in content
 
 
 @pytest.mark.cli
@@ -360,3 +384,139 @@ def test_full_init_workflow_integration(cli_runner, isolated_filesystem):
 
     pyproject_content = (extension_path / "backend" / "pyproject.toml").read_text()
     assert "awesome_charts" in pyproject_content
+
+
+# Non-interactive mode tests
+@pytest.mark.cli
+def test_init_non_interactive_with_all_options(cli_runner, isolated_filesystem):
+    """Test that init works in non-interactive mode with all CLI options."""
+    result = cli_runner.invoke(
+        app,
+        [
+            "init",
+            "--id",
+            "my_ext",
+            "--name",
+            "My Extension",
+            "--version",
+            "1.0.0",
+            "--license",
+            "MIT",
+            "--frontend",
+            "--backend",
+        ],
+    )
+
+    assert result.exit_code == 0, f"Command failed with output: {result.output}"
+    assert "🎉 Extension My Extension (ID: my_ext) initialized" in result.output
+
+    extension_path = isolated_filesystem / "my_ext"
+    assert_directory_exists(extension_path)
+    assert_directory_exists(extension_path / "frontend")
+    assert_directory_exists(extension_path / "backend")
+
+    extension_json = load_json_file(extension_path / "extension.json")
+    assert extension_json["id"] == "my_ext"
+    assert extension_json["name"] == "My Extension"
+    assert extension_json["version"] == "1.0.0"
+    assert extension_json["license"] == "MIT"
+
+
+@pytest.mark.cli
+def test_init_frontend_only_with_cli_options(cli_runner, isolated_filesystem):
+    """Test init with frontend only using CLI options."""
+    result = cli_runner.invoke(
+        app,
+        [
+            "init",
+            "--id",
+            "frontend_ext",
+            "--name",
+            "Frontend Extension",
+            "--version",
+            "1.0.0",
+            "--license",
+            "MIT",
+            "--frontend",
+            "--no-backend",
+        ],
+    )
+
+    assert result.exit_code == 0, f"Command failed with output: {result.output}"
+
+    extension_path = isolated_filesystem / "frontend_ext"
+    assert_directory_exists(extension_path / "frontend")
+    assert not (extension_path / "backend").exists()
+
+
+@pytest.mark.cli
+def test_init_backend_only_with_cli_options(cli_runner, isolated_filesystem):
+    """Test init with backend only using CLI options."""
+    result = cli_runner.invoke(
+        app,
+        [
+            "init",
+            "--id",
+            "backend_ext",
+            "--name",
+            "Backend Extension",
+            "--version",
+            "1.0.0",
+            "--license",
+            "MIT",
+            "--no-frontend",
+            "--backend",
+        ],
+    )
+
+    assert result.exit_code == 0, f"Command failed with output: {result.output}"
+
+    extension_path = isolated_filesystem / "backend_ext"
+    assert not (extension_path / "frontend").exists()
+    assert_directory_exists(extension_path / "backend")
+
+
+@pytest.mark.cli
+def test_init_prompts_for_missing_options(cli_runner, isolated_filesystem):
+    """Test that init prompts for options not provided via CLI and uses defaults."""
+    # Provide id and name via CLI, but version/license will be prompted (accept defaults)
+    result = cli_runner.invoke(
+        app,
+        [
+            "init",
+            "--id",
+            "default_ext",
+            "--name",
+            "Default Extension",
+            "--frontend",
+            "--backend",
+        ],
+        input="\n\n",  # Accept defaults for version and license prompts
+    )
+
+    assert result.exit_code == 0, f"Command failed with output: {result.output}"
+
+    extension_path = isolated_filesystem / "default_ext"
+    extension_json = load_json_file(extension_path / "extension.json")
+    assert extension_json["version"] == "0.1.0"
+    assert extension_json["license"] == "Apache-2.0"
+
+
+@pytest.mark.cli
+def test_init_non_interactive_validates_id(cli_runner, isolated_filesystem):
+    """Test that non-interactive mode validates extension ID."""
+    result = cli_runner.invoke(
+        app,
+        [
+            "init",
+            "--id",
+            "invalid-id",
+            "--name",
+            "Invalid Extension",
+            "--frontend",
+            "--backend",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "must be alphanumeric" in result.output

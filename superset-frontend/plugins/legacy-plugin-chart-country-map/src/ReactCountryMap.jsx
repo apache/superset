@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify, styled } from '@superset-ui/core';
+import { reactify } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import Component from './CountryMap';
 
 const ReactComponent = reactify(Component);
 
-const CountryMap = ({ className, ...otherProps }) => (
+const CountryMap = ({ className = '', ...otherProps }) => (
   <div className={className}>
     <ReactComponent {...otherProps} />
   </div>
@@ -42,31 +43,27 @@ export default styled(CountryMap)`
       pointer-events: all;
     }
 
+    .superset-legacy-chart-country-map .hover-popup {
+      position: absolute;
+      color: ${theme.colorTextSecondary};
+      display: none;
+      padding: 4px;
+      border-radius: 1px;
+      background-color: ${theme.colorBgElevated};
+      box-shadow: ${theme.boxShadow};
+      font-size: 12px;
+      border: 1px solid ${theme.colorBorder};
+      z-index: 10001;
+    }
+
     .superset-legacy-chart-country-map .map-layer {
       fill: ${theme.colorBgContainer};
       stroke: ${theme.colorBorderSecondary};
+      pointer-events: all;
     }
 
     .superset-legacy-chart-country-map .effect-layer {
       pointer-events: none;
-    }
-
-    .superset-legacy-chart-country-map .text-layer {
-      color: ${theme.colorText};
-      text-anchor: middle;
-      pointer-events: none;
-    }
-
-    .superset-legacy-chart-country-map text.result-text {
-      fill: ${theme.colorText};
-      font-weight: ${theme.fontWeightLight};
-      font-size: ${theme.fontSizeXL}px;
-    }
-
-    .superset-legacy-chart-country-map text.big-text {
-      fill: ${theme.colorText};
-      font-weight: ${theme.fontWeightStrong};
-      font-size: ${theme.fontSizeLG}px;
     }
 
     .superset-legacy-chart-country-map path.region {

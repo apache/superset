@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { useRef } from 'react';
+import { styled } from '@apache-superset/core/ui';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import ControlHeader, { ControlHeaderProps } from '../../ControlHeader';
 
@@ -60,6 +61,16 @@ export default function NumberControl({
   disabled,
   ...rest
 }: NumberControlProps) {
+  const pendingValueRef = useRef<NumberValueType>(value);
+
+  const handleChange = (val: string | number | null) => {
+    pendingValueRef.current = parseValue(val);
+  };
+
+  const handleBlur = () => {
+    onChange?.(pendingValueRef.current);
+  };
+
   return (
     <FullWidthDiv>
       <ControlHeader {...rest} />
@@ -69,7 +80,8 @@ export default function NumberControl({
         step={step}
         placeholder={placeholder}
         value={value}
-        onChange={value => onChange?.(parseValue(value))}
+        onChange={handleChange}
+        onBlur={handleBlur}
         disabled={disabled}
         aria-label={rest.label}
       />

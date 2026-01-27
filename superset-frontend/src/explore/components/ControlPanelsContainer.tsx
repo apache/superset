@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import {
+  cloneElement,
   isValidElement,
   ReactNode,
   useCallback,
@@ -27,23 +28,21 @@ import {
   useRef,
   useState,
 } from 'react';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
-  t,
-  styled,
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,
-  css,
-  SupersetTheme,
-  useTheme,
   isDefined,
   JsonValue,
   NO_TIME_RANGE,
   usePrevious,
   isFeatureEnabled,
   FeatureFlag,
+  VizType,
 } from '@superset-ui/core';
+import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   ControlPanelSectionConfig,
   ControlState,
@@ -84,6 +83,15 @@ const TABS_KEYS = {
   CUSTOMIZE: 'CUSTOMIZE',
   MATRIXIFY: 'MATRIXIFY',
 };
+
+// Table charts don't support matrixify feature
+const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
+  VizType.Table,
+  VizType.TableAgGrid,
+  VizType.PivotTable,
+  VizType.TimeTable,
+  VizType.TimePivot,
+]);
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -292,6 +300,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const prevChartStatus = usePrevious(props.chart.chartStatus);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState<string>(TABS_KEYS.DATA);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -578,7 +587,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
   ) => {
-    const { controls } = props;
+    const { controls, chart, exploreState, form_data, actions } = props;
     const { label, description, visibility } = section;
 
     // Section label can be a ReactNode but in some places we want to
@@ -627,7 +636,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title={t('This section contains validation errors')}
           >
-            <Icons.InfoCircleOutlined iconColor={theme.colorErrorText} />
+            <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
           </Tooltip>
         )}
       </span>
@@ -660,7 +669,32 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   }
                   if (isValidElement(controlItem)) {
                     // When the item is a React element
-                    return controlItem;
+                    const element = controlItem as React.ReactElement<
+                      Record<string, unknown>
+                    >;
+
+                    const controlName = (element.props as { name: string })
+                      .name;
+                    if (!controlName) {
+                      return element;
+                    }
+                    const controlState = controls[controlName];
+
+                    return cloneElement(element, {
+                      ...(element.props as Record<string, unknown>),
+                      actions,
+                      controls,
+                      chart,
+                      exploreState,
+                      form_data,
+                      ...(controlState && {
+                        value: controlState.value,
+                        validationErrors: controlState.validationErrors,
+                        default: controlState.default,
+                        onChange: (value: unknown, errors: unknown[]) =>
+                          setControlValue(controlName, value, errors),
+                      }),
+                    });
                   }
                   if (
                     isCustomControlItem(controlItem) &&
@@ -752,9 +786,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <Icons.InfoCircleOutlined
+              <Icons.ExclamationCircleOutlined
                 data-test="query-error-tooltip-trigger"
-                iconColor={theme.colorErrorText}
+                iconColor={theme.colorError}
                 iconSize="s"
               />
             </Tooltip>
@@ -770,7 +804,21 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   ]);
 
   const showCustomizeTab = customizeSections.length > 0;
-  const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
+  const showMatrixifyTab =
+    isFeatureEnabled(FeatureFlag.Matrixify) &&
+    !MATRIXIFY_INCOMPATIBLE_CHARTS.has(form_data.viz_type as VizType);
+
+  // Check if matrixify is enabled in form_data
+  const matrixifyIsEnabled =
+    form_data.matrixify_enable_vertical_layout ||
+    form_data.matrixify_enable_horizontal_layout;
+
+  // Auto-switch to Matrixify tab when it's enabled
+  useEffect(() => {
+    if (showMatrixifyTab && matrixifyIsEnabled) {
+      setActiveTabKey(TABS_KEYS.MATRIXIFY);
+    }
+  }, [showMatrixifyTab, matrixifyIsEnabled]);
 
   // Check if matrixify sections have validation errors
   const matrixifyHasErrors = useMemo(() => {
@@ -813,9 +861,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={t('This section contains validation errors')}
             >
-              <Icons.InfoCircleOutlined
+              <Icons.ExclamationCircleOutlined
                 data-test="matrixify-validation-error-tooltip-trigger"
-                iconColor={theme.colorErrorText}
+                iconColor={theme.colorError}
                 iconSize="s"
               />
             </Tooltip>
@@ -859,6 +907,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           id="controlSections"
           data-test="control-tabs"
           allowOverflow={false}
+          activeKey={activeTabKey}
+          onChange={(key: string) => setActiveTabKey(key)}
           items={[
             {
               key: TABS_KEYS.DATA,
@@ -871,7 +921,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                     expandIconPosition="end"
                     ghost
                     bordered
-                    items={[...querySections.map(renderControlPanelSection)]}
+                    items={querySections.map(renderControlPanelSection)}
                   />
                 </>
               ),
@@ -887,9 +937,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                         expandIconPosition="end"
                         ghost
                         bordered
-                        items={[
-                          ...customizeSections.map(renderControlPanelSection),
-                        ]}
+                        items={customizeSections.map(renderControlPanelSection)}
                       />
                     ),
                   },
@@ -935,12 +983,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                           )}
                         <Collapse
                           defaultActiveKey={expandedMatrixifySections}
-                          expandIconPosition="right"
+                          expandIconPosition="end"
                           ghost
                           bordered
-                          items={[
-                            ...matrixifySections.map(renderControlPanelSection),
-                          ]}
+                          items={matrixifySections.map(
+                            renderControlPanelSection,
+                          )}
                         />
                       </>
                     ),

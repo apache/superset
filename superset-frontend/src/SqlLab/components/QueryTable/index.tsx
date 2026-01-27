@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, ReactNode } from 'react';
+import { useMemo, ReactNode, useState, useRef } from 'react';
 import {
   Card,
   Button,
@@ -27,8 +27,10 @@ import {
   TableView,
 } from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
-import { t, useTheme, QueryResponse } from '@superset-ui/core';
-import { useDispatch, useSelector } from 'react-redux';
+import { t } from '@apache-superset/core';
+import { QueryResponse, QueryState } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 
 import {
   queryEditorSetSql,
@@ -36,19 +38,20 @@ import {
   fetchQueryResults,
   clearQueryResults,
   removeQuery,
+  startQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import { fDuration, extendedDayjs } from '@superset-ui/core/utils/dates';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
+import { makeUrl } from 'src/utils/pathUtils';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
-import { StaticPosition, StyledTooltip } from './styles';
+import { StaticPosition, StyledTooltip, ModalResultSetWrapper } from './styles';
 
-interface QueryTableQuery
-  extends Omit<
-    QueryResponse,
-    'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
-  > {
+interface QueryTableQuery extends Omit<
+  QueryResponse,
+  'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
+> {
   state?: Record<string, any>;
   sql?: Record<string, any>;
   progress?: Record<string, any>;
@@ -67,7 +70,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = `/sqllab?queryId=${id}`;
+  const url = makeUrl(`/sqllab?queryId=${id}`);
   window.open(url);
 };
 
@@ -81,6 +84,15 @@ const QueryTable = ({
 }: QueryTableProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const [selectedQuery, setSelectedQuery] = useState<QueryResponse | null>(
+    null,
+  );
+  const selectedQueryRef = useRef<QueryResponse | null>(null);
+  const modalRef = useRef<{
+    close: () => void;
+    open: (e: React.MouseEvent) => void;
+    showModal: boolean;
+  } | null>(null);
 
   const QUERY_HISTORY_TABLE_HEADERS_LOCALIZED = {
     state: t('State'),
@@ -115,6 +127,14 @@ const QueryTable = ({
   );
 
   const user = useSelector<SqlLabRootState, User>(state => state.user);
+  const reduxQueries = useSelector<
+    SqlLabRootState,
+    Record<string, QueryResponse>
+  >(state => state.sqlLab?.queries ?? {}, shallowEqual);
+
+  const openAsyncResults = (query: QueryResponse, displayLimit: number) => {
+    dispatch(fetchQueryResults(query, displayLimit));
+  };
 
   const data = useMemo(() => {
     const restoreSql = (query: QueryResponse) => {
@@ -125,10 +145,6 @@ const QueryTable = ({
 
     const openQueryInNewTab = (query: QueryResponse) => {
       dispatch(cloneQueryToNewTab(query, true));
-    };
-
-    const openAsyncResults = (query: QueryResponse, displayLimit: number) => {
-      dispatch(fetchQueryResults(query, displayLimit));
     };
 
     const statusAttributes = {
@@ -288,26 +304,17 @@ const QueryTable = ({
         );
         if (q.resultsKey) {
           q.results = (
-            <ModalTrigger
-              className="ResultsModal"
-              triggerNode={
-                <Button buttonSize="xsmall" buttonStyle="secondary">
-                  {t('View')}
-                </Button>
-              }
-              modalTitle={t('Data preview')}
-              beforeOpen={() => openAsyncResults(query, displayLimit)}
-              onExit={() => dispatch(clearQueryResults(query))}
-              modalBody={
-                <ResultSet
-                  showSql
-                  queryId={query.id}
-                  displayLimit={displayLimit}
-                  defaultQueryLimit={1000}
-                />
-              }
-              responsive
-            />
+            <Button
+              buttonSize="xsmall"
+              buttonStyle="secondary"
+              onClick={(e: React.MouseEvent) => {
+                selectedQueryRef.current = query;
+                setSelectedQuery(query);
+                modalRef.current?.open(e);
+              }}
+            >
+              {t('View')}
+            </Button>
           );
         } else {
           q.results = <></>;
@@ -364,6 +371,55 @@ const QueryTable = ({
 
   return (
     <div className="QueryTable">
+      <ModalTrigger
+        ref={modalRef}
+        triggerNode={null}
+        className="ResultsModal"
+        modalTitle={t('Data preview')}
+        beforeOpen={() => {
+          const query = selectedQueryRef.current;
+          if (query) {
+            const existingQuery = reduxQueries[query.id];
+            if (!existingQuery?.sql && query.sql) {
+              dispatch(startQuery({ ...query, sql: query.sql }, false));
+            }
+            openAsyncResults(query, displayLimit);
+          }
+        }}
+        onExit={() => {
+          const query = selectedQueryRef.current;
+          if (query) {
+            dispatch(clearQueryResults(query));
+            selectedQueryRef.current = null;
+            setSelectedQuery(null);
+          }
+        }}
+        modalBody={
+          selectedQuery ? (
+            <ModalResultSetWrapper>
+              {(() => {
+                const height =
+                  reduxQueries[selectedQuery.id]?.state ===
+                    QueryState.Success &&
+                  reduxQueries[selectedQuery.id]?.results
+                    ? Math.floor(window.innerHeight * 0.5)
+                    : undefined;
+                return (
+                  <ResultSet
+                    showSql
+                    queryId={selectedQuery.id}
+                    displayLimit={displayLimit}
+                    defaultQueryLimit={1000}
+                    useFixedHeight
+                    height={height}
+                  />
+                );
+              })()}
+            </ModalResultSetWrapper>
+          ) : null
+        }
+        responsive
+      />
       <TableView
         columns={columnsOfTable}
         data={data}

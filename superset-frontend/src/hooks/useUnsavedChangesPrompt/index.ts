@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getClientErrorObject, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getClientErrorObject } from '@superset-ui/core';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
+import type { Location } from 'history';
 
 type UseUnsavedChangesPromptProps = {
   hasUnsavedChanges: boolean;
@@ -69,7 +71,13 @@ export const useUnsavedChangesPrompt = ({
   }, [onSave]);
 
   const blockCallback = useCallback(
-    ({ pathname }: { pathname: string }) => {
+    ({
+      pathname,
+      state,
+    }: {
+      pathname: Location['pathname'];
+      state: Location['state'];
+    }) => {
       if (manualSaveRef.current) {
         manualSaveRef.current = false;
         return undefined;
@@ -77,7 +85,7 @@ export const useUnsavedChangesPrompt = ({
 
       confirmNavigationRef.current = () => {
         unblockRef.current?.();
-        history.push(pathname);
+        history.push(pathname, state);
       };
 
       setShowModal(true);

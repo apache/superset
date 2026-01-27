@@ -29,13 +29,12 @@ def test_add_permissions(mocker: MockerFixture) -> None:
     database.db_engine_spec.supports_catalog = True
     database.get_all_catalog_names.return_value = ["catalog1", "catalog2"]
     database.get_all_schema_names.side_effect = [["schema1"], ["schema2"]]
-    ssh_tunnel = mocker.MagicMock()
     add_permission_view_menu = mocker.patch(
         "superset.commands.database.importers.v1.utils.security_manager."
         "add_permission_view_menu"
     )
 
-    add_permissions(database, ssh_tunnel)
+    add_permissions(database)
 
     add_permission_view_menu.assert_has_calls(
         [
@@ -60,13 +59,12 @@ def test_add_permissions_get_default_catalog(mocker: MockerFixture):
     database.get_all_catalog_names.return_value = ["catalog1", "catalog2"]
     database.get_default_catalog.return_value = "catalog1"
     database.get_all_schema_names.side_effect = [["schema1"], ["schema2"]]
-    ssh_tunnel = mocker.MagicMock()
     add_permission_view_menu = mocker.patch(
         "superset.commands.database.importers.v1.utils.security_manager."
         "add_permission_view_menu"
     )
 
-    add_permissions(database, ssh_tunnel)
+    add_permissions(database)
 
     add_permission_view_menu.assert_has_calls(
         [
@@ -88,13 +86,12 @@ def test_add_permissions_handle_failures(mocker: MockerFixture) -> None:
     database.db_engine_spec.supports_catalog = True
     database.get_all_catalog_names.return_value = ["catalog1", "catalog2", "catalog3"]
     database.get_all_schema_names.side_effect = [["schema1"], Exception, ["schema3"]]
-    ssh_tunnel = mocker.MagicMock()
     add_permission_view_menu = mocker.patch(
         "superset.commands.database.importers.v1.utils.security_manager."
         "add_permission_view_menu"
     )
 
-    add_permissions(database, ssh_tunnel)
+    add_permissions(database)
 
     add_permission_view_menu.assert_has_calls(
         [

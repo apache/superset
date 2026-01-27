@@ -17,7 +17,9 @@
  * under the License.
  */
 import { useState } from 'react';
-import { getClientErrorObject, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getClientErrorObject } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import {
   Button,
   Icons,
@@ -30,6 +32,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { shallowEqual, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { hasStatefulCharts } from 'src/dashboard/util/chartStateConverter';
 
 export type URLShortLinkButtonProps = {
   dashboardId: number;
@@ -49,23 +52,35 @@ export default function URLShortLinkButton({
   const theme = useTheme();
   const [shortUrl, setShortUrl] = useState('');
   const { addDangerToast } = useToasts();
-  const { dataMask, activeTabs } = useSelector(
+  const { dataMask, activeTabs, chartStates, sliceEntities } = useSelector(
     (state: RootState) => ({
       dataMask: state.dataMask,
       activeTabs: state.dashboardState.activeTabs,
+      chartStates: state.dashboardState.chartStates,
+      sliceEntities: state.sliceEntities?.slices,
     }),
     shallowEqual,
   );
 
   const getCopyUrl = async () => {
     try {
-      const url = await getDashboardPermalink({
+      // Check if dashboard has AG Grid tables (Table V2)
+      const includeChartState =
+        hasStatefulCharts(sliceEntities) &&
+        chartStates &&
+        Object.keys(chartStates).length > 0;
+
+      const result = await getDashboardPermalink({
         dashboardId,
         dataMask,
         activeTabs,
         anchor: anchorLinkId,
+        chartStates: includeChartState ? chartStates : undefined,
+        includeChartState,
       });
-      setShortUrl(url);
+      if (result?.url) {
+        setShortUrl(result.url);
+      }
     } catch (error) {
       if (error) {
         addDangerToast(

@@ -34,6 +34,7 @@ import {
   Currency,
   JsonObject,
   Metric,
+  AgGridChartState,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
@@ -176,6 +177,8 @@ export interface AgGridTableChartTransformedProps<
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   formData: TableChartFormData;
+  onChartStateChange?: (chartState: JsonObject) => void;
+  chartState?: AgGridChartState;
 }
 
 export enum ColorSchemeEnum {
@@ -188,9 +191,20 @@ export interface SortState {
   sort: 'asc' | 'desc' | null;
 }
 
+export type FilterInputPosition = 'first' | 'second' | 'unknown';
+
+export interface AGGridFilterInstance {
+  eGui?: HTMLElement;
+  eConditionBodies?: HTMLElement[];
+  eJoinAnds?: Array<{ eGui?: HTMLElement }>;
+  eJoinOrs?: Array<{ eGui?: HTMLElement }>;
+}
+
 export interface CustomContext {
   initialSortState: SortState[];
   onColumnHeaderClicked: (args: { column: SortState }) => void;
+  lastFilteredColumn?: string;
+  lastFilteredInputPosition?: FilterInputPosition;
 }
 
 export interface CustomHeaderParams extends IHeaderParams {
@@ -223,11 +237,17 @@ export interface InputColumn {
   isNumeric: boolean;
   isMetric: boolean;
   isPercentMetric: boolean;
-  config: Record<string, any>;
-  formatter?: Function;
+  config: TableColumnConfig;
+  formatter?:
+    | TimeFormatter
+    | NumberFormatter
+    | CustomFormatter
+    | CurrencyFormatter;
   originalLabel?: string;
   metricName?: string;
 }
+
+export type ValueRange = [number, number] | null;
 
 export type CellRendererProps = CustomCellRendererProps & {
   hasBasicColorFormatters: boolean | undefined;
@@ -235,7 +255,7 @@ export type CellRendererProps = CustomCellRendererProps & {
   basicColorFormatters: {
     [Key: string]: BasicColorFormatterType;
   }[];
-  valueRange: any;
+  valueRange: ValueRange;
   alignPositiveNegative: boolean;
   colorPositiveNegative: boolean;
   allowRenderHtml: boolean;

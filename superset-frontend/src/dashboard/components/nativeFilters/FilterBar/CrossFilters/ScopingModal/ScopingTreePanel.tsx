@@ -18,15 +18,10 @@
  */
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import {
-  css,
-  isDefined,
-  NativeFilterScope,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
-import { Select, Tooltip, Alert } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core';
+import { isDefined, NativeFilterScope } from '@superset-ui/core';
+import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { Select, Tooltip } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
 import ScopingTree from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/ScopingTree';
 import {

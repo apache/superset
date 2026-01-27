@@ -19,7 +19,9 @@
 import { useMemo } from 'react';
 import { Icons, Tooltip } from '@superset-ui/core/components';
 import type { MenuItem } from '@superset-ui/core/components/Menu';
-import { t, ThemeMode, ThemeAlgorithm } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ThemeMode, ThemeAlgorithm } from '@apache-superset/core/ui';
+import { NAVBAR_MENU_POPUP_OFFSET } from 'src/features/home/commonMenuData';
 
 export interface ThemeSubMenuOption {
   key: ThemeMode;
@@ -134,8 +136,9 @@ export const useThemeMenuItems = ({
   return {
     key: 'theme-sub-menu',
     label: selectedThemeModeIcon,
-    icon: <Icons.CaretDownOutlined iconSize="xs" />,
+    icon: <Icons.DownOutlined iconSize="xs" />,
     className: 'submenu-with-caret',
     children,
+    popupOffset: NAVBAR_MENU_POPUP_OFFSET,
   };
 };

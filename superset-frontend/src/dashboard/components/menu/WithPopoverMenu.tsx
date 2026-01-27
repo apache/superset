@@ -18,18 +18,19 @@
  */
 import { ReactNode, CSSProperties, PureComponent } from 'react';
 import cx from 'classnames';
-import { addAlpha, css, styled } from '@superset-ui/core';
+import { addAlpha } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 type ShouldFocusContainer = HTMLDivElement & {
-  contains: (event_target: EventTarget & HTMLElement) => Boolean;
+  contains: (event_target: EventTarget & HTMLElement) => boolean;
 };
 
 interface WithPopoverMenuProps {
   children: ReactNode;
-  disableClick: Boolean;
+  disableClick: boolean;
   menuItems: ReactNode[];
-  onChangeFocus: (focus: Boolean) => void;
-  isFocused: Boolean;
+  onChangeFocus: (focus: boolean) => void;
+  isFocused: boolean;
   // Event argument is left as "any" because of the clash. In defaultProps it seems
   // like it should be React.FocusEvent<>, however from handleClick() we can also
   // derive that type is EventListenerOrEventListenerObject.
@@ -37,13 +38,13 @@ interface WithPopoverMenuProps {
     event: any,
     container: ShouldFocusContainer,
     menuRef: HTMLDivElement | null,
-  ) => Boolean;
-  editMode: Boolean;
+  ) => boolean;
+  editMode: boolean;
   style: CSSProperties;
 }
 
 interface WithPopoverMenuState {
-  isFocused: Boolean;
+  isFocused: boolean;
 }
 
 const WithPopoverMenuStyles = styled.div`
@@ -165,7 +166,7 @@ export default class WithPopoverMenu extends PureComponent<
     this.menuRef = ref;
   }
 
-  shouldHandleFocusChange(shouldFocus: Boolean): boolean {
+  shouldHandleFocusChange(shouldFocus: boolean): boolean {
     const { disableClick } = this.props;
     const { isFocused } = this.state;
 
@@ -225,7 +226,7 @@ export default class WithPopoverMenu extends PureComponent<
         {children}
         {editMode && isFocused && (menuItems?.length ?? 0) > 0 && (
           <PopoverMenuStyles ref={this.setMenuRef}>
-            {menuItems.map((node: ReactNode, i: Number) => (
+            {menuItems.map((node: ReactNode, i: number) => (
               <div className="menu-item" key={`menu-item-${i}`}>
                 {node}
               </div>

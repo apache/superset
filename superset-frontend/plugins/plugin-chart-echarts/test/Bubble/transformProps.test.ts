@@ -21,8 +21,8 @@ import {
   ChartPropsConfig,
   getNumberFormatter,
   SqlaFormData,
-  supersetTheme,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsBubbleChartProps } from '../../src/Bubble/types';
 import transformProps, { formatTooltip } from '../../src/Bubble/transformProps';
 

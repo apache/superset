@@ -20,16 +20,16 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { isEmpty, isEqual, noop } from 'lodash';
+import { t } from '@apache-superset/core';
 import {
   BinaryAdhocFilter,
-  css,
   ensureIsArray,
   fetchTimeRange,
   getTimeOffset,
   parseDttmToDate,
   SimpleAdhocFilter,
-  t,
 } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import ControlHeader, {
   ControlHeaderProps,
 } from 'src/explore/components/ControlHeader';
@@ -144,7 +144,8 @@ export const ComparisonRangeLabel = ({
               );
               const startDateDayjs = extendedDayjs(parseDttmToDate(startDate));
               if (
-                startDateDayjs.isSameOrBefore(parsedDateDayjs) ||
+                startDateDayjs.isBefore(parsedDateDayjs) ||
+                startDateDayjs.isSame(parsedDateDayjs) ||
                 !startDate
               ) {
                 const postProcessedShifts = getTimeOffset({

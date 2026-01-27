@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme, css } from '@superset-ui/core';
+import { SupersetTheme, css } from '@apache-superset/core/ui';
 import { ReactElement } from 'react';
 import { Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -51,6 +51,12 @@ export default function RecipientIcon({ type }: { type: string }) {
         <Icons.SlackOutlined css={notificationStyledIcon} iconSize="l" />
       );
       recipientIconConfig.label = NotificationMethodOption.Slack;
+      break;
+    case NotificationMethodOption.Webhook:
+      recipientIconConfig.icon = (
+        <Icons.ApiOutlined css={notificationStyledIcon} iconSize="l" />
+      );
+      recipientIconConfig.label = NotificationMethodOption.Webhook;
       break;
     default:
       recipientIconConfig.icon = null;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { Select } from '@superset-ui/core/components';
 
 /* Components for AgGridTable */
@@ -287,14 +287,14 @@ export const StyledChartContainer = styled.div<{
     .dt-is-filter {
       cursor: pointer;
       :hover {
-        background-color: ${theme.colorPrimaryBgHover};
+        background-color: ${theme.colorFillContentHover};
       }
     }
 
     .dt-is-active-filter {
       background: ${theme.colorPrimaryBg};
       :hover {
-        background-color: ${theme.colorPrimaryBgHover};
+        background-color: ${theme.colorFillContentHover};
       }
     }
 

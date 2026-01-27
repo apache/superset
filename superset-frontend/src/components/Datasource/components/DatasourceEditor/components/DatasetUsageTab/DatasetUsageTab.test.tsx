@@ -129,6 +129,10 @@ afterEach(() => {
   fetchMock.restore();
   // Restore original scrollTo implementation after each test
   Element.prototype.scrollTo = originalScrollTo;
+  // Restore console.error if it was spied on
+  if (jest.isMockFunction(console.error)) {
+    (console.error as jest.Mock).mockRestore();
+  }
 });
 
 test('renders empty state when no charts provided', () => {
@@ -183,10 +187,23 @@ test('renders correct column headers', async () => {
   setupTest();
 
   await waitFor(() => {
-    expect(screen.getByText('Chart')).toBeInTheDocument();
-    expect(screen.getByText('Chart owners')).toBeInTheDocument();
-    expect(screen.getByText('Last modified')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard usage')).toBeInTheDocument();
+    const chartHeader = screen
+      .getAllByText('Chart')
+      .find(el => el.closest('th'));
+    const ownersHeader = screen
+      .getAllByText('Chart owners')
+      .find(el => el.closest('th'));
+    const lastModifiedHeader = screen
+      .getAllByText('Last modified')
+      .find(el => el.closest('th'));
+    const dashboardHeader = screen
+      .getAllByText('Dashboard usage')
+      .find(el => el.closest('th'));
+
+    expect(chartHeader).toBeInTheDocument();
+    expect(ownersHeader).toBeInTheDocument();
+    expect(lastModifiedHeader).toBeInTheDocument();
+    expect(dashboardHeader).toBeInTheDocument();
   });
 });
 
@@ -211,16 +228,29 @@ test('displays data in correct order (last modified desc)', async () => {
 
 test('enables sorting for Chart and Last modified columns', async () => {
   setupTest();
-
   await waitFor(() => {
-    const chartHeader = screen.getByText('Chart').closest('th');
-    const lastModifiedHeader = screen.getByText('Last modified').closest('th');
-    const ownersHeader = screen.getByText('Chart owners').closest('th');
-    const dashboardHeader = screen.getByText('Dashboard usage').closest('th');
+    const chartHeader = screen
+      .getAllByText('Chart')
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
+    const lastModifiedHeader = screen
+      .getAllByText('Last modified')
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
+    const ownersHeader = screen
+      .getAllByText('Chart owners')
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
+    const dashboardHeader = screen
+      .getAllByText('Dashboard usage')
+      .find(el => el.closest('th'))
+      ?.closest('th');
 
     expect(chartHeader).toHaveClass('ant-table-column-has-sorters');
     expect(lastModifiedHeader).toHaveClass('ant-table-column-has-sorters');
-
     expect(ownersHeader).not.toHaveClass('ant-table-column-has-sorters');
     expect(dashboardHeader).not.toHaveClass('ant-table-column-has-sorters');
   });
@@ -471,4 +501,49 @@ test('cleans up animation frame on unmount during loading', async () => {
   expect(cancelAnimationFrameSpy).toHaveBeenCalled();
 
   cancelAnimationFrameSpy.mockRestore();
+});
+
+test('handles AbortError without setState after unmount', async () => {
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+  let rejectPromise: (reason?: any) => void;
+  const abortedPromise = new Promise((_, reject) => {
+    rejectPromise = reject;
+  });
+
+  const mockOnFetchCharts = jest.fn(() => abortedPromise);
+
+  const { unmount } = setupTest({
+    onFetchCharts: mockOnFetchCharts,
+    totalCount: 100,
+  });
+
+  const nextButton = screen.getByTitle('Next Page');
+  await userEvent.click(nextButton);
+
+  // Should be loading
+  await waitFor(() => {
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  });
+
+  // Unmount while loading
+  unmount();
+
+  // Reject with AbortError after unmount
+  const abortError = new Error('The operation was aborted');
+  abortError.name = 'AbortError';
+  rejectPromise!(abortError);
+
+  // Flush pending promises and animation frames
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  // CRITICAL: No setState warnings
+  expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+    expect.stringContaining('setState'),
+  );
+  expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+    expect.stringContaining('unmounted component'),
+  );
+
+  consoleErrorSpy.mockRestore();
 });

@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { JsonValue, t, TimeGranularity } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { JsonValue, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
   LabelPositionEnum,
@@ -45,6 +46,8 @@ export const TIMESERIES_CONSTANTS = {
   dataZoomEnd: 100,
   yAxisLabelTopOffset: 20,
   extraControlsOffset: 22,
+  // Min right padding (px) for horizontal bar charts to ensure value labels are fully visible
+  horizontalBarLabelRightPadding: 70,
 };
 
 export const LABEL_POSITION: [LabelPositionEnum, string][] = [

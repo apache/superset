@@ -21,6 +21,7 @@ import type { Config } from '@docusaurus/types';
 import type { Options, ThemeConfig } from '@docusaurus/preset-classic';
 import { themes } from 'prism-react-renderer';
 import remarkImportPartial from 'remark-import-partial';
+import remarkLocalizeBadges from './plugins/remark-localize-badges.mjs';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -44,7 +45,11 @@ if (!versionsConfig.components.disabled) {
       sidebarPath: require.resolve('./sidebarComponents.js'),
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/components',
-      remarkPlugins: [remarkImportPartial],
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
       docItemComponent: '@theme/DocItem',
       includeCurrentVersion: versionsConfig.components.includeCurrentVersion,
       lastVersion: versionsConfig.components.lastVersion,
@@ -68,7 +73,11 @@ if (!versionsConfig.developer_portal.disabled) {
       sidebarPath: require.resolve('./sidebarTutorials.js'),
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/developer_portal',
-      remarkPlugins: [remarkImportPartial],
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
       docItemComponent: '@theme/DocItem',
       includeCurrentVersion: versionsConfig.developer_portal.includeCurrentVersion,
       lastVersion: versionsConfig.developer_portal.lastVersion,
@@ -125,7 +134,7 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'extensions/architectural-principles',
+        docId: 'extensions/overview',
         label: 'Extensions',
       },
       {
@@ -164,7 +173,11 @@ const config: Config = {
   favicon: '/img/favicon.ico',
   organizationName: 'apache',
   projectName: 'superset',
-  themes: ['@saucelabs/theme-github-codeblock', '@docusaurus/theme-mermaid'],
+  themes: [
+    '@saucelabs/theme-github-codeblock',
+    '@docusaurus/theme-mermaid',
+    '@docusaurus/theme-live-codeblock',
+  ],
   plugins: [
     require.resolve('./src/webpack.extend.ts'),
     [
@@ -209,7 +222,7 @@ const config: Config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/druid.html',
           },
           {
@@ -261,7 +274,7 @@ const config: Config = {
             from: '/docs/contributing/contribution-page',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/docs/databases/yugabyte/',
           },
           {
@@ -337,6 +350,11 @@ const config: Config = {
             }
             return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
           },
+          remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+          admonitions: {
+            keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+            extendDefaults: true,
+          },
           includeCurrentVersion: versionsConfig.docs.includeCurrentVersion,
           lastVersion: versionsConfig.docs.lastVersion,  // Make 'next' the default
           onlyIncludeVersions: versionsConfig.docs.onlyIncludeVersions,
@@ -394,6 +412,11 @@ const config: Config = {
             },
             {
               type: 'doc',
+              docId: 'databases/index',
+              label: 'Databases',
+            },
+            {
+              type: 'doc',
               docId: 'faq',
               label: 'FAQ',
             },
@@ -422,6 +445,14 @@ const config: Config = {
             {
               label: 'Stack Overflow',
               href: 'https://stackoverflow.com/questions/tagged/apache-superset',
+            },
+            {
+              label: 'Community Calendar',
+              href: '/community#superset-community-calendar',
+            },
+            {
+              label: 'In the Wild',
+              href: '/inTheWild',
             },
           ],
         },
@@ -474,6 +505,9 @@ const config: Config = {
         hideable: true,
       },
     },
+    liveCodeBlock: {
+      playgroundPosition: 'bottom',
+    },
   } satisfies ThemeConfig,
   scripts: [
     // {
@@ -487,7 +521,7 @@ const config: Config = {
       'data-project-name': 'Apache Superset',
       'data-project-color': '#FFFFFF',
       'data-project-logo':
-        'https://images.seeklogo.com/logo-png/50/2/superset-icon-logo-png_seeklogo-500354.png',
+        'https://superset.apache.org/img/superset-logo-icon-only.png',
       'data-modal-override-open-id': 'ask-ai-input',
       'data-modal-override-open-class': 'search-input',
       'data-modal-disclaimer':

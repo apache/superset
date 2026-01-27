@@ -240,7 +240,7 @@ export default function exploreReducer(state = {}, action) {
             };
 
             return {
-              // Re run validation for dependant controls
+              // Re run validation for dependent controls
               controlState: getControlStateFromControlConfig(
                 controlState,
                 overWrittenState,

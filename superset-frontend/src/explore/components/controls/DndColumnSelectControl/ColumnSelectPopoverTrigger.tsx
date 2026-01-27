@@ -19,9 +19,9 @@
 import { useCallback, useEffect, useMemo, useState, ReactNode } from 'react';
 import { useSelector } from 'react-redux';
 
+import { t } from '@apache-superset/core';
 import {
   AdhocColumn,
-  t,
   isAdhocColumn,
   Metric,
   QueryFormMetric,
@@ -61,8 +61,7 @@ const ColumnSelectPopoverTriggerWrapper = (
   return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
 };
 
-interface ColumnSelectPopoverTriggerInnerProps
-  extends ColumnSelectPopoverTriggerProps {
+interface ColumnSelectPopoverTriggerInnerProps extends ColumnSelectPopoverTriggerProps {
   datasource?: any;
 }
 

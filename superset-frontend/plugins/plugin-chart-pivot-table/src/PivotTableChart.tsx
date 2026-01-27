@@ -18,23 +18,25 @@
  */
 import { useCallback, useMemo } from 'react';
 import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
+import { t } from '@apache-superset/core';
 import {
   AdhocMetric,
   BinaryQueryObjectFilterClause,
+  Currency,
   CurrencyFormatter,
   DataRecordValue,
   FeatureFlag,
   getColumnLabel,
   getNumberFormatter,
   getSelectedText,
+  hasMixedCurrencies,
   isAdhocColumn,
   isFeatureEnabled,
   isPhysicalColumn,
+  normalizeCurrency,
   NumberFormatter,
-  styled,
-  t,
-  useTheme,
 } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';
 import {
   FilterType,
@@ -101,6 +103,71 @@ const StyledMinusSquareOutlined = styled(MinusSquareOutlined)`
   stroke: ${({ theme }) => theme.colorBorderSecondary};
   stroke-width: 16px;
 `;
+
+/** Aggregator with currency tracking support */
+interface CurrencyTrackingAggregator {
+  getCurrencies?: () => string[];
+}
+
+type BaseFormatter = NumberFormatter | CurrencyFormatter;
+
+/** Create formatter that handles AUTO mode with per-cell currency detection */
+const createCurrencyAwareFormatter = (
+  baseFormatter: BaseFormatter,
+  currencyConfig: Currency | undefined,
+  d3Format: string,
+  fallbackCurrency?: string,
+): ((value: number, aggregator?: CurrencyTrackingAggregator) => string) => {
+  const isAutoMode = currencyConfig?.symbol === 'AUTO';
+
+  return (value: number, aggregator?: CurrencyTrackingAggregator): string => {
+    // If not AUTO mode, use base formatter directly
+    if (!isAutoMode) {
+      return baseFormatter(value);
+    }
+
+    // AUTO mode: check aggregator for currency tracking
+    if (aggregator && typeof aggregator.getCurrencies === 'function') {
+      const currencies = aggregator.getCurrencies();
+
+      if (currencies && currencies.length > 0) {
+        if (hasMixedCurrencies(currencies)) {
+          return getNumberFormatter(d3Format)(value);
+        }
+
+        const detectedCurrency = normalizeCurrency(currencies[0]);
+        if (detectedCurrency && currencyConfig) {
+          const cellFormatter = new CurrencyFormatter({
+            currency: {
+              symbol: detectedCurrency,
+              symbolPosition: currencyConfig.symbolPosition,
+            },
+            d3Format,
+          });
+          return cellFormatter(value);
+        }
+      }
+    }
+
+    // Fallback: use detected_currency from API response if available
+    if (fallbackCurrency && currencyConfig) {
+      const normalizedFallback = normalizeCurrency(fallbackCurrency);
+      if (normalizedFallback) {
+        const fallbackFormatter = new CurrencyFormatter({
+          currency: {
+            symbol: normalizedFallback,
+            symbolPosition: currencyConfig.symbolPosition,
+          },
+          d3Format,
+        });
+        return fallbackFormatter(value);
+      }
+    }
+
+    // Final fallback to neutral format
+    return getNumberFormatter(d3Format)(value);
+  };
+};
 
 const aggregatorsFactory = (formatter: NumberFormatter) => ({
   Count: aggregatorTemplates.count(formatter),
@@ -172,6 +239,8 @@ export default function PivotTableChart(props: PivotTableProps) {
     rowSubTotals,
     valueFormat,
     currencyFormat,
+    currencyCodeColumn,
+    detectedCurrency,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
@@ -187,15 +256,29 @@ export default function PivotTableChart(props: PivotTableProps) {
   } = props;
 
   const theme = useTheme();
-  const defaultFormatter = useMemo(
+
+  // Base formatter without currency-awareness (for non-AUTO mode or as fallback)
+  const baseFormatter = useMemo(
     () =>
-      currencyFormat?.symbol
+      currencyFormat?.symbol && currencyFormat.symbol !== 'AUTO'
         ? new CurrencyFormatter({
             currency: currencyFormat,
             d3Format: valueFormat,
           })
         : getNumberFormatter(valueFormat),
     [valueFormat, currencyFormat],
+  );
+
+  // Currency-aware formatter for AUTO mode support
+  const defaultFormatter = useMemo(
+    () =>
+      createCurrencyAwareFormatter(
+        baseFormatter,
+        currencyFormat,
+        valueFormat,
+        detectedCurrency ?? undefined,
+      ),
+    [baseFormatter, currencyFormat, valueFormat, detectedCurrency],
   );
   const customFormatsArray = useMemo(
     () =>
@@ -217,19 +300,31 @@ export default function PivotTableChart(props: PivotTableProps) {
       hasCustomMetricFormatters
         ? {
             [METRIC_KEY]: Object.fromEntries(
-              customFormatsArray.map(([metric, d3Format, currency]) => [
-                metric,
-                currency
-                  ? new CurrencyFormatter({
-                      currency,
-                      d3Format,
-                    })
-                  : getNumberFormatter(d3Format),
-              ]),
+              customFormatsArray.map(([metric, d3Format, currency]) => {
+                // Create base formatter
+                const metricBaseFormatter =
+                  currency && (currency as Currency).symbol !== 'AUTO'
+                    ? new CurrencyFormatter({
+                        currency: currency as Currency,
+                        d3Format: d3Format as string,
+                      })
+                    : getNumberFormatter(d3Format as string);
+
+                // Wrap with currency-aware formatter for AUTO mode support
+                return [
+                  metric,
+                  createCurrencyAwareFormatter(
+                    metricBaseFormatter,
+                    currency as Currency | undefined,
+                    d3Format as string,
+                    detectedCurrency ?? undefined,
+                  ),
+                ];
+              }),
             ),
           }
         : undefined,
-    [customFormatsArray, hasCustomMetricFormatters],
+    [customFormatsArray, hasCustomMetricFormatters, detectedCurrency],
   );
 
   const metricNames = useMemo(
@@ -250,12 +345,14 @@ export default function PivotTableChart(props: PivotTableProps) {
               ...record,
               [METRIC_KEY]: name,
               value: record[name],
+              // Mark currency column for per-cell currency detection in aggregators
+              __currencyColumn: currencyCodeColumn,
             }))
             .filter(record => record.value !== null),
         ],
         [],
       ),
-    [data, metricNames],
+    [data, metricNames, currencyCodeColumn],
   );
   const groupbyRows = useMemo(
     () => groupbyRowsRaw.map(getColumnLabel),
@@ -433,7 +530,7 @@ export default function PivotTableChart(props: PivotTableProps) {
 
       const [key, val] = filtersEntries[filtersEntries.length - 1];
 
-      let updatedFilters = { ...(selectedFilters || {}) };
+      let updatedFilters = { ...selectedFilters };
       // multi select
       // if (selectedFilters && isActiveFilterValue(key, val)) {
       //   updatedFilters[key] = selectedFilters[key].filter((x: DataRecordValue) => x !== val);

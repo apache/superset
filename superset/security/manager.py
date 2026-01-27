@@ -25,6 +25,7 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
+from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import RoleApi, UserApi
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
@@ -43,7 +44,6 @@ from flask_appbuilder.security.views import (
     PermissionViewModelView,
     ViewMenuModelView,
 )
-from flask_appbuilder.widgets import ListWidget
 from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
@@ -87,6 +87,7 @@ if TYPE_CHECKING:
         RowLevelSecurityFilter,
         SqlaTable,
     )
+    from superset.explorables.base import Explorable
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -109,27 +110,6 @@ class DatabaseCatalogSchema(NamedTuple):
     schema: str
 
 
-class SupersetSecurityListWidget(ListWidget):  # pylint: disable=too-few-public-methods
-    """
-    Redeclaring to avoid circular imports
-    """
-
-    template = "superset/fab_overrides/list.html"
-
-
-class SupersetRoleListWidget(ListWidget):  # pylint: disable=too-few-public-methods
-    """
-    Role model view from FAB already uses a custom list widget override
-    So we override the override
-    """
-
-    template = "superset/fab_overrides/list_role.html"
-
-    def __init__(self, **kwargs: Any) -> None:
-        kwargs["appbuilder"] = current_app.appbuilder
-        super().__init__(**kwargs)
-
-
 class SupersetRoleApi(RoleApi):
     """
     Overriding the RoleApi to be able to delete roles with permissions
@@ -142,11 +122,35 @@ class SupersetRoleApi(RoleApi):
         item.permissions = []
 
 
-class SupersetUserApi(UserApi):
+class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
-    Overriding the UserApi to be able to delete users
+    Filter to exclude users from listings based on EXCLUDE_USERS_FROM_LISTS config.
+
+    This filter is designed for use as a base_filter on user listing APIs.
+    It uses the same exclusion logic as BaseFilterRelatedUsers for consistency.
     """
 
+    name = _("username")
+    arg_name = "username"
+
+    def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
+        exclude_users = (
+            current_app.appbuilder.sm.get_exclude_users_from_lists()
+            if current_app.config["EXCLUDE_USERS_FROM_LISTS"] is None
+            else current_app.config["EXCLUDE_USERS_FROM_LISTS"]
+        )
+        if exclude_users:
+            return query.filter(User.username.not_in(exclude_users))
+
+        return query
+
+
+class SupersetUserApi(UserApi):
+    """
+    Overriding the UserApi to be able to delete users and filter excluded users
+    """
+
+    base_filters = [["username", ExcludeUsersFilter, lambda: []]]
     search_columns = [
         "id",
         "roles",
@@ -169,9 +173,6 @@ class SupersetUserApi(UserApi):
         """
         item.roles = []
 
-
-PermissionViewModelView.list_widget = SupersetSecurityListWidget
-PermissionModelView.list_widget = SupersetSecurityListWidget
 
 # Limiting routes on FAB model views
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
@@ -263,6 +264,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
+        "CssTemplate",
         "Dataset",
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
@@ -301,7 +303,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Annotation",
         "CSS Templates",
         "ColumnarToDatabaseView",
-        "CssTemplate",
         "ExcelToDatabaseView",
         "Import dashboards",
         "ImportExportRestApi",
@@ -357,7 +358,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_export_csv", "Query"),
         ("can_get_results", "SQLLab"),
         ("can_execute_sql_query", "SQLLab"),
-        ("can_estimate_query_cost", "SQL Lab"),
+        ("can_estimate_query_cost", "SQLLab"),
+        ("can_format_sql", "SQLLab"),
         ("can_export_csv", "SQLLab"),
         ("can_read", "SQLLab"),
         ("can_sqllab_history", "Superset"),
@@ -385,6 +387,61 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_csv", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_read", "Superset"),
         ("can_read", "Database"),
+    }
+
+    # Permissions for the Public role - minimal read-only access for viewing
+    # dashboards without authentication. This is more restrictive than Gamma.
+    # Users can set PUBLIC_ROLE_LIKE = "Public" to use these sensible defaults.
+    PUBLIC_ROLE_PERMISSIONS = {
+        # Core dashboard viewing
+        ("can_read", "Dashboard"),
+        ("can_read", "Chart"),
+        ("can_dashboard", "Superset"),
+        ("can_slice", "Superset"),
+        ("can_explore_json", "Superset"),
+        ("can_dashboard_permalink", "Superset"),
+        ("can_read", "DashboardPermalinkRestApi"),
+        # Dashboard filter interactions
+        ("can_read", "DashboardFilterStateRestApi"),
+        ("can_write", "DashboardFilterStateRestApi"),
+        # API access for chart rendering
+        ("can_time_range", "Api"),
+        ("can_query_form_data", "Api"),
+        ("can_query", "Api"),
+        # CSS and themes for dashboard styling
+        ("can_read", "CssTemplate"),
+        ("can_read", "Theme"),
+        # Embedded dashboard support
+        ("can_read", "EmbeddedDashboard"),
+        # Datasource metadata for chart rendering
+        ("can_get", "Datasource"),
+        ("can_external_metadata", "Datasource"),
+        # Annotations on charts
+        ("can_read", "Annotation"),
+        ("can_read", "AnnotationLayerRestApi"),
+        # Chart permalinks (for shared chart links)
+        ("can_read", "ExplorePermalinkRestApi"),
+    }
+
+    # View menus that Public role should NOT have access to
+    PUBLIC_EXCLUDED_VIEW_MENUS = {
+        "SQL Lab",
+        "SQL Editor",
+        "Saved Queries",
+        "Query Search",
+        "Queries",
+        "Security",
+        "List Users",
+        "List Roles",
+        "Row Level Security",
+        "Row Level Security Filters",
+        "Access Requests",
+        "Action Log",
+        "Manage",
+        "Import dashboards",
+        "Annotation Layers",
+        "CSS Templates",
+        "Alerts & Report",
     }
 
     data_access_permissions = (
@@ -540,24 +597,43 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or (catalog_perm and self.can_access("catalog_access", catalog_perm))
         )
 
-    def can_access_schema(self, datasource: "BaseDatasource") -> bool:
+    def can_access_schema(self, datasource: "BaseDatasource | Explorable") -> bool:
         """
         Return True if the user can access the schema associated with specified
         datasource, False otherwise.
 
+        For SQL datasources: Checks database → catalog → schema hierarchy
+        For other explorables: Only checks all_datasources permission
+
         :param datasource: The datasource
         :returns: Whether the user can access the datasource's schema
         """
+        from superset.connectors.sqla.models import BaseDatasource
 
-        return (
-            self.can_access_all_datasources()
-            or self.can_access_database(datasource.database)
-            or (
-                datasource.catalog
+        # Admin/superuser override
+        if self.can_access_all_datasources():
+            return True
+
+        # SQL-specific hierarchy checks
+        if isinstance(datasource, BaseDatasource):
+            # Database-level access grants all schemas
+            if self.can_access_database(datasource.database):
+                return True
+
+            # Catalog-level access grants all schemas in catalog
+            if (
+                hasattr(datasource, "catalog")
+                and datasource.catalog
                 and self.can_access_catalog(datasource.database, datasource.catalog)
-            )
-            or self.can_access("schema_access", datasource.schema_perm or "")
-        )
+            ):
+                return True
+
+            # Schema-level permission (SQL only)
+            if self.can_access("schema_access", datasource.schema_perm or ""):
+                return True
+
+        # Non-SQL explorables don't have schema hierarchy
+        return False
 
     def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
         """
@@ -604,7 +680,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         form_data: dict[str, Any],
         dashboard: "Dashboard",
-        datasource: "BaseDatasource",
+        datasource: "BaseDatasource | Explorable",
     ) -> bool:
         """
         Return True if the form_data is performing a supported drill by operation,
@@ -612,10 +688,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param form_data: The form_data included in the request.
         :param dashboard: The dashboard the user is drilling from.
-        :returns: Whether the user has drill byaccess.
+        :param datasource: The datasource being queried
+        :returns: Whether the user has drill by access.
         """
 
-        from superset.connectors.sqla.models import TableColumn
         from superset.models.slice import Slice
 
         return bool(
@@ -630,16 +706,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             and slc in dashboard.slices
             and slc.datasource == datasource
             and (dimensions := form_data.get("groupby"))
-            and (
-                drillable_columns := {
-                    row[0]
-                    for row in self.session.query(TableColumn.column_name)
-                    .filter(TableColumn.table_id == datasource.id)
-                    .filter(TableColumn.groupby)
-                    .all()
-                }
-            )
-            and set(dimensions).issubset(drillable_columns)
+            and datasource.has_drill_by_columns(dimensions)
         )
 
     def can_access_dashboard(self, dashboard: "Dashboard") -> bool:
@@ -705,7 +772,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
     @staticmethod
-    def get_datasource_access_error_msg(datasource: "BaseDatasource") -> str:
+    def get_datasource_access_error_msg(
+        datasource: "BaseDatasource | Explorable",
+    ) -> str:
         """
         Return the error message for the denied Superset datasource.
 
@@ -714,13 +783,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         return (
-            f"This endpoint requires the datasource {datasource.id}, "
+            f"This endpoint requires the datasource {datasource.data['id']}, "
             "database or `all_datasource_access` permission"
         )
 
     @staticmethod
     def get_datasource_access_link(  # pylint: disable=unused-argument
-        datasource: "BaseDatasource",
+        datasource: "BaseDatasource | Explorable",
     ) -> Optional[str]:
         """
         Return the link for the denied Superset datasource.
@@ -732,7 +801,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
 
     def get_datasource_access_error_object(  # pylint: disable=invalid-name
-        self, datasource: "BaseDatasource"
+        self, datasource: "BaseDatasource | Explorable"
     ) -> SupersetError:
         """
         Return the error object for the denied Superset datasource.
@@ -746,8 +815,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_datasource_access_link(datasource),
-                "datasource": datasource.id,
-                "datasource_name": datasource.name,
+                "datasource": datasource.data["id"],
+                "datasource_name": datasource.data["name"],
             },
         )
 
@@ -951,7 +1020,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             tables = (
                 self.session.query(SqlaTable.schema)
                 .filter(SqlaTable.database_id == database.id)
-                .filter(or_(SqlaTable.perm.in_(perms)))
+                .filter(or_(SqlaTable.perm.in_(perms)))  # type: ignore[union-attr]
                 .distinct()
             )
             accessible_schemas.update(
@@ -1011,7 +1080,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             tables = (
                 self.session.query(SqlaTable.schema)
                 .filter(SqlaTable.database_id == database.id)
-                .filter(or_(SqlaTable.perm.in_(perms)))
+                .filter(or_(SqlaTable.perm.in_(perms)))  # type: ignore[union-attr]
                 .distinct()
             )
             accessible_catalogs.update(
@@ -1191,9 +1260,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("sql_lab", self._is_sql_lab_pvm, pvms)
 
         # Configure public role
-        if get_conf()["PUBLIC_ROLE_LIKE"]:
+        # If PUBLIC_ROLE_LIKE is "Public", use the built-in Public role with
+        # sensible defaults for anonymous dashboard viewing.
+        # If set to another role name (e.g., "Gamma"), copy permissions from that role.
+        # If not set (None), the Public role remains empty (default/legacy behavior).
+        public_role_like = get_conf()["PUBLIC_ROLE_LIKE"]
+        if public_role_like == "Public":
+            # Use the built-in Public role with minimal read-only permissions
+            self.set_role("Public", self._is_public_pvm, pvms)
+        elif public_role_like:
+            # Copy permissions from another role (e.g., "Gamma") to Public
             self.copy_role(
-                get_conf()["PUBLIC_ROLE_LIKE"],
+                public_role_like,
                 self.auth_role_public,
                 merge=True,
             )
@@ -1412,6 +1490,34 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or (pvm.permission.name, pvm.view_menu.name)
             in self.SQLLAB_EXTRA_PERMISSION_VIEWS
         )
+
+    def _is_public_pvm(self, pvm: PermissionView) -> bool:
+        """
+        Return True if the FAB permission/view is appropriate for the Public role,
+        False otherwise.
+
+        The Public role is designed for anonymous/unauthenticated users who need
+        to view dashboards. It provides minimal read-only access - more restrictive
+        than Gamma - suitable for public-facing dashboard deployments.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is appropriate for Public role
+        """
+        # Explicitly allow permissions in the PUBLIC_ROLE_PERMISSIONS set
+        if (pvm.permission.name, pvm.view_menu.name) in self.PUBLIC_ROLE_PERMISSIONS:
+            return True
+
+        # Exclude any view menus in the excluded list
+        if pvm.view_menu.name in self.PUBLIC_EXCLUDED_VIEW_MENUS:
+            return False
+
+        # Exclude user-defined permissions (datasource_access, schema_access, etc.)
+        # These must be explicitly granted to the Public role
+        if self._is_user_defined_permission(pvm):
+            return False
+
+        # Exclude all other permissions not explicitly allowed
+        return False
 
     def database_after_insert(
         self,
@@ -2280,8 +2386,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         dashboard: Optional["Dashboard"] = None,
         chart: Optional["Slice"] = None,
         database: Optional["Database"] = None,
-        datasource: Optional["BaseDatasource"] = None,
-        query: Optional["Query"] = None,
+        datasource: Optional["BaseDatasource | Explorable"] = None,
+        query: Optional["Query | Explorable"] = None,
         query_context: Optional["QueryContext"] = None,
         table: Optional["Table"] = None,
         viz: Optional["BaseViz"] = None,
@@ -2326,7 +2432,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if database and table or query:
             if query:
-                database = query.database
+                # Type narrow: only SQL Lab Query objects have .database attribute
+                if hasattr(query, "database"):
+                    database = query.database
 
             database = cast("Database", database)
             default_catalog = database.get_default_catalog()
@@ -2334,7 +2442,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if self.can_access_database(database):
                 return
 
-            if query:
+            # Type narrow: this path only applies to SQL Lab Query objects
+            if query and hasattr(query, "sql") and hasattr(query, "catalog"):
                 # Getting the default schema for a query is hard. Users can select the
                 # schema in SQL Lab, but there's no guarantee that the query actually
                 # will run in that schema. Each DB engine spec needs to implement the
@@ -2342,14 +2451,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # If the DB engine spec doesn't implement the logic the schema is read
                 # from the SQLAlchemy URI if possible; if not, we use the SQLAlchemy
                 # inspector to read it.
+                from superset.models.sql_lab import Query
+
                 default_schema = database.get_default_schema_for_query(
-                    query, template_params
+                    cast(Query, query),
+                    template_params,
                 )
                 tables = {
-                    Table(
-                        table_.table,
-                        table_.schema or default_schema,
-                        table_.catalog or query.catalog or default_catalog,
+                    table_.qualify(
+                        catalog=query.catalog or default_catalog,
+                        schema=default_schema,
                     )
                     for table_ in process_jinja_sql(
                         query.sql, database, template_params
@@ -2357,9 +2468,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 }
             elif table:
                 # Make sure table has the default catalog, if not specified.
-                tables = {
-                    Table(table.table, table.schema, table.catalog or default_catalog)
-                }
+                tables = {table.qualify(catalog=default_catalog)}
 
             denied = set()
 
@@ -2372,7 +2481,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     continue
 
                 schema_perm = self.get_schema_perm(
-                    database,
+                    database.database_name,
                     table_.catalog,
                     table_.schema,
                 )
@@ -2388,7 +2497,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 for datasource_ in datasources:
                     if self.can_access(
                         "datasource_access",
-                        datasource_.perm,
+                        datasource_.perm or "",
                     ) or self.is_owner(datasource_):
                         # access to any datasource is sufficient
                         break
@@ -2458,7 +2567,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and dashboard_.json_metadata
                             and (json_metadata := json.loads(dashboard_.json_metadata))
                             and any(
-                                target.get("datasetId") == datasource.id
+                                target.get("datasetId") == datasource.data["id"]
                                 for fltr in json_metadata.get(
                                     "native_filter_configuration",
                                     [],
@@ -2563,7 +2672,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return super().get_user_roles(user)
 
     def get_guest_rls_filters(
-        self, dataset: "BaseDatasource"
+        self, dataset: "BaseDatasource | Explorable"
     ) -> list[GuestTokenRlsRule]:
         """
         Retrieves the row level security filters for the current user and the dataset,
@@ -2576,11 +2685,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 rule
                 for rule in guest_user.rls
                 if not rule.get("dataset")
-                or str(rule.get("dataset")) == str(dataset.id)
+                or str(rule.get("dataset")) == str(dataset.data["id"])
             ]
         return []
 
-    def get_rls_filters(self, table: "BaseDatasource") -> list[SqlaQuery]:
+    def get_rls_filters(self, table: "BaseDatasource | Explorable") -> list[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
@@ -2617,7 +2726,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         filter_tables = self.session.query(RLSFilterTables.c.rls_filter_id).filter(
-            RLSFilterTables.c.table_id == table.id
+            RLSFilterTables.c.table_id == table.data["id"]
         )
         query = (
             self.session.query(
@@ -2643,7 +2752,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
-    def get_rls_sorted(self, table: "BaseDatasource") -> list["RowLevelSecurityFilter"]:
+    def get_rls_sorted(
+        self, table: "BaseDatasource | Explorable"
+    ) -> list["RowLevelSecurityFilter"]:
         """
         Retrieves a list RLS filters sorted by ID for
         the current user and the passed table.
@@ -2655,10 +2766,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         filters.sort(key=lambda f: f.id)
         return filters
 
-    def get_guest_rls_filters_str(self, table: "BaseDatasource") -> list[str]:
+    def get_guest_rls_filters_str(
+        self, table: "BaseDatasource | Explorable"
+    ) -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
-    def get_rls_cache_key(self, datasource: "BaseDatasource") -> list[str]:
+    def get_rls_cache_key(self, datasource: "Explorable | BaseDatasource") -> list[str]:
         rls_clauses_with_group_key = []
         if datasource.is_rls_supported:
             rls_clauses_with_group_key = [
@@ -2878,7 +2991,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             SupersetRegisterUserView
         )
 
-        super().register_views()
+        # Apply rate limiting to auth view if enabled
+        # This needs to be done after the view is added, otherwise the blueprint
+        # is not initialized. Only apply if blueprint exists.
+        # We also need to prevent the parent's register_views from trying to
+        # apply rate limiting again (since auth_view already exists), so we
+        # temporarily disable AUTH_RATE_LIMITED during the super() call.
+        if (
+            self.is_auth_limited
+            and getattr(self.auth_view, "blueprint", None) is not None
+        ):
+            self.limiter.limit(self.auth_rate_limit, methods=["POST"])(
+                self.auth_view.blueprint
+            )
+
+        # Temporarily disable AUTH_RATE_LIMITED to prevent parent from trying to
+        # apply rate limiting to a potentially None blueprint
+        original_auth_rate_limited = current_app.config["AUTH_RATE_LIMITED"]
+        current_app.config["AUTH_RATE_LIMITED"] = False
+
+        try:
+            super().register_views()
+        finally:
+            # Restore original value even if an exception occurs
+            current_app.config["AUTH_RATE_LIMITED"] = original_auth_rate_limited
 
         for view in list(self.appbuilder.baseviews):
             if isinstance(view, self.rolemodelview.__class__) and getattr(

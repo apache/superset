@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
@@ -33,6 +34,12 @@ import { TableChartFormData, TableChartProps } from './types';
 // must export something for the module to be exist in dev mode
 export { default as __hack__ } from './types';
 export * from './types';
+export {
+  convertAgGridStateToOwnState,
+  convertSortModel,
+  convertColumnState,
+  convertFilterModel,
+} from './stateConversion';
 
 const metadata = new ChartMetadata({
   behaviors: [

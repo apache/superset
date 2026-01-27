@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useMemo, useState, useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Comparator,
@@ -32,9 +33,13 @@ import {
   Input,
   Col,
   Row,
+  Checkbox,
   type FormProps,
 } from '@superset-ui/core/components';
-import { ConditionalFormattingConfig } from './types';
+import {
+  ConditionalFormattingConfig,
+  ConditionalFormattingFlag,
+} from './types';
 
 // TODO: tangled redefinition that aligns with @superset-ui/plugin-chart-table
 // used to be imported but main app shouldn't depend on plugins...
@@ -58,9 +63,9 @@ const JustifyEnd = styled.div`
 
 // Use theme token names instead of hex values to support theme switching
 const colorSchemeOptions = () => [
-  { value: 'colorSuccessBg', label: t('success') },
-  { value: 'colorWarningBg', label: t('alert') },
-  { value: 'colorErrorBg', label: t('error') },
+  { value: 'colorSuccess', label: t('success') },
+  { value: 'colorWarning', label: t('alert') },
+  { value: 'colorError', label: t('error') },
 ];
 
 const operatorOptions = [
@@ -84,6 +89,13 @@ const stringOperatorOptions = [
   { value: Comparator.EndsWith, label: t('ends with') },
   { value: Comparator.Containing, label: t('containing') },
   { value: Comparator.NotContaining, label: t('not containing') },
+];
+
+const booleanOperatorOptions = [
+  { value: Comparator.IsNull, label: t('is null') },
+  { value: Comparator.IsTrue, label: t('is true') },
+  { value: Comparator.IsFalse, label: t('is false') },
+  { value: Comparator.IsNotNull, label: t('is not null') },
 ];
 
 const targetValueValidator =
@@ -152,10 +164,17 @@ const renderOperator = ({
   showOnlyNone,
   columnType,
 }: { showOnlyNone?: boolean; columnType?: GenericDataType } = {}) => {
-  const options =
-    columnType === GenericDataType.String
-      ? stringOperatorOptions
-      : operatorOptions;
+  let options;
+  switch (columnType) {
+    case GenericDataType.String:
+      options = stringOperatorOptions;
+      break;
+    case GenericDataType.Boolean:
+      options = booleanOperatorOptions;
+      break;
+    default:
+      options = operatorOptions;
+  }
 
   return (
     <FormItem
@@ -177,8 +196,25 @@ const renderOperatorFields = (
   columnType?: GenericDataType,
 ) => {
   const columnTypeString = columnType === GenericDataType.String;
-  const operatorColSpan = columnTypeString ? 8 : 6;
+  const columnTypeBoolean = columnType === GenericDataType.Boolean;
+  const operatorColSpan = columnTypeString || columnTypeBoolean ? 8 : 6;
   const valueColSpan = columnTypeString ? 16 : 18;
+
+  if (columnTypeBoolean) {
+    return (
+      <Row gutter={12}>
+        <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+        <Col span={valueColSpan}>
+          <FormItem
+            name="targetValue"
+            label={t('Target value')}
+            initialValue={''}
+            hidden
+          />
+        </Col>
+      </Row>
+    );
+  }
 
   return isOperatorNone(getFieldValue('operator')) ? (
     <Row gutter={12}>
@@ -233,11 +269,16 @@ export const FormattingPopoverContent = ({
   onChange,
   columns = [],
   extraColorChoices = [],
+  conditionalFormattingFlag = {
+    toAllRowCheck: false,
+    toColorTextCheck: false,
+  },
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
   extraColorChoices?: { label: string; value: string }[];
+  conditionalFormattingFlag?: ConditionalFormattingFlag;
 }) => {
   const [form] = Form.useForm();
   const colorScheme = colorSchemeOptions();
@@ -246,6 +287,36 @@ export const FormattingPopoverContent = ({
       (config?.colorScheme !== ColorSchemeEnum.Green &&
         config?.colorScheme !== ColorSchemeEnum.Red),
   );
+
+  const [toAllRow, setToAllRow] = useState(() => Boolean(config?.toAllRow));
+  const [toTextColor, setToTextColor] = useState(() =>
+    Boolean(config?.toTextColor),
+  );
+  const [useGradient, setUseGradient] = useState(() =>
+    config?.useGradient !== undefined ? config.useGradient : true,
+  );
+
+  const useConditionalFormattingFlag = (
+    flagKey: 'toAllRowCheck' | 'toColorTextCheck',
+    configKey: 'toAllRow' | 'toTextColor',
+  ) =>
+    useMemo(
+      () =>
+        conditionalFormattingFlag && conditionalFormattingFlag[flagKey]
+          ? config?.[configKey] === undefined
+          : config?.[configKey] !== undefined,
+      [conditionalFormattingFlag], // oxlint-disable-line react-hooks/exhaustive-deps
+    );
+
+  const showToAllRow = useConditionalFormattingFlag(
+    'toAllRowCheck',
+    'toAllRow',
+  );
+  const showToColorText = useConditionalFormattingFlag(
+    'toColorTextCheck',
+    'toTextColor',
+  );
+
   const handleChange = (event: any) => {
     setShowOperatorFields(
       !(event === ColorSchemeEnum.Green || event === ColorSchemeEnum.Red),
@@ -267,10 +338,20 @@ export const FormattingPopoverContent = ({
   const handleColumnChange = (value: string) => {
     const newColumnType = columns.find(item => item.value === value)?.dataType;
     if (newColumnType !== previousColumnType) {
-      const defaultOperator =
-        newColumnType === GenericDataType.String
-          ? stringOperatorOptions[0].value
-          : operatorOptions[0].value;
+      let defaultOperator: Comparator;
+
+      switch (newColumnType) {
+        case GenericDataType.String:
+          defaultOperator = stringOperatorOptions[0].value;
+          break;
+
+        case GenericDataType.Boolean:
+          defaultOperator = booleanOperatorOptions[0].value;
+          break;
+
+        default:
+          defaultOperator = operatorOptions[0].value;
+      }
 
       form.setFieldsValue({
         operator: defaultOperator,
@@ -328,6 +409,23 @@ export const FormattingPopoverContent = ({
           </FormItem>
         </Col>
       </Row>
+      <Row gutter={20}>
+        <Col span={1}>
+          <FormItem
+            name="useGradient"
+            valuePropName="checked"
+            initialValue={useGradient}
+          >
+            <Checkbox
+              onChange={event => setUseGradient(event.target.checked)}
+              checked={useGradient}
+            />
+          </FormItem>
+        </Col>
+        <Col>
+          <FormItem required>{t('Use gradient')}</FormItem>
+        </Col>
+      </Row>
       <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
         {showOperatorFields ? (
           (props: GetFieldValue) => renderOperatorFields(props, columnType)
@@ -339,6 +437,47 @@ export const FormattingPopoverContent = ({
           </Row>
         )}
       </FormItem>
+      <Row>
+        {showOperatorFields && showToAllRow && (
+          <Row gutter={20}>
+            <Col span={1}>
+              <FormItem
+                name="toAllRow"
+                valuePropName="checked"
+                initialValue={toAllRow}
+              >
+                <Checkbox
+                  onChange={event => setToAllRow(event.target.checked)}
+                  checked={toAllRow}
+                />
+              </FormItem>
+            </Col>
+            <Col>
+              <FormItem required>{t('To entire row')}</FormItem>
+            </Col>
+          </Row>
+        )}
+        {showOperatorFields && showToColorText && (
+          <Row gutter={20}>
+            <Col span={1}>
+              <FormItem
+                name="toTextColor"
+                valuePropName="checked"
+                initialValue={toTextColor}
+              >
+                <Checkbox
+                  onChange={event => setToTextColor(event.target.checked)}
+                  checked={toTextColor}
+                />
+              </FormItem>
+            </Col>
+            <Col>
+              <FormItem required>{t('To text color')}</FormItem>
+            </Col>
+          </Row>
+        )}
+      </Row>
+
       <FormItem>
         <JustifyEnd>
           <Button htmlType="submit" buttonStyle="primary">

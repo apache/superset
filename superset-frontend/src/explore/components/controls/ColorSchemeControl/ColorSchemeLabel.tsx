@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { css, SupersetTheme } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
 import { useRef, useState } from 'react';
 import { Tooltip } from '@superset-ui/core/components';
 

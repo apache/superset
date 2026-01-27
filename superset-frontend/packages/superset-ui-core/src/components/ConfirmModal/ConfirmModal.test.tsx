@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from '@superset-ui/core/spec';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/ui';
 import { ConfirmModal } from '.';
 
 const defaultProps = {

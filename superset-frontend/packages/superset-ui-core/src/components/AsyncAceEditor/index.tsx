@@ -26,12 +26,13 @@ import type {
 } from 'brace';
 import type AceEditor from 'react-ace';
 import type { IAceEditorProps } from 'react-ace';
+import type { Ace } from 'ace-builds';
 
 import {
   AsyncEsmComponent,
   PlaceholderProps,
 } from '@superset-ui/core/components/AsyncEsmComponent';
-import { useTheme, css } from '@superset-ui/core';
+import { useTheme, css } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
@@ -120,15 +121,12 @@ export function AsyncAceEditor(
   return AsyncEsmComponent(async () => {
     const reactAcePromise = import('react-ace');
     const aceBuildsConfigPromise = import('ace-builds');
-    const cssWorkerUrlPromise = import(
-      'ace-builds/src-min-noconflict/worker-css'
-    );
-    const javascriptWorkerUrlPromise = import(
-      'ace-builds/src-min-noconflict/worker-javascript'
-    );
-    const htmlWorkerUrlPromise = import(
-      'ace-builds/src-min-noconflict/worker-html'
-    );
+    const cssWorkerUrlPromise =
+      import('ace-builds/src-min-noconflict/worker-css');
+    const javascriptWorkerUrlPromise =
+      import('ace-builds/src-min-noconflict/worker-javascript');
+    const htmlWorkerUrlPromise =
+      import('ace-builds/src-min-noconflict/worker-html');
     const acequirePromise = import('ace-builds/src-min-noconflict/ace');
 
     const [
@@ -207,16 +205,76 @@ export function AsyncAceEditor(
           }
         }, [keywords, setCompleters]);
 
+        // Move autocomplete popup to the nearest parent container with data-ace-container
+        useEffect(() => {
+          const editorInstance = (ref as React.RefObject<AceEditor>)?.current
+            ?.editor;
+          if (!editorInstance) return;
+
+          const editorContainer = editorInstance.container;
+          if (!editorContainer) return;
+
+          // Cache DOM elements to avoid repeated queries on every command execution
+          let cachedAutocompletePopup: HTMLElement | null = null;
+          let cachedTargetContainer: Element | null = null;
+
+          const moveAutocompleteToContainer = () => {
+            // Revalidate cached popup if missing or detached from DOM
+            if (
+              !cachedAutocompletePopup ||
+              !document.body.contains(cachedAutocompletePopup)
+            ) {
+              cachedAutocompletePopup =
+                editorContainer.querySelector<HTMLElement>(
+                  '.ace_autocomplete',
+                ) ?? document.querySelector<HTMLElement>('.ace_autocomplete');
+            }
+
+            // Revalidate cached container if missing or detached
+            if (
+              !cachedTargetContainer ||
+              !document.body.contains(cachedTargetContainer)
+            ) {
+              cachedTargetContainer =
+                editorContainer.closest('#ace-editor') ??
+                editorContainer.parentElement;
+            }
+
+            if (
+              cachedAutocompletePopup &&
+              cachedTargetContainer &&
+              cachedTargetContainer !== document.body
+            ) {
+              cachedTargetContainer.appendChild(cachedAutocompletePopup);
+              cachedAutocompletePopup.dataset.aceAutocomplete = 'true';
+            }
+          };
+
+          const handleAfterExec = (e: Ace.Operation) => {
+            const name: string | undefined = e?.command?.name;
+            if (name === 'insertstring' || name === 'startAutocomplete') {
+              moveAutocompleteToContainer();
+            }
+          };
+
+          const { commands } = editorInstance;
+          commands.on('afterExec', handleAfterExec);
+
+          return () => {
+            commands.off('afterExec', handleAfterExec);
+            cachedAutocompletePopup = null;
+            cachedTargetContainer = null;
+          };
+        }, [ref]);
+
         return (
           <>
             <Global
               key="ace-tooltip-global"
               styles={css`
                 .ace_editor {
-                  border: 1px solid ${token.colorBorder} !important;
                   background-color: ${token.colorBgContainer} !important;
                 }
-
                 /* Basic editor styles with dark mode support */
                 .ace_editor.ace-github,
                 .ace_editor.ace-tm {
@@ -234,7 +292,8 @@ export function AsyncAceEditor(
                 }
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
-                  background-color: ${token.colorPrimaryBgHover} !important;
+                  background-color: ${token.colorEditorSelection ??
+                  token.colorPrimaryBgHover} !important;
                 }
 
                 /* Improve active line highlighting */
@@ -288,14 +347,24 @@ export function AsyncAceEditor(
                   border: 1px solid ${token.colorBorderSecondary};
                   box-shadow: ${token.boxShadow};
                   border-radius: ${token.borderRadius}px;
+                  padding: ${token.paddingXS}px ${token.paddingXS}px;
                 }
 
-                & .tooltip-detail {
+                .ace_tooltip.ace_doc-tooltip {
+                  display: flex !important;
+                }
+
+                &&& .tooltip-detail {
+                  display: flex;
+                  justify-content: center;
+                  flex-direction: row;
+                  gap: ${token.paddingXXS}px;
+                  align-items: center;
                   background-color: ${token.colorBgContainer};
                   white-space: pre-wrap;
                   word-break: break-all;
-                  min-width: ${token.sizeXXL * 5}px;
                   max-width: ${token.sizeXXL * 10}px;
+                  font-size: ${token.fontSize}px;
 
                   & .tooltip-detail-head {
                     background-color: ${token.colorBgElevated};
@@ -318,7 +387,9 @@ export function AsyncAceEditor(
 
                   & .tooltip-detail-head,
                   & .tooltip-detail-body {
-                    padding: ${token.padding}px ${token.paddingLG}px;
+                    background-color: ${token.colorBgLayout};
+                    padding: 0px ${token.paddingXXS}px;
+                    border: 1px ${token.colorSplit} solid;
                   }
 
                   & .tooltip-detail-footer {
@@ -387,7 +458,9 @@ export const FullSQLEditor = AsyncAceEditor(
   {
     // a custom placeholder in SQL lab for less jumpy re-renders
     placeholder: () => {
-      const gutterBackground = '#e8e8e8'; // from ace-github theme
+      // Use a hook to get theme colors
+      const theme = useTheme();
+      const gutterBackground = theme.colorBgElevated;
       return (
         <div
           style={{

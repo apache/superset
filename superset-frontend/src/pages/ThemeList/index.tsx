@@ -17,14 +17,15 @@
  * under the License.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import { useCallback, useMemo, useState, useEffect } from 'react';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, Alert } from '@apache-superset/core/ui';
 import {
   Tag,
   DeleteModal,
   ConfirmStatusChange,
   Loading,
-  Alert,
   Tooltip,
   Space,
 } from '@superset-ui/core/components';

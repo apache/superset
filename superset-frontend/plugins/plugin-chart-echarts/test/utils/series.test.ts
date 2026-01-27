@@ -22,8 +22,8 @@ import {
   DataRecord,
   getNumberFormatter,
   getTimeFormatter,
-  supersetTheme as theme,
 } from '@superset-ui/core';
+import { supersetTheme as theme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   calculateLowerLogTick,
@@ -891,14 +891,27 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with bottom orientation', () => {
+  it('should default plain legends to scroll for bottom orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
     ).toEqual({
       show: false,
       bottom: 0,
       orient: 'horizontal',
-      type: 'plain',
+      type: 'scroll',
+      ...expectedThemeProps,
+    });
+  });
+
+  it('should default plain legends to scroll for top orientation', () => {
+    expect(
+      getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
+    ).toEqual({
+      show: false,
+      top: 0,
+      right: 0,
+      orient: 'horizontal',
+      type: 'scroll',
       ...expectedThemeProps,
     });
   });

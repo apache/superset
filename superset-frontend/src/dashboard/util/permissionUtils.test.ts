@@ -46,7 +46,7 @@ const ownerUser: UserWithPermissionsAndRoles = {
 const adminUser: UserWithPermissionsAndRoles = {
   ...ownerUser,
   roles: {
-    ...(ownerUser?.roles || {}),
+    ...ownerUser?.roles,
     Admin: [['can_write', 'Dashboard']],
   },
   userId: 2,

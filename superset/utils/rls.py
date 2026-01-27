@@ -46,13 +46,7 @@ def apply_rls(
     # collect all RLS predicates for all tables in the query
     predicates: dict[Table, list[Any]] = {}
     for table in parsed_statement.tables:
-        # fully qualify table
-        table = Table(
-            table.table,
-            table.schema or schema,
-            table.catalog or catalog,
-        )
-
+        table = table.qualify(catalog=catalog, schema=schema)
         predicates[table] = [
             parsed_statement.parse_predicate(predicate)
             for predicate in get_predicates_for_table(
@@ -113,3 +107,48 @@ def get_predicates_for_table(
         )
         for predicate in dataset.get_sqla_row_level_filters()
     ]
+
+
+def collect_rls_predicates_for_sql(
+    sql: str,
+    database: Database,
+    catalog: str | None,
+    schema: str,
+) -> list[str]:
+    """
+    Collect all RLS predicates that would be applied to tables in the given SQL.
+
+    This is used for cache key generation for virtual datasets to ensure that
+    different users with different RLS rules get different cache keys.
+
+    :param sql: The SQL query to analyze
+    :param database: The database the query runs against
+    :param catalog: The default catalog for the query
+    :param schema: The default schema for the query
+    :return: List of RLS predicate strings that would be applied
+    """
+    from superset.sql.parse import SQLScript
+
+    try:
+        parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
+        tables = {
+            table.qualify(catalog=catalog, schema=schema)
+            for statement in parsed_script.statements
+            for table in statement.tables
+        }
+        default_catalog = database.get_default_catalog()
+        return sorted(
+            {
+                predicate
+                for table in tables
+                for predicate in get_predicates_for_table(
+                    table,
+                    database,
+                    default_catalog,
+                )
+            }
+        )
+    except Exception:
+        # If we can't parse the SQL, return empty list
+        # This ensures RLS application failure doesn't break caching
+        return []

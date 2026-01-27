@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import { SupersetClient, styled, t, css } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import {
   Button,
   Card,

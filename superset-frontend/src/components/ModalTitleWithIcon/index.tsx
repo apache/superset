@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isValidElement, cloneElement } from 'react';
-import { css, useTheme } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Typography, Icons, TitleProps } from '@superset-ui/core/components';
 import type { IconType } from '@superset-ui/core/components/Icons/types';
 

@@ -22,12 +22,12 @@ import {
   type ThemeControllerOptions,
   type ThemeStorage,
   isThemeConfigDark,
-  makeApi,
   Theme,
   ThemeMode,
   themeObject as supersetThemeObject,
-} from '@superset-ui/core';
-import { normalizeThemeConfig } from '@superset-ui/core/theme/utils';
+  normalizeThemeConfig,
+} from '@apache-superset/core/ui';
+import { makeApi } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
@@ -98,6 +98,9 @@ export class ThemeController {
   private dashboardThemes: Map<string, Theme> = new Map();
 
   private dashboardCrudTheme: AnyThemeConfig | null = null;
+
+  // Track loaded font URLs to avoid duplicate injections
+  private loadedFontUrls: Set<string> = new Set();
 
   constructor({
     storage = new LocalStorageAdapter(),
@@ -237,7 +240,7 @@ export class ThemeController {
 
       if (themeConfig) {
         // Controller creates and owns the dashboard theme
-        const { Theme } = await import('@superset-ui/core');
+        const { Theme } = await import('@apache-superset/core/ui');
         const normalizedConfig = this.normalizeTheme(themeConfig);
 
         // Determine if this is a dark theme and get appropriate base
@@ -248,6 +251,11 @@ export class ThemeController {
           normalizedConfig,
           baseTheme || undefined,
         );
+
+        // Load custom fonts if specified in dashboard theme config
+        const fontUrls = (normalizedConfig?.token as Record<string, unknown>)
+          ?.fontUrls as string[] | undefined;
+        this.loadFonts(fontUrls);
 
         // Cache the theme for reuse
         this.dashboardThemes.set(themeId, dashboardTheme);
@@ -781,10 +789,42 @@ export class ThemeController {
       // The merging with base theme happens in getThemeForMode() and other methods
       // that prepare themes before passing them to applyTheme()
       this.globalTheme.setConfig(normalizedConfig);
+
+      // Load custom fonts if specified in theme config
+      const fontUrls = (normalizedConfig?.token as Record<string, unknown>)
+        ?.fontUrls as string[] | undefined;
+      this.loadFonts(fontUrls);
     } catch (error) {
       console.error('Failed to apply theme:', error);
       this.fallbackToDefaultMode();
     }
+  }
+
+  /**
+   * Loads custom fonts from theme configuration.
+   * Injects CSS @import statements for font URLs that haven't been loaded yet.
+   * @param fontUrls - Array of font URLs to load (e.g., Google Fonts, Adobe Fonts)
+   */
+  private loadFonts(fontUrls?: string[]): void {
+    if (!fontUrls?.length) return;
+
+    // Filter out already loaded fonts
+    const newUrls = fontUrls.filter(url => !this.loadedFontUrls.has(url));
+    if (newUrls.length === 0) return;
+
+    // Use CSS @import for font loading
+    // JSON.stringify provides safe escaping to prevent CSS injection attacks
+    const css = newUrls
+      .map(url => `@import url(${JSON.stringify(url)});`)
+      .join('\n');
+
+    const style = document.createElement('style');
+    style.setAttribute('data-superset-fonts', 'true');
+    style.textContent = css;
+    document.head.appendChild(style);
+
+    // Track loaded fonts to avoid duplicates
+    newUrls.forEach(url => this.loadedFontUrls.add(url));
   }
 
   /**

@@ -166,6 +166,56 @@ server:
 npm run dev-server
 ```
 
+#### Deploying your visualization plugin
+
+Once your plugin is complete, you will need to deploy it to your superset instance.
+
+This step assumes you are running your own Docker image as described [here](https://superset.apache.org/docs/installation/docker-builds/#building-your-own-production-docker-image).
+Instructions may vary for other kinds of deployments.
+
+If you have your own Superset Docker image, the first line is most likely:
+`FROM apache/superset:latest` or something similar. You will need to compile
+your own `"lean"` image and replace this FROM line with your own image.
+
+1. Publish your chart plugin to npm: it makes the build process simpler.
+
+Note: if your chart is not published to npm, then in the docker build below, you will need
+to edit the default Dockerfile to copy your plugin source code to the appropriate
+location in the container build environment.
+
+2. Install your chart in the frontend with `npm i <your_chart_package>`.
+3. Start with a base superset release.
+
+```bash
+git checkout tags/X.0.0
+```
+
+4. Install your chart with the instructions you followed during development.
+5. Navigate to the root of your superset directory.
+6. Run `docker build -t apache/superset:mychart --target lean .`
+7. Rebuild your production container using `FROM apache/superset:mychart`.
+
+This will create a new productized superset container with your new chart compiled in.
+Then you can recreate your custom production container based on a superset built with your chart.
+
+##### Troubleshooting
+
+
+- If you get the following NPM error:
+
+```
+npm error `npm ci` can only install packages when your package.json and package-lock.json
+```
+
+It's because your local nodejs/npm version is different than the one being used inside docker.
+
+You can resolve this by running npm install with the same version used by the container build process
+
+Replace XYZ in the following command with the node tag used in the Dockerfile (search for "node:" in the Dockerfile to find the tag).
+```bash
+docker run --rm -v $PWD/superset-frontend:/app node:XYZ /bin/bash -c "cd /app && npm i"
+```
+
 ## Testing
 
 ### Python Testing
@@ -631,8 +681,8 @@ with `pre-commit install`
 ```bash
 cd superset-frontend
 npm ci
-# run eslint checks
-npm run eslint -- .
+# run linting checks
+npm run lint
 # run tsc (typescript) checks
 npm run type
 ```

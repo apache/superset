@@ -35,8 +35,8 @@ Welcome to the Apache Superset Developer Portal - your comprehensive resource fo
 
 ### Extension Development
 - [Extension Project Structure](/developer_portal/extensions/extension-project-structure)
-- [Extension Architecture](/developer_portal/architecture/overview)
-- [Extension Architecture](/developer_portal/extensions/high-level-architecture)
+- [Extension Architecture](/developer_portal/extensions/architecture)
+- [Quick Start](/developer_portal/extensions/quick-start)
 
 ## 📚 Documentation Sections
 
@@ -86,7 +86,6 @@ Everything you need to contribute to the Apache Superset project. This section i
 - **[Configuration Guide](https://superset.apache.org/docs/configuration/configuring-superset)** - Setup and configuration
 
 ### Important Files
-- **[CONTRIBUTING.md](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)** - Contribution guidelines
 - **[CLAUDE.md](https://github.com/apache/superset/blob/master/CLAUDE.md)** - LLM development guide
 - **[UPDATING.md](https://github.com/apache/superset/blob/master/UPDATING.md)** - Breaking changes log
 
@@ -105,9 +104,9 @@ Everything you need to contribute to the Apache Superset project. This section i
 <td width="50%">
 
 **I want to build an extension**
-1. [Learn the architecture](/developer_portal/architecture/overview)
+1. [Start with Quick Start](/developer_portal/extensions/quick-start)
 2. [Learn extension structure](/developer_portal/extensions/extension-project-structure)
-3. [Explore architecture](/developer_portal/extensions/high-level-architecture)
+3. [Explore architecture](/developer_portal/extensions/architecture)
 
 </td>
 </tr>

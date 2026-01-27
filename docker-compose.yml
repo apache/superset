@@ -44,7 +44,6 @@ x-common-build: &common-build
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
     INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
     BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
-    LOAD_EXAMPLES_DUCKDB: ${LOAD_EXAMPLES_DUCKDB:-true}
 
 services:
   nginx:
@@ -54,10 +53,9 @@ services:
       - path: docker/.env-local # optional override
         required: false
     image: nginx:latest
-    container_name: superset_nginx
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "${NGINX_PORT:-80}:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -66,10 +64,9 @@ services:
 
   redis:
     image: redis:7
-    container_name: superset_cache
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis:/data
 
@@ -80,10 +77,9 @@ services:
       - path: docker/.env-local # optional override
         required: false
     image: postgres:16
-    container_name: superset_db
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DATABASE_PORT:-5432}:5432"
     volumes:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -96,13 +92,12 @@ services:
         required: false
     build:
       <<: *common-build
-    container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
     ports:
-      - 8088:8088
+      - ${SUPERSET_PORT:-8088}:8088
       # When in cypress-mode ->
-      - 8081:8081
+      - ${CYPRESS_PORT:-8081}:8081
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
@@ -110,14 +105,11 @@ services:
       superset-init:
         condition: service_completed_successfully
     volumes: *superset-volumes
-    environment:
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
 
   superset-websocket:
-    container_name: superset_websocket
     build: ./superset-websocket
     ports:
-      - 8080:8080
+      - ${WEBSOCKET_PORT:-8080}:8080
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -137,9 +129,9 @@ services:
       - /home/superset-websocket/node_modules
       - /home/superset-websocket/dist
 
-      # Mounting a config file that contains a dummy secret required to boot up.
-      # do not use this docker compose in production
-      - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
+      # Mount config file. Create your own docker/superset-websocket/config.json
+      # for custom settings, then point to it here. Do not use this example in production.
+      - ./docker/superset-websocket/config.example.json:/home/superset-websocket/config.json:ro
     environment:
       - PORT=8080
       - REDIS_HOST=redis
@@ -149,7 +141,6 @@ services:
   superset-init:
     build:
       <<: *common-build
-    container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
     env_file:
       - path: docker/.env # default
@@ -163,8 +154,6 @@ services:
         condition: service_started
     user: *superset-user
     volumes: *superset-volumes
-    environment:
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
     healthcheck:
       disable: true
 
@@ -186,9 +175,10 @@ services:
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset:8088"
+      # Bind to all interfaces so Docker port mapping works
+      WEBPACK_DEVSERVER_HOST: "0.0.0.0"
     ports:
-      - "127.0.0.1:9000:9000"  # exposing the dynamic webpack dev server
-    container_name: superset_node
+      - "127.0.0.1:${NODE_PORT:-9000}:9000"  # exposing the dynamic webpack dev server
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
       - path: docker/.env # default
@@ -200,7 +190,6 @@ services:
   superset-worker:
     build:
       <<: *common-build
-    container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
       - path: docker/.env # default
@@ -226,7 +215,6 @@ services:
   superset-worker-beat:
     build:
       <<: *common-build
-    container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file:
       - path: docker/.env # default
@@ -244,7 +232,6 @@ services:
   superset-tests-worker:
     build:
       <<: *common-build
-    container_name: superset_tests_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
       - path: docker/.env # default

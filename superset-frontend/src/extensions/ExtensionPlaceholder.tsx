@@ -17,7 +17,7 @@
  * under the License.
  */
 import { EmptyState } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 
 const ExtensionPlaceholder = ({ id }: { id: string }) => (
   <EmptyState

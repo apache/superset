@@ -38,7 +38,7 @@ const layersEndpoint = 'glob:*/api/v1/annotation_layer/?*';
 const layerEndpoint = 'glob:*/api/v1/annotation_layer/*';
 const layersRelatedEndpoint = 'glob:*/api/v1/annotation_layer/related/*';
 
-const mocklayers = [...new Array(3)].map((_, i) => ({
+const mocklayers = new Array(3).fill().map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
   created_by: {
     first_name: `user`,

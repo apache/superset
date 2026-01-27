@@ -18,19 +18,16 @@
  */
 import { FunctionComponent, useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core';
 import {
-  styled,
   SupersetClient,
   getClientErrorObject,
-  t,
   SupersetError,
-  useTheme,
-  css,
 } from '@superset-ui/core';
+import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 
 import {
   Icons,
-  Alert,
   Button,
   Checkbox,
   Modal,
@@ -108,6 +105,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [modal, contextHolder] = Modal.useModal();
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
@@ -121,6 +119,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         datasource.schema,
       description: datasource.description,
       main_dttm_col: datasource.main_dttm_col,
+      currency_code_column: datasource.currency_code_column ?? null,
       normalize_columns: datasource.normalize_columns,
       always_filter_main_dttm: datasource.always_filter_main_dttm,
       offset: datasource.offset,
@@ -195,6 +194,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
+
       addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign
       json.result.type = 'table';
@@ -275,7 +275,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             <Checkbox
               checked={syncColumns}
               onChange={() => {
-                setSyncColumns(!syncColumns);
+                setSyncColumns(prev => !prev);
               }}
             />
             <span
@@ -300,14 +300,17 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   }, [datasource.sql, currentDatasource.sql]);
 
   const onClickSave = () => {
-    modal.confirm({
-      title: t('Confirm save'),
-      content: getSaveDialog(),
-      onOk: onConfirmSave,
-      icon: null,
-      okText: t('OK'),
-      cancelText: t('Cancel'),
-    });
+    setConfirmModalOpen(true);
+  };
+
+  const handleConfirmModalClose = () => {
+    setConfirmModalOpen(false);
+  };
+
+  const handleConfirmSave = async () => {
+    await onConfirmSave();
+    // Note: on success, onConfirmSave calls onHide() which closes parent modal
+    // On error, confirmModal stays open so user can see the error and try again or cancel
   };
 
   return (
@@ -371,6 +374,16 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         currencies={currencies}
       />
       {contextHolder}
+      <Modal
+        title={t('Confirm save')}
+        show={confirmModalOpen}
+        onHide={handleConfirmModalClose}
+        onHandledPrimaryAction={handleConfirmSave}
+        primaryButtonName={t('OK')}
+        primaryButtonLoading={isSaving}
+      >
+        {getSaveDialog()}
+      </Modal>
     </StyledDatasourceModal>
   );
 };

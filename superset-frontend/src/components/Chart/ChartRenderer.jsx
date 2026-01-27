@@ -21,14 +21,14 @@ import PropTypes from 'prop-types';
 import { createRef, Component } from 'react';
 import {
   SuperChart,
-  logging,
   Behavior,
-  t,
   getChartMetadataRegistry,
   VizType,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
+import { t } from '@apache-superset/core/ui';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
@@ -64,6 +64,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
+  onChartStateChange: PropTypes.func,
 };
 
 const BLANK = {};
@@ -126,6 +127,7 @@ class ChartRenderer extends Component {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
       onLegendScroll: this.handleLegendScroll,
+      onChartStateChange: this.props.onChartStateChange,
     };
 
     // TODO: queriesResponse comes from Redux store but it's being edited by
@@ -355,9 +357,17 @@ class ChartRenderer extends Component {
       ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
       ? { inContextMenu: this.state.inContextMenu }
       : {};
-    // By pass no result component when server pagination is enabled & the table has a backend search query
+    // By pass no result component when server pagination is enabled & the table has:
+    // - a backend search query, OR
+    // - non-empty AG Grid filter model
+    const hasSearchText = (ownState?.searchText?.length || 0) > 0;
+    const hasAgGridFilters =
+      ownState?.agGridFilterModel &&
+      Object.keys(ownState.agGridFilterModel).length > 0;
+
     const bypassNoResult = !(
-      formData?.server_pagination && (ownState?.searchText?.length || 0) > 0
+      formData?.server_pagination &&
+      (hasSearchText || hasAgGridFilters)
     );
 
     return (

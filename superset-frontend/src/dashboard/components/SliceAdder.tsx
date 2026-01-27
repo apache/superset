@@ -22,7 +22,8 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
 // @ts-ignore
 import { createFilter } from 'react-search-input';
-import { t, styled, css } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { styled, css } from '@apache-superset/core/ui';
 import {
   Button,
   Checkbox,

@@ -18,7 +18,8 @@
  */
 import { Label } from '@superset-ui/core/components';
 import { STATE_TYPE_MAP, STATE_TYPE_MAP_LOCALIZED } from 'src/SqlLab/constants';
-import { styled, Query } from '@superset-ui/core';
+import { Query } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 
 interface QueryStateLabelProps {
   query: Pick<Query, 'state'>;

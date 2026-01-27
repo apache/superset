@@ -19,14 +19,62 @@
 import { useRef, useState, useEffect, JSX } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
-import { Carousel } from 'antd';
+import { Card, Carousel, Flex } from 'antd';
 import styled from '@emotion/styled';
 import GitHubButton from 'react-github-btn';
 import { mq } from '../utils';
-import { Databases } from '../resources/data';
 import SectionHeader from '../components/SectionHeader';
+import databaseData from '../data/databases.json';
 import BlurredSection from '../components/BlurredSection';
+import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
+import type { DatabaseData } from '../components/databases/types';
 import '../styles/main.less';
+
+// Build database list from databases.json (databases with logos)
+// Deduplicate by logo filename to avoid showing the same logo twice
+const typedDatabaseData = databaseData as DatabaseData;
+const seenLogos = new Set<string>();
+const Databases = Object.entries(typedDatabaseData.databases)
+  .filter(([, db]) => db.documentation?.logo && db.documentation?.homepage_url)
+  .map(([name, db]) => ({
+    title: name,
+    href: db.documentation?.homepage_url,
+    imgName: db.documentation?.logo,
+    docPath: `/docs/databases/supported/${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
+  }))
+  .sort((a, b) => a.title.localeCompare(b.title))
+  .filter((db) => {
+    if (seenLogos.has(db.imgName!)) return false;
+    seenLogos.add(db.imgName!);
+    return true;
+  });
+
+interface Organization {
+  name: string;
+  url: string;
+  logo?: string;
+}
+
+interface DataSetType {
+  categories: Record<string, Organization[]>;
+}
+
+const typedDataSet = DataSet as DataSetType;
+
+// Extract all organizations with logos for the carousel
+const companiesWithLogos = Object.values(typedDataSet.categories)
+  .flat()
+  .filter((org) => org.logo?.trim());
+
+// Fisher-Yates shuffle for fair randomization
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
 const features = [
   {
@@ -412,22 +460,22 @@ const StyledIntegrations = styled('div')`
   padding: 0 20px;
   .database-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 14px;
-    max-width: 1160px;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 10px;
+    max-width: 1200px;
     margin: 25px auto 0;
     ${mq[1]} {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
     }
     ${mq[0]} {
-      grid-template-columns: repeat(1, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     & > .item {
       border: 1px solid var(--ifm-border-color);
-      border-radius: 10px;
+      border-radius: 8px;
       overflow: hidden;
-      height: 120px;
-      padding: 25px;
+      height: 80px;
+      padding: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -452,6 +500,7 @@ export default function Home(): JSX.Element {
   const slider = useRef(null);
 
   const [slideIndex, setSlideIndex] = useState(0);
+  const [shuffledCompanies, setShuffledCompanies] = useState(companiesWithLogos);
 
   const onChange = (current, next) => {
     setSlideIndex(next);
@@ -478,6 +527,11 @@ export default function Home(): JSX.Element {
       logo.setAttribute('src', '/img/superset-logo-horiz.svg');
     }
   };
+
+  // Shuffle companies on mount for fair rotation
+  useEffect(() => {
+    setShuffledCompanies(shuffleArray(companiesWithLogos));
+  }, []);
 
   // Set up dark <-> light navbar change
   useEffect(() => {
@@ -725,28 +779,92 @@ export default function Home(): JSX.Element {
         </BlurredSection>
         <BlurredSection>
           <StyledIntegrations>
-            <SectionHeader level="h2" title="Supported Databases" />
+            <SectionHeader level="h2" title="Supported Databases" link="/docs/databases" />
             <div className="database-grid">
-              {Databases.map(({ title, href, imgName }) => (
+              {Databases.map(({ title, imgName, docPath }) => (
                 <div className="item" key={title}>
-                  {href ? (
-                    <a href={href} aria-label={`Go to ${title} page`}>
-                      <img src={`/img/databases/${imgName}`} title={title} />
-                    </a>
-                  ) : (
+                  <a href={docPath} aria-label={`${title} documentation`}>
                     <img src={`/img/databases/${imgName}`} title={title} />
-                  )}
+                  </a>
                 </div>
               ))}
             </div>
             <span className="database-sub">
               ...and many other{' '}
-              <a href="/docs/configuration/databases#installing-database-drivers">
+              <a href="/docs/databases#installing-database-drivers">
                 compatible databases
               </a>
             </span>
           </StyledIntegrations>
         </BlurredSection>
+        {/* Only show carousel when we have enough logos (>10) for a good display */}
+        {companiesWithLogos.length > 10 && (
+          <BlurredSection>
+            <div style={{ padding: '0 20px' }}>
+              <SectionHeader
+                level="h2"
+                title="Trusted by teams everywhere"
+                subtitle="Join thousands of companies using Superset to explore and visualize their data"
+              />
+              <div style={{ maxWidth: 1160, margin: '25px auto 0' }}>
+                <Carousel
+                  autoplay
+                  autoplaySpeed={2000}
+                  slidesToShow={6}
+                  slidesToScroll={1}
+                  dots={false}
+                  responsive={[
+                    { breakpoint: 1024, settings: { slidesToShow: 4 } },
+                    { breakpoint: 768, settings: { slidesToShow: 3 } },
+                    { breakpoint: 480, settings: { slidesToShow: 2 } },
+                  ]}
+                >
+                  {shuffledCompanies.map(({ name, url, logo }) => (
+                    <div key={name}>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`Visit ${name}`}
+                      >
+                        <Card
+                          style={{ margin: '0 8px' }}
+                          styles={{
+                            body: {
+                              height: 80,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 16,
+                            },
+                          }}
+                        >
+                          <img
+                            src={`/img/logos/${logo}`}
+                            alt={name}
+                            title={name}
+                            style={{ maxHeight: 48, maxWidth: '100%', objectFit: 'contain' }}
+                          />
+                        </Card>
+                      </a>
+                    </div>
+                  ))}
+                </Carousel>
+              </div>
+              <Flex justify="center" style={{ marginTop: 30, fontSize: 17 }}>
+                <Link to="/inTheWild">See all companies</Link>
+                <span style={{ margin: '0 8px' }}>·</span>
+                <a
+                  href="https://github.com/apache/superset/edit/master/RESOURCES/INTHEWILD.yaml"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Add yours to the list!
+                </a>
+              </Flex>
+            </div>
+          </BlurredSection>
+        )}
       </StyledMain>
     </Layout>
   );

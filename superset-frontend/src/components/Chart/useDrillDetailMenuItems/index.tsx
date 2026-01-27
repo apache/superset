@@ -25,17 +25,16 @@ import {
   useMemo,
 } from 'react';
 import { isEmpty } from 'lodash';
+import { t } from '@apache-superset/core';
 import {
   Behavior,
   BinaryQueryObjectFilterClause,
-  css,
   extractQueryFields,
   getChartMetadataRegistry,
   QueryFormData,
   removeHTMLTags,
-  styled,
-  t,
 } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 import { type ItemType } from '@superset-ui/core/components/Menu';
 import { RootState } from 'src/dashboard/types';

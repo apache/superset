@@ -17,7 +17,8 @@
  * under the License.
  */
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
 import {
   TableView,
   EmptyWrapperType,

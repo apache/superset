@@ -22,7 +22,7 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   legendSection,
@@ -96,7 +96,7 @@ const config: ControlPanelConfig = {
     },
     {
       ...sections.titleControls,
-      controlSetRows: [...sections.titleControls.controlSetRows.slice(0, -1)],
+      controlSetRows: sections.titleControls.controlSetRows.slice(0, -1),
     },
     {
       label: t('Chart Options'),
@@ -107,7 +107,11 @@ const config: ControlPanelConfig = {
         ...legendSection,
         ['zoomable'],
         [showExtraControls],
-        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
+        [
+          <ControlSubSectionHeader key="x-axis">
+            {t('X Axis')}
+          </ControlSubSectionHeader>,
+        ],
         [
           {
             name: 'x_axis_time_bounds',
@@ -126,7 +130,11 @@ const config: ControlPanelConfig = {
           },
         ],
         ['x_axis_time_format'],
-        [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
+        [
+          <ControlSubSectionHeader key="tooltip">
+            {t('Tooltip')}
+          </ControlSubSectionHeader>,
+        ],
         [tooltipTimeFormatControl],
         [tooltipValuesFormatControl],
       ],

@@ -38,7 +38,7 @@ const templatesEndpoint = 'glob:*/api/v1/css_template/?*';
 const templateEndpoint = 'glob:*/api/v1/css_template/*';
 const templatesRelatedEndpoint = 'glob:*/api/v1/css_template/related/*';
 
-const mocktemplates = [...new Array(3)].map((_, i) => ({
+const mocktemplates = new Array(3).fill().map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
   created_by: {
     first_name: `user`,

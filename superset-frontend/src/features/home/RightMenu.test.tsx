@@ -32,7 +32,11 @@ jest.mock('react-redux', () => ({
   useSelector: jest.fn(),
 }));
 
-jest.mock('src/features/databases/DatabaseModal', () => () => <span />);
+jest.mock('src/features/databases/DatabaseModal', () => {
+  const DatabaseModal = () => <span />;
+  DatabaseModal.displayName = 'DatabaseModal';
+  return DatabaseModal;
+});
 
 const dropdownItems = [
   {
@@ -127,24 +131,26 @@ const createProps = (): RightMenuProps => ({
   },
 });
 
-const mockNonExamplesDB = [...new Array(2)].map((_, i) => ({
-  changed_by: {
-    first_name: `user`,
-    last_name: `${i}`,
-  },
-  database_name: `db ${i}`,
-  backend: 'postgresql',
-  allow_run_async: true,
-  allow_dml: false,
-  allow_file_upload: true,
-  expose_in_sqllab: false,
-  changed_on_delta_humanized: `${i} day(s) ago`,
-  changed_on: new Date().toISOString,
-  id: i,
-  engine_information: {
-    supports_file_upload: true,
-  },
-}));
+const mockNonExamplesDB = Array.from({ length: 2 })
+  .fill(undefined)
+  .map((_, i) => ({
+    changed_by: {
+      first_name: `user`,
+      last_name: `${i}`,
+    },
+    database_name: `db ${i}`,
+    backend: 'postgresql',
+    allow_run_async: true,
+    allow_dml: false,
+    allow_file_upload: true,
+    expose_in_sqllab: false,
+    changed_on_delta_humanized: `${i} day(s) ago`,
+    changed_on: new Date().toISOString,
+    id: i,
+    engine_information: {
+      supports_file_upload: true,
+    },
+  }));
 
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
@@ -372,9 +378,11 @@ test('Logs out and clears local storage item redux', async () => {
     useTheme: true,
   });
 
-  // Set an item in local storage to test if it gets cleared
+  // Set items in local and session storage to test if they get cleared
   localStorage.setItem('redux', JSON.stringify({ test: 'test' }));
+  sessionStorage.setItem('login_attempted', 'true');
   expect(localStorage.getItem('redux')).not.toBeNull();
+  expect(sessionStorage.getItem('login_attempted')).not.toBeNull();
 
   userEvent.hover(await screen.findByText(/Settings/i));
 
@@ -384,8 +392,9 @@ test('Logs out and clears local storage item redux', async () => {
     userEvent.click(logoutButton);
   });
 
-  // Wait for local storage to be cleared
+  // Wait for local and session storage to be cleared
   await waitFor(() => {
     expect(localStorage.getItem('redux')).toBeNull();
+    expect(sessionStorage.getItem('login_attempted')).toBeNull();
   });
 });

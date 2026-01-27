@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '../translation';
+import { t } from '@apache-superset/core';
 import { removeDuplicates } from '../utils';
 import getColumnLabel from './getColumnLabel';
 import getMetricLabel from './getMetricLabel';

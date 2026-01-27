@@ -28,10 +28,10 @@ import {
   normalizeTimestamp,
   NumberFormats,
   NumberFormatter,
-  SupersetTheme,
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
@@ -437,15 +437,21 @@ export function getLegendProps(
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
-): LegendComponentOption | LegendComponentOption[] {
-  const legend: LegendComponentOption | LegendComponentOption[] = {
+): LegendComponentOption {
+  const isHorizontal =
+    orientation === LegendOrientation.Top ||
+    orientation === LegendOrientation.Bottom;
+
+  const effectiveType =
+    type === LegendType.Scroll || !isHorizontal ? type : LegendType.Scroll;
+  const legend: LegendComponentOption = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,
     )
       ? 'horizontal'
       : 'vertical',
     show,
-    type,
+    type: effectiveType,
     selected: legendState,
     selector: ['all', 'inverse'],
     selectorLabel: {
@@ -482,8 +488,14 @@ export function getLegendProps(
       break;
     case LegendOrientation.Bottom:
       legend.bottom = 0;
+      if (padding?.left) {
+        legend.left = padding.left;
+      }
       break;
     case LegendOrientation.Top:
+      legend.top = 0;
+      legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
+      break;
     default:
       legend.top = 0;
       legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;

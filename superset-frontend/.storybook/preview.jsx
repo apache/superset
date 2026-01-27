@@ -17,7 +17,7 @@
  * under the License.
  */
 import { withJsx } from '@mihkeleidast/storybook-addon-source';
-import { themeObject, css, exampleThemes } from '@superset-ui/core';
+import { themeObject, css, exampleThemes } from '@apache-superset/core/ui';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';

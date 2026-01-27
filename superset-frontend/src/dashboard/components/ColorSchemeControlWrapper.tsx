@@ -17,7 +17,8 @@
  * under the License.
  */
 /* eslint-env browser */
-import { getCategoricalSchemeRegistry, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getCategoricalSchemeRegistry } from '@superset-ui/core';
 import { useEffect, useState } from 'react';
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
 

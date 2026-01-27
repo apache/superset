@@ -110,7 +110,7 @@ describe('GroupsList', () => {
 
   test('renders actions column for admin', async () => {
     await renderComponent();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getAllByText('Actions')[0]).toBeInTheDocument();
   });
 
   test('renders the filters correctly', async () => {
@@ -128,9 +128,9 @@ describe('GroupsList', () => {
     await renderComponent();
     const table = screen.getByRole('table');
 
-    expect(await within(table).findByText('Name')).toBeInTheDocument();
-    expect(await within(table).findByText('Label')).toBeInTheDocument();
-    expect(await within(table).findByText('Roles')).toBeInTheDocument();
+    expect(await within(table).findByTitle('Name')).toBeInTheDocument();
+    expect(await within(table).findByTitle('Label')).toBeInTheDocument();
+    expect(await within(table).findByTitle('Roles')).toBeInTheDocument();
   });
 
   test('opens add group modal on button click', async () => {

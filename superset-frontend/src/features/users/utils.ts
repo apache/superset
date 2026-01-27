@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { SelectOption } from 'src/components/ListView';
 import { FormValues } from './types';
 
@@ -50,7 +51,7 @@ export const atLeastOneRoleOrGroup =
   }: {
     getFieldValue: (field: string) => Array<SelectOption>;
   }) => ({
-    validator(_: Object, value: Array<SelectOption>) {
+    validator(_: object, value: Array<SelectOption>) {
       const current = value || [];
       const other = getFieldValue(fieldToCheck) || [];
       if (current.length === 0 && other.length === 0) {

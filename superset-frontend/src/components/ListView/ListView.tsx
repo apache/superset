@@ -16,18 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { styled, Alert } from '@apache-superset/core/ui';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import cx from 'classnames';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
-  Alert,
   Button,
   Checkbox,
   Icons,
   EmptyState,
   Loading,
+  Pagination,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
 import CardCollection from './CardCollection';
@@ -60,7 +61,7 @@ const ListViewStyles = styled.div`
         & .controls {
           display: flex;
           flex-wrap: wrap;
-          column-gap: ${theme.sizeUnit * 6}px;
+          column-gap: ${theme.sizeUnit * 7}px;
           row-gap: ${theme.sizeUnit * 4}px;
         }
       }
@@ -91,6 +92,7 @@ const ListViewStyles = styled.div`
     .row-count-container {
       margin-top: ${theme.sizeUnit * 2}px;
       color: ${theme.colorText};
+      text-align: center;
     }
   `}
 `;
@@ -446,14 +448,39 @@ export function ListView<T extends object = any>({
             />
           )}
           {viewMode === 'card' && (
-            <CardCollection
-              bulkSelectEnabled={bulkSelectEnabled}
-              prepareRow={prepareRow}
-              renderCard={renderCard}
-              rows={rows}
-              loading={loading}
-              showThumbnails={showThumbnails}
-            />
+            <>
+              <CardCollection
+                bulkSelectEnabled={bulkSelectEnabled}
+                prepareRow={prepareRow}
+                renderCard={renderCard}
+                rows={rows}
+                loading={loading}
+                showThumbnails={showThumbnails}
+              />
+              {count > 0 && (
+                <div className="pagination-container">
+                  <Pagination
+                    current={pageIndex + 1}
+                    pageSize={pageSize}
+                    total={count}
+                    onChange={page => {
+                      gotoPage(page - 1);
+                    }}
+                    size="default"
+                    showSizeChanger={false}
+                    showQuickJumper={false}
+                    hideOnSinglePage
+                    align="center"
+                  />
+                  <div className="row-count-container">
+                    {`${pageIndex * pageSize + 1}-${Math.min(
+                      (pageIndex + 1) * pageSize,
+                      count,
+                    )} of ${count}`}
+                  </div>
+                </div>
+              )}
+            </>
           )}
           {viewMode === 'table' && (
             <>
@@ -502,7 +529,7 @@ export function ListView<T extends object = any>({
                   size="large"
                   image="filter-results.svg"
                   buttonAction={() => handleClearFilterControls()}
-                  buttonText={t('clear all filters')}
+                  buttonText={t('Clear all filters')}
                 />
               ) : (
                 <EmptyState

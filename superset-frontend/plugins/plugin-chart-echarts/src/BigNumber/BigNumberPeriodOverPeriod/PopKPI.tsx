@@ -17,15 +17,13 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core';
 import {
-  css,
   ensureIsArray,
   fetchTimeRange,
   getTimeOffset,
-  styled,
-  t,
-  useTheme,
 } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { Tooltip } from '@superset-ui/core/components';
 import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';

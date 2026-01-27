@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useSelector, useDispatch } from 'react-redux';
-import { t, JsonObject, VizType } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { JsonObject, VizType } from '@superset-ui/core';
 import {
   createCtasDatasource,
   addInfoToast,

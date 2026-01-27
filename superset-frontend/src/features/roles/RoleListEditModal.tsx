@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { RoleObject } from 'src/pages/RolesList';
 import {
@@ -195,7 +195,6 @@ function RoleListEditModal({
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       initialValues={initialValues}
-      bodyStyle={{ height: '400px' }}
       requiredFields={['roleName']}
     >
       {(form: FormInstance) => {

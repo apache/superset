@@ -16,18 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DatasourceType,
-  supersetTheme,
-  TimeGranularity,
-  VizType,
-} from '@superset-ui/core';
+import { DatasourceType, TimeGranularity, VizType } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
   BigNumberDatum,
   BigNumberWithTrendlineChartProps,
   BigNumberWithTrendlineFormData,
 } from '../../src/BigNumber/types';
+import { TIMESERIES_CONSTANTS } from '../../src/constants';
 
 const formData = {
   metric: 'value',
@@ -187,6 +184,127 @@ describe('BigNumberWithTrendline', () => {
         '$ 1.23',
       );
     });
+
+    it('should show X axis when showXAxis is true', () => {
+      const transformed = transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showXAxis: true,
+        },
+      });
+      expect((transformed.echartOptions?.xAxis as any).show).toBe(true);
+    });
+
+    it('should not show X axis when showXAxis is false', () => {
+      const transformed = transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showXAxis: false,
+        },
+      });
+      expect((transformed.echartOptions?.xAxis as any).show).toBe(false);
+    });
+
+    it('should show Y axis when showYAxis is true', () => {
+      const transformed = transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showYAxis: true,
+        },
+      });
+      expect((transformed.echartOptions?.yAxis as any).show).toBe(true);
+    });
+
+    it('should not show Y axis when showYAxis is false', () => {
+      const transformed = transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showYAxis: false,
+        },
+      });
+      expect((transformed.echartOptions?.yAxis as any).show).toBe(false);
+    });
+  });
+
+  it('should respect min/max label visibility settings', () => {
+    const transformed = transformProps({
+      ...props,
+      formData: {
+        ...props.formData,
+        showXAxisMinMaxLabels: false,
+        showYAxisMinMaxLabels: true,
+      },
+    });
+    const xAxis = transformed.echartOptions?.xAxis as any;
+    const yAxis = transformed.echartOptions?.yAxis as any;
+
+    expect(xAxis.axisLabel.showMinLabel).toBe(false);
+    expect(xAxis.axisLabel.showMaxLabel).toBe(false);
+    expect(yAxis.axisLabel.showMinLabel).toBe(true);
+    expect(yAxis.axisLabel.showMaxLabel).toBe(true);
+  });
+
+  it('should use minimal grid when both axes are hidden', () => {
+    const transformed = transformProps({
+      ...props,
+      formData: {
+        ...props.formData,
+        showXAxis: false,
+        showYAxis: false,
+      },
+    });
+
+    expect(transformed.echartOptions?.grid).toEqual({
+      bottom: 0,
+      left: 0,
+      right: 0,
+      top: 0,
+    });
+  });
+
+  it('should use expanded grid when either axis is shown', () => {
+    const expandedGrid = {
+      containLabel: true,
+      bottom: TIMESERIES_CONSTANTS.gridOffsetBottom,
+      left: TIMESERIES_CONSTANTS.gridOffsetLeft,
+      right: TIMESERIES_CONSTANTS.gridOffsetRight,
+      top: TIMESERIES_CONSTANTS.gridOffsetTop,
+    };
+
+    expect(
+      transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showXAxis: true,
+          showYAxis: false,
+        },
+      }).echartOptions?.grid,
+    ).toEqual(expandedGrid);
+    expect(
+      transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showXAxis: false,
+          showYAxis: true,
+        },
+      }).echartOptions?.grid,
+    ).toEqual(expandedGrid);
+    expect(
+      transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showXAxis: true,
+          showYAxis: true,
+        },
+      }).echartOptions?.grid,
+    ).toEqual(expandedGrid);
   });
 });
 
@@ -373,4 +491,60 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
     const transformed = transformProps(baseProps);
     expect(transformed.bigNumber).toStrictEqual(10);
   });
+});
+
+test('BigNumberWithTrendline AUTO mode should detect single currency', () => {
+  const props = generateProps(
+    [
+      { __timestamp: 1607558400000, value: 1000, currency_code: 'USD' },
+      { __timestamp: 1607558500000, value: 2000, currency_code: 'USD' },
+    ],
+    {
+      yAxisFormat: ',.2f',
+      currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    },
+  );
+  props.datasource.currencyCodeColumn = 'currency_code';
+
+  const transformed = transformProps(props);
+  // The headerFormatter should include $ for USD
+  expect(transformed.headerFormatter(1000)).toContain('$');
+});
+
+test('BigNumberWithTrendline AUTO mode should use neutral formatting for mixed currencies', () => {
+  const props = generateProps(
+    [
+      { __timestamp: 1607558400000, value: 1000, currency_code: 'USD' },
+      { __timestamp: 1607558500000, value: 2000, currency_code: 'EUR' },
+    ],
+    {
+      yAxisFormat: ',.2f',
+      currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    },
+  );
+  props.datasource.currencyCodeColumn = 'currency_code';
+
+  const transformed = transformProps(props);
+  // With mixed currencies, should not show currency symbol
+  const formatted = transformed.headerFormatter(1000);
+  expect(formatted).not.toContain('$');
+  expect(formatted).not.toContain('€');
+});
+
+test('BigNumberWithTrendline should preserve static currency format', () => {
+  const props = generateProps(
+    [
+      { __timestamp: 1607558400000, value: 1000, currency_code: 'USD' },
+      { __timestamp: 1607558500000, value: 2000, currency_code: 'EUR' },
+    ],
+    {
+      yAxisFormat: ',.2f',
+      currencyFormat: { symbol: 'GBP', symbolPosition: 'prefix' },
+    },
+  );
+  props.datasource.currencyCodeColumn = 'currency_code';
+
+  const transformed = transformProps(props);
+  // Static mode should always show £
+  expect(transformed.headerFormatter(1000)).toContain('£');
 });

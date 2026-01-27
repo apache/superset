@@ -45,6 +45,7 @@ export enum NotificationMethodOption {
   Email = 'Email',
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
 }
 
 export type SelectValue = {
@@ -90,7 +91,7 @@ export type MetaObject = {
 
 export type DashboardState = {
   activeTabs?: Array<string>;
-  dataMask?: Object;
+  dataMask?: object;
   anchor?: string;
   nativeFilters?: Array<ExtraNativeFilter>;
 };
@@ -173,6 +174,7 @@ export enum RecipientIconName {
   Email = 'Email',
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
 }
 export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT: number;

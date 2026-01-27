@@ -174,12 +174,12 @@ describe('RuleList RTL', () => {
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
 
-    const nameColumn = await within(table).findByText('Name');
-    const filterTypeColumn = await within(table).findByText('Filter Type');
-    const groupKeyColumn = await within(table).findByText('Group Key');
-    const clauseColumn = await within(table).findByText('Clause');
-    const modifiedColumn = await within(table).findByText('Last modified');
-    const actionsColumn = await within(table).findByText('Actions');
+    const nameColumn = await within(table).findByTitle('Name');
+    const filterTypeColumn = await within(table).findByTitle('Filter Type');
+    const groupKeyColumn = await within(table).findByTitle('Group Key');
+    const clauseColumn = await within(table).findByTitle('Clause');
+    const modifiedColumn = await within(table).findByTitle('Last modified');
+    const actionsColumn = await within(table).findByTitle('Actions');
 
     expect(nameColumn).toBeInTheDocument();
     expect(filterTypeColumn).toBeInTheDocument();

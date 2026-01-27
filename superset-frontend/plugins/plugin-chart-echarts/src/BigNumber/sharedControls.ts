@@ -18,7 +18,7 @@
  */
 
 // These are control configurations that are shared ONLY within the BigNumberWithTrendline viz plugin repo.
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { CustomControlItem } from '@superset-ui/chart-controls';
 
 const FONT_SIZE_OPTIONS_SMALL = [

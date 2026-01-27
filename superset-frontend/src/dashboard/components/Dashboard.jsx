@@ -18,7 +18,7 @@
  */
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 
 import { Loading } from '@superset-ui/core/components';
 import { PluginContext } from 'src/components';
@@ -188,6 +188,7 @@ class Dashboard extends PureComponent {
   componentWillUnmount() {
     window.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.props.actions.clearDataMaskState();
+    this.props.actions.clearAllChartStates();
   }
 
   onVisibilityChange() {

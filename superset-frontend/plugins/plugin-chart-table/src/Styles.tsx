@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 export default styled.div`
   ${({ theme }) => css`
@@ -120,12 +120,12 @@ export default styled.div`
     }
 
     td.dt-is-filter:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+      background-color: ${theme.colorFillContentHover};
     }
 
     td.dt-is-active-filter,
     td.dt-is-active-filter:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+      background-color: ${theme.colorFillContentHover};
     }
 
     .dt-global-filter {

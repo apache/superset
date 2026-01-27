@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { css, SupersetTheme } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
 
 export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.sizeUnit * 4}px 0;

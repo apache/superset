@@ -17,14 +17,13 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { t } from '@apache-superset/core';
 import {
   makeApi,
-  styled,
   SupersetApiError,
-  t,
-  css,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { styled, css, Alert } from '@apache-superset/core/ui';
 import {
   Button,
   FormItem,
@@ -33,7 +32,6 @@ import {
   Modal,
   Loading,
   Form,
-  Alert,
   Space,
 } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';

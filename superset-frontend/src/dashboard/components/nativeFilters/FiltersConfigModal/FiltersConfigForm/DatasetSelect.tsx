@@ -18,8 +18,8 @@
  */
 import { useCallback, useMemo, ReactNode } from 'react';
 import rison from 'rison';
+import { t } from '@apache-superset/core';
 import {
-  t,
   JsonResponse,
   ClientErrorObject,
   getClientErrorObject,
@@ -32,73 +32,80 @@ import {
 } from 'src/features/datasets/DatasetSelectLabel';
 
 interface DatasetSelectProps {
-  onChange: (value: { label: string; value: number }) => void;
-  value?: { label: string; value: number };
+  onChange: (value: { label: string | ReactNode; value: number }) => void;
+  value?: { label: string | ReactNode; value: number };
   excludeDatasetIds?: number[];
 }
+
+const getErrorMessage = ({ error, message }: ClientErrorObject) => {
+  let errorText = message || error || t('An error has occurred');
+  if (message === 'Forbidden') {
+    errorText = t('You do not have permission to edit this dashboard');
+  }
+  return errorText;
+};
+
+export const loadDatasetOptions = async (
+  search: string,
+  page: number,
+  pageSize: number,
+  excludeDatasetIds: number[] = [],
+) => {
+  const query = rison.encode({
+    columns: ['id', 'table_name', 'database.database_name', 'schema'],
+    filters: [{ col: 'table_name', opr: 'ct', value: search }],
+    page,
+    page_size: pageSize,
+    order_column: 'table_name',
+    order_direction: 'asc',
+  });
+  return cachedSupersetGet({
+    endpoint: `/api/v1/dataset/?q=${query}`,
+  })
+    .then((response: JsonResponse) => {
+      const filteredResult = response.json.result.filter(
+        (item: Dataset) => !excludeDatasetIds.includes(item.id),
+      );
+
+      const list: {
+        label: string | ReactNode;
+        value: string | number;
+        table_name: string;
+      }[] = filteredResult.map((item: Dataset) => ({
+        ...item,
+        label: DatasetSelectLabel(item),
+        value: item.id,
+        table_name: item.table_name,
+      }));
+      return {
+        data: list,
+        totalCount: response.json.count ?? 0,
+      };
+    })
+    .catch(async error => {
+      const errorMessage = getErrorMessage(await getClientErrorObject(error));
+      throw new Error(errorMessage);
+    });
+};
 
 const DatasetSelect = ({
   onChange,
   value,
   excludeDatasetIds = [],
 }: DatasetSelectProps) => {
-  const getErrorMessage = useCallback(
-    ({ error, message }: ClientErrorObject) => {
-      let errorText = message || error || t('An error has occurred');
-      if (message === 'Forbidden') {
-        errorText = t('You do not have permission to edit this dashboard');
-      }
-      return errorText;
-    },
-    [],
-  );
-
-  const loadDatasetOptions = useCallback(
-    async (search: string, page: number, pageSize: number) => {
-      const query = rison.encode({
-        columns: ['id', 'table_name', 'database.database_name', 'schema'],
-        filters: [{ col: 'table_name', opr: 'ct', value: search }],
-        page,
-        page_size: pageSize,
-        order_column: 'table_name',
-        order_direction: 'asc',
-      });
-      return cachedSupersetGet({
-        endpoint: `/api/v1/dataset/?q=${query}`,
-      })
-        .then((response: JsonResponse) => {
-          const filteredResult = response.json.result.filter(
-            (item: Dataset) => !excludeDatasetIds.includes(item.id),
-          );
-
-          const list: {
-            label: string | ReactNode;
-            value: string | number;
-          }[] = filteredResult.map((item: Dataset) => ({
-            label: DatasetSelectLabel(item),
-            value: item.id,
-          }));
-          return {
-            data: list,
-            totalCount: filteredResult.length,
-          };
-        })
-        .catch(async error => {
-          const errorMessage = getErrorMessage(
-            await getClientErrorObject(error),
-          );
-          throw new Error(errorMessage);
-        });
-    },
-    [excludeDatasetIds, getErrorMessage],
+  const loadDatasetOptionsCallback = useCallback(
+    (search: string, page: number, pageSize: number) =>
+      loadDatasetOptions(search, page, pageSize, excludeDatasetIds),
+    [excludeDatasetIds],
   );
 
   return (
     <AsyncSelect
       ariaLabel={t('Dataset')}
       value={value}
-      options={loadDatasetOptions}
+      options={loadDatasetOptionsCallback}
       onChange={onChange}
+      optionFilterProps={['table_name']}
       notFoundContent={t('No compatible datasets found')}
       placeholder={t('Select a dataset')}
     />

@@ -16,37 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Button, DropdownButton } from '@superset-ui/core/components';
+import { Button } from '@superset-ui/core/components';
 
 interface SaveDatasetActionButtonProps {
   setShowSave: (arg0: boolean) => void;
-  overlayMenu: JSX.Element | null;
+  onSaveAsExplore?: () => void;
 }
 
 const SaveDatasetActionButton = ({
   setShowSave,
-  overlayMenu,
-}: SaveDatasetActionButtonProps) => {
-  const theme = useTheme();
-
-  return !overlayMenu ? (
-    <Button onClick={() => setShowSave(true)} buttonStyle="primary">
-      {t('Save')}
-    </Button>
-  ) : (
-    <DropdownButton
+  onSaveAsExplore,
+}: SaveDatasetActionButtonProps) => (
+  <>
+    <Button
+      color="primary"
+      variant="text"
       onClick={() => setShowSave(true)}
-      popupRender={() => overlayMenu}
-      icon={
-        <Icons.DownOutlined iconSize="xs" iconColor={theme.colorPrimaryText} />
-      }
-      trigger={['click']}
-    >
-      {t('Save')}
-    </DropdownButton>
-  );
-};
+      icon={<Icons.SaveOutlined />}
+      tooltip={t('Save query')}
+      aria-label={t('Save')}
+    />
+    {onSaveAsExplore && (
+      <Button
+        color="primary"
+        variant="text"
+        onClick={() => onSaveAsExplore?.()}
+        icon={<Icons.TableOutlined />}
+        tooltip={t('Save or Overwrite Dataset')}
+        aria-label={t('Save dataset')}
+      />
+    )}
+  </>
+);
 
 export default SaveDatasetActionButton;

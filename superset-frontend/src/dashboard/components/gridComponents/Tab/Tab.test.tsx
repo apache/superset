@@ -26,10 +26,14 @@ import {
 } from 'spec/helpers/testing-library';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import { EditableTitle } from '@superset-ui/core/components';
-import { setEditMode } from 'src/dashboard/actions/dashboardState';
+import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 
 import Tab from './Tab';
 import Markdown from '../Markdown';
+
+jest.mock('src/dashboard/util/getChartIdsFromComponent', () =>
+  jest.fn(() => []),
+);
 
 jest.mock('src/dashboard/containers/DashboardComponent', () =>
   jest.fn(() => <div data-test="DashboardComponent" />),
@@ -52,9 +56,32 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
           dropIndicatorProps: props.dropIndicatorProps,
         }
       : {};
+    const handleClick = () => {
+      if (props.onDrop) {
+        // Create a mock dropResult based on the component props
+        const dropResult = {
+          source: {
+            id: 'MARKDOWN-1',
+            type: 'MARKDOWN',
+            index: 0,
+          },
+          dragging: {
+            id: 'MARKDOWN-1',
+            type: 'MARKDOWN',
+            meta: {},
+          },
+          destination: {
+            id: props.component?.id || '',
+            type: props.component?.type || '',
+            index: props.index ?? 0,
+          },
+        };
+        props.onDrop(dropResult);
+      }
+    };
     return (
       <div>
-        <button type="button" data-test="MockDroppable" onClick={props.onDrop}>
+        <button type="button" data-test="MockDroppable" onClick={handleClick}>
           DragDroppable
         </button>
         {props.children(childProps)}
@@ -65,6 +92,9 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   setEditMode: jest.fn(() => ({
     type: 'SET_EDIT_MODE',
+  })),
+  onRefresh: jest.fn(() => ({
+    type: 'ON_REFRESH',
   })),
 }));
 
@@ -396,6 +426,7 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
       },
     },
   });
+  expect(screen.queryByTestId('emptystate-drop-indicator')).toBeInTheDocument();
   expect(
     screen.getByText('Drag and drop components to this tab'),
   ).toBeVisible();
@@ -406,6 +437,49 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
   expect(
     screen.getByRole('link', { name: 'create a new chart' }),
   ).toHaveAttribute('href', '/chart/add?dashboard_id=23');
+});
+
+test('Drag to empty state, editMode: true, canEdit: true', async () => {
+  const props = createProps();
+  props.editMode = true;
+  props.component.children = [];
+  const mockHandleComponentDrop = jest.fn();
+  props.handleComponentDrop = mockHandleComponentDrop;
+
+  render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState: {
+      dashboardInfo: {
+        dash_edit_perm: true,
+      },
+    },
+  });
+
+  const emptyStateIndicator = screen.getByTestId('emptystate-drop-indicator');
+  expect(emptyStateIndicator).toBeInTheDocument();
+
+  const mockDroppableButtons = screen.getAllByTestId('MockDroppable');
+  expect(mockDroppableButtons).toHaveLength(2);
+
+  // Click the MockDroppable button that wraps the empty state indicator (index 1)
+  // This simulates dropping a component on the empty state
+  userEvent.click(mockDroppableButtons[1]);
+
+  // Verify that handleComponentDrop was called with correct destination
+  await waitFor(() => {
+    expect(mockHandleComponentDrop).toHaveBeenCalled();
+  });
+
+  expect(mockHandleComponentDrop).toHaveBeenCalledWith(
+    expect.objectContaining({
+      destination: {
+        id: props.component.id,
+        index: 0,
+        type: 'TAB',
+      },
+    }),
+  );
 });
 
 test('AnchorLink renders in view mode', () => {
@@ -444,4 +518,195 @@ test('AnchorLink does not render in embedded mode', () => {
   });
 
   expect(screen.queryByTestId('anchor-link')).not.toBeInTheDocument();
+});
+
+test('Should refresh charts when tab becomes active after dashboard refresh', async () => {
+  jest.clearAllMocks();
+  const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
+  getChartIdsFromComponent.mockReturnValue([101, 102]);
+
+  const props = createProps();
+  props.renderType = 'RENDER_TAB_CONTENT';
+  props.isComponentVisible = false;
+
+  const initialState = {
+    dashboardState: {
+      lastRefreshTime: Date.now() - 5000, // Dashboard was refreshed 5 seconds ago
+      tabActivationTimes: {
+        'TAB-YT6eNksV-': Date.now() - 10000, // Tab was activated 10 seconds ago (before refresh)
+      },
+    },
+    dashboardInfo: {
+      id: 23,
+      dash_edit_perm: true,
+    },
+  };
+
+  const { rerender } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+  });
+
+  // onRefresh should not be called when tab is not visible
+  expect(onRefresh).not.toHaveBeenCalled();
+
+  // Make tab visible - this should trigger refresh since lastRefreshTime > tabActivationTime
+  rerender(<Tab {...props} isComponentVisible />);
+
+  // Wait for the refresh to be triggered after the delay
+  await waitFor(
+    () => {
+      expect(onRefresh).toHaveBeenCalled();
+    },
+    { timeout: 500 },
+  );
+
+  expect(onRefresh).toHaveBeenCalledWith(
+    [101, 102], // Chart IDs from the tab
+    true, // Force refresh
+    0, // Interval
+    23, // Dashboard ID
+    true, // isLazyLoad flag
+  );
+});
+
+test('Should not refresh charts when tab becomes active if no dashboard refresh occurred', async () => {
+  jest.clearAllMocks();
+  const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
+  getChartIdsFromComponent.mockReturnValue([101]);
+
+  const props = createProps();
+  props.renderType = 'RENDER_TAB_CONTENT';
+  props.isComponentVisible = false;
+
+  const currentTime = Date.now();
+  const initialState = {
+    dashboardState: {
+      lastRefreshTime: currentTime - 10000, // Dashboard was refreshed 10 seconds ago
+      tabActivationTimes: {
+        'TAB-YT6eNksV-': currentTime - 5000, // Tab was activated 5 seconds ago (after refresh)
+      },
+    },
+    dashboardInfo: {
+      id: 23,
+      dash_edit_perm: true,
+    },
+  };
+
+  const { rerender } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+  });
+
+  // Make tab visible - should NOT trigger refresh since tabActivationTime > lastRefreshTime
+  rerender(<Tab {...props} isComponentVisible />);
+
+  // Wait a bit to ensure no refresh is triggered
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  expect(onRefresh).not.toHaveBeenCalled();
+});
+
+test('Should not cause infinite refresh loop with nested tabs - regression test', async () => {
+  jest.clearAllMocks();
+  const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
+  getChartIdsFromComponent.mockReset();
+  getChartIdsFromComponent.mockReturnValue([201, 202]);
+
+  const props = createProps();
+  props.renderType = 'RENDER_TAB_CONTENT';
+  props.isComponentVisible = false;
+
+  const initialState = {
+    dashboardState: {
+      lastRefreshTime: Date.now() - 1000, // Dashboard was refreshed recently
+      tabActivationTimes: {
+        'TAB-YT6eNksV-': Date.now() - 5000, // Tab was activated before refresh
+      },
+    },
+    dashboardInfo: {
+      id: 23,
+      dash_edit_perm: true,
+    },
+  };
+
+  const { rerender } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+  });
+
+  // Initial state - no refresh should happen
+  expect(onRefresh).not.toHaveBeenCalled();
+
+  // Make tab visible - should trigger ONE refresh
+  rerender(<Tab {...props} isComponentVisible />);
+
+  await waitFor(
+    () => {
+      expect(onRefresh).toHaveBeenCalledTimes(1);
+    },
+    { timeout: 500 },
+  );
+
+  // Clear the mock to track subsequent calls
+  jest.clearAllMocks();
+
+  // REGRESSION TEST: Multiple re-renders should NOT trigger additional refreshes
+  // This simulates the infinite loop scenario that was happening with nested tabs
+  for (let i = 0; i < 5; i++) {
+    rerender(<Tab {...props} isComponentVisible />);
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+
+  expect(onRefresh).not.toHaveBeenCalled();
+});
+
+test('Should use isLazyLoad flag for tab refreshes', async () => {
+  jest.clearAllMocks();
+  const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
+  getChartIdsFromComponent.mockReset();
+  getChartIdsFromComponent.mockReturnValue([401, 402]);
+
+  const props = createProps();
+  props.renderType = 'RENDER_TAB_CONTENT';
+  props.isComponentVisible = true;
+
+  const initialState = {
+    dashboardState: {
+      lastRefreshTime: Date.now() - 1000, // Dashboard was refreshed recently
+      tabActivationTimes: {
+        'TAB-YT6eNksV-': Date.now() - 5000, // Tab was activated before refresh
+      },
+    },
+    dashboardInfo: {
+      id: 42,
+      dash_edit_perm: true,
+    },
+  };
+
+  render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+  });
+
+  // Tab should trigger refresh with isLazyLoad = true
+  await waitFor(
+    () => {
+      expect(onRefresh).toHaveBeenCalled();
+    },
+    { timeout: 500 },
+  );
+
+  // Verify that isLazyLoad flag is set to true for tab refreshes
+  expect(onRefresh).toHaveBeenCalledWith(
+    [401, 402],
+    true, // force
+    0, // interval
+    42, // dashboardId
+    true, // isLazyLoad should be true to prevent infinite loops
+  );
 });

@@ -19,7 +19,8 @@
 
 import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
@@ -255,6 +256,7 @@ function AnnotationLayersList({
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'annotation_layer_list_search',
       },
       {
         Header: t('Changed by'),

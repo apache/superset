@@ -19,14 +19,13 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
+import { t } from '@apache-superset/core';
 import {
-  t,
-  css,
   SupersetClient,
   makeApi,
-  styled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   Tooltip,
@@ -472,6 +471,7 @@ function AlertList({
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'alert_report_list_search',
       },
       {
         Header: t('Owner'),

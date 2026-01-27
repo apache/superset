@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { styled, t, css } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { CertifiedBadge, InfoTooltip } from '@superset-ui/core/components';
 import Table, {
   TableSize,
@@ -100,6 +101,14 @@ const DatasetUsageTab = ({
   const addDangerToastRef = useRef(addDangerToast);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const prevLoadingRef = useRef(false);
+  const isMountedRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -116,14 +125,22 @@ const DatasetUsageTab = ({
 
       try {
         await onFetchCharts(page, PAGE_SIZE, column, direction);
-        setCurrentPage(page);
-        setSortColumn(column);
-        setSortDirection(direction);
+
+        if (isMountedRef.current) {
+          setCurrentPage(page);
+          setSortColumn(column);
+          setSortDirection(direction);
+        }
       } catch (error) {
-        if (addDangerToastRef.current)
+        if ((error as Error).name === 'AbortError') return;
+
+        if (addDangerToastRef.current) {
           addDangerToastRef.current(t('Error fetching charts'));
+        }
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     },
     [datasourceId, onFetchCharts, sortColumn, sortDirection],

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   ControlPanelConfig,
   ControlSubSectionHeader,
@@ -128,6 +128,18 @@ const config: ControlPanelConfig = {
           <ControlSubSectionHeader>
             {t('Series total setting')}
           </ControlSubSectionHeader>,
+        ],
+        [
+          {
+            name: 'show_total',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show total'),
+              renderTrigger: true,
+              default: true,
+              description: t('Display cumulative total at end'),
+            },
+          },
         ],
         [
           {

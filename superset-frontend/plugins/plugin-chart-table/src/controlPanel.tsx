@@ -39,16 +39,17 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  ConditionalFormattingConfig,
 } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
   isAdhocColumn,
   isPhysicalColumn,
-  legacyValidateInteger,
+  validateInteger,
   QueryFormColumn,
   QueryMode,
   SMART_DATE_ID,
-  t,
   validateMaxValue,
   validateServerPagination,
 } from '@superset-ui/core';
@@ -406,6 +407,7 @@ const config: ControlPanelConfig = {
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
+              validators: [validateInteger],
             },
           },
         ],
@@ -424,7 +426,7 @@ const config: ControlPanelConfig = {
                   state?.common?.conf?.SQL_MAX_ROW,
               }),
               validators: [
-                legacyValidateInteger,
+                validateInteger,
                 (v, state) =>
                   validateMaxValue(
                     v,
@@ -767,6 +769,26 @@ const config: ControlPanelConfig = {
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
+                const value = _?.value ?? [];
+                if (value && Array.isArray(value)) {
+                  value.forEach(
+                    (item: ConditionalFormattingConfig, index, array) => {
+                      if (
+                        item.colorScheme &&
+                        !['Green', 'Red'].includes(item.colorScheme)
+                      ) {
+                        if (!item.toAllRow || !item.toTextColor) {
+                          // eslint-disable-next-line no-param-reassign
+                          array[index] = {
+                            ...item,
+                            toAllRow: item.toAllRow ?? false,
+                            toTextColor: item.toTextColor ?? false,
+                          };
+                        }
+                      }
+                    },
+                  );
+                }
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
@@ -775,7 +797,8 @@ const config: ControlPanelConfig = {
                         if (
                           coltypes[index] === GenericDataType.Numeric ||
                           (!explore?.controls?.time_compare?.value &&
-                            coltypes[index] === GenericDataType.String)
+                            (coltypes[index] === GenericDataType.String ||
+                              coltypes[index] === GenericDataType.Boolean))
                         ) {
                           acc.push({
                             value: colname,
@@ -801,6 +824,10 @@ const config: ControlPanelConfig = {
                   removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions,
                   verboseMap,
+                  conditionalFormattingFlag: {
+                    toAllRowCheck: true,
+                    toColorTextCheck: true,
+                  },
                 };
               },
             },

@@ -19,7 +19,9 @@
 import { useState, useEffect } from 'react';
 import { Button, Row, Col } from '@superset-ui/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { legacyValidateInteger, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { legacyValidateInteger } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import ControlHeader from '../../ControlHeader';
 import TextControl from '../TextControl';
 import ColorPickerControl from '../ColorPickerControl';

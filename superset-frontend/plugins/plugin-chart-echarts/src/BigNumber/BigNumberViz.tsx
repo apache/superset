@@ -17,17 +17,16 @@
  * under the License.
  */
 import { useState, useEffect, useRef, MouseEvent } from 'react';
+import { t } from '@apache-superset/core';
 import {
-  t,
   getNumberFormatter,
   getTimeFormatter,
   SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
   BRAND_COLOR,
-  styled,
   BinaryQueryObjectFilterClause,
-  useTheme,
 } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
 import { EventHandlers } from '../types';
@@ -380,6 +379,7 @@ function BigNumberVis({
           height={maxHeight}
           echartOptions={echartOptions}
           eventHandlers={eventHandlers}
+          vizType={formData?.vizType}
         />
       )
     );

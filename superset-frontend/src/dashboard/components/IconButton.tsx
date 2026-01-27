@@ -17,7 +17,7 @@
  * under the License.
  */
 import { MouseEventHandler } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 
 interface IconButtonProps {
   icon: JSX.Element;

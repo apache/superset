@@ -101,36 +101,35 @@ describe('queryObject conversion', () => {
 
   it('should convert queryObject', () => {
     const { queries } = buildQuery({ ...formData, x_axis: 'time_column' });
-    expect(queries[0]).toEqual(
-      expect.objectContaining({
-        granularity: 'time_column',
-        time_range: '1 year ago : 2013',
-        extras: { having: '', where: '', time_grain_sqla: 'P1Y' },
-        columns: [
-          {
-            columnType: 'BASE_AXIS',
-            expressionType: 'SQL',
-            label: 'time_column',
-            sqlExpression: 'time_column',
-            timeGrain: 'P1Y',
+    expect(queries[0]).toMatchObject({
+      granularity: 'time_column',
+      time_range: '1 year ago : 2013',
+      extras: { having: '', where: '', time_grain_sqla: 'P1Y' },
+      columns: [
+        {
+          columnType: 'BASE_AXIS',
+          expressionType: 'SQL',
+          label: 'time_column',
+          sqlExpression: 'time_column',
+          timeGrain: 'P1Y',
+          isColumnReference: true,
+        },
+        'col1',
+      ],
+      series_columns: ['col1'],
+      metrics: ['count(*)'],
+      post_processing: [
+        {
+          operation: 'pivot',
+          options: {
+            aggregates: { 'count(*)': { operator: 'mean' } },
+            columns: ['col1'],
+            drop_missing_columns: true,
+            index: ['time_column'],
           },
-          'col1',
-        ],
-        series_columns: ['col1'],
-        metrics: ['count(*)'],
-        post_processing: [
-          {
-            operation: 'pivot',
-            options: {
-              aggregates: { 'count(*)': { operator: 'mean' } },
-              columns: ['col1'],
-              drop_missing_columns: true,
-              index: ['time_column'],
-            },
-          },
-          { operation: 'flatten' },
-        ],
-      }),
-    );
+        },
+        { operation: 'flatten' },
+      ],
+    });
   });
 });

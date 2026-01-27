@@ -31,6 +31,7 @@ import * as exploreUtils from 'src/explore/exploreUtils';
 import * as actions from 'src/components/Chart/chartAction';
 import * as asyncEvent from 'src/middleware/asyncEvent';
 import { handleChartDataResponse } from 'src/components/Chart/chartAction';
+import * as dataMaskActions from 'src/dataMask/actions';
 
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
@@ -108,6 +109,69 @@ describe('chart actions', () => {
     waitForAsyncDataStub = sinon
       .stub(asyncEvent, 'waitForAsyncData')
       .callsFake(data => Promise.resolve(data));
+  });
+
+  test('should defer abort of previous controller to avoid Redux state mutation', async () => {
+    jest.useFakeTimers();
+    const chartKey = 'defer_abort_test';
+    const formData = {
+      slice_id: 123,
+      datasource: 'table__1',
+      viz_type: 'table',
+    };
+    const oldController = new AbortController();
+    const abortSpy = jest.spyOn(oldController, 'abort');
+    const state = {
+      charts: {
+        [chartKey]: {
+          queryController: oldController,
+        },
+      },
+      common: {
+        conf: {
+          SUPERSET_WEBSERVER_TIMEOUT: 60,
+        },
+      },
+    };
+    const getState = jest.fn(() => state);
+    const dispatchMock = jest.fn();
+    const getChartDataRequestSpy = jest
+      .spyOn(actions, 'getChartDataRequest')
+      .mockResolvedValue({
+        response: { status: 200 },
+        json: { result: [] },
+      });
+    const handleChartDataResponseSpy = jest
+      .spyOn(actions, 'handleChartDataResponse')
+      .mockResolvedValue([]);
+    const updateDataMaskSpy = jest
+      .spyOn(dataMaskActions, 'updateDataMask')
+      .mockReturnValue({ type: 'UPDATE_DATA_MASK' });
+    const getQuerySettingsStub = sinon
+      .stub(exploreUtils, 'getQuerySettings')
+      .returns([false, () => {}]);
+
+    try {
+      const thunk = actions.exploreJSON(formData, false, undefined, chartKey);
+      const promise = thunk(dispatchMock, getState);
+
+      expect(abortSpy).not.toHaveBeenCalled();
+      expect(oldController.signal.aborted).toBe(false);
+
+      jest.runOnlyPendingTimers();
+
+      expect(abortSpy).toHaveBeenCalledTimes(1);
+      expect(oldController.signal.aborted).toBe(true);
+
+      await promise;
+    } finally {
+      getChartDataRequestSpy.mockRestore();
+      handleChartDataResponseSpy.mockRestore();
+      updateDataMaskSpy.mockRestore();
+      getQuerySettingsStub.restore();
+      abortSpy.mockRestore();
+      jest.useRealTimers();
+    }
   });
 
   afterEach(() => {
@@ -288,6 +352,28 @@ describe('chart actions', () => {
         const updateFailedAction = dispatch.args[4][0];
         expect(updateFailedAction.type).toBe(actions.CHART_UPDATE_FAILED);
         expect(updateFailedAction.queriesResponse[0].error).toBe('misc error');
+
+        setupDefaultFetchMock();
+      });
+    });
+
+    test('should dispatch CHART_UPDATE_STOPPED action upon abort', () => {
+      fetchMock.post(
+        MOCK_URL,
+        { throws: { name: 'AbortError' } },
+        { overwriteRoutes: true },
+      );
+
+      const timeoutInSec = 100;
+      const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
+
+      return actionThunk(dispatch, mockGetState).then(() => {
+        const types = dispatch.args
+          .map(call => call[0] && call[0].type)
+          .filter(Boolean);
+
+        expect(types).toContain(actions.CHART_UPDATE_STOPPED);
+        expect(types).not.toContain(actions.CHART_UPDATE_FAILED);
 
         setupDefaultFetchMock();
       });

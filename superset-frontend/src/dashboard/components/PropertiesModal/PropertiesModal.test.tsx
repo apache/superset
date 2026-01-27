@@ -26,6 +26,7 @@ import fetchMock from 'fetch-mock';
 import * as ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 import PropertiesModal from '.';
 
 // Increase timeout for CI environment
@@ -453,8 +454,7 @@ describe('PropertiesModal', () => {
     const props = createProps();
     const propsWithDashboardInfo = { ...props, dashboardInfo };
 
-    const getSelect = () =>
-      screen.getByRole('combobox', { name: SupersetCore.t('Roles') });
+    const getSelect = () => screen.getByRole('combobox', { name: t('Roles') });
     const open = () => waitFor(() => userEvent.click(getSelect()));
 
     const getElementsByClassName = (className: string) =>
@@ -488,7 +488,7 @@ describe('PropertiesModal', () => {
         const comboboxes = screen.getAllByRole('combobox');
         expect(comboboxes.length).toBeGreaterThanOrEqual(3);
         expect(
-          screen.getByRole('combobox', { name: SupersetCore.t('Roles') }),
+          screen.getByRole('combobox', { name: t('Roles') }),
         ).toBeInTheDocument();
       },
       { timeout: 5000 },
@@ -512,8 +512,7 @@ describe('PropertiesModal', () => {
     const props = createProps();
     const propsWithDashboardInfo = { ...props, dashboardInfo };
 
-    const getSelect = () =>
-      screen.getByRole('combobox', { name: SupersetCore.t('Owners') });
+    const getSelect = () => screen.getByRole('combobox', { name: t('Owners') });
     const open = () => waitFor(() => userEvent.click(getSelect()));
 
     const getElementsByClassName = (className: string) =>
@@ -549,7 +548,7 @@ describe('PropertiesModal', () => {
         const comboboxes = screen.getAllByRole('combobox');
         expect(comboboxes.length).toBeGreaterThanOrEqual(3);
         expect(
-          screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
+          screen.getByRole('combobox', { name: t('Owners') }),
         ).toBeInTheDocument();
       },
       { timeout: 5000 },
@@ -569,8 +568,7 @@ describe('PropertiesModal', () => {
     const props = createProps();
     const propsWithDashboardInfo = { ...props, dashboardInfo };
 
-    const getSelect = () =>
-      screen.getByRole('combobox', { name: SupersetCore.t('Owners') });
+    const getSelect = () => screen.getByRole('combobox', { name: t('Owners') });
     const open = () => waitFor(() => userEvent.click(getSelect()));
     const getElementsByClassName = (className: string) =>
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
@@ -603,7 +601,7 @@ describe('PropertiesModal', () => {
     await waitFor(
       () => {
         expect(
-          screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
+          screen.getByRole('combobox', { name: t('Owners') }),
         ).toBeInTheDocument();
       },
       { timeout: 5000 },
@@ -616,4 +614,115 @@ describe('PropertiesModal', () => {
     expect(options).toHaveLength(1);
     expect(options[0]).toHaveTextContent('Superset Admin');
   }, 30000);
+
+  test('should not run validation while data is loading', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+
+    // Don't pass dashboardInfo to trigger fetch behavior
+    const { rerender } = render(<PropertiesModal {...props} show={false} />, {
+      useRedux: true,
+    });
+
+    const getSpy = jest.spyOn(SupersetCore.SupersetClient, 'get');
+    let resolveFetch: any;
+    const fetchPromise = new Promise(resolve => {
+      resolveFetch = resolve;
+    });
+
+    getSpy.mockReturnValue(fetchPromise as any);
+
+    rerender(<PropertiesModal {...props} show />);
+
+    // Allow time for validation hooks to run (they shouldn't during loading)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    expect(
+      screen.queryByTestId('dashboard-edit-properties-form'),
+    ).not.toBeInTheDocument();
+
+    resolveFetch({
+      json: {
+        result: { ...dashboardInfo, json_metadata: mockedJsonMetadata },
+      },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('dashboard-edit-properties-form'),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    });
+
+    getSpy.mockRestore();
+  });
+
+  test('should run validation when data is ready', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+
+    // Pass dashboardInfo to skip loading state - data is immediately ready
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('dashboard-edit-properties-form'),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+
+  test('should trigger validation on field changes when data is ready', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('dashboard-edit-properties-form'),
+      ).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getAllByRole('textbox')[0];
+
+    // Clear to trigger validation error
+    userEvent.clear(titleInput);
+    await waitFor(
+      () => {
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+      },
+      { timeout: 1000 },
+    );
+
+    // Re-enter valid title to clear error
+    userEvent.type(titleInput, 'New Dashboard Title');
+    await waitFor(
+      () => {
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+      },
+      { timeout: 1000 },
+    );
+  });
 });

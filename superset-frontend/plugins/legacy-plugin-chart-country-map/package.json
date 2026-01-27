@@ -27,10 +27,11 @@
   },
   "dependencies": {
     "d3": "^3.5.17",
-    "d3-array": "^2.0.3",
+    "d3-array": "^3.2.4",
     "prop-types": "^15.8.1"
   },
   "peerDependencies": {
+    "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "react": "^17.0.2"

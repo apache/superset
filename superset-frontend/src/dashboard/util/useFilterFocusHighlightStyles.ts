@@ -17,10 +17,11 @@
  * under the License.
  */
 import { useMemo } from 'react';
+import { Filter, ChartCustomization } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
-import { useTheme, Filter } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
-import { selectChartCustomizationItems } from 'src/dashboard/components/nativeFilters/ChartCustomization/selectors';
+import { useChartCustomizationFromRedux } from 'src/dashboard/components/nativeFilters/state';
 import {
   getRelatedCharts,
   getRelatedChartsForChartCustomization,
@@ -49,7 +50,7 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
   const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
   const slices =
     useSelector((state: RootState) => state.sliceEntities.slices) || {};
-  const chartCustomizationItems = useSelector(selectChartCustomizationItems);
+  const chartCustomizationItems = useChartCustomizationFromRedux();
 
   const highlightedFilterId =
     nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
@@ -77,9 +78,9 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
       item => item.id === highlightedChartCustomizationId,
     );
 
-    if (customizationItem) {
+    if (customizationItem && 'targets' in customizationItem) {
       const relatedCharts = getRelatedChartsForChartCustomization(
-        customizationItem,
+        customizationItem as ChartCustomization,
         slices,
       );
 

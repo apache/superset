@@ -20,7 +20,8 @@ import { PureComponent } from 'react';
 import { connect } from 'react-redux';
 import { Redirect } from 'react-router-dom';
 import Mousetrap from 'mousetrap';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { throttle } from 'lodash';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
@@ -36,6 +37,8 @@ import {
 } from 'src/logger/LogUtils';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
+import PopEditorTab from '../PopEditorTab';
+import AppLayout from '../AppLayout';
 
 const SqlLabStyles = styled.div`
   ${({ theme }) => css`
@@ -45,7 +48,7 @@ const SqlLabStyles = styled.div`
       right: 0;
       bottom: 0;
       left: 0;
-      padding: 0 ${theme.sizeUnit * 2}px;
+      padding: 0;
 
       pre:not(.code) {
         padding: 0 !important;
@@ -215,7 +218,11 @@ class App extends PureComponent<AppProps, AppState> {
           queries={queries}
           queriesLastUpdate={queriesLastUpdate}
         />
-        <TabbedSqlEditors />
+        <PopEditorTab>
+          <AppLayout>
+            <TabbedSqlEditors />
+          </AppLayout>
+        </PopEditorTab>
       </SqlLabStyles>
     );
   }

@@ -20,7 +20,7 @@ import userEvent from '@testing-library/user-event';
 import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { themeObject } from '@superset-ui/core';
+import { themeObject } from '@apache-superset/core/ui';
 
 // Define the wrapper component outside
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => (

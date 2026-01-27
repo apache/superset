@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
+import { useTheme } from '@apache-superset/core/ui';
 import { now, fDuration } from '../../utils/dates';
-import { useTheme } from '../..';
 import { Label, Icons, type LabelType } from '..';
 
 export interface TimerProps {
@@ -35,7 +35,9 @@ export function Timer({
   status = 'success',
 }: TimerProps) {
   const theme = useTheme();
-  const [clockStr, setClockStr] = useState('00:00:00.00');
+  const [clockStr, setClockStr] = useState(
+    startTime && endTime ? fDuration(startTime, endTime) : '00:00:00.00',
+  );
   const timer = useRef<ReturnType<typeof setInterval>>();
 
   useEffect(() => {

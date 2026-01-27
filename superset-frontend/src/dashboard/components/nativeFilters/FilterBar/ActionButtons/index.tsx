@@ -17,20 +17,19 @@
  * under the License.
  */
 import { useMemo } from 'react';
+import { t } from '@apache-superset/core';
 import {
-  css,
   DataMaskState,
   DataMaskStateWithId,
-  t,
   isDefined,
-  SupersetTheme,
-  styled,
+  ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
+import { css, SupersetTheme, styled } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import tinycolor from 'tinycolor2';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { getFilterBarTestId } from '../utils';
 
 interface ActionButtonsProps {
@@ -39,7 +38,7 @@ interface ActionButtonsProps {
   onClearAll: () => void;
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
-  chartCustomizationItems?: ChartCustomizationItem[];
+  chartCustomizationItems?: (ChartCustomization | ChartCustomizationDivider)[];
   isApplyDisabled: boolean;
   filterBarOrientation?: FilterBarOrientation;
 }
@@ -127,9 +126,13 @@ const ActionButtons = ({
       },
     );
 
-    const hasChartCustomizations = chartCustomizationItems?.some(
-      item => item.customization?.column && !item.removed,
-    );
+    const hasChartCustomizations = chartCustomizationItems?.some(item => {
+      if (item.removed) return false;
+      const mask = dataMaskApplied[item.id] || dataMaskSelected[item.id];
+      const hasValue = isDefined(mask?.filterState?.value);
+      const hasGroupBy = isDefined(mask?.ownState?.column);
+      return hasValue || hasGroupBy;
+    });
 
     return hasSelectedChanges || hasAppliedChanges || hasChartCustomizations;
   }, [dataMaskSelected, dataMaskApplied, chartCustomizationItems]);
@@ -154,7 +157,6 @@ const ActionButtons = ({
       <Button
         disabled={!isClearAllEnabled}
         buttonStyle="link"
-        buttonSize="small"
         className="filter-clear-all-button"
         onClick={onClearAll}
         {...getFilterBarTestId('clear-button')}

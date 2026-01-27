@@ -18,7 +18,8 @@
  */
 import { useEffect, useState, DetailedHTMLProps, HTMLAttributes } from 'react';
 
-import { styled, logging } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
 
 export type BackgroundPosition = 'top' | 'bottom';
 interface ImageContainerProps {
@@ -35,8 +36,10 @@ const ImageContainer = styled.div<ImageContainerProps>`
   width: calc(100% - 2px);
   margin: 1px 1px 0 1px;
 `;
-interface ImageLoaderProps
-  extends DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface ImageLoaderProps extends DetailedHTMLProps<
+  HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> {
   fallback: string;
   src: string;
   isLoading?: boolean;

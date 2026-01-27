@@ -49,20 +49,34 @@ repos:
     hooks:
       - id: check-docstring-first
       - id: check-added-large-files
-        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$
+        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$|^superset/examples/.*/data\.parquet$
       - id: check-yaml
         exclude: ^helm/superset/templates/
       - id: debug-statements
       - id: end-of-file-fixer
-        exclude: .*/lerna\.json$
+        exclude: .*/lerna\.json$|^docs/static/img/logos/
       - id: trailing-whitespace
         exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]
   - repo: local
     hooks:
-      - id: eslint-frontend
-        name: eslint (frontend)
-        entry: ./scripts/eslint.sh
+      - id: prettier-frontend
+        name: prettier (frontend)
+        entry: bash -c 'cd superset-frontend && for file in "$@"; do npx prettier --write "${file#superset-frontend/}"; done'
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
+  - repo: local
+    hooks:
+      - id: oxlint-frontend
+        name: oxlint (frontend)
+        entry: ./scripts/oxlint.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: custom-rules-frontend
+        name: custom rules (frontend)
+        entry: ./scripts/check-custom-rules.sh
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
@@ -92,12 +106,19 @@ repos:
         files: helm
         verbose: false
         args: ["--log-level", "error"]
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.7
+  # Using local hooks ensures ruff version matches requirements/development.txt
+  - repo: local
     hooks:
       - id: ruff-format
+        name: ruff-format
+        entry: ruff format
+        language: system
+        types: [python]
       - id: ruff
-        args: [--fix]
+        name: ruff
+        entry: ruff check --fix --show-fixes
+        language: system
+        types: [python]
   - repo: local
     hooks:
       - id: pylint
@@ -110,11 +131,29 @@ repos:
           - -c
           - |
             TARGET_BRANCH=${GITHUB_BASE_REF:-master}
-            git fetch origin "$TARGET_BRANCH"
-            BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
-            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
+            # Only fetch if we're not in CI (CI already has all refs)
+            if [ -z "$CI" ]; then
+              git fetch --no-recurse-submodules origin "$TARGET_BRANCH" 2>/dev/null || true
+            fi
+            BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD 2>/dev/null) || BASE="HEAD"
+            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD 2>/dev/null | grep '^superset/.*\.py$' || true)
             if [ -n "$files" ]; then
               pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
             else
               echo "No Python files to lint."
             fi
+      - id: db-engine-spec-metadata
+        name: database engine spec metadata validation
+        entry: python superset/db_engine_specs/lint_metadata.py --strict
+        language: system
+        files: ^superset/db_engine_specs/.*\.py$
+        exclude: ^superset/db_engine_specs/(base|lib|lint_metadata|__init__)\.py$
+        pass_filenames: false
+  - repo: local
+    hooks:
+      - id: feature-flags-sync
+        name: feature flags documentation sync
+        entry: bash -c 'python scripts/extract_feature_flags.py > docs/static/feature-flags.json.tmp && if ! diff -q docs/static/feature-flags.json docs/static/feature-flags.json.tmp > /dev/null 2>&1; then mv docs/static/feature-flags.json.tmp docs/static/feature-flags.json && echo "Updated docs/static/feature-flags.json" && exit 1; else rm docs/static/feature-flags.json.tmp; fi'
+        language: system
+        files: ^superset/config\.py$
+        pass_filenames: false

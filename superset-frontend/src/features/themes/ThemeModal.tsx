@@ -26,7 +26,8 @@ import {
 } from 'react';
 import { omit } from 'lodash';
 
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
@@ -35,7 +36,6 @@ import SupersetText from 'src/utils/textUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
-  Alert,
   Button,
   Form,
   Input,
@@ -210,7 +210,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     try {
       JSON.parse(str);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   }, []);

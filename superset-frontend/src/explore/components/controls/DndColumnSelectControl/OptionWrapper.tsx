@@ -30,7 +30,8 @@ import {
 } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import { Tooltip } from '@superset-ui/core/components';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
-import { styled, isAdhocColumn } from '@superset-ui/core';
+import { isAdhocColumn } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import Option from './Option';
 

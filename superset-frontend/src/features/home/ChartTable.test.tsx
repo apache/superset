@@ -42,7 +42,7 @@ const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
 const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
 
-const mockCharts = [...new Array(3)].map((_, i) => ({
+const mockCharts = Array.from({ length: 3 }).map((_, i) => ({
   changed_on_utc: new Date().toISOString(),
   created_by: 'super user',
   id: i,

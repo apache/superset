@@ -17,16 +17,9 @@
  * under the License.
  */
 
-import { supersetTheme, themeObject } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 
-const colorTypes = [
-  'primary',
-  'error',
-  'warning',
-  'success',
-  'info',
-  'grayscale',
-];
+const colorTypes = ['primary', 'error', 'warning', 'success', 'info'];
 
 const AntDFunctionalColors = () => {
   // Define color types and variants dynamically
@@ -66,7 +59,9 @@ const AntDFunctionalColors = () => {
               <strong>{type}</strong>
             </td>
             {variants.map(variant => {
-              const color = themeObject.getColorVariants(type)[variant];
+              // Map to actual theme token names
+              const tokenName = `color${type.charAt(0).toUpperCase() + type.slice(1)}${variant.charAt(0).toUpperCase() + variant.slice(1)}`;
+              const color = (supersetTheme as any)[tokenName];
               return (
                 <td
                   key={variant}
@@ -74,7 +69,7 @@ const AntDFunctionalColors = () => {
                     border: '1px solid #ddd',
                     padding: '8px',
                     backgroundColor: color || 'transparent',
-                    color: `color${type}${variant}`,
+                    color: color === 'transparent' ? 'black' : undefined,
                   }}
                 >
                   {color ? <code>{color}</code> : '-'}
@@ -88,79 +83,19 @@ const AntDFunctionalColors = () => {
   );
 };
 
-export const ThemeColors = () => {
-  const { colors } = supersetTheme;
-
-  // Define tones to be displayed in columns
-  const tones = [
-    'dark5',
-    'dark4',
-    'dark3',
-    'dark1',
-    'base',
-    'light1',
-    'light2',
-    'light3',
-    'light4',
-    'light5',
-  ];
-  return (
-    <div>
-      <h1>Theme Colors</h1>
-      <h2>Legacy Theme Colors</h2>
-      <table
-        style={{ borderCollapse: 'collapse', width: '100%', textAlign: 'left' }}
-      >
-        <thead>
-          <tr>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>
-              Category
-            </th>
-            {tones.map(tone => (
-              <th
-                key={tone}
-                style={{ border: '1px solid #ddd', padding: '8px' }}
-              >
-                {tone}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {colorTypes.map(category => (
-            <tr key={category}>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>
-                <strong>{category}</strong>
-              </td>
-              {tones.map(tone => {
-                const color = colors[category][tone];
-                return (
-                  <td
-                    key={tone}
-                    style={{
-                      border: '1px solid #ddd',
-                      padding: '8px',
-                      backgroundColor: color || '#fff',
-                    }}
-                  >
-                    {color ? <code>{color}</code> : '-'}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <h2>Ant Design Theme Colors</h2>
-      <h3>Functional Colors</h3>
-      <AntDFunctionalColors />
-      <h2>The supersetTheme object</h2>
-      <pre>
-        <code>{JSON.stringify(supersetTheme, null, 2)}</code>
-      </pre>
-    </div>
-  );
-};
+export const ThemeColors = () => (
+  <div>
+    <h1>Theme Colors</h1>
+    <h2>Ant Design Theme Colors</h2>
+    <h3>Functional Colors</h3>
+    <AntDFunctionalColors />
+    <h2>Current SupersetTheme Object</h2>
+    <p>The current theme uses Ant Design's flat token structure:</p>
+    <pre>
+      <code>{JSON.stringify(supersetTheme, null, 2)}</code>
+    </pre>
+  </div>
+);
 /*
  * */
 export default {

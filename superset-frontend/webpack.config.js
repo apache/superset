@@ -27,16 +27,19 @@ const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+const LightningCSS = require('lightningcss');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const {
   WebpackManifestPlugin,
   getCompilerHooks,
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
-const packageConfig = require('./package');
+const packageConfig = require('./package.json');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -63,7 +66,7 @@ const devserverHost =
   cliHost || process.env.WEBPACK_DEVSERVER_HOST || '127.0.0.1';
 
 const isDevMode = mode !== 'production';
-const isDevServer = process.argv[1].includes('webpack-dev-server');
+const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 
 // TypeScript checker memory limit (in MB)
 const TYPESCRIPT_MEMORY_LIMIT = 4096;
@@ -179,6 +182,11 @@ if (!process.env.CI) {
   plugins.push(new webpack.ProgressPlugin());
 }
 
+// Add React Refresh plugin for development mode
+if (isDevMode) {
+  plugins.push(new ReactRefreshWebpackPlugin());
+}
+
 if (!isDevMode) {
   // text loading (webpack 4+)
   plugins.push(
@@ -189,62 +197,23 @@ if (!isDevMode) {
   );
 }
 
-// Type checking for both dev and production
-// In dev mode, this provides real-time type checking and builds .d.ts files for plugins
-// Can be disabled with DISABLE_TYPE_CHECK=true npm run dev
-if (isDevMode) {
-  if (process.env.DISABLE_TYPE_CHECK) {
-    console.log('⚡ Type checking disabled (DISABLE_TYPE_CHECK=true)');
-  } else {
-    console.log(
-      '✅ Type checking enabled (disable with DISABLE_TYPE_CHECK=true npm run dev)',
-    );
-    // Optimized configuration for development - much faster type checking
-    plugins.push(
-      new ForkTsCheckerWebpackPlugin({
-        typescript: {
-          memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
-          build: true, // Generate .d.ts files
-          mode: 'write-references', // Handle project references properly
-          // Use main tsconfig but with safe performance optimizations
-          configOverwrite: {
-            compilerOptions: {
-              // Only safe optimizations that won't cause errors
-              skipLibCheck: true, // Skip checking .d.ts files - safe and huge perf boost
-              incremental: true, // Enable incremental compilation
-            },
-          },
-        },
-        // Logger configuration
-        logger: 'webpack-infrastructure',
-        async: true, // Non-blocking type checking
-        // Only check files that webpack is actually processing
-        // This dramatically reduces the scope of type checking
-        issue: {
-          scope: 'webpack', // Only check files in webpack's module graph, not entire project
-          include: [
-            { file: 'src/**/*.{ts,tsx}' },
-            { file: 'packages/*/src/**/*.{ts,tsx}' },
-            { file: 'plugins/*/src/**/*.{ts,tsx}' },
-          ],
-          exclude: [{ file: '**/node_modules/**' }],
-        },
-      }),
-    );
-  }
-} else {
-  // Production mode - full type checking
+// TypeScript type checking configuration
+// SWC handles transpilation, but we still need ForkTsCheckerWebpackPlugin
+// to generate .d.ts files for the plugin packages
+if (!isDevMode) {
   plugins.push(
     new ForkTsCheckerWebpackPlugin({
+      async: false,
       typescript: {
-        memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
-        build: true,
-        mode: 'write-references',
-      },
-      // Logger configuration
-      logger: 'webpack-infrastructure',
-      issue: {
-        exclude: [{ file: '**/node_modules/**' }],
+        memoryLimit: 4096,
+        build: true, // CRITICAL: Generate .d.ts files for plugins
+        mode: 'write-references', // Handle project references
+        configOverwrite: {
+          compilerOptions: {
+            skipLibCheck: true,
+            incremental: true,
+          },
+        },
       },
     }),
   );
@@ -265,33 +234,64 @@ function addPreamble(entry) {
   return PREAMBLE.concat([path.join(APP_DIR, entry)]);
 }
 
-const babelLoader = {
-  loader: 'babel-loader',
-  options: {
-    cacheDirectory: true,
-    // disable gzip compression for cache files
-    // faster when there are millions of small files
-    cacheCompression: false,
-    presets: [
-      [
-        '@babel/preset-react',
-        {
-          runtime: 'automatic',
-          importSource: '@emotion/react',
+// SWC configuration for TypeScript/JavaScript transpilation
+function createSwcLoader(syntax = 'typescript', tsx = true) {
+  return {
+    loader: 'swc-loader',
+    options: {
+      jsc: {
+        parser: {
+          syntax,
+          tsx: syntax === 'typescript' ? tsx : undefined,
+          jsx: syntax === 'ecmascript',
+          decorators: false,
+          dynamicImport: true,
         },
-      ],
-    ],
-    plugins: [
-      [
-        '@emotion/babel-plugin',
-        {
-          autoLabel: 'dev-only',
-          labelFormat: '[local]',
+        transform: {
+          react: {
+            runtime: 'automatic',
+            importSource: '@emotion/react',
+            development: isDevMode,
+            refresh: isDevMode,
+          },
         },
-      ],
-    ],
-  },
-};
+        target: 'es2015',
+        loose: true,
+        externalHelpers: false,
+        experimental: {
+          plugins: [
+            [
+              '@swc/plugin-emotion',
+              {
+                sourceMap: isDevMode,
+                autoLabel: isDevMode ? 'dev-only' : 'never',
+                labelFormat: '[local]',
+              },
+            ],
+            [
+              '@swc/plugin-transform-imports',
+              {
+                lodash: {
+                  transform: 'lodash/{{member}}',
+                  preventFullImport: true,
+                  skipDefaultConversion: false,
+                },
+                'lodash-es': {
+                  transform: 'lodash-es/{{member}}',
+                  preventFullImport: true,
+                  skipDefaultConversion: false,
+                },
+              },
+            ],
+          ],
+        },
+      },
+      module: {
+        type: 'es6',
+      },
+    },
+  };
+}
 
 const config = {
   entry: {
@@ -386,7 +386,31 @@ const config = {
       },
     },
     usedExports: 'global',
-    minimizer: [new CssMinimizerPlugin(), '...'],
+    minimizer: [
+      new CssMinimizerPlugin({
+        minify: CssMinimizerPlugin.lightningCssMinify,
+        minimizerOptions: {
+          targets: LightningCSS.browserslistToTargets([
+            'last 3 chrome versions',
+            'last 3 firefox versions',
+            'last 3 safari versions',
+            'last 3 edge versions',
+          ]),
+        },
+      }),
+      new TerserPlugin({
+        minify: TerserPlugin.swcMinify,
+        terserOptions: {
+          compress: {
+            drop_console: false,
+          },
+          mangle: true,
+          format: {
+            comments: false,
+          },
+        },
+      }),
+    ],
   },
   resolve: {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
@@ -444,29 +468,8 @@ const config = {
       },
       {
         test: /\.tsx?$/,
-        exclude: [/\.test.tsx?$/],
-        use: [
-          'thread-loader',
-          babelLoader,
-          {
-            loader: 'ts-loader',
-            options: {
-              // transpile only in happyPack mode
-              // type checking is done via fork-ts-checker-webpack-plugin
-              happyPackMode: true,
-              transpileOnly: true,
-              // must override compiler options here, even though we have set
-              // the same options in `tsconfig.json`, because they may still
-              // be overridden by `tsconfig.json` in node_modules subdirectories.
-              compilerOptions: {
-                esModuleInterop: false,
-                importHelpers: false,
-                module: 'esnext',
-                target: 'esnext',
-              },
-            },
-          },
-        ],
+        exclude: [/\.test.tsx?$/, /node_modules/],
+        use: ['thread-loader', createSwcLoader('typescript', true)],
       },
       {
         test: /\.jsx?$/,
@@ -479,19 +482,11 @@ const config = {
           ), // redundant but required for windows
           /@encodable/,
         ],
-        use: [babelLoader],
+        use: [createSwcLoader('ecmascript')],
       },
       {
         test: /ace-builds.*\/worker-.*$/,
         type: 'asset/resource',
-      },
-      // react-hot-loader use "ProxyFacade", which is a wrapper for react Component
-      // see https://github.com/gaearon/react-hot-loader/issues/1311
-      // TODO: refactor recurseReactClone
-      {
-        test: /\.js$/,
-        include: /node_modules\/react-dom/,
-        use: ['react-hot-loader/webpack'],
       },
       {
         test: /\.css$/,
@@ -607,7 +602,7 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const dir = relativeDir.replace('file:', '');
 
   if (
-    (/^@superset-ui/.test(pkg) || /^@apache-superset/.test(pkg)) &&
+    (pkg.startsWith('@superset-ui') || pkg.startsWith('@apache-superset')) &&
     fs.existsSync(srcPath)
   ) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
@@ -637,7 +632,16 @@ if (isDevMode) {
     hot: true,
     host: devserverHost,
     port: devserverPort,
-    allowedHosts: ['localhost', '.localhost', '127.0.0.1', '::1', '.local'],
+    allowedHosts: [
+      ...new Set([
+        devserverHost,
+        'localhost',
+        '.localhost',
+        '127.0.0.1',
+        '::1',
+        '.local',
+      ]),
+    ],
     proxy: [() => proxyConfig],
     client: {
       overlay: {

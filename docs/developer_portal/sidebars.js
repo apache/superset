@@ -22,16 +22,10 @@ module.exports = {
     'index',
     {
       type: 'category',
-      label: 'Getting Started',
+      label: 'Contributing',
+      collapsed: true,
       items: [
-        'getting-started/index',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Architecture',
-      items: [
-        'architecture/overview',
+        'contributing/overview',
       ],
     },
     {
@@ -39,47 +33,32 @@ module.exports = {
       label: 'Extensions',
       collapsed: true,
       items: [
-        'extensions/architectural-principles',
-        'extensions/high-level-architecture',
-        'extensions/extension-project-structure',
-        'extensions/extension-metadata',
-        'extensions/frontend-contribution-types',
-        'extensions/interacting-with-host',
-        'extensions/dynamic-module-loading',
-        'extensions/deploying-extension',
-        'extensions/lifecycle-management',
-        'extensions/development-mode',
-        'extensions/versioning',
-        'extensions/security-implications',
+        'extensions/overview',
+        'extensions/quick-start',
+        'extensions/architecture',
+        'extensions/dependencies',
+        'extensions/contribution-types',
         {
-          type: 'doc',
-          id: 'extensions/built-in-features',
-          customProps: {
-            disabled: true,
-          },
+          type: 'category',
+          label: 'Extension Points',
+          collapsed: true,
+          items: [
+            'extensions/extension-points/sqllab',
+          ],
         },
-        'extensions/proof-of-concept',
+        'extensions/development',
+        'extensions/deployment',
+        'extensions/mcp',
+        'extensions/security',
+        'extensions/registry',
       ],
     },
     {
       type: 'category',
-      label: 'API Reference',
+      label: 'Testing',
+      collapsed: true,
       items: [
-        'api/frontend',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'CLI',
-      items: [
-        'cli/overview',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Examples',
-      items: [
-        'examples/index',
+        'testing/overview',
       ],
     },
   ],

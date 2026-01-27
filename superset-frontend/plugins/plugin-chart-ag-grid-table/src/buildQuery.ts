@@ -20,11 +20,16 @@ import {
   AdhocColumn,
   buildQueryContext,
   ensureIsArray,
+  getColumnLabel,
   getMetricLabel,
+  isDefined,
   isPhysicalColumn,
+  QueryFormColumn,
+  QueryFormMetric,
   QueryFormOrderBy,
   QueryMode,
   QueryObject,
+  QueryObjectExtras,
   removeDuplicates,
   PostProcessingRule,
   BuildQuery,
@@ -115,6 +120,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
+    // Dashboard filter override - allows dashboard-level time shifts to OVERRIDE
+    // chart-level time shift settings (from PRs #33947 and #34014)
+    if (extra_form_data?.time_compare) {
+      timeOffsets = [extra_form_data.time_compare];
+    }
+
     let temporalColumnAdded = false;
     let temporalColumn = null;
 
@@ -192,6 +203,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
+
     // Build Query flag to check if its for either download as csv, excel or json
     const isDownloadQuery =
       ['csv', 'xlsx'].includes(formData?.result_format || '') ||
@@ -211,22 +223,145 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       moreProps.row_offset = currentPage * pageSize;
     }
 
-    // getting sort by in case of server pagination from own state
     let sortByFromOwnState: QueryFormOrderBy[] | undefined;
-    if (Array.isArray(ownState?.sortBy) && ownState?.sortBy.length > 0) {
-      const sortByItem = ownState?.sortBy[0];
-      sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
+
+    const sortSource =
+      isDownloadQuery && ownState?.sortModel
+        ? ownState.sortModel
+        : ownState?.sortBy;
+
+    if (Array.isArray(sortSource) && sortSource.length > 0) {
+      const mapColIdToIdentifier = (colId: string): string | undefined => {
+        const matchingColumn = columns.find((col: QueryFormColumn) => {
+          const colLabel = getColumnLabel(col);
+          return colLabel === colId;
+        });
+
+        if (matchingColumn) {
+          if (
+            typeof matchingColumn === 'object' &&
+            'sqlExpression' in matchingColumn
+          ) {
+            return matchingColumn.sqlExpression;
+          }
+          return getColumnLabel(matchingColumn);
+        }
+
+        const matchingMetric = (metrics || []).find((met: QueryFormMetric) => {
+          const metLabel = getMetricLabel(met);
+          return metLabel === colId || `%${metLabel}` === colId;
+        });
+
+        if (matchingMetric) {
+          return getMetricLabel(matchingMetric);
+        }
+
+        return colId;
+      };
+
+      sortByFromOwnState = sortSource
+        .map(
+          (sortItem: {
+            colId?: string | number;
+            key?: string | number;
+            sort?: string;
+            desc?: boolean;
+          }) => {
+            const colId = isDefined(sortItem?.colId)
+              ? sortItem.colId
+              : sortItem?.key;
+            if (!isDefined(colId)) return null;
+            const sortKey = mapColIdToIdentifier(String(colId));
+            if (!sortKey) return null;
+            const isDesc = sortItem?.sort === 'desc' || sortItem?.desc;
+            return [sortKey, !isDesc] as QueryFormOrderBy;
+          },
+        )
+        .filter((item): item is QueryFormOrderBy => item !== null);
+
+      // Add secondary sort for stable ordering (matches AG Grid's stable sort behavior)
+      if (sortByFromOwnState.length === 1 && isDownloadQuery && orderby) {
+        const primarySort = sortByFromOwnState[0][0];
+        orderby.forEach(orderItem => {
+          if (orderItem[0] !== primarySort) {
+            sortByFromOwnState!.push(orderItem);
+          }
+        });
+      }
+    }
+
+    // Note: In Superset, "columns" are dimensions and "metrics" are measures,
+    // but AG Grid treats them all as "columns" in the UI
+    let orderedColumns = columns;
+    let orderedMetrics = metrics;
+
+    if (
+      isDownloadQuery &&
+      ownState.columnOrder &&
+      Array.isArray(ownState.columnOrder)
+    ) {
+      type ColumnOrMetric = QueryFormColumn | QueryFormMetric;
+
+      const matchesColId = (item: ColumnOrMetric, colId: string): boolean => {
+        if (typeof item === 'string') {
+          return item === colId;
+        }
+
+        // Check AdhocColumn properties
+        if ('sqlExpression' in item || 'columnName' in item) {
+          return (
+            (item as AdhocColumn).sqlExpression === colId ||
+            item.label === colId
+          );
+        }
+
+        // Check metric properties
+        return getMetricLabel(item) === colId || item.label === colId;
+      };
+
+      const reorderByColumnOrder = (
+        items: ColumnOrMetric[],
+      ): ColumnOrMetric[] => {
+        const ordered: ColumnOrMetric[] = [];
+        const remaining = new Set(items);
+
+        ownState.columnOrder.forEach((colId: string) => {
+          const match = items.find(
+            item => remaining.has(item) && matchesColId(item, colId),
+          );
+          if (match) {
+            ordered.push(match);
+            remaining.delete(match);
+          }
+        });
+
+        remaining.forEach(item => ordered.push(item));
+        return ordered;
+      };
+
+      orderedColumns = reorderByColumnOrder(columns) as typeof columns;
+      orderedMetrics = metrics
+        ? (reorderByColumnOrder(metrics) as typeof metrics)
+        : metrics;
     }
 
     let queryObject = {
       ...baseQueryObject,
-      columns,
-      extras,
+      columns: orderedColumns,
+      extras: {
+        ...extras,
+        // Pass column order to enable mixed column+metric ordering
+        ...(isDownloadQuery &&
+        ownState.columnOrder &&
+        Array.isArray(ownState.columnOrder)
+          ? { column_order: ownState.columnOrder }
+          : {}),
+      },
       orderby:
-        formData.server_pagination && sortByFromOwnState
+        (formData.server_pagination || isDownloadQuery) && sortByFromOwnState
           ? sortByFromOwnState
           : orderby,
-      metrics,
+      metrics: orderedMetrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
       ...moreProps,
@@ -240,9 +375,11 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     ) {
       queryObject = { ...queryObject, row_offset: 0 };
       const modifiedOwnState = {
-        ...(options?.ownState || {}),
+        ...options?.ownState,
         currentPage: 0,
         pageSize: queryObject.row_limit ?? 0,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
     }
@@ -252,21 +389,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     });
 
     const extraQueries: QueryObject[] = [];
-    if (
-      metrics?.length &&
-      formData.show_totals &&
-      queryMode === QueryMode.Aggregate
-    ) {
-      extraQueries.push({
-        ...queryObject,
-        columns: [],
-        row_limit: 0,
-        row_offset: 0,
-        post_processing: [],
-        order_desc: undefined, // we don't need orderby stuff here,
-        orderby: undefined, // because this query will be used for get total aggregation.
-      });
-    }
 
     const interactiveGroupBy = formData.extra_form_data?.interactive_groupby;
     if (interactiveGroupBy && queryObject.columns) {
@@ -274,6 +396,43 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         ...new Set([...queryObject.columns, ...interactiveGroupBy]),
       ];
     }
+
+    /**
+     * Helper to determine if a column is a metric (needs HAVING) or dimension (needs WHERE)
+     */
+    const isMetricColumn = (colId: string): boolean => {
+      const metricLabels = new Set(
+        (metrics || []).map(m =>
+          typeof m === 'string' ? m : getMetricLabel(m),
+        ),
+      );
+      return metricLabels.has(colId) || colId.startsWith('%');
+    };
+
+    /**
+     * Helper to classify SQL clauses into WHERE (for dimensions) and HAVING (for metrics)
+     */
+    const classifySQLClauses = (
+      sqlClauses: Record<string, string>,
+    ): { whereClause?: string; havingClause?: string } => {
+      const whereClauses: string[] = [];
+      const havingClauses: string[] = [];
+
+      Object.entries(sqlClauses).forEach(([colId, sqlClause]) => {
+        if (isMetricColumn(colId)) {
+          havingClauses.push(sqlClause);
+        } else {
+          whereClauses.push(sqlClause);
+        }
+      });
+
+      return {
+        whereClause:
+          whereClauses.length > 0 ? whereClauses.join(' AND ') : undefined,
+        havingClause:
+          havingClauses.length > 0 ? havingClauses.join(' AND ') : undefined,
+      };
+    };
 
     if (formData.server_pagination) {
       // Add search filter if search text exists
@@ -290,6 +449,152 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           ],
         };
       }
+      // Add AG Grid column filters from ownState (non-metric filters only)
+      if (
+        ownState.agGridSimpleFilters &&
+        ownState.agGridSimpleFilters.length > 0
+      ) {
+        // Get columns that have AG Grid filters
+        const agGridFilterColumns = new Set(
+          ownState.agGridSimpleFilters.map(
+            (filter: { col: string }) => filter.col,
+          ),
+        );
+
+        // Remove existing TEMPORAL_RANGE filters for columns that have new AG Grid filters
+        // This prevents duplicate filters like "No filter" and actual date ranges
+        const existingFilters = (queryObject.filters || []).filter(filter => {
+          // Keep filter if it doesn't have the expected structure
+          if (!filter || typeof filter !== 'object' || !filter.col) {
+            return true;
+          }
+          // Keep filter if it's not a temporal range filter
+          if (filter.op !== 'TEMPORAL_RANGE') {
+            return true;
+          }
+          // Remove if this column has an AG Grid filter
+          return !agGridFilterColumns.has(filter.col);
+        });
+
+        queryObject = {
+          ...queryObject,
+          filters: [...existingFilters, ...ownState.agGridSimpleFilters],
+        };
+      }
+
+      // Add AG Grid complex WHERE clause from ownState (non-metric filters)
+      if (ownState.agGridComplexWhere && ownState.agGridComplexWhere.trim()) {
+        const existingWhere = queryObject.extras?.where;
+        const combinedWhere = existingWhere
+          ? `${existingWhere} AND ${ownState.agGridComplexWhere}`
+          : ownState.agGridComplexWhere;
+
+        queryObject = {
+          ...queryObject,
+          extras: {
+            ...queryObject.extras,
+            where: combinedWhere,
+          },
+        };
+      }
+
+      // Add AG Grid HAVING clause from ownState (metric filters only)
+      if (ownState.agGridHavingClause && ownState.agGridHavingClause.trim()) {
+        const existingHaving = queryObject.extras?.having;
+        const combinedHaving = existingHaving
+          ? `${existingHaving} AND ${ownState.agGridHavingClause}`
+          : ownState.agGridHavingClause;
+
+        queryObject = {
+          ...queryObject,
+          extras: {
+            ...queryObject.extras,
+            having: combinedHaving,
+          },
+        };
+      }
+    }
+
+    if (isDownloadQuery) {
+      // Apply any QueryFilterClause filters from ownState (e.g., server pagination search)
+      if (ownState.filters?.length) {
+        queryObject.filters = [
+          ...(queryObject.filters || []),
+          ...ownState.filters,
+        ];
+      }
+
+      // Apply AG Grid filters as SQL WHERE/HAVING clauses
+      if (ownState.sqlClauses) {
+        const { whereClause, havingClause } = classifySQLClauses(
+          ownState.sqlClauses as Record<string, string>,
+        );
+
+        if (whereClause || havingClause) {
+          queryObject.extras = {
+            ...queryObject.extras,
+            transpile_to_dialect: true,
+            ...(whereClause && {
+              where: queryObject.extras?.where
+                ? `${queryObject.extras.where} AND ${whereClause}`
+                : whereClause,
+            }),
+            ...(havingClause && {
+              having: queryObject.extras?.having
+                ? `${queryObject.extras.having} AND ${havingClause}`
+                : havingClause,
+            }),
+          } as QueryObjectExtras;
+        }
+      }
+    }
+
+    // Create totals query AFTER all filters (including AG Grid filters) are applied
+    // This ensures we can properly exclude AG Grid WHERE filters from the totals
+    if (
+      metrics?.length &&
+      formData.show_totals &&
+      queryMode === QueryMode.Aggregate
+    ) {
+      // Create a copy of extras without the AG Grid WHERE clause
+      // AG Grid filters in extras.where can reference calculated columns
+      // which aren't available in the totals subquery
+      const totalsExtras = { ...queryObject.extras };
+      if (ownState.agGridComplexWhere) {
+        // Remove AG Grid WHERE clause from totals query
+        const whereClause = totalsExtras.where;
+        if (whereClause) {
+          // Remove the AG Grid filter part from the WHERE clause using string methods
+          const agGridWhere = ownState.agGridComplexWhere;
+          let newWhereClause = whereClause;
+
+          // Try to remove with " AND " before
+          newWhereClause = newWhereClause.replace(` AND ${agGridWhere}`, '');
+          // Try to remove with " AND " after
+          newWhereClause = newWhereClause.replace(`${agGridWhere} AND `, '');
+          // If it's the only clause, remove it entirely
+          if (newWhereClause === agGridWhere) {
+            newWhereClause = '';
+          }
+
+          if (newWhereClause.trim()) {
+            totalsExtras.where = newWhereClause;
+          } else {
+            delete totalsExtras.where;
+          }
+        }
+      }
+
+      extraQueries.push({
+        ...queryObject,
+        columns: [],
+        extras: totalsExtras, // Use extras with AG Grid WHERE removed
+        row_limit: 0,
+        row_offset: 0,
+        post_processing: [],
+        order_desc: undefined, // we don't need orderby stuff here,
+        orderby: undefined, // because this query will be used for get total aggregation.
+      });
     }
 
     // Now since row limit control is always visible even
@@ -317,8 +622,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 // Use this closure to cache changing of external filters, if we have server pagination we need reset page to 0, after
 // external filter changed
 export const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
-  let cachedChanges: any = {};
-  const setCachedChanges = (newChanges: any) => {
+  let cachedChanges: Record<string, unknown> = {};
+  const setCachedChanges = (newChanges: Record<string, unknown>) => {
     cachedChanges = { ...cachedChanges, ...newChanges };
   };
 

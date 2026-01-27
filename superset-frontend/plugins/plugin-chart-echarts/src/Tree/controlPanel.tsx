@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   ControlPanelConfig,
   ControlSubSectionHeader,
@@ -275,6 +275,23 @@ const controlPanel: ControlPanelConfig = {
               ],
               description: t(
                 'Whether to enable changing graph position and scaling.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'initialTreeDepth',
+            config: {
+              type: 'NumberControl',
+              label: t('Initial tree depth'),
+              min: -1,
+              step: 1,
+              max: 10,
+              default: DEFAULT_FORM_DATA.initialTreeDepth,
+              renderTrigger: true,
+              description: t(
+                'The initial level (depth) of the tree. If set as -1 all nodes are expanded.',
               ),
             },
           },

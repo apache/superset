@@ -22,14 +22,9 @@ import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { MenuDotsDropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
-import {
-  styled,
-  css,
-  t,
-  QueryState,
-  SupersetTheme,
-  useTheme,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { QueryState } from '@superset-ui/core';
+import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   removeQueryEditor,
   removeAllOtherQueryEditors,
@@ -168,24 +163,6 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
                       />
                     </IconContainer>
                     {t('Rename tab')}
-                  </>
-                ),
-              } as MenuItemType,
-              {
-                key: '3',
-                onClick: () => actions.toggleLeftBar(qe),
-                'data-test': 'toggle-menu-option',
-                label: (
-                  <>
-                    <IconContainer>
-                      <Icons.VerticalAlignBottomOutlined
-                        iconSize="l"
-                        css={css`
-                          rotate: ${qe.hideLeftBar ? '-90deg;' : '90deg;'};
-                        `}
-                      />
-                    </IconContainer>
-                    {qe.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
                   </>
                 ),
               } as MenuItemType,

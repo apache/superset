@@ -18,7 +18,8 @@
  */
 import { forwardRef, ReactNode } from 'react';
 
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
@@ -50,6 +51,16 @@ export const FilterTitle = styled.div`
   `}
 `;
 
+const StyledFilterIcon = styled(Icons.FilterOutlined)`
+  color: ${({ theme }) => theme.colorIcon};
+  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
+const StyledDividerIcon = styled(Icons.PicCenterOutlined)`
+  color: ${({ theme }) => theme.colorIcon};
+  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
 const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
   color: ${({ theme }) => theme.colorErrorText};
   &.anticon {
@@ -73,6 +84,8 @@ interface Props {
   filters: string[];
   erroredFilters: string[];
 }
+
+const isFilterDivider = (id: string) => id.startsWith('NATIVE_FILTER_DIVIDER');
 
 const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
   (
@@ -115,6 +128,11 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                 wordBreak: 'break-all',
               }}
             >
+              {isFilterDivider(id) ? (
+                <StyledDividerIcon iconSize="m" />
+              ) : (
+                <StyledFilterIcon iconSize="m" />
+              )}
               {isRemoved ? t('(Removed)') : getFilterTitle(id)}
             </div>
             {!removedFilters[id] && isErrored && (

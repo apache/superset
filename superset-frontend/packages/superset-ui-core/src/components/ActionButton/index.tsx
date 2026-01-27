@@ -23,7 +23,7 @@ import {
   type TooltipPlacement,
   type IconType,
 } from '@superset-ui/core/components';
-import { css, useTheme } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 
 export interface ActionProps {
   label: string;

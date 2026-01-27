@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core';
 import {
   COMMON_ERR_MESSAGES,
   JsonObject,
   SupersetClientResponse,
-  t,
   SupersetError,
   ErrorTypeEnum,
   isProbablyHTML,

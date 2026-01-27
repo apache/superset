@@ -18,7 +18,7 @@
  */
 import { PureComponent } from 'react';
 import cx from 'classnames';
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 import type { ConnectDragSource } from 'react-dnd';
 import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';

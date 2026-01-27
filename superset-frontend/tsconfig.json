@@ -9,7 +9,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
 
-    "types": ["jest", "node", "@testing-library/jest-dom"],
+    "types": ["jest", "node"],
     "typeRoots": ["src/types", "node_modules/@types"],
 
     /* Emit */
@@ -56,12 +56,20 @@
       "@apache-superset/core": ["./packages/superset-core/src"],
       "@apache-superset/core/*": ["./packages/superset-core/src/*"],
       "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
+      "@superset-ui/legacy-plugin-chart-*": ["./plugins/legacy-plugin-chart-*/src"],
+      "@superset-ui/legacy-preset-chart-*": ["./plugins/legacy-preset-chart-*/src"],
       "echarts/types/src/*": ["./node_modules/echarts/types/src/*"]
     }
   },
   "include": [
     "./src/**/*",
-    "./spec/**/*"
+    "./spec/**/*",
+    "./plugins/**/*",
+    "./packages/**/*",
+    "./scripts/**/*",
+    "./webpack.config.js",
+    "./webpack*.js",
+    "./package.json"
   ],
   "references": [
     { "path": "./packages/superset-core" },

@@ -21,7 +21,7 @@ import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
 import { useSelector } from 'react-redux';
-import { css, useTheme } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { LayoutItem, RootState } from 'src/dashboard/types';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
@@ -278,7 +278,7 @@ const ChartHolder = ({
           {!!outlinedComponentId && (
             <style>
               {`label[for=${outlinedColumnName}] + .Select .Select__control {
-                    border-color: #00736a;
+                    border-color: ${theme.colorPrimary};
                     transition: border-color 1s ease-in-out;
                   }`}
             </style>

@@ -19,7 +19,7 @@
  */
 import { RefObject, ReactNode, PureComponent } from 'react';
 
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import cx from 'classnames';
 
 interface HoverMenuProps {

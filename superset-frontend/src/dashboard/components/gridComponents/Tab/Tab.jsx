@@ -16,25 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useCallback, memo } from 'react';
+import { Fragment, useCallback, memo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { styled, t } from '@superset-ui/core';
+import { t, styled } from '@apache-superset/core/ui';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
-import { setEditMode } from 'src/dashboard/actions/dashboardState';
+import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
+import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
+import { Typography } from '@superset-ui/core/components/Typography';
 import {
   DragDroppable,
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
+import { Link } from 'react-router-dom';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
+
+// Delay before refreshing charts to ensure they are fully mounted
+const CHART_MOUNT_DELAY = 100;
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
@@ -51,6 +57,7 @@ const propTypes = {
   onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   embeddedMode: PropTypes.bool,
+  onTabTitleEditingChange: PropTypes.func,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -63,6 +70,7 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
+  isComponentVisible: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -75,6 +83,7 @@ const defaultProps = {
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
+  onTabTitleEditingChange() {},
 };
 
 const TabTitleContainer = styled.div`
@@ -113,6 +122,53 @@ const renderDraggableContent = dropProps =>
 const Tab = props => {
   const dispatch = useDispatch();
   const canEdit = useSelector(state => state.dashboardInfo.dash_edit_perm);
+  const dashboardLayout = useSelector(state => state.dashboardLayout.present);
+  const lastRefreshTime = useSelector(
+    state => state.dashboardState.lastRefreshTime,
+  );
+  const tabActivationTime = useSelector(
+    state => state.dashboardState.tabActivationTimes?.[props.id] || 0,
+  );
+  const dashboardInfo = useSelector(state => state.dashboardInfo);
+
+  // Track which refresh we've already handled to prevent duplicates
+  const handledRefreshRef = useRef(null);
+
+  useEffect(() => {
+    if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
+      if (
+        lastRefreshTime &&
+        tabActivationTime &&
+        lastRefreshTime > tabActivationTime
+      ) {
+        // Create a unique key for this specific refresh
+        const refreshKey = `${props.id}-${lastRefreshTime}`;
+
+        // Only proceed if we haven't already handled this refresh
+        if (handledRefreshRef.current !== refreshKey) {
+          handledRefreshRef.current = refreshKey;
+
+          const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
+          if (chartIds.length > 0) {
+            // Use lazy load flag to avoid updating global refresh time
+            setTimeout(() => {
+              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id, true));
+            }, CHART_MOUNT_DELAY);
+          }
+        }
+      }
+    }
+  }, [
+    props.isComponentVisible,
+    props.renderType,
+    props.id,
+    lastRefreshTime,
+    tabActivationTime,
+    dashboardLayout,
+    dashboardInfo.id,
+    dispatch,
+  ]);
+
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }) => {
       props.setDirectPathToChild(pathToTabIndex);
@@ -208,41 +264,55 @@ const Tab = props => {
           </Droppable>
         )}
         {shouldDisplayEmptyState && (
-          <EmptyState
-            title={
-              editMode
-                ? t('Drag and drop components to this tab')
-                : t('There are no components added to this tab')
-            }
-            description={
-              canEdit &&
-              (editMode ? (
-                <span>
-                  {t('You can')}{' '}
-                  <a
-                    href={`/chart/add?dashboard_id=${dashboardId}`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {t('create a new chart')}
-                  </a>{' '}
-                  {t('or use existing ones from the panel on the right')}
-                </span>
-              ) : (
-                <span>
-                  {t('You can add the components in the')}{' '}
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => dispatch(setEditMode(true))}
-                  >
-                    {t('edit mode')}
-                  </span>
-                </span>
-              ))
-            }
-            image="chart.svg"
-          />
+          <Droppable
+            component={tabComponent}
+            orientation="column"
+            index={editMode ? 1 : 0}
+            depth={depth}
+            onDrop={handleTopDropTargetDrop}
+            editMode={editMode}
+            dropToChild
+          >
+            {() => (
+              <div data-test="emptystate-drop-indicator">
+                <EmptyState
+                  title={
+                    editMode
+                      ? t('Drag and drop components to this tab')
+                      : t('There are no components added to this tab')
+                  }
+                  description={
+                    canEdit &&
+                    (editMode ? (
+                      <span>
+                        {t('You can')}{' '}
+                        <Typography.Link
+                          href={`/chart/add?dashboard_id=${dashboardId}`}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          {t('create a new chart')}
+                        </Typography.Link>{' '}
+                        {t('or use existing ones from the panel on the right')}
+                      </span>
+                    ) : (
+                      <span>
+                        {t('You can add the components in the')}{' '}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => dispatch(setEditMode(true))}
+                        >
+                          {t('edit mode')}
+                        </span>
+                      </span>
+                    ))
+                  }
+                  image="chart.svg"
+                />
+              </div>
+            )}
+          </Droppable>
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
           <Fragment key={componentId}>
@@ -314,6 +384,7 @@ const Tab = props => {
         isHighlighted,
         dashboardId,
         embeddedMode,
+        onTabTitleEditingChange,
       } = props;
       return (
         <TabTitleContainer
@@ -329,6 +400,7 @@ const Tab = props => {
             onSaveTitle={handleChangeText}
             showTooltip={false}
             editing={editMode && isFocused}
+            onEditingChange={onTabTitleEditingChange}
           />
           {!editMode && !embeddedMode && (
             <AnchorLink
@@ -354,6 +426,7 @@ const Tab = props => {
       props.isFocused,
       props.isHighlighted,
       props.dashboardId,
+      props.onTabTitleEditingChange,
       handleChangeText,
     ],
   );

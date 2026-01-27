@@ -20,13 +20,11 @@
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  styled,
-  css,
   isFeatureEnabled,
   FeatureFlag,
-  t,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { styled, css, t } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -219,6 +217,7 @@ const Header = () => {
   const refreshTimer = useRef(0);
   const ctrlYTimeout = useRef(0);
   const ctrlZTimeout = useRef(0);
+  const previousThemeRef = useRef(dashboardInfo.theme);
 
   const dashboardTitle = layout[DASHBOARD_HEADER_ID]?.meta?.text;
   const { slug } = dashboardInfo;
@@ -325,11 +324,12 @@ const Header = () => {
     startPeriodicRender(refreshFrequency * 1000);
   }, [refreshFrequency, startPeriodicRender]);
 
-  // Ensure theme changes are tracked as unsaved changes
+  // Track theme changes as unsaved changes, and sync ref when navigating between dashboards
   useEffect(() => {
-    if (editMode && dashboardInfo.theme !== undefined) {
+    if (editMode && dashboardInfo.theme !== previousThemeRef.current) {
       boundActionCreators.setUnsavedChanges(true);
     }
+    previousThemeRef.current = dashboardInfo.theme;
   }, [dashboardInfo.theme, editMode, boundActionCreators]);
 
   useEffect(() => {
@@ -528,6 +528,7 @@ const Header = () => {
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
     findPermission('can_set_embedded', 'Dashboard', user.roles);
+  const userCanExport = dashboardInfo.dash_export_perm;
   const isEmbedded = !dashboardInfo?.userId;
 
   const handleOnPropertiesChange = useCallback(
@@ -559,6 +560,12 @@ const Header = () => {
     },
     [boundActionCreators],
   );
+
+  const handleEnterEditMode = useCallback(() => {
+    toggleEditMode();
+    boundActionCreators.clearDashboardHistory?.();
+    boundActionCreators.setUnsavedChanges(false);
+  }, [toggleEditMode, boundActionCreators]);
 
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
@@ -711,10 +718,7 @@ const Header = () => {
             {userCanEdit && (
               <Button
                 buttonStyle="secondary"
-                onClick={() => {
-                  toggleEditMode();
-                  boundActionCreators.clearDashboardHistory?.(); // Resets the `past` as an empty array
-                }}
+                onClick={handleEnterEditMode}
                 data-test="edit-dashboard-button"
                 className="action-button"
                 css={editButtonStyle}
@@ -737,6 +741,7 @@ const Header = () => {
       emphasizeUndo,
       handleCtrlY,
       handleCtrlZ,
+      handleEnterEditMode,
       hasUnsavedChanges,
       overwriteDashboard,
       redoLength,
@@ -774,6 +779,7 @@ const Header = () => {
     userCanShare,
     userCanSave: userCanSaveAs,
     userCanCurate,
+    userCanExport,
     isLoading,
     showReportModal,
     showPropertiesModal,

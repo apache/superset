@@ -1,5 +1,5 @@
 ---
-title: Testing Overview
+title: Overview
 sidebar_position: 1
 ---
 
@@ -22,7 +22,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Testing Overview
+# Overview
 
 Apache Superset follows a comprehensive testing strategy that ensures code quality, reliability, and maintainability. This section covers all aspects of testing in the Superset ecosystem, from unit tests to end-to-end testing workflows.
 

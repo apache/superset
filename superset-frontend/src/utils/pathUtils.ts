@@ -26,3 +26,19 @@ import { applicationRoot } from 'src/utils/getBootstrapData';
 export function ensureAppRoot(path: string): string {
   return `${applicationRoot()}${path.startsWith('/') ? path : `/${path}`}`;
 }
+
+/**
+ * Creates a URL with the proper application root prefix for subdirectory deployments.
+ * Use this when constructing URLs for navigation, API calls, or file downloads.
+ *
+ * @param path - The path to convert to a full URL (e.g., '/sqllab', '/api/v1/chart/123')
+ * @returns The path prefixed with the application root (e.g., '/superset/sqllab')
+ *
+ * @example
+ * // In a subdirectory deployment at /superset
+ * makeUrl('/sqllab?new=true') // returns '/superset/sqllab?new=true'
+ * makeUrl('/api/v1/chart/export/123/') // returns '/superset/api/v1/chart/export/123/'
+ */
+export function makeUrl(path: string): string {
+  return ensureAppRoot(path);
+}

@@ -61,6 +61,10 @@ jest.mock('src/SqlLab/actions/sqlLab', () => ({
 jest.mock('src/explore/exploreUtils/formData', () => ({
   postFormData: jest.fn(),
 }));
+jest.mock('src/utils/cachedSupersetGet', () => ({
+  ...jest.requireActual('src/utils/cachedSupersetGet'),
+  clearDatasetCache: jest.fn(),
+}));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetModal', () => {
@@ -335,5 +339,43 @@ describe('SaveDatasetModal', () => {
       sql: 'SELECT *',
       templateParams: undefined,
     });
+  });
+
+  test('clears dataset cache when creating new dataset', async () => {
+    const clearDatasetCache = jest.spyOn(
+      require('src/utils/cachedSupersetGet'),
+      'clearDatasetCache',
+    );
+    const postFormData = jest.spyOn(
+      require('src/explore/exploreUtils/formData'),
+      'postFormData',
+    );
+
+    const dummyDispatch = jest.fn().mockResolvedValue({ id: 123 });
+    useDispatchMock.mockReturnValue(dummyDispatch);
+    useSelectorMock.mockReturnValue({ ...user });
+    postFormData.mockResolvedValue('chart_key_123');
+
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    await waitFor(() => {
+      expect(clearDatasetCache).toHaveBeenCalledWith(123);
+    });
+  });
+
+  test('clearDatasetCache is imported and available', () => {
+    const clearDatasetCache =
+      require('src/utils/cachedSupersetGet').clearDatasetCache;
+
+    expect(clearDatasetCache).toBeDefined();
+    expect(typeof clearDatasetCache).toBe('function');
   });
 });

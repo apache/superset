@@ -18,7 +18,7 @@
  */
 
 import { memo, useMemo } from 'react';
-import { styled, useTheme } from '../../../theme';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { MatrixifyGridCell as GridCellData } from '../../types/matrixify';
 import StatefulChart from '../StatefulChart';
 

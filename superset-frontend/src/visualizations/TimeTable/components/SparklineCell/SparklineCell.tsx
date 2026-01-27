@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactElement, useMemo } from 'react';
-import { formatNumber, formatTime, useTheme } from '@superset-ui/core';
+import { formatNumber, formatTime } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { GridRows } from '@visx/grid';
 import { scaleLinear } from '@visx/scale';
 import {

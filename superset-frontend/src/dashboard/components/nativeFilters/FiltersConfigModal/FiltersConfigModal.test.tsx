@@ -28,6 +28,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import {
   RangeFilterPlugin,
@@ -181,11 +182,10 @@ beforeAll(() => {
 });
 
 afterEach(() => {
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
   jest.restoreAllMocks();
 });
-
-// Set timeout for all tests in this file to prevent CI timeouts
-jest.setTimeout(60000);
 
 function defaultRender(initialState: any = defaultState(), modalProps = props) {
   return render(<FiltersConfigModal {...modalProps} />, {
@@ -226,9 +226,10 @@ test('renders a value filter type', () => {
 test('renders a numerical range filter type', async () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(VALUE_REGEX));
+  await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  await waitFor(() => userEvent.click(screen.getByText(NUMERICAL_RANGE_REGEX)));
+  const numericalRangeOption = await screen.findByText(NUMERICAL_RANGE_REGEX);
+  await userEvent.click(numericalRangeOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
@@ -250,9 +251,10 @@ test('renders a numerical range filter type', async () => {
 test('renders a time range filter type', async () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(VALUE_REGEX));
+  await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  await waitFor(() => userEvent.click(screen.getByText(TIME_RANGE_REGEX)));
+  const timeRangeOption = await screen.findByText(TIME_RANGE_REGEX);
+  await userEvent.click(timeRangeOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
@@ -265,9 +267,10 @@ test('renders a time range filter type', async () => {
 test('renders a time column filter type', async () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(VALUE_REGEX));
+  await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  await waitFor(() => userEvent.click(screen.getByText(TIME_COLUMN_REGEX)));
+  const timeColumnOption = await screen.findByText(TIME_COLUMN_REGEX);
+  await userEvent.click(timeColumnOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
@@ -280,9 +283,10 @@ test('renders a time column filter type', async () => {
 test('renders a time grain filter type', async () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(VALUE_REGEX));
+  await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  await waitFor(() => userEvent.click(screen.getByText(TIME_GRAIN_REGEX)));
+  const timeGrainOption = await screen.findByText(TIME_GRAIN_REGEX);
+  await userEvent.click(timeGrainOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
@@ -295,7 +299,7 @@ test('renders a time grain filter type', async () => {
 test('render time filter types as disabled if there are no temporal columns in the dataset', async () => {
   defaultRender(noTemporalColumnsState());
 
-  userEvent.click(screen.getByText(VALUE_REGEX));
+  await userEvent.click(screen.getByText(VALUE_REGEX));
 
   const timeRange = await screen.findByText(TIME_RANGE_REGEX);
   const timeGrain = await screen.findByText(TIME_GRAIN_REGEX);
@@ -309,22 +313,26 @@ test('render time filter types as disabled if there are no temporal columns in t
 
 test('validates the name', async () => {
   defaultRender();
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-  expect(await screen.findByText(NAME_REQUIRED_REGEX)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  expect(
+    await screen.findByText(NAME_REQUIRED_REGEX, {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
 });
 
 test('validates the column', async () => {
   defaultRender();
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-  expect(await screen.findByText(COLUMN_REQUIRED_REGEX)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  expect(
+    await screen.findByText(COLUMN_REQUIRED_REGEX, {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
 });
 
 // eslint-disable-next-line jest/no-disabled-tests
 test.skip('validates the default value', async () => {
   defaultRender(noTemporalColumnsState());
   expect(await screen.findByText('birth_names')).toBeInTheDocument();
-  userEvent.type(screen.getByRole('combobox'), `Column A{Enter}`);
-  userEvent.click(getCheckbox(DEFAULT_VALUE_REGEX));
+  await userEvent.type(screen.getByRole('combobox'), `Column A{Enter}`);
+  await userEvent.click(getCheckbox(DEFAULT_VALUE_REGEX));
   await waitFor(() => {
     expect(
       screen.queryByText(FILL_REQUIRED_FIELDS_REGEX),
@@ -344,25 +352,36 @@ test('validates the pre-filter value', async () => {
     await userEvent.click(getCheckbox(PRE_FILTER_REGEX));
 
     jest.runAllTimers();
+
+    await waitFor(() => {
+      const errorMessages = screen.getAllByText(PRE_FILTER_REQUIRED_REGEX);
+      expect(errorMessages.length).toBeGreaterThan(0);
+    });
   } finally {
+    jest.runOnlyPendingTimers();
     jest.useRealTimers();
   }
 
-  await waitFor(() => {
-    expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
-  });
-});
+  // Wait for validation to complete after timer switch
+  await waitFor(
+    () => {
+      const errorMessages = screen.queryAllByText(PRE_FILTER_REQUIRED_REGEX);
+      expect(errorMessages.length).toBeGreaterThan(0);
+    },
+    { timeout: 15000 },
+  );
+}, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // eslint-disable-next-line jest/no-disabled-tests
 test.skip("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
   defaultRender(noTemporalColumnsState());
-  userEvent.click(screen.getByText(DATASET_REGEX));
-  await waitFor(() => {
+  await userEvent.click(screen.getByText(DATASET_REGEX));
+  await waitFor(async () => {
     expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
-    userEvent.click(screen.getByText('birth_names'));
+    await userEvent.click(screen.getByText('birth_names'));
   });
-  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-  userEvent.click(getCheckbox(PRE_FILTER_REGEX));
+  await userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
+  await userEvent.click(getCheckbox(PRE_FILTER_REGEX));
   await waitFor(() =>
     expect(
       screen.queryByText(TIME_RANGE_PREFILTER_REGEX),
@@ -371,7 +390,7 @@ test.skip("doesn't render time range pre-filter if there are no temporal columns
 });
 
 test('filters are draggable', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
@@ -379,12 +398,15 @@ test('filters are draggable', async () => {
   const state = {
     ...defaultState(),
     dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
   defaultRender(state, { ...props, createNewOnOpen: false });
-  const draggables = document.querySelectorAll('div[draggable=true]');
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const draggables = within(filterContainer).getAllByRole('tab');
   expect(draggables.length).toBe(3);
 });
 
@@ -405,7 +427,7 @@ test('filters are draggable', async () => {
 */
 
 test('deletes a filter', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
@@ -413,7 +435,9 @@ test('deletes a filter', async () => {
   const state = {
     ...defaultState(),
     dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
@@ -424,26 +448,28 @@ test('deletes a filter', async () => {
     createNewOnOpen: false,
     onSave,
   });
-  const removeButtons = screen.getAllByRole('button', {
-    name: 'delete',
-  });
-  userEvent.click(removeButtons[2]);
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const filterTabs = within(filterContainer).getAllByRole('tab');
+  const deleteIcon = filterTabs[2].querySelector('[data-icon="delete"]');
+  fireEvent.click(deleteIcon!);
 
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        deleted: expect.arrayContaining(['NATIVE_FILTER-3']),
-        modified: expect.arrayContaining([]),
-        reordered: expect.arrayContaining([]),
+        filterChanges: expect.objectContaining({
+          deleted: expect.arrayContaining(['NATIVE_FILTER-3']),
+          modified: expect.arrayContaining([]),
+          reordered: expect.arrayContaining([]),
+        }),
       }),
     ),
   );
-});
+}, 30000); // Increase timeout to 30 seconds for slow async operations
 
 test('deletes a filter including dependencies', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
@@ -451,7 +477,9 @@ test('deletes a filter including dependencies', async () => {
   const state = {
     ...defaultState(),
     dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
@@ -461,76 +489,30 @@ test('deletes a filter including dependencies', async () => {
     createNewOnOpen: false,
     onSave,
   });
-  const removeButtons = screen.getAllByRole('button', {
-    name: 'delete',
-  });
-  userEvent.click(removeButtons[1]);
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const filterTabs = within(filterContainer).getAllByRole('tab');
+  const deleteIcon = filterTabs[1].querySelector('[data-icon="delete"]');
+  fireEvent.click(deleteIcon!);
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        deleted: ['NATIVE_FILTER-2'],
-        modified: expect.arrayContaining([
-          expect.objectContaining({
-            id: 'NATIVE_FILTER-1',
-          }),
-        ]),
-        reordered: [],
+        filterChanges: expect.objectContaining({
+          deleted: ['NATIVE_FILTER-2'],
+          modified: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'NATIVE_FILTER-1',
+            }),
+          ]),
+          reordered: [],
+        }),
       }),
     ),
   );
-});
+}, 30000);
 
-test('switches the order between two filters', async () => {
-  const nativeFilterState = [
-    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
-    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
-  ];
-
-  const state = {
-    ...defaultState(),
-    dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
-    },
-    dashboardLayout,
-  };
-
-  const onSave = jest.fn();
-
-  defaultRender(state, {
-    ...props,
-    createNewOnOpen: false,
-    onSave,
-  });
-
-  const draggableFilters = screen.getAllByRole('tab');
-
-  fireEvent.dragStart(draggableFilters[0]);
-
-  fireEvent.dragOver(draggableFilters[1]);
-
-  fireEvent.drop(draggableFilters[1]);
-
-  fireEvent.dragEnd(draggableFilters[0]);
-
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-
-  await waitFor(() =>
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        deleted: [],
-        modified: [],
-        reordered: expect.arrayContaining([
-          'NATIVE_FILTER-2',
-          'NATIVE_FILTER-1',
-        ]),
-      }),
-    ),
-  );
-});
-
-test('rearranges three filters and deletes one of them', async () => {
-  const nativeFilterState = [
+test('reorders filters via drag and drop', async () => {
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
@@ -539,7 +521,9 @@ test('rearranges three filters and deletes one of them', async () => {
   const state = {
     ...defaultState(),
     dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
@@ -552,29 +536,82 @@ test('rearranges three filters and deletes one of them', async () => {
     onSave,
   });
 
-  const draggableFilters = screen.getAllByRole('tab');
-  const deleteButtons = screen.getAllByRole('button', {
-    name: 'delete',
-  });
-  userEvent.click(deleteButtons[1]);
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const draggableFilters = within(filterContainer).getAllByRole('tab');
 
   fireEvent.dragStart(draggableFilters[0]);
   fireEvent.dragOver(draggableFilters[2]);
   fireEvent.drop(draggableFilters[2]);
   fireEvent.dragEnd(draggableFilters[0]);
 
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        modified: [],
-        deleted: ['NATIVE_FILTER-2'],
-        reordered: expect.arrayContaining([
-          'NATIVE_FILTER-2',
-          'NATIVE_FILTER-3',
-          'NATIVE_FILTER-1',
-        ]),
+        filterChanges: expect.objectContaining({
+          deleted: [],
+          modified: [],
+          reordered: expect.arrayContaining([
+            'NATIVE_FILTER-2',
+            'NATIVE_FILTER-3',
+            'NATIVE_FILTER-1',
+          ]),
+        }),
+      }),
+    ),
+  );
+});
+
+test('rearranges three filters and deletes one of them', async () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+    buildNativeFilter('NATIVE_FILTER-3', 'product', []),
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+
+  const onSave = jest.fn();
+
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    onSave,
+  });
+
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const draggableFilters = within(filterContainer).getAllByRole('tab');
+  const deleteIcon = draggableFilters[1].querySelector('[data-icon="delete"]');
+  fireEvent.click(deleteIcon!);
+
+  fireEvent.dragStart(draggableFilters[0]);
+  fireEvent.dragOver(draggableFilters[2]);
+  fireEvent.drop(draggableFilters[2]);
+  fireEvent.dragEnd(draggableFilters[0]);
+
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterChanges: expect.objectContaining({
+          modified: [],
+          deleted: ['NATIVE_FILTER-2'],
+          reordered: expect.arrayContaining([
+            'NATIVE_FILTER-2',
+            'NATIVE_FILTER-3',
+            'NATIVE_FILTER-1',
+          ]),
+        }),
       }),
     ),
   );
@@ -582,51 +619,59 @@ test('rearranges three filters and deletes one of them', async () => {
 
 test('modifies the name of a filter', async () => {
   jest.useFakeTimers();
-  const nativeFilterState = [
-    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
-    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
-  ];
+  try {
+    const nativeFilterConfig = [
+      buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+      buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+    ];
 
-  const state = {
-    ...defaultState(),
-    dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
-    },
-    dashboardLayout,
-  };
+    const state = {
+      ...defaultState(),
+      dashboardInfo: {
+        metadata: {
+          native_filter_configuration: nativeFilterConfig,
+        },
+      },
+      dashboardLayout,
+    };
 
-  const onSave = jest.fn();
+    const onSave = jest.fn();
 
-  defaultRender(state, {
-    ...props,
-    createNewOnOpen: false,
-    onSave,
-  });
+    defaultRender(state, {
+      ...props,
+      createNewOnOpen: false,
+      onSave,
+    });
 
-  const filterNameInput = screen.getByRole('textbox', {
-    name: FILTER_NAME_REGEX,
-  });
+    const filterNameInput = screen.getByRole('textbox', {
+      name: FILTER_NAME_REGEX,
+    });
 
-  userEvent.clear(filterNameInput);
-  userEvent.type(filterNameInput, 'New Filter Name');
+    await userEvent.clear(filterNameInput);
+    await userEvent.type(filterNameInput, 'New Filter Name');
 
-  jest.runAllTimers();
+    jest.runAllTimers();
 
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
-  await waitFor(() =>
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        modified: expect.arrayContaining([
-          expect.objectContaining({ name: 'New Filter Name' }),
-        ]),
-      }),
-    ),
-  );
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterChanges: expect.objectContaining({
+            modified: expect.arrayContaining([
+              expect.objectContaining({ name: 'New Filter Name' }),
+            ]),
+          }),
+        }),
+      ),
+    );
+  } finally {
+    jest.useRealTimers();
+  }
 });
 
 test('renders a filter with a chart containing BigInt values', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
@@ -634,7 +679,9 @@ test('renders a filter with a chart containing BigInt values', async () => {
   const state = {
     ...bigIntChartDataState(),
     dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };

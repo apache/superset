@@ -45,7 +45,11 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.superset_typing import FlaskResponse, FormData
+from superset.superset_typing import (
+    ExplorableData,
+    FlaskResponse,
+    FormData,
+)
 from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
@@ -86,19 +90,24 @@ def redirect_to_login(next_target: str | None = None) -> FlaskResponse:
     return redirect(redirect_url)
 
 
-def sanitize_datasource_data(datasource_data: dict[str, Any]) -> dict[str, Any]:
+def sanitize_datasource_data(
+    datasource_data: ExplorableData,
+) -> dict[str, Any]:
+    """
+    Sanitize datasource data by removing sensitive database parameters.
+    """
     if datasource_data:
         datasource_database = datasource_data.get("database")
         if datasource_database:
             datasource_database["parameters"] = {}
 
-    return datasource_data
+    return datasource_data  # type: ignore[return-value]
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, Any]:
     if user.is_anonymous:
         payload = {}
-        user.roles = (security_manager.find_role("Public"),)
+        user.roles = (security_manager.get_public_role(),)
     elif security_manager.is_guest_user(user):
         payload = {
             "username": user.username,

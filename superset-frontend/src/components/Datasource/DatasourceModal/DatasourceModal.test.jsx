@@ -122,18 +122,188 @@ describe('DatasourceModal', () => {
   });
 
   test('should render error dialog', async () => {
-    jest
+    const putSpy = jest
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Error('Something went wrong'));
+
     await act(async () => {
       const saveButton = screen.getByTestId('datasource-modal-save');
       fireEvent.click(saveButton);
       const okButton = await screen.findByRole('button', { name: 'OK' });
       okButton.click();
     });
+
     await act(async () => {
-      const errorTitle = await screen.findByText('Error saving dataset');
-      expect(errorTitle).toBeInTheDocument();
+      const errorElements = await screen.findAllByText('Error saving dataset');
+      const errorDiv = errorElements.find(el => el.closest('div'));
+      expect(errorDiv).toBeInTheDocument();
+    });
+    putSpy.mockRestore();
+  });
+
+  test('shows sync columns checkbox when SQL changes', async () => {
+    cleanup();
+    const datasourceWithSQL = {
+      ...mockedProps.datasource,
+      sql: 'SELECT * FROM original_table',
+    };
+    const modifiedDatasource = {
+      ...datasourceWithSQL,
+      sql: 'SELECT * FROM new_table', // Different SQL to trigger checkbox
+    };
+
+    const { rerender } = render(
+      <DatasourceModal {...mockedProps} datasource={datasourceWithSQL} />,
+      { store, useRouter: true },
+    );
+
+    // Update with modified SQL
+    rerender(
+      <DatasourceModal {...mockedProps} datasource={modifiedDatasource} />,
+    );
+
+    const saveButton = screen.getByTestId('datasource-modal-save');
+    fireEvent.click(saveButton);
+
+    // Wait for confirmation modal to appear
+    await waitFor(() => {
+      expect(screen.getByText('Confirm save')).toBeInTheDocument();
+    });
+
+    // Checkbox should be present and checked by default when SQL changes
+    const checkbox = await screen.findByRole('checkbox');
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox).toBeChecked();
+
+    // Should show the sync columns message
+    expect(screen.getByText('Automatically sync columns')).toBeInTheDocument();
+  });
+
+  test('syncs columns when checkbox is checked and submits with override_columns=true', async () => {
+    const datasourceWithSQL = {
+      ...mockedProps.datasource,
+      sql: 'SELECT * FROM original_table',
+    };
+    const modifiedDatasource = {
+      ...datasourceWithSQL,
+      sql: 'SELECT * FROM new_table',
+    };
+
+    // Render with the initial datasource
+    cleanup();
+    fetchMock.reset();
+    fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
+    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
+    fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+
+    const { rerender } = render(
+      <DatasourceModal {...mockedProps} datasource={datasourceWithSQL} />,
+      { store, useRouter: true },
+    );
+
+    // Update with modified SQL to trigger checkbox
+    rerender(
+      <DatasourceModal {...mockedProps} datasource={modifiedDatasource} />,
+    );
+
+    const saveButton = screen.getByTestId('datasource-modal-save');
+    fireEvent.click(saveButton);
+
+    // Wait for confirmation modal to appear
+    await waitFor(() => {
+      expect(screen.getByText('Confirm save')).toBeInTheDocument();
+    });
+
+    // Checkbox should be present and checked by default when SQL changes
+    const checkbox = await screen.findByRole('checkbox');
+    expect(checkbox).toBeChecked();
+
+    // Click OK to submit
+    const okButton = screen.getByRole('button', { name: 'OK' });
+    fireEvent.click(okButton);
+
+    // Verify the PUT request was made with override_columns=true
+    await waitFor(() => {
+      const putCalls = fetchMock
+        .calls()
+        .filter(
+          call =>
+            call[0].includes('/api/v1/dataset/7') &&
+            call[0].includes('override_columns') &&
+            call[1]?.method === 'PUT',
+        );
+      expect(putCalls.length).toBeGreaterThan(0);
+      expect(putCalls[putCalls.length - 1][0]).toContain(
+        'override_columns=true',
+      );
+    });
+  });
+
+  test('does not sync columns when checkbox is unchecked and submits with override_columns=false', async () => {
+    const datasourceWithSQL = {
+      ...mockedProps.datasource,
+      sql: 'SELECT * FROM original_table',
+    };
+    const modifiedDatasource = {
+      ...datasourceWithSQL,
+      sql: 'SELECT * FROM new_table',
+    };
+
+    // Render with the initial datasource
+    cleanup();
+    fetchMock.reset();
+    fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
+    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
+    fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
+
+    const { rerender } = render(
+      <DatasourceModal {...mockedProps} datasource={datasourceWithSQL} />,
+      { store, useRouter: true },
+    );
+
+    // Update with modified SQL to trigger checkbox
+    rerender(
+      <DatasourceModal {...mockedProps} datasource={modifiedDatasource} />,
+    );
+
+    const saveButton = screen.getByTestId('datasource-modal-save');
+    fireEvent.click(saveButton);
+
+    // Wait for confirmation modal to appear
+    await waitFor(() => {
+      expect(screen.getByText('Confirm save')).toBeInTheDocument();
+    });
+
+    // Checkbox should be present and checked by default when SQL changes
+    const checkbox = await screen.findByRole('checkbox');
+    expect(checkbox).toBeChecked();
+
+    // Uncheck the checkbox
+    fireEvent.click(checkbox);
+
+    // Verify checkbox is now unchecked
+    expect(checkbox).not.toBeChecked();
+
+    // Click OK to submit
+    const okButton = screen.getByRole('button', { name: 'OK' });
+    fireEvent.click(okButton);
+
+    // Verify the PUT request was made with override_columns=false
+    await waitFor(() => {
+      const putCalls = fetchMock
+        .calls()
+        .filter(
+          call =>
+            call[0].includes('/api/v1/dataset/7') &&
+            call[0].includes('override_columns') &&
+            call[1]?.method === 'PUT',
+        );
+      expect(putCalls.length).toBeGreaterThan(0);
+      expect(putCalls[putCalls.length - 1][0]).toContain(
+        'override_columns=false',
+      );
     });
   });
 });
