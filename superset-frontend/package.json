@@ -102,7 +102,6 @@
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@oxlint/darwin-arm64": "^1.42.0",
     "@reduxjs/toolkit": "^1.9.3",
     "@rjsf/core": "^5.24.13",
     "@rjsf/utils": "^5.24.3",
