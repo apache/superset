@@ -28,6 +28,7 @@ import {
   t,
   ContextMenuFilters,
   AdhocFilter,
+  DataRecord,
 } from '@superset-ui/core';
 import { css, useTheme, Alert } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
@@ -203,6 +204,49 @@ export default function DrillByModal({
         )
         .filter(isDefined),
     [dataset.columns, formData, groupbyFieldName],
+  );
+
+  const getColumnLabel = useCallback(
+    (colname: string, labelMap: Record<string, string[]>) => {
+      for (const [key, value] of Object.entries(labelMap)) {
+        if (value.includes(colname) && key !== colname) {
+          return key;
+        }
+      }
+
+      return colname;
+    },
+    [],
+  );
+
+  const mapColumnsToLabels = useCallback(
+    (dataResult: QueryData[]) =>
+      dataResult.map(result => {
+        const { colnames, label_map: labelMap, data } = result;
+
+        let newColnames: string[] = colnames;
+        let newData: DataRecord[] = data;
+        colnames.forEach((colname: string) => {
+          const label = getColumnLabel(colname, labelMap);
+          if (label !== colname) {
+            newColnames = newColnames.map((col: string) => {
+              if (col === colname) {
+                return label;
+              }
+              return col;
+            });
+
+            newData = newData.map((row: DataRecord) => {
+              const newRow = { ...row, [label]: row[colname] };
+              delete newRow[colname];
+              return newRow;
+            });
+          }
+        });
+
+        return { ...result, colnames: newColnames, data: newData };
+      }),
+    [getColumnLabel],
   );
 
   const { displayModeToggle, drillByDisplayMode } = useDisplayModeToggle();
@@ -449,7 +493,7 @@ export default function DrillByModal({
           handleChartDataResponse(response, json, useLegacyApi),
         )
         .then(queriesResponse => {
-          setChartDataResult(queriesResponse);
+          setChartDataResult(mapColumnsToLabels(queriesResponse));
         })
         .catch(() => {
           addDangerToast(t('Failed to load chart data.'));
@@ -458,7 +502,7 @@ export default function DrillByModal({
           setIsChartDataLoading(false);
         });
     }
-  }, [addDangerToast, drilledFormData]);
+  }, [addDangerToast, drilledFormData, mapColumnsToLabels]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 
   return (
