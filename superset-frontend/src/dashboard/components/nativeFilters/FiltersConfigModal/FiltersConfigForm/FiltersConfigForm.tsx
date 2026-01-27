@@ -225,7 +225,7 @@ export const CustomizationPanels = {
   },
   settings: {
     key: 'settings',
-    name: t('Customization Settings'),
+    name: t('Display control settings'),
   },
 };
 
