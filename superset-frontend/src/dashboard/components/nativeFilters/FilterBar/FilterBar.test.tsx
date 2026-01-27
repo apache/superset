@@ -187,9 +187,9 @@ describe('FilterBar', () => {
     expect(container).toBeInTheDocument();
   });
 
-  test('should render the "Actions" heading', () => {
+  test('should render the "Filters and controls" heading', () => {
     renderWrapper();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByText('Filters and controls')).toBeInTheDocument();
   });
 
   test('should render the "Clear all" option', () => {
