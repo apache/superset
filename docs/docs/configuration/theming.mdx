@@ -184,32 +184,31 @@ Apply settings to all ECharts visualizations using `echartsOptionsOverrides`:
 
 ```python
 THEME_DEFAULT = {
-    "token": {
-        "colorPrimary": "#2893B3",
-        # ... other Ant Design tokens
-    },
+  "token": {
+    "colorPrimary": "#2893B3",
+    # ... other Ant Design tokens
     "echartsOptionsOverrides": {
-        "grid": {
-            "left": "10%",
-            "right": "10%",
-            "top": "15%",
-            "bottom": "15%"
-        },
-        "tooltip": {
-            "backgroundColor": "rgba(0, 0, 0, 0.8)",
-            "borderColor": "#ccc",
-            "textStyle": {
-                "color": "#fff"
-            }
-        },
-        "legend": {
-            "textStyle": {
-                "fontSize": 14,
-                "fontWeight": "bold"
-            }
+      "grid": {
+        "left": "10%",
+        "right": "10%",
+        "top": "15%",
+        "bottom": "15%"
+      },
+      "tooltip": {
+        "backgroundColor": "rgba(0, 0, 0, 0.8)",
+        "borderColor": "#ccc",
+        "textStyle": {
+          "color": "#fff"
         }
+      },
+      "legend": {
+        "textStyle": {
+          "fontSize": 14,
+          "fontWeight": "bold"
+        }
+      }
     }
-}
+  }
 ```
 
 ### Chart-Specific Overrides
@@ -220,38 +219,45 @@ Target specific chart types using `echartsOptionsOverridesByChartType`:
 THEME_DEFAULT = {
     "token": {
         "colorPrimary": "#2893B3",
-        # ... other tokens
-    },
-    "echartsOptionsOverridesByChartType": {
-        "echarts_pie": {
-            "legend": {
-                "orient": "vertical",
-                "right": 10,
-                "top": "center"
-            }
-        },
-        "echarts_timeseries": {
-            "xAxis": {
-                "axisLabel": {
-                    "rotate": 45,
-                    "fontSize": 12
-                }
+        "echartsOptionsOverridesByChartType": {
+          "pie": {
+            "tooltip": {
+              "backgroundColor": "rgba(0, 0, 0, 0.8)",
+              "borderColor": "#ccc",
+              "textStyle": {
+                "color": "#fff"
+              }
             },
-            "dataZoom": [{
+            "legend": {
+              "orient": "vertical",
+              "right": 10,
+              "top": "center"
+            }
+          },
+          "echarts_timeseries": {
+            "xAxis": {
+              "axisLabel": {
+                "rotate": 45,
+                "fontSize": 12
+              }
+            },
+            "dataZoom": [
+              {
                 "type": "slider",
-                "show": True,
+                "show": "True",
                 "start": 0,
                 "end": 100
-            }]
-        },
-        "echarts_bubble": {
+              }
+            ]
+          },
+          "echarts_bubble": {
             "grid": {
-                "left": "15%",
-                "bottom": "20%"
+              "left": "15%",
+              "bottom": "20%"
             }
+          }
         }
-    }
-}
+      }
 ```
 
 ### UI Configuration
@@ -261,22 +267,22 @@ You can also configure ECharts overrides through the theme CRUD interface:
 ```json
 {
   "token": {
-    "colorPrimary": "#2893B3"
-  },
-  "echartsOptionsOverrides": {
-    "grid": {
-      "left": "10%",
-      "right": "10%"
+    "colorPrimary": "#2893B3",
+    "echartsOptionsOverrides": {
+      "grid": {
+        "left": "10%",
+        "right": "10%"
+      },
+      "tooltip": {
+        "backgroundColor": "rgba(0, 0, 0, 0.8)"
+      }
     },
-    "tooltip": {
-      "backgroundColor": "rgba(0, 0, 0, 0.8)"
-    }
-  },
-  "echartsOptionsOverridesByChartType": {
-    "echarts_pie": {
-      "legend": {
-        "orient": "vertical",
-        "right": 10
+    "echartsOptionsOverridesByChartType": {
+      "pie": {
+        "legend": {
+          "orient": "vertical",
+          "right": 10
+        }
       }
     }
   }
@@ -299,7 +305,7 @@ This ensures chart-specific overrides take precedence over global ones.
 Available chart types for `echartsOptionsOverridesByChartType`:
 
 - `echarts_timeseries` - Time series/line charts
-- `echarts_pie` - Pie and donut charts
+- `pie` - Pie and donut charts
 - `echarts_bubble` - Bubble/scatter charts
 - `echarts_funnel` - Funnel charts
 - `echarts_gauge` - Gauge charts
@@ -325,47 +331,48 @@ Available chart types for `echartsOptionsOverridesByChartType`:
 ```python
 # Complete corporate theme with ECharts customization
 THEME_DEFAULT = {
-    "token": {
-        "colorPrimary": "#1B4D3E",
-        "fontFamily": "Corporate Sans, Arial, sans-serif"
-    },
+  "token": {
+    "colorPrimary": "#1B4D3E",
+    "fontFamily": "Corporate Sans, Arial, sans-serif",
     "echartsOptionsOverrides": {
-        "grid": {
-            "left": "8%",
-            "right": "8%",
-            "top": "12%",
-            "bottom": "12%"
-        },
+      "grid": {
+        "left": "8%",
+        "right": "8%",
+        "top": "12%",
+        "bottom": "12%"
+      },
+      "textStyle": {
+        "fontFamily": "Corporate Sans, Arial, sans-serif"
+      },
+      "title": {
         "textStyle": {
-            "fontFamily": "Corporate Sans, Arial, sans-serif"
-        },
-        "title": {
-            "textStyle": {
-                "color": "#1B4D3E",
-                "fontSize": 18,
-                "fontWeight": "bold"
-            }
+          "color": "#1B4D3E",
+          "fontSize": 18,
+          "fontWeight": "bold"
         }
+      }
     },
     "echartsOptionsOverridesByChartType": {
-        "echarts_timeseries": {
-            "xAxis": {
-                "axisLabel": {
-                    "color": "#666",
-                    "fontSize": 11
-                }
-            }
-        },
-        "echarts_pie": {
-            "legend": {
-                "textStyle": {
-                    "fontSize": 12
-                },
-                "itemGap": 20
-            }
+      "echarts_timeseries": {
+        "xAxis": {
+          "axisLabel": {
+            "color": "#666",
+            "fontSize": 11
+          }
         }
+      },
+      "pie": {
+        "legend": {
+          "textStyle": {
+            "fontSize": 12
+          },
+          "itemGap": 20
+        }
+      }
     }
+  }
 }
+
 ```
 
 This feature provides powerful theming capabilities while maintaining the flexibility of ECharts' extensive configuration options.
