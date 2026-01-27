@@ -199,8 +199,12 @@ export class Theme {
 
     this.updateProviders = (theme, antdConfig, emotionCache) => {
       setThemeState({ theme, antdConfig, emotionCache });
-      if (theme.direction === 'rtl') {
-        document?.documentElement?.setAttribute('dir', 'rtl');
+      const dir = (theme && (theme as any).direction) ?? 'ltr';
+      // Ensure we update the document direction attribute on every change,
+      // and safely guard for non-browser environments.
+      if (typeof document !== 'undefined' && document.documentElement) {
+        document.documentElement.setAttribute('dir', dir);
+        document.documentElement.setAttribute('data-direction', dir);
         document?.documentElement?.setAttribute('data-direction', 'rtl');
       }
     };
