@@ -43,13 +43,27 @@ export class ConfirmDialog extends Modal {
   }
 
   /**
-   * Clicks the OK button to confirm
-   * Waits for element to be visible before clicking
+   * Clicks the OK button to confirm.
+   * @param options.timeout - If provided, silently returns if dialog doesn't appear
+   *                          within timeout. If not provided, waits indefinitely (strict mode).
    */
-  async clickOk(): Promise<void> {
-    // Wait for modal to be visible before clicking
-    await this.element.waitFor({ state: 'visible' });
-    await this.clickFooterButton('OK');
+  async clickOk(options?: { timeout?: number }): Promise<void> {
+    try {
+      await this.element.waitFor({
+        state: 'visible',
+        timeout: options?.timeout,
+      });
+      await this.clickFooterButton('OK');
+      await this.waitForHidden();
+    } catch (error) {
+      // Only swallow TimeoutError when timeout was explicitly provided
+      if (options?.timeout !== undefined) {
+        if (error instanceof Error && error.name === 'TimeoutError') {
+          return;
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -57,22 +71,5 @@ export class ConfirmDialog extends Modal {
    */
   async clickCancel(): Promise<void> {
     await this.clickFooterButton('Cancel');
-  }
-
-  /**
-   * Clicks OK if dialog appears within timeout, otherwise silently returns.
-   * Use when dialog appearance is conditional (e.g., depends on dataset settings).
-   * @param timeout - How long to wait for dialog (default 2000ms)
-   */
-  async clickOkIfVisible(timeout = 2000): Promise<void> {
-    try {
-      await this.element.waitFor({ state: 'visible', timeout });
-      await this.clickOk();
-      await this.waitForHidden();
-    } catch (error) {
-      if (!(error instanceof Error) || error.name !== 'TimeoutError') {
-        throw error;
-      }
-    }
   }
 }

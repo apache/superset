@@ -20,6 +20,7 @@
 import { Page, APIResponse } from '@playwright/test';
 import rison from 'rison';
 import { apiGet, apiPost, apiDelete, ApiRequestOptions } from './requests';
+import { getDatabaseByName } from './database';
 
 export const ENDPOINTS = {
   DATASET: 'api/v1/dataset/',
@@ -99,16 +100,27 @@ export async function apiPostVirtualDataset(
  * Creates a simple virtual dataset for testing purposes
  * @param page - Playwright page instance
  * @param name - Name for the virtual dataset
- * @param databaseId - ID of the database to use (defaults to 1 for examples db)
+ * @param databaseId - ID of the database to use (looks up 'examples' DB if not provided)
  * @returns The created dataset ID, or null on failure
  */
 export async function createTestVirtualDataset(
   page: Page,
   name: string,
-  databaseId = 1,
+  databaseId?: number,
 ): Promise<number | null> {
+  // Look up examples database if no ID provided
+  let dbId = databaseId;
+  if (dbId === undefined) {
+    const examplesDb = await getDatabaseByName(page, 'examples');
+    if (!examplesDb?.id) {
+      console.warn('Failed to find examples database');
+      return null;
+    }
+    dbId = examplesDb.id;
+  }
+
   const response = await apiPostVirtualDataset(page, {
-    database: databaseId,
+    database: dbId,
     schema: '',
     table_name: name,
     sql: "SELECT 1 as id, 'test' as name",

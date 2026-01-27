@@ -128,7 +128,7 @@ test('should delete a dataset with confirmation', async ({
   testAssets,
 }) => {
   // Create throwaway dataset for deletion
-  const { name: datasetName } = await createTestDataset(
+  const { id: datasetId, name: datasetName } = await createTestDataset(
     page,
     testAssets,
     test.info(),
@@ -166,6 +166,19 @@ test('should delete a dataset with confirmation', async ({
 
   // Verify dataset is removed from list
   await expect(datasetListPage.getDatasetRow(datasetName)).not.toBeVisible();
+
+  // Verify via API that dataset no longer exists (404)
+  await expect
+    .poll(
+      async () => {
+        const response = await apiGetDataset(page, datasetId, {
+          failOnStatusCode: false,
+        });
+        return response.status();
+      },
+      { timeout: 10000, message: `Dataset ${datasetId} should return 404` },
+    )
+    .toBe(404);
 });
 
 test('should duplicate a dataset with new name', async ({
@@ -359,9 +372,9 @@ test('should edit dataset name via modal', async ({
   // Click Save button
   await editModal.clickSave();
 
-  // Handle the "Confirm save" dialog that appears for datasets with sync columns enabled
+  // Handle the "Confirm save" dialog that may appear for datasets with sync columns enabled
   const confirmDialog = new ConfirmDialog(page);
-  await confirmDialog.clickOk();
+  await confirmDialog.clickOk({ timeout: 2000 });
 
   // Wait for save to complete and verify success
   expectStatusOneOf(await saveResponsePromise, [200, 201]);
@@ -615,7 +628,7 @@ test('should edit column date format via modal', async ({
 
   // Save and handle confirmation dialog conditionally
   await editModal.clickSave();
-  await new ConfirmDialog(page).clickOkIfVisible();
+  await new ConfirmDialog(page).clickOk({ timeout: 2000 });
   await editModal.waitForHidden();
 
   // Verify via API
@@ -658,7 +671,7 @@ test('should edit dataset description via modal', async ({
 
   // Save and handle confirmation dialog conditionally
   await editModal.clickSave();
-  await new ConfirmDialog(page).clickOkIfVisible();
+  await new ConfirmDialog(page).clickOk({ timeout: 2000 });
   await editModal.waitForHidden();
 
   // Verify via API
