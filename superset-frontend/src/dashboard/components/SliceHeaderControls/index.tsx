@@ -325,16 +325,18 @@ const SliceHeaderControls = (
   const updatedWhen = updatedDttm
     ? (extendedDayjs.utc(updatedDttm) as any).fromNow()
     : '';
-  const getCachedTitle = (itemCached: boolean) => {
+  const getCachedTitle = (itemCached: boolean, index: number) => {
     if (itemCached) {
-      return t('Cached %s', cachedWhen);
+      return t('Cached %s', cachedWhen[index]);
     }
     if (updatedWhen) {
       return t('Fetched %s', updatedWhen);
     }
     return '';
   };
-  const refreshTooltipData = [...new Set(isCached.map(getCachedTitle) || '')];
+  const refreshTooltipData = [
+    ...new Set(isCached.map((itemCached, index) => getCachedTitle(itemCached, index)) || ''),
+  ];
   // If all queries have same cache time we can unit them to one
   const refreshTooltip = refreshTooltipData.map((item, index) => (
     <div key={`tooltip-${index}`}>
