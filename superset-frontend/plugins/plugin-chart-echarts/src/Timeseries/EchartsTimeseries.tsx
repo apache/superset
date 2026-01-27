@@ -231,10 +231,9 @@ export default function EchartsTimeseries({
           // Cross-filter by dimension (original behavior)
           const { seriesName: name } = props;
           handleChange(name);
-        } else if (canCrossFilterByXAxis && props.data) {
+        } else if (canCrossFilterByXAxis && props.data?.[0] != null) {
           // Cross-filter by X-axis value when no dimensions (issue #25334)
-          const xAxisValue = props.data[0];
-          handleXAxisChange(xAxisValue);
+          handleXAxisChange(props.data[0]);
         }
       }, TIMER_DURATION);
     },
@@ -316,7 +315,7 @@ export default function EchartsTimeseries({
         let crossFilter;
         if (hasDimensions) {
           crossFilter = getCrossFilterDataMask(seriesName);
-        } else if (canCrossFilterByXAxis && data) {
+        } else if (canCrossFilterByXAxis && data?.[0] != null) {
           crossFilter = getXAxisCrossFilterDataMask(data[0]);
         }
 
