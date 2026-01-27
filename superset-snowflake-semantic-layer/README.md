@@ -4,27 +4,36 @@ This extension adds support for Snowflake Semantic Views to Apache Superset.
 
 ## Installation
 
-### As a pip package
+### As a pip package (recommended for production)
 
 ```bash
 pip install superset-snowflake-semantic-layer
 ```
 
+This automatically installs all required dependencies.
+
 ### As a Superset extension (.supx bundle)
 
-1. Build the extension bundle:
+1. **Install dependencies** (the .supx bundle doesn't include pip packages):
+   ```bash
+   pip install snowflake-connector-python>=3.0.0 snowflake-sqlalchemy>=1.5.0
+   ```
+
+2. Build the extension bundle:
    ```bash
    cd superset-snowflake-semantic-layer
    superset-extensions bundle
    ```
 
-2. Copy the generated `.supx` file to your Superset extensions directory.
+3. Copy the generated `.supx` file to your Superset extensions directory.
 
-3. Configure Superset to load extensions:
+4. Configure Superset to load extensions:
    ```python
    # superset_config.py
    EXTENSIONS_PATH = "/path/to/extensions"
    ```
+
+5. Restart Superset.
 
 ## Configuration
 

@@ -1,0 +1,5 @@
+# Requirements for the Snowflake Semantic Layer extension
+# Install with: pip install -r extensions/requirements-snowflake.txt
+
+snowflake-connector-python>=3.0.0
+snowflake-sqlalchemy>=1.5.0
