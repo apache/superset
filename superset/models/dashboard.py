@@ -141,6 +141,7 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     certified_by = Column(Text)
     certification_details = Column(Text)
     json_metadata = Column(utils.MediumText())
+    empty_state_config = Column(Text)
     slug = Column(String(255), unique=True)
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
@@ -183,6 +184,7 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         "dashboard_title",
         "position_json",
         "json_metadata",
+        "empty_state_config",
         "description",
         "css",
         "slug",

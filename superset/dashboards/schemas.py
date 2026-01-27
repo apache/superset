@@ -77,6 +77,10 @@ charts_description = (
 )
 certified_by_description = "Person or group that has certified this dashboard"
 certification_details_description = "Details of the certification"
+empty_state_config_description = (
+    "JSON configuration for customizing empty state messages displayed when charts "
+    "have no data. Allows dashboard-level overrides of default empty state text."
+)
 tags_description = "Tags to be associated with the dashboard"
 
 openapi_spec_methods_override = {
@@ -225,6 +229,9 @@ class DashboardGetResponseSchema(Schema):
     css = fields.String(metadata={"description": css_description})
     theme = fields.Nested(ThemeSchema, allow_none=True)
     json_metadata = fields.String(metadata={"description": json_metadata_description})
+    empty_state_config = fields.String(
+        metadata={"description": empty_state_config_description}, allow_none=True
+    )
     position_json = fields.String(metadata={"description": position_json_description})
     certified_by = fields.String(metadata={"description": certified_by_description})
     certification_details = fields.String(
@@ -367,6 +374,11 @@ class DashboardPostSchema(BaseDashboardSchema):
         metadata={"description": json_metadata_description},
         validate=validate_json_metadata,
     )
+    empty_state_config = fields.String(
+        metadata={"description": empty_state_config_description},
+        allow_none=True,
+        validate=validate_json,
+    )
     published = fields.Boolean(metadata={"description": published_description})
     certified_by = fields.String(
         metadata={"description": certified_by_description}, allow_none=True
@@ -428,6 +440,11 @@ class DashboardPutSchema(BaseDashboardSchema):
         metadata={"description": json_metadata_description},
         allow_none=True,
         validate=validate_json_metadata,
+    )
+    empty_state_config = fields.String(
+        metadata={"description": empty_state_config_description},
+        allow_none=True,
+        validate=validate_json,
     )
     published = fields.Boolean(
         metadata={"description": published_description}, allow_none=True
