@@ -77,7 +77,7 @@ export default function TimeOffsetControls({
 
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
-      state.explore.form_data.adhoc_filters.filter(
+      state.explore.present.form_data.adhoc_filters.filter(
         (adhoc_filter: SimpleAdhocFilter) =>
           adhoc_filter.operator === 'TEMPORAL_RANGE',
       ),
@@ -85,7 +85,7 @@ export default function TimeOffsetControls({
   );
 
   const currentStartDate = useSelector<RootState, string>(
-    state => state.explore.form_data.start_date_offset,
+    state => state.explore.present.form_data.start_date_offset,
     isStartDateEqual,
   );
 
@@ -103,7 +103,7 @@ export default function TimeOffsetControls({
 
   const previousCustomFilter = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
-      state.explore.form_data.adhoc_custom?.filter(
+      state.explore.present.form_data.adhoc_custom?.filter(
         (adhoc_filter: SimpleAdhocFilter) =>
           adhoc_filter.operator === 'TEMPORAL_RANGE',
       ),

@@ -210,9 +210,13 @@ describe('VizTypeControl', () => {
         },
       },
       explore: {
-        slice: {
-          slice_id: 1,
+        past: [],
+        present: {
+          slice: {
+            slice_id: 1,
+          },
         },
+        future: [],
       },
     };
     await waitForRenderWrapper(props, state);

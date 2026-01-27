@@ -18,7 +18,7 @@
  */
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { QueryFormData, JsonObject } from '@superset-ui/core';
 import {
   Tooltip,
@@ -33,10 +33,14 @@ import {
   MatrixifyFormData,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
-import { css, t, SupersetTheme } from '@apache-superset/core/ui';
+import { css, t, styled, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import { sliceUpdated } from 'src/explore/actions/exploreActions';
+import {
+  sliceUpdated,
+  undoExploreAction,
+  redoExploreAction,
+} from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { applyColors, resetColors } from 'src/utils/colorScheme';
@@ -50,6 +54,7 @@ import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { ReportObject } from 'src/features/reports/types';
 import { User } from 'src/types/bootstrapTypes';
+import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -99,6 +104,28 @@ const additionalItemsStyles = (theme: SupersetTheme) => css`
   }
 `;
 
+const StyledUndoRedoButton = styled(Button)`
+  padding: 0;
+  &:hover {
+    background: transparent;
+  }
+`;
+
+const undoRedoStyle = (theme: SupersetTheme) => css`
+  color: ${theme.colorIcon};
+  &:hover {
+    color: ${theme.colorIconHover};
+  }
+`;
+
+const undoRedoEmphasized = (theme: SupersetTheme) => css`
+  color: ${theme.colorIcon};
+`;
+
+const undoRedoDisabled = (theme: SupersetTheme) => css`
+  color: ${theme.colorTextDisabled};
+`;
+
 export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   dashboardId,
   colorScheme: dashboardColorScheme,
@@ -123,6 +150,14 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   const [currentReportDeleting, setCurrentReportDeleting] =
     useState<ReportObject | null>(null);
   const [shouldForceCloseModal, setShouldForceCloseModal] = useState(false);
+
+  // Undo/Redo state
+  const { undoLength, redoLength } = useSelector((state: any) => ({
+    undoLength: state.explore?.past?.length ?? 0,
+    redoLength: state.explore?.future?.length ?? 0,
+  }));
+  const [emphasizeUndo, setEmphasizeUndo] = useState(false);
+  const [emphasizeRedo, setEmphasizeRedo] = useState(false);
 
   const updateCategoricalNamespace = useCallback(async () => {
     const { dashboards } = metadata || {};
@@ -185,6 +220,19 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     await dispatch(deleteActiveReport(report));
     setCurrentReportDeleting(null);
   };
+
+  // Undo/Redo handlers
+  const handleUndo = useCallback(() => {
+    dispatch(undoExploreAction());
+    setEmphasizeUndo(true);
+    setTimeout(() => setEmphasizeUndo(false), 100);
+  }, [dispatch]);
+
+  const handleRedo = useCallback(() => {
+    dispatch(redoExploreAction());
+    setEmphasizeRedo(true);
+    setTimeout(() => setEmphasizeRedo(false), 100);
+  }, [dispatch]);
 
   const history = useHistory();
   const { redirectSQLLab } = actions;
@@ -313,27 +361,74 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
           </div>
         }
         rightPanelAdditionalItems={
-          <Tooltip
-            title={
-              saveDisabled
-                ? t('Add required control values to save chart')
-                : null
-            }
-          >
-            {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
-            <div>
-              <Button
-                buttonStyle="secondary"
-                onClick={showModal}
-                disabled={saveDisabled}
-                data-test="query-save-button"
-                css={saveButtonStyles}
-                icon={<Icons.SaveOutlined />}
-              >
-                {t('Save')}
-              </Button>
+          <>
+            {/* Undo/Redo buttons */}
+            <div
+              className="undoRedo"
+              css={theme => css`
+                display: flex;
+                margin-right: ${theme.sizeUnit * 2}px;
+              `}
+            >
+              <Tooltip title={t('Undo the action')}>
+                <StyledUndoRedoButton
+                  buttonStyle="link"
+                  disabled={undoLength < 1}
+                  onClick={undoLength > 0 ? handleUndo : undefined}
+                  data-test="undo-button"
+                >
+                  <Icons.Undo
+                    css={[
+                      undoRedoStyle,
+                      emphasizeUndo && undoRedoEmphasized,
+                      undoLength < 1 && undoRedoDisabled,
+                    ]}
+                    iconSize="xl"
+                  />
+                </StyledUndoRedoButton>
+              </Tooltip>
+              <Tooltip title={t('Redo the action')}>
+                <StyledUndoRedoButton
+                  buttonStyle="link"
+                  disabled={redoLength < 1}
+                  onClick={redoLength > 0 ? handleRedo : undefined}
+                  data-test="redo-button"
+                >
+                  <Icons.Redo
+                    css={[
+                      undoRedoStyle,
+                      emphasizeRedo && undoRedoEmphasized,
+                      redoLength < 1 && undoRedoDisabled,
+                    ]}
+                    iconSize="xl"
+                  />
+                </StyledUndoRedoButton>
+              </Tooltip>
             </div>
-          </Tooltip>
+
+            {/* Save button */}
+            <Tooltip
+              title={
+                saveDisabled
+                  ? t('Add required control values to save chart')
+                  : null
+              }
+            >
+              {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
+              <div>
+                <Button
+                  buttonStyle="secondary"
+                  onClick={showModal}
+                  disabled={saveDisabled}
+                  data-test="query-save-button"
+                  css={saveButtonStyles}
+                  icon={<Icons.SaveOutlined />}
+                >
+                  {t('Save')}
+                </Button>
+              </div>
+            </Tooltip>
+          </>
         }
         additionalActionsMenu={menu}
         menuDropdownProps={{
@@ -393,6 +488,8 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         onDownload={streamingExportState.onDownload}
         progress={streamingExportState.progress}
       />
+
+      <UndoRedoKeyListeners onUndo={handleUndo} onRedo={handleRedo} />
     </>
   );
 };

@@ -33,7 +33,11 @@ const createStore = (datasource = {}) =>
   configureStore({
     reducer: {
       explore: () => ({
-        datasource,
+        past: [],
+        present: {
+          datasource,
+        },
+        future: [],
       }),
     },
   });
