@@ -24,6 +24,8 @@ import {
   SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
+  fetchFaveStar,
+  TOGGLE_FAVE_STAR,
 } from 'src/dashboard/actions/dashboardState';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
 import {
@@ -232,6 +234,63 @@ describe('dashboardState actions', () => {
       expect(navigateTo).toHaveBeenCalledWith(
         `/superset/dashboard/${newDashboardId}/`,
       );
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('fetchFaveStar', () => {
+    test('dispatches TOGGLE_FAVE_STAR on successful fetch', async () => {
+      const dashboardId = 123;
+      const dispatch = sinon.stub();
+      
+      getStub.restore();
+      getStub = sinon.stub(SupersetClient, 'get').resolves({
+        json: {
+          result: [{ id: dashboardId, value: true }],
+        },
+      });
+
+      const thunk = fetchFaveStar(dashboardId);
+      await thunk(dispatch);
+
+      await waitFor(() => expect(dispatch.callCount).toBe(1));
+      expect(dispatch.getCall(0).args[0].type).toBe(TOGGLE_FAVE_STAR);
+      expect(dispatch.getCall(0).args[0].isStarred).toBe(true);
+    });
+
+    test('does not dispatch error toast on 404 response', async () => {
+      const dashboardId = 999;
+      const dispatch = sinon.stub();
+      
+      getStub.restore();
+      const error404 = new Error('Not found');
+      error404.status = 404;
+      getStub = sinon.stub(SupersetClient, 'get').rejects(error404);
+
+      const thunk = fetchFaveStar(dashboardId);
+      await thunk(dispatch);
+
+      // Should not dispatch any action (no toast, no toggle)
+      expect(dispatch.callCount).toBe(0);
+    });
+
+    test('dispatches error toast on non-404 errors', async () => {
+      const dashboardId = 123;
+      const dispatch = sinon.stub();
+      
+      getStub.restore();
+      const error500 = new Error('Internal server error');
+      error500.status = 500;
+      getStub = sinon.stub(SupersetClient, 'get').rejects(error500);
+
+      const thunk = fetchFaveStar(dashboardId);
+      await thunk(dispatch);
+
+      await waitFor(() => expect(dispatch.callCount).toBe(1));
+      // Verify error toast action was dispatched (ADD_TOAST with danger type)
+      const dispatchedAction = dispatch.getCall(0).args[0];
+      expect(dispatchedAction.type).toBe('ADD_TOAST');
+      expect(dispatchedAction.payload.toastType).toBe('danger');
     });
   });
 });

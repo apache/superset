@@ -113,15 +113,29 @@ export function fetchFaveStar(id) {
       .then(({ json }) => {
         dispatch(toggleFaveStar(!!json?.result?.[0]?.value));
       })
-      .catch(() =>
+      .catch(async error => {
+        const errorObject = await getClientErrorObject(error);
+        
+        // HTTP 404: Dashboard no longer exists (expected case after deletion)
+        // This is a normal scenario when navigating after a dashboard has been deleted.
+        // Skipping error toast to prevent user-facing errors for expected behavior.
+        if (errorObject.status === 404) {
+          logging.debug(
+            `Favorite status fetch returned 404 for dashboard ID ${id}. ` +
+            `Dashboard may have been deleted. Skipping error notification.`
+          );
+          return;
+        }
+
+        // All other errors are unexpected and should be reported to the user
         dispatch(
           addDangerToast(
             t(
               'There was an issue fetching the favorite status of this dashboard.',
             ),
           ),
-        ),
-      );
+        );
+      });
   };
 }
 

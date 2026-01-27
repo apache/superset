@@ -592,7 +592,12 @@ const Header = () => {
   const faveStarProps = useMemo(
     () => ({
       itemId: dashboardInfo.id,
-      fetchFaveStar: boundActionCreators.fetchFaveStar,
+      // Only fetch favorite status for valid, existing dashboards
+      // Skip fetch entirely if dashboard ID is falsy to prevent
+      // 404 errors when navigating after dashboard deletion
+      fetchFaveStar: dashboardInfo.id
+        ? boundActionCreators.fetchFaveStar
+        : undefined,
       saveFaveStar: boundActionCreators.saveFaveStar,
       isStarred,
       showTooltip: true,
