@@ -63,7 +63,6 @@
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "@encodable/color": "=1.1.1",
     "@superset-ui/core": "*",
     "@apache-superset/core": "*",
     "@superset-ui/legacy-plugin-chart-calendar": "*",
