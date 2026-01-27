@@ -50,7 +50,7 @@ export interface ChartDataResponseResult {
    * Name of each column, for retaining the order of the output columns.
    */
   colnames: string[];
-  label_map: Record<string, string[]>;
+  label_map?: Record<string, string[]>;
   /**
    * Generic data types, based on the final output pandas dataframe.
    */
