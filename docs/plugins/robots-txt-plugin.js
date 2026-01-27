@@ -17,14 +17,16 @@
  * under the License.
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 /**
  * Docusaurus plugin to generate robots.txt during build
  * Configuration is passed via plugin options
  */
-module.exports = function robotsTxtPlugin(context, options) {
+module.exports = function robotsTxtPlugin(context, options = {}) {
   const { siteConfig } = context;
   const {
     policies = [{ userAgent: '*', allow: '/' }],

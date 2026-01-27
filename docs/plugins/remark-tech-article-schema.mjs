@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { visit } from 'unist-util-visit';
+// Note: visit from unist-util-visit is available if needed for tree traversal
 
 /**
  * Remark plugin that automatically injects TechArticle schema import and component
@@ -86,9 +86,7 @@ export default function remarkTechArticleSchema() {
       },
     };
 
-    // Create the component JSX
-    const componentJsx = `<TechArticleSchema title=${JSON.stringify(title)} description=${JSON.stringify(description)} ${keywordsStr} ${proficiencyStr} />`;
-
+    // Create the component node for MDX
     const componentNode = {
       type: 'mdxJsxFlowElement',
       name: 'TechArticleSchema',
