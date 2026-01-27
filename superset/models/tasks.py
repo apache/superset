@@ -98,8 +98,6 @@ class Task(CoreTask, AuditMixinNullable, Model):
     # - exception_type: str - exception class name
     # - stack_trace: str - full formatted traceback
     # - timeout: int - timeout in seconds
-    # - max_retries: int - maximum retry attempts
-    # - retry_count: int - current retry count
     _properties = Column("properties", Text, nullable=True, default="{}")
 
     # Transient cache for parsed properties (not persisted)

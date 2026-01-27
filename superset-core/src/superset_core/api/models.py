@@ -438,8 +438,6 @@ class Task(CoreModel):
         - exception_type: str | None - exception class name
         - stack_trace: str | None - full formatted traceback
         - timeout: int | None - timeout in seconds
-        - max_retries: int | None - maximum retry attempts
-        - retry_count: int | None - current retry count
 
         Host implementations will replace this property during initialization.
 

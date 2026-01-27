@@ -40,7 +40,7 @@ payload_description = "Task-specific data in JSON format"
 properties_description = (
     "Runtime state and execution config. Contains: is_abortable, progress_percent, "
     "progress_current, progress_total, error_message, exception_type, stack_trace, "
-    "timeout, max_retries, retry_count"
+    "timeout"
 )
 duration_seconds_description = (
     "Duration in seconds - for finished tasks: execution time, "

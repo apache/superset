@@ -83,8 +83,6 @@ const mockTasks = [
       exception_type: null,
       stack_trace: null,
       timeout: null,
-      max_retries: null,
-      retry_count: null,
     },
   },
   {
@@ -115,8 +113,6 @@ const mockTasks = [
       exception_type: null,
       stack_trace: null,
       timeout: null,
-      max_retries: null,
-      retry_count: null,
     },
   },
   {
@@ -160,8 +156,6 @@ const mockTasks = [
       exception_type: null,
       stack_trace: null,
       timeout: null,
-      max_retries: null,
-      retry_count: null,
     },
   },
 ];
@@ -350,8 +344,6 @@ test('does not show cancel button for completed shared tasks', async () => {
       exception_type: null,
       stack_trace: null,
       timeout: null,
-      max_retries: null,
-      retry_count: null,
     },
   };
 
