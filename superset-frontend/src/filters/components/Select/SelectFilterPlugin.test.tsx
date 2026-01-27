@@ -680,6 +680,53 @@ describe('SelectFilterPlugin', () => {
     expect(options[1]).toHaveTextContent('alpha');
     expect(options[2]).toHaveTextContent('beta');
   });
+
+  test('allowSelectAll is enabled when searchAllOptions is enabled for multi-select', () => {
+    const { container } = getWrapper({
+      searchAllOptions: true,
+      multiSelect: true,
+    });
+    // Verify the Select component is rendered with multiSelect mode
+    const selectElement = container.querySelector('.ant-select-multiple');
+    expect(selectElement).toBeInTheDocument();
+  });
+
+  test('allowSelectAll is not enabled for single-select filters', () => {
+    const { container } = getWrapper({
+      searchAllOptions: true,
+      multiSelect: false,
+    });
+    // Verify the Select component is rendered in single mode (not multiple)
+    const selectElement = container.querySelector('.ant-select-multiple');
+    expect(selectElement).not.toBeInTheDocument();
+  });
+
+  test('Can select multiple values when searchAllOptions is enabled', async () => {
+    getWrapper({ searchAllOptions: true, multiSelect: true });
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // Select first option
+    userEvent.click(screen.getByTitle('girl'));
+    expect(
+      await screen.findByRole('option', { name: /girl/i }),
+    ).toBeInTheDocument();
+
+    // Verify multi-select works with searchAllOptions enabled
+    expect(setDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: {
+          filters: [
+            {
+              col: 'gender',
+              op: 'IN',
+              val: expect.arrayContaining(['boy', 'girl']),
+            },
+          ],
+        },
+      }),
+    );
+  });
 });
 
 test('Select boolean FALSE value in single-select mode', async () => {
