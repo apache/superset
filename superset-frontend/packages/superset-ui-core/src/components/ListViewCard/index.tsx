@@ -97,7 +97,10 @@ const TitleRight = styled.span`
     position: absolute;
     font-weight: 400;
     bottom: ${theme.sizeUnit * 3}px;
-    inset-inline-end: ${theme.sizeUnit * 2}px;
+    /* emit a physical fallback matching the theme direction for deterministic positioning */
+    ${theme.direction === 'rtl'
+      ? `left: ${theme.sizeUnit * 2}px;`
+      : `right: ${theme.sizeUnit * 2}px;`}
   `}
 `;
 const CoverFooter = styled.div`
