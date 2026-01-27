@@ -67,7 +67,6 @@ logger = logging.getLogger(__name__)
 
 
 class ReportScheduleRestApi(BaseSupersetModelRestApi):
-    route_base = "/api/v1/report/"
     datamodel = SQLAInterface(ReportSchedule)
 
     @before_request
