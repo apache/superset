@@ -316,6 +316,7 @@ const Header = (): JSX.Element => {
   const refreshInFlightRef = useRef(false);
   const refreshPromiseRef = useRef<Promise<void> | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshSequenceRef = useRef(0);
   const ctrlYTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ctrlZTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPeriodicRefreshStoppedRef = useRef(true);
@@ -529,6 +530,7 @@ const Header = (): JSX.Element => {
       refreshTimer.current = null;
     }
     isPeriodicRefreshStoppedRef.current = true;
+    refreshSequenceRef.current += 1;
   }, []);
 
   const startPeriodicRender = useCallback(
@@ -540,9 +542,13 @@ const Header = (): JSX.Element => {
       }
 
       isPeriodicRefreshStoppedRef.current = false;
+      const sequenceId = refreshSequenceRef.current;
 
       const runPeriodicRefresh = () => {
-        if (isPeriodicRefreshStoppedRef.current) {
+        if (
+          isPeriodicRefreshStoppedRef.current ||
+          refreshSequenceRef.current !== sequenceId
+        ) {
           return;
         }
         const affectedCharts = chartIds.filter(
@@ -569,7 +575,10 @@ const Header = (): JSX.Element => {
         )
           .catch(() => undefined)
           .finally(() => {
-            if (isPeriodicRefreshStoppedRef.current) {
+            if (
+              isPeriodicRefreshStoppedRef.current ||
+              refreshSequenceRef.current !== sequenceId
+            ) {
               return;
             }
             refreshTimer.current = setTimeout(runPeriodicRefresh, intervalMs);
