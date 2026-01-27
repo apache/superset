@@ -124,17 +124,6 @@ const renderChartList = (
   );
 };
 
-// Setup API permissions mock
-const setupApiPermissions = (permissions: string[]) => {
-  fetchMock.get(
-    API_ENDPOINTS.CHARTS_INFO,
-    {
-      permissions,
-    },
-    { overwriteRoutes: true },
-  );
-};
-
 // Render with permissions and wait for load
 const renderWithPermissions = async (
   permissions = PERMISSIONS.ADMIN,
@@ -151,8 +140,7 @@ const renderWithPermissions = async (
   });
 
   // Convert role permissions to API permissions
-  const apiPermissions = permissions.map(perm => perm[0]);
-  setupApiPermissions(apiPermissions);
+  setupMocks({ [API_ENDPOINTS.CHARTS_INFO]: permissions.map(perm => perm[0]) });
 
   const storeState = createStoreStateWithPermissions(permissions, userId);
 
@@ -176,12 +164,8 @@ const renderWithPermissions = async (
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - Permission-based UI Tests', () => {
   beforeEach(() => {
-    setupMocks();
-  });
-
-  afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory();
+    fetchMock.removeRoutes();
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();

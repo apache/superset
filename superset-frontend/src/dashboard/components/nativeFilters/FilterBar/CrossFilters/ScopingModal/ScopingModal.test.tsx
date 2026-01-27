@@ -151,11 +151,12 @@ const setup = (props = DEFAULT_PROPS) =>
 
 const DASHBOARD_UPDATE_URL = 'glob:*api/v1/dashboard/1';
 beforeEach(() => {
-  fetchMock.put(DASHBOARD_UPDATE_URL, 200);
+  fetchMock.put(DASHBOARD_UPDATE_URL, 200, { name: DASHBOARD_UPDATE_URL });
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory();
+  fetchMock.removeRoutes();
 });
 
 test('renders modal', () => {
@@ -265,11 +266,12 @@ test('edit scope and save', async () => {
 
   userEvent.click(screen.getByText('Save'));
 
-  await waitFor(() => fetchMock.called(DASHBOARD_UPDATE_URL));
+  await waitFor(() => fetchMock.callHistory.called(DASHBOARD_UPDATE_URL));
 
   expect(
     JSON.parse(
-      JSON.parse(fetchMock.lastCall()?.[1]?.body as string).json_metadata,
+      JSON.parse(fetchMock.callHistory.lastCall()?.options?.body as string)
+        .json_metadata,
     ),
   ).toEqual({
     chart_configuration: {

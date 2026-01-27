@@ -25,6 +25,7 @@ import {
   mockHandleResourceExport,
   setupMocks,
   renderChartList,
+  API_ENDPOINTS,
 } from './ChartList.testHelpers';
 
 // Increase default timeout for all tests
@@ -66,7 +67,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory();
+  fetchMock.removeRoutes();
   mockIsFeatureEnabled.mockReset();
 });
 
@@ -113,16 +115,14 @@ test('ChartList list view correctly displays dataset names with and without sche
   ];
 
   // Setup mock with custom charts
-  fetchMock.reset();
+  fetchMock.removeRoutes();
   setupMocks();
-  fetchMock.get(
-    'glob:*/api/v1/chart/?*',
-    {
+  fetchMock.modifyRoute(API_ENDPOINTS.CHARTS, {
+    response: {
       result: customMockCharts,
       chart_count: customMockCharts.length,
     },
-    { overwriteRoutes: true },
-  );
+  });
 
   renderChartList(mockUser);
 
@@ -235,40 +235,41 @@ test('ChartList list view sorts table when clicking column headers', async () =>
   expect(sortableHeaders).toHaveLength(3);
 
   const nameHeader = within(table).getByTitle('Name');
-  await userEvent.click(nameHeader);
+  userEvent.click(nameHeader);
 
   await waitFor(() => {
-    const sortCalls = fetchMock
+    const sortCalls = fetchMock.callHistory
       .calls(/chart\/\?q/)
       .filter(
         call =>
-          call[0].includes('order_column') && call[0].includes('slice_name'),
+          call.url.includes('order_column') && call.url.includes('slice_name'),
       );
     expect(sortCalls).toHaveLength(1);
   });
 
   const typeHeader = within(table).getByTitle('Type');
-  await userEvent.click(typeHeader);
+  userEvent.click(typeHeader);
 
   await waitFor(() => {
-    const typeSortCalls = fetchMock
+    const typeSortCalls = fetchMock.callHistory
       .calls(/chart\/\?q/)
       .filter(
         call =>
-          call[0].includes('order_column') && call[0].includes('viz_type'),
+          call.url.includes('order_column') && call.url.includes('viz_type'),
       );
     expect(typeSortCalls).toHaveLength(1);
   });
 
   const lastModifiedHeader = within(table).getByTitle('Last modified');
-  await userEvent.click(lastModifiedHeader);
+  userEvent.click(lastModifiedHeader);
 
   await waitFor(() => {
-    const lastModifiedSortCalls = fetchMock
+    const lastModifiedSortCalls = fetchMock.callHistory
       .calls(/chart\/\?q/)
       .filter(
         call =>
-          call[0].includes('order_column') && call[0].includes('last_saved_at'),
+          call.url.includes('order_column') &&
+          call.url.includes('last_saved_at'),
       );
     expect(lastModifiedSortCalls).toHaveLength(1);
   });

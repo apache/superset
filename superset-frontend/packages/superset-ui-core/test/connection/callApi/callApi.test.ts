@@ -29,14 +29,17 @@ const corruptObject = new BadObject();
 /* @ts-expect-error */
 BadObject.prototype.toString = undefined;
 
-const mockGetUrl = '/mock/get/url';
-const mockPostUrl = '/mock/post/url';
-const mockPutUrl = '/mock/put/url';
-const mockPatchUrl = '/mock/patch/url';
-const mockCacheUrl = '/mock/cache/url';
-const mockNotFound = '/mock/notfound';
-const mockErrorUrl = '/mock/error/url';
-const mock503 = '/mock/503';
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+
+const mockGetUrl = 'glob:*/mock/get/url';
+const mockPostUrl = 'glob:*/mock/post/url';
+const mockPutUrl = 'glob:*/mock/put/url';
+const mockPatchUrl = 'glob:*/mock/patch/url';
+const mockCacheUrl = 'glob:*/mock/cache/url';
+const mockNotFound = 'glob:*/mock/notfound';
+const mockErrorUrl = 'glob:*/mock/error/url';
+const mock503 = 'glob:*/mock/503';
 
 const mockGetPayload = { get: 'payload' };
 const mockPostPayload = { post: 'payload' };
@@ -50,20 +53,26 @@ const mockCachePayload = {
 const mockErrorPayload = { status: 500, statusText: 'Internal error' };
 
 describe('callApi()', () => {
-  beforeAll(() => fetchMock.get(LOGIN_GLOB, { result: '1234' }));
+  beforeAll(() => {
+    fetchMock.mockGlobal();
+    fetchMock.get(LOGIN_GLOB, { result: '1234' });
+  });
 
   beforeEach(() => {
     fetchMock.get(mockGetUrl, mockGetPayload);
     fetchMock.post(mockPostUrl, mockPostPayload);
     fetchMock.put(mockPutUrl, mockPutPayload);
     fetchMock.patch(mockPatchUrl, mockPatchPayload);
-    fetchMock.get(mockCacheUrl, mockCachePayload);
+    fetchMock.get(mockCacheUrl, mockCachePayload, { name: mockCacheUrl });
     fetchMock.get(mockNotFound, { status: 404 });
     fetchMock.get(mock503, { status: 503 });
     fetchMock.get(mockErrorUrl, () => Promise.reject(mockErrorPayload));
   });
 
-  afterEach(() => fetchMock.reset());
+  afterEach(() => {
+    fetchMock.clearHistory();
+    fetchMock.removeRoutes();
+  });
 
   describe('request config', () => {
     it('calls the right url with the specified method', async () => {
@@ -74,10 +83,10 @@ describe('callApi()', () => {
         callApi({ url: mockPutUrl, method: 'PUT' }),
         callApi({ url: mockPatchUrl, method: 'PATCH' }),
       ]);
-      expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
-      expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
-      expect(fetchMock.calls(mockPutUrl)).toHaveLength(1);
-      expect(fetchMock.calls(mockPatchUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockGetUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockPostUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockPutUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockPatchUrl)).toHaveLength(1);
     });
 
     it('passes along mode, cache, credentials, headers, body, signal, and redirect parameters in the request', async () => {
@@ -92,12 +101,11 @@ describe('callApi()', () => {
         },
         redirect: 'follow',
         signal: undefined,
-        body: 'BODY',
       };
 
       await callApi(mockRequest);
-      const calls = fetchMock.calls(mockGetUrl);
-      const fetchParams = calls[0][1] as RequestInit;
+      const calls = fetchMock.callHistory.calls(mockGetUrl);
+      const fetchParams = calls[0].options as RequestInit;
       expect(calls).toHaveLength(1);
       expect(fetchParams.mode).toBe(mockRequest.mode);
       expect(fetchParams.cache).toBe(mockRequest.cache);
@@ -119,10 +127,10 @@ describe('callApi()', () => {
       const postPayload = { key: 'value', anotherKey: 1237 };
 
       await callApi({ url: mockPostUrl, method: 'POST', postPayload });
-      const calls = fetchMock.calls(mockPostUrl);
+      const calls = fetchMock.callHistory.calls(mockPostUrl);
       expect(calls).toHaveLength(1);
 
-      const fetchParams = calls[0][1] as RequestInit;
+      const fetchParams = calls[0].options as RequestInit;
       const body = fetchParams.body as FormData;
 
       Object.entries(postPayload).forEach(([key, value]) => {
@@ -136,10 +144,10 @@ describe('callApi()', () => {
       const postPayload = { key: 'value', noValue: undefined };
 
       await callApi({ url: mockPostUrl, method: 'POST', postPayload });
-      const calls = fetchMock.calls(mockPostUrl);
+      const calls = fetchMock.callHistory.calls(mockPostUrl);
       expect(calls).toHaveLength(1);
 
-      const fetchParams = calls[0][1] as RequestInit;
+      const fetchParams = calls[0].options as RequestInit;
       const body = fetchParams.body as FormData;
       expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
       expect(body.get('noValue')).toBeNull();
@@ -167,13 +175,13 @@ describe('callApi()', () => {
         }),
         callApi({ url: mockPostUrl, method: 'POST', jsonPayload: postPayload }),
       ]);
-      const calls = fetchMock.calls(mockPostUrl);
+      const calls = fetchMock.callHistory.calls(mockPostUrl);
       expect(calls).toHaveLength(3);
 
-      const stringified = (calls[0][1] as RequestInit).body as FormData;
-      const unstringified = (calls[1][1] as RequestInit).body as FormData;
+      const stringified = (calls[0].options as RequestInit).body as FormData;
+      const unstringified = (calls[1].options as RequestInit).body as FormData;
       const jsonRequestBody = JSON.parse(
-        (calls[2][1] as RequestInit).body as string,
+        (calls[2].options as RequestInit).body as string,
       ) as JsonObject;
 
       Object.entries(postPayload).forEach(([key, value]) => {
@@ -211,9 +219,9 @@ describe('callApi()', () => {
         stringify: false,
       });
 
-      const calls = fetchMock.calls(mockPostUrl);
+      const calls = fetchMock.callHistory.calls(mockPostUrl);
       expect(calls).toHaveLength(1);
-      const unstringified = (calls[0][1] as RequestInit).body as FormData;
+      const unstringified = (calls[0].options as RequestInit).body as FormData;
       const hasCorruptKey = unstringified.has('corrupt');
       expect(hasCorruptKey).toBeFalsy();
       // When a corrupt attribute is encountered, a console.error call is made with info about the corrupt attribute
@@ -228,10 +236,10 @@ describe('callApi()', () => {
       const postPayload = { key: 'value', anotherKey: 1237 };
 
       await callApi({ url: mockPutUrl, method: 'PUT', postPayload });
-      const calls = fetchMock.calls(mockPutUrl);
+      const calls = fetchMock.callHistory.calls(mockPutUrl);
       expect(calls).toHaveLength(1);
 
-      const fetchParams = calls[0][1] as RequestInit;
+      const fetchParams = calls[0].options as RequestInit;
       const body = fetchParams.body as FormData;
 
       Object.entries(postPayload).forEach(([key, value]) => {
@@ -245,10 +253,10 @@ describe('callApi()', () => {
       const postPayload = { key: 'value', noValue: undefined };
 
       await callApi({ url: mockPutUrl, method: 'PUT', postPayload });
-      const calls = fetchMock.calls(mockPutUrl);
+      const calls = fetchMock.callHistory.calls(mockPutUrl);
       expect(calls).toHaveLength(1);
 
-      const fetchParams = calls[0][1] as RequestInit;
+      const fetchParams = calls[0].options as RequestInit;
       const body = fetchParams.body as FormData;
       expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
       expect(body.get('noValue')).toBeNull();
@@ -275,11 +283,11 @@ describe('callApi()', () => {
           stringify: false,
         }),
       ]);
-      const calls = fetchMock.calls(mockPutUrl);
+      const calls = fetchMock.callHistory.calls(mockPutUrl);
       expect(calls).toHaveLength(2);
 
-      const stringified = (calls[0][1] as RequestInit).body as FormData;
-      const unstringified = (calls[1][1] as RequestInit).body as FormData;
+      const stringified = (calls[0].options as RequestInit).body as FormData;
+      const unstringified = (calls[1].options as RequestInit).body as FormData;
 
       Object.entries(postPayload).forEach(([key, value]) => {
         expect(stringified.get(key)).toBe(JSON.stringify(value));
@@ -294,10 +302,10 @@ describe('callApi()', () => {
       const postPayload = { key: 'value', anotherKey: 1237 };
 
       await callApi({ url: mockPatchUrl, method: 'PATCH', postPayload });
-      const calls = fetchMock.calls(mockPatchUrl);
+      const calls = fetchMock.callHistory.calls(mockPatchUrl);
       expect(calls).toHaveLength(1);
 
-      const fetchParams = calls[0][1] as RequestInit;
+      const fetchParams = calls[0].options as RequestInit;
       const body = fetchParams.body as FormData;
 
       Object.entries(postPayload).forEach(([key, value]) => {
@@ -311,10 +319,10 @@ describe('callApi()', () => {
       const postPayload = { key: 'value', noValue: undefined };
 
       await callApi({ url: mockPatchUrl, method: 'PATCH', postPayload });
-      const calls = fetchMock.calls(mockPatchUrl);
+      const calls = fetchMock.callHistory.calls(mockPatchUrl);
       expect(calls).toHaveLength(1);
 
-      const fetchParams = calls[0][1] as RequestInit;
+      const fetchParams = calls[0].options as RequestInit;
       const body = fetchParams.body as FormData;
       expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
       expect(body.get('noValue')).toBeNull();
@@ -341,11 +349,11 @@ describe('callApi()', () => {
           stringify: false,
         }),
       ]);
-      const calls = fetchMock.calls(mockPatchUrl);
+      const calls = fetchMock.callHistory.calls(mockPatchUrl);
       expect(calls).toHaveLength(2);
 
-      const stringified = (calls[0][1] as RequestInit).body as FormData;
-      const unstringified = (calls[1][1] as RequestInit).body as FormData;
+      const stringified = (calls[0].options as RequestInit).body as FormData;
+      const unstringified = (calls[1].options as RequestInit).body as FormData;
 
       Object.entries(postPayload).forEach(([key, value]) => {
         expect(stringified.get(key)).toBe(JSON.stringify(value));
@@ -373,7 +381,7 @@ describe('callApi()', () => {
     it('caches requests with ETags', async () => {
       expect.assertions(2);
       await callApi({ url: mockCacheUrl, method: 'GET' });
-      const calls = fetchMock.calls(mockCacheUrl);
+      const calls = fetchMock.callHistory.calls(mockCacheUrl);
       expect(calls).toHaveLength(1);
       const supersetCache = await caches.open(constants.CACHE_KEY);
       const cachedResponse = await supersetCache.match(mockCacheUrl);
@@ -385,7 +393,7 @@ describe('callApi()', () => {
       window.location.protocol = 'http:';
 
       await callApi({ url: mockCacheUrl, method: 'GET' });
-      const calls = fetchMock.calls(mockCacheUrl);
+      const calls = fetchMock.callHistory.calls(mockCacheUrl);
       expect(calls).toHaveLength(1);
 
       const supersetCache = await caches.open(constants.CACHE_KEY);
@@ -399,7 +407,7 @@ describe('callApi()', () => {
       Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: false });
 
       const firstResponse = await callApi({ url: mockCacheUrl, method: 'GET' });
-      let calls = fetchMock.calls(mockCacheUrl);
+      let calls = fetchMock.callHistory.calls(mockCacheUrl);
       expect(calls).toHaveLength(1);
       const firstBody = await firstResponse.text();
       expect(firstBody).toEqual('BODY');
@@ -408,8 +416,8 @@ describe('callApi()', () => {
         url: mockCacheUrl,
         method: 'GET',
       });
-      calls = fetchMock.calls(mockCacheUrl);
-      const fetchParams = calls[1][1] as RequestInit;
+      calls = fetchMock.callHistory.calls(mockCacheUrl);
+      const fetchParams = calls[1].options as RequestInit;
       expect(calls).toHaveLength(2);
       // second call should not have If-None-Match header
       expect(fetchParams.headers).toBeUndefined();
@@ -424,14 +432,14 @@ describe('callApi()', () => {
       expect.assertions(3);
       // first call sets the cache
       await callApi({ url: mockCacheUrl, method: 'GET' });
-      let calls = fetchMock.calls(mockCacheUrl);
+      let calls = fetchMock.callHistory.calls(mockCacheUrl);
       expect(calls).toHaveLength(1);
 
       // second call sends the Etag in the If-None-Match header
       await callApi({ url: mockCacheUrl, method: 'GET' });
-      calls = fetchMock.calls(mockCacheUrl);
-      const fetchParams = calls[1][1] as RequestInit;
-      const headers = { 'If-None-Match': 'etag' };
+      calls = fetchMock.callHistory.calls(mockCacheUrl);
+      const fetchParams = calls[1].options as RequestInit;
+      const headers = { 'if-none-match': 'etag' };
       expect(calls).toHaveLength(2);
       expect(fetchParams.headers).toEqual(
         expect.objectContaining(headers) as typeof fetchParams.headers,
@@ -442,16 +450,16 @@ describe('callApi()', () => {
       expect.assertions(3);
       // first call sets the cache
       await callApi({ url: mockCacheUrl, method: 'GET' });
-      expect(fetchMock.calls(mockCacheUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockCacheUrl)).toHaveLength(1);
       // second call reuses the cached payload on a 304
       const mockCachedPayload = { status: 304 };
-      fetchMock.get(mockCacheUrl, mockCachedPayload, { overwriteRoutes: true });
+      fetchMock.modifyRoute(mockCacheUrl, { response: mockCachedPayload });
 
       const secondResponse = await callApi({
         url: mockCacheUrl,
         method: 'GET',
       });
-      expect(fetchMock.calls(mockCacheUrl)).toHaveLength(2);
+      expect(fetchMock.callHistory.calls(mockCacheUrl)).toHaveLength(2);
       const secondBody = await secondResponse.text();
       expect(secondBody).toEqual('BODY');
     });
@@ -461,7 +469,7 @@ describe('callApi()', () => {
 
       // this should never happen, since a 304 is only returned if we have
       // the cached response and sent the If-None-Match header
-      const mockUncachedUrl = '/mock/uncached/url';
+      const mockUncachedUrl = 'glob:*/mock/uncached/url';
       const mockCachedPayload = { status: 304 };
       let error;
       fetchMock.get(mockUncachedUrl, mockCachedPayload);
@@ -471,7 +479,7 @@ describe('callApi()', () => {
       } catch (err) {
         error = err;
       } finally {
-        const calls = fetchMock.calls(mockUncachedUrl);
+        const calls = fetchMock.callHistory.calls(mockUncachedUrl);
         expect(calls).toHaveLength(1);
         expect((error as { message: string }).message).toEqual(
           'Received 304 but no content is cached!',
@@ -483,7 +491,7 @@ describe('callApi()', () => {
       expect.assertions(3);
       const url = mockGetUrl;
       const response = await callApi({ url, method: 'GET' });
-      const calls = fetchMock.calls(url);
+      const calls = fetchMock.callHistory.calls(url);
       expect(calls).toHaveLength(1);
       expect(response.status).toEqual(200);
       const body = await response.json();
@@ -494,7 +502,7 @@ describe('callApi()', () => {
       expect.assertions(2);
       const url = mockNotFound;
       const response = await callApi({ url, method: 'GET' });
-      const calls = fetchMock.calls(url);
+      const calls = fetchMock.callHistory.calls(url);
       expect(calls).toHaveLength(1);
       expect(response.status).toEqual(404);
     });
@@ -513,7 +521,7 @@ describe('callApi()', () => {
       error = err;
     } finally {
       const err = error as { status: number; statusText: string };
-      expect(fetchMock.calls(mockErrorUrl)).toHaveLength(4);
+      expect(fetchMock.callHistory.calls(mockErrorUrl)).toHaveLength(4);
       expect(err.status).toBe(mockErrorPayload.status);
       expect(err.statusText).toBe(mockErrorPayload.statusText);
     }
@@ -531,7 +539,7 @@ describe('callApi()', () => {
     } catch (err) {
       error = err as { status: number; statusText: string };
     } finally {
-      expect(fetchMock.calls(mockErrorUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockErrorUrl)).toHaveLength(1);
       expect(error?.status).toBe(mockErrorPayload.status);
       expect(error?.statusText).toBe(mockErrorPayload.statusText);
     }
@@ -545,7 +553,7 @@ describe('callApi()', () => {
       url,
       method: 'GET',
     });
-    const calls = fetchMock.calls(url);
+    const calls = fetchMock.callHistory.calls(url);
     expect(calls).toHaveLength(4);
     expect(response.status).toEqual(503);
   });
@@ -581,7 +589,9 @@ describe('callApi()', () => {
     const result = await response.json();
     expect(response.status).toEqual(200);
     expect(result).toEqual({ yes: 'ok' });
-    expect(fetchMock.lastUrl()).toEqual(`http://localhost/get-search?abc=1`);
+    expect(fetchMock.callHistory.lastCall()?.url).toEqual(
+      `http://localhost/get-search?abc=1`,
+    );
   });
 
   it('should accept URLSearchParams', async () => {
@@ -596,8 +606,10 @@ describe('callApi()', () => {
       method: 'POST',
       jsonPayload: { request: 'ok' },
     });
-    expect(fetchMock.lastUrl()).toEqual(`http://localhost/post-search?abc=1`);
-    expect(fetchMock.lastOptions()).toEqual(
+    expect(fetchMock.callHistory.lastCall()?.url).toEqual(
+      `http://localhost/post-search?abc=1`,
+    );
+    expect(fetchMock.callHistory.lastCall()?.options).toEqual(
       expect.objectContaining({
         body: JSON.stringify({ request: 'ok' }),
       }),
@@ -634,7 +646,7 @@ describe('callApi()', () => {
       method: 'POST',
       postPayload: payload,
     });
-    expect(fetchMock.lastOptions()?.body).toBe(payload);
+    expect(fetchMock.callHistory.lastCall()?.options.body).toBe(payload);
   });
 
   it('should ignore "null" postPayload string', async () => {
@@ -646,6 +658,6 @@ describe('callApi()', () => {
       method: 'POST',
       postPayload: 'null',
     });
-    expect(fetchMock.lastOptions()?.body).toBeUndefined();
+    expect(fetchMock.callHistory.lastCall()?.options.body).toBeUndefined();
   });
 });

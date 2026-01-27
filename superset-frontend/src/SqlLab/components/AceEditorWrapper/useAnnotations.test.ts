@@ -50,14 +50,17 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory();
+  fetchMock.removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
 });
 
 beforeEach(() => {
-  fetchMock.post(queryValidationApiRoute, fakeApiResult);
+  fetchMock.post(queryValidationApiRoute, fakeApiResult, {
+    name: queryValidationApiRoute,
+  });
 });
 
 const initialize = (withValidator = false) => {
@@ -115,13 +118,15 @@ const initialize = (withValidator = false) => {
 test('skips fetching validation if validator is undefined', () => {
   const { result } = initialize();
   expect(result.current.data).toEqual([]);
-  expect(fetchMock.calls(queryValidationApiRoute)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(queryValidationApiRoute)).toHaveLength(0);
 });
 
 test('returns validation if validator is configured', async () => {
   const { result, waitFor } = initialize(true);
   await waitFor(() =>
-    expect(fetchMock.calls(queryValidationApiRoute)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(queryValidationApiRoute)).toHaveLength(
+      1,
+    ),
   );
   expect(result.current.data).toEqual(
     fakeApiResult.result.map(err => ({
@@ -135,13 +140,10 @@ test('returns validation if validator is configured', async () => {
 
 test('returns server error description', async () => {
   const errorMessage = 'Unexpected validation api error';
-  fetchMock.post(
-    queryValidationApiRoute,
-    {
-      throws: new Error(errorMessage),
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoute(queryValidationApiRoute);
+  fetchMock.post(queryValidationApiRoute, {
+    throws: new Error(errorMessage),
+  });
   const { result, waitFor } = initialize(true);
   await waitFor(
     () =>
@@ -159,13 +161,10 @@ test('returns server error description', async () => {
 
 test('returns session expire description when CSRF token expired', async () => {
   const errorMessage = 'CSRF token expired';
-  fetchMock.post(
-    queryValidationApiRoute,
-    {
-      throws: new Error(errorMessage),
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoute(queryValidationApiRoute);
+  fetchMock.post(queryValidationApiRoute, {
+    throws: new Error(errorMessage),
+  });
   const { result, waitFor } = initialize(true);
   await waitFor(
     () =>

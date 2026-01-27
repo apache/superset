@@ -61,24 +61,25 @@ const setupCurrencySection = async () => {
 
   // Navigate to metrics tab - use findBy which has built-in waiting
   const metricButton = await screen.findByTestId('collection-tab-Metrics');
-  await userEvent.click(metricButton);
+  userEvent.click(metricButton);
 
   // Expand the metric row
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  await userEvent.click(expandToggles[0]);
+  userEvent.click(expandToggles[0]);
 
   // Wait for currency section to be visible
   await screen.findByText('Metric currency');
 };
 
 beforeEach(() => {
-  fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
+  fetchMock.get(DATASOURCE_ENDPOINT, [], { name: DATASOURCE_ENDPOINT });
   setupDatasourceEditorMocks();
 });
 
 afterEach(async () => {
   await cleanupAsyncOperations();
-  fetchMock.restore();
+  fetchMock.clearHistory();
+  fetchMock.removeRoutes();
 });
 
 test('renders currency section in metrics tab', async () => {
