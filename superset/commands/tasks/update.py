@@ -22,6 +22,7 @@ from functools import partial
 from typing import Any, TYPE_CHECKING
 
 from marshmallow import ValidationError
+from superset_core.api.tasks import TaskProperties
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
@@ -32,7 +33,6 @@ from superset.commands.tasks.exceptions import (
     TaskUpdateFailedError,
 )
 from superset.exceptions import SupersetSecurityException
-from superset.tasks.types import TaskProperties
 from superset.utils.decorators import on_error, transaction
 
 if TYPE_CHECKING:

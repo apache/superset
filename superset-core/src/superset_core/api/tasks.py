@@ -20,7 +20,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Generic, ParamSpec, TypeVar
+from typing import Any, Callable, Generic, ParamSpec, TypedDict, TypeVar
 
 from superset_core.api.models import Task
 
@@ -50,6 +50,42 @@ class TaskScope(str, Enum):
     PRIVATE = "private"  # User-specific tasks (default)
     SHARED = "shared"  # Multi-user collaborative tasks
     SYSTEM = "system"  # Admin-only background tasks
+
+
+class TaskProperties(TypedDict, total=False):
+    """
+    TypedDict for task runtime state and execution config.
+
+    Stored as JSON in the database, accessed as a dict throughout the codebase.
+    All fields are optional (total=False) - only set keys are present in the dict.
+
+    Usage:
+        # Reading - always use .get() since keys may not be present
+        if task.properties.get("is_abortable"):
+            ...
+
+        # Writing/updating - only include keys you want to set
+        task.update_properties({"is_abortable": True, "progress_percent": 0.5})
+
+    Notes:
+        - Sparse dict: only keys that are explicitly set are present
+        - Unknown keys from JSON are preserved (forward compatibility)
+        - Always use .get() for reads since keys may be absent
+    """
+
+    # Runtime state - set by framework during execution
+    is_abortable: bool
+    progress_percent: float
+    progress_current: int
+    progress_total: int
+
+    # Error info - set when task fails
+    error_message: str
+    exception_type: str
+    stack_trace: str
+
+    # Execution config - set at task creation
+    timeout: int
 
 
 @dataclass(frozen=True)
@@ -356,6 +392,7 @@ def get_context() -> TaskContext:
 __all__ = [
     "TaskStatus",
     "TaskScope",
+    "TaskProperties",
     "TaskContext",
     "TaskOptions",
     "task",

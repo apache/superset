@@ -21,7 +21,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from superset_core.api.tasks import TaskScope, TaskStatus
+from superset_core.api.tasks import TaskProperties, TaskScope, TaskStatus
 
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
@@ -29,7 +29,6 @@ from superset.extensions import db
 from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
 from superset.tasks.filters import TaskFilter
-from superset.tasks.types import TaskProperties
 from superset.tasks.utils import get_active_dedup_key
 from superset.utils.core import get_user_id
 from superset.utils.decorators import transaction

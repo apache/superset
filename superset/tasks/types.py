@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import NamedTuple, TypedDict
+from typing import NamedTuple
 
 from superset.utils.backports import StrEnum
 
@@ -57,39 +57,3 @@ Executor = FixedExecutor | ExecutorType
 
 # Alias type to represent the executor that was chosen from a list of Executors
 ChosenExecutor = tuple[ExecutorType, str]
-
-
-class TaskProperties(TypedDict, total=False):
-    """
-    TypedDict for task runtime state and execution config.
-
-    Stored as JSON in the database, accessed as a dict throughout the codebase.
-    All fields are optional (total=False) - only set keys are present in the dict.
-
-    Usage:
-        # Reading - always use .get() since keys may not be present
-        if task.properties.get("is_abortable"):
-            ...
-
-        # Writing/updating - only include keys you want to set
-        task.update_properties({"is_abortable": True, "progress_percent": 0.5})
-
-    Notes:
-        - Sparse dict: only keys that are explicitly set are present
-        - Unknown keys from JSON are preserved (forward compatibility)
-        - Always use .get() for reads since keys may be absent
-    """
-
-    # Runtime state - set by framework during execution
-    is_abortable: bool
-    progress_percent: float
-    progress_current: int
-    progress_total: int
-
-    # Error info - set when task fails
-    error_message: str
-    exception_type: str
-    stack_trace: str
-
-    # Execution config - set at task creation
-    timeout: int

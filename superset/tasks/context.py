@@ -21,9 +21,12 @@ import threading
 from typing import Callable, TYPE_CHECKING, TypeVar
 
 from flask import current_app
-from superset_core.api.tasks import TaskContext as CoreTaskContext, TaskStatus
+from superset_core.api.tasks import (
+    TaskContext as CoreTaskContext,
+    TaskProperties,
+    TaskStatus,
+)
 
-from superset.tasks.types import TaskProperties
 from superset.tasks.utils import progress_update
 
 if TYPE_CHECKING:
