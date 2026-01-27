@@ -609,13 +609,22 @@ const README_END_MARKER = '<!-- SUPPORTED_DATABASES_END -->';
 
 /**
  * Generate the database logos HTML for README.md
- * Only includes databases that have logos defined
+ * Only includes databases that have logos and homepage URLs.
+ * Deduplicates by logo filename to match the docs homepage behavior.
  */
 function generateReadmeLogos(databases) {
-  // Get databases with logos, sorted alphabetically
+  // Get databases with logos and homepage URLs, sorted alphabetically,
+  // deduplicated by logo filename (matches docs homepage logic in index.tsx)
+  const seenLogos = new Set();
   const dbsWithLogos = Object.entries(databases)
-    .filter(([, db]) => db.documentation?.logo)
-    .sort(([a], [b]) => a.localeCompare(b));
+    .filter(([, db]) => db.documentation?.logo && db.documentation?.homepage_url)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .filter(([, db]) => {
+      const logo = db.documentation.logo;
+      if (seenLogos.has(logo)) return false;
+      seenLogos.add(logo);
+      return true;
+    });
 
   if (dbsWithLogos.length === 0) {
     return '';
@@ -624,7 +633,7 @@ function generateReadmeLogos(databases) {
   // Generate HTML img tags
   const logoTags = dbsWithLogos.map(([name, db]) => {
     const logo = db.documentation.logo;
-    const alt = name.toLowerCase().replace(/\s+/g, '-');
+    const alt = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     // Use docs site URL for logos
     return `  <img src="https://superset.apache.org/img/databases/${logo}" alt="${alt}" border="0" width="80" height="40" class="database-logo" />`;
   });

@@ -120,18 +120,17 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/apache-solr.png" alt="apache-solr" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/apache-spark.png" alt="apache-spark-sql" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/ascend.webp" alt="ascend" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/mysql.png" alt="aurora-mysql-(data-api)" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/postgresql.svg" alt="aurora-postgresql-(data-api)" border="0" width="80" height="40" class="database-logo" />
+  <img src="https://superset.apache.org/img/databases/mysql.png" alt="aurora-mysql-data-api" border="0" width="80" height="40" class="database-logo" />
+  <img src="https://superset.apache.org/img/databases/postgresql.svg" alt="aurora-postgresql-data-api" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/kusto.png" alt="azure-data-explorer" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/azure.svg" alt="azure-synapse" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/cloudflare.png" alt="cloudflare-d1" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/cockroachdb.png" alt="cockroachdb" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/couchbase.svg" alt="couchbase" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/cratedb.png" alt="cratedb" border="0" width="80" height="40" class="database-logo" />
+  <img src="https://superset.apache.org/img/databases/cratedb.svg" alt="cratedb" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/databend.png" alt="databend" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/databricks.png" alt="databricks" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/apache-hive.svg" alt="databricks-interactive-cluster" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/denodo.png" alt="denodo" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/dremio.png" alt="dremio" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/duckdb.png" alt="duckdb" border="0" width="80" height="40" class="database-logo" />
@@ -144,19 +143,16 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/greenplum.png" alt="greenplum" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/hologres.png" alt="hologres" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/ibm-db2.svg" alt="ibm-db2" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/ibm-db2.svg" alt="ibm-db2-for-i" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/netezza.png" alt="ibm-netezza-performance-server" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/msql.png" alt="microsoft-sql-server" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/monet-db.png" alt="monetdb" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/mongodb.png" alt="mongodb" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/motherduck.png" alt="motherduck" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/oraclelogo.png" alt="oracle" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/postgresql.svg" alt="postgresql" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/presto-og.png" alt="presto" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/risingwave.png" alt="risingwave" border="0" width="80" height="40" class="database-logo" />
+  <img src="https://superset.apache.org/img/databases/risingwave.svg" alt="risingwave" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="sap-hana" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/sybase.png" alt="sap-sybase" border="0" width="80" height="40" class="database-logo" />
   <img src="https://superset.apache.org/img/databases/shillelagh.png" alt="shillelagh" border="0" width="80" height="40" class="database-logo" />
