@@ -51,7 +51,7 @@ type DropTargetMonitor = {
     id: string;
     type: ComponentType;
   } | null;
-  getClientOffset: () => ClientOffset;
+  getClientOffset: () => ClientOffset | null;
 };
 
 type DropTargetComponent = {
