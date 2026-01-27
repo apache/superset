@@ -1,16 +1,16 @@
 {
-  "generated": "2026-01-21T23:22:58.314Z",
+  "generated": "2026-01-27T06:14:03.276Z",
   "statistics": {
-    "totalDatabases": 67,
-    "withDocumentation": 67,
-    "withConnectionString": 67,
-    "withDrivers": 34,
+    "totalDatabases": 68,
+    "withDocumentation": 68,
+    "withConnectionString": 68,
+    "withDrivers": 35,
     "withAuthMethods": 4,
-    "supportsJoins": 63,
-    "supportsSubqueries": 64,
+    "supportsJoins": 64,
+    "supportsSubqueries": 65,
     "supportsDynamicSchema": 15,
     "supportsCatalog": 9,
-    "averageScore": 34,
+    "averageScore": 33,
     "maxScore": 201,
     "byCategory": {
       "Other Databases": [
@@ -33,6 +33,7 @@
         "Hologres",
         "IBM Db2 for i",
         "Azure Data Explorer",
+        "MongoDB",
         "Microsoft SQL Server",
         "Azure Synapse",
         "IBM Netezza Performance Server",
@@ -175,6 +176,7 @@
         "Couchbase",
         "Amazon DynamoDB",
         "Elasticsearch",
+        "MongoDB",
         "Parseable",
         "Apache Solr"
       ],
@@ -2993,6 +2995,63 @@
           "database": "Database name"
         },
         "docs_url": "https://www.monetdb.org/documentation/"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "MongoDB": {
+      "engine": "mongodb",
+      "engine_name": "MongoDB",
+      "module": "mongodb",
+      "documentation": {
+        "description": "MongoDB is a document-oriented, operational NoSQL database.",
+        "logo": "mongodb.png",
+        "homepage_url": "https://www.mongodb.com/",
+        "categories": [
+          "SEARCH_NOSQL",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "pymongosql"
+        ],
+        "connection_string": "mongodb://{username}:{password}@{host}:{port}/{database}?mode=superset",
+        "parameters": {
+          "username": "Username for MongoDB",
+          "password": "Password for MongoDB",
+          "host": "MongoDB host",
+          "port": "MongoDB port",
+          "database": "Database name"
+        },
+        "drivers": [
+          {
+            "name": "MongoDB Atlas Cloud",
+            "pypi_package": "pymongosql",
+            "connection_string": "mongodb+srv://{username}:{password}@{host}/{database}?mode=superset",
+            "notes": "For MongoDB Atlas cloud service.",
+            "is_recommended": true
+          },
+          {
+            "name": "MongoDB Cluster",
+            "pypi_package": "pymongosql",
+            "connection_string": "mongodb://{username}:{password}@{host}:{port}/{database}?mode=superset",
+            "is_recommended": false,
+            "notes": "For self-hosted MongoDB instances."
+          }
+        ],
+        "notes": "Uses PartiQL for SQL queries. Requires mode=superset parameter.",
+        "docs_url": "https://github.com/passren/PyMongoSQL"
       },
       "time_grains": {},
       "score": 0,
