@@ -24,10 +24,9 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import redis
 from redis.sentinel import Sentinel
-from superset_core.api.tasks import TaskScope, TaskStatus
+from superset_core.api.tasks import TaskProperties, TaskScope, TaskStatus
 
 from superset.commands.tasks.exceptions import TaskCreateFailedError
-from superset.tasks.types import TaskProperties
 from superset.tasks.utils import generate_random_task_key
 
 if TYPE_CHECKING:

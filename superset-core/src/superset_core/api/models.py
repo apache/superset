@@ -40,6 +40,7 @@ from flask_appbuilder import Model
 from sqlalchemy.orm import scoped_session
 
 if TYPE_CHECKING:
+    from superset_core.api.tasks import TaskProperties
     from superset_core.api.types import (
         AsyncQueryHandle,
         QueryOptions,
@@ -446,17 +447,18 @@ class Task(CoreModel):
         """
         raise NotImplementedError("Property will be replaced during initialization")
 
-    def update_properties(self, **kwargs: Any) -> None:
+    def update_properties(self, updates: "TaskProperties") -> None:
         """
-        Update specific properties fields.
+        Update specific properties fields (merge semantics).
 
-        Simple merge: pass key=value to update that field. If you pass
-        key=None, the field is set to None (cleared). If you don't pass
-        a key, it keeps its current value.
+        Only updates fields present in the updates dict.
 
         Host implementations will replace this method during initialization.
 
-        :param kwargs: Property fields to update
+        :param updates: TaskProperties dict with fields to update
+
+        Example:
+            task.update_properties({"is_abortable": True})
         """
         raise NotImplementedError("Method will be replaced during initialization")
 

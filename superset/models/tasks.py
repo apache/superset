@@ -32,11 +32,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from superset_core.api.models import Task as CoreTask
-from superset_core.api.tasks import TaskStatus
+from superset_core.api.tasks import TaskProperties, TaskStatus
 
 from superset.models.helpers import AuditMixinNullable
 from superset.models.task_subscribers import TaskSubscriber  # noqa: F401
-from superset.tasks.types import TaskProperties
 from superset.tasks.utils import (
     error_update,
     get_finished_dedup_key,
