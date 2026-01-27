@@ -137,7 +137,9 @@ const PropertiesModal = ({
       theme_name: string;
     }>
   >([]);
-  const [emptyStateConfig, setEmptyStateConfig] = useState<EmptyStateConfig>({});
+  const [emptyStateConfig, setEmptyStateConfig] = useState<EmptyStateConfig>(
+    {},
+  );
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
 
@@ -207,7 +209,7 @@ const PropertiesModal = ({
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
       setRefreshFrequency(metadata?.refresh_frequency || 0);
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
-      
+
       // Parse empty_state_config if it exists
       try {
         const parsedEmptyStateConfig = empty_state_config
@@ -217,7 +219,7 @@ const PropertiesModal = ({
       } catch (error) {
         setEmptyStateConfig({});
       }
-      
+
       originalDashboardMetadata.current = metadata;
     },
     [form],
@@ -409,9 +411,10 @@ const PropertiesModal = ({
         dashboard_title: title,
         slug: slug || null,
         json_metadata: currentJsonMetadata || null,
-        empty_state_config: Object.keys(emptyStateConfig).length > 0
-          ? JSON.stringify(emptyStateConfig)
-          : null,
+        empty_state_config:
+          Object.keys(emptyStateConfig).length > 0
+            ? JSON.stringify(emptyStateConfig)
+            : null,
         owners: (owners || []).map(o => o.id),
         certified_by: certifiedBy || null,
         certification_details:

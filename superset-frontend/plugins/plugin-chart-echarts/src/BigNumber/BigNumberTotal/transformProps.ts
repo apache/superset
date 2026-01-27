@@ -108,10 +108,6 @@ export default function transformProps(
   const colorThresholdFormatters =
     getColorFormatters(conditionalFormatting, data, theme, false) ??
     defaultColorFormatters;
-
-  // Extract custom empty state messages from dashboard metadata
-  const customEmptyStateMessages = chartProps.dashboardMetadata?.empty_state_config;
-
   return {
     width,
     height,
@@ -127,6 +123,5 @@ export default function transformProps(
     metricName: originalLabel,
     showMetricName,
     metricNameFontSize,
-    customEmptyStateMessages,
   };
 }

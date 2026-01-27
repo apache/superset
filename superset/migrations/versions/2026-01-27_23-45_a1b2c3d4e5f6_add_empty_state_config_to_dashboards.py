@@ -34,15 +34,13 @@ down_revision = "f5b5f88d8526"
 def upgrade():
     add_columns(
         "dashboards",
-        [
-            sa.Column(
-                "empty_state_config",
-                sa.Text(),
-                nullable=True,
-            ),
-        ],
+        sa.Column(
+            "empty_state_config",
+            sa.Text(),
+            nullable=True,
+        ),
     )
 
 
 def downgrade():
-    drop_columns("dashboards", ["empty_state_config"])
+    drop_columns("dashboards", "empty_state_config")

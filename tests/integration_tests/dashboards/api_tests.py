@@ -3527,7 +3527,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             "no_data_message": "Custom no data",
             "no_data_subtitle": "Custom subtitle",
             "no_results_message": "Custom no results",
-            "no_results_subtitle": "Custom results subtitle"
+            "no_results_subtitle": "Custom results subtitle",
         }
         dashboard_data = {
             "dashboard_title": "Dashboard with Empty State",
@@ -3541,7 +3541,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Dashboard).get(data.get("id"))
-        
+
         # Verify the empty_state_config was saved correctly
         assert model.empty_state_config is not None
         saved_config = json.loads(model.empty_state_config)
@@ -3549,7 +3549,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         assert saved_config["no_data_subtitle"] == "Custom subtitle"
         assert saved_config["no_results_message"] == "Custom no results"
         assert saved_config["no_results_subtitle"] == "Custom results subtitle"
-        
+
         db.session.delete(model)
         db.session.commit()
 
@@ -3576,10 +3576,8 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         Dashboard API: Test update dashboard with empty_state_config
         """
         admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id]
-        ).id
-        
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
+
         empty_state_config = {
             "no_data_message": "Updated no data",
             "no_data_subtitle": "Updated subtitle",
@@ -3588,18 +3586,18 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             "dashboard_title": "Updated Dashboard",
             "empty_state_config": json.dumps(empty_state_config),
         }
-        
+
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.put_assert_metric(uri, update_data, "put")
         assert rv.status_code == 200
-        
+
         model = db.session.query(Dashboard).get(dashboard_id)
         assert model.empty_state_config is not None
         saved_config = json.loads(model.empty_state_config)
         assert saved_config["no_data_message"] == "Updated no data"
         assert saved_config["no_data_subtitle"] == "Updated subtitle"
-        
+
         db.session.delete(model)
         db.session.commit()
 
@@ -3612,17 +3610,15 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             "no_data_message": "Custom message",
             "no_data_subtitle": "Custom subtitle",
         }
-        dashboard = self.insert_dashboard(
-            "title1", "slug1", [admin.id]
-        )
+        dashboard = self.insert_dashboard("title1", "slug1", [admin.id])
         dashboard.empty_state_config = json.dumps(empty_state_config)
         db.session.commit()
-        
+
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
-        
+
         data = json.loads(rv.data.decode("utf-8"))
         result = data.get("result")
         assert "empty_state_config" in result
@@ -3630,7 +3626,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         config = json.loads(result["empty_state_config"])
         assert config["no_data_message"] == "Custom message"
         assert config["no_data_subtitle"] == "Custom subtitle"
-        
+
         db.session.delete(dashboard)
         db.session.commit()
 
@@ -3642,23 +3638,21 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         empty_state_config = {
             "no_data_message": "To be cleared",
         }
-        dashboard = self.insert_dashboard(
-            "title1", "slug1", [admin.id]
-        )
+        dashboard = self.insert_dashboard("title1", "slug1", [admin.id])
         dashboard.empty_state_config = json.dumps(empty_state_config)
         db.session.commit()
-        
+
         update_data = {
             "empty_state_config": None,
         }
-        
+
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.put_assert_metric(uri, update_data, "put")
         assert rv.status_code == 200
-        
+
         model = db.session.query(Dashboard).get(dashboard.id)
         assert model.empty_state_config is None
-        
+
         db.session.delete(model)
         db.session.commit()

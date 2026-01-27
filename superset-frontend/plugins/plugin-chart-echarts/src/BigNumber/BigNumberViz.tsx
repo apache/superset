@@ -59,7 +59,6 @@ function BigNumberVis({
   subheaderFontSize = PROPORTION.SUBHEADER,
   subtitleFontSize = PROPORTION.SUBHEADER,
   timeRangeFixed = false,
-  customEmptyStateMessages,
   ...props
 }: BigNumberVizProps) {
   const theme = useTheme();
@@ -193,9 +192,7 @@ function BigNumberVis({
   const renderHeader = (maxHeight: number) => {
     const { bigNumber, width, colorThresholdFormatters, onContextMenu } = props;
     // @ts-ignore
-    const text = bigNumber === null 
-      ? (customEmptyStateMessages?.no_data_message || t('No data'))
-      : headerFormatter(bigNumber);
+    const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
 
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&
@@ -292,7 +289,7 @@ function BigNumberVis({
     const { subtitle, width, bigNumber, bigNumberFallback } = props;
     let fontSize = 0;
 
-    const NO_DATA_OR_HASNT_LANDED = customEmptyStateMessages?.no_data_subtitle || t(
+    const NO_DATA_OR_HASNT_LANDED = t(
       'No data after filtering or data is NULL for the latest time record',
     );
     const NO_DATA = t(

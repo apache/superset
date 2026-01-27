@@ -24,6 +24,45 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Customizable Empty State Messages for BigNumber Charts
+
+BigNumber charts now support customizable empty state messages at the dashboard level. This allows dashboard owners to provide context-specific messages when charts display no data or no results.
+
+#### New Features
+- Dashboard-level configuration for BigNumber chart empty states
+- Four customizable message fields:
+  - `no_data_message`: Primary message when query returns no data
+  - `no_data_subtitle`: Additional context for no data state
+  - `no_results_message`: Primary message when filters yield no results
+  - `no_results_subtitle`: Additional context for no results state
+- Available in Dashboard Properties modal under "Empty State Configuration" section
+- Applies to all BigNumber chart variants (Total, With Trendline, Period over Period)
+- Internationalization (i18n) support with fallback to default translated messages
+
+#### Usage
+1. Edit a dashboard containing BigNumber charts
+2. Open Dashboard Properties (three dots menu → Edit properties)
+3. Navigate to "Empty State Configuration" section
+4. Enter custom messages for each empty state scenario
+5. Save dashboard
+
+#### Database Migration
+The `empty_state_config` column has been added to the `dashboards` table to store the configuration as JSON. Run database migrations to apply:
+```bash
+superset db upgrade
+```
+
+#### API Changes
+The Dashboard API now accepts `empty_state_config` field in POST/PUT requests:
+```json
+{
+  "dashboard_title": "My Dashboard",
+  "empty_state_config": "{\"no_data_message\": \"Custom message\", \"no_data_subtitle\": \"Custom subtitle\"}"
+}
+```
+
+The field is also returned in GET responses when present.
+
 ### MCP Service
 
 The MCP (Model Context Protocol) service enables AI assistants and automation tools to interact programmatically with Superset.
