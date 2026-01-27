@@ -500,6 +500,13 @@ stages:
                   docker compose -f .azuredevops/docker-compose-deploy.yml --project-name azuredevops ps
                   echo ""
                   echo "=== END DEBUG ==="
+                env:
+                  FULL_IMAGE_NAME: $(FULL_IMAGE_NAME)
+                  SUPERSET_SECRET_KEY: $(SUPERSET_SECRET_KEY)
+                  SUPERSET_ADMIN_USER: $(SUPERSET_ADMIN_USER)
+                  SUPERSET_PORT: $(SUPERSET_PORT)
+                  DOCKER_NETWORK: $(DOCKER_NETWORK)
+                  DOCKER_INITDB_DIR: $(DOCKER_INITDB_DIR)
                 displayName: Deploy Superset
 
               # -------------------------------------
