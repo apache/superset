@@ -37,8 +37,9 @@ class TaskStatus(str, Enum):
     IN_PROGRESS = "in_progress"
     SUCCESS = "success"
     FAILURE = "failure"
-    ABORTING = "aborting"  # Abort requested, handlers running
-    ABORTED = "aborted"
+    ABORTING = "aborting"  # Abort/timeout requested, handlers running
+    ABORTED = "aborted"  # User/admin cancelled
+    TIMED_OUT = "timed_out"  # Timeout expired
 
 
 class TaskScope(str, Enum):

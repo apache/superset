@@ -322,14 +322,16 @@ class TaskContext(CoreTaskContext):
                 if task.properties.get("is_abortable", False):
                     logger.info(
                         "Timeout reached for task %s after %d seconds - "
-                        "marking as failed and triggering abort handlers",
+                        "transitioning to ABORTING and triggering abort handlers",
                         self._task_uuid,
                         timeout_seconds,
                     )
-                    # Set status to FAILURE (timeout is an error, not user cancellation)
+                    # Set status to ABORTING (same as user abort)
+                    # The executor will determine TIMED_OUT vs FAILURE based on
+                    # whether handlers complete successfully
                     UpdateTaskCommand(
                         self._task_uuid,
-                        status=TaskStatus.FAILURE.value,
+                        status=TaskStatus.ABORTING.value,
                         properties={"error_message": "Task timed out"},
                         skip_security_check=True,
                     ).run()

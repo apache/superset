@@ -294,23 +294,59 @@ class TaskWrapper(Generic[P]):
             skip_security_check=True,
         ).run()
 
+        # Start timeout timer if configured
+        if options.timeout:
+            ctx.start_timeout_timer(options.timeout)
+            logger.debug(
+                "Started timeout timer for task %s: %d seconds",
+                task.uuid,
+                options.timeout,
+            )
+
         try:
             # Execute with ambient context
             with use_context(ctx):
                 self.func(*args, **kwargs)
 
-            # Update to SUCCESS and return completed task
-            task = UpdateTaskCommand(
-                task_uuid=task.uuid,
-                status=TaskStatus.SUCCESS.value,
-                skip_security_check=True,
-            ).run()
+            # Check if task was aborted/aborting during execution
+            task = ctx._task
+            if task.status == TaskStatus.ABORTING.value:
+                # Handlers ran successfully - determine terminal state
+                if ctx.timeout_triggered:
+                    task = UpdateTaskCommand(
+                        task_uuid=task.uuid,
+                        status=TaskStatus.TIMED_OUT.value,
+                        skip_security_check=True,
+                    ).run()
+                    logger.info(
+                        "Task %s (uuid=%s) timed out and completed cleanup",
+                        self.name,
+                        task.uuid,
+                    )
+                else:
+                    task = UpdateTaskCommand(
+                        task_uuid=task.uuid,
+                        status=TaskStatus.ABORTED.value,
+                        skip_security_check=True,
+                    ).run()
+                    logger.info(
+                        "Task %s (uuid=%s) was aborted by user",
+                        self.name,
+                        task.uuid,
+                    )
+            elif task.status == TaskStatus.IN_PROGRESS.value:
+                # Normal completion - update to SUCCESS
+                task = UpdateTaskCommand(
+                    task_uuid=task.uuid,
+                    status=TaskStatus.SUCCESS.value,
+                    skip_security_check=True,
+                ).run()
 
-            logger.debug(
-                "Synchronous execution of task %s (uuid=%s) completed successfully",
-                self.name,
-                task.uuid,
-            )
+                logger.debug(
+                    "Synchronous execution of task %s (uuid=%s) completed successfully",
+                    self.name,
+                    task.uuid,
+                )
 
             # Return the completed task entity (not the function result)
             return task
@@ -334,6 +370,10 @@ class TaskWrapper(Generic[P]):
 
             # Return the failed task entity (don't re-raise in sync mode)
             return task
+
+        finally:
+            # Always clean up timer and handlers
+            ctx._run_cleanup()
 
     def schedule(self, *args: P.args, **kwargs: P.kwargs) -> "Task":
         """
