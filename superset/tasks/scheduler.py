@@ -348,31 +348,37 @@ def execute_task(  # noqa: C901
         # ALWAYS run cleanup handlers (also stops timeout timer)
         ctx._run_cleanup()
 
-        # Check if task was aborting and needs to transition to aborted
+        # Check if task was aborting and needs to transition to terminal state
         task = ctx._task
         if task.status == TaskStatus.ABORTING.value:
             if ctx.abort_handlers_completed:
-                # All handlers succeeded, transition to ABORTED
-                task.set_status(TaskStatus.ABORTED)
-                logger.info(
-                    "Task %s (uuid=%s) transitioned from ABORTING to ABORTED",
-                    task_type,
-                    task_uuid,
-                )
-            else:
-                # Handlers didn't complete successfully
-                # If status is still ABORTING, something went wrong
-                if task.status == TaskStatus.ABORTING.value:
-                    task.set_status(TaskStatus.FAILURE)
-                    if not task.properties.get("error_message"):
-                        task.update_properties(
-                            {"error_message": "Abort handlers did not complete"}
-                        )
-                    logger.warning(
-                        "Task %s (uuid=%s) stuck in ABORTING - marking as FAILURE",
+                # All handlers succeeded - determine terminal state based on cause
+                if ctx.timeout_triggered:
+                    task.set_status(TaskStatus.TIMED_OUT)
+                    logger.info(
+                        "Task %s (uuid=%s) timed out and completed cleanup",
                         task_type,
                         task_uuid,
                     )
+                else:
+                    task.set_status(TaskStatus.ABORTED)
+                    logger.info(
+                        "Task %s (uuid=%s) was aborted by user",
+                        task_type,
+                        task_uuid,
+                    )
+            else:
+                # Handlers didn't complete successfully - mark as FAILURE
+                task.set_status(TaskStatus.FAILURE)
+                if not task.properties.get("error_message"):
+                    task.update_properties(
+                        {"error_message": "Abort handlers did not complete"}
+                    )
+                logger.warning(
+                    "Task %s (uuid=%s) stuck in ABORTING - marking as FAILURE",
+                    task_type,
+                    task_uuid,
+                )
 
         # Always set end time if not already set
         if not task.ended_at:

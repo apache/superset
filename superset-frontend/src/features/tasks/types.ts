@@ -56,7 +56,8 @@ export interface Task {
     | 'success'
     | 'failure'
     | 'aborting'
-    | 'aborted';
+    | 'aborted'
+    | 'timed_out';
   scope: TaskScope;
   created_on: string;
   created_on_delta_humanized?: string;
@@ -82,7 +83,7 @@ export interface Task {
 
 // Derived status helpers (frontend computes these from status and properties)
 export function isTaskFinished(task: Task): boolean {
-  return ['success', 'failure', 'aborted'].includes(task.status);
+  return ['success', 'failure', 'aborted', 'timed_out'].includes(task.status);
 }
 
 export function isTaskAborting(task: Task): boolean {
@@ -104,4 +105,5 @@ export enum TaskStatus {
   Failure = 'failure',
   Aborting = 'aborting',
   Aborted = 'aborted',
+  TimedOut = 'timed_out',
 }

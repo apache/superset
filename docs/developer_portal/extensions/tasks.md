@@ -67,18 +67,20 @@ PENDING ──→ IN_PROGRESS ────→ SUCCESS
    │             ↓                ↑
    │         ABORTING ────────────┘
    │             │
-   │             ↓
-   └─────────→ ABORTED
+   │             ├──────────→ TIMED_OUT (timeout)
+   │             │
+   └─────────────┴──────────→ ABORTED (user cancel)
 ```
 
 | Status | Description |
 |--------|-------------|
 | `PENDING` | Queued, awaiting execution |
 | `IN_PROGRESS` | Executing |
-| `ABORTING` | Abort requested, handlers running |
+| `ABORTING` | Abort/timeout triggered, abort handlers running |
 | `SUCCESS` | Completed successfully |
-| `FAILURE` | Failed with error |
-| `ABORTED` | Cancelled before completion |
+| `FAILURE` | Failed with error or abort/cleanup handler exception |
+| `ABORTED` | Cancelled by user/admin |
+| `TIMED_OUT` | Exceeded configured timeout |
 
 ## Context API
 
@@ -229,7 +231,9 @@ task = process_data.schedule(
 
 The timeout timer starts when the task begins executing (status changes to `IN_PROGRESS`). When the timeout expires:
 
-1. **With an abort handler registered:** The abort flow triggers normally—abort handlers run, then cleanup handlers run, and the task transitions to `ABORTED` status.
+1. **With an abort handler registered:** The task transitions to `ABORTING`, abort handlers run, then cleanup handlers run. The final status depends on handler execution:
+   - If handlers complete successfully → `TIMED_OUT` status
+   - If handlers throw an exception → `FAILURE` status
 
 2. **Without an abort handler:** The framework cannot forcibly terminate the task. A warning is logged, and the task continues running. The Task List UI shows a warning indicator (⚠️) in the Details column to alert users that the timeout cannot be enforced.
 

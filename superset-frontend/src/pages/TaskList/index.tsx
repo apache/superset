@@ -410,6 +410,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             TaskStatus.Failure,
             TaskStatus.Aborted,
             TaskStatus.Aborting,
+            TaskStatus.TimedOut,
           ].includes(original.status);
 
           // Show disabled button for running tasks without abort handler
@@ -437,7 +438,9 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               {showDisabledCancel && (
                 <Tooltip
                   id="cancel-disabled-tooltip"
-                  title={t('This task does not support cancellation')}
+                  title={t(
+                    'Cancellation not available due to missing abort handler',
+                  )}
                   placement="bottom"
                 >
                   <span
@@ -490,6 +493,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           { label: t('In Progress'), value: TaskStatus.InProgress },
           { label: t('Success'), value: TaskStatus.Success },
           { label: t('Failed'), value: TaskStatus.Failure },
+          { label: t('Timed Out'), value: TaskStatus.TimedOut },
           { label: t('Aborting'), value: TaskStatus.Aborting },
           { label: t('Aborted'), value: TaskStatus.Aborted },
         ],

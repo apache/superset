@@ -261,6 +261,9 @@ class TestTimeoutTrigger:
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch(
+                "superset.commands.tasks.update.UpdateTaskCommand"
+            ) as mock_update_cmd,
         ):
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
@@ -284,6 +287,11 @@ class TestTimeoutTrigger:
             assert abort_called
             assert ctx._timeout_triggered
             assert ctx._abort_detected
+
+            # Verify UpdateTaskCommand was called with ABORTING status
+            mock_update_cmd.assert_called()
+            call_kwargs = mock_update_cmd.call_args[1]
+            assert call_kwargs.get("status") == "aborting"
 
             # Cleanup
             ctx.stop_timeout_timer()
@@ -429,3 +437,166 @@ class TestTaskDecoratorTimeout:
 
         # Cleanup registry
         TaskRegistry._tasks.pop("test_timeout_task_3", None)
+
+
+# =============================================================================
+# Timeout Terminal State Tests
+# =============================================================================
+
+
+class TestTimeoutTerminalState:
+    """Test timeout transitions to correct terminal state (TIMED_OUT vs FAILURE)."""
+
+    def test_timeout_triggered_flag_set_on_timeout(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """Test that timeout_triggered flag is set when timeout fires."""
+        original_redis = TaskManager._redis
+        TaskManager._redis = None
+
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand"),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(task_uuid="test-uuid-timeout")
+            ctx._app = mock_flask_app
+
+            @ctx.on_abort
+            def handle_abort():
+                pass
+
+            # Initially not triggered
+            assert ctx.timeout_triggered is False
+
+            # Start short timeout
+            ctx.start_timeout_timer(1)
+
+            # Wait for timeout to fire
+            time.sleep(1.5)
+
+            # Should be set after timeout
+            assert ctx.timeout_triggered is True
+
+            # Cleanup
+            ctx.stop_timeout_timer()
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+        TaskManager._redis = original_redis
+
+    def test_user_abort_does_not_set_timeout_triggered(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """Test that user abort doesn't set timeout_triggered flag."""
+        original_redis = TaskManager._redis
+        TaskManager._redis = None
+
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(task_uuid="test-uuid-timeout")
+            ctx._app = mock_flask_app
+
+            @ctx.on_abort
+            def handle_abort():
+                pass
+
+            # Simulate user abort (not timeout)
+            ctx._on_abort_detected()
+
+            # timeout_triggered should still be False
+            assert ctx.timeout_triggered is False
+            # But abort_detected should be True
+            assert ctx._abort_detected is True
+
+            # Cleanup
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+        TaskManager._redis = original_redis
+
+    def test_abort_handlers_completed_tracks_success(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """Test that abort_handlers_completed flag tracks successful
+        handler execution."""
+        original_redis = TaskManager._redis
+        TaskManager._redis = None
+
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(task_uuid="test-uuid-timeout")
+            ctx._app = mock_flask_app
+
+            @ctx.on_abort
+            def handle_abort():
+                pass  # Successful handler
+
+            # Initially not completed
+            assert ctx.abort_handlers_completed is False
+
+            # Trigger abort handlers
+            ctx._trigger_abort_handlers()
+
+            # Should be marked as completed
+            assert ctx.abort_handlers_completed is True
+
+            # Cleanup
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+        TaskManager._redis = original_redis
+
+    def test_abort_handlers_completed_false_on_exception(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """Test that abort_handlers_completed is False when handler throws."""
+        original_redis = TaskManager._redis
+        TaskManager._redis = None
+
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand"),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(task_uuid="test-uuid-timeout")
+            ctx._app = mock_flask_app
+
+            @ctx.on_abort
+            def handle_abort():
+                raise ValueError("Handler failed")
+
+            # Initially not completed
+            assert ctx.abort_handlers_completed is False
+
+            # Trigger abort handlers (will catch the exception internally)
+            ctx._trigger_abort_handlers()
+
+            # Should NOT be marked as completed since handler threw
+            assert ctx.abort_handlers_completed is False
+
+            # Cleanup
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+        TaskManager._redis = original_redis

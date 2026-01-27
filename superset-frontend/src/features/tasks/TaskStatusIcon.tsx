@@ -34,6 +34,8 @@ function getStatusColor(status: TaskStatus, theme: SupersetTheme): string {
       return theme.colorSuccessText;
     case TaskStatus.Failure:
       return theme.colorErrorText;
+    case TaskStatus.TimedOut:
+      return theme.colorErrorText;
     case TaskStatus.Aborting:
       return theme.colorWarningText;
     case TaskStatus.Aborted:
@@ -48,6 +50,7 @@ const statusIcons = {
   [TaskStatus.InProgress]: Icons.LoadingOutlined,
   [TaskStatus.Success]: Icons.CheckCircleOutlined,
   [TaskStatus.Failure]: Icons.CloseCircleOutlined,
+  [TaskStatus.TimedOut]: Icons.ClockCircleOutlined, // Clock to indicate timeout
   [TaskStatus.Aborting]: Icons.LoadingOutlined, // Spinning to show in-progress abort
   [TaskStatus.Aborted]: Icons.StopOutlined,
 };
@@ -57,6 +60,7 @@ const statusLabels = {
   [TaskStatus.InProgress]: 'In Progress',
   [TaskStatus.Success]: 'Success',
   [TaskStatus.Failure]: 'Failed',
+  [TaskStatus.TimedOut]: 'Timed Out',
   [TaskStatus.Aborting]: 'Aborting',
   [TaskStatus.Aborted]: 'Aborted',
 };
@@ -105,8 +109,11 @@ export default function TaskStatusIcon({
         ))}
       </>
     );
-  } else if (status === TaskStatus.Failure && (exceptionType || errorMessage)) {
-    // Error tooltip for failed tasks: "Failed (ExceptionType): message"
+  } else if (
+    (status === TaskStatus.Failure || status === TaskStatus.TimedOut) &&
+    (exceptionType || errorMessage)
+  ) {
+    // Error tooltip for failed/timed out tasks: "Label (ExceptionType): message"
     if (exceptionType && errorMessage) {
       tooltipContent = `${label} (${exceptionType}): ${errorMessage}`;
     } else if (exceptionType) {
