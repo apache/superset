@@ -24,7 +24,7 @@ import StashFormDataContainer from '.';
 
 const FormDataMock = () => {
   const formData = useSelector(
-    (state: ExplorePageState) => state.explore.form_data,
+    (state: ExplorePageState) => state.explore.present.form_data,
   );
 
   return <div>{Object.keys(formData).join(':')}</div>;

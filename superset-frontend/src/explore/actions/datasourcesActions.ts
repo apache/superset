@@ -48,7 +48,9 @@ export function setDatasource(datasource: Dataset) {
 export function changeDatasource(newDatasource: Dataset) {
   return function (dispatch: Dispatch, getState: () => ExplorePageState) {
     const {
-      explore: { datasource: prevDatasource },
+      explore: {
+        present: { datasource: prevDatasource },
+      },
     } = getState();
     dispatch(setDatasource(newDatasource));
     dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));

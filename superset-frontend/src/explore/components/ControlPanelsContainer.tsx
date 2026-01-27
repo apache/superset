@@ -68,7 +68,7 @@ import { useConfirmModal } from 'src/hooks/useConfirmModal';
 
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
-import { ChartState, ExplorePageState } from 'src/explore/types';
+import { ChartState, ExplorePageState, ExploreState } from 'src/explore/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
@@ -94,7 +94,7 @@ const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
 ]);
 
 export type ControlPanelsContainerProps = {
-  exploreState: ExplorePageState['explore'];
+  exploreState: ExploreState; // This is the .present value from the undoable explore reducer
   // Only setControlValue is used from actions in this component
   actions: Pick<ExploreActions, 'setControlValue'>;
   datasource_type: DatasourceType;
@@ -308,7 +308,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const controlsTransferred = useSelector<
     ExplorePageState,
     string[] | undefined
-  >(state => state.explore.controlsTransferred);
+  >(state => state.explore.present.controlsTransferred);
 
   const defaultTimeFilter = useSelector<ExplorePageState>(
     state => state.common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,

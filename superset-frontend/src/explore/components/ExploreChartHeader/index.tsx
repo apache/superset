@@ -18,7 +18,7 @@
  */
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { QueryFormData, JsonObject } from '@superset-ui/core';
 import {
   Tooltip,
@@ -36,7 +36,11 @@ import { logging } from '@apache-superset/core';
 import { css, t, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import { sliceUpdated } from 'src/explore/actions/exploreActions';
+import {
+  sliceUpdated,
+  undoExploreAction,
+  redoExploreAction,
+} from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { applyColors, resetColors } from 'src/utils/colorScheme';
@@ -50,6 +54,7 @@ import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { ReportObject } from 'src/features/reports/types';
 import { User } from 'src/types/bootstrapTypes';
+import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -124,6 +129,14 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     useState<ReportObject | null>(null);
   const [shouldForceCloseModal, setShouldForceCloseModal] = useState(false);
 
+  // Undo/Redo state
+  const { undoLength, redoLength } = useSelector(state => ({
+    undoLength: state.explore.past?.length || 0,
+    redoLength: state.explore.future?.length || 0,
+  }));
+  const [emphasizeUndo, setEmphasizeUndo] = useState(false);
+  const [emphasizeRedo, setEmphasizeRedo] = useState(false);
+
   const updateCategoricalNamespace = useCallback(async () => {
     const { dashboards } = metadata || {};
     const dashboard =
@@ -185,6 +198,19 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     await dispatch(deleteActiveReport(report));
     setCurrentReportDeleting(null);
   };
+
+  // Undo/Redo handlers
+  const handleUndo = useCallback(() => {
+    dispatch(undoExploreAction());
+    setEmphasizeUndo(true);
+    setTimeout(() => setEmphasizeUndo(false), 100);
+  }, [dispatch]);
+
+  const handleRedo = useCallback(() => {
+    dispatch(redoExploreAction());
+    setEmphasizeRedo(true);
+    setTimeout(() => setEmphasizeRedo(false), 100);
+  }, [dispatch]);
 
   const history = useHistory();
   const { redirectSQLLab } = actions;
@@ -313,27 +339,72 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
           </div>
         }
         rightPanelAdditionalItems={
-          <Tooltip
-            title={
-              saveDisabled
-                ? t('Add required control values to save chart')
-                : null
-            }
-          >
-            {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
-            <div>
-              <Button
-                buttonStyle="secondary"
-                onClick={showModal}
-                disabled={saveDisabled}
-                data-test="query-save-button"
-                css={saveButtonStyles}
-                icon={<Icons.SaveOutlined />}
-              >
-                {t('Save')}
-              </Button>
+          <>
+            {/* Undo/Redo buttons */}
+            <div
+              css={css`
+                display: flex;
+                gap: 8px;
+                margin-right: 8px;
+              `}
+            >
+              <Tooltip title={t('Undo')}>
+                <Button
+                  buttonStyle="link"
+                  disabled={undoLength < 1}
+                  onClick={undoLength > 0 ? handleUndo : undefined}
+                  data-test="undo-button"
+                  css={
+                    emphasizeUndo &&
+                    css`
+                      opacity: 0.5;
+                    `
+                  }
+                >
+                  <Icons.Undo iconSize="xl" />
+                </Button>
+              </Tooltip>
+              <Tooltip title={t('Redo')}>
+                <Button
+                  buttonStyle="link"
+                  disabled={redoLength < 1}
+                  onClick={redoLength > 0 ? handleRedo : undefined}
+                  data-test="redo-button"
+                  css={
+                    emphasizeRedo &&
+                    css`
+                      opacity: 0.5;
+                    `
+                  }
+                >
+                  <Icons.Redo iconSize="xl" />
+                </Button>
+              </Tooltip>
             </div>
-          </Tooltip>
+
+            {/* Save button */}
+            <Tooltip
+              title={
+                saveDisabled
+                  ? t('Add required control values to save chart')
+                  : null
+              }
+            >
+              {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
+              <div>
+                <Button
+                  buttonStyle="secondary"
+                  onClick={showModal}
+                  disabled={saveDisabled}
+                  data-test="query-save-button"
+                  css={saveButtonStyles}
+                  icon={<Icons.SaveOutlined />}
+                >
+                  {t('Save')}
+                </Button>
+              </div>
+            </Tooltip>
+          </>
         }
         additionalActionsMenu={menu}
         menuDropdownProps={{
@@ -393,6 +464,8 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         onDownload={streamingExportState.onDownload}
         progress={streamingExportState.progress}
       />
+
+      <UndoRedoKeyListeners onUndo={handleUndo} onRedo={handleRedo} />
     </>
   );
 };

@@ -37,7 +37,7 @@ import sliceEntities from 'src/dashboard/reducers/sliceEntities';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
 import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
-import explore from 'src/explore/reducers/exploreReducer';
+import explore from 'src/explore/reducers/undoableExploreReducer';
 import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
 import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
