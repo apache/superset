@@ -28,8 +28,8 @@ from pandas import DataFrame
 from snowflake.connector import connect, DictCursor
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 
-from superset.semantic_layers.snowflake.schemas import SnowflakeConfiguration
-from superset.semantic_layers.snowflake.utils import (
+from snowflake_semantic_layer.schemas import SnowflakeConfiguration
+from snowflake_semantic_layer.utils import (
     get_connection_parameters,
     substitute_parameters,
     validate_order_by,
@@ -515,7 +515,10 @@ class SnowflakeSemanticView(SemanticViewImplementation):
         # Check if temporal dimension is already in the order
         if order:
             for element, _ in order:
-                if isinstance(element, Dimension) and element.id == temporal_dimension.id:
+                if (
+                    isinstance(element, Dimension)
+                    and element.id == temporal_dimension.id
+                ):
                     return order
             # Prepend temporal dimension to existing order
             return [(temporal_dimension, OrderDirection.ASC)] + list(order)

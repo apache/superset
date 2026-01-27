@@ -24,12 +24,12 @@ from typing import Any, Sequence
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
-from superset.exceptions import SupersetParseError
-from superset.semantic_layers.snowflake.schemas import (
+from snowflake_semantic_layer.schemas import (
     PrivateKeyAuth,
     SnowflakeConfiguration,
     UserPasswordAuth,
 )
+from superset.exceptions import SupersetParseError
 from superset.sql.parse import SQLStatement
 
 

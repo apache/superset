@@ -185,6 +185,73 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     return extension_data
 
 
+def load_extension_backend(extension: LoadedExtension) -> None:
+    """
+    Load an extension's backend code and register its entry points.
+
+    This installs the extension's Python modules in-memory and registers
+    any entry points declared in the manifest (e.g., semantic layers).
+    """
+    # Install backend modules in-memory if present
+    if extension.backend:
+        install_in_memory_importer(extension.backend)
+
+    # Register entry points from manifest
+    manifest = extension.manifest
+    if backend := manifest.get("backend"):
+        for ep_str in backend.get("entryPoints", []):
+            _register_entry_point(ep_str, extension.name)
+
+
+def _register_entry_point(ep_str: str, extension_name: str) -> None:
+    """
+    Parse and register a single entry point string.
+
+    Entry point format: "name = module:ClassName"
+    """
+    if "=" not in ep_str:
+        logger.warning(
+            "Invalid entry point format in extension %s: %s",
+            extension_name,
+            ep_str,
+        )
+        return
+
+    name, _, target = ep_str.partition("=")
+    name = name.strip()
+    target = target.strip()
+
+    if ":" not in target:
+        logger.warning(
+            "Invalid entry point target in extension %s: %s (expected module:Class)",
+            extension_name,
+            target,
+        )
+        return
+
+    module_path, _, class_name = target.partition(":")
+
+    try:
+        module = eager_import(module_path)
+        cls = getattr(module, class_name)
+
+        # Register with semantic layer registry
+        from superset.semantic_layers.registry import register_semantic_layer
+
+        register_semantic_layer(name, cls)
+        logger.info(
+            "Registered entry point '%s' from extension %s",
+            name,
+            extension_name,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to load entry point '%s' from extension %s",
+            name,
+            extension_name,
+        )
+
+
 def get_extensions() -> dict[str, LoadedExtension]:
     extensions: dict[str, LoadedExtension] = {}
 
@@ -194,6 +261,7 @@ def get_extensions() -> dict[str, LoadedExtension]:
         extension = get_loaded_extension(files)
         extension_id = extension.manifest["id"]
         extensions[extension_id] = extension
+        load_extension_backend(extension)
         logger.info(
             "Loading extension %s (ID: %s) from local filesystem",
             extension.name,
@@ -208,6 +276,7 @@ def get_extensions() -> dict[str, LoadedExtension]:
             extension_id = extension.manifest["id"]
             if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
                 extensions[extension_id] = extension
+                load_extension_backend(extension)
                 logger.info(
                     "Loading extension %s (ID: %s) from discovery path",
                     extension.name,

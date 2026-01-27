@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "superset-snowflake-semantic-layer"
+version = "1.0.0"
+description = "Snowflake Semantic Layer extension for Apache Superset"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = [
+    "apache-superset",
+    "snowflake-connector-python>=3.0.0",
+    "snowflake-sqlalchemy>=1.5.0",
+    "pydantic>=2.0.0",
+    "cryptography>=41.0.0",
+]
+
+[project.entry-points."superset.semantic_layers"]
+snowflake = "snowflake_semantic_layer:SnowflakeSemanticLayer"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/snowflake_semantic_layer"]

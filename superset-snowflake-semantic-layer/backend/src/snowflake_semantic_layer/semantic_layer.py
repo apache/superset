@@ -24,9 +24,9 @@ from pydantic import create_model, Field
 from snowflake.connector import connect
 from snowflake.connector.connection import SnowflakeConnection
 
-from superset.semantic_layers.snowflake.schemas import SnowflakeConfiguration
-from superset.semantic_layers.snowflake.semantic_view import SnowflakeSemanticView
-from superset.semantic_layers.snowflake.utils import get_connection_parameters
+from snowflake_semantic_layer.schemas import SnowflakeConfiguration
+from snowflake_semantic_layer.semantic_view import SnowflakeSemanticView
+from snowflake_semantic_layer.utils import get_connection_parameters
 from superset.semantic_layers.types import (
     SemanticLayerImplementation,
 )
@@ -210,10 +210,7 @@ class SnowflakeSemanticLayer(
         """
         Get the semantic views available in the semantic layer.
         """
-        # Avoid circular import
-        from superset.semantic_layers.snowflake.semantic_view import (
-            SnowflakeSemanticView,
-        )
+        from snowflake_semantic_layer.semantic_view import SnowflakeSemanticView
 
         # create a new configuration with the runtime parameters
         configuration = self.configuration.model_copy(update=runtime_configuration)
@@ -242,10 +239,7 @@ class SnowflakeSemanticLayer(
         """
         Get a specific semantic view by name.
         """
-        # Avoid circular import
-        from superset.semantic_layers.snowflake.semantic_view import (
-            SnowflakeSemanticView,
-        )
+        from snowflake_semantic_layer.semantic_view import SnowflakeSemanticView
 
         # create a new configuration with the additional parameters
         configuration = self.configuration.model_copy(update=additional_configuration)

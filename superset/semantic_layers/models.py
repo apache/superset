@@ -23,7 +23,6 @@ import uuid
 from collections.abc import Hashable
 from dataclasses import dataclass
 from functools import cached_property
-from importlib.metadata import entry_points
 from typing import Any, TYPE_CHECKING
 
 from flask_appbuilder import Model
@@ -37,6 +36,7 @@ from superset.explorables.base import TimeGrainDict
 from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.semantic_layers.mapper import get_results
+from superset.semantic_layers.registry import get_semantic_layer
 from superset.semantic_layers.types import (
     BINARY,
     BOOLEAN,
@@ -141,19 +141,11 @@ class SemanticLayer(AuditMixinNullable, Model):
         """
         Return semantic layer implementation.
         """
-        entry_point = next(
-            iter(
-                entry_points(
-                    group="superset.semantic_layers",
-                    name=self.type,
-                )
-            )
-        )
-        implementation_class = entry_point.load()
+        implementation_class = get_semantic_layer(self.type)
 
         if not issubclass(implementation_class, SemanticLayerImplementation):
             raise TypeError(
-                f"Entry point for semantic layer type '{self.type}' "
+                f"Semantic layer type '{self.type}' "
                 "must be a subclass of SemanticLayerImplementation"
             )
 

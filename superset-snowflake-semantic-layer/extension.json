@@ -1,0 +1,15 @@
+{
+  "id": "superset-snowflake-semantic-layer",
+  "name": "Snowflake Semantic Layer",
+  "version": "1.0.0",
+  "description": "Connect to semantic views stored in Snowflake.",
+  "permissions": [],
+  "backend": {
+    "entryPoints": [
+      "snowflake = snowflake_semantic_layer:SnowflakeSemanticLayer"
+    ],
+    "files": [
+      "backend/src/**/*.py"
+    ]
+  }
+}

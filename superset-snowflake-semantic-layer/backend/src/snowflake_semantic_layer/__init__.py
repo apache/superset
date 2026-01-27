@@ -15,9 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset.semantic_layers.snowflake.schemas import SnowflakeConfiguration
-from superset.semantic_layers.snowflake.semantic_layer import SnowflakeSemanticLayer
-from superset.semantic_layers.snowflake.semantic_view import SnowflakeSemanticView
+from snowflake_semantic_layer.schemas import SnowflakeConfiguration
+from snowflake_semantic_layer.semantic_layer import SnowflakeSemanticLayer
+from snowflake_semantic_layer.semantic_view import SnowflakeSemanticView
 
 __all__ = [
     "SnowflakeConfiguration",

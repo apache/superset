@@ -30,9 +30,7 @@ with open(PACKAGE_JSON) as package_file:
 
 def get_git_sha() -> str:
     try:
-        output = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"]
-        )  # noqa: S603, S607
+        output = subprocess.check_output(["git", "rev-parse", "HEAD"])  # noqa: S603, S607
         return output.decode().strip()
     except Exception:  # pylint: disable=broad-except
         return ""
@@ -60,9 +58,6 @@ setup(
     include_package_data=True,
     zip_safe=False,
     entry_points={
-        "superset.semantic_layers": [
-            "snowflake = superset.semantic_layers.snowflake:SnowflakeSemanticLayer"
-        ],
         "console_scripts": ["superset=superset.cli.main:superset"],
         # the `postgres` and `postgres+psycopg2://` schemes were removed in SQLAlchemy 1.4  # noqa: E501
         # add an alias here to prevent breaking existing databases
