@@ -116,39 +116,31 @@ test('chart editor screenshot', async ({ page }) => {
 test('SQL Lab screenshot', async ({ page }) => {
   await page.goto(URL.SQLLAB);
 
-  // Wait for SQL Lab editor to be ready
+  // SQL Lab may open with no active query tab — create one if needed
+  const addTabButton = page.getByRole('tab', { name: /add a new tab/i });
   const aceEditor = page.locator('.ace_content');
+
+  // Wait for either the editor or the "add tab" prompt
+  await expect(addTabButton.or(aceEditor)).toBeVisible({ timeout: 15000 });
+
+  // If no editor is visible, click "Add a new tab" to create a query tab
+  if (await addTabButton.isVisible()) {
+    await addTabButton.click();
+  }
   await expect(aceEditor).toBeVisible({ timeout: 15000 });
 
-  // Select the examples database
-  const databaseSelect = page.getByRole('combobox', {
-    name: /select database/i,
-  });
-  await expect(databaseSelect).toBeVisible();
-  await databaseSelect.click();
-  await page.getByText('examples', { exact: true }).click();
-
-  // Select schema
-  const schemaSelect = page.getByRole('combobox', {
-    name: /select schema/i,
-  });
-  await expect(schemaSelect).toBeEnabled({ timeout: 10000 });
-  await schemaSelect.click();
-  // Use the first available schema option
-  await page.getByRole('option').first().click();
-
-  // Type a query in the editor
+  // The examples database is typically pre-selected; type a query and run it
   await aceEditor.click();
   const editor = page.getByRole('textbox', { name: /cursor/i });
   await editor.fill('SELECT * FROM birth_names LIMIT 100');
 
   // Run the query
-  const runButton = page.locator('[data-test="run-query-action"]');
+  const runButton = page.getByText('Run', { exact: true });
   await expect(runButton).toBeVisible();
   await runButton.click();
 
-  // Wait for results table to appear (not networkidle which hangs on WebSockets)
-  await expect(page.locator('.ReactVirtualized__Table')).toBeVisible({
+  // Wait for results to appear (look for the "N rows" badge in the results panel)
+  await expect(page.getByText(/\d+ rows/)).toBeVisible({
     timeout: 30000,
   });
 
