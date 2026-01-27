@@ -76,6 +76,7 @@ export interface TableControlsProps {
 
 export interface QueryResultInterface {
   colnames: string[];
+  collabels: string[];
   coltypes: GenericDataType[];
   rowcount: number;
   data: Record<string, any>[][];
