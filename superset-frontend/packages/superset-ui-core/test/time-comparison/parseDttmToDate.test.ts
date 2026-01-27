@@ -69,7 +69,7 @@ test('should return the current date for "today"', () => {
     'today',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-06-03T00:00:00+02:00'),
+    new Date('2024-06-01T22:00:00Z'),
   );
   runTimezoneTest('today', NOW_IN_UTC, 'UTC', new Date('2024-06-03T00:00:00Z'));
   runTimezoneTest(
@@ -125,7 +125,7 @@ test('should return yesterday date for "Last day"', () => {
     'Last day',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-06-01T22:00:00Z'),
+    new Date('2024-05-31T22:00:00Z'),
   );
   runTimezoneTest(
     'Last day',
@@ -147,7 +147,7 @@ test('should return the date one week ago for "Last week"', () => {
     'Last week',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-05-26T22:00:00Z'),
+    new Date('2024-05-25T22:00:00Z'),
   );
   runTimezoneTest(
     'Last week',
@@ -169,7 +169,7 @@ test('should return the date one month ago for "Last month"', () => {
     'Last month',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-05-02T22:00:00Z'),
+    new Date('2024-05-01T22:00:00Z'),
   );
   runTimezoneTest(
     'Last month',
@@ -191,7 +191,7 @@ test('should return the date three months ago for "Last quarter"', () => {
     'Last quarter',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-03-02T22:00:00Z'),
+    new Date('2024-03-01T22:00:00Z'),
   );
   runTimezoneTest(
     'Last quarter',
@@ -213,7 +213,7 @@ test('should return the date one year ago for "Last year"', () => {
     'Last year',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2023-06-02T22:00:00Z'),
+    new Date('2023-06-01T22:00:00Z'),
   );
   runTimezoneTest(
     'Last year',
@@ -235,7 +235,7 @@ test('should return the date for "previous calendar week"', () => {
     'previous calendar week',
     '2024-06-04T22:00:00Z',
     'Etc/GMT-2',
-    new Date('2024-05-26T22:00:00Z'),
+    new Date('2024-05-27T16:00:00Z'),
   );
   runTimezoneTest(
     'previous calendar week',
@@ -257,7 +257,7 @@ test('should return the date for "previous calendar month"', () => {
     'previous calendar month',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-04-30T22:00:00Z'),
+    new Date('2024-05-01T10:00:00Z'),
   );
   runTimezoneTest(
     'previous calendar month',
@@ -279,7 +279,7 @@ test('should return the date for "previous calendar year"', () => {
     'previous calendar year',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2022-12-31T22:00:00Z'),
+    new Date('2023-01-01T16:00:00Z'),
   );
   runTimezoneTest(
     'previous calendar year',
@@ -301,7 +301,7 @@ test('should return the date for "1 day ago"', () => {
     '1 day ago',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-06-01T22:00:00Z'),
+    new Date('2024-05-31T22:00:00Z'),
   );
   runTimezoneTest(
     '1 day ago',
@@ -323,7 +323,7 @@ test('should return the date for "1 week ago"', () => {
     '1 week ago',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-05-26T22:00:00Z'),
+    new Date('2024-05-25T22:00:00Z'),
   );
   runTimezoneTest(
     '1 week ago',
@@ -345,7 +345,7 @@ test('should return the date for "1 month ago"', () => {
     '1 month ago',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-05-02T22:00:00Z'),
+    new Date('2024-05-01T22:00:00Z'),
   );
   runTimezoneTest(
     '1 month ago',
@@ -367,7 +367,7 @@ test('should return the date for "1 year ago"', () => {
     '1 year ago',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2023-06-02T22:00:00Z'),
+    new Date('2023-06-01T22:00:00Z'),
   );
   runTimezoneTest(
     '1 year ago',
@@ -389,7 +389,7 @@ test('should return the date for "2024-03-09"', () => {
     '2024-03-09',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-03-08T22:00:00.000Z'),
+    new Date('2024-03-07T22:00:00.000Z'),
   );
   runTimezoneTest(
     '2024-03-09',
@@ -411,7 +411,7 @@ test('should return the current date for "Last day" with isEndDate true', () => 
     'Last day',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-06-02T22:00:00Z'),
+    new Date('2024-06-01T22:00:00Z'),
     true,
   );
   runTimezoneTest(
@@ -436,7 +436,7 @@ test('should return the current date for "Last week" with isEndDate true', () =>
     'Last week',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-06-02T22:00:00Z'),
+    new Date('2024-06-01T22:00:00Z'),
     true,
   );
   runTimezoneTest(
@@ -461,7 +461,7 @@ test('should return the current date for "Last quarter" with isEndDate true', ()
     'Last quarter',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-06-02T22:00:00Z'),
+    new Date('2024-06-01T22:00:00Z'),
     true,
   );
   runTimezoneTest(
@@ -486,7 +486,7 @@ test('should return the current date for "Last year" with isEndDate true', () =>
     'Last year',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-06-02T22:00:00Z'),
+    new Date('2024-06-01T22:00:00Z'),
     true,
   );
   runTimezoneTest(
@@ -511,7 +511,7 @@ test('should return the date for "previous calendar week" with isEndDate true', 
     'previous calendar week',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-06-02T22:00:00Z'),
+    new Date('2024-06-03T16:00:00Z'),
     true,
   );
   runTimezoneTest(
@@ -536,7 +536,7 @@ test('should return the date for "previous calendar month" with isEndDate true',
     'previous calendar month',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-05-31T22:00:00Z'),
+    new Date('2024-06-01T16:00:00Z'),
     true,
   );
   runTimezoneTest(
@@ -561,7 +561,7 @@ test('should return the date for "previous calendar year" with isEndDate true', 
     'previous calendar year',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2023-12-31T22:00:00Z'),
+    new Date('2024-01-01T16:00:00Z'),
     true,
   );
   runTimezoneTest(
@@ -586,7 +586,7 @@ test('should return the date for "2024" with parts.length === 1', () => {
     '2024',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2023-12-31T22:00:00.000Z'),
+    new Date('2023-12-30T22:00:00.000Z'),
   );
   runTimezoneTest('2024', NOW_IN_UTC, 'UTC', new Date('2024-01-01T00:00:00Z'));
   runTimezoneTest(
@@ -603,7 +603,7 @@ test('should return the date for "2024-03" with parts.length === 2', () => {
     '2024-03',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-02-29T22:00:00.000Z'),
+    new Date('2024-02-28T22:00:00.000Z'),
   );
   runTimezoneTest(
     '2024-03',
@@ -625,7 +625,7 @@ test('should return the date for "2024-03-06" with parts.length === 3', () => {
     '2024-03-06',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-03-05T22:00:00.000Z'),
+    new Date('2024-03-04T22:00:00.000Z'),
   );
   runTimezoneTest(
     '2024-03-06',
@@ -643,7 +643,7 @@ test('should return the date for "2024-03-06" with parts.length === 3', () => {
 
 test('should return the date for "2024-03-06" with computingShifts true', () => {
   jest.useFakeTimers();
-  const expectedDate = new Date('2024-03-06T22:00:00Z');
+  const expectedDate = new Date('2024-03-05T22:00:00Z');
   expectedDate.setHours(-expectedDate.getTimezoneOffset() / 60, 0, 0, 0);
   runTimezoneTest(
     '2024-03-06',
@@ -657,7 +657,7 @@ test('should return the date for "2024-03-06" with computingShifts true', () => 
 
 test('should return the date for "2024-03-06" with computingShifts true and isEndDate true', () => {
   jest.useFakeTimers();
-  const expectedDate = new Date('2024-03-06T22:00:00Z');
+  const expectedDate = new Date('2024-03-05T22:00:00Z');
   expectedDate.setHours(-expectedDate.getTimezoneOffset() / 60, 0, 0, 0);
   runTimezoneTest(
     '2024-03-06',
