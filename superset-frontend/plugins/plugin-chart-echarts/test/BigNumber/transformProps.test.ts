@@ -61,6 +61,7 @@ const rawFormData: BigNumberWithTrendlineFormData = {
   compare_suffix: 'over last quarter',
   viz_type: VizType.BigNumber,
   y_axis_format: '.3s',
+  xAxis: '__timestamp',
 };
 
 function generateProps(
