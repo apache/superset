@@ -21,11 +21,8 @@ import { render, waitFor, createStore } from 'spec/helpers/testing-library';
 import { QueryEditor } from 'src/SqlLab/types';
 import { Store } from 'redux';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
-import {
-  FullSQLEditor,
-  type AsyncAceEditorProps,
-} from '@superset-ui/core/components';
+import EditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
+import type { editors } from '@apache-superset/core';
 import {
   queryEditorSetCursorPosition,
   queryEditorSetDb,
@@ -43,17 +40,21 @@ jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 
-jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
-  FullSQLEditor: jest
-    .fn()
-    .mockImplementation((props: AsyncAceEditorProps) => (
-      <div data-test="react-ace">{JSON.stringify(props)}</div>
-    )),
+// Mock EditorHost from the editors module
+const MockEditorHost = jest
+  .fn()
+  .mockImplementation((props: editors.EditorProps) => (
+    <div data-test="editor-host">{JSON.stringify(props)}</div>
+  ));
+
+jest.mock('src/core/editors', () => ({
+  ...jest.requireActual('src/core/editors'),
+  EditorHost: (props: editors.EditorProps) => MockEditorHost(props),
 }));
 
 const setup = (queryEditor: QueryEditor, store?: Store) =>
   render(
-    <AceEditorWrapper
+    <EditorWrapper
       queryEditorId={queryEditor.id}
       height="100px"
       hotkeys={[]}
@@ -69,17 +70,17 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
   );
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('AceEditorWrapper', () => {
+describe('EditorWrapper', () => {
   beforeEach(() => {
-    (FullSQLEditor as any as jest.Mock).mockClear();
+    MockEditorHost.mockClear();
   });
 
-  test('renders ace editor including sql value', async () => {
+  test('renders editor including sql value', async () => {
     const store = createStore(initialState, reducerIndex);
     const { getByTestId } = setup(defaultQueryEditor, store);
-    await waitFor(() => expect(getByTestId('react-ace')).toBeInTheDocument());
+    await waitFor(() => expect(getByTestId('editor-host')).toBeInTheDocument());
 
-    expect(getByTestId('react-ace')).toHaveTextContent(
+    expect(getByTestId('editor-host')).toHaveTextContent(
       JSON.stringify({ value: defaultQueryEditor.sql }).slice(1, -1),
     );
   });
@@ -101,10 +102,10 @@ describe('AceEditorWrapper', () => {
     );
     const { getByTestId } = setup(defaultQueryEditor, store);
 
-    expect(getByTestId('react-ace')).not.toHaveTextContent(
+    expect(getByTestId('editor-host')).not.toHaveTextContent(
       JSON.stringify({ value: expectedSql }).slice(1, -1),
     );
-    expect(getByTestId('react-ace')).toHaveTextContent(
+    expect(getByTestId('editor-host')).toHaveTextContent(
       JSON.stringify({ value: defaultQueryEditor.sql }).slice(1, -1),
     );
   });
@@ -113,14 +114,14 @@ describe('AceEditorWrapper', () => {
     const store = createStore(initialState, reducerIndex);
     setup(defaultQueryEditor, store);
 
-    expect(FullSQLEditor).toHaveBeenCalled();
-    const renderCount = (FullSQLEditor as any as jest.Mock).mock.calls.length;
+    expect(MockEditorHost).toHaveBeenCalled();
+    const renderCount = MockEditorHost.mock.calls.length;
     const updatedCursorPosition = { row: 1, column: 9 };
     store.dispatch(
       queryEditorSetCursorPosition(defaultQueryEditor, updatedCursorPosition),
     );
-    expect(FullSQLEditor).toHaveBeenCalledTimes(renderCount);
+    expect(MockEditorHost).toHaveBeenCalledTimes(renderCount);
     store.dispatch(queryEditorSetDb(defaultQueryEditor, 2));
-    expect(FullSQLEditor).toHaveBeenCalledTimes(renderCount + 1);
+    expect(MockEditorHost).toHaveBeenCalledTimes(renderCount + 1);
   });
 });

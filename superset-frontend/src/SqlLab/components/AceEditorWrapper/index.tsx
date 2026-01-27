@@ -16,30 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useRef } from 'react';
-import type { IAceEditor } from 'react-ace/lib/types';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { usePrevious } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
+import type { editors } from '@apache-superset/core';
 
 import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
 import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
-import { FullSQLEditor as AceEditor } from '@superset-ui/core/components';
 import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutButton';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, type CursorPosition } from 'src/SqlLab/types';
+import { EditorHost } from 'src/core/editors';
 import { useAnnotations } from './useAnnotations';
 import { useKeywords } from './useKeywords';
+
+type EditorHandle = editors.EditorHandle;
+type EditorHotkey = editors.EditorHotkey;
+type EditorAnnotation = editors.EditorAnnotation;
 
 type HotKey = {
   key: KeyboardShortcut;
   descr?: string;
   name: string;
-  func: (aceEditor: IAceEditor) => void;
+  func: (editor: EditorHandle) => void;
 };
 
-type AceEditorWrapperProps = {
+type EditorWrapperProps = {
   autocomplete: boolean;
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
@@ -49,7 +53,80 @@ type AceEditorWrapperProps = {
   hotkeys: HotKey[];
 };
 
-const AceEditorWrapper = ({
+/**
+ * Convert legacy HotKey format to EditorHotkey format.
+ */
+const convertHotkeys = (
+  hotkeys: HotKey[],
+  onRunQuery: () => void,
+): EditorHotkey[] => {
+  const result: EditorHotkey[] = [
+    // Add the built-in run query hotkey
+    {
+      name: 'runQuery',
+      key: 'Alt-enter',
+      description: 'Run query',
+      exec: () => onRunQuery(),
+    },
+  ];
+
+  hotkeys.forEach(keyConfig => {
+    result.push({
+      name: keyConfig.name,
+      key: keyConfig.key,
+      description: keyConfig.descr,
+      exec: keyConfig.func,
+    });
+  });
+
+  return result;
+};
+
+/**
+ * Ace annotation format returned from useAnnotations when data is available.
+ */
+type AceAnnotation = {
+  row: number;
+  column: number;
+  text: string | null;
+  type: string;
+};
+
+/**
+ * Type guard to check if an annotation is in Ace format.
+ */
+const isAceAnnotation = (ann: unknown): ann is AceAnnotation =>
+  typeof ann === 'object' &&
+  ann !== null &&
+  'row' in ann &&
+  'column' in ann &&
+  'text' in ann &&
+  'type' in ann;
+
+/**
+ * Convert annotation array to EditorAnnotation format.
+ * Handles the union type returned from useAnnotations.
+ */
+const convertAnnotations = (
+  annotations?: unknown[],
+): EditorAnnotation[] | undefined => {
+  if (!annotations || annotations.length === 0) return undefined;
+  // Check if first item is in Ace format (has row, column, text, type)
+  if (!isAceAnnotation(annotations[0])) return undefined;
+  return (annotations as AceAnnotation[]).map(ann => ({
+    line: ann.row,
+    column: ann.column,
+    message: ann.text ?? '',
+    severity: ann.type as EditorAnnotation['severity'],
+  }));
+};
+
+/**
+ * EditorWrapper component that renders the SQL editor using EditorHost.
+ * Uses the default Ace editor or an extension-provided editor based on
+ * what's registered with the editors API.
+ */
+const EditorWrapper = ({
   autocomplete,
   onBlur = () => {},
   onChange = () => {},
@@ -57,7 +134,7 @@ const AceEditorWrapper = ({
   onCursorPositionChange,
   height,
   hotkeys,
-}: AceEditorWrapperProps) => {
+}: EditorWrapperProps) => {
   const dispatch = useDispatch();
   const queryEditor = useQueryEditor(queryEditorId, [
     'id',
@@ -72,10 +149,10 @@ const AceEditorWrapper = ({
   // by skipping access the unsaved query editor state
   const cursorPosition = useSelector<SqlLabRootState, CursorPosition>(
     ({ sqlLab: { queryEditors } }) => {
-      const { cursorPosition } = {
+      const { cursorPosition: pos } = {
         ...queryEditors.find(({ id }) => id === queryEditorId),
       };
-      return cursorPosition ?? { row: 0, column: 0 };
+      return pos ?? { row: 0, column: 0 };
     },
     shallowEqual,
   );
@@ -83,6 +160,7 @@ const AceEditorWrapper = ({
   const currentSql = queryEditor.sql ?? '';
   const [sql, setSql] = useState(currentSql);
   const theme = useTheme();
+  const editorHandleRef = useRef<EditorHandle | null>(null);
 
   // The editor changeSelection is called multiple times in a row,
   // faster than React reconciliation process, so the selected text
@@ -103,64 +181,69 @@ const AceEditorWrapper = ({
     }
   }, [currentSql]);
 
-  const onBlurSql = () => {
+  const onBlurSql = useCallback(
+    (value: string) => {
+      onBlur(value);
+    },
+    [onBlur],
+  );
+
+  const onAltEnter = useCallback(() => {
     onBlur(sql);
-  };
+  }, [onBlur, sql]);
 
-  const onAltEnter = () => {
-    onBlur(sql);
-  };
-
-  const onEditorLoad = (editor: any) => {
-    editor.commands.addCommand({
-      name: 'runQuery',
-      bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
-      exec: () => {
-        onAltEnter();
-      },
-    });
-
-    hotkeys.forEach(keyConfig => {
-      editor.commands.addCommand({
-        name: keyConfig.name,
-        bindKey: { win: keyConfig.key, mac: keyConfig.key },
-        exec: keyConfig.func,
-      });
-    });
-    const marginSize = theme.sizeUnit * 2;
-    editor.renderer.setScrollMargin(marginSize, marginSize, 0, 0);
-    editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
-    editor.selection.on('changeSelection', () => {
-      const selectedText = editor.getSelectedText();
-
-      // Backspace trigger 1 character selection, ignoring
-      if (
-        selectedText !== currentSelectionCache.current &&
-        selectedText.length !== 1
-      ) {
-        dispatch(queryEditorSetSelectedText(queryEditor, selectedText));
+  const onChangeText = useCallback(
+    (text: string) => {
+      if (text !== sql) {
+        setSql(text);
+        onChange(text);
       }
+    },
+    [sql, onChange],
+  );
 
-      currentSelectionCache.current = selectedText;
-    });
+  // Handle cursor position changes
+  const handleCursorPositionChange = useCallback(
+    (pos: { line: number; column: number }) => {
+      onCursorPositionChange({ row: pos.line, column: pos.column });
+    },
+    [onCursorPositionChange],
+  );
 
-    editor.selection.on('changeCursor', () => {
-      const cursor = editor.getCursorPosition();
-      onCursorPositionChange(cursor);
-    });
+  // Handle selection changes
+  const handleSelectionChange = useCallback(
+    (
+      selections: Array<{
+        start: { line: number; column: number };
+        end: { line: number; column: number };
+      }>,
+    ) => {
+      if (editorHandleRef.current && selections.length > 0) {
+        const selectedText = editorHandleRef.current.getSelectedText();
+        if (
+          selectedText !== currentSelectionCache.current &&
+          selectedText.length !== 1
+        ) {
+          dispatch(queryEditorSetSelectedText(queryEditor, selectedText));
+        }
+        currentSelectionCache.current = selectedText;
+      }
+    },
+    [dispatch, queryEditor],
+  );
 
-    const { row, column } = cursorPosition;
-    editor.moveCursorToPosition({ row, column });
-    editor.focus();
-    editor.scrollToLine(row, true, true);
-  };
-
-  const onChangeText = (text: string) => {
-    if (text !== sql) {
-      setSql(text);
-      onChange(text);
-    }
-  };
+  // Handle editor ready callback
+  const handleEditorReady = useCallback(
+    (handle: EditorHandle) => {
+      editorHandleRef.current = handle;
+      // Set initial cursor position
+      const { row, column } = cursorPosition;
+      handle.moveCursorToPosition({ line: row, column });
+      handle.focus();
+      handle.scrollToLine(row);
+    },
+    [cursorPosition],
+  );
 
   const { data: annotations } = useAnnotations({
     dbId: queryEditor.dbId,
@@ -181,69 +264,102 @@ const AceEditorWrapper = ({
     !autocomplete,
   );
 
+  // Convert hotkeys and annotations for the editor
+  const editorHotkeys = useMemo(
+    () => convertHotkeys(hotkeys, onAltEnter),
+    [hotkeys, onAltEnter],
+  );
+  const editorAnnotations = useMemo(
+    () => convertAnnotations(annotations),
+    [annotations],
+  );
+
+  // Metadata for the editor (e.g., database context for completions)
+  const metadata = useMemo(
+    () => ({
+      dbId: queryEditor.dbId,
+      catalog: queryEditor.catalog,
+      schema: queryEditor.schema,
+      queryEditorId,
+    }),
+    [queryEditor.dbId, queryEditor.catalog, queryEditor.schema, queryEditorId],
+  );
+
+  // Global styles for the editor
+  const globalStyles = (
+    <Global
+      styles={css`
+        .ace_text-layer {
+          width: 100% !important;
+        }
+
+        .ace_content,
+        .SqlEditor .sql-container .ace_gutter {
+          background-color: ${theme.colorBgBase} !important;
+        }
+
+        .ace_gutter::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          right: ${theme.sizeUnit * 2}px;
+          width: 1px;
+          height: 100%;
+          background-color: ${theme.colorBorder};
+        }
+
+        .ace_gutter,
+        .ace_scroller {
+          background-color: ${theme.colorBgBase} !important;
+        }
+
+        .ace_autocomplete {
+          // Use !important because Ace Editor applies extra CSS at the last second
+          // when opening the autocomplete.
+          width: ${theme.sizeUnit * 130}px !important;
+        }
+
+        .ace_completion-highlight {
+          color: ${theme.colorPrimaryText} !important;
+          background-color: ${theme.colorPrimaryBgHover};
+        }
+
+        .ace_tooltip {
+          max-width: ${SQL_EDITOR_LEFTBAR_WIDTH}px;
+        }
+
+        .ace_scroller {
+          background-color: ${theme.colorBgLayout};
+        }
+      `}
+    />
+  );
+
   return (
     <>
-      <Global
-        styles={css`
-          .ace_text-layer {
-            width: 100% !important;
-          }
-
-          .ace_content,
-          .SqlEditor .sql-container .ace_gutter {
-            background-color: ${theme.colorBgBase} !important;
-          }
-
-          .ace_gutter::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            right: ${theme.sizeUnit * 2}px;
-            width: 1px;
-            height: 100%;
-            background-color: ${theme.colorBorder};
-          }
-
-          .ace_gutter,
-          .ace_scroller {
-            background-color: ${theme.colorBgBase} !important;
-          }
-
-          .ace_autocomplete {
-            // Use !important because Ace Editor applies extra CSS at the last second
-            // when opening the autocomplete.
-            width: ${theme.sizeUnit * 130}px !important;
-          }
-
-          .ace_completion-highlight {
-            color: ${theme.colorPrimaryText} !important;
-            background-color: ${theme.colorPrimaryBgHover};
-          }
-
-          .ace_tooltip {
-            max-width: ${SQL_EDITOR_LEFTBAR_WIDTH}px;
-          }
-
-          .ace_scroller {
-            background-color: ${theme.colorBgLayout};
-          }
-        `}
-      />
-      <AceEditor
-        keywords={keywords}
-        onLoad={onEditorLoad}
-        onBlur={onBlurSql}
-        height={height}
-        onChange={onChangeText}
-        width="100%"
-        editorProps={{ $blockScrolling: true }}
-        enableLiveAutocompletion={autocomplete}
+      {globalStyles}
+      <EditorHost
+        id={queryEditorId}
         value={sql}
-        annotations={annotations}
+        onChange={onChangeText}
+        onBlur={onBlurSql}
+        onCursorPositionChange={handleCursorPositionChange}
+        onSelectionChange={handleSelectionChange}
+        onReady={handleEditorReady}
+        language="sql"
+        tabSize={2}
+        lineNumbers
+        annotations={editorAnnotations}
+        hotkeys={editorHotkeys}
+        height={height}
+        width="100%"
+        metadata={metadata}
+        keywords={keywords}
       />
     </>
   );
 };
 
-export default AceEditorWrapper;
+// Export with the legacy name for backward compatibility
+export default EditorWrapper;
