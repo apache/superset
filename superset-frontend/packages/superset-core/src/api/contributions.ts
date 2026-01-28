@@ -96,9 +96,7 @@ export type EditorLanguage =
   | 'json'
   | 'yaml'
   | 'markdown'
-  | 'css'
-  | 'html'
-  | 'javascript';
+  | 'css';
 
 /**
  * Aggregates all contributions (commands, menus, views, and editors) provided by an extension or module.
