@@ -224,7 +224,7 @@ export const InteractiveTable = (args: TableProps<object>) => (
 );
 
 InteractiveTable.args = {
-  size: TableSize.Small,
+  size: 'small',
   bordered: false,
   loading: false,
   sticky: true,
@@ -253,31 +253,43 @@ InteractiveTable.argTypes = {
   },
   resizable: {
     control: 'boolean',
-    description: 'Whether columns can be resized.',
+    description: 'Whether columns can be resized by dragging column edges.',
   },
   reorderable: {
     control: 'boolean',
-    description: 'Whether columns can be reordered by dragging.',
+    description:
+      'EXPERIMENTAL: Whether columns can be reordered by dragging. May not work in all contexts.',
   },
   usePagination: {
     control: 'boolean',
-    description: 'Whether to enable pagination.',
+    description:
+      'Whether to enable pagination. When enabled, the table displays 5 rows per page.',
   },
 };
 
 InteractiveTable.parameters = {
   docs: {
     staticProps: {
+      height: 350,
+      defaultPageSize: 5,
+      pageSizeOptions: ['5', '10'],
       data: [
         { key: 1, name: 'Floppy Disk 10 pack', category: 'Disk Storage', price: 9.99 },
         { key: 2, name: 'DVD 100 pack', category: 'Optical Storage', price: 27.99 },
         { key: 3, name: '128 GB SSD', category: 'Harddrive', price: 49.99 },
         { key: 4, name: '4GB 144mhz', category: 'Memory', price: 19.99 },
         { key: 5, name: '1GB USB Flash Drive', category: 'Portable Storage', price: 9.99 },
+        { key: 6, name: '256 GB SSD', category: 'Harddrive', price: 89.99 },
+        { key: 7, name: '1 TB SSD', category: 'Harddrive', price: 349.99 },
+        { key: 8, name: '16 GB DDR4', category: 'Memory', price: 59.99 },
+        { key: 9, name: '32 GB DDR5', category: 'Memory', price: 129.99 },
+        { key: 10, name: 'Blu-ray 50 pack', category: 'Optical Storage', price: 34.99 },
+        { key: 11, name: '64 GB USB Drive', category: 'Portable Storage', price: 14.99 },
+        { key: 12, name: '2 TB HDD', category: 'Harddrive', price: 59.99 },
       ],
       columns: [
         { title: 'Name', dataIndex: 'name', key: 'name', width: 200 },
-        { title: 'Category', dataIndex: 'category', key: 'category' },
+        { title: 'Category', dataIndex: 'category', key: 'category', width: 150 },
         { title: 'Price', dataIndex: 'price', key: 'price', width: 100 },
       ],
     },

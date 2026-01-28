@@ -33,12 +33,19 @@ A data table component with sorting, pagination, row selection, resizable column
 <StoryWithControls
   component="Table"
   props={{
+  size: "small",
   bordered: false,
   loading: false,
   sticky: true,
   resizable: false,
   reorderable: false,
   usePagination: false,
+  height: 350,
+  defaultPageSize: 5,
+  pageSizeOptions: [
+    "5",
+    "10"
+  ],
   data: [
     {
       key: 1,
@@ -69,6 +76,48 @@ A data table component with sorting, pagination, row selection, resizable column
       name: "1GB USB Flash Drive",
       category: "Portable Storage",
       price: 9.99
+    },
+    {
+      key: 6,
+      name: "256 GB SSD",
+      category: "Harddrive",
+      price: 89.99
+    },
+    {
+      key: 7,
+      name: "1 TB SSD",
+      category: "Harddrive",
+      price: 349.99
+    },
+    {
+      key: 8,
+      name: "16 GB DDR4",
+      category: "Memory",
+      price: 59.99
+    },
+    {
+      key: 9,
+      name: "32 GB DDR5",
+      category: "Memory",
+      price: 129.99
+    },
+    {
+      key: 10,
+      name: "Blu-ray 50 pack",
+      category: "Optical Storage",
+      price: 34.99
+    },
+    {
+      key: 11,
+      name: "64 GB USB Drive",
+      category: "Portable Storage",
+      price: 14.99
+    },
+    {
+      key: 12,
+      name: "2 TB HDD",
+      category: "Harddrive",
+      price: 59.99
     }
   ],
   columns: [
@@ -81,7 +130,8 @@ A data table component with sorting, pagination, row selection, resizable column
     {
       title: "Category",
       dataIndex: "category",
-      key: "category"
+      key: "category",
+      width: 150
     },
     {
       title: "Price",
@@ -92,6 +142,17 @@ A data table component with sorting, pagination, row selection, resizable column
   ]
 }}
   controls={[
+  {
+    name: "size",
+    label: "Size",
+    type: "select",
+    options: [
+      "small",
+      "middle",
+      "large"
+    ],
+    description: "Table size."
+  },
   {
     name: "bordered",
     label: "Bordered",
@@ -114,30 +175,19 @@ A data table component with sorting, pagination, row selection, resizable column
     name: "resizable",
     label: "Resizable",
     type: "boolean",
-    description: "Whether columns can be resized."
+    description: "Whether columns can be resized by dragging column edges."
   },
   {
     name: "reorderable",
     label: "Reorderable",
     type: "boolean",
-    description: "Whether columns can be reordered by dragging."
+    description: "EXPERIMENTAL: Whether columns can be reordered by dragging. May not work in all contexts."
   },
   {
     name: "usePagination",
     label: "Use Pagination",
     type: "boolean",
-    description: "Whether to enable pagination."
-  },
-  {
-    name: "size",
-    label: "Size",
-    type: "select",
-    options: [
-      "small",
-      "middle",
-      "large"
-    ],
-    description: "Table size."
+    description: "Whether to enable pagination. When enabled, the table displays 5 rows per page."
   }
 ]}
 />
@@ -206,14 +256,18 @@ function LoadingTable() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `size` | `string` | `"small"` | Table size. |
 | `bordered` | `boolean` | `false` | Whether to show all table borders. |
 | `loading` | `boolean` | `false` | Whether the table is in a loading state. |
 | `sticky` | `boolean` | `true` | Whether the table header is sticky. |
-| `resizable` | `boolean` | `false` | Whether columns can be resized. |
-| `reorderable` | `boolean` | `false` | Whether columns can be reordered by dragging. |
-| `usePagination` | `boolean` | `false` | Whether to enable pagination. |
-| `data` | `any` | `[{"key":1,"name":"Floppy Disk 10 pack","category":"Disk Storage","price":9.99},{"key":2,"name":"DVD 100 pack","category":"Optical Storage","price":27.99},{"key":3,"name":"128 GB SSD","category":"Harddrive","price":49.99},{"key":4,"name":"4GB 144mhz","category":"Memory","price":19.99},{"key":5,"name":"1GB USB Flash Drive","category":"Portable Storage","price":9.99}]` | - |
-| `columns` | `any` | `[{"title":"Name","dataIndex":"name","key":"name","width":200},{"title":"Category","dataIndex":"category","key":"category"},{"title":"Price","dataIndex":"price","key":"price","width":100}]` | - |
+| `resizable` | `boolean` | `false` | Whether columns can be resized by dragging column edges. |
+| `reorderable` | `boolean` | `false` | EXPERIMENTAL: Whether columns can be reordered by dragging. May not work in all contexts. |
+| `usePagination` | `boolean` | `false` | Whether to enable pagination. When enabled, the table displays 5 rows per page. |
+| `height` | `number` | `350` | - |
+| `defaultPageSize` | `number` | `5` | - |
+| `pageSizeOptions` | `any` | `["5","10"]` | - |
+| `data` | `any` | `[{"key":1,"name":"Floppy Disk 10 pack","category":"Disk Storage","price":9.99},{"key":2,"name":"DVD 100 pack","category":"Optical Storage","price":27.99},{"key":3,"name":"128 GB SSD","category":"Harddrive","price":49.99},{"key":4,"name":"4GB 144mhz","category":"Memory","price":19.99},{"key":5,"name":"1GB USB Flash Drive","category":"Portable Storage","price":9.99},{"key":6,"name":"256 GB SSD","category":"Harddrive","price":89.99},{"key":7,"name":"1 TB SSD","category":"Harddrive","price":349.99},{"key":8,"name":"16 GB DDR4","category":"Memory","price":59.99},{"key":9,"name":"32 GB DDR5","category":"Memory","price":129.99},{"key":10,"name":"Blu-ray 50 pack","category":"Optical Storage","price":34.99},{"key":11,"name":"64 GB USB Drive","category":"Portable Storage","price":14.99},{"key":12,"name":"2 TB HDD","category":"Harddrive","price":59.99}]` | - |
+| `columns` | `any` | `[{"title":"Name","dataIndex":"name","key":"name","width":200},{"title":"Category","dataIndex":"category","key":"category","width":150},{"title":"Price","dataIndex":"price","key":"price","width":100}]` | - |
 
 ## Import
 

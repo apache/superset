@@ -315,6 +315,12 @@ ul.dropdown__menu svg {
   margin: 0;
 }
 
+/* Reset table margins - Infima applies margin-bottom via --ifm-spacing-vertical */
+.storybook-example table {
+  margin: 0;
+  display: table;
+}
+
 /* Ensure Ant Design components render correctly */
 .storybook-example .ant-breadcrumb {
   line-height: 1.5715;
