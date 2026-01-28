@@ -571,6 +571,29 @@ function ExploreViewContainer(props) {
         }
       }
 
+      // Automatically set axis title margins when titles are added or removed
+      if (changedControlKeys.includes('x_axis_title')) {
+        const xAxisTitle = props.controls.x_axis_title?.value || '';
+        const currentMargin = props.controls.x_axis_title_margin?.value ?? 0;
+
+        if (xAxisTitle && currentMargin === 0) {
+          props.actions.setControlValue('x_axis_title_margin', 30);
+        } else if (!xAxisTitle && currentMargin !== 0) {
+          props.actions.setControlValue('x_axis_title_margin', 0);
+        }
+      }
+
+      if (changedControlKeys.includes('y_axis_title')) {
+        const yAxisTitle = props.controls.y_axis_title?.value || '';
+        const currentMargin = props.controls.y_axis_title_margin?.value ?? 0;
+
+        if (yAxisTitle && currentMargin === 0) {
+          props.actions.setControlValue('y_axis_title_margin', 30);
+        } else if (!yAxisTitle && currentMargin !== 0) {
+          props.actions.setControlValue('y_axis_title_margin', 0);
+        }
+      }
+
       // this should also be handled by the actions that are actually changing the controls
       const displayControlsChanged = changedControlKeys.filter(
         key => props.controls[key].renderTrigger,
