@@ -17,65 +17,37 @@
  * under the License.
  */
 import {
-  useMemo,
   useCallback,
   useState,
   useRef,
   type ChangeEvent,
+  useMemo,
 } from 'react';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { css, styled, t } from '@apache-superset/core';
+import { styled, t } from '@apache-superset/core';
 import AutoSizer from 'react-virtualized-auto-sizer';
 // Due to performance issues with the virtual list in the existing Ant Design (antd)-based tree view,
 // it has been replaced with react-arborist solution.
-import { Tree, TreeApi, NodeRendererProps, NodeApi } from 'react-arborist';
+import { Tree, TreeApi, NodeApi } from 'react-arborist';
 import {
   Icons,
   Skeleton,
   Input,
-  Tooltip,
   Empty,
-  Typography,
   Button,
 } from '@superset-ui/core/components';
-import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import ColumnElement, {
-  type ColumnKeyTypeType,
-} from 'src/SqlLab/components/ColumnElement';
-import {
-  Table,
-  TableMetaData,
-  useSchemas,
-  useLazyTablesQuery,
-  useLazyTableMetadataQuery,
-  useLazyTableExtendedMetadataQuery,
-} from 'src/hooks/apiResources';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { addTable } from 'src/SqlLab/actions/sqlLab';
-import IconButton from 'src/dashboard/components/IconButton';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { ViewContribution } from 'src/SqlLab/contributions';
+import TreeNodeRenderer from './TreeNodeRenderer';
+import useTreeData, { EMPTY_NODE_ID_PREFIX } from './useTreeData';
+import type { TreeNodeData } from './types';
 
 type Props = {
   queryEditorId: string;
 };
-
-interface TreeNodeData {
-  id: string;
-  name: string;
-  type: 'schema' | 'table' | 'column' | 'empty';
-  tableType?: string;
-  columnData?: {
-    name: string;
-    keys?: { type: ColumnKeyTypeType }[];
-    type: string;
-  };
-  children?: TreeNodeData[];
-  disableCheckbox?: boolean;
-}
-
-const EMPTY_NODE_ID_PREFIX = 'empty:';
 
 const StyledTreeContainer = styled.div`
   flex: 1 1 auto;
@@ -132,45 +104,7 @@ const StyledTreeContainer = styled.div`
   }
 `;
 
-const StyledColumnNode = styled.div`
-  & > .ant-flex {
-    flex: 1;
-    margin-right: ${({ theme }) => theme.sizeUnit * 1.5}px;
-    cursor: default;
-  }
-`;
-
 const ROW_HEIGHT = 28;
-
-const getOpacity = (disableCheckbox: boolean | undefined) => ({
-  opacity: disableCheckbox ? 0.6 : 1,
-});
-
-const highlightText = (text: string, keyword: string): React.ReactNode => {
-  if (!keyword) {
-    return text;
-  }
-
-  const lowerText = text.toLowerCase();
-  const lowerKeyword = keyword.toLowerCase();
-  const index = lowerText.indexOf(lowerKeyword);
-
-  if (index === -1) {
-    return text;
-  }
-
-  const beforeStr = text.substring(0, index);
-  const matchStr = text.substring(index, index + keyword.length);
-  const afterStr = text.slice(index + keyword.length);
-
-  return (
-    <>
-      {beforeStr}
-      <span className="highlighted">{matchStr}</span>
-      {afterStr}
-    </>
-  );
-};
 
 const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   const dispatch = useDispatch();
@@ -195,20 +129,22 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       ),
     [tables, queryEditor.id],
   );
+
+  // Tree data hook - manages schema/table/column data fetching and tree structure
   const {
-    currentData: schemaData,
+    treeData,
     isFetching,
     refetch,
-  } = useSchemas({ dbId, catalog: catalog || undefined });
-  const [tableData, setTableData] = useState<
-    Record<string, { options: Table[] }>
-  >({});
-  const [tableSchemaData, setTableSchemaData] = useState<
-    Record<string, TableMetaData>
-  >({});
-  const [fetchLazyTables] = useLazyTablesQuery();
-  const [fetchTableMetadata] = useLazyTableMetadataQuery();
-  const [fetchTableExtendedMetadata] = useLazyTableExtendedMetadataQuery();
+    loadingNodes,
+    dataVersion,
+    handleToggle,
+    fetchLazyTables,
+  } = useTreeData({
+    dbId,
+    catalog,
+    selectedSchema,
+    pinnedTables,
+  });
 
   const handlePinTable = useCallback(
     (tableName: string, schemaName: string, catalogName: string | null) =>
@@ -225,96 +161,6 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   const [manuallyOpenedNodes, setManuallyOpenedNodes] = useState<
     Record<string, boolean>
   >({});
-
-  // Track nodes that are currently loading
-  const [loadingNodes, setLoadingNodes] = useState<Record<string, boolean>>({});
-
-  // Version counter to force tree re-render when data changes during search
-  const [dataVersion, setDataVersion] = useState(0);
-
-  // Helper to create empty placeholder node
-  const createEmptyNode = (parentId: string): TreeNodeData => ({
-    id: `${EMPTY_NODE_ID_PREFIX}${parentId}`,
-    name: t('No items'),
-    type: 'empty',
-  });
-
-  // Tree data for react-arborist
-  // children must be [] (not undefined) to make node expandable
-  const treeData = useMemo((): TreeNodeData[] => {
-    // Filter schemas if a schema is selected, otherwise show all
-    const filteredSchemaData = selectedSchema
-      ? schemaData?.filter(schema => schema.value === selectedSchema)
-      : schemaData;
-
-    const data = filteredSchemaData?.map(schema => {
-      const schemaKey = `${dbId}:${schema.value}`;
-      const schemaId = `schema:${dbId}:${schema.value}`;
-      const tablesData = tableData?.[schemaKey];
-      const tables = tablesData?.options;
-
-      // Determine children for schema node
-      let schemaChildren: TreeNodeData[];
-      if (!tablesData) {
-        // Not loaded yet - empty array makes it expandable
-        schemaChildren = [];
-      } else if (tables && tables.length > 0) {
-        // Has tables
-        schemaChildren = tables.map(({ value: tableName, type: tableType }) => {
-          const tableKey = `${dbId}:${schema.value}:${tableName}`;
-          const tableId = `table:${dbId}:${schema.value}:${tableName}`;
-          const columnsData =
-            tableSchemaData[tableKey] ?? pinnedTables[tableKey];
-          const columns = columnsData?.columns;
-
-          // Determine children for table node
-          let tableChildren: TreeNodeData[];
-          if (!columnsData) {
-            // Not loaded yet
-            tableChildren = [];
-          } else if (columns && columns.length > 0) {
-            // Has columns
-            tableChildren = columns.map(col => ({
-              id: `column:${dbId}:${schema.value}:${tableName}:${col.name}`,
-              name: col.name,
-              type: 'column' as const,
-              columnData: col,
-            }));
-          } else {
-            // Loaded but empty
-            tableChildren = [createEmptyNode(tableId)];
-          }
-
-          return {
-            id: tableId,
-            name: tableName,
-            type: 'table' as const,
-            tableType,
-            children: tableChildren,
-          };
-        });
-      } else {
-        // Loaded but empty
-        schemaChildren = [createEmptyNode(schemaId)];
-      }
-
-      return {
-        id: schemaId,
-        name: schema.label,
-        type: 'schema' as const,
-        children: schemaChildren,
-      };
-    });
-
-    return data ?? [];
-  }, [
-    dbId,
-    schemaData,
-    tableData,
-    tableSchemaData,
-    pinnedTables,
-    selectedSchema,
-  ]);
 
   // Custom search match function for react-arborist
   const searchMatch = useCallback(
@@ -364,269 +210,19 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     return treeData.some(node => checkNode(node));
   }, [searchTerm, treeData]);
 
-  // Handle async loading when node is toggled open
-  const handleToggle = useCallback(
-    async (id: string, isOpen: boolean) => {
-      // Only fetch when opening a node
-      if (!isOpen) return;
-
-      const parts = id.split(':');
-      const [identifier, databaseId, schema, table] = parts;
-      const parsedDbId = Number(databaseId);
-
-      if (identifier === 'schema') {
-        // Use functional update to check current state without stale closure
-        setTableData(currentTableData => {
-          const schemaKey = `${parsedDbId}:${schema}`;
-          if (!currentTableData?.[schemaKey]) {
-            // Set loading state
-            setLoadingNodes(prev => ({ ...prev, [id]: true }));
-
-            // Fetch tables asynchronously
-            fetchLazyTables(
-              {
-                dbId: parsedDbId,
-                catalog,
-                schema,
-                forceRefresh: false,
-              },
-              true,
-            )
-              .then(({ data }) => {
-                if (data) {
-                  setTableData(origin => ({
-                    ...origin,
-                    [schemaKey]: data,
-                  }));
-                  // Force tree re-render to apply search filter to new data
-                  setDataVersion(v => v + 1);
-                }
-              })
-              .finally(() => {
-                setLoadingNodes(prev => ({ ...prev, [id]: false }));
-              });
-          }
-          return currentTableData;
-        });
-      }
-
-      if (identifier === 'table') {
-        const tableKey = `${parsedDbId}:${schema}:${table}`;
-
-        // Check pinnedTables first (it's stable)
-        if (pinnedTables[tableKey]) return;
-
-        // Use functional update to check current state
-        setTableSchemaData(currentTableSchemaData => {
-          if (!currentTableSchemaData[tableKey]) {
-            // Set loading state
-            setLoadingNodes(prev => ({ ...prev, [id]: true }));
-
-            // Fetch metadata asynchronously
-            Promise.all([
-              fetchTableMetadata(
-                {
-                  dbId: parsedDbId,
-                  catalog,
-                  schema,
-                  table,
-                },
-                true,
-              ),
-              fetchTableExtendedMetadata(
-                {
-                  dbId: parsedDbId,
-                  catalog,
-                  schema,
-                  table,
-                },
-                true,
-              ),
-            ])
-              .then(
-                ([
-                  { data: tableMetadata },
-                  { data: tableExtendedMetadata },
-                ]) => {
-                  if (tableMetadata) {
-                    setTableSchemaData(origin => ({
-                      ...origin,
-                      [tableKey]: {
-                        ...tableMetadata,
-                        ...tableExtendedMetadata,
-                      },
-                    }));
-                    // Force tree re-render to apply search filter to new data
-                    setDataVersion(v => v + 1);
-                  }
-                },
-              )
-              .finally(() => {
-                setLoadingNodes(prev => ({ ...prev, [id]: false }));
-              });
-          }
-          return currentTableSchemaData;
-        });
-      }
-    },
-    [
-      catalog,
-      fetchLazyTables,
-      fetchTableExtendedMetadata,
-      fetchTableMetadata,
-      pinnedTables,
-    ],
-  );
-
   // Node renderer for react-arborist
-  const NodeRenderer = useCallback(
-    ({ node, style }: NodeRendererProps<TreeNodeData>) => {
-      const { data } = node;
-      const parts = data.id.split(':');
-      const [identifier, _dbId, schema, tableName] = parts;
-
-      // Use manually tracked open state for icon display
-      // This prevents search auto-expansion from affecting the icon
-      const isManuallyOpen = manuallyOpenedNodes[data.id] ?? false;
-      const isLoading = loadingNodes[data.id] ?? false;
-
-      const renderIcon = () => {
-        if (identifier === 'schema') {
-          // Show loading icon when fetching data for schema
-          if (isLoading) {
-            return <Icons.LoadingOutlined iconSize="l" />;
-          }
-          return isManuallyOpen ? (
-            <Icons.FolderOpenOutlined iconSize="l" />
-          ) : (
-            <Icons.FolderOutlined iconSize="l" />
-          );
-        }
-
-        if (identifier === 'table') {
-          const TableTypeIcon =
-            data.tableType === 'view' ? Icons.EyeOutlined : Icons.TableOutlined;
-          // Show loading icon with table type icon when loading
-          if (isLoading) {
-            return (
-              <>
-                <Icons.LoadingOutlined iconSize="l" />
-                <TableTypeIcon iconSize="l" />
-              </>
-            );
-          }
-          const ExpandIcon = isManuallyOpen
-            ? Icons.MinusSquareOutlined
-            : Icons.PlusSquareOutlined;
-          return (
-            <>
-              <ExpandIcon iconSize="l" />
-              <TableTypeIcon iconSize="l" />
-            </>
-          );
-        }
-
-        return null;
-      };
-
-      // Empty placeholder node - no actions allowed
-      if (data.type === 'empty') {
-        return (
-          <div
-            className="tree-node"
-            style={{
-              ...style,
-              opacity: 0.5,
-              fontStyle: 'italic',
-              cursor: 'default',
-            }}
-          >
-            <span className="tree-node-icon">
-              <Icons.FileOutlined iconSize="l" />
-            </span>
-            <span className="tree-node-title">{data.name}</span>
-          </div>
-        );
-      }
-
-      // Column nodes use ColumnElement
-      if (identifier === 'column' && data.columnData) {
-        return (
-          <StyledColumnNode
-            className="tree-node"
-            style={style}
-            data-selected={node.isSelected}
-            onClick={() => node.select()}
-          >
-            <ColumnElement column={data.columnData} />
-          </StyledColumnNode>
-        );
-      }
-
-      return (
-        <div
-          className="tree-node"
-          style={style}
-          data-selected={node.isSelected}
-          onClick={e => {
-            e.stopPropagation();
-            if (node.isLeaf) {
-              node.select();
-            } else {
-              node.toggle();
-            }
-          }}
-        >
-          <span className="tree-node-icon">{renderIcon()}</span>
-          <Typography.Text
-            className="tree-node-title"
-            style={getOpacity(data.disableCheckbox)}
-            ellipsis={{
-              tooltip: { title: data.name, placement: 'topLeft' },
-            }}
-          >
-            {highlightText(data.name, searchTerm)}
-          </Typography.Text>
-          {identifier === 'schema' && (
-            <div className="side-action-container" role="menu">
-              <RefreshLabel
-                onClick={e => {
-                  e.stopPropagation();
-                  fetchLazyTables({
-                    dbId: _dbId,
-                    catalog,
-                    schema,
-                    forceRefresh: true,
-                  });
-                }}
-                tooltipContent={t('Force refresh table list')}
-              />
-            </div>
-          )}
-          {identifier === 'table' && (
-            <div
-              className="side-action-container"
-              role="menu"
-              css={css`
-                position: inherit;
-              `}
-            >
-              <IconButton
-                icon={
-                  <Tooltip title={t('Pin to the result panel')}>
-                    <Icons.FolderAddOutlined iconSize="xl" />
-                  </Tooltip>
-                }
-                onClick={e => {
-                  e.stopPropagation();
-                  handlePinTable(tableName, schema, catalog ?? null);
-                }}
-              />
-            </div>
-          )}
-        </div>
-      );
-    },
+  const renderNode = useCallback(
+    (props: Parameters<typeof TreeNodeRenderer>[0]) => (
+      <TreeNodeRenderer
+        {...props}
+        manuallyOpenedNodes={manuallyOpenedNodes}
+        loadingNodes={loadingNodes}
+        searchTerm={searchTerm}
+        catalog={catalog}
+        fetchLazyTables={fetchLazyTables}
+        handlePinTable={handlePinTable}
+      />
+    ),
     [
       catalog,
       fetchLazyTables,
@@ -723,7 +319,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
                   });
                 }}
               >
-                {NodeRenderer}
+                {renderNode}
               </Tree>
             );
           }}
