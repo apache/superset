@@ -93,9 +93,7 @@ test('dashboard screenshot', async ({ page }) => {
   ).toBeVisible({ timeout: 15000 });
 
   // Open the filter bar (collapsed by default)
-  const expandButton = page.locator(
-    '[data-test="filter-bar__expand-button"]',
-  );
+  const expandButton = page.locator('[data-test="filter-bar__expand-button"]');
   if (await expandButton.isVisible()) {
     await expandButton.click();
     // Wait for filter bar content to expand and render filter controls
@@ -181,16 +179,16 @@ test('SQL Lab screenshot', async ({ page }) => {
   await tableSelectWrapper.click();
   await page.keyboard.type('birth_names');
   // Wait for the filtered option to appear in the DOM, then select it
-  const tableOption = page.locator(
-    '.ant-select-dropdown [role="option"]',
-  ).filter({ hasText: 'birth_names' });
+  const tableOption = page
+    .locator('.ant-select-dropdown [role="option"]')
+    .filter({ hasText: 'birth_names' });
   await expect(tableOption).toBeAttached({ timeout: 10000 });
   await page.keyboard.press('Enter');
 
   // Wait for table schema to load and show columns in the left panel
-  await expect(
-    page.locator('[data-test="col-name"]').first(),
-  ).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('[data-test="col-name"]').first()).toBeVisible({
+    timeout: 15000,
+  });
 
   // Close the table dropdown by clicking elsewhere, then switch to the query tab
   await page.locator('[data-test="sql-editor-tabs"]').first().click();
