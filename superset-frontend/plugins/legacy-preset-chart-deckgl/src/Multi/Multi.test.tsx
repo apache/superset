@@ -545,7 +545,7 @@ describe('DeckMulti Component Rendering', () => {
       formData: {
         ...baseMockProps.formData,
         dashboardId: 456,
-        extra_filters: [{ col: 'test', op: '==', val: 'value' }],
+        extra_filters: [{ col: 'test', op: 'IN' as const, val: ['value'] }],
       },
     };
 
