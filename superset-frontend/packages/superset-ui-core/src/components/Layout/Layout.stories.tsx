@@ -132,13 +132,15 @@ export const InteractiveLayout: Story = {
       </Layout>
     </Layout>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Layout component with Header, Footer, Sider, and Content areas.',
-      },
-      liveExample: `function Demo() {
+};
+
+InteractiveLayout.parameters = {
+  docs: {
+    description: {
+      story:
+        'Layout component with Header, Footer, Sider, and Content areas.',
+    },
+    liveExample: `function Demo() {
   return (
     <Layout style={{ minHeight: '300px' }}>
       <Layout.Sider theme="dark" width={200}>
@@ -158,7 +160,46 @@ export const InteractiveLayout: Story = {
     </Layout>
   );
 }`,
-    },
+    examples: [
+      {
+        title: 'Content Only',
+        code: `function ContentOnly() {
+  return (
+    <Layout>
+      <Layout.Header style={{ background: '#001529', color: '#fff', padding: '0 24px', lineHeight: '64px' }}>
+        Application Header
+      </Layout.Header>
+      <Layout.Content style={{ padding: '24px', minHeight: '200px', background: '#fff' }}>
+        Main content area without a sidebar
+      </Layout.Content>
+      <Layout.Footer style={{ textAlign: 'center', background: '#f5f5f5' }}>
+        Footer Content
+      </Layout.Footer>
+    </Layout>
+  );
+}`,
+      },
+      {
+        title: 'Right Sidebar',
+        code: `function RightSidebar() {
+  return (
+    <Layout style={{ minHeight: '300px' }}>
+      <Layout>
+        <Layout.Header style={{ background: '#fff', padding: '0 24px' }}>
+          Header
+        </Layout.Header>
+        <Layout.Content style={{ padding: '24px', background: '#fff' }}>
+          Content with right sidebar
+        </Layout.Content>
+      </Layout>
+      <Layout.Sider theme="light" width={200} style={{ background: '#fafafa' }}>
+        <div style={{ padding: '16px' }}>Right Sidebar</div>
+      </Layout.Sider>
+    </Layout>
+  );
+}`,
+      },
+    ],
   },
 };
 

@@ -135,34 +135,99 @@ export const InteractiveGrid: Story = {
       </div>
     );
   },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Grid layout system based on 24 columns with configurable gutters.',
-      },
-      liveExample: `function Demo() {
+};
+
+InteractiveGrid.parameters = {
+  docs: {
+    renderComponent: 'Row',
+    sampleChildren: [
+      { component: 'Col', props: { span: 6, children: 'col-6', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
+      { component: 'Col', props: { span: 6, children: 'col-6', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
+      { component: 'Col', props: { span: 6, children: 'col-6', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
+      { component: 'Col', props: { span: 6, children: 'col-6', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
+    ],
+    description: {
+      story:
+        'Grid layout system based on 24 columns with configurable gutters.',
+    },
+    liveExample: `function Demo() {
   return (
     <Row gutter={[16, 16]}>
       <Col span={12}>
-        <div style={{ background: '#ddd', padding: '8px' }}>col-12</div>
+        <div style={{ background: '#e6f4ff', padding: '8px', border: '1px solid #91caff' }}>col-12</div>
       </Col>
       <Col span={12}>
-        <div style={{ background: '#ddd', padding: '8px' }}>col-12</div>
+        <div style={{ background: '#e6f4ff', padding: '8px', border: '1px solid #91caff' }}>col-12</div>
       </Col>
       <Col span={8}>
-        <div style={{ background: '#ddd', padding: '8px' }}>col-8</div>
+        <div style={{ background: '#e6f4ff', padding: '8px', border: '1px solid #91caff' }}>col-8</div>
       </Col>
       <Col span={8}>
-        <div style={{ background: '#ddd', padding: '8px' }}>col-8</div>
+        <div style={{ background: '#e6f4ff', padding: '8px', border: '1px solid #91caff' }}>col-8</div>
       </Col>
       <Col span={8}>
-        <div style={{ background: '#ddd', padding: '8px' }}>col-8</div>
+        <div style={{ background: '#e6f4ff', padding: '8px', border: '1px solid #91caff' }}>col-8</div>
       </Col>
     </Row>
   );
 }`,
-    },
+    examples: [
+      {
+        title: 'Responsive Grid',
+        code: `function ResponsiveGrid() {
+  return (
+    <Row gutter={[16, 16]}>
+      <Col xs={24} sm={12} md={8} lg={6}>
+        <div style={{ background: '#e6f4ff', padding: '16px', border: '1px solid #91caff', textAlign: 'center' }}>
+          Responsive
+        </div>
+      </Col>
+      <Col xs={24} sm={12} md={8} lg={6}>
+        <div style={{ background: '#e6f4ff', padding: '16px', border: '1px solid #91caff', textAlign: 'center' }}>
+          Responsive
+        </div>
+      </Col>
+      <Col xs={24} sm={12} md={8} lg={6}>
+        <div style={{ background: '#e6f4ff', padding: '16px', border: '1px solid #91caff', textAlign: 'center' }}>
+          Responsive
+        </div>
+      </Col>
+      <Col xs={24} sm={12} md={8} lg={6}>
+        <div style={{ background: '#e6f4ff', padding: '16px', border: '1px solid #91caff', textAlign: 'center' }}>
+          Responsive
+        </div>
+      </Col>
+    </Row>
+  );
+}`,
+      },
+      {
+        title: 'Alignment',
+        code: `function AlignmentDemo() {
+  const boxStyle = { background: '#e6f4ff', padding: '16px 0', border: '1px solid #91caff', textAlign: 'center' };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Row justify="start" gutter={8}>
+        <Col span={4}><div style={boxStyle}>start</div></Col>
+        <Col span={4}><div style={boxStyle}>start</div></Col>
+      </Row>
+      <Row justify="center" gutter={8}>
+        <Col span={4}><div style={boxStyle}>center</div></Col>
+        <Col span={4}><div style={boxStyle}>center</div></Col>
+      </Row>
+      <Row justify="end" gutter={8}>
+        <Col span={4}><div style={boxStyle}>end</div></Col>
+        <Col span={4}><div style={boxStyle}>end</div></Col>
+      </Row>
+      <Row justify="space-between" gutter={8}>
+        <Col span={4}><div style={boxStyle}>between</div></Col>
+        <Col span={4}><div style={boxStyle}>between</div></Col>
+      </Row>
+    </div>
+  );
+}`,
+      },
+    ],
   },
 };
 

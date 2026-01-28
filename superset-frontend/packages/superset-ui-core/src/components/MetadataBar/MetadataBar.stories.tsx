@@ -21,8 +21,16 @@ import { useResizeDetector } from 'react-resize-detector';
 import MetadataBar, { MetadataBarProps, MetadataType } from '.';
 
 export default {
-  title: 'Design System/Components/MetadataBar/Examples',
+  title: 'Design System/Components/MetadataBar',
   component: MetadataBar,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'MetadataBar displays a row of metadata items (SQL info, owners, last modified, tags, dashboards, etc.) that collapse responsively based on available width.',
+      },
+    },
+  },
 };
 
 const A_WEEK_AGO = 'a week ago';
@@ -96,5 +104,87 @@ Basic.argTypes = {
     table: {
       disable: true,
     },
+  },
+};
+
+// Interactive story for docs generation
+export const InteractiveMetadataBar = (args: MetadataBarProps) => (
+  <MetadataBar {...args} />
+);
+
+InteractiveMetadataBar.args = {};
+
+InteractiveMetadataBar.argTypes = {};
+
+InteractiveMetadataBar.parameters = {
+  docs: {
+    staticProps: {
+      items: [
+        { type: 'sql', title: 'Click to view query' },
+        {
+          type: 'owner',
+          createdBy: 'Jane Smith',
+          owners: ['John Doe', 'Mary Wilson'],
+          createdOn: 'a week ago',
+        },
+        {
+          type: 'lastModified',
+          value: 'a week ago',
+          modifiedBy: 'Jane Smith',
+        },
+        { type: 'tags', values: ['management', 'research', 'poc'] },
+        {
+          type: 'dashboards',
+          title: 'Added to 3 dashboards',
+          description: 'To preview the list of dashboards go to More settings.',
+        },
+      ],
+    },
+    liveExample: `function Demo() {
+  const items = [
+    { type: 'sql', title: 'Click to view query' },
+    {
+      type: 'owner',
+      createdBy: 'Jane Smith',
+      owners: ['John Doe', 'Mary Wilson'],
+      createdOn: 'a week ago',
+    },
+    {
+      type: 'lastModified',
+      value: 'a week ago',
+      modifiedBy: 'Jane Smith',
+    },
+    { type: 'tags', values: ['management', 'research', 'poc'] },
+  ];
+  return <MetadataBar items={items} />;
+}`,
+    examples: [
+      {
+        title: 'Minimal Metadata',
+        code: `function MinimalMetadata() {
+  const items = [
+    { type: 'owner', createdBy: 'Admin', owners: ['Admin'], createdOn: 'yesterday' },
+    { type: 'lastModified', value: '2 hours ago', modifiedBy: 'Admin' },
+  ];
+  return <MetadataBar items={items} />;
+}`,
+      },
+      {
+        title: 'Full Metadata',
+        code: `function FullMetadata() {
+  const items = [
+    { type: 'sql', title: 'SELECT * FROM ...' },
+    { type: 'owner', createdBy: 'Jane Smith', owners: ['Jane Smith', 'John Doe', 'Bob Wilson'], createdOn: '2 weeks ago' },
+    { type: 'lastModified', value: '3 days ago', modifiedBy: 'John Doe' },
+    { type: 'tags', values: ['production', 'finance', 'quarterly'] },
+    { type: 'dashboards', title: 'Used in 12 dashboards' },
+    { type: 'description', value: 'This chart shows quarterly revenue breakdown by region and product line.' },
+    { type: 'rows', title: '1.2M rows' },
+    { type: 'table', title: 'public.revenue_data' },
+  ];
+  return <MetadataBar items={items} />;
+}`,
+      },
+    ],
   },
 };

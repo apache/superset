@@ -80,9 +80,7 @@ const SOURCES = [
       'CertifiedBadgeWithTooltip', 'CodeSyntaxHighlighter', 'DynamicTooltip',
       'PopoverDropdown', 'PopoverSection', 'WarningIconWithTooltip', 'RefreshLabel',
       // Components with complex nested props (JSX children, overlay, items arrays)
-      'Dropdown', 'Table', 'DropdownButton', 'DropdownContainer',
-      // Grid and Layout use complex render functions with internal state
-      'Grid', 'Layout',
+      'Dropdown', 'DropdownButton',
     ]),
   },
   {
