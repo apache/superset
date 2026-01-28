@@ -296,6 +296,26 @@ def system_task(): ...
 | `SHARED` | All subscribers | Last subscriber cancels; others unsubscribe |
 | `SYSTEM` | Admins only | Admin cancels |
 
+## Task Cleanup
+
+Completed tasks accumulate in the database over time. Configure a scheduled prune job to automatically remove old tasks:
+
+```python
+# In your superset_config.py, add to your Celery beat schedule:
+CELERY_CONFIG.beat_schedule["prune_tasks"] = {
+    "task": "prune_tasks",
+    "schedule": crontab(minute=0, hour=0),  # Run daily at midnight
+    "kwargs": {
+        "retention_period_days": 90,   # Keep tasks for 90 days
+        "max_rows_per_run": 10000,     # Limit deletions per run
+    },
+}
+```
+
+The prune job only removes tasks in terminal states (`SUCCESS`, `FAILURE`, `ABORTED`, `TIMED_OUT`). Active tasks (`PENDING`, `IN_PROGRESS`, `ABORTING`) are never pruned.
+
+See `superset/config.py` for a complete example configuration.
+
 ## Configuration
 
 ### Redis Abort Notifications (Optional)

@@ -322,46 +322,6 @@ class TaskWrapper(Generic[P]):
         raise NotImplementedError("Will be replaced during initialization")
 
 
-def create_task(
-    task_type: str,
-    task_id: str,
-    executor: Callable[..., Any],
-    task_name: str | None = None,
-    **executor_kwargs: Any,
-) -> Any:  # Returns Task model
-    """
-    Create and submit a task directly.
-
-    Host implementations will replace this function during initialization
-    with a concrete implementation providing actual functionality.
-
-    :param task_type: Type of task to execute
-    :param task_id: Unique identifier for deduplication
-    :param executor: Task executor function
-    :param task_name: Human-readable task name
-    :param executor_kwargs: Arguments to pass to executor
-    :returns: Task model instance
-
-    Example:
-        task = create_task(
-            task_type="thumbnail_generation",
-            task_id="thumbnail_chart_123",
-            executor=generate_chart_thumbnail,
-            chart_id=123
-        )
-
-        # Inside the task:
-        @async_task("thumbnail_generation")
-        def generate_chart_thumbnail(chart_id: int):
-            ctx = get_context()
-            ctx.update_task(
-                progress=0.5,
-                payload={"chart_id": chart_id}
-            )
-    """
-    raise NotImplementedError("Function will be replaced during initialization")
-
-
 def get_context() -> TaskContext:
     """
     Get the current task context from ambient context.
@@ -397,6 +357,5 @@ __all__ = [
     "TaskContext",
     "TaskOptions",
     "task",
-    "create_task",
     "get_context",
 ]

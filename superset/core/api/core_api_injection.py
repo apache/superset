@@ -67,19 +67,6 @@ def inject_dao_implementations() -> None:
     core_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore[assignment,misc]
     core_dao_module.TaskDAO = HostTaskDAO  # type: ignore[assignment,misc]
 
-    core_dao_module.__all__ = [
-        "DatasetDAO",
-        "DatabaseDAO",
-        "ChartDAO",
-        "DashboardDAO",
-        "UserDAO",
-        "QueryDAO",
-        "SavedQueryDAO",
-        "TagDAO",
-        "KeyValueDAO",
-        "TaskDAO",
-    ]
-
 
 def inject_model_implementations() -> None:
     """
@@ -129,16 +116,12 @@ def inject_query_implementations() -> None:
         )
 
     core_query_module.get_sqlglot_dialect = get_sqlglot_dialect
-    core_query_module.__all__ = ["get_sqlglot_dialect"]
 
 
 def inject_task_implementations() -> None:
     """
-    Replace abstract async task functions in superset_core.api.tasks with concrete
+    Replace abstract task functions in superset_core.api.tasks with concrete
     implementations from Superset.
-
-    Note: TaskOptions and TaskStatus are defined directly in superset-core
-    as they have no dependencies on Superset internals.
     """
     import superset_core.api.tasks as core_tasks_module
 
@@ -150,18 +133,6 @@ def inject_task_implementations() -> None:
     core_tasks_module.TaskContext = TaskContext  # type: ignore[assignment,misc]
     core_tasks_module.task = task  # type: ignore[assignment]
     core_tasks_module.get_context = get_context
-
-    # Note: create_async_task is not yet implemented in the concrete package,
-    # so we leave it as NotImplementedError for now
-
-    core_tasks_module.__all__ = [
-        "TaskStatus",
-        "TaskContext",
-        "TaskOptions",
-        "async_task",
-        "create_async_task",
-        "get_context",
-    ]
 
 
 def inject_rest_api_implementations() -> None:
@@ -184,7 +155,6 @@ def inject_rest_api_implementations() -> None:
 
     core_rest_api_module.add_api = add_api
     core_rest_api_module.add_extension_api = add_extension_api
-    core_rest_api_module.__all__ = ["RestApi", "add_api", "add_extension_api"]
 
 
 def inject_model_session_implementation() -> None:
@@ -200,7 +170,6 @@ def inject_model_session_implementation() -> None:
         return db.session
 
     core_models_module.get_session = get_session
-    # Update __all__ to include get_session (already done in the module)
 
 
 def initialize_core_api_dependencies() -> None:
