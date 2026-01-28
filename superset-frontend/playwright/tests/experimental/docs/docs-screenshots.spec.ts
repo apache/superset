@@ -54,7 +54,6 @@ test('chart gallery screenshot', async ({ page }) => {
     vizGallery.locator('[data-test="viztype-selector-container"]').first(),
   ).toBeVisible();
 
-  await page.addStyleTag({ content: 'body { zoom: 0.8 }' });
   await vizGallery.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'gallery.jpg'),
     type: 'jpeg',
@@ -88,24 +87,25 @@ test('dashboard screenshot', async ({ page }) => {
     dashboardWrapper.locator('[data-test="loading-indicator"]'),
   ).toHaveCount(0, { timeout: 30000 });
 
-  // Wait for at least one chart to finish rendering (SVG or canvas inside a chart holder)
+  // Wait for at least one chart to finish rendering (ECharts renders to canvas)
   await expect(
-    page
-      .locator('.dashboard-component-chart-holder')
-      .first()
-      .locator('canvas, svg'),
+    page.locator('.dashboard-component-chart-holder canvas').first(),
   ).toBeVisible({ timeout: 15000 });
 
   // Open the filter bar (collapsed by default)
   const expandButton = page.locator(
-    '[data-test="filter-bar-expand-button"]',
+    '[data-test="filter-bar__expand-button"]',
   );
   if (await expandButton.isVisible()) {
     await expandButton.click();
+    // Wait for filter bar content to expand and render filter controls
+    await expect(
+      page.locator('[data-test="filter-bar__collapsable"]'),
+    ).toBeVisible({ timeout: 5000 });
+    await expect(
+      page.locator('[data-test="filterbar-action-buttons"]'),
+    ).toBeVisible({ timeout: 5000 });
   }
-
-  // Allow filter bar animation and final chart paint to settle
-  await page.waitForTimeout(2000);
 
   await page.addStyleTag({ content: 'body { zoom: 0.8 }' });
   await page.screenshot({
@@ -134,11 +134,13 @@ test('chart editor screenshot', async ({ page }) => {
   const sliceContainer = page.locator('[data-test="slice-container"]');
   await expect(sliceContainer).toBeVisible({ timeout: 15000 });
 
-  // Wait for the chart to finish rendering (loading spinners clear)
+  // Wait for the chart to finish rendering (loading spinners clear, chart content appears)
   await expect(
     sliceContainer.locator('[data-test="loading-indicator"]'),
   ).toHaveCount(0, { timeout: 15000 });
-  await page.waitForTimeout(2000);
+  await expect(sliceContainer.locator('canvas, svg').first()).toBeVisible({
+    timeout: 15000,
+  });
 
   await page.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'explore.jpg'),
@@ -148,6 +150,8 @@ test('chart editor screenshot', async ({ page }) => {
 });
 
 test('SQL Lab screenshot', async ({ page }) => {
+  // SQL Lab has many interactive steps (schema, table, query, results) — allow extra time
+  test.setTimeout(90000);
   await page.goto(URL.SQLLAB);
 
   // SQL Lab may open with no active query tab — create one if needed
@@ -177,10 +181,11 @@ test('SQL Lab screenshot', async ({ page }) => {
   await expect(tableSelectWrapper).toBeVisible({ timeout: 10000 });
   await tableSelectWrapper.click();
   await page.keyboard.type('birth_names');
-  // Wait for the filtered option to appear, then select it
-  await expect(
-    page.getByRole('option', { name: /birth_names/i }),
-  ).toBeVisible({ timeout: 10000 });
+  // Wait for the filtered option to appear in the DOM, then select it
+  const tableOption = page.locator(
+    '.ant-select-dropdown [role="option"]',
+  ).filter({ hasText: 'birth_names' });
+  await expect(tableOption).toBeAttached({ timeout: 10000 });
   await page.keyboard.press('Enter');
 
   // Wait for table schema to load and show columns in the left panel
@@ -209,12 +214,12 @@ test('SQL Lab screenshot', async ({ page }) => {
     timeout: 30000,
   });
 
-  // Switch to the Results tab (close the public.birth_names metadata tab)
-  await page.getByText('Results').click();
+  // Switch to the Results tab to show the query output
+  await page.getByRole('tab', { name: 'Results' }).click();
 
-  // Move mouse away from buttons to dismiss any tooltips
+  // Move mouse away from buttons to dismiss any tooltips, then wait for them to disappear
   await page.mouse.move(0, 0);
-  await page.waitForTimeout(500);
+  await expect(page.getByRole('tooltip')).toHaveCount(0, { timeout: 2000 });
 
   await page.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'sql_lab.jpg'),
