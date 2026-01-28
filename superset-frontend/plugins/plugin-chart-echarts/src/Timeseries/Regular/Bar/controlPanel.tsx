@@ -33,9 +33,11 @@ import {
 import {
   legendSection,
   minorTicks,
+  onlyTotalControl,
+  percentageThresholdControl,
   richTooltipSection,
   seriesOrderSection,
-  showValueSection,
+  showValueControl,
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
@@ -48,7 +50,7 @@ import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
 } from '../../constants';
-import { StackControlsValue } from '../../../constants';
+import { BarChartStackControlOptions, StackControlsValue } from '../../../constants';
 
 const { logAxis, minorSplitLine, truncateYAxis, yAxisBounds, orientation } =
   DEFAULT_FORM_DATA;
@@ -327,7 +329,22 @@ const config: ControlPanelConfig = {
         ...seriesOrderSection,
         ['color_scheme'],
         ['time_shift_color'],
-        ...showValueSection,
+        [showValueControl],
+        [
+          {
+            name: 'stack',
+            config: {
+              type: 'SelectControl',
+              label: t('Stacked Style'),
+              renderTrigger: true,
+              choices: BarChartStackControlOptions,
+              default: null,
+              description: t('Stack series on top of each other'),
+            },
+          },
+        ],
+        [onlyTotalControl],
+        [percentageThresholdControl],
         [
           {
             name: 'stackDimension',
@@ -375,11 +392,18 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  formDataOverrides: formData => ({
-    ...formData,
-    metrics: getStandardizedControls().popAllMetrics(),
-    groupby: getStandardizedControls().popAllColumns(),
-  }),
+  formDataOverrides: formData => {
+    // Reset stack to null if it's Stream when switching to Bar chart
+    const formDataWithStack = formData as Record<string, unknown>;
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      groupby: getStandardizedControls().popAllColumns(),
+      ...(formDataWithStack.stack === StackControlsValue.Stream && {
+        stack: null,
+      }),
+    };
+  },
 };
 
 export default config;
