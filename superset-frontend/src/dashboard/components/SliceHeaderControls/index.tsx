@@ -335,7 +335,7 @@ const SliceHeaderControls = (
     return '';
   };
   const refreshTooltipData = [
-    ...new Set(isCached.map((itemCached, index) => getCachedTitle(itemCached, index)) || ''),
+    ...new Set(isCached.map((itemCached, index) => getCachedTitle(itemCached, index))),
   ];
   // If all queries have same cache time we can unit them to one
   const refreshTooltip = refreshTooltipData.map((item, index) => (
