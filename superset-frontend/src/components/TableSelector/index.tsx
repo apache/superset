@@ -26,10 +26,10 @@ import {
 import type { SelectValue } from '@superset-ui/core/components';
 
 import { t } from '@apache-superset/core';
-import { getClientErrorMessage, getClientErrorObject } from '@superset-ui/core';
+import { SupersetError } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { CertifiedBadge, Select } from '@superset-ui/core/components';
-import { DatabaseSelector } from 'src/components';
+import { DatabaseSelector, ErrorMessageWithStackTrace } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
 import { StyledFormLabel } from 'src/components/DatabaseSelector/styles';
@@ -183,6 +183,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [tableSelectValue, setTableSelectValue] = useState<
     SelectValue | undefined
   >(undefined);
+  const [errorPayload, setErrorPayload] = useState<SupersetError | null>(null);
   const {
     currentData: data,
     isFetching: loadingTables,
@@ -192,19 +193,17 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     catalog: currentCatalog,
     schema: currentSchema,
     onSuccess: (data, isFetched) => {
+      setErrorPayload(null);
       if (isFetched) {
         addSuccessToast(t('List updated'));
       }
     },
-    onError: err => {
-      getClientErrorObject(err).then(clientError => {
-        handleError(
-          getClientErrorMessage(
-            t('There was an error loading the tables'),
-            clientError,
-          ),
-        );
-      });
+    onError: error => {
+      if (error?.errors) {
+        setErrorPayload(error?.errors?.[0] ?? null);
+      } else {
+        handleError(error?.error || t('There was an error loading the tables'));
+      }
     },
   });
 
@@ -345,6 +344,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     );
   }
 
+  function renderError() {
+    return errorPayload ? (
+      <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
+    ) : null;
+  }
+
   return (
     <TableSelectorWrapper>
       <DatabaseSelector
@@ -364,6 +369,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         readOnly={readOnly}
       />
       {sqlLabMode && !formMode && <div className="divider" />}
+      {renderError()}
       {renderTableSelect()}
     </TableSelectorWrapper>
   );

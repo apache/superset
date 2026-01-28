@@ -97,7 +97,7 @@ export function deactivate() {
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see the [Contributing Guide](https://github.com/apache/superset/blob/master/CONTRIBUTING.md) for details.
+We welcome contributions! Please see the [Developer Portal](https://superset.apache.org/developer_portal/) for details.
 
 ## 📄 License
 

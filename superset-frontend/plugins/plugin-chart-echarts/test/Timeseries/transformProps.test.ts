@@ -21,6 +21,7 @@ import {
   AnnotationStyle,
   AnnotationType,
   ChartProps,
+  ComparisonType,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
@@ -30,6 +31,11 @@ import {
 import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import transformProps from '../../src/Timeseries/transformProps';
+import {
+  EchartsTimeseriesSeriesType,
+  OrientationType,
+} from '../../src/Timeseries/types';
+import { BASE_TIMESTAMP, createTestData } from './helpers';
 
 type YAxisFormatter = (value: number, index: number) => string;
 
@@ -55,10 +61,13 @@ const formData: SqlaFormData = {
 };
 const queriesData = [
   {
-    data: [
-      { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
-      { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
-    ],
+    data: createTestData(
+      [
+        { 'San Francisco': 1, 'New York': 2 },
+        { 'San Francisco': 3, 'New York': 4 },
+      ],
+      { intervalMs: 300000000 },
+    ),
   },
 ];
 const chartPropsConfig = {
@@ -83,15 +92,15 @@ describe('EchartsTimeseries transformProps', () => {
           series: expect.arrayContaining([
             expect.objectContaining({
               data: [
-                [599616000000, 1],
-                [599916000000, 3],
+                [BASE_TIMESTAMP, 1],
+                [BASE_TIMESTAMP + 300000000, 3],
               ],
               name: 'San Francisco',
             }),
             expect.objectContaining({
               data: [
-                [599616000000, 2],
-                [599916000000, 4],
+                [BASE_TIMESTAMP, 2],
+                [BASE_TIMESTAMP + 300000000, 4],
               ],
               name: 'New York',
             }),
@@ -120,15 +129,15 @@ describe('EchartsTimeseries transformProps', () => {
           series: expect.arrayContaining([
             expect.objectContaining({
               data: [
-                [1, 599616000000],
-                [3, 599916000000],
+                [1, BASE_TIMESTAMP],
+                [3, BASE_TIMESTAMP + 300000000],
               ],
               name: 'San Francisco',
             }),
             expect.objectContaining({
               data: [
-                [2, 599616000000],
-                [4, 599916000000],
+                [2, BASE_TIMESTAMP],
+                [4, BASE_TIMESTAMP + 300000000],
               ],
               name: 'New York',
             }),
@@ -165,22 +174,22 @@ describe('EchartsTimeseries transformProps', () => {
           series: expect.arrayContaining([
             expect.objectContaining({
               data: [
-                [599616000000, 1],
-                [599916000000, 3],
+                [BASE_TIMESTAMP, 1],
+                [BASE_TIMESTAMP + 300000000, 3],
               ],
               name: 'San Francisco',
             }),
             expect.objectContaining({
               data: [
-                [599616000000, 2],
-                [599916000000, 4],
+                [BASE_TIMESTAMP, 2],
+                [BASE_TIMESTAMP + 300000000, 4],
               ],
               name: 'New York',
             }),
             expect.objectContaining({
               data: [
-                [599616000000, 599616000001],
-                [599916000000, 599916000001],
+                [BASE_TIMESTAMP, BASE_TIMESTAMP + 1],
+                [BASE_TIMESTAMP + 300000000, BASE_TIMESTAMP + 300000000 + 1],
               ],
               name: 'My Formula',
             }),
@@ -303,64 +312,60 @@ describe('EchartsTimeseries transformProps', () => {
   it('Should add a baseline series for stream graph', () => {
     const streamQueriesData = [
       {
-        data: [
-          {
-            'San Francisco': 120,
-            'New York': 220,
-            Boston: 150,
-            Miami: 270,
-            Denver: 800,
-            __timestamp: 599616000000,
-          },
-          {
-            'San Francisco': 150,
-            'New York': 190,
-            Boston: 240,
-            Miami: 350,
-            Denver: 700,
-            __timestamp: 599616000001,
-          },
-          {
-            'San Francisco': 130,
-            'New York': 300,
-            Boston: 250,
-            Miami: 410,
-            Denver: 650,
-            __timestamp: 599616000002,
-          },
-          {
-            'San Francisco': 90,
-            'New York': 340,
-            Boston: 300,
-            Miami: 480,
-            Denver: 590,
-            __timestamp: 599616000003,
-          },
-          {
-            'San Francisco': 260,
-            'New York': 200,
-            Boston: 420,
-            Miami: 490,
-            Denver: 760,
-            __timestamp: 599616000004,
-          },
-          {
-            'San Francisco': 250,
-            'New York': 250,
-            Boston: 380,
-            Miami: 360,
-            Denver: 400,
-            __timestamp: 599616000005,
-          },
-          {
-            'San Francisco': 160,
-            'New York': 210,
-            Boston: 330,
-            Miami: 440,
-            Denver: 580,
-            __timestamp: 599616000006,
-          },
-        ],
+        data: createTestData(
+          [
+            {
+              'San Francisco': 120,
+              'New York': 220,
+              Boston: 150,
+              Miami: 270,
+              Denver: 800,
+            },
+            {
+              'San Francisco': 150,
+              'New York': 190,
+              Boston: 240,
+              Miami: 350,
+              Denver: 700,
+            },
+            {
+              'San Francisco': 130,
+              'New York': 300,
+              Boston: 250,
+              Miami: 410,
+              Denver: 650,
+            },
+            {
+              'San Francisco': 90,
+              'New York': 340,
+              Boston: 300,
+              Miami: 480,
+              Denver: 590,
+            },
+            {
+              'San Francisco': 260,
+              'New York': 200,
+              Boston: 420,
+              Miami: 490,
+              Denver: 760,
+            },
+            {
+              'San Francisco': 250,
+              'New York': 250,
+              Boston: 380,
+              Miami: 360,
+              Denver: 400,
+            },
+            {
+              'San Francisco': 160,
+              'New York': 210,
+              Boston: 330,
+              Miami: 440,
+              Denver: 580,
+            },
+          ],
+          { intervalMs: 1 },
+        ),
       },
     ];
     const streamFormData = { ...formData, stack: 'Stream' };
@@ -395,13 +400,13 @@ describe('EchartsTimeseries transformProps', () => {
       },
       type: 'line',
       data: [
-        [599616000000, -415.7692307692308],
-        [599616000001, -403.6219915054271],
-        [599616000002, -476.32314093071443],
-        [599616000003, -514.2120298196033],
-        [599616000004, -485.7378514158475],
-        [599616000005, -419.6402904402378],
-        [599616000006, -442.9833136960517],
+        [BASE_TIMESTAMP, -415.7692307692308],
+        [BASE_TIMESTAMP + 1, -403.6219915054271],
+        [BASE_TIMESTAMP + 2, -476.32314093071443],
+        [BASE_TIMESTAMP + 3, -514.2120298196033],
+        [BASE_TIMESTAMP + 4, -485.7378514158475],
+        [BASE_TIMESTAMP + 5, -419.6402904402378],
+        [BASE_TIMESTAMP + 6, -442.9833136960517],
       ],
     });
   });
@@ -434,32 +439,31 @@ describe('Does transformProps transform series correctly', () => {
   };
   const queriesData = [
     {
-      data: [
-        {
-          'San Francisco': 1,
-          'New York': 2,
-          Boston: 1,
-          __timestamp: 599616000000,
-        },
-        {
-          'San Francisco': 3,
-          'New York': 4,
-          Boston: 1,
-          __timestamp: 599916000000,
-        },
-        {
-          'San Francisco': 5,
-          'New York': 8,
-          Boston: 6,
-          __timestamp: 600216000000,
-        },
-        {
-          'San Francisco': 2,
-          'New York': 7,
-          Boston: 2,
-          __timestamp: 600516000000,
-        },
-      ],
+      data: createTestData(
+        [
+          {
+            'San Francisco': 1,
+            'New York': 2,
+            Boston: 1,
+          },
+          {
+            'San Francisco': 3,
+            'New York': 4,
+            Boston: 1,
+          },
+          {
+            'San Francisco': 5,
+            'New York': 8,
+            Boston: 6,
+          },
+          {
+            'San Francisco': 2,
+            'New York': 7,
+            Boston: 2,
+          },
+        ],
+        { intervalMs: 300000000 },
+      ),
     },
   ];
   const chartPropsConfig = {
@@ -643,36 +647,35 @@ describe('Does transformProps transform series correctly', () => {
 describe('legend sorting', () => {
   const legendSortData = [
     {
-      data: [
-        {
-          Milton: 40,
-          'San Francisco': 1,
-          'New York': 2,
-          Boston: 1,
-          __timestamp: 599616000000,
-        },
-        {
-          Milton: 20,
-          'San Francisco': 3,
-          'New York': 4,
-          Boston: 1,
-          __timestamp: 599916000000,
-        },
-        {
-          Milton: 60,
-          'San Francisco': 5,
-          'New York': 8,
-          Boston: 6,
-          __timestamp: 600216000000,
-        },
-        {
-          Milton: 10,
-          'San Francisco': 2,
-          'New York': 7,
-          Boston: 2,
-          __timestamp: 600516000000,
-        },
-      ],
+      data: createTestData(
+        [
+          {
+            Milton: 40,
+            'San Francisco': 1,
+            'New York': 2,
+            Boston: 1,
+          },
+          {
+            Milton: 20,
+            'San Francisco': 3,
+            'New York': 4,
+            Boston: 1,
+          },
+          {
+            Milton: 60,
+            'San Francisco': 5,
+            'New York': 8,
+            Boston: 6,
+          },
+          {
+            Milton: 10,
+            'San Francisco': 2,
+            'New York': 7,
+            Boston: 2,
+          },
+        ],
+        { intervalMs: 300000000 },
+      ),
     },
   ];
 
@@ -736,6 +739,170 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+});
+
+const timeCompareFormData: SqlaFormData = {
+  colorScheme: 'bnbColors',
+  datasource: '3__table',
+  granularity_sqla: 'ds',
+  metric: 'sum__num',
+  viz_type: 'my_viz',
+};
+
+const timeCompareChartPropsConfig = {
+  formData: timeCompareFormData,
+  width: 800,
+  height: 600,
+  theme: supersetTheme,
+};
+
+test('should apply dashed line style to time comparison series with single metric', () => {
+  const queriesDataWithTimeCompare = [
+    {
+      data: [
+        { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+    },
+    queriesData: queriesDataWithTimeCompare,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const mainSeries = series.find(s => s.name === 'sum__num');
+  const comparisonSeries = series.find(s => s.name === '1 week ago');
+
+  expect(mainSeries).toBeDefined();
+  expect(comparisonSeries).toBeDefined();
+  // Main series should not have a dash pattern array
+  expect(Array.isArray(mainSeries.lineStyle?.type)).toBe(false);
+  // Comparison series should have a visible dash pattern array [dash, gap]
+  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(true);
+  expect(comparisonSeries.lineStyle?.type[0]).toBeGreaterThanOrEqual(4);
+  expect(comparisonSeries.lineStyle?.type[1]).toBeGreaterThanOrEqual(3);
+});
+
+test('should apply dashed line style to time comparison series with metric__offset pattern', () => {
+  const queriesDataWithTimeCompare = [
+    {
+      data: [
+        {
+          sum__num: 100,
+          'sum__num__1 week ago': 80,
+          __timestamp: 599616000000,
+        },
+        {
+          sum__num: 150,
+          'sum__num__1 week ago': 120,
+          __timestamp: 599916000000,
+        },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+    },
+    queriesData: queriesDataWithTimeCompare,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const mainSeries = series.find(s => s.name === 'sum__num');
+  const comparisonSeries = series.find(s => s.name === 'sum__num__1 week ago');
+
+  expect(mainSeries).toBeDefined();
+  expect(comparisonSeries).toBeDefined();
+  // Main series should not have a dash pattern array
+  expect(Array.isArray(mainSeries.lineStyle?.type)).toBe(false);
+  // Comparison series should have a visible dash pattern array [dash, gap]
+  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(true);
+  expect(comparisonSeries.lineStyle?.type[0]).toBeGreaterThanOrEqual(4);
+  expect(comparisonSeries.lineStyle?.type[1]).toBeGreaterThanOrEqual(3);
+});
+
+test('should apply connectNulls to time comparison series', () => {
+  const queriesDataWithNulls = [
+    {
+      data: [
+        { sum__num: 100, '1 week ago': null, __timestamp: 599616000000 },
+        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+        { sum__num: 200, '1 week ago': null, __timestamp: 600216000000 },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Values,
+    },
+    queriesData: queriesDataWithNulls,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const comparisonSeries = series.find(s => s.name === '1 week ago');
+
+  expect(comparisonSeries).toBeDefined();
+  expect(comparisonSeries.connectNulls).toBe(true);
+});
+
+test('should not apply dashed line style for non-Values comparison types', () => {
+  const queriesDataWithTimeCompare = [
+    {
+      data: [
+        { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    ...timeCompareChartPropsConfig,
+    formData: {
+      ...timeCompareFormData,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Difference,
+    },
+    queriesData: queriesDataWithTimeCompare,
+  });
+
+  const transformed = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const series = transformed.echartOptions.series as any[];
+
+  const comparisonSeries = series.find(s => s.name === '1 week ago');
+
+  expect(comparisonSeries).toBeDefined();
+  // Non-Values comparison types don't get dashed styling (isDerivedSeries returns false)
+  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(false);
+  expect(comparisonSeries.connectNulls).toBeFalsy();
 });
 
 test('EchartsTimeseries AUTO mode should detect single currency and format with $ for USD', () => {
@@ -854,4 +1021,165 @@ test('EchartsTimeseries should preserve static currency format with £ for GBP',
   // Static mode should always show £
   const formatter = getYAxisFormatter(transformed);
   expect(formatter(1000, 0)).toContain('£');
+});
+
+const baseFormDataHorizontalBar: SqlaFormData = {
+  colorScheme: 'bnbColors',
+  datasource: '3__table',
+  granularity_sqla: '__timestamp',
+  metric: 'sum__num',
+  groupby: [],
+  viz_type: 'echarts_timeseries',
+  seriesType: EchartsTimeseriesSeriesType.Bar,
+  orientation: OrientationType.Horizontal,
+  truncateYAxis: true,
+  yAxisBounds: [null, null],
+};
+
+test('should set yAxis max to actual data max for horizontal bar charts', () => {
+  const queriesData = [
+    {
+      data: createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    formData: baseFormDataHorizontalBar,
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+  });
+
+  const transformedProps = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
+
+  // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBe(20000); // Should be the actual max value, not rounded
+});
+
+test('should set yAxis min and max for diverging horizontal bar charts', () => {
+  const queriesData = [
+    {
+      data: createTestData(
+        [{ 'Series A': -21000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    formData: baseFormDataHorizontalBar,
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+  });
+
+  const transformedProps = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
+
+  // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBe(20000); // Should be the actual max value
+  expect(xAxisRaw.min).toBe(-21000); // Should be the actual min value for diverging bars
+});
+
+test('should not override explicit yAxisBounds for horizontal bar charts', () => {
+  const queriesData = [
+    {
+      data: createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      yAxisBounds: [0, 25000], // Explicit bounds
+    },
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+  });
+
+  const transformedProps = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
+
+  // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBe(25000); // Should respect explicit bound
+  expect(xAxisRaw.min).toBe(0); // Should respect explicit bound
+});
+
+test('should not apply axis bounds calculation when truncateYAxis is false for horizontal bar charts', () => {
+  const queriesData = [
+    {
+      data: createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      truncateYAxis: false,
+    },
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+  });
+
+  const transformedProps = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
+
+  // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
+  const xAxis = transformedProps.echartOptions.xAxis as any;
+  // Should not have explicit max set when truncateYAxis is false
+  expect(xAxis.max).toBeUndefined();
+});
+
+test('should not apply axis bounds calculation when seriesType is not Bar for horizontal charts', () => {
+  const queriesData = [
+    {
+      data: createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      seriesType: EchartsTimeseriesSeriesType.Line,
+    },
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+  });
+
+  const transformedProps = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
+
+  // In horizontal orientation, axes are swapped, so yAxis becomes xAxis
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  // Should not have explicit max set when seriesType is not Bar
+  expect(xAxisRaw.max).toBeUndefined();
 });

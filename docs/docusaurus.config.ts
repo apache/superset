@@ -134,7 +134,7 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'extensions/architectural-principles',
+        docId: 'extensions/overview',
         label: 'Extensions',
       },
       {
@@ -222,7 +222,7 @@ const config: Config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/druid.html',
           },
           {
@@ -274,7 +274,7 @@ const config: Config = {
             from: '/docs/contributing/contribution-page',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/docs/databases/yugabyte/',
           },
           {
@@ -412,6 +412,11 @@ const config: Config = {
             },
             {
               type: 'doc',
+              docId: 'databases/index',
+              label: 'Databases',
+            },
+            {
+              type: 'doc',
               docId: 'faq',
               label: 'FAQ',
             },
@@ -468,8 +473,10 @@ const config: Config = {
     footer: {
       links: [],
       copyright: `
-          <div class="footer__applitools">
-            We use &nbsp;<a href="https://applitools.com/" target="_blank" rel="nofollow"><img src="/img/applitools.png" title="Applitools" /></a>
+          <div class="footer__ci-services">
+            <span>CI powered by</span>
+            <a href="https://applitools.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/applitools.png" alt="Applitools" title="Applitools - Visual Testing" /></a>
+            <a href="https://www.netlify.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/netlify.png" alt="Netlify" title="Netlify - Deploy Previews" /></a>
           </div>
           <p>Copyright © ${new Date().getFullYear()},
           The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,

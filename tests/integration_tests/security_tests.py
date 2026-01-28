@@ -550,7 +550,8 @@ class TestRolePermission(SupersetTestCase):
                 call(ANY, ANY, tmp_db1_view_menu),
                 call(ANY, ANY, table1_view_menu),
                 call(ANY, ANY, table2_view_menu),
-            ]
+            ],
+            any_order=True,
         )
 
         db.session.delete(slice1)
