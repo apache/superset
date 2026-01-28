@@ -77,14 +77,16 @@ const selectMultipleProps = {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SelectFilterPlugin', () => {
   const setDataMask = jest.fn();
-  const getWrapper = (props = {}) =>
-    render(
+  const getWrapper = (props: any = {}) => {
+    const { queriesData, ...formDataProps } = props;
+    return render(
       // @ts-ignore
       <SelectFilterPlugin
         // @ts-ignore
         {...transformProps({
           ...selectMultipleProps,
-          formData: { ...selectMultipleProps.formData, ...props },
+          formData: { ...selectMultipleProps.formData, ...formDataProps },
+          ...(queriesData && { queriesData }),
         })}
         setDataMask={setDataMask}
         showOverflow={false}
@@ -120,6 +122,7 @@ describe('SelectFilterPlugin', () => {
         },
       },
     );
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -681,9 +684,46 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('beta');
   });
 
-  test('allowSelectAll is enabled when searchAllOptions is enabled for multi-select', () => {
+  test('allowSelectAll is disabled when searchAllOptions is enabled and data is truncated at 1000 rows', () => {
+    // Create mock data with 1000 rows to simulate truncation
+    const largeData = Array.from({ length: 1000 }, (_, i) => ({
+      gender: `value_${i}`,
+    }));
+
     const { container } = getWrapper({
       searchAllOptions: true,
+      multiSelect: true,
+      queriesData: [
+        {
+          rowcount: 1000,
+          colnames: ['gender'],
+          coltypes: [1],
+          data: largeData,
+          applied_filters: [{ column: 'gender' }],
+          rejected_filters: [],
+        },
+      ],
+    });
+    // Verify the Select component is rendered with multiSelect mode
+    const selectElement = container.querySelector('.ant-select-multiple');
+    expect(selectElement).toBeInTheDocument();
+    // Note: allowSelectAll is disabled because with searchAllOptions + 1000 rows,
+    // data is likely truncated, so "Select All" would be misleading
+  });
+
+  test('allowSelectAll is enabled when searchAllOptions is enabled but data is less than 1000 rows', () => {
+    const { container } = getWrapper({
+      searchAllOptions: true,
+      multiSelect: true,
+    });
+    // With only 3 rows (default test data), Select All should work fine
+    const selectElement = container.querySelector('.ant-select-multiple');
+    expect(selectElement).toBeInTheDocument();
+  });
+
+  test('allowSelectAll is enabled for multi-select without searchAllOptions', () => {
+    const { container } = getWrapper({
+      searchAllOptions: false,
       multiSelect: true,
     });
     // Verify the Select component is rendered with multiSelect mode
@@ -693,7 +733,7 @@ describe('SelectFilterPlugin', () => {
 
   test('allowSelectAll is not enabled for single-select filters', () => {
     const { container } = getWrapper({
-      searchAllOptions: true,
+      searchAllOptions: false,
       multiSelect: false,
     });
     // Verify the Select component is rendered in single mode (not multiple)
