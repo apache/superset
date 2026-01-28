@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import type { JSX } from 'react';
 import Head from '@docusaurus/Head';
 import { useLocation } from '@docusaurus/router';
 

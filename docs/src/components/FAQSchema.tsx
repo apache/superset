@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import type { JSX } from 'react';
 import Head from '@docusaurus/Head';
 
 interface FAQItem {

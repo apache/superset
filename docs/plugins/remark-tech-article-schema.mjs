@@ -48,16 +48,8 @@ export default function remarkTechArticleSchema() {
 
     const title = frontmatter.title;
     const description = frontmatter.description;
-    const keywords = frontmatter.keywords || [];
+    const keywords = Array.isArray(frontmatter.keywords) ? frontmatter.keywords : [];
     const proficiencyLevel = frontmatter.seo_proficiency || 'Beginner';
-
-    // Build the component props
-    const keywordsStr = keywords.length > 0
-      ? `keywords={${JSON.stringify(keywords)}}`
-      : '';
-    const proficiencyStr = proficiencyLevel !== 'Beginner'
-      ? `proficiencyLevel="${proficiencyLevel}"`
-      : '';
 
     // Create the import statement
     const importNode = {
