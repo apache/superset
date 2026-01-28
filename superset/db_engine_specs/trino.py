@@ -25,6 +25,7 @@ from typing import Any, TYPE_CHECKING
 
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
+from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -32,7 +33,11 @@ from sqlalchemy.exc import NoSuchTableError
 from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
-from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    convert_inspector_columns,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
     SupersetDBAPIDatabaseError,
@@ -75,6 +80,83 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
+
+    metadata = {
+        "description": (
+            "Trino is a distributed SQL query engine for big data analytics."
+        ),
+        "logo": "trino.png",
+        "homepage_url": "https://trino.io/",
+        "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["trino"],
+        "install_instructions": 'pip install "apache-superset[trino]"',
+        "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
+        "default_port": 8080,
+        "parameters": {
+            "username": "Trino username",
+            "password": "Trino password (if authentication is enabled)",
+            "hostname": "Trino coordinator hostname",
+            "port": "Trino coordinator port (default 8080)",
+            "catalog": "Catalog name",
+        },
+        "drivers": [
+            {
+                "name": "trino",
+                "pypi_package": "trino",
+                "connection_string": (
+                    "trino://{username}:{password}@{hostname}:{port}/{catalog}"
+                ),
+                "is_recommended": True,
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "Starburst Galaxy",
+                "description": (
+                    "Starburst Galaxy is a fully-managed cloud analytics platform "
+                    "built on Trino. It provides data lake analytics with "
+                    "enterprise security and governance."
+                ),
+                "logo": "starburst.png",
+                "homepage_url": "https://www.starburst.io/platform/starburst-galaxy/",
+                "categories": [
+                    DatabaseCategory.QUERY_ENGINES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["trino"],
+                "connection_string": (
+                    "trino://{username}:{password}@{host}:{port}/{catalog}"
+                ),
+                "parameters": {
+                    "username": "Starburst Galaxy username (email/role)",
+                    "password": "Starburst Galaxy password or token",
+                    "host": "Your Galaxy cluster hostname",
+                    "port": "Port (default 443)",
+                    "catalog": "Catalog name",
+                },
+                "docs_url": "https://docs.starburst.io/starburst-galaxy/",
+            },
+            {
+                "name": "Starburst Enterprise",
+                "description": (
+                    "Starburst Enterprise is a self-managed Trino distribution "
+                    "with enterprise features, security, and support."
+                ),
+                "logo": "starburst.png",
+                "homepage_url": "https://www.starburst.io/platform/starburst-enterprise/",
+                "categories": [
+                    DatabaseCategory.QUERY_ENGINES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["trino"],
+                "connection_string": (
+                    "trino://{username}:{password}@{hostname}:{port}/{catalog}"
+                ),
+                "docs_url": "https://docs.starburst.io/",
+            },
+        ],
+    }
 
     # OAuth 2.0
     supports_oauth2 = True
@@ -225,14 +307,25 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 )
                 break
 
+            needs_commit = False
             info = getattr(cursor, "stats", {}) or {}
             state = info.get("state", "UNKNOWN")
             completed_splits = float(info.get("completedSplits", 0))
             total_splits = float(info.get("totalSplits", 1) or 1)
             progress = math.floor((completed_splits / (total_splits or 1)) * 100)
+            progress_text = {
+                "PLANNING": __("Scheduled"),
+                "QUEUED": __("Queued"),
+            }.get(state, state)
 
             if progress != query.progress:
                 query.progress = progress
+                needs_commit = True
+            if progress_text != query.extra.get("progress_text"):
+                query.set_extra_json_key(key="progress_text", value=progress_text)
+                needs_commit = True
+
+            if needs_commit:
                 db.session.commit()  # pylint: disable=consider-using-transaction
 
             time.sleep(poll_interval)

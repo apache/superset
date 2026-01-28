@@ -49,7 +49,7 @@ repos:
     hooks:
       - id: check-docstring-first
       - id: check-added-large-files
-        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$
+        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$|^superset/examples/.*/data\.parquet$
       - id: check-yaml
         exclude: ^helm/superset/templates/
       - id: debug-statements
@@ -142,3 +142,18 @@ repos:
             else
               echo "No Python files to lint."
             fi
+      - id: db-engine-spec-metadata
+        name: database engine spec metadata validation
+        entry: python superset/db_engine_specs/lint_metadata.py --strict
+        language: system
+        files: ^superset/db_engine_specs/.*\.py$
+        exclude: ^superset/db_engine_specs/(base|lib|lint_metadata|__init__)\.py$
+        pass_filenames: false
+  - repo: local
+    hooks:
+      - id: feature-flags-sync
+        name: feature flags documentation sync
+        entry: bash -c 'python scripts/extract_feature_flags.py > docs/static/feature-flags.json.tmp && if ! diff -q docs/static/feature-flags.json docs/static/feature-flags.json.tmp > /dev/null 2>&1; then mv docs/static/feature-flags.json.tmp docs/static/feature-flags.json && echo "Updated docs/static/feature-flags.json" && exit 1; else rm docs/static/feature-flags.json.tmp; fi'
+        language: system
+        files: ^superset/config\.py$
+        pass_filenames: false

@@ -326,10 +326,14 @@ test('open modal on edit filter button click', async () => {
   const editButton = screen.getByRole('img', { name: /edit/i });
 
   expect(
-    screen.queryByRole('dialog', { name: /add and edit filters/i }),
+    screen.queryByRole('dialog', {
+      name: /add or edit display controls/i,
+    }),
   ).not.toBeInTheDocument();
   userEvent.click(editButton);
   expect(
-    await screen.findByRole('dialog', { name: /add and edit filters/i }),
+    await screen.findByRole('dialog', {
+      name: /add or edit display controls/i,
+    }),
   ).toBeInTheDocument();
 });

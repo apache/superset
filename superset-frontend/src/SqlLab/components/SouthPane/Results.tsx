@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { EmptyState } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core';
@@ -26,6 +26,7 @@ import { styled, Alert } from '@apache-superset/core/ui';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import ResultSet from '../ResultSet';
 import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../../constants';
+import QueryStatusBar from '../QueryStatusBar';
 
 type Props = {
   latestQueryId?: string;
@@ -53,9 +54,13 @@ const Results: FC<Props> = ({
     ({ sqlLab: { databases } }: SqlLabRootState) => databases,
     shallowEqual,
   );
-  const latestQuery = useSelector(
-    ({ sqlLab: { queries } }: SqlLabRootState) => queries[latestQueryId || ''],
+  const queries = useSelector(
+    ({ sqlLab: { queries } }: SqlLabRootState) => queries,
     shallowEqual,
+  );
+  const latestQuery = useMemo(
+    () => queries[latestQueryId ?? ''],
+    [queries, latestQueryId],
   );
 
   if (
@@ -72,30 +77,32 @@ const Results: FC<Props> = ({
     );
   }
 
-  if (
+  const hasNoStoredResults =
     isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
     latestQuery.state === 'success' &&
     !latestQuery.resultsKey &&
-    !latestQuery.results
-  ) {
-    return (
-      <Alert
-        type="warning"
-        message={t('No stored results found, you need to re-run your query')}
-      />
-    );
-  }
+    !latestQuery.results;
 
   return (
-    <ResultSet
-      search
-      queryId={latestQuery.id}
-      database={databases[latestQuery.dbId]}
-      displayLimit={displayLimit}
-      defaultQueryLimit={defaultQueryLimit}
-      showSql
-      showSqlInline
-    />
+    <>
+      <QueryStatusBar key={latestQueryId} query={latestQuery} />
+      {hasNoStoredResults ? (
+        <Alert
+          type="info"
+          message={t('No stored results found, you need to re-run your query')}
+        />
+      ) : (
+        <ResultSet
+          search
+          queryId={latestQuery.id}
+          database={databases[latestQuery.dbId]}
+          displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
+          showSql
+          showSqlInline
+        />
+      )}
+    </>
   );
 };
 
