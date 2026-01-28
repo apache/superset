@@ -74,7 +74,14 @@ def test_timing_present_in_payload(mock_cache_cls, processor_with_cache, mock_qu
 
     with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
         with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
+            with patch(
+                "superset.common.query_context_processor.current_app"
+            ) as mock_app:
+                mock_app.config = {
+                    "STATS_LOGGER": MagicMock(),
+                    "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
+                }
+                result = processor_with_cache.get_df_payload(mock_query_obj)
 
     assert "timing" in result
     timing = result["timing"]
@@ -111,11 +118,18 @@ def test_timing_values_are_non_negative(
 
     with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
         with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
+            with patch(
+                "superset.common.query_context_processor.current_app"
+            ) as mock_app:
+                mock_app.config = {
+                    "STATS_LOGGER": MagicMock(),
+                    "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
+                }
+                result = processor_with_cache.get_df_payload(mock_query_obj)
 
     timing = result["timing"]
     for key, value in timing.items():
-        if isinstance(value, (int, float)):
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
             assert value >= 0, f"timing[{key!r}] should be >= 0, got {value}"
 
 
@@ -145,7 +159,14 @@ def test_timing_no_db_execution_on_cache_hit(
 
     with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
         with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
+            with patch(
+                "superset.common.query_context_processor.current_app"
+            ) as mock_app:
+                mock_app.config = {
+                    "STATS_LOGGER": MagicMock(),
+                    "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
+                }
+                result = processor_with_cache.get_df_payload(mock_query_obj)
 
     assert "db_execution_ms" not in result["timing"]
     assert result["timing"]["is_cached"] is True
@@ -181,7 +202,14 @@ def test_timing_has_db_execution_on_cache_miss(
 
     with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
         with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
-            result = processor_with_cache.get_df_payload(mock_query_obj)
+            with patch(
+                "superset.common.query_context_processor.current_app"
+            ) as mock_app:
+                mock_app.config = {
+                    "STATS_LOGGER": MagicMock(),
+                    "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
+                }
+                result = processor_with_cache.get_df_payload(mock_query_obj)
 
     assert "db_execution_ms" in result["timing"]
     assert result["timing"]["db_execution_ms"] >= 0

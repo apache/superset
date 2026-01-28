@@ -199,10 +199,11 @@ class QueryContextProcessor:
         timing["is_cached"] = cache.is_cached
 
         # Emit per-phase metrics via STATS_LOGGER
-        stats_logger = current_app.config["STATS_LOGGER"]
-        for phase, value in timing.items():
-            if isinstance(value, (int, float)):
-                stats_logger.timing(f"chart_data.{phase}", value / 1000)
+        stats_logger = current_app.config.get("STATS_LOGGER")
+        if stats_logger and hasattr(stats_logger, "timing"):
+            for phase, value in timing.items():
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    stats_logger.timing(f"chart_data.{phase}", value / 1000)
 
         # Slow query logging
         threshold = current_app.config.get("CHART_DATA_SLOW_QUERY_THRESHOLD_MS")
