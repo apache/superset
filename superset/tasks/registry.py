@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Task registry for the Global Async Task Framework (GATF)"""
+"""Task registry for the Global Task Framework (GTF)"""
 
 import logging
 from typing import Any, Callable

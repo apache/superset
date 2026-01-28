@@ -48,15 +48,24 @@ def process_data(dataset_id: int) -> None:
 ### Execute a Task
 
 ```python
-# Async execution - schedules on Celery
+# Async execution - schedules on Celery worker
 task = process_data.schedule(dataset_id=123)
 print(task.status)  # "pending"
 
-# Sync execution - runs inline
+# Sync execution - runs inline in current process
 task = process_data(dataset_id=123)
-# ... blocks until task is complete
+# ... blocks until complete
 print(task.status)  # "success"
 ```
+
+### Async vs Sync Execution
+
+| Method | When to Use |
+|--------|-------------|
+| `.schedule()` | Long-running operations, background processing, when you need to return immediately |
+| Direct call | Short operations, when deduplication matters, when you need the result before responding |
+
+Both execution modes provide the same task features: deduplication, progress tracking, cancellation, and visibility in the Task List UI. The difference is whether execution happens in a Celery worker (async) or inline (sync).
 
 ## Task Lifecycle
 

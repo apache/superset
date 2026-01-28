@@ -145,7 +145,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
             task.update_properties({"is_abortable": True})
             task.update_properties(progress_update((50, 100)))
         """
-        current: TaskProperties = dict(self.properties)  # type: ignore[assignment]
+        current: TaskProperties = dict(self.properties)
         current.update(updates)  # Merge updates
         self._properties = serialize_properties(current)
         self._properties_cache = current  # Update cache
