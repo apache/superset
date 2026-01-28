@@ -181,6 +181,27 @@ export function optimizeBarLabelPlacement(
   return (series.data as TimeseriesDataRecord[]).map(transformValue);
 }
 
+export function applyColorByXAxis(
+  series: SeriesOption,
+  colorScale: CategoricalColorScale,
+  sliceId: number | undefined,
+  opacity: number,
+): TimeseriesDataRecord[] {
+  return (series.data as [string | number, number][]).map(value => {
+    // Use x-axis value as color key so same values get same colors across charts
+    const colorKey = String(value[0]);
+
+    return {
+      value,
+      itemStyle: {
+        color: colorScale(colorKey, sliceId),
+        opacity,
+        borderWidth: 0,
+      },
+    };
+  });
+}
+
 export function transformSeries(
   series: SeriesOption,
   colorScale: CategoricalColorScale,
@@ -214,6 +235,7 @@ export function transformSeries(
     timeShiftColor?: boolean;
     theme?: SupersetTheme;
     hasDimensions?: boolean;
+    showColorByXAxis?: boolean;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -244,6 +266,7 @@ export function transformSeries(
     timeCompare = [],
     timeShiftColor,
     theme,
+    showColorByXAxis = false,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -349,17 +372,19 @@ export function transformSeries(
 
   return {
     ...series,
-    ...(Array.isArray(data) && seriesType === 'bar'
-      ? {
-          data: optimizeBarLabelPlacement(series, isHorizontal),
-        }
+    ...(Array.isArray(data)
+      ? showColorByXAxis
+        ? { data: applyColorByXAxis(series, colorScale, sliceId, opacity) }
+        : seriesType === 'bar' && !stack
+          ? { data: optimizeBarLabelPlacement(series, isHorizontal) }
+          : null
       : null),
     connectNulls,
     queryIndex,
     yAxisIndex,
     name: forecastSeries.name,
-    itemStyle,
-    // @ts-expect-error
+    ...(showColorByXAxis ? {} : { itemStyle }),
+    // @ts-ignore
     type: plotType,
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
