@@ -152,12 +152,12 @@ InteractiveDropdownContainer.parameters = {
   docs: {
     staticProps: {
       items: [
-        { id: 'item-0', element: { component: 'div', props: { children: 'Filter 1', style: { minWidth: 120, padding: '4px 12px', background: '#e6f4ff', border: '1px solid #91caff', borderRadius: 4 } } } },
-        { id: 'item-1', element: { component: 'div', props: { children: 'Filter 2', style: { minWidth: 120, padding: '4px 12px', background: '#e6f4ff', border: '1px solid #91caff', borderRadius: 4 } } } },
-        { id: 'item-2', element: { component: 'div', props: { children: 'Filter 3', style: { minWidth: 120, padding: '4px 12px', background: '#e6f4ff', border: '1px solid #91caff', borderRadius: 4 } } } },
-        { id: 'item-3', element: { component: 'div', props: { children: 'Filter 4', style: { minWidth: 120, padding: '4px 12px', background: '#e6f4ff', border: '1px solid #91caff', borderRadius: 4 } } } },
-        { id: 'item-4', element: { component: 'div', props: { children: 'Filter 5', style: { minWidth: 120, padding: '4px 12px', background: '#e6f4ff', border: '1px solid #91caff', borderRadius: 4 } } } },
-        { id: 'item-5', element: { component: 'div', props: { children: 'Filter 6', style: { minWidth: 120, padding: '4px 12px', background: '#e6f4ff', border: '1px solid #91caff', borderRadius: 4 } } } },
+        { id: 'item-0', element: { component: 'Tag', props: { children: 'Region', color: 'blue' } } },
+        { id: 'item-1', element: { component: 'Tag', props: { children: 'Category', color: 'blue' } } },
+        { id: 'item-2', element: { component: 'Tag', props: { children: 'Date Range', color: 'blue' } } },
+        { id: 'item-3', element: { component: 'Tag', props: { children: 'Status', color: 'blue' } } },
+        { id: 'item-4', element: { component: 'Tag', props: { children: 'Owner', color: 'blue' } } },
+        { id: 'item-5', element: { component: 'Tag', props: { children: 'Priority', color: 'blue' } } },
       ],
     },
     liveExample: `function Demo() {
