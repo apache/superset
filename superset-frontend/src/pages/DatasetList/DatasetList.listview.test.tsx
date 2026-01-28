@@ -714,11 +714,11 @@ test('bulk export triggers export with selected IDs', async () => {
     expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
-  const checkboxes = screen.getAllByRole('checkbox');
-  expect(checkboxes.length).toBeGreaterThan(1);
-
-  // Click first data row checkbox (index 0 might be select-all)
-  await userEvent.click(checkboxes[1]);
+  // Select row by dataset name (row-scoped query is more robust than array index)
+  const datasetRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  expect(datasetRow).toBeInTheDocument();
+  const rowCheckbox = within(datasetRow!).getByRole('checkbox');
+  await userEvent.click(rowCheckbox);
 
   // Find and click bulk export button (fail-fast if not found)
   const exportButton = await screen.findByRole('button', { name: /export/i });
@@ -756,10 +756,11 @@ test('bulk delete opens confirmation modal', async () => {
     expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
-  const checkboxes = screen.getAllByRole('checkbox');
-  expect(checkboxes.length).toBeGreaterThan(1);
-
-  await userEvent.click(checkboxes[1]);
+  // Select row by dataset name (row-scoped query is more robust than array index)
+  const datasetRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  expect(datasetRow).toBeInTheDocument();
+  const rowCheckbox = within(datasetRow!).getByRole('checkbox');
+  await userEvent.click(rowCheckbox);
 
   // Wait for selection to register before clicking Delete
   await waitFor(() => {
@@ -1795,9 +1796,11 @@ test('bulk export error shows toast and clears loading state', async () => {
     expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
-  // Select first row
-  const checkboxes = screen.getAllByRole('checkbox');
-  await userEvent.click(checkboxes[1]);
+  // Select row by dataset name (row-scoped query is more robust than array index)
+  const datasetRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  expect(datasetRow).toBeInTheDocument();
+  const rowCheckbox = within(datasetRow!).getByRole('checkbox');
+  await userEvent.click(rowCheckbox);
 
   // Click bulk export
   const exportButton = await screen.findByRole('button', { name: /export/i });
@@ -1809,6 +1812,9 @@ test('bulk export error shows toast and clears loading state', async () => {
       expect.stringMatching(/issue exporting.*selected datasets/i),
     );
   });
+
+  // Verify loading state was cleared (preparingExport = false)
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
 
   // Verify export was called
   expect(mockHandleResourceExport).toHaveBeenCalled();
