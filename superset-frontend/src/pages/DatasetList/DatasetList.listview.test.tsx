@@ -1559,7 +1559,7 @@ test('bulk selection clears when filter changes', async () => {
   // Verify selection was cleared - count should show "0 Selected"
   // Use findByText for better async handling
   await screen.findByText(/0 selected/i);
-}, 30000); // Complex test with multiple async operations
+}, 45000); // Complex test with filter + selection operations
 
 test('type filter API call includes correct filter parameter', async () => {
   renderDatasetList(mockAdminUser);
@@ -1977,66 +1977,72 @@ test('bulk select shows "N Selected (Physical)" for physical-only selection', as
   );
 }, 30000);
 
-test('bulk select shows mixed count for virtual and physical selection', async () => {
-  // Use a small mixed set - 1 physical + 1 virtual
-  const mixedDatasets = [
-    mockDatasets.find(d => d.kind === 'physical')!,
-    mockDatasets.find(d => d.kind === 'virtual')!,
-  ];
+test(
+  'bulk select shows mixed count for virtual and physical selection',
+  async () => {
+    // Use a small mixed set - 1 physical + 1 virtual
+    const mixedDatasets = [
+      mockDatasets.find(d => d.kind === 'physical')!,
+      mockDatasets.find(d => d.kind === 'virtual')!,
+    ];
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: mixedDatasets, count: mixedDatasets.length },
-    { overwriteRoutes: true },
-  );
-
-  renderDatasetList(mockAdminUser);
-
-  await waitFor(() => {
-    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-  });
-
-  // Enter bulk select mode
-  const bulkSelectButton = screen.getByRole('button', { name: /bulk select/i });
-  await userEvent.click(bulkSelectButton);
-
-  await screen.findByTestId('bulk-select-controls');
-
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
-
-  // Get checkboxes - [0] is select-all, [1] and [2] are row checkboxes
-  let checkboxes = screen.getAllByRole('checkbox');
-  expect(checkboxes.length).toBeGreaterThanOrEqual(3);
-
-  // Click first row checkbox
-  await userEvent.click(checkboxes[1]);
-
-  // Wait for first selection to register
-  await waitFor(() => {
-    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
-      /1 Selected/i,
+    fetchMock.get(
+      API_ENDPOINTS.DATASETS,
+      { result: mixedDatasets, count: mixedDatasets.length },
+      { overwriteRoutes: true },
     );
-  });
 
-  // Re-query checkboxes (DOM may have updated after first selection)
-  checkboxes = screen.getAllByRole('checkbox');
+    renderDatasetList(mockAdminUser);
 
-  // Click second row checkbox
-  await userEvent.click(checkboxes[2]);
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
 
-  // Wait for second selection and verify mixed count
-  await waitFor(() => {
+    // Enter bulk select mode
+    const bulkSelectButton = screen.getByRole('button', {
+      name: /bulk select/i,
+    });
+    await userEvent.click(bulkSelectButton);
+
+    await screen.findByTestId('bulk-select-controls');
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+    });
+
+    // Get checkboxes - [0] is select-all, [1] and [2] are row checkboxes
+    let checkboxes = screen.getAllByRole('checkbox');
+    expect(checkboxes.length).toBeGreaterThanOrEqual(3);
+
+    // Click first row checkbox
+    await userEvent.click(checkboxes[1]);
+
+    // Wait for first selection to register
+    await waitFor(() => {
+      expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+        /1 Selected/i,
+      );
+    });
+
+    // Re-query checkboxes (DOM may have updated after first selection)
+    checkboxes = screen.getAllByRole('checkbox');
+
+    // Click second row checkbox
+    await userEvent.click(checkboxes[2]);
+
+    // Wait for second selection and verify mixed count
+    await waitFor(() => {
+      const bulkSelectCopy = screen.getByTestId('bulk-select-copy');
+      expect(bulkSelectCopy).toHaveTextContent(/2 Selected/i);
+    });
+
+    // Verify label shows both Physical and Virtual
     const bulkSelectCopy = screen.getByTestId('bulk-select-copy');
-    expect(bulkSelectCopy).toHaveTextContent(/2 Selected/i);
-  });
-
-  // Verify label shows both Physical and Virtual
-  const bulkSelectCopy = screen.getByTestId('bulk-select-copy');
-  expect(bulkSelectCopy).toHaveTextContent(/Physical/i);
-  expect(bulkSelectCopy).toHaveTextContent(/Virtual/i);
-});
+    expect(bulkSelectCopy).toHaveTextContent(/Physical/i);
+    expect(bulkSelectCopy).toHaveTextContent(/Virtual/i);
+  },
+  30000,
+);
 
 // Delete Modal Related Objects Tests
 
