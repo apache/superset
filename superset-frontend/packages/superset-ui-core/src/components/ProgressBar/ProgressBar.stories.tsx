@@ -32,7 +32,7 @@ export default {
 };
 
 export const InteractiveProgressBar = (args: ProgressBarProps) => (
-  <ProgressBar {...args} type="line" />
+  <ProgressBar {...args} />
 );
 
 export const InteractiveProgressCircle = (args: ProgressBarProps) => (
@@ -42,6 +42,120 @@ export const InteractiveProgressCircle = (args: ProgressBarProps) => (
 export const InteractiveProgressDashboard = (args: ProgressBarProps) => (
   <ProgressBar {...args} type="dashboard" />
 );
+
+InteractiveProgressBar.args = {
+  percent: 75,
+  status: 'normal',
+  type: 'line',
+  striped: false,
+  showInfo: true,
+  strokeLinecap: 'round',
+};
+
+InteractiveProgressBar.argTypes = {
+  percent: {
+    control: { type: 'number', min: 0, max: 100 },
+    description: 'Completion percentage (0-100).',
+  },
+  status: {
+    control: 'select',
+    options: ['normal', 'success', 'exception', 'active'],
+    description: 'Current status of the progress bar.',
+  },
+  type: {
+    control: 'select',
+    options: ['line', 'circle', 'dashboard'],
+    description: 'Display type: line, circle, or dashboard gauge.',
+  },
+  striped: {
+    control: 'boolean',
+    description: 'Whether to show striped animation on the bar.',
+  },
+  showInfo: {
+    control: 'boolean',
+    description: 'Whether to show the percentage text.',
+  },
+  strokeColor: {
+    control: 'color',
+    description: 'Color of the progress bar fill.',
+  },
+  trailColor: {
+    control: 'color',
+    description: 'Color of the unfilled portion.',
+  },
+  strokeLinecap: {
+    control: 'select',
+    options: ['round', 'butt', 'square'],
+    description: 'Shape of the progress bar endpoints.',
+  },
+};
+
+InteractiveProgressBar.parameters = {
+  docs: {
+    liveExample: `function Demo() {
+  return (
+    <ProgressBar
+      percent={75}
+      status="normal"
+      type="line"
+      showInfo
+    />
+  );
+}`,
+    examples: [
+      {
+        title: 'All Progress Types',
+        code: `function AllTypesDemo() {
+  return (
+    <div style={{ display: 'flex', gap: 40, alignItems: 'center' }}>
+      <div style={{ flex: 1 }}>
+        <h4>Line</h4>
+        <ProgressBar percent={75} type="line" />
+      </div>
+      <div>
+        <h4>Circle</h4>
+        <ProgressBar percent={75} type="circle" />
+      </div>
+      <div>
+        <h4>Dashboard</h4>
+        <ProgressBar percent={75} type="dashboard" />
+      </div>
+    </div>
+  );
+}`,
+      },
+      {
+        title: 'Status Variants',
+        code: `function StatusDemo() {
+  const statuses = ['normal', 'success', 'exception', 'active'];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {statuses.map(status => (
+        <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ width: 80 }}>{status}</span>
+          <ProgressBar percent={75} status={status} type="line" style={{ flex: 1 }} />
+        </div>
+      ))}
+    </div>
+  );
+}`,
+      },
+      {
+        title: 'Custom Colors',
+        code: `function CustomColors() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <ProgressBar percent={50} strokeColor="#1890ff" />
+      <ProgressBar percent={70} strokeColor="#52c41a" />
+      <ProgressBar percent={30} strokeColor="#faad14" trailColor="#f0f0f0" />
+      <ProgressBar percent={90} strokeColor="#ff4d4f" />
+    </div>
+  );
+}`,
+      },
+    ],
+  },
+};
 
 const commonArgs = {
   striped: true,
@@ -86,68 +200,8 @@ const commonArgTypes = {
   },
 };
 
-InteractiveProgressBar.args = {
-  ...commonArgs,
-  status: 'normal',
-};
-
-InteractiveProgressBar.argTypes = {
-  ...commonArgTypes,
-  status: {
-    control: 'select',
-    options: ['normal', 'success', 'exception', 'active'],
-    description: 'Current status of the progress bar.',
-  },
-};
-
-InteractiveProgressBar.parameters = {
-  docs: {
-    examples: [
-      {
-        title: 'All Progress Types',
-        code: `function AllTypesDemo() {
-  return (
-    <div style={{ display: 'flex', gap: 40, alignItems: 'center' }}>
-      <div style={{ flex: 1 }}>
-        <h4>Line</h4>
-        <ProgressBar percent={75} type="line" />
-      </div>
-      <div>
-        <h4>Circle</h4>
-        <ProgressBar percent={75} type="circle" />
-      </div>
-      <div>
-        <h4>Dashboard</h4>
-        <ProgressBar percent={75} type="dashboard" />
-      </div>
-    </div>
-  );
-}`,
-      },
-      {
-        title: 'Status Variants',
-        code: `function StatusDemo() {
-  const statuses = ['normal', 'success', 'exception', 'active'];
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {statuses.map(status => (
-        <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ width: 80 }}>{status}</span>
-          <ProgressBar percent={75} status={status} type="line" style={{ flex: 1 }} />
-        </div>
-      ))}
-    </div>
-  );
-}`,
-      },
-    ],
-  },
-};
-
 InteractiveProgressCircle.args = commonArgs;
-
 InteractiveProgressCircle.argTypes = commonArgTypes;
 
 InteractiveProgressDashboard.args = commonArgs;
-
 InteractiveProgressDashboard.argTypes = commonArgTypes;

@@ -33,9 +33,20 @@ Progress bar component for displaying completion status. Supports line, circle, 
 <StoryWithControls
   component="ProgressBar"
   props={{
-  status: "normal"
+  percent: 75,
+  status: "normal",
+  type: "line",
+  striped: false,
+  showInfo: true,
+  strokeLinecap: "round"
 }}
   controls={[
+  {
+    name: "percent",
+    label: "Percent",
+    type: "number",
+    description: "Completion percentage (0-100)."
+  },
   {
     name: "status",
     label: "Status",
@@ -47,6 +58,52 @@ Progress bar component for displaying completion status. Supports line, circle, 
       "active"
     ],
     description: "Current status of the progress bar."
+  },
+  {
+    name: "type",
+    label: "Type",
+    type: "select",
+    options: [
+      "line",
+      "circle",
+      "dashboard"
+    ],
+    description: "Display type: line, circle, or dashboard gauge."
+  },
+  {
+    name: "striped",
+    label: "Striped",
+    type: "boolean",
+    description: "Whether to show striped animation on the bar."
+  },
+  {
+    name: "showInfo",
+    label: "Show Info",
+    type: "boolean",
+    description: "Whether to show the percentage text."
+  },
+  {
+    name: "strokeLinecap",
+    label: "Stroke Linecap",
+    type: "select",
+    options: [
+      "round",
+      "butt",
+      "square"
+    ],
+    description: "Shape of the progress bar endpoints."
+  },
+  {
+    name: "strokeColor",
+    label: "Stroke Color",
+    type: "color",
+    description: "Color of the progress bar fill."
+  },
+  {
+    name: "trailColor",
+    label: "Trail Color",
+    type: "color",
+    description: "Color of the unfilled portion."
   }
 ]}
 />
@@ -59,7 +116,10 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <ProgressBar
+      percent={75}
       status="normal"
+      type="line"
+      showInfo
     />
   );
 }
@@ -106,11 +166,31 @@ function StatusDemo() {
 }
 ```
 
+## Custom Colors
+
+```tsx live
+function CustomColors() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <ProgressBar percent={50} strokeColor="#1890ff" />
+      <ProgressBar percent={70} strokeColor="#52c41a" />
+      <ProgressBar percent={30} strokeColor="#faad14" trailColor="#f0f0f0" />
+      <ProgressBar percent={90} strokeColor="#ff4d4f" />
+    </div>
+  );
+}
+```
+
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `percent` | `number` | `75` | Completion percentage (0-100). |
 | `status` | `string` | `"normal"` | Current status of the progress bar. |
+| `type` | `string` | `"line"` | Display type: line, circle, or dashboard gauge. |
+| `striped` | `boolean` | `false` | Whether to show striped animation on the bar. |
+| `showInfo` | `boolean` | `true` | Whether to show the percentage text. |
+| `strokeLinecap` | `string` | `"round"` | Shape of the progress bar endpoints. |
 
 ## Import
 

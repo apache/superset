@@ -243,7 +243,8 @@ function generateSampleChildren(sampleChildren, sampleChildrenStyle) {
 // Inner component for StoryWithControls (browser-only)
 // renderComponent allows overriding which component to actually render (useful when the named
 // component is a namespace object like Icons, not a React component)
-function StoryWithControlsInner({ component, renderComponent, props, controls, sampleChildren, sampleChildrenStyle }) {
+// triggerProp: for components like Modal that need a trigger, specify the boolean prop that controls visibility
+function StoryWithControlsInner({ component, renderComponent, props, controls, sampleChildren, sampleChildrenStyle, triggerProp, onHideProp }) {
   // Use renderComponent if provided, otherwise use the main component name
   const componentToRender = renderComponent || component;
   const Component = resolveComponent(componentToRender);
@@ -258,11 +259,27 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
   };
 
   // Extract children from props (label, children, text, content)
-  const { children: propsChildren, restProps } = extractChildren(stateProps);
+  // When sampleChildren is explicitly provided, skip extraction so all props
+  // (like 'content') stay as component props rather than becoming children
+  const { children: propsChildren, restProps } = sampleChildren
+    ? { children: null, restProps: stateProps }
+    : extractChildren(stateProps);
   // Filter out undefined values so they don't override component defaults
   const filteredProps = Object.fromEntries(
     Object.entries(restProps).filter(([, v]) => v !== undefined)
   );
+
+  // Resolve any prop values that are component descriptors
+  // e.g., { component: 'Button', props: { children: 'Click' } }
+  Object.keys(filteredProps).forEach(key => {
+    const value = filteredProps[key];
+    if (value && typeof value === 'object' && value.component) {
+      const PropComponent = resolveComponent(value.component);
+      if (PropComponent) {
+        filteredProps[key] = <PropComponent {...value.props} />;
+      }
+    }
+  });
 
   // For List-like components with dataSource but no renderItem, provide a default
   if (filteredProps.dataSource && !filteredProps.renderItem) {
@@ -275,6 +292,15 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
 
   // Use sample children if provided, otherwise use props children
   const children = generateSampleChildren(sampleChildren, sampleChildrenStyle) || propsChildren;
+
+  // For components with a trigger (like Modal with show/onHide), add handlers
+  const triggerProps = {};
+  if (triggerProp && onHideProp) {
+    triggerProps[onHideProp] = () => updateProp(triggerProp, false);
+  }
+
+  // Get the Button component for trigger buttons
+  const ButtonComponent = resolveComponent('Button');
 
   return (
     <Providers>
@@ -290,7 +316,15 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
           }}
         >
           {Component ? (
-            <Component {...filteredProps}>{children}</Component>
+            <>
+              {/* Show a trigger button for components like Modal */}
+              {triggerProp && ButtonComponent && (
+                <ButtonComponent onClick={() => updateProp(triggerProp, true)}>
+                  Open {component}
+                </ButtonComponent>
+              )}
+              <Component {...filteredProps} {...triggerProps}>{children}</Component>
+            </>
           ) : (
             <div style={{ color: '#999' }}>
               Component &quot;{String(component)}&quot; not found
@@ -389,7 +423,8 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
 
 // A simple component to display a story with controls
 // renderComponent: optional override for which component to render (e.g., 'Icons.InfoCircleOutlined' when component='Icons')
-export function StoryWithControls({ component: Component, renderComponent, props = {}, controls = [], sampleChildren, sampleChildrenStyle }) {
+// triggerProp/onHideProp: for components like Modal that need a button to open (e.g., triggerProp="show", onHideProp="onHide")
+export function StoryWithControls({ component: Component, renderComponent, props = {}, controls = [], sampleChildren, sampleChildrenStyle, triggerProp, onHideProp }) {
   return (
     <BrowserOnly fallback={<LoadingPlaceholder />}>
       {() => (
@@ -400,6 +435,8 @@ export function StoryWithControls({ component: Component, renderComponent, props
           controls={controls}
           sampleChildren={sampleChildren}
           sampleChildrenStyle={sampleChildrenStyle}
+          triggerProp={triggerProp}
+          onHideProp={onHideProp}
         />
       )}
     </BrowserOnly>

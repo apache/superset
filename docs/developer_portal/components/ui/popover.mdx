@@ -26,7 +26,7 @@ import { StoryWithControls } from '../../../src/components/StorybookWrapper';
 
 # Popover
 
-The Popover component from Superset's UI library.
+A floating card that appears when hovering or clicking a trigger element. Supports configurable placement, trigger behavior, and custom content.
 
 ## Live Example
 
@@ -42,18 +42,20 @@ The Popover component from Superset's UI library.
   {
     name: "content",
     label: "Content",
-    type: "text"
+    type: "text",
+    description: "Content displayed inside the popover body."
   },
   {
     name: "title",
     label: "Title",
-    type: "text"
+    type: "text",
+    description: "Title displayed in the popover header."
   },
   {
     name: "arrow",
     label: "Arrow",
     type: "boolean",
-    description: "Change arrow's visible state"
+    description: "Whether to show the popover's arrow pointing to the trigger."
   },
   {
     name: "color",
@@ -64,14 +66,36 @@ The Popover component from Superset's UI library.
   {
     name: "placement",
     label: "Placement",
-    type: "select"
+    type: "select",
+    options: [
+      "topLeft",
+      "top",
+      "topRight",
+      "leftTop",
+      "left",
+      "leftBottom",
+      "rightTop",
+      "right",
+      "rightBottom",
+      "bottomLeft",
+      "bottom",
+      "bottomRight"
+    ],
+    description: "Position of the popover relative to the trigger element."
   },
   {
     name: "trigger",
     label: "Trigger",
-    type: "select"
+    type: "select",
+    options: [
+      "hover",
+      "click",
+      "focus"
+    ],
+    description: "Event that triggers the popover to appear."
   }
 ]}
+  sampleChildren={[{"component":"Button","props":{"children":"Hover me"}}]}
 />
 
 ## Try It
@@ -85,8 +109,69 @@ function Demo() {
       content="Popover sample content"
       title="Popover title"
       arrow
-      color="#fff"
-    />
+    >
+      <Button>Hover me</Button>
+    </Popover>
+  );
+}
+```
+
+## Click Trigger
+
+```tsx live
+function ClickPopover() {
+  return (
+    <Popover
+      content="This popover appears on click."
+      title="Click Popover"
+      trigger="click"
+    >
+      <Button>Click me</Button>
+    </Popover>
+  );
+}
+```
+
+## Placements
+
+```tsx live
+function PlacementsDemo() {
+  return (
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', padding: '60px 0' }}>
+      {['top', 'right', 'bottom', 'left'].map(placement => (
+        <Popover
+          key={placement}
+          content={\`This popover is placed on the \${placement}\`}
+          title={placement}
+          placement={placement}
+        >
+          <Button>{placement}</Button>
+        </Popover>
+      ))}
+    </div>
+  );
+}
+```
+
+## Rich Content
+
+```tsx live
+function RichPopover() {
+  return (
+    <Popover
+      title="Dashboard Info"
+      content={
+        <div>
+          <p><strong>Created by:</strong> Admin</p>
+          <p><strong>Last modified:</strong> Jan 2025</p>
+          <p><strong>Charts:</strong> 12</p>
+        </div>
+      }
+    >
+      <Button buttonStyle="primary">
+        <Icons.InfoCircleOutlined /> View Details
+      </Button>
+    </Popover>
   );
 }
 ```
@@ -95,9 +180,9 @@ function Demo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `string` | `"Popover sample content"` | - |
-| `title` | `string` | `"Popover title"` | - |
-| `arrow` | `boolean` | `true` | Change arrow's visible state |
+| `content` | `string` | `"Popover sample content"` | Content displayed inside the popover body. |
+| `title` | `string` | `"Popover title"` | Title displayed in the popover header. |
+| `arrow` | `boolean` | `true` | Whether to show the popover's arrow pointing to the trigger. |
 | `color` | `string` | `"#fff"` | The background color of the popover. |
 
 ## Import

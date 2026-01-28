@@ -557,6 +557,13 @@ function parseArgTypes(argTypesContent, argTypes, fullContent) {
     } else if (controlObjectMatch) {
       argTypes[propName].type = controlObjectMatch[1];
     }
+
+    // Clear options for non-select/radio types (the shorthand "options" detection
+    // can false-positive when the word "options" appears in description text)
+    const finalType = argTypes[propName].type;
+    if (finalType && !['select', 'radio', 'inline-radio'].includes(finalType)) {
+      delete argTypes[propName].options;
+    }
   }
 }
 
@@ -658,6 +665,8 @@ function extractDocsConfig(content, storyNames) {
   let liveExample = null;
   let examples = null;
   let renderComponent = null;
+  let triggerProp = null;
+  let onHideProp = null;
 
   for (const storyName of storyNames) {
     // Look for parameters block
@@ -764,6 +773,16 @@ function extractDocsConfig(content, storyNames) {
           renderComponent = renderComponentMatch[1];
         }
 
+        // Extract triggerProp/onHideProp - for components like Modal that need a trigger button
+        const triggerPropMatch = parametersContent.match(/triggerProp:\s*['"]([^'"]+)['"]/);
+        if (triggerPropMatch) {
+          triggerProp = triggerPropMatch[1];
+        }
+        const onHidePropMatch = parametersContent.match(/onHideProp:\s*['"]([^'"]+)['"]/);
+        if (onHidePropMatch) {
+          onHideProp = onHidePropMatch[1];
+        }
+
         // Extract examples array - for multiple code examples
         // Format: examples: [{ title: 'Title', code: `...` }, ...]
         const examplesMatch = parametersContent.match(/examples:\s*\[/);
@@ -795,10 +814,10 @@ function extractDocsConfig(content, storyNames) {
       }
     }
 
-    if (sampleChildren || gallery || staticProps || liveExample || examples || renderComponent) break;
+    if (sampleChildren || gallery || staticProps || liveExample || examples || renderComponent || triggerProp) break;
   }
 
-  return { sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent };
+  return { sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent, triggerProp, onHideProp };
 }
 
 /**
@@ -832,7 +851,7 @@ function extractArgsAndControls(content, componentName) {
   const storyNames = [`Interactive${componentName}`, `${componentName}Story`, componentName];
 
   // Extract docs config (sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample) from parameters.docs
-  const { sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent } = extractDocsConfig(content, storyNames);
+  const { sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent, triggerProp, onHideProp } = extractDocsConfig(content, storyNames);
 
   for (const storyName of storyNames) {
     // Try CSF 3.0 format: export const StoryName: StoryObj = { args: {...}, argTypes: {...} }
@@ -941,7 +960,7 @@ function extractArgsAndControls(content, componentName) {
     });
   }
 
-  return { args, argTypes, controls, sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent };
+  return { args, argTypes, controls, sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent, triggerProp, onHideProp };
 }
 
 /**
@@ -950,7 +969,7 @@ function extractArgsAndControls(content, componentName) {
 function generateMDX(component, storyContent) {
   const { componentName, description, relativePath, category, title, sourceConfig, resolvedImportPath, isDefaultExport } = component;
 
-  const { args, argTypes, controls, sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent } = extractArgsAndControls(storyContent, componentName);
+  const { args, argTypes, controls, sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent, triggerProp, onHideProp } = extractArgsAndControls(storyContent, componentName);
 
   // Merge staticProps into args for complex values (arrays, objects) that can't be parsed from inline args
   const mergedArgs = { ...args, ...staticProps };
@@ -1056,7 +1075,9 @@ ${hasGallery ? `
   props={${propsJson}}
   controls={${controlsJson}}${sampleChildrenJson ? `
   sampleChildren={${sampleChildrenJson}}` : ''}${sampleChildrenStyleJson ? `
-  sampleChildrenStyle={${sampleChildrenStyleJson}}` : ''}
+  sampleChildrenStyle={${sampleChildrenStyleJson}}` : ''}${triggerProp ? `
+  triggerProp="${triggerProp}"` : ''}${onHideProp ? `
+  onHideProp="${onHideProp}"` : ''}
 />
 
 ## Try It

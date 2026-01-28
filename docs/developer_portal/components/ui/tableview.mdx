@@ -26,7 +26,7 @@ import { StoryWithControls } from '../../../src/components/StorybookWrapper';
 
 # TableView
 
-The TableView component from Superset's UI library.
+A data table component with sorting, pagination, text wrapping, and empty state support. Built on react-table.
 
 ## Live Example
 
@@ -36,14 +36,57 @@ The TableView component from Superset's UI library.
   accessor: "summary",
   Header: "Summary",
   sortable: true,
-  id: 321,
+  id: 456,
   age: 10,
   name: "John Smith",
   noDataText: "No data here",
-  pageSize: 1,
+  pageSize: 2,
   showRowCount: true,
   withPagination: true,
-  scrollTopOnPagination: false
+  scrollTopOnPagination: false,
+  columns: [
+    {
+      accessor: "id",
+      Header: "ID",
+      sortable: true,
+      id: "id"
+    },
+    {
+      accessor: "age",
+      Header: "Age",
+      id: "age"
+    },
+    {
+      accessor: "name",
+      Header: "Name",
+      id: "name"
+    },
+    {
+      accessor: "summary",
+      Header: "Summary",
+      id: "summary"
+    }
+  ],
+  data: [
+    {
+      id: 123,
+      age: 27,
+      name: "Emily",
+      summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+    },
+    {
+      id: 321,
+      age: 10,
+      name: "Kate",
+      summary: "Nam id porta neque, a vehicula orci."
+    },
+    {
+      id: 456,
+      age: 10,
+      name: "John Smith",
+      summary: "Maecenas rhoncus elit sit amet purus convallis placerat."
+    }
+  ]
 }}
   controls={[
   {
@@ -79,37 +122,44 @@ The TableView component from Superset's UI library.
   {
     name: "noDataText",
     label: "No Data Text",
-    type: "text"
+    type: "text",
+    description: "Text displayed when the table has no data."
   },
   {
     name: "pageSize",
     label: "Page Size",
-    type: "number"
+    type: "number",
+    description: "Number of rows displayed per page."
   },
   {
     name: "showRowCount",
     label: "Show Row Count",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether to display the total row count alongside pagination."
   },
   {
     name: "withPagination",
     label: "With Pagination",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether to show pagination controls below the table."
   },
   {
     name: "scrollTopOnPagination",
     label: "Scroll Top On Pagination",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether to scroll to the top of the table when changing pages."
   },
   {
     name: "emptyWrapperType",
     label: "Empty Wrapper Type",
-    type: "select"
+    type: "select",
+    description: "Style of the empty state wrapper."
   },
   {
     name: "initialPageIndex",
     label: "Initial Page Index",
-    type: "number"
+    type: "number",
+    description: "Initial page to display (zero-based)."
   }
 ]}
 />
@@ -122,16 +172,84 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <TableView
-      accessor="summary"
-      Header="Summary"
-      sortable
-      id={321}
-      age={10}
-      name="John Smith"
-      noDataText="No data here"
-      pageSize={1}
-      showRowCount
+      columns={[
+        { accessor: 'id', Header: 'ID', sortable: true, id: 'id' },
+        { accessor: 'age', Header: 'Age', id: 'age' },
+        { accessor: 'name', Header: 'Name', id: 'name' },
+        { accessor: 'summary', Header: 'Summary', id: 'summary' },
+      ]}
+      data={[
+        { id: 123, age: 27, name: 'Emily', summary: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.' },
+        { id: 321, age: 10, name: 'Kate', summary: 'Nam id porta neque, a vehicula orci.' },
+        { id: 456, age: 10, name: 'John Smith', summary: 'Maecenas rhoncus elit sit amet purus convallis placerat.' },
+      ]}
+      initialSortBy={[{ id: 'name', desc: true }]}
+      pageSize={2}
       withPagination
+      showRowCount
+    />
+  );
+}
+```
+
+## Without Pagination
+
+```tsx live
+function NoPaginationDemo() {
+  return (
+    <TableView
+      columns={[
+        { accessor: 'name', Header: 'Name', id: 'name' },
+        { accessor: 'email', Header: 'Email', id: 'email' },
+        { accessor: 'status', Header: 'Status', id: 'status' },
+      ]}
+      data={[
+        { name: 'Alice', email: 'alice@example.com', status: 'Active' },
+        { name: 'Bob', email: 'bob@example.com', status: 'Inactive' },
+        { name: 'Charlie', email: 'charlie@example.com', status: 'Active' },
+      ]}
+      withPagination={false}
+    />
+  );
+}
+```
+
+## Empty State
+
+```tsx live
+function EmptyDemo() {
+  return (
+    <TableView
+      columns={[
+        { accessor: 'name', Header: 'Name', id: 'name' },
+        { accessor: 'value', Header: 'Value', id: 'value' },
+      ]}
+      data={[]}
+      noDataText="No results found"
+    />
+  );
+}
+```
+
+## With Sorting
+
+```tsx live
+function SortingDemo() {
+  return (
+    <TableView
+      columns={[
+        { accessor: 'id', Header: 'ID', id: 'id', sortable: true },
+        { accessor: 'name', Header: 'Name', id: 'name', sortable: true },
+        { accessor: 'score', Header: 'Score', id: 'score', sortable: true },
+      ]}
+      data={[
+        { id: 1, name: 'Dashboard A', score: 95 },
+        { id: 2, name: 'Dashboard B', score: 72 },
+        { id: 3, name: 'Dashboard C', score: 88 },
+        { id: 4, name: 'Dashboard D', score: 64 },
+      ]}
+      initialSortBy={[{ id: 'score', desc: true }]}
+      withPagination={false}
     />
   );
 }
@@ -144,14 +262,16 @@ function Demo() {
 | `accessor` | `string` | `"summary"` | - |
 | `Header` | `string` | `"Summary"` | - |
 | `sortable` | `boolean` | `true` | - |
-| `id` | `number` | `321` | - |
+| `id` | `number` | `456` | - |
 | `age` | `number` | `10` | - |
 | `name` | `string` | `"John Smith"` | - |
-| `noDataText` | `string` | `"No data here"` | - |
-| `pageSize` | `number` | `1` | - |
-| `showRowCount` | `boolean` | `true` | - |
-| `withPagination` | `boolean` | `true` | - |
-| `scrollTopOnPagination` | `boolean` | `false` | - |
+| `noDataText` | `string` | `"No data here"` | Text displayed when the table has no data. |
+| `pageSize` | `number` | `2` | Number of rows displayed per page. |
+| `showRowCount` | `boolean` | `true` | Whether to display the total row count alongside pagination. |
+| `withPagination` | `boolean` | `true` | Whether to show pagination controls below the table. |
+| `scrollTopOnPagination` | `boolean` | `false` | Whether to scroll to the top of the table when changing pages. |
+| `columns` | `any` | `[{"accessor":"id","Header":"ID","sortable":true,"id":"id"},{"accessor":"age","Header":"Age","id":"age"},{"accessor":"name","Header":"Name","id":"name"},{"accessor":"summary","Header":"Summary","id":"summary"}]` | - |
+| `data` | `any` | `[{"id":123,"age":27,"name":"Emily","summary":"Lorem ipsum dolor sit amet, consectetur adipiscing elit."},{"id":321,"age":10,"name":"Kate","summary":"Nam id porta neque, a vehicula orci."},{"id":456,"age":10,"name":"John Smith","summary":"Maecenas rhoncus elit sit amet purus convallis placerat."}]` | - |
 
 ## Import
 

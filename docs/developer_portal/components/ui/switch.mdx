@@ -26,7 +26,7 @@ import { StoryWithControls } from '../../../src/components/StorybookWrapper';
 
 # Switch
 
-The Switch component from Superset's UI library.
+A toggle switch for boolean on/off states. Supports loading indicators, sizing, and an HTML title attribute for accessibility tooltips.
 
 ## Live Example
 
@@ -35,29 +35,32 @@ The Switch component from Superset's UI library.
   props={{
   disabled: false,
   loading: false,
-  title: "Switch",
-  autoFocus: true
+  title: "Toggle feature"
 }}
   controls={[
   {
     name: "disabled",
     label: "Disabled",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether the switch is disabled."
   },
   {
     name: "loading",
     label: "Loading",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether to show a loading spinner inside the switch."
   },
   {
     name: "title",
     label: "Title",
-    type: "text"
+    type: "text",
+    description: "HTML title attribute shown as a browser tooltip on hover. Useful for accessibility."
   },
   {
-    name: "autoFocus",
-    label: "Auto Focus",
-    type: "boolean"
+    name: "checked",
+    label: "Checked",
+    type: "boolean",
+    description: "Whether the switch is on."
   },
   {
     name: "size",
@@ -66,7 +69,8 @@ The Switch component from Superset's UI library.
     options: [
       "small",
       "default"
-    ]
+    ],
+    description: "Size of the switch."
   }
 ]}
 />
@@ -77,11 +81,92 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
+  const [checked, setChecked] = React.useState(true);
   return (
-    <Switch
-      title="Switch"
-      autoFocus
-    />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <Switch
+        checked={checked}
+        onChange={setChecked}
+        title="Toggle feature"
+      />
+      <span>{checked ? 'On' : 'Off'}</span>
+      <span style={{ color: '#999', fontSize: 12 }}>(hover the switch to see the title tooltip)</span>
+    </div>
+  );
+}
+```
+
+## Switch States
+
+```tsx live
+function SwitchStates() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Switch defaultChecked title="Enabled switch" />
+        <span>Checked</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Switch title="Unchecked switch" />
+        <span>Unchecked</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Switch disabled defaultChecked title="Disabled on" />
+        <span>Disabled (on)</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Switch disabled title="Disabled off" />
+        <span>Disabled (off)</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Switch loading defaultChecked title="Loading switch" />
+        <span>Loading</span>
+      </div>
+    </div>
+  );
+}
+```
+
+## Sizes
+
+```tsx live
+function SizesDemo() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Switch size="small" defaultChecked title="Small switch" />
+        <span>Small</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Switch size="default" defaultChecked title="Default switch" />
+        <span>Default</span>
+      </div>
+    </div>
+  );
+}
+```
+
+## Settings Panel
+
+```tsx live
+function SettingsPanel() {
+  const [notifications, setNotifications] = React.useState(true);
+  const [darkMode, setDarkMode] = React.useState(false);
+  const [autoRefresh, setAutoRefresh] = React.useState(true);
+  return (
+    <div style={{ maxWidth: 320, border: '1px solid #e8e8e8', borderRadius: 8, padding: 16 }}>
+      <h4 style={{ marginTop: 0 }}>Dashboard Settings</h4>
+      {[
+        { label: 'Email notifications', checked: notifications, onChange: setNotifications, title: 'Toggle email notifications' },
+        { label: 'Dark mode', checked: darkMode, onChange: setDarkMode, title: 'Toggle dark mode' },
+        { label: 'Auto-refresh data', checked: autoRefresh, onChange: setAutoRefresh, title: 'Toggle auto-refresh' },
+      ].map(({ label, checked, onChange, title }) => (
+        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+          <span>{label}</span>
+          <Switch checked={checked} onChange={onChange} title={title} />
+        </div>
+      ))}
+    </div>
   );
 }
 ```
@@ -90,10 +175,9 @@ function Demo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `disabled` | `boolean` | `false` | - |
-| `loading` | `boolean` | `false` | - |
-| `title` | `string` | `"Switch"` | - |
-| `autoFocus` | `boolean` | `true` | - |
+| `disabled` | `boolean` | `false` | Whether the switch is disabled. |
+| `loading` | `boolean` | `false` | Whether to show a loading spinner inside the switch. |
+| `title` | `string` | `"Toggle feature"` | HTML title attribute shown as a browser tooltip on hover. Useful for accessibility. |
 
 ## Import
 
