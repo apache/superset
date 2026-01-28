@@ -271,12 +271,13 @@ test('shows cancel confirmation modal when cancel button is clicked', async () =
   const cancelButton = stopIcons.find(
     icon => icon.closest('[role="button"]') !== null,
   );
-  if (cancelButton) {
-    fireEvent.click(cancelButton);
 
-    // Check for confirmation modal
-    expect(await screen.findByText('Cancel Task')).toBeInTheDocument();
-  }
+  // Assert the cancel button exists - test should fail if UI doesn't render it
+  expect(cancelButton).toBeDefined();
+  fireEvent.click(cancelButton!);
+
+  // Check for confirmation modal
+  expect(await screen.findByText('Cancel Task')).toBeInTheDocument();
 });
 
 test('shows cancel button for shared tasks where user is subscribed', async () => {
