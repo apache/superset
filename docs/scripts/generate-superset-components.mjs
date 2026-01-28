@@ -1125,8 +1125,8 @@ Help improve it by [editing the story file](https://github.com/apache/superset/e
  * Category display names for sidebar
  */
 const CATEGORY_LABELS = {
-  ui: { title: 'Core Components', sidebarLabel: 'Core Components' },
-  'design-system': { title: 'Layout Components', sidebarLabel: 'Layout Components' },
+  ui: { title: 'Core Components', sidebarLabel: 'Core Components', description: 'Buttons, inputs, modals, selects, and other fundamental UI elements.' },
+  'design-system': { title: 'Layout Components', sidebarLabel: 'Layout Components', description: 'Grid, Layout, Table, Flex, Space, and container components for page structure.' },
 };
 
 /**
@@ -1187,7 +1187,8 @@ function generateOverviewIndex(categories) {
       const labels = CATEGORY_LABELS[cat] || {
         title: cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, ' '),
       };
-      return `### [${labels.title}](./${cat}/)\n${components.length} components\n`;
+      const desc = labels.description ? ` ${labels.description}` : '';
+      return `### [${labels.title}](./${cat}/)\n${components.length} components —${desc}\n`;
     })
     .join('\n');
 
@@ -1218,13 +1219,23 @@ sidebar_position: 0
     under the License.
 -->
 
-# UI Components
+# Superset Design System
 
-Interactive documentation for Superset's UI component library. These components are used throughout Superset and are available for use in extensions and customizations.
+A design system is a complete set of standards intended to manage design at scale using reusable components and patterns.
 
-**${totalComponents} components** documented across ${Object.keys(categories).filter(k => categories[k].length > 0).length} categories.
+The Superset Design System uses [Atomic Design](https://bradfrost.com/blog/post/atomic-web-design/) principles with adapted terminology:
 
-## Categories
+| Atomic Design | Atoms | Molecules | Organisms | Templates | Pages / Screens |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Superset Design** | Foundations | Components | Patterns | Templates | Features |
+
+<img src="/img/atomic-design.png" alt="Atoms = Foundations, Molecules = Components, Organisms = Patterns, Templates = Templates, Pages / Screens = Features" style={{maxWidth: '100%'}} />
+
+---
+
+## Component Library
+
+Interactive documentation for Superset's UI component library. **${totalComponents} components** documented across ${Object.keys(categories).filter(k => categories[k].length > 0).length} categories.
 
 ${categoryList}
 
@@ -1243,11 +1254,11 @@ This documentation is auto-generated from Storybook stories. To add or update co
 1. Create or update the component's \`.stories.tsx\` file
 2. Add a descriptive \`title\` and \`description\` in the story meta
 3. Export an interactive story with \`args\` for configurable props
-4. Run \`npm run generate:superset-components\` in the docs directory
+4. Run \`yarn generate:superset-components\` in the \`docs/\` directory
 
 ---
 
-*This documentation is auto-generated from Storybook stories.*
+*Auto-generated from Storybook stories in the [Design System/Introduction](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/DesignSystem.stories.tsx) story.*
 `;
 }
 
