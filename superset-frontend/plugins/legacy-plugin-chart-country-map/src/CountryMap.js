@@ -135,7 +135,12 @@ function CountryMap(element, props) {
   ) {
     const sorted = normalizedScaleWithColors
       .filter(
-        e => e && typeof e.percent === 'number' && typeof e.color === 'string',
+        e =>
+          e &&
+          typeof e.percent === 'number' &&
+          e.percent >= 0 &&
+          e.percent <= 100 &&
+          typeof e.color === 'string',
       )
       .slice()
       .sort((a, b) => a.percent - b.percent);
