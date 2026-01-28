@@ -457,7 +457,7 @@ export class TableRenderer extends Component {
     }
     return { backgroundColor };
   }
-    
+
   getAggregatedData(pivotData, visibleColName, rowPartialOnTop) {
     // Transforms flat row keys into a hierarchical group structure where each level
     // represents a grouping dimension. For each row key path, it calculates the
