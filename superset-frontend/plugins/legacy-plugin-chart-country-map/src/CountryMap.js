@@ -60,10 +60,16 @@ function normalizeColorKeyword(color) {
     /^(hsl|hsla)\(\s*\d+\s*,\s*\d+%\s*,\s*\d+%(?:\s*,\s*(\d*\.?\d+))?\s*\)$/i;
   if (colorFuncRegex.test(c) || colorFuncHslRegex.test(c)) return c;
 
-  // Named CSS colors and system colors
-  const s = new Option().style;
-  s.color = c.toLowerCase();
-  if (s.color) return c;
+  // Named CSS colors and system colors - guard for non-browser environments
+  try {
+    if (typeof Option !== 'undefined') {
+      const s = new Option().style;
+      s.color = c.toLowerCase();
+      if (s.color) return c;
+    }
+  } catch {
+    // ignore environment where Option is not available
+  }
 
   // Fallback
   return '#000000';
