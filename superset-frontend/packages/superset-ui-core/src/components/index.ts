@@ -144,6 +144,10 @@ export {
   type ListViewCardProps,
 } from './ListViewCard';
 export { Loading, type LoadingProps } from './Loading';
+export {
+  default as MetadataBar,
+  type MetadataBarProps,
+} from './MetadataBar';
 
 export { Progress, type ProgressProps } from './Progress';
 export {
