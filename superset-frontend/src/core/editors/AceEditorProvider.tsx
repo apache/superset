@@ -70,6 +70,9 @@ const getEditorComponent = (language: string) => {
     case 'yaml':
       return ConfigEditor;
     default:
+      console.warn(
+        `Unknown editor language "${language}", falling back to SQL editor`,
+      );
       return FullSQLEditor;
   }
 };
