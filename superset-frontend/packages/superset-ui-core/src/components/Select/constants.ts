@@ -19,7 +19,7 @@
 import { LabeledValue as AntdLabeledValue } from 'antd/es/select';
 import { t } from '@superset-ui/core';
 import { rankedSearchCompare } from '../../utils/rankedSearchCompare';
-import { RawValue } from './types';
+import { RawValue, SelectProps } from './types';
 
 export const MAX_TAG_COUNT = 4;
 
@@ -32,6 +32,12 @@ export const DEFAULT_PAGE_SIZE = 100;
 export const SELECT_ALL_VALUE: RawValue = t('Select All');
 
 export const VIRTUAL_THRESHOLD = 20;
+
+export const DROPDOWN_ALIGN_BOTTOM: SelectProps['dropdownAlign'] = {
+  points: ['tl', 'bl'],
+  offset: [0, 4],
+  overflow: { adjustX: 0, adjustY: 1 },
+};
 
 export const SELECT_ALL_OPTION = {
   value: SELECT_ALL_VALUE,
