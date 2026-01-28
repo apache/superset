@@ -74,7 +74,8 @@ InteractiveCheckbox.argTypes = {
   },
   indeterminate: {
     control: { type: 'boolean' },
-    description: 'Whether the checkbox is in indeterminate state (partially selected).',
+    description:
+      'Whether the checkbox is in indeterminate state (partially selected).',
   },
 };
 

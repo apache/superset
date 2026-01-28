@@ -258,6 +258,7 @@ InteractiveRangeSlider.argTypes = {
   ...InteractiveSlider.argTypes,
   draggableTrack: {
     control: 'boolean',
-    description: 'Whether the track between handles can be dragged to move both handles together.',
+    description:
+      'Whether the track between handles can be dragged to move both handles together.',
   },
 };

@@ -42,7 +42,8 @@ InteractiveTimer.args = {
 InteractiveTimer.argTypes = {
   isRunning: {
     control: 'boolean',
-    description: 'Whether the timer is actively counting. Toggle to start/stop.',
+    description:
+      'Whether the timer is actively counting. Toggle to start/stop.',
   },
   status: {
     control: { type: 'select' },

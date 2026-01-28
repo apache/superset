@@ -90,7 +90,8 @@ InteractiveSteps.argTypes = {
   type: {
     control: { type: 'select' },
     options: ['default', 'navigation', 'inline'],
-    description: 'Visual style: default numbered, navigation breadcrumb, or inline compact.',
+    description:
+      'Visual style: default numbered, navigation breadcrumb, or inline compact.',
   },
 };
 
