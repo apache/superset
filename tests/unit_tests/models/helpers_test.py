@@ -1703,3 +1703,43 @@ def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
     # Verify SELECT and FROM clauses are present
     assert "SELECT" in sql
     assert "FROM" in sql
+
+
+def test_orderby_adhoc_column(database: Database) -> None:
+    """
+    Test that orderby works with adhoc column labels.
+
+    When orderby contains a string that matches the label of an adhoc column
+    in the columns list, it should correctly convert to a SQLAlchemy column
+    instead of raising QueryObjectValidationError.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+            TableColumn(column_name="b"),
+        ],
+    )
+
+    # Should not raise QueryObjectValidationError
+    result = table.get_sqla_query(
+        columns=[
+            {"expressionType": "SQL", "label": "custom_col", "sqlExpression": "a + 1"},
+            "b",
+        ],
+        orderby=[("custom_col", False)],  # Order by adhoc column label
+        metrics=[],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    # Verify the SQL contains the expression from the adhoc column
+    sql = str(result.sqla_query)
+    assert "ORDER BY" in sql.upper()
