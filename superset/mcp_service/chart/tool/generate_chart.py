@@ -159,7 +159,10 @@ async def generate_chart(  # noqa: C901
             )
 
         # Map the simplified config to Superset's form_data format
-        form_data = map_config_to_form_data(request.config)
+        # Pass dataset_id to enable column type checking for proper viz_type selection
+        form_data = map_config_to_form_data(
+            request.config, dataset_id=request.dataset_id
+        )
 
         chart = None
         chart_id = None
