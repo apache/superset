@@ -107,67 +107,67 @@ Here are some of the major database solutions that are supported:
 
 <!-- SUPPORTED_DATABASES_START -->
 <p align="center">
-  <img src="https://superset.apache.org/img/databases/amazon-athena.jpg" alt="amazon-athena" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/aws.png" alt="amazon-dynamodb" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/redshift.png" alt="amazon-redshift" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/doris.png" alt="apache-doris" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/apache-drill.png" alt="apache-drill" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/druid.png" alt="apache-druid" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/apache-hive.svg" alt="apache-hive" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/apache-impala.png" alt="apache-impala" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/apache-kylin.png" alt="apache-kylin" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/apache-pinot.svg" alt="apache-pinot" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/apache-solr.png" alt="apache-solr" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/apache-spark.png" alt="apache-spark-sql" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/ascend.webp" alt="ascend" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/mysql.png" alt="aurora-mysql-data-api" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/postgresql.svg" alt="aurora-postgresql-data-api" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/kusto.png" alt="azure-data-explorer" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/azure.svg" alt="azure-synapse" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/cloudflare.png" alt="cloudflare-d1" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/cockroachdb.png" alt="cockroachdb" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/couchbase.svg" alt="couchbase" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/cratedb.svg" alt="cratedb" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/databend.png" alt="databend" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/databricks.png" alt="databricks" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/denodo.png" alt="denodo" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/dremio.png" alt="dremio" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/duckdb.png" alt="duckdb" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/elasticsearch.png" alt="elasticsearch" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/firebird.png" alt="firebird" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/firebolt.png" alt="firebolt" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/google-big-query.svg" alt="google-bigquery" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/google-sheets.svg" alt="google-sheets" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/greenplum.png" alt="greenplum" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/hologres.png" alt="hologres" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/ibm-db2.svg" alt="ibm-db2" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/netezza.png" alt="ibm-netezza-performance-server" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/msql.png" alt="microsoft-sql-server" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/monet-db.png" alt="monetdb" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/mongodb.png" alt="mongodb" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/motherduck.png" alt="motherduck" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/oraclelogo.png" alt="oracle" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/presto-og.png" alt="presto" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/risingwave.svg" alt="risingwave" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="sap-hana" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/sybase.png" alt="sap-sybase" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/shillelagh.png" alt="shillelagh" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/singlestore.png" alt="singlestore" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/snowflake.svg" alt="snowflake" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/superset.svg" alt="superset-meta-database" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/tdengine.png" alt="tdengine" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/teradata.png" alt="teradata" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/timescale.png" alt="timescaledb" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/vertica.png" alt="vertica" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/ydb.svg" alt="ydb" border="0" width="80" height="40" class="database-logo" />
-  <img src="https://superset.apache.org/img/databases/yugabyte.png" alt="yugabytedb" border="0" width="80" height="40" class="database-logo" />
+  <img src="docs/static/img/databases/amazon-athena.jpg" alt="amazon-athena" width="76" height="40" />
+  <img src="docs/static/img/databases/aws.png" alt="amazon-dynamodb" width="40" height="40" />
+  <img src="docs/static/img/databases/redshift.png" alt="amazon-redshift" width="100" height="40" />
+  <img src="docs/static/img/databases/doris.png" alt="apache-doris" width="103" height="40" />
+  <img src="docs/static/img/databases/apache-drill.png" alt="apache-drill" width="81" height="40" />
+  <img src="docs/static/img/databases/druid.png" alt="apache-druid" width="117" height="40" />
+  <img src="docs/static/img/databases/apache-hive.svg" alt="apache-hive" width="44" height="40" />
+  <img src="docs/static/img/databases/apache-impala.png" alt="apache-impala" width="21" height="40" />
+  <img src="docs/static/img/databases/apache-kylin.png" alt="apache-kylin" width="44" height="40" />
+  <img src="docs/static/img/databases/apache-pinot.svg" alt="apache-pinot" width="76" height="40" />
+  <img src="docs/static/img/databases/apache-solr.png" alt="apache-solr" width="79" height="40" />
+  <img src="docs/static/img/databases/apache-spark.png" alt="apache-spark-sql" width="75" height="40" />
+  <img src="docs/static/img/databases/ascend.webp" alt="ascend" width="117" height="40" />
+  <img src="docs/static/img/databases/mysql.png" alt="aurora-mysql-data-api" width="77" height="40" />
+  <img src="docs/static/img/databases/postgresql.svg" alt="aurora-postgresql-data-api" width="76" height="40" />
+  <img src="docs/static/img/databases/kusto.png" alt="azure-data-explorer" width="40" height="40" />
+  <img src="docs/static/img/databases/azure.svg" alt="azure-synapse" width="40" height="40" />
+  <img src="docs/static/img/databases/clickhouse.png" alt="clickhouse" width="150" height="37" />
+  <img src="docs/static/img/databases/cloudflare.png" alt="cloudflare-d1" width="40" height="40" />
+  <img src="docs/static/img/databases/cockroachdb.png" alt="cockroachdb" width="150" height="24" />
+  <img src="docs/static/img/databases/couchbase.svg" alt="couchbase" width="150" height="35" />
+  <img src="docs/static/img/databases/cratedb.svg" alt="cratedb" width="180" height="24" />
+  <img src="docs/static/img/databases/databend.png" alt="databend" width="100" height="40" />
+  <img src="docs/static/img/databases/databricks.png" alt="databricks" width="152" height="24" />
+  <img src="docs/static/img/databases/denodo.png" alt="denodo" width="138" height="40" />
+  <img src="docs/static/img/databases/dremio.png" alt="dremio" width="126" height="40" />
+  <img src="docs/static/img/databases/duckdb.png" alt="duckdb" width="52" height="40" />
+  <img src="docs/static/img/databases/elasticsearch.png" alt="elasticsearch" width="40" height="40" />
+  <img src="docs/static/img/databases/exasol.png" alt="exasol" width="72" height="40" />
+  <img src="docs/static/img/databases/firebird.png" alt="firebird" width="100" height="40" />
+  <img src="docs/static/img/databases/firebolt.png" alt="firebolt" width="100" height="40" />
+  <img src="docs/static/img/databases/google-big-query.svg" alt="google-bigquery" width="76" height="40" />
+  <img src="docs/static/img/databases/google-sheets.svg" alt="google-sheets" width="76" height="40" />
+  <img src="docs/static/img/databases/greenplum.png" alt="greenplum" width="124" height="40" />
+  <img src="docs/static/img/databases/hologres.png" alt="hologres" width="44" height="40" />
+  <img src="docs/static/img/databases/ibm-db2.svg" alt="ibm-db2" width="91" height="40" />
+  <img src="docs/static/img/databases/netezza.png" alt="ibm-netezza-performance-server" width="40" height="40" />
+  <img src="docs/static/img/databases/mariadb.png" alt="mariadb" width="150" height="37" />
+  <img src="docs/static/img/databases/msql.png" alt="microsoft-sql-server" width="50" height="40" />
+  <img src="docs/static/img/databases/monet-db.png" alt="monetdb" width="100" height="40" />
+  <img src="docs/static/img/databases/mongodb.png" alt="mongodb" width="150" height="38" />
+  <img src="docs/static/img/databases/motherduck.png" alt="motherduck" width="40" height="40" />
+  <img src="docs/static/img/databases/oceanbase.svg" alt="oceanbase" width="175" height="24" />
+  <img src="docs/static/img/databases/oraclelogo.png" alt="oracle" width="111" height="40" />
+  <img src="docs/static/img/databases/presto-og.png" alt="presto" width="127" height="40" />
+  <img src="docs/static/img/databases/risingwave.svg" alt="risingwave" width="147" height="40" />
+  <img src="docs/static/img/databases/sap-hana.png" alt="sap-hana" width="137" height="40" />
+  <img src="docs/static/img/databases/sybase.png" alt="sap-sybase" width="100" height="40" />
+  <img src="docs/static/img/databases/shillelagh.png" alt="shillelagh" width="40" height="40" />
+  <img src="docs/static/img/databases/singlestore.png" alt="singlestore" width="150" height="31" />
+  <img src="docs/static/img/databases/snowflake.svg" alt="snowflake" width="76" height="40" />
+  <img src="docs/static/img/databases/sqlite.png" alt="sqlite" width="84" height="40" />
+  <img src="docs/static/img/databases/starrocks.png" alt="starrocks" width="149" height="40" />
+  <img src="docs/static/img/databases/superset.svg" alt="superset-meta-database" width="150" height="39" />
+  <img src="docs/static/img/databases/tdengine.png" alt="tdengine" width="140" height="40" />
+  <img src="docs/static/img/databases/teradata.png" alt="teradata" width="124" height="40" />
+  <img src="docs/static/img/databases/timescale.png" alt="timescaledb" width="150" height="36" />
+  <img src="docs/static/img/databases/trino.png" alt="trino" width="89" height="40" />
+  <img src="docs/static/img/databases/vertica.png" alt="vertica" width="128" height="40" />
+  <img src="docs/static/img/databases/ydb.svg" alt="ydb" width="110" height="40" />
+  <img src="docs/static/img/databases/yugabyte.png" alt="yugabytedb" width="150" height="26" />
 </p>
 <!-- SUPPORTED_DATABASES_END -->
 
