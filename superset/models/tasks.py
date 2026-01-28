@@ -35,7 +35,7 @@ from superset_core.api.models import Task as CoreTask
 from superset_core.api.tasks import TaskProperties, TaskStatus
 
 from superset.models.helpers import AuditMixinNullable
-from superset.models.task_subscribers import TaskSubscriber  # noqa: F401
+from superset.models.task_subscribers import TaskSubscriber
 from superset.tasks.utils import (
     error_update,
     get_finished_dedup_key,
@@ -105,7 +105,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
 
     # Relationships
     subscribers = relationship(
-        "TaskSubscriber",
+        TaskSubscriber,
         back_populates="task",
         cascade="all, delete-orphan",
     )
