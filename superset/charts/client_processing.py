@@ -175,7 +175,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 slice_ = df.columns.get_loc(subgroup)
                 subtotal = pivot_v2_aggfunc_map[aggfunc](df.iloc[:, slice_], axis=1)
                 depth = df.columns.nlevels - len(subgroup) - 1
-                total = metric_name if level == 0 else __("Subtotal")
+                total = metric_name if level == 0 else __("Subvalue")
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert column after subgroup
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
@@ -201,7 +201,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     df.iloc[slice_, :].apply(pd.to_numeric, errors="coerce"), axis=0
                 )
                 depth = groups.nlevels - len(subgroup) - 1
-                total = metric_name if level == 0 else __("Subtotal")
+                total = metric_name if level == 0 else __("Subvalue")
                 subtotal.name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert row after subgroup
                 df = pd.concat(
