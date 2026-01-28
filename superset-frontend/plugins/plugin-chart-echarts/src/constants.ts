@@ -94,7 +94,11 @@ export const AreaChartStackControlOptions: [
 
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,
+  [TimeGranularity.THREE_HOURS]: 3600 * 1000 * 3,
+  [TimeGranularity.SIX_HOURS]: 3600 * 1000 * 6,
+  [TimeGranularity.TWELVE_HOURS_6AM]: 3600 * 1000 * 12,
   [TimeGranularity.DAY]: 3600 * 1000 * 24,
+  [TimeGranularity.DAY_6AM]: 3600 * 1000 * 24,
   [TimeGranularity.MONTH]: 3600 * 1000 * 24 * 31,
   [TimeGranularity.QUARTER]: 3600 * 1000 * 24 * 31 * 3,
   [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
