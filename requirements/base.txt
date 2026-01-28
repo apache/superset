@@ -303,6 +303,8 @@ pydantic==2.11.7
     #   apache-superset-core
 pydantic-core==2.33.2
     # via pydantic
+pygeohash==3.2.2
+    # via apache-superset (pyproject.toml)
 pygments==2.19.1
     # via rich
 pyjwt==2.10.1
@@ -329,8 +331,6 @@ python-dateutil==2.9.0.post0
     #   pandas
     #   shillelagh
 python-dotenv==1.1.0
-    # via apache-superset (pyproject.toml)
-python-geohash==0.8.5
     # via apache-superset (pyproject.toml)
 pytz==2025.2
     # via
