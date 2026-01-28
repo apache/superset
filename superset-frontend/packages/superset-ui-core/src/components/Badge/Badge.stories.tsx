@@ -113,8 +113,7 @@ InteractiveBadge.argTypes = {
     control: { type: 'boolean' },
   },
   overflowCount: {
-    description:
-      'Max count to show. Shows count+ when exceeded (e.g., 99+).',
+    description: 'Max count to show. Shows count+ when exceeded (e.g., 99+).',
     control: { type: 'number' },
   },
 };

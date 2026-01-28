@@ -52,7 +52,8 @@ InteractiveModal.args = {
 InteractiveModal.argTypes = {
   show: {
     control: 'boolean',
-    description: 'Whether the modal is visible. Use the "Try It" example below for a working demo.',
+    description:
+      'Whether the modal is visible. Use the "Try It" example below for a working demo.',
   },
   title: {
     control: 'text',

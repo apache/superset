@@ -110,7 +110,8 @@ InteractiveTableView.argTypes = {
   },
   scrollTopOnPagination: {
     control: 'boolean',
-    description: 'Whether to scroll to the top of the table when changing pages.',
+    description:
+      'Whether to scroll to the top of the table when changing pages.',
   },
   emptyWrapperType: {
     control: { type: 'select' },
@@ -133,9 +134,24 @@ InteractiveTableView.parameters = {
         { accessor: 'summary', Header: 'Summary', id: 'summary' },
       ],
       data: [
-        { id: 123, age: 27, name: 'Emily', summary: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.' },
-        { id: 321, age: 10, name: 'Kate', summary: 'Nam id porta neque, a vehicula orci.' },
-        { id: 456, age: 10, name: 'John Smith', summary: 'Maecenas rhoncus elit sit amet purus convallis placerat.' },
+        {
+          id: 123,
+          age: 27,
+          name: 'Emily',
+          summary: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+        },
+        {
+          id: 321,
+          age: 10,
+          name: 'Kate',
+          summary: 'Nam id porta neque, a vehicula orci.',
+        },
+        {
+          id: 456,
+          age: 10,
+          name: 'John Smith',
+          summary: 'Maecenas rhoncus elit sit amet purus convallis placerat.',
+        },
       ],
     },
     liveExample: `function Demo() {

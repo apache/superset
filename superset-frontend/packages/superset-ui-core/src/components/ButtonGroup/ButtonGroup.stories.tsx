@@ -71,9 +71,18 @@ InteractiveButtonGroup.parameters = {
       expand: false,
     },
     sampleChildren: [
-      { component: 'Button', props: { buttonStyle: 'tertiary', children: 'Button 1' } },
-      { component: 'Button', props: { buttonStyle: 'tertiary', children: 'Button 2' } },
-      { component: 'Button', props: { buttonStyle: 'tertiary', children: 'Button 3' } },
+      {
+        component: 'Button',
+        props: { buttonStyle: 'tertiary', children: 'Button 1' },
+      },
+      {
+        component: 'Button',
+        props: { buttonStyle: 'tertiary', children: 'Button 2' },
+      },
+      {
+        component: 'Button',
+        props: { buttonStyle: 'tertiary', children: 'Button 3' },
+      },
     ],
     liveExample: `function Demo() {
   return (
@@ -114,7 +123,15 @@ ButtonGroupGallery.argTypes = {
   buttonStyle: {
     description: 'Style variant for the buttons.',
     control: { type: 'select' },
-    options: ['primary', 'secondary', 'tertiary', 'dashed', 'link', 'warning', 'danger'],
+    options: [
+      'primary',
+      'secondary',
+      'tertiary',
+      'dashed',
+      'link',
+      'warning',
+      'danger',
+    ],
   },
   buttonSize: {
     description: 'Size of the buttons.',

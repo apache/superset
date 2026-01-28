@@ -63,7 +63,8 @@ InteractiveMenu.argTypes = {
   mode: {
     control: 'select',
     options: ['horizontal', 'vertical', 'inline'],
-    description: 'Menu display mode: horizontal navbar, vertical sidebar, or inline collapsible.',
+    description:
+      'Menu display mode: horizontal navbar, vertical sidebar, or inline collapsible.',
   },
   selectable: {
     control: 'boolean',
@@ -75,7 +76,8 @@ InteractiveMenu.argTypes = {
   },
   inlineCollapsed: {
     control: 'boolean',
-    description: 'Whether the inline menu is collapsed (only applies to inline mode).',
+    description:
+      'Whether the inline menu is collapsed (only applies to inline mode).',
   },
 };
 

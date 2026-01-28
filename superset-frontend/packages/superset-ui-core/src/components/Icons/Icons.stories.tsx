@@ -124,7 +124,8 @@ InteractiveIcons.argTypes = {
     defaultValue: 'xl',
     control: { type: 'inline-radio' },
     options: ['s', 'm', 'l', 'xl', 'xxl'],
-    description: 'Size of the icons: s (12px), m (16px), l (20px), xl (24px), xxl (32px).',
+    description:
+      'Size of the icons: s (12px), m (16px), l (20px), xl (24px), xxl (32px).',
   },
   iconColor: {
     defaultValue: null,

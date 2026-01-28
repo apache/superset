@@ -38,7 +38,8 @@ export const InteractiveCard = (args: CardProps) => <Card {...args} />;
 InteractiveCard.args = {
   padded: true,
   title: 'Dashboard Overview',
-  children: 'This card displays a summary of your dashboard metrics and recent activity.',
+  children:
+    'This card displays a summary of your dashboard metrics and recent activity.',
   bordered: true,
   loading: false,
   hoverable: false,

@@ -78,7 +78,9 @@ InteractiveIconTooltip.parameters = {
       story:
         'A tooltip wrapper for icons. Pass an icon component as children and specify tooltip text.',
     },
-    sampleChildren: [{ component: 'Icons.InfoCircleOutlined', props: { iconSize: 'l' } }],
+    sampleChildren: [
+      { component: 'Icons.InfoCircleOutlined', props: { iconSize: 'l' } },
+    ],
     liveExample: `function Demo() {
   return (
     <IconTooltip tooltip="Helpful information">

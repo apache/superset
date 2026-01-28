@@ -136,9 +136,45 @@ InteractiveGrid.parameters = {
   docs: {
     renderComponent: 'Row',
     sampleChildren: [
-      { component: 'Col', props: { span: 4, children: 'col-4', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
-      { component: 'Col', props: { span: 4, children: 'col-4 (tall)', style: { background: '#e6f4ff', padding: '24px 8px', border: '1px solid #91caff', textAlign: 'center' } } },
-      { component: 'Col', props: { span: 4, children: 'col-4', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
+      {
+        component: 'Col',
+        props: {
+          span: 4,
+          children: 'col-4',
+          style: {
+            background: '#e6f4ff',
+            padding: '8px',
+            border: '1px solid #91caff',
+            textAlign: 'center',
+          },
+        },
+      },
+      {
+        component: 'Col',
+        props: {
+          span: 4,
+          children: 'col-4 (tall)',
+          style: {
+            background: '#e6f4ff',
+            padding: '24px 8px',
+            border: '1px solid #91caff',
+            textAlign: 'center',
+          },
+        },
+      },
+      {
+        component: 'Col',
+        props: {
+          span: 4,
+          children: 'col-4',
+          style: {
+            background: '#e6f4ff',
+            padding: '8px',
+            border: '1px solid #91caff',
+            textAlign: 'center',
+          },
+        },
+      },
     ],
     description: {
       story:

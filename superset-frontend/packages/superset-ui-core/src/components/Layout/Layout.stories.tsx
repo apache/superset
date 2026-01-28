@@ -114,13 +114,39 @@ InteractiveLayout.parameters = {
       style: { minHeight: 200 },
     },
     sampleChildren: [
-      { component: 'Layout.Header', props: { children: 'Header', style: { background: '#001529', color: '#fff', padding: '0 24px', lineHeight: '64px' } } },
-      { component: 'Layout.Content', props: { children: 'Content Area', style: { padding: '24px', background: '#fff', flex: 1 } } },
-      { component: 'Layout.Footer', props: { children: 'Footer', style: { textAlign: 'center', background: '#f5f5f5', padding: '12px' } } },
+      {
+        component: 'Layout.Header',
+        props: {
+          children: 'Header',
+          style: {
+            background: '#001529',
+            color: '#fff',
+            padding: '0 24px',
+            lineHeight: '64px',
+          },
+        },
+      },
+      {
+        component: 'Layout.Content',
+        props: {
+          children: 'Content Area',
+          style: { padding: '24px', background: '#fff', flex: 1 },
+        },
+      },
+      {
+        component: 'Layout.Footer',
+        props: {
+          children: 'Footer',
+          style: {
+            textAlign: 'center',
+            background: '#f5f5f5',
+            padding: '12px',
+          },
+        },
+      },
     ],
     description: {
-      story:
-        'Layout component with Header, Footer, Sider, and Content areas.',
+      story: 'Layout component with Header, Footer, Sider, and Content areas.',
     },
     liveExample: `function Demo() {
   return (

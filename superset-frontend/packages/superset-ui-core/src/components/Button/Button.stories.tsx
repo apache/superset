@@ -100,9 +100,9 @@ ButtonGallery.parameters = {
   },
 };
 
-export const InteractiveButton = (
-  args: ButtonProps & { children: string },
-) => <Button {...args} />;
+export const InteractiveButton = (args: ButtonProps & { children: string }) => (
+  <Button {...args} />
+);
 
 InteractiveButton.args = {
   buttonStyle: 'default',

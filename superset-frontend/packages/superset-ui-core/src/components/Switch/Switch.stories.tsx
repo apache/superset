@@ -66,7 +66,8 @@ InteractiveSwitch.argTypes = {
   },
   title: {
     control: 'text',
-    description: 'HTML title attribute shown as a browser tooltip on hover. Useful for accessibility.',
+    description:
+      'HTML title attribute shown as a browser tooltip on hover. Useful for accessibility.',
   },
   size: {
     control: { type: 'radio' },

@@ -118,9 +118,7 @@ export const Component = (props: DropdownContainerProps) => {
 };
 
 // Interactive story for docs generation
-export const InteractiveDropdownContainer = (
-  args: DropdownContainerProps,
-) => {
+export const InteractiveDropdownContainer = (args: DropdownContainerProps) => {
   const simpleItems = Array.from({ length: 6 }, (_, i) => ({
     id: `item-${i}`,
     element: (
@@ -138,7 +136,15 @@ export const InteractiveDropdownContainer = (
     ),
   }));
   return (
-    <div style={{ width: 500, resize: 'horizontal', overflow: 'auto', border: '1px solid #e8e8e8', padding: 16 }}>
+    <div
+      style={{
+        width: 500,
+        resize: 'horizontal',
+        overflow: 'auto',
+        border: '1px solid #e8e8e8',
+        padding: 16,
+      }}
+    >
       <DropdownContainer {...args} items={simpleItems} />
     </div>
   );
@@ -153,12 +159,48 @@ InteractiveDropdownContainer.parameters = {
     staticProps: {
       style: { maxWidth: 360 },
       items: [
-        { id: 'item-0', element: { component: 'Tag', props: { children: 'Region', color: 'blue' } } },
-        { id: 'item-1', element: { component: 'Tag', props: { children: 'Category', color: 'blue' } } },
-        { id: 'item-2', element: { component: 'Tag', props: { children: 'Date Range', color: 'blue' } } },
-        { id: 'item-3', element: { component: 'Tag', props: { children: 'Status', color: 'blue' } } },
-        { id: 'item-4', element: { component: 'Tag', props: { children: 'Owner', color: 'blue' } } },
-        { id: 'item-5', element: { component: 'Tag', props: { children: 'Priority', color: 'blue' } } },
+        {
+          id: 'item-0',
+          element: {
+            component: 'Tag',
+            props: { children: 'Region', color: 'blue' },
+          },
+        },
+        {
+          id: 'item-1',
+          element: {
+            component: 'Tag',
+            props: { children: 'Category', color: 'blue' },
+          },
+        },
+        {
+          id: 'item-2',
+          element: {
+            component: 'Tag',
+            props: { children: 'Date Range', color: 'blue' },
+          },
+        },
+        {
+          id: 'item-3',
+          element: {
+            component: 'Tag',
+            props: { children: 'Status', color: 'blue' },
+          },
+        },
+        {
+          id: 'item-4',
+          element: {
+            component: 'Tag',
+            props: { children: 'Owner', color: 'blue' },
+          },
+        },
+        {
+          id: 'item-5',
+          element: {
+            component: 'Tag',
+            props: { children: 'Priority', color: 'blue' },
+          },
+        },
       ],
     },
     liveExample: `function Demo() {

@@ -147,7 +147,8 @@ const gallerySizes = ['medium'];
 InteractiveEmptyState.parameters = {
   docs: {
     description: {
-      story: 'A component for displaying empty states with optional images and actions.',
+      story:
+        'A component for displaying empty states with optional images and actions.',
     },
     gallery: {
       component: 'EmptyState',

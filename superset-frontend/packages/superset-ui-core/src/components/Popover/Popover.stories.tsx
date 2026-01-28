@@ -96,9 +96,7 @@ InteractivePopover.argTypes = {
 
 InteractivePopover.parameters = {
   docs: {
-    sampleChildren: [
-      { component: 'Button', props: { children: 'Hover me' } },
-    ],
+    sampleChildren: [{ component: 'Button', props: { children: 'Hover me' } }],
     liveExample: `function Demo() {
   return (
     <Popover
