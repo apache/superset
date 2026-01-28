@@ -28,10 +28,7 @@ import {
 beforeAll(() => fetchMock.mockGlobal());
 afterAll(() => fetchMock.hardReset());
 
-afterEach(() => {
-  fetchMock.removeRoutes();
-  fetchMock.clearHistory();
-});
+afterEach(() => fetchMock.clearHistory().removeRoutes());
 
 test('generates proper time range string', () => {
   expect(

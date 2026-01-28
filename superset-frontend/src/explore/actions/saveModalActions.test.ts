@@ -98,10 +98,7 @@ jest.mock('../exploreUtils', () => ({
   buildV1ChartDataPayload: jest.fn(() => queryContext),
 }));
 
-beforeEach(() => {
-  fetchMock.removeRoutes();
-  fetchMock.clearHistory();
-});
+beforeEach(() => fetchMock.clearHistory().removeRoutes());
 
 /**
  * Tests updateSlice action

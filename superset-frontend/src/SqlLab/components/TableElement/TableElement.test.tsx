@@ -69,10 +69,7 @@ beforeEach(() => {
   fetchMock.post(updateTableSchemaEndpoint, {});
 });
 
-afterEach(() => {
-  fetchMock.removeRoutes();
-  fetchMock.clearHistory();
-});
+afterEach(() => fetchMock.clearHistory().removeRoutes());
 
 const mockedProps = {
   table: {

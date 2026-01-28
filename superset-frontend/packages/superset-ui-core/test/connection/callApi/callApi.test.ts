@@ -69,10 +69,7 @@ describe('callApi()', () => {
     fetchMock.get(mockErrorUrl, () => Promise.reject(mockErrorPayload));
   });
 
-  afterEach(() => {
-    fetchMock.clearHistory();
-    fetchMock.removeRoutes();
-  });
+  afterEach(() => fetchMock.clearHistory().removeRoutes());
 
   describe('request config', () => {
     it('calls the right url with the specified method', async () => {

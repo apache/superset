@@ -49,8 +49,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanupAsyncOperations();
-  fetchMock.removeRoutes();
-  fetchMock.clearHistory();
+  fetchMock.clearHistory().removeRoutes();
   // Reset module mock since jest.fn() doesn't support mockRestore()
   jest.mocked(isFeatureEnabled).mockReset();
   // Restore console.error if it was spied on

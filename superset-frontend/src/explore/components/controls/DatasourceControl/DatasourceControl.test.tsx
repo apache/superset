@@ -43,8 +43,7 @@ beforeEach(() => {
 afterEach(() => {
   // @ts-ignore
   window.location = originalLocation;
-  fetchMock.clearHistory();
-  fetchMock.removeRoutes();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks(); // Clears mock history but keeps spy in place
 });
 

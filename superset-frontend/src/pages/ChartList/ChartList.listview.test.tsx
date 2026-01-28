@@ -67,7 +67,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.clearHistory();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.removeRoutes();
   mockIsFeatureEnabled.mockReset();
 });

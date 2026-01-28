@@ -319,10 +319,7 @@ describe('DatabaseModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  afterEach(() => {
-    fetchMock.clearHistory();
-    fetchMock.removeRoutes();
-  });
+  afterEach(() => fetchMock.clearHistory().removeRoutes());
 
   const setup = (propsOverwrite: Partial<DatabaseModalProps> = {}) =>
     render(<DatabaseModal {...dbProps} {...propsOverwrite} />, {

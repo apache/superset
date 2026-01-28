@@ -95,8 +95,7 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.resetAllMocks();
-  fetchMock.clearHistory();
-  fetchMock.removeRoutes();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const getFormatSwitch = () =>

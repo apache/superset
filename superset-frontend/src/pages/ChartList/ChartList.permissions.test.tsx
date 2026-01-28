@@ -164,8 +164,7 @@ const renderWithPermissions = async (
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - Permission-based UI Tests', () => {
   beforeEach(() => {
-    fetchMock.clearHistory();
-    fetchMock.removeRoutes();
+    fetchMock.clearHistory().removeRoutes();
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();

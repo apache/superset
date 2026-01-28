@@ -50,8 +50,7 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 afterEach(() => {
-  fetchMock.clearHistory();
-  fetchMock.removeRoutes();
+  fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });

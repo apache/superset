@@ -154,10 +154,7 @@ beforeEach(() => {
   fetchMock.put(DASHBOARD_UPDATE_URL, 200, { name: DASHBOARD_UPDATE_URL });
 });
 
-afterEach(() => {
-  fetchMock.clearHistory();
-  fetchMock.removeRoutes();
-});
+afterEach(() => fetchMock.clearHistory().removeRoutes());
 
 test('renders modal', () => {
   setup();

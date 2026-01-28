@@ -78,8 +78,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanupAsyncOperations();
-  fetchMock.clearHistory();
-  fetchMock.removeRoutes();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('renders currency section in metrics tab', async () => {

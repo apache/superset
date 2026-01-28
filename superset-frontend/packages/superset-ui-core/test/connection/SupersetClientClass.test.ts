@@ -264,10 +264,7 @@ describe('SupersetClientClass', () => {
   });
 
   describe('requests', () => {
-    afterEach(() => {
-      fetchMock.removeRoutes();
-      fetchMock.clearHistory();
-    });
+    afterEach(() => fetchMock.clearHistory().removeRoutes());
 
     const protocol = 'https:';
     const host = 'host';
