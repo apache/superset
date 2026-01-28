@@ -40,7 +40,61 @@ The Tree component is used to display hierarchical data in a tree structure. It 
   multiple: false,
   selectable: true,
   showIcon: false,
-  showLine: false
+  showLine: false,
+  treeData: [
+    {
+      title: "parent 1",
+      key: "0-0",
+      children: [
+        {
+          title: "parent 1-0",
+          key: "0-0-0",
+          children: [
+            {
+              title: "leaf",
+              key: "0-0-0-0"
+            },
+            {
+              title: "leaf",
+              key: "0-0-0-1"
+            },
+            {
+              title: "leaf",
+              key: "0-0-0-2"
+            }
+          ]
+        },
+        {
+          title: "parent 1-1",
+          key: "0-0-1",
+          children: [
+            {
+              title: "leaf",
+              key: "0-0-1-0"
+            }
+          ]
+        },
+        {
+          title: "parent 1-2",
+          key: "0-0-2",
+          children: [
+            {
+              title: "leaf",
+              key: "0-0-2-0"
+            },
+            {
+              title: "leaf",
+              key: "0-0-2-1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  defaultExpandedKeys: [
+    "0-0",
+    "0-0-0"
+  ]
 }}
   controls={[
   {
@@ -100,11 +154,88 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
+  const treeData = [
+    {
+      title: 'Databases',
+      key: 'databases',
+      children: [
+        { title: 'PostgreSQL', key: 'postgres' },
+        { title: 'MySQL', key: 'mysql' },
+        { title: 'SQLite', key: 'sqlite' },
+      ],
+    },
+    {
+      title: 'Charts',
+      key: 'charts',
+      children: [
+        { title: 'Bar Chart', key: 'bar' },
+        { title: 'Line Chart', key: 'line' },
+        { title: 'Pie Chart', key: 'pie' },
+      ],
+    },
+  ];
+  return <Tree treeData={treeData} defaultExpandAll />;
+}
+```
+
+## Checkable Tree
+
+```tsx live
+function CheckableTree() {
+  const [checkedKeys, setCheckedKeys] = React.useState(['postgres']);
+  const treeData = [
+    {
+      title: 'Databases',
+      key: 'databases',
+      children: [
+        { title: 'PostgreSQL', key: 'postgres' },
+        { title: 'MySQL', key: 'mysql' },
+      ],
+    },
+    {
+      title: 'Charts',
+      key: 'charts',
+      children: [
+        { title: 'Bar Chart', key: 'bar' },
+        { title: 'Line Chart', key: 'line' },
+      ],
+    },
+  ];
   return (
     <Tree
-      selectable
+      treeData={treeData}
+      checkable
+      defaultExpandAll
+      checkedKeys={checkedKeys}
+      onCheck={setCheckedKeys}
     />
   );
+}
+```
+
+## With Lines and Icons
+
+```tsx live
+function LinesAndIcons() {
+  const treeData = [
+    {
+      title: 'Dashboards',
+      key: 'dashboards',
+      children: [
+        { title: 'Sales Dashboard', key: 'sales' },
+        { title: 'Marketing Dashboard', key: 'marketing' },
+      ],
+    },
+    {
+      title: 'Reports',
+      key: 'reports',
+      children: [
+        { title: 'Weekly Report', key: 'weekly' },
+        { title: 'Monthly Report', key: 'monthly' },
+      ],
+    },
+  ];
+  return <Tree treeData={treeData} showLine showIcon defaultExpandAll />;
 }
 ```
 
@@ -120,6 +251,8 @@ function Demo() {
 | `selectable` | `boolean` | `true` | Whether can be selected |
 | `showIcon` | `boolean` | `false` | Controls whether to display the icon node |
 | `showLine` | `boolean` | `false` | Shows a connecting line |
+| `treeData` | `any` | `[{"title":"parent 1","key":"0-0","children":[{"title":"parent 1-0","key":"0-0-0","children":[{"title":"leaf","key":"0-0-0-0"},{"title":"leaf","key":"0-0-0-1"},{"title":"leaf","key":"0-0-0-2"}]},{"title":"parent 1-1","key":"0-0-1","children":[{"title":"leaf","key":"0-0-1-0"}]},{"title":"parent 1-2","key":"0-0-2","children":[{"title":"leaf","key":"0-0-2-0"},{"title":"leaf","key":"0-0-2-1"}]}]}]` | - |
+| `defaultExpandedKeys` | `any` | `["0-0","0-0-0"]` | - |
 
 ## Import
 
@@ -127,14 +260,9 @@ function Demo() {
 import Tree from '@superset/components';
 ```
 
-## Interactive Demo
-
-View this component in [Storybook](https://apache-superset.github.io/superset-ui/?path=/story/components-tree) for an interactive demo.
-
-## Source
-
-- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/Tree/Tree.stories.tsx)
-
 ---
 
-*This page was auto-generated from the component's Storybook story.*
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Tree/Tree.stories.tsx).
+:::

@@ -61,95 +61,93 @@ const treeData = [
   },
 ];
 
-export const InteractiveTreeSelect: Story = {
-  args: {
-    treeData,
-    allowClear: true,
-    disabled: false,
-    multiple: false,
-    placeholder: 'Please select',
-    showSearch: true,
-    size: 'middle',
-    treeCheckable: false,
-    treeDefaultExpandAll: true,
-    treeLine: false,
-    variant: 'outlined',
+export const InteractiveTreeSelect = (args: TreeSelectProps) => (
+  <div style={{ width: 300 }}>
+    <TreeSelect {...args} treeData={treeData} style={{ width: '100%' }} />
+  </div>
+);
+
+InteractiveTreeSelect.args = {
+  allowClear: true,
+  disabled: false,
+  multiple: false,
+  placeholder: 'Please select',
+  showSearch: true,
+  size: 'middle',
+  treeCheckable: false,
+  treeDefaultExpandAll: true,
+  treeLine: false,
+  variant: 'outlined',
+};
+
+InteractiveTreeSelect.argTypes = {
+  allowClear: {
+    control: { type: 'boolean' },
+    description: 'Whether to allow clearing the selected value.',
   },
-  argTypes: {
-    allowClear: {
-      control: 'boolean',
-      description: 'Whether to allow clearing the selected value.',
-    },
-    disabled: {
-      control: 'boolean',
-      description: 'Whether the component is disabled.',
-    },
-    multiple: {
-      control: 'boolean',
-      description: 'Whether to allow multiple selections.',
-    },
-    placeholder: {
-      control: 'text',
-      description: 'Placeholder text for the input field.',
-    },
-    showSearch: {
-      control: 'boolean',
-      description: 'Whether to show the search input.',
-    },
-    size: {
-      control: 'select',
-      options: ['large', 'middle', 'small'],
-      description: 'Size of the component.',
-    },
-    treeCheckable: {
-      control: 'boolean',
-      description: 'Whether to show checkable tree nodes.',
-    },
-    treeDefaultExpandAll: {
-      control: 'boolean',
-      description: 'Whether to expand all tree nodes by default.',
-    },
-    treeLine: {
-      control: 'boolean',
-      description: 'Whether to show tree lines.',
-    },
-    variant: {
-      control: 'select',
-      options: ['outlined', 'borderless', 'filled'],
-      description: 'Variant of the component.',
-    },
-    treeData: {
-      table: { disable: true },
-    },
+  disabled: {
+    control: { type: 'boolean' },
+    description: 'Whether the component is disabled.',
   },
-  render: (args: TreeSelectProps) => (
-    <div style={{ width: 300 }}>
-      <TreeSelect {...args} style={{ width: '100%' }} />
-    </div>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'A select component for choosing from hierarchical tree data.',
-      },
-      staticProps: {
-        treeData: [
-          {
-            title: 'Node1',
-            value: '0-0',
-            children: [
-              { title: 'Child Node1', value: '0-0-0' },
-              { title: 'Child Node2', value: '0-0-1' },
-            ],
-          },
-          {
-            title: 'Node2',
-            value: '0-1',
-            children: [{ title: 'Child Node3', value: '0-1-0' }],
-          },
-        ],
-      },
-      liveExample: `function Demo() {
+  multiple: {
+    control: { type: 'boolean' },
+    description: 'Whether to allow multiple selections.',
+  },
+  placeholder: {
+    control: { type: 'text' },
+    description: 'Placeholder text for the input field.',
+  },
+  showSearch: {
+    control: { type: 'boolean' },
+    description: 'Whether to show the search input.',
+  },
+  size: {
+    control: { type: 'select' },
+    options: ['large', 'middle', 'small'],
+    description: 'Size of the component.',
+  },
+  treeCheckable: {
+    control: { type: 'boolean' },
+    description: 'Whether to show checkable tree nodes.',
+  },
+  treeDefaultExpandAll: {
+    control: { type: 'boolean' },
+    description: 'Whether to expand all tree nodes by default.',
+  },
+  treeLine: {
+    control: { type: 'boolean' },
+    description: 'Whether to show tree lines.',
+  },
+  variant: {
+    control: { type: 'select' },
+    options: ['outlined', 'borderless', 'filled'],
+    description: 'Variant of the component.',
+  },
+  treeData: {
+    table: { disable: true },
+  },
+};
+
+InteractiveTreeSelect.parameters = {
+  docs: {
+    staticProps: {
+      treeData: [
+        {
+          title: 'Node1',
+          value: '0-0',
+          children: [
+            { title: 'Child Node1', value: '0-0-0' },
+            { title: 'Child Node2', value: '0-0-1' },
+          ],
+        },
+        {
+          title: 'Node2',
+          value: '0-1',
+          children: [{ title: 'Child Node3', value: '0-1-0' }],
+        },
+      ],
+    },
+    liveExample: `function Demo() {
   const [value, setValue] = React.useState(undefined);
   const treeData = [
     {
@@ -181,7 +179,77 @@ export const InteractiveTreeSelect: Story = {
     />
   );
 }`,
+    examples: [
+      {
+        title: 'Multiple Selection with Checkboxes',
+        code: `function MultiSelectTree() {
+  const [value, setValue] = React.useState([]);
+  const treeData = [
+    {
+      title: 'Databases',
+      value: 'databases',
+      children: [
+        { title: 'PostgreSQL', value: 'postgres' },
+        { title: 'MySQL', value: 'mysql' },
+        { title: 'SQLite', value: 'sqlite' },
+      ],
     },
+    {
+      title: 'File Formats',
+      value: 'formats',
+      children: [
+        { title: 'CSV', value: 'csv' },
+        { title: 'Excel', value: 'excel' },
+      ],
+    },
+  ];
+  return (
+    <TreeSelect
+      style={{ width: 300 }}
+      value={value}
+      onChange={setValue}
+      treeData={treeData}
+      treeCheckable
+      placeholder="Select data sources"
+      treeDefaultExpandAll
+      allowClear
+    />
+  );
+}`,
+      },
+      {
+        title: 'With Tree Lines',
+        code: `function TreeLinesDemo() {
+  const treeData = [
+    {
+      title: 'Dashboards',
+      value: 'dashboards',
+      children: [
+        { title: 'Sales Dashboard', value: 'sales' },
+        { title: 'Marketing Dashboard', value: 'marketing' },
+      ],
+    },
+    {
+      title: 'Charts',
+      value: 'charts',
+      children: [
+        { title: 'Revenue Chart', value: 'revenue' },
+        { title: 'User Growth', value: 'growth' },
+      ],
+    },
+  ];
+  return (
+    <TreeSelect
+      style={{ width: 300 }}
+      treeData={treeData}
+      treeLine
+      treeDefaultExpandAll
+      placeholder="Browse items"
+    />
+  );
+}`,
+      },
+    ],
   },
 };
 

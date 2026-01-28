@@ -41,17 +41,20 @@ The Tooltip component from Superset's UI library.
   {
     name: "title",
     label: "Title",
-    type: "text"
+    type: "text",
+    description: "Text or content shown in the tooltip."
   },
   {
     name: "mouseEnterDelay",
     label: "Mouse Enter Delay",
-    type: "number"
+    type: "number",
+    description: "Delay in seconds before showing the tooltip on hover."
   },
   {
     name: "mouseLeaveDelay",
     label: "Mouse Leave Delay",
-    type: "number"
+    type: "number",
+    description: "Delay in seconds before hiding the tooltip after mouse leave."
   },
   {
     name: "placement",
@@ -70,7 +73,8 @@ The Tooltip component from Superset's UI library.
       "top",
       "topLeft",
       "topRight"
-    ]
+    ],
+    description: "Position of the tooltip relative to the trigger element."
   },
   {
     name: "trigger",
@@ -81,14 +85,17 @@ The Tooltip component from Superset's UI library.
       "focus",
       "click",
       "contextMenu"
-    ]
+    ],
+    description: "How the tooltip is triggered."
   },
   {
     name: "color",
     label: "Color",
-    type: "color"
+    type: "color",
+    description: "Custom background color for the tooltip."
   }
 ]}
+  sampleChildren={[{"component":"Button","props":{"children":"Hover me"}}]}
 />
 
 ## Try It
@@ -98,11 +105,46 @@ Edit the code below to experiment with the component:
 ```tsx live
 function Demo() {
   return (
-    <Tooltip
-      title="Simple tooltip text"
-      mouseEnterDelay={0.1}
-      mouseLeaveDelay={0.1}
-    />
+    <Tooltip title="This is a helpful tooltip">
+      <Button>Hover me</Button>
+    </Tooltip>
+  );
+}
+```
+
+## Placements
+
+```tsx live
+function Placements() {
+  const placements = ['top', 'bottom', 'left', 'right', 'topLeft', 'topRight', 'bottomLeft', 'bottomRight'];
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {placements.map(placement => (
+        <Tooltip key={placement} title={placement} placement={placement}>
+          <Button>{placement}</Button>
+        </Tooltip>
+      ))}
+    </div>
+  );
+}
+```
+
+## Trigger Types
+
+```tsx live
+function Triggers() {
+  return (
+    <div style={{ display: 'flex', gap: 12 }}>
+      <Tooltip title="Hover trigger" trigger="hover">
+        <Button>Hover</Button>
+      </Tooltip>
+      <Tooltip title="Click trigger" trigger="click">
+        <Button>Click</Button>
+      </Tooltip>
+      <Tooltip title="Focus trigger" trigger="focus">
+        <Button>Focus</Button>
+      </Tooltip>
+    </div>
   );
 }
 ```
@@ -111,9 +153,9 @@ function Demo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `title` | `string` | `"Simple tooltip text"` | - |
-| `mouseEnterDelay` | `number` | `0.1` | - |
-| `mouseLeaveDelay` | `number` | `0.1` | - |
+| `title` | `string` | `"Simple tooltip text"` | Text or content shown in the tooltip. |
+| `mouseEnterDelay` | `number` | `0.1` | Delay in seconds before showing the tooltip on hover. |
+| `mouseLeaveDelay` | `number` | `0.1` | Delay in seconds before hiding the tooltip after mouse leave. |
 
 ## Import
 

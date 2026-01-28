@@ -33,21 +33,25 @@ The UnsavedChangesModal component from Superset's UI library.
 <StoryWithControls
   component="UnsavedChangesModal"
   props={{
-  showModal: true,
+  showModal: false,
   title: "Unsaved Changes"
 }}
   controls={[
   {
     name: "showModal",
     label: "Show Modal",
-    type: "boolean"
+    type: "boolean",
+    description: "Whether the modal is visible."
   },
   {
     name: "title",
     label: "Title",
-    type: "text"
+    type: "text",
+    description: "Title text displayed in the modal header."
   }
 ]}
+  triggerProp="showModal"
+  onHideProp="onHide"
 />
 
 ## Try It
@@ -56,11 +60,47 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
+  const [show, setShow] = React.useState(false);
   return (
-    <UnsavedChangesModal
-      showModal
-      title="Unsaved Changes"
-    />
+    <div>
+      <Button onClick={() => setShow(true)}>
+        Navigate Away (Unsaved Changes)
+      </Button>
+      <UnsavedChangesModal
+        showModal={show}
+        onHide={() => setShow(false)}
+        handleSave={() => { alert('Saved!'); setShow(false); }}
+        onConfirmNavigation={() => { alert('Discarded changes'); setShow(false); }}
+        title="Unsaved Changes"
+      >
+        If you don&apos;t save, changes will be lost.
+      </UnsavedChangesModal>
+    </div>
+  );
+}
+```
+
+## Custom Title
+
+```tsx live
+function CustomTitle() {
+  const [show, setShow] = React.useState(false);
+  return (
+    <div>
+      <Button onClick={() => setShow(true)}>
+        Close Without Saving
+      </Button>
+      <UnsavedChangesModal
+        showModal={show}
+        onHide={() => setShow(false)}
+        handleSave={() => setShow(false)}
+        onConfirmNavigation={() => setShow(false)}
+        title="You have unsaved dashboard changes"
+      >
+        Your dashboard layout and filter changes have not been saved.
+        Do you want to save before leaving?
+      </UnsavedChangesModal>
+    </div>
   );
 }
 ```
@@ -69,8 +109,8 @@ function Demo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `showModal` | `boolean` | `true` | - |
-| `title` | `string` | `"Unsaved Changes"` | - |
+| `showModal` | `boolean` | `false` | Whether the modal is visible. |
+| `title` | `string` | `"Unsaved Changes"` | Title text displayed in the modal header. |
 
 ## Import
 

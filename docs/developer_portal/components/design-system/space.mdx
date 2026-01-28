@@ -74,6 +74,8 @@ The Space component from Superset's UI library.
     ]
   }
 ]}
+  sampleChildren={["Item 1","Item 2","Item 3","Item 4","Item 5"]}
+  sampleChildrenStyle={{padding:"8px 16px",background:"#e6f4ff",border:"1px solid #91caff",borderRadius:"4px"}}
 />
 
 ## Try It
@@ -83,10 +85,63 @@ Edit the code below to experiment with the component:
 ```tsx live
 function Demo() {
   return (
-    <Space
-      direction="horizontal"
-      size="small"
-    />
+    <Space size="small">
+      {['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5'].map(item => (
+        <div
+          key={item}
+          style={{
+            padding: '8px 16px',
+            background: '#e6f4ff',
+            border: '1px solid #91caff',
+            borderRadius: 4,
+          }}
+        >
+          {item}
+        </div>
+      ))}
+    </Space>
+  );
+}
+```
+
+## Vertical Space
+
+```tsx live
+function VerticalSpace() {
+  return (
+    <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
+      <Button buttonStyle="primary">Primary</Button>
+      <Button buttonStyle="secondary">Secondary</Button>
+      <Button buttonStyle="dashed">Dashed</Button>
+    </Space>
+  );
+}
+```
+
+## Space Sizes
+
+```tsx live
+function SpaceSizes() {
+  const items = ['Item 1', 'Item 2', 'Item 3'];
+  const itemStyle = {
+    padding: '8px 16px',
+    background: '#e6f4ff',
+    border: '1px solid #91caff',
+    borderRadius: 4,
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {['small', 'middle', 'large'].map(size => (
+        <div key={size}>
+          <h4>{size}</h4>
+          <Space size={size}>
+            {items.map(item => (
+              <div key={item} style={itemStyle}>{item}</div>
+            ))}
+          </Space>
+        </div>
+      ))}
+    </div>
   );
 }
 ```

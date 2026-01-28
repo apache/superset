@@ -42,7 +42,33 @@ TreeSelect is a select component that allows users to select from a tree structu
   treeCheckable: false,
   treeDefaultExpandAll: true,
   treeLine: false,
-  variant: "outlined"
+  variant: "outlined",
+  treeData: [
+    {
+      title: "Node1",
+      value: "0-0",
+      children: [
+        {
+          title: "Child Node1",
+          value: "0-0-0"
+        },
+        {
+          title: "Child Node2",
+          value: "0-0-1"
+        }
+      ]
+    },
+    {
+      title: "Node2",
+      value: "0-1",
+      children: [
+        {
+          title: "Child Node3",
+          value: "0-1-0"
+        }
+      ]
+    }
+  ]
 }}
   controls={[
   {
@@ -124,14 +150,107 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
+  const [value, setValue] = React.useState(undefined);
+  const treeData = [
+    {
+      title: 'Databases',
+      value: 'databases',
+      children: [
+        { title: 'PostgreSQL', value: 'postgres' },
+        { title: 'MySQL', value: 'mysql' },
+      ],
+    },
+    {
+      title: 'Charts',
+      value: 'charts',
+      children: [
+        { title: 'Bar Chart', value: 'bar' },
+        { title: 'Line Chart', value: 'line' },
+      ],
+    },
+  ];
   return (
     <TreeSelect
+      style={{ width: 300 }}
+      value={value}
+      onChange={setValue}
+      treeData={treeData}
+      placeholder="Select an item"
       allowClear
-      placeholder="Please select"
-      showSearch
-      size="middle"
       treeDefaultExpandAll
-      variant="outlined"
+    />
+  );
+}
+```
+
+## Multiple Selection with Checkboxes
+
+```tsx live
+function MultiSelectTree() {
+  const [value, setValue] = React.useState([]);
+  const treeData = [
+    {
+      title: 'Databases',
+      value: 'databases',
+      children: [
+        { title: 'PostgreSQL', value: 'postgres' },
+        { title: 'MySQL', value: 'mysql' },
+        { title: 'SQLite', value: 'sqlite' },
+      ],
+    },
+    {
+      title: 'File Formats',
+      value: 'formats',
+      children: [
+        { title: 'CSV', value: 'csv' },
+        { title: 'Excel', value: 'excel' },
+      ],
+    },
+  ];
+  return (
+    <TreeSelect
+      style={{ width: 300 }}
+      value={value}
+      onChange={setValue}
+      treeData={treeData}
+      treeCheckable
+      placeholder="Select data sources"
+      treeDefaultExpandAll
+      allowClear
+    />
+  );
+}
+```
+
+## With Tree Lines
+
+```tsx live
+function TreeLinesDemo() {
+  const treeData = [
+    {
+      title: 'Dashboards',
+      value: 'dashboards',
+      children: [
+        { title: 'Sales Dashboard', value: 'sales' },
+        { title: 'Marketing Dashboard', value: 'marketing' },
+      ],
+    },
+    {
+      title: 'Charts',
+      value: 'charts',
+      children: [
+        { title: 'Revenue Chart', value: 'revenue' },
+        { title: 'User Growth', value: 'growth' },
+      ],
+    },
+  ];
+  return (
+    <TreeSelect
+      style={{ width: 300 }}
+      treeData={treeData}
+      treeLine
+      treeDefaultExpandAll
+      placeholder="Browse items"
     />
   );
 }
@@ -151,6 +270,7 @@ function Demo() {
 | `treeDefaultExpandAll` | `boolean` | `true` | Whether to expand all tree nodes by default. |
 | `treeLine` | `boolean` | `false` | Whether to show tree lines. |
 | `variant` | `string` | `"outlined"` | Variant of the component. |
+| `treeData` | `any` | `[{"title":"Node1","value":"0-0","children":[{"title":"Child Node1","value":"0-0-0"},{"title":"Child Node2","value":"0-0-1"}]},{"title":"Node2","value":"0-1","children":[{"title":"Child Node3","value":"0-1-0"}]}]` | - |
 
 ## Import
 
