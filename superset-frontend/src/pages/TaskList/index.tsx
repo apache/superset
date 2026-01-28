@@ -43,11 +43,22 @@ import {
   TaskScope,
   canAbortTask,
   isTaskAborting,
+  TaskSubscriber,
 } from 'src/features/tasks/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 const PAGE_SIZE = 25;
+
+/**
+ * Typed cell props for react-table columns.
+ * Replaces `: any` for better type safety in Cell render functions.
+ */
+interface TaskCellProps {
+  row: {
+    original: Task;
+  };
+}
 
 interface TaskListProps {
   addDangerToast: (msg: string) => void;
@@ -106,8 +117,9 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   // Check if current user is subscribed to a task
   const isUserSubscribed = useCallback(
     (task: Task) =>
-      task.subscribers?.some((sub: any) => sub.user_id === user.userId) ??
-      false,
+      task.subscribers?.some(
+        (sub: TaskSubscriber) => sub.user_id === user.userId,
+      ) ?? false,
     [user.userId],
   );
 
@@ -199,7 +211,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           row: {
             original: { task_name, task_key, uuid },
           },
-        }: any) => {
+        }: TaskCellProps) => {
           // Display preference: task_name > task_key
           const displayText = task_name || task_key;
           const truncated =
@@ -235,9 +247,9 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           row: {
             original: { status, properties, duration_seconds },
           },
-        }: any) => (
+        }: TaskCellProps) => (
           <TaskStatusIcon
-            status={status}
+            status={status as TaskStatus}
             progressPercent={properties?.progress_percent}
             progressCurrent={properties?.progress_current}
             progressTotal={properties?.progress_total}
@@ -262,7 +274,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           row: {
             original: { scope },
           },
-        }: any) => {
+        }: TaskCellProps) => {
           const scopeConfig: Record<
             TaskScope,
             { label: string; type: 'default' | 'info' | 'warning' }
@@ -289,7 +301,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           row: {
             original: { subscriber_count, subscribers },
           },
-        }: any) => {
+        }: TaskCellProps) => {
           if (!subscribers || subscriber_count === 0) {
             return '-';
           }
@@ -317,7 +329,9 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               created_by: createdBy,
             },
           },
-        }: any) => <CreatedInfo date={createdOn} user={createdBy} />,
+        }: TaskCellProps) => (
+          <CreatedInfo date={createdOn ?? ''} user={createdBy ?? undefined} />
+        ),
         Header: t('Created'),
         accessor: 'created_on',
         size: 'xl',
@@ -334,7 +348,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           row: {
             original: { duration_seconds },
           },
-        }: any) => formatDuration(duration_seconds) ?? '-',
+        }: TaskCellProps) => formatDuration(duration_seconds) ?? '-',
         accessor: 'duration_seconds',
         Header: t('Duration'),
         size: 'sm',
@@ -346,7 +360,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           row: {
             original: { payload, properties, status },
           },
-        }: any) => {
+        }: TaskCellProps) => {
           const hasPayload = payload && Object.keys(payload).length > 0;
           const hasStackTrace = !!properties?.stack_trace;
 
@@ -362,7 +376,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           }
 
           return (
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: theme.sizeUnit * 2 }}>
               {hasTimeoutWithoutHandler && (
                 <Tooltip
                   title={t(
@@ -381,7 +395,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                 </Tooltip>
               )}
               {hasPayload && <TaskPayloadPopover payload={payload} />}
-              {hasStackTrace && (
+              {hasStackTrace && properties.stack_trace && (
                 <TaskStackTracePopover stackTrace={properties.stack_trace} />
               )}
             </div>
@@ -394,7 +408,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         disableSortBy: true,
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: TaskCellProps) => {
           // Unified Cancel button logic:
           // - Show Cancel for any active task that the user can cancel
           // - The backend handles the smart behavior (unsubscribe vs abort)
@@ -416,7 +430,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             TaskStatus.Aborted,
             TaskStatus.Aborting,
             TaskStatus.TimedOut,
-          ].includes(original.status);
+          ].includes(original.status as TaskStatus);
 
           // Show disabled button for running tasks without abort handler
           // (only for non-shared tasks or when user is the only subscriber)
@@ -439,7 +453,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           }
 
           return (
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: theme.sizeUnit * 2 }}>
               {showDisabledCancel && (
                 <Tooltip
                   id="cancel-disabled-tooltip"
@@ -450,9 +464,12 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                 >
                   <span
                     className="action-button"
-                    style={{ opacity: 0.4, cursor: 'not-allowed' }}
+                    style={{ cursor: 'not-allowed' }}
                   >
-                    <Icons.StopOutlined iconSize="l" />
+                    <Icons.StopOutlined
+                      iconSize="l"
+                      iconColor={theme.colorTextDisabled}
+                    />
                   </span>
                 </Tooltip>
               )}
@@ -481,7 +498,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         disableSortBy: true,
       },
     ],
-    [user.userId, theme],
+    [user.userId, theme, openCancelModal],
   );
 
   const filters: ListViewFilters = useMemo(

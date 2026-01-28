@@ -18,7 +18,7 @@
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from superset_core.api.tasks import TaskProperties, TaskScope, TaskStatus
@@ -309,7 +309,7 @@ class TaskDAO(BaseDAO[Task]):
         subscription = TaskSubscriber(
             task_id=task_id,
             user_id=user_id,
-            subscribed_at=datetime.utcnow(),
+            subscribed_at=datetime.now(timezone.utc),
         )
         db.session.add(subscription)
         db.session.flush()

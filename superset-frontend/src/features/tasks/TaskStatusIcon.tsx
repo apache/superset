@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import { useTheme, SupersetTheme, t } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components';
 import { TaskStatus } from './types';
@@ -56,13 +56,13 @@ const statusIcons = {
 };
 
 const statusLabels = {
-  [TaskStatus.Pending]: 'Pending',
-  [TaskStatus.InProgress]: 'In Progress',
-  [TaskStatus.Success]: 'Success',
-  [TaskStatus.Failure]: 'Failed',
-  [TaskStatus.TimedOut]: 'Timed Out',
-  [TaskStatus.Aborting]: 'Aborting',
-  [TaskStatus.Aborted]: 'Aborted',
+  [TaskStatus.Pending]: t('Pending'),
+  [TaskStatus.InProgress]: t('In Progress'),
+  [TaskStatus.Success]: t('Success'),
+  [TaskStatus.Failure]: t('Failed'),
+  [TaskStatus.TimedOut]: t('Timed Out'),
+  [TaskStatus.Aborting]: t('Aborting'),
+  [TaskStatus.Aborted]: t('Aborted'),
 };
 
 interface TaskStatusIconProps {

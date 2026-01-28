@@ -71,7 +71,6 @@ class TaskPruneCommand(BaseCommand):
 
         # Select all IDs that need to be deleted
         # Only delete completed tasks (success, failure, or aborted)
-        # Lazy import to avoid circular dependency
         from superset.models.tasks import Task
 
         select_stmt = sa.select(Task.id).where(

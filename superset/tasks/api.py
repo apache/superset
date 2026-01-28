@@ -17,6 +17,7 @@
 """Task REST API"""
 
 import logging
+import uuid
 from typing import TYPE_CHECKING
 
 from flask import Response
@@ -53,6 +54,15 @@ if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
+
+
+def _is_valid_uuid(value: str) -> bool:
+    """Check if a string is a valid UUID format."""
+    try:
+        uuid.UUID(value)
+        return True
+    except (ValueError, AttributeError):
+        return False
 
 
 class TaskRestApi(BaseSupersetModelRestApi):
@@ -189,17 +199,13 @@ class TaskRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
+        from superset.daos.tasks import TaskDAO
+
         try:
             # Try to find by UUID first, then by ID
-            if len(uuid_or_id) == 36 or "-" in uuid_or_id:
-                # Lazy import to avoid circular dependency
-                from superset.daos.tasks import TaskDAO
-
+            if _is_valid_uuid(uuid_or_id):
                 task = TaskDAO.find_one_or_none(uuid=uuid_or_id)
             else:
-                # Lazy import to avoid circular dependency
-                from superset.daos.tasks import TaskDAO
-
                 task = TaskDAO.find_by_id(int(uuid_or_id))
 
             if not task:
@@ -247,17 +253,13 @@ class TaskRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
+        from superset.daos.tasks import TaskDAO
+
         try:
             # Try to find by UUID first, then by ID
-            if len(uuid_or_id) == 36 or "-" in uuid_or_id:
-                # Lazy import to avoid circular dependency
-                from superset.daos.tasks import TaskDAO
-
+            if _is_valid_uuid(uuid_or_id):
                 task = TaskDAO.find_one_or_none(uuid=uuid_or_id)
             else:
-                # Lazy import to avoid circular dependency
-                from superset.daos.tasks import TaskDAO
-
                 task = TaskDAO.find_by_id(int(uuid_or_id))
 
             if not task:
@@ -356,10 +358,10 @@ class TaskRestApi(BaseSupersetModelRestApi):
 
     def _resolve_task_uuid(self, uuid_or_id: str) -> str | None:
         """Resolve a UUID or ID to a task UUID."""
-        if len(uuid_or_id) == 36 or "-" in uuid_or_id:
-            return uuid_or_id
-
         from superset.daos.tasks import TaskDAO
+
+        if _is_valid_uuid(uuid_or_id):
+            return uuid_or_id
 
         task = TaskDAO.find_by_id(uuid_or_id)
         return task.uuid if task else None
