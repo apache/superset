@@ -109,17 +109,44 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = (
 SQLLAB_CTAS_NO_LIMIT = True
 
 # Custom time grains
-TIME_GRAIN_ADDONS = {
+TIME_GRAIN_ADDONS: dict[str, str] = {
     "PT3H": "3 hours",
+    "PT6H": "6 hours",
+    "PT12H_6AM": "12 hours (6am / 6pm)",
+    "P1D_6AM": "Day (6am → 6am)",
 }
 
 # Custom time grain SQL expressions for PostgreSQL
-TIME_GRAIN_ADDON_EXPRESSIONS = {
+TIME_GRAIN_ADDON_EXPRESSIONS: dict[str, dict[str, str]] = {
     "postgresql": {
-        "PT3H": "DATE_TRUNC('hour', {col}) + INTERVAL '3 hours' * FLOOR(EXTRACT(HOUR FROM {col}) / 3)",
-        "PT6H": "DATE_TRUNC('hour', {col}) + INTERVAL '6 hours' * FLOOR(EXTRACT(HOUR FROM {col}) / 6)",
+        # 3h
+        "PT3H": (
+            "date_trunc('hour', {col}) "
+            "- (extract(hour from {col})::int % 3) * interval '1 hour'"
+        ),
+
+        # 6h
+        "PT6H": (
+            "date_trunc('hour', {col}) "
+            "- (extract(hour from {col})::int % 6) * interval '1 hour'"
+        ),
+
+        # 12h aligned to 6am / 6pm
+        "PT12H_6AM": (
+            "date_trunc('hour', {col} - interval '6 hour') "
+            "- (extract(hour from {col} - interval '6 hour')::int % 12) "
+            "  * interval '1 hour' "
+            "+ interval '6 hour'"
+        ),
+
+        # Day aligned to 6am → 6am
+        "P1D_6AM": (
+            "date_trunc('day', {col} - interval '6 hour') "
+            "+ interval '6 hour'"
+        ),
     },
 }
+
 
 log_level_text = os.getenv("SUPERSET_LOG_LEVEL", "INFO")
 LOG_LEVEL = getattr(logging, log_level_text.upper(), logging.INFO)
