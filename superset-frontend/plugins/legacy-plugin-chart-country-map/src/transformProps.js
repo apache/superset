@@ -47,6 +47,6 @@ export default function transformProps(chartProps) {
     numberFormat,
     colorScheme,
     sliceId,
-    customColorScale: parsedColorScale,
+    customColorScale: Array.isArray(parsedColorScale) ? parsedColorScale : [],
   };
 }
