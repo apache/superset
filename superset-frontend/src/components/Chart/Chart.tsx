@@ -201,7 +201,10 @@ class Chart extends PureComponent<ChartProps, {}> {
   }
 
   runQuery() {
-    if (!this.shouldRenderChart()) {
+    if (
+      isFeatureEnabled(FeatureFlag.DashboardLoadDataVirtualization) &&
+      !this.shouldRenderChart()
+    ) {
       return;
     }
     // Create chart with POST request
