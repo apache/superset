@@ -281,13 +281,33 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
 
   // Resolve any prop values that are component descriptors
   // e.g., { component: 'Button', props: { children: 'Click' } }
+  // Also resolves descriptors nested inside array items:
+  // e.g., items: [{ id: 'x', element: { component: 'div', props: { children: 'text' } } }]
   Object.keys(filteredProps).forEach(key => {
     const value = filteredProps[key];
-    if (value && typeof value === 'object' && value.component) {
+    if (value && typeof value === 'object' && !Array.isArray(value) && value.component) {
       const PropComponent = resolveComponent(value.component);
       if (PropComponent) {
         filteredProps[key] = <PropComponent {...value.props} />;
       }
+    }
+    if (Array.isArray(value)) {
+      filteredProps[key] = value.map((item, idx) => {
+        if (item && typeof item === 'object') {
+          const resolved = { ...item };
+          Object.keys(resolved).forEach(field => {
+            const fieldValue = resolved[field];
+            if (fieldValue && typeof fieldValue === 'object' && !Array.isArray(fieldValue) && fieldValue.component) {
+              const FieldComponent = resolveComponent(fieldValue.component);
+              if (FieldComponent) {
+                resolved[field] = React.createElement(FieldComponent, { key: `${key}-${idx}`, ...fieldValue.props });
+              }
+            }
+          });
+          return resolved;
+        }
+        return item;
+      });
     }
   });
 
