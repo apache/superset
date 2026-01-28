@@ -83,3 +83,81 @@ InteractiveTabs.argTypes = {
     control: { type: 'number' },
   },
 };
+
+InteractiveTabs.parameters = {
+  docs: {
+    staticProps: {
+      items: [
+        { key: '1', label: 'Tab 1', children: 'Content of Tab Pane 1' },
+        { key: '2', label: 'Tab 2', children: 'Content of Tab Pane 2' },
+        { key: '3', label: 'Tab 3', children: 'Content of Tab Pane 3' },
+      ],
+    },
+    liveExample: `function Demo() {
+  return (
+    <Tabs
+      defaultActiveKey="1"
+      items={[
+        { key: '1', label: 'Tab 1', children: 'Content of Tab Pane 1' },
+        { key: '2', label: 'Tab 2', children: 'Content of Tab Pane 2' },
+        { key: '3', label: 'Tab 3', children: 'Content of Tab Pane 3' },
+      ]}
+    />
+  );
+}`,
+    examples: [
+      {
+        title: 'Card Style',
+        code: `function CardTabs() {
+  return (
+    <Tabs
+      type="card"
+      defaultActiveKey="1"
+      items={[
+        { key: '1', label: 'Dashboards', children: 'View and manage your dashboards.' },
+        { key: '2', label: 'Charts', children: 'Browse all saved charts.' },
+        { key: '3', label: 'Datasets', children: 'Explore available datasets.' },
+      ]}
+    />
+  );
+}`,
+      },
+      {
+        title: 'Tab Positions',
+        code: `function TabPositions() {
+  const items = [
+    { key: '1', label: 'Tab 1', children: 'Content 1' },
+    { key: '2', label: 'Tab 2', children: 'Content 2' },
+    { key: '3', label: 'Tab 3', children: 'Content 3' },
+  ];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {['top', 'bottom', 'left', 'right'].map(pos => (
+        <div key={pos}>
+          <h4>{pos}</h4>
+          <Tabs tabPosition={pos} defaultActiveKey="1" items={items} />
+        </div>
+      ))}
+    </div>
+  );
+}`,
+      },
+      {
+        title: 'With Icons',
+        code: `function IconTabs() {
+  return (
+    <Tabs
+      defaultActiveKey="1"
+      items={[
+        { key: '1', label: <><Icons.DashboardOutlined /> Dashboards</>, children: 'Dashboard content here.' },
+        { key: '2', label: <><Icons.LineChartOutlined /> Charts</>, children: 'Chart content here.' },
+        { key: '3', label: <><Icons.DatabaseOutlined /> Datasets</>, children: 'Dataset content here.' },
+        { key: '4', label: <><Icons.ConsoleSqlOutlined /> SQL Lab</>, children: 'SQL Lab content here.' },
+      ]}
+    />
+  );
+}`,
+      },
+    ],
+  },
+};
