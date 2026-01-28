@@ -20,6 +20,7 @@
 // Shim for react-table to handle CommonJS to ES module interop
 // react-table v7 is CommonJS, but Superset components import it with ES module syntax
 // Use relative path to avoid circular dependency since webpack aliases 'react-table' to this file
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- CJS interop shim for react-table v7
 const reactTable = require('../../node_modules/react-table');
 
 // Re-export all named exports

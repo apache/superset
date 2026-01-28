@@ -642,7 +642,7 @@ function jsToJson(jsStr) {
     str = str.replace(/,(\s*[}\]])/g, '$1');
 
     return JSON.parse(str);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -965,7 +965,7 @@ function extractArgsAndControls(content, componentName) {
  * Generate MDX content for a component
  */
 function generateMDX(component, storyContent) {
-  const { componentName, description, relativePath, category, title, sourceConfig, resolvedImportPath, isDefaultExport } = component;
+  const { componentName, description, relativePath, category, sourceConfig, resolvedImportPath, isDefaultExport } = component;
 
   const { args, argTypes, controls, sampleChildren, sampleChildrenStyle, gallery, staticProps, liveExample, examples, renderComponent, triggerProp, onHideProp } = extractArgsAndControls(storyContent, componentName);
 

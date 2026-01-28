@@ -23,7 +23,6 @@ import BrowserOnly from '@docusaurus/BrowserOnly';
 // Lazy-loaded component registry - populated on first use in browser
 let componentRegistry = null;
 let SupersetProviders = null;
-let loadError = null;
 
 function getComponentRegistry() {
   if (typeof window === 'undefined') {
@@ -50,7 +49,6 @@ function getComponentRegistry() {
     return componentRegistry;
   } catch (error) {
     console.error('[StorybookWrapper] Failed to load components:', error);
-    loadError = error;
     componentRegistry = {};
     return componentRegistry;
   }
