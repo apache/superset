@@ -94,7 +94,6 @@ interface ColumnTestProps {
   availableColumnCount: number;
   minColumnWidth: number;
   columnWidth: number;
-  occupiedColumnCount?: number;
   onResizeStart: () => void;
   onResize: () => void;
   onResizeStop: () => void;
@@ -116,7 +115,6 @@ const props: ColumnTestProps = {
   availableColumnCount: 12,
   minColumnWidth: 2,
   columnWidth: 50,
-  occupiedColumnCount: 6,
   onResizeStart: () => {},
   onResize: () => {},
   onResizeStop: () => {},
