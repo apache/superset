@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -145,7 +145,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
             task.update_properties({"is_abortable": True})
             task.update_properties(progress_update((50, 100)))
         """
-        current: TaskProperties = dict(self.properties)
+        current = cast(TaskProperties, dict(self.properties))
         current.update(updates)  # Merge updates
         self._properties = serialize_properties(current)
         self._properties_cache = current  # Update cache
