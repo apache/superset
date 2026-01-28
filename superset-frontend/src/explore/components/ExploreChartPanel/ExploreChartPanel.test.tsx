@@ -188,4 +188,46 @@ describe('ChartContainer', () => {
     expect(await screen.findByRole('timer')).toBeInTheDocument();
     expect(gutter).not.toBeVisible();
   });
+
+  test('renders LastQueriedLabel when chart is not loading', async () => {
+    const props = createProps({
+      chart: {
+        chartStatus: 'rendered',
+        queriesResponse: [
+          {
+            queried_dttm: '2026-01-27T19:53:40.000Z',
+            is_cached: false,
+          },
+        ],
+      },
+    });
+    render(<ChartContainer {...props} />, { useRedux: true });
+    expect(await screen.findByText(/last queried at/i)).toBeInTheDocument();
+  });
+
+  test('does not render LastQueriedLabel when chart is loading', async () => {
+    const props = createProps({
+      chart: {
+        chartStatus: 'loading',
+        queriesResponse: [],
+      },
+    });
+    render(<ChartContainer {...props} />, { useRedux: true });
+    expect(await screen.findByRole('timer')).toBeInTheDocument();
+    expect(screen.queryByText(/last queried at/i)).not.toBeInTheDocument();
+  });
+
+  test('chart container has proper flexbox layout styles', async () => {
+    const props = createProps();
+    const { container } = render(<ChartContainer {...props} />, {
+      useRedux: true,
+    });
+    
+    const panelBody = container.querySelector('.panel-body');
+    expect(panelBody).toBeInTheDocument();
+    
+    const styles = window.getComputedStyle(panelBody);
+    expect(styles.display).toBe('flex');
+    expect(styles.flexDirection).toBe('column');
+  });
 });
