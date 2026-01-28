@@ -39,7 +39,7 @@ import {
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
-  forceMaxInterval,
+  forceMaxInterval, showColorByXAxisSection,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';
@@ -325,6 +325,7 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         ['time_shift_color'],
         ...showValueSection,
+        ...showColorByXAxisSection,
         [
           {
             name: 'stackDimension',

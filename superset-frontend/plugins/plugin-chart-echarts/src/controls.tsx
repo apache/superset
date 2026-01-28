@@ -135,6 +135,20 @@ export const showValueControl: ControlSetItem = {
   },
 };
 
+export const showColorbyXAxisControl: ControlSetItem = {
+  name: 'show_color_by_x_axis',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Color By X-Axis'),
+    default: false,
+    renderTrigger: true,
+    description: t('Color bars by x-axis'),
+    visibility: ({ controls }: { controls: any }) =>
+      (!controls?.stack?.value || controls?.stack?.value === null) &&
+      (!controls?.groupby?.value || controls?.groupby?.value?.length === 0),
+  },
+};
+
 export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
@@ -185,6 +199,10 @@ export const showValueSection: ControlSetRow[] = [
   [stackControl],
   [onlyTotalControl],
   [percentageThresholdControl],
+];
+
+export const showColorByXAxisSection: ControlSetRow[] = [
+  [showColorbyXAxisControl],
 ];
 
 export const showValueSectionWithoutStack: ControlSetRow[] = [
