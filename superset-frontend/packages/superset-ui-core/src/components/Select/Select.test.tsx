@@ -86,7 +86,7 @@ const getSelect = () =>
   screen.getByRole('combobox', { name: new RegExp(ARIA_LABEL, 'i') });
 
 const selectAllButtonText = (length: number) => `Select all (${length})`;
-const deselectAllButtonText = (length: number) => `Deselect all (${length})`;
+const deselectAllButtonText = (length: number) => `Clear (${length})`;
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
