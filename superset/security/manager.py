@@ -284,6 +284,26 @@ def _get_visible_columns(stored_chart: "Slice") -> set[str]:
     return visible
 
 
+def _validate_orderby_list(
+    orderby: Any,
+    visible_columns: set[str],
+) -> bool:
+    """
+    Validate a single orderby list against visible columns.
+
+    Returns True if invalid (should block), False if valid.
+    """
+    if orderby is not None and not isinstance(orderby, list):
+        return True
+    for orderby_tuple in orderby or []:
+        if not isinstance(orderby_tuple, (list, tuple)) or len(orderby_tuple) < 1:
+            return True
+        col_name = _extract_orderby_column_name(orderby_tuple[0])
+        if col_name is None or col_name not in visible_columns:
+            return True
+    return False
+
+
 def _orderby_whitelist_compare(
     query_context: "QueryContext",
     stored_chart: "Slice",
@@ -302,37 +322,13 @@ def _orderby_whitelist_compare(
     form_data = query_context.form_data or {}
 
     # Check form_data orderby
-    form_orderby = form_data.get("orderby")
-    if form_orderby is not None and not isinstance(form_orderby, list):
-        # orderby must be a list, block invalid format
+    if _validate_orderby_list(form_data.get("orderby"), visible_columns):
         return True
-    for orderby_tuple in form_orderby or []:
-        if not isinstance(orderby_tuple, (list, tuple)):
-            # Each orderby element must be a tuple/list, block invalid format
-            return True
-        if len(orderby_tuple) < 1:
-            # Empty tuple, block
-            return True
-        col_name = _extract_orderby_column_name(orderby_tuple[0])
-        if col_name is None or col_name not in visible_columns:
-            return True
 
     # Check queries orderby
     for query in query_context.queries:
-        query_orderby = getattr(query, "orderby", None)
-        if query_orderby is not None and not isinstance(query_orderby, list):
-            # orderby must be a list, block invalid format
+        if _validate_orderby_list(getattr(query, "orderby", None), visible_columns):
             return True
-        for orderby_tuple in query_orderby or []:
-            if not isinstance(orderby_tuple, (list, tuple)):
-                # Each orderby element must be a tuple/list, block invalid format
-                return True
-            if len(orderby_tuple) < 1:
-                # Empty tuple, block
-                return True
-            col_name = _extract_orderby_column_name(orderby_tuple[0])
-            if col_name is None or col_name not in visible_columns:
-                return True
 
     return False
 
