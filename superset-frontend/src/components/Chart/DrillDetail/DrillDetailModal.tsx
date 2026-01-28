@@ -27,7 +27,7 @@ import {
 } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { Button, Modal, Dropdown } from '@superset-ui/core/components';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
@@ -36,7 +36,7 @@ import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Dataset } from '../types';
 import DrillDetailPane from './DrillDetailPane';
 import { getDrillPayload } from './utils';
@@ -148,7 +148,7 @@ export default function DrillDetailModal({
 }: DrillDetailModalProps) {
   const theme = useTheme();
   const history = useHistory();
-  const dispatch = useDispatch();
+  const { addDangerToast } = useToasts();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
@@ -179,18 +179,18 @@ export default function DrillDetailModal({
       const drillPayload = getDrillPayload(formData, initialFilters);
 
       if (!drillPayload) {
-        dispatch(addDangerToast(t('Unable to generate download payload')));
+        addDangerToast(t('Unable to generate download payload'));
         return;
       }
 
       if (!formData.datasource || typeof formData.datasource !== 'string') {
-        dispatch(addDangerToast(t('Invalid datasource configuration')));
+        addDangerToast(t('Invalid datasource configuration'));
         return;
       }
 
       const datasourceParts = formData.datasource.split('__');
       if (datasourceParts.length !== 2) {
-        dispatch(addDangerToast(t('Invalid datasource format')));
+        addDangerToast(t('Invalid datasource format'));
         return;
       }
 
@@ -223,14 +223,12 @@ export default function DrillDetailModal({
       SupersetClient.postForm(ensureAppRoot('/api/v1/chart/data'), {
         form_data: safeStringify(payload),
       }).catch(error => {
-        dispatch(
-          addDangerToast(
-            t('Failed to generate download: %s', error.message || error),
-          ),
+        addDangerToast(
+          t('Failed to generate download: %s', error.message || error),
         );
       });
     },
-    [formData, initialFilters, dispatch, samplesRowLimit],
+    [formData, initialFilters, addDangerToast, samplesRowLimit],
   );
 
   const handleDownloadCSV = useCallback(() => {
