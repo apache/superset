@@ -708,7 +708,7 @@ function generateReadmeLogos(databases) {
     }
 
     const img = `<img src="docs/static/img/databases/${logo}" alt="${name}" ${sizeAttrs} />`;
-    return `  <a href="${DOCS_BASE}/${slug}" title="${name}" style="display: inline-block; padding: 4px 8px">${img}</a>`;
+    return `  <a href="${DOCS_BASE}/${slug}" title="${name}">${img}</a>`;
   });
 
   // Use &nbsp; between logos for spacing (GitHub strips style/class attributes)
