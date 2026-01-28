@@ -918,16 +918,10 @@ function patchBigNumberTotalFormData(form_data, slice) {
 }
 
 function mapStateToProps(state) {
-  const {
-    explore,
-    charts,
-    common,
-    impressionId,
-    dataMask,
-    reports,
-    user,
-    saveModal,
-  } = state;
+  const { charts, common, impressionId, dataMask, reports, user, saveModal } =
+    state;
+  // Access explore.present because explore reducer is wrapped with redux-undo
+  const explore = state.explore.present;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
   const hasQueryMode = !!controls?.query_mode?.value;
   const fieldsToOmit = hasQueryMode

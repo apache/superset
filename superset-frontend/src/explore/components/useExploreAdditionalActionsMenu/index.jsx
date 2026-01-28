@@ -141,7 +141,7 @@ export const useExploreAdditionalActionsMenu = (
     300,
   );
   const chart = useSelector(
-    state => state.charts?.[getChartKey(state.explore)],
+    state => state.charts?.[getChartKey(state.explore.present)],
   );
   const streamingThreshold = useSelector(
     state =>

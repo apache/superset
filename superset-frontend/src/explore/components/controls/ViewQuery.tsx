@@ -80,7 +80,7 @@ const ViewQuery: FC<ViewQueryProps> = props => {
   const theme = useTheme();
   const datasetId = datasource?.split('__')[0];
   const exploreBackend = useSelector(
-    (state: ExplorePageState) => state.explore?.datasource?.database?.backend,
+    (state: ExplorePageState) => state.explore?.present?.datasource?.database?.backend,
   );
   const [formattedSQL, setFormattedSQL] = useState<string>();
   const [showFormatSQL, setShowFormatSQL] = useState(true);
