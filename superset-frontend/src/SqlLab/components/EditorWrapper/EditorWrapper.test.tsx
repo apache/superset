@@ -21,7 +21,7 @@ import { render, waitFor, createStore } from 'spec/helpers/testing-library';
 import { QueryEditor } from 'src/SqlLab/types';
 import { Store } from 'redux';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import EditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
+import EditorWrapper from 'src/SqlLab/components/EditorWrapper';
 import type { editors } from '@apache-superset/core';
 import {
   queryEditorSetCursorPosition,

@@ -111,7 +111,7 @@ import SaveQuery, { QueryPayload } from '../SaveQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
 import ShareSqlLabQuery from '../ShareSqlLabQuery';
-import AceEditorWrapper from '../AceEditorWrapper';
+import EditorWrapper from '../EditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 import KeyboardShortcutButton, {
@@ -968,7 +968,7 @@ const SqlEditor: FC<Props> = ({
             <AutoSizer disableWidth>
               {({ height }) =>
                 isActive && (
-                  <AceEditorWrapper
+                  <EditorWrapper
                     autocomplete={autocompleteEnabled}
                     onBlur={onSqlChanged}
                     onChange={onSqlChanged}
