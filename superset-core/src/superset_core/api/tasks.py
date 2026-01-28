@@ -20,7 +20,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Generic, ParamSpec, TypedDict, TypeVar
+from typing import Any, Callable, Generic, Literal, ParamSpec, TypedDict, TypeVar
 
 from superset_core.api.models import Task
 
@@ -73,6 +73,10 @@ class TaskProperties(TypedDict, total=False):
         - Always use .get() for reads since keys may be absent
     """
 
+    # Execution config - set at task creation
+    execution_mode: Literal["async", "sync"]
+    timeout: int
+
     # Runtime state - set by framework during execution
     is_abortable: bool
     progress_percent: float
@@ -83,9 +87,6 @@ class TaskProperties(TypedDict, total=False):
     error_message: str
     exception_type: str
     stack_trace: str
-
-    # Execution config - set at task creation
-    timeout: int
 
 
 @dataclass(frozen=True)

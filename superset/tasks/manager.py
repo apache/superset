@@ -515,8 +515,10 @@ class TaskManager:
         if task_key is None:
             task_key = generate_random_task_key()
 
-        # Build properties with timeout if configured
-        properties: TaskProperties | None = {"timeout": timeout} if timeout else None
+        # Build properties with execution_mode and timeout
+        properties: TaskProperties = {"execution_mode": "async"}
+        if timeout:
+            properties["timeout"] = timeout
 
         try:
             # Create task entry in metastore
