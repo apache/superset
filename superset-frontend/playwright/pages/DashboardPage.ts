@@ -66,14 +66,29 @@ export class DashboardPage {
 
   /**
    * Wait for all charts on the dashboard to finish loading.
-   * Waits until no loading indicators remain in the DOM.
+   * Waits until no loading indicators are visible on the page.
    */
   async waitForChartsToLoad(options?: { timeout?: number }): Promise<void> {
-    const timeout = options?.timeout ?? TIMEOUT.PAGE_LOAD;
+    const timeout = options?.timeout ?? TIMEOUT.API_RESPONSE;
 
+    // Use browser-context evaluation to check visibility directly.
+    // Loading indicators ([aria-label="Loading"]) may persist in the DOM as hidden
+    // elements after charts finish loading. This checks that none are currently visible,
+    // returning immediately when charts are already loaded (no timeout penalty).
     await this.page.waitForFunction(
-      selector => document.querySelectorAll(selector).length === 0,
-      '[aria-label="Loading"]',
+      () => {
+        const loaders = document.querySelectorAll('[aria-label="Loading"]');
+        if (loaders.length === 0) return true;
+        return Array.from(loaders).every(el => {
+          const style = getComputedStyle(el);
+          return (
+            style.display === 'none' ||
+            style.visibility === 'hidden' ||
+            style.opacity === '0'
+          );
+        });
+      },
+      undefined,
       { timeout },
     );
   }
