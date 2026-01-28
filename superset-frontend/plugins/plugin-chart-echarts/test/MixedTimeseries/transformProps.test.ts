@@ -433,12 +433,12 @@ test('should add a formula annotation when X-axis column has dataset-level label
   const timeColumnLabel = 'Time Label';
   const testData = [
     {
-      [timeColumnLabel]: new Date(599616000000).toISOString(),
+      [timeColumnLabel]: 599616000000,
       boy: 1,
       girl: 2,
     },
     {
-      [timeColumnLabel]: new Date(599916000000).toISOString(),
+      [timeColumnLabel]: 599916000000,
       boy: 3,
       girl: 4,
     },
