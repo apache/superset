@@ -49,6 +49,10 @@ const StyledHeader = styled.header`
     padding: 0 ${theme.sizeUnit * 4}px;
     z-index: 10;
 
+    .main-nav {
+      display: flex;
+    }
+
     &:nth-last-of-type(2) nav {
       margin-bottom: 2px;
     }

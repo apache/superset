@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { DirectionType } from 'antd/es/config-provider';
+import { rtlLanguages } from 'src/constants';
 
 export interface Languages {
   [key: string]: {
@@ -34,6 +36,7 @@ export interface Languages {
 interface LanguagePickerProps {
   locale: string;
   languages: Languages;
+  setDirection: (newDirection: DirectionType) => void;
 }
 
 const StyledLabel = styled.div`
@@ -55,8 +58,15 @@ const StyledLabel = styled.div`
 export const useLanguageMenuItems = ({
   locale,
   languages,
-}: LanguagePickerProps): MenuItem =>
-  useMemo(() => {
+  setDirection,
+}: LanguagePickerProps): MenuItem => {
+  useEffect(() => {
+    const languageCode = locale.split('-')[0];
+    const isRtl = rtlLanguages.includes(languageCode);
+    setDirection(isRtl ? 'rtl' : 'ltr');
+  }, [locale, setDirection]);
+
+  return useMemo(() => {
     const items: MenuItem[] = Object.keys(languages).map(langKey => ({
       key: langKey,
       label: (
@@ -84,3 +94,4 @@ export const useLanguageMenuItems = ({
       popupClassName: 'language-picker-popup',
     };
   }, [languages, locale]);
+};

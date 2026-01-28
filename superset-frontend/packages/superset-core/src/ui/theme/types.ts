@@ -24,6 +24,7 @@ import { theme as antdThemeImport } from 'antd';
  * Get AntdThemeConfig type from the theme object
  */
 import type { ThemeConfig } from 'antd';
+import type { DirectionType } from 'antd/es/config-provider';
 import { Theme } from '.';
 
 /**
@@ -125,6 +126,9 @@ export interface SupersetSpecificTokens {
   brandLogoMargin: string;
   brandLogoHref: string;
   brandLogoHeight: string;
+
+  // Direction-related
+  direction: DirectionType;
 
   // Spinner-related
   brandSpinnerUrl?: string;
@@ -432,6 +436,7 @@ export interface ThemeContextType {
   themeMode: ThemeMode;
   setTheme: (config: AnyThemeConfig) => void;
   setThemeMode: (newMode: ThemeMode) => void;
+  setDirection: (newDirection: DirectionType) => void;
   resetTheme: () => void;
   setTemporaryTheme: (config: AnyThemeConfig, themeId?: number | null) => void;
   clearLocalOverrides: () => void;

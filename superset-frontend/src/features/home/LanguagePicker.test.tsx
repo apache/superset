@@ -34,6 +34,7 @@ const mockedProps = {
       url: '/lang/it',
     },
   },
+  setDirection: () => {},
 };
 
 const TestLanguagePicker = ({ locale, languages }: typeof mockedProps) => {
