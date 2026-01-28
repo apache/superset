@@ -151,6 +151,7 @@ InteractiveDropdownContainer.argTypes = {};
 InteractiveDropdownContainer.parameters = {
   docs: {
     staticProps: {
+      style: { maxWidth: 360 },
       items: [
         { id: 'item-0', element: { component: 'Tag', props: { children: 'Region', color: 'blue' } } },
         { id: 'item-1', element: { component: 'Tag', props: { children: 'Category', color: 'blue' } } },
