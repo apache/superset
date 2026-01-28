@@ -1256,6 +1256,10 @@ This documentation is auto-generated from Storybook stories. To add or update co
 3. Export an interactive story with \`args\` for configurable props
 4. Run \`yarn generate:superset-components\` in the \`docs/\` directory
 
+:::info Work in Progress
+This component library is actively being documented. See the [Components TODO](./TODO) page for a list of components awaiting documentation.
+:::
+
 ---
 
 *Auto-generated from Storybook stories in the [Design System/Introduction](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/DesignSystem.stories.tsx) story.*
@@ -1282,7 +1286,12 @@ function generateTodoMd(skippedFiles) {
     })
     .join('\n\n');
 
-  return `# Components TODO
+  return `---
+title: Components TODO
+sidebar_class_name: hidden
+---
+
+# Components TODO
 
 These components were found but not yet supported for documentation generation.
 Future phases will add support for these sources.

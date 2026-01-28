@@ -1,3 +1,8 @@
+---
+title: Components TODO
+sidebar_class_name: hidden
+---
+
 # Components TODO
 
 These components were found but not yet supported for documentation generation.

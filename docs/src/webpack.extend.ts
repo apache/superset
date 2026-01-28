@@ -37,6 +37,30 @@ export default function webpackExtendPlugin(): Plugin<void> {
         ),
       );
 
+      // Stub out heavy third-party packages that are transitive dependencies of
+      // superset-frontend components. The barrel file (components/index.ts)
+      // re-exports all components, so webpack must resolve their imports even
+      // though these components are never rendered on the docs site.
+      const nullModuleShim = path.resolve(__dirname, './shims/null-module.js');
+      const heavyDepsPatterns = [
+        /^brace(\/|$)/, // ACE editor modes/themes
+        /^react-ace(\/|$)/,
+        /^ace-builds(\/|$)/,
+        /^react-js-cron(\/|$)/, // Cron picker + CSS
+        // react-resize-detector: NOT shimmed — DropdownContainer needs it at runtime
+        // for overflow detection. Resolves from superset-frontend/node_modules.
+        /^react-window(\/|$)/,
+        /^re-resizable(\/|$)/,
+        /^react-draggable(\/|$)/,
+        /^ag-grid-react(\/|$)/,
+        /^ag-grid-community(\/|$)/,
+      ];
+      heavyDepsPatterns.forEach(pattern => {
+        config.plugins?.push(
+          new webpack.NormalModuleReplacementPlugin(pattern, nullModuleShim),
+        );
+      });
+
       // Add YAML loader rule directly to existing rules
       config.module?.rules?.push({
         test: /\.ya?ml$/,
@@ -112,10 +136,10 @@ export default function webpackExtendPlugin(): Plugin<void> {
             // Use a shim for react-table to handle CommonJS to ES module interop
             // react-table v7 is CommonJS, but Superset components import it with ES module syntax
             'react-table': path.resolve(__dirname, './shims/react-table.js'),
-            // Extension API package - allows docs to import from @apache-superset/core/ui
-            // This matches the established pattern used throughout the Superset codebase
-            // Note: TypeScript types come from docs/src/types/apache-superset-core (see tsconfig.json)
-            // This split is intentional: webpack resolves actual source, tsconfig provides simplified types
+            // Extension API package - resolve @apache-superset/core and its sub-paths
+            // to source so the docs build doesn't depend on pre-built lib/ artifacts.
+            // More specific sub-path aliases must come first; webpack matches the
+            // longest prefix.
             '@apache-superset/core/ui': path.resolve(
               __dirname,
               '../../superset-frontend/packages/superset-core/src/ui',
@@ -123,6 +147,10 @@ export default function webpackExtendPlugin(): Plugin<void> {
             '@apache-superset/core/api/core': path.resolve(
               __dirname,
               '../../superset-frontend/packages/superset-core/src/api/core',
+            ),
+            '@apache-superset/core': path.resolve(
+              __dirname,
+              '../../superset-frontend/packages/superset-core/src',
             ),
             // Add proper Storybook aliases
             '@storybook/blocks': path.resolve(
