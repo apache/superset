@@ -647,28 +647,6 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
             <Button
               color="primary"
               variant="text"
-              icon={<Icons.PlusSquareOutlined />}
-              onClick={() => {
-                treeRef.current?.openAll();
-                const allNodeIds: Record<string, boolean> = {};
-                const collectNodeIds = (nodes: TreeNodeData[]) => {
-                  nodes.forEach(node => {
-                    if (node.type !== 'empty' && node.type !== 'column') {
-                      allNodeIds[node.id] = true;
-                      if (node.children) {
-                        collectNodeIds(node.children);
-                      }
-                    }
-                  });
-                };
-                collectNodeIds(treeData);
-                setManuallyOpenedNodes(allNodeIds);
-              }}
-              tooltip={t('Expand all')}
-            />
-            <Button
-              color="primary"
-              variant="text"
               icon={<Icons.MinusSquareOutlined />}
               onClick={() => {
                 treeRef.current?.closeAll();
