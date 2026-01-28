@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useReducer, useCallback } from 'react';
 import { t } from '@apache-superset/core';
 import {
   Table,
@@ -29,6 +29,59 @@ import {
 import type { TreeNodeData } from './types';
 
 export const EMPTY_NODE_ID_PREFIX = 'empty:';
+
+// Reducer state and actions
+interface TreeDataState {
+  tableData: Record<string, { options: Table[] }>;
+  tableSchemaData: Record<string, TableMetaData>;
+  loadingNodes: Record<string, boolean>;
+}
+
+type TreeDataAction =
+  | { type: 'SET_TABLE_DATA'; key: string; data: { options: Table[] } }
+  | { type: 'SET_TABLE_SCHEMA_DATA'; key: string; data: TableMetaData }
+  | { type: 'SET_LOADING_NODE'; nodeId: string; loading: boolean };
+
+const initialState: TreeDataState = {
+  tableData: {},
+  tableSchemaData: {},
+  loadingNodes: {},
+};
+
+function treeDataReducer(
+  state: TreeDataState,
+  action: TreeDataAction,
+): TreeDataState {
+  switch (action.type) {
+    case 'SET_TABLE_DATA':
+      return {
+        ...state,
+        tableData: { ...state.tableData, [action.key]: action.data },
+        // Force tree re-render to apply search filter to new data
+        // dataVersion: state.dataVersion + 1,
+      };
+    case 'SET_TABLE_SCHEMA_DATA':
+      return {
+        ...state,
+        tableSchemaData: {
+          ...state.tableSchemaData,
+          [action.key]: action.data,
+        },
+        // Force tree re-render to apply search filter to new data
+        // dataVersion: state.dataVersion + 1,
+      };
+    case 'SET_LOADING_NODE':
+      return {
+        ...state,
+        loadingNodes: {
+          ...state.loadingNodes,
+          [action.nodeId]: action.loading,
+        },
+      };
+    default:
+      return state;
+  }
+}
 
 interface UseTreeDataParams {
   dbId: number | undefined;
@@ -65,27 +118,14 @@ const useTreeData = ({
     isFetching,
     refetch,
   } = useSchemas({ dbId, catalog: catalog || undefined });
-
-  // Table data state
-  const [tableData, setTableData] = useState<
-    Record<string, { options: Table[] }>
-  >({});
-
-  // Table schema/metadata state
-  const [tableSchemaData, setTableSchemaData] = useState<
-    Record<string, TableMetaData>
-  >({});
-
   // Lazy query hooks
   const [fetchLazyTables] = useLazyTablesQuery();
   const [fetchTableMetadata] = useLazyTableMetadataQuery();
   const [fetchTableExtendedMetadata] = useLazyTableExtendedMetadataQuery();
 
-  // Track nodes that are loading
-  const [loadingNodes, setLoadingNodes] = useState<Record<string, boolean>>({});
-
-  // Version counter to force tree re-render when data changes during search
-  const [dataVersion, setDataVersion] = useState(0);
+  // Combined state for table data, schema data, loading nodes, and data version
+  const [state, dispatch] = useReducer(treeDataReducer, initialState);
+  const { tableData, tableSchemaData, loadingNodes } = state;
 
   // Handle async loading when node is toggled open
   const handleToggle = useCallback(
@@ -98,39 +138,34 @@ const useTreeData = ({
       const parsedDbId = Number(databaseId);
 
       if (identifier === 'schema') {
-        // Use functional update to check current state without stale closure
-        setTableData(currentTableData => {
-          const schemaKey = `${parsedDbId}:${schema}`;
-          if (!currentTableData?.[schemaKey]) {
-            // Set loading state
-            setLoadingNodes(prev => ({ ...prev, [id]: true }));
+        const schemaKey = `${parsedDbId}:${schema}`;
+        if (!tableData?.[schemaKey]) {
+          // Set loading state
+          dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
 
-            // Fetch tables asynchronously
-            fetchLazyTables(
-              {
-                dbId: parsedDbId,
-                catalog,
-                schema,
-                forceRefresh: false,
-              },
-              true,
-            )
-              .then(({ data }) => {
-                if (data) {
-                  setTableData(origin => ({
-                    ...origin,
-                    [schemaKey]: data,
-                  }));
-                  // Force tree re-render to apply search filter to new data
-                  setDataVersion(v => v + 1);
-                }
-              })
-              .finally(() => {
-                setLoadingNodes(prev => ({ ...prev, [id]: false }));
+          // Fetch tables asynchronously
+          fetchLazyTables(
+            {
+              dbId: parsedDbId,
+              catalog,
+              schema,
+              forceRefresh: false,
+            },
+            true,
+          )
+            .then(({ data }) => {
+              if (data) {
+                dispatch({ type: 'SET_TABLE_DATA', key: schemaKey, data });
+              }
+            })
+            .finally(() => {
+              dispatch({
+                type: 'SET_LOADING_NODE',
+                nodeId: id,
+                loading: false,
               });
-          }
-          return currentTableData;
-        });
+            });
+        }
       }
 
       if (identifier === 'table') {
@@ -139,57 +174,53 @@ const useTreeData = ({
         // Check pinnedTables first (it's stable)
         if (pinnedTables[tableKey]) return;
 
-        // Use functional update to check current state
-        setTableSchemaData(currentTableSchemaData => {
-          if (!currentTableSchemaData[tableKey]) {
-            // Set loading state
-            setLoadingNodes(prev => ({ ...prev, [id]: true }));
+        if (!tableSchemaData[tableKey]) {
+          // Set loading state
+          dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
 
-            // Fetch metadata asynchronously
-            Promise.all([
-              fetchTableMetadata(
-                {
-                  dbId: parsedDbId,
-                  catalog,
-                  schema,
-                  table,
-                },
-                true,
-              ),
-              fetchTableExtendedMetadata(
-                {
-                  dbId: parsedDbId,
-                  catalog,
-                  schema,
-                  table,
-                },
-                true,
-              ),
-            ])
-              .then(
-                ([
-                  { data: tableMetadata },
-                  { data: tableExtendedMetadata },
-                ]) => {
-                  if (tableMetadata) {
-                    setTableSchemaData(origin => ({
-                      ...origin,
-                      [tableKey]: {
-                        ...tableMetadata,
-                        ...tableExtendedMetadata,
-                      },
-                    }));
-                    // Force tree re-render to apply search filter to new data
-                    setDataVersion(v => v + 1);
-                  }
-                },
-              )
-              .finally(() => {
-                setLoadingNodes(prev => ({ ...prev, [id]: false }));
+          // Fetch metadata asynchronously
+          Promise.all([
+            fetchTableMetadata(
+              {
+                dbId: parsedDbId,
+                catalog,
+                schema,
+                table,
+              },
+              true,
+            ),
+            fetchTableExtendedMetadata(
+              {
+                dbId: parsedDbId,
+                catalog,
+                schema,
+                table,
+              },
+              true,
+            ),
+          ])
+            .then(
+              ([{ data: tableMetadata }, { data: tableExtendedMetadata }]) => {
+                if (tableMetadata) {
+                  dispatch({
+                    type: 'SET_TABLE_SCHEMA_DATA',
+                    key: tableKey,
+                    data: {
+                      ...tableMetadata,
+                      ...tableExtendedMetadata,
+                    },
+                  });
+                }
+              },
+            )
+            .finally(() => {
+              dispatch({
+                type: 'SET_LOADING_NODE',
+                nodeId: id,
+                loading: false,
               });
-          }
-          return currentTableSchemaData;
-        });
+            });
+        }
       }
     },
     [
@@ -198,6 +229,8 @@ const useTreeData = ({
       fetchTableExtendedMetadata,
       fetchTableMetadata,
       pinnedTables,
+      tableData,
+      tableSchemaData,
     ],
   );
 
@@ -284,7 +317,6 @@ const useTreeData = ({
     isFetching,
     refetch,
     loadingNodes,
-    dataVersion,
     handleToggle,
     fetchLazyTables,
   };

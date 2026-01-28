@@ -136,7 +136,6 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     isFetching,
     refetch,
     loadingNodes,
-    dataVersion,
     handleToggle,
     fetchLazyTables,
   } = useTreeData({
@@ -286,7 +285,6 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
 
             return (
               <Tree<TreeNodeData>
-                key={`tree-${dataVersion}`}
                 ref={treeRef}
                 data={treeData}
                 width="100%"
