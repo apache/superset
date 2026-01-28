@@ -310,9 +310,11 @@ export const createHandleCustomizationSave =
 export const CHART_CUSTOMIZATION_PREFIX = 'CHART_CUSTOMIZATION-';
 export const CHART_CUSTOMIZATION_DIVIDER_PREFIX =
   'CHART_CUSTOMIZATION_DIVIDER-';
+export const LEGACY_GROUPBY_PREFIX = 'groupby_';
 
 export const isChartCustomization = (id: string): boolean =>
-  id.startsWith(CHART_CUSTOMIZATION_PREFIX);
+  id.startsWith(CHART_CUSTOMIZATION_PREFIX) ||
+  id.startsWith(LEGACY_GROUPBY_PREFIX);
 
 export const isChartCustomizationDivider = (id: string): boolean =>
   id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX);
@@ -337,7 +339,8 @@ export const isFilterId = (id: string): boolean =>
 
 export const isChartCustomizationId = (id: string): boolean =>
   id.startsWith(CHART_CUSTOMIZATION_PREFIX) ||
-  id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX);
+  id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX) ||
+  id.startsWith(LEGACY_GROUPBY_PREFIX);
 
 export const getItemType = (id: string): ItemType => {
   if (isFilterId(id)) return 'filter';
