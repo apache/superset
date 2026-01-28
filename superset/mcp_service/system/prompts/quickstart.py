@@ -19,12 +19,8 @@
 System prompts for general guidance
 """
 
-import logging
-
 from flask import current_app
 from superset_core.mcp import prompt
-
-logger = logging.getLogger(__name__)
 
 
 def _get_app_name() -> str:
@@ -43,61 +39,57 @@ async def quickstart_prompt(
     """
     Guide new users through their first experience with the platform.
 
-    This prompt helps users:
-    1. Understand what data is available
-    2. Create their first visualization
-    3. Build a simple dashboard
-    4. Learn key Superset concepts
-
     Args:
         user_type: Type of user (analyst, executive, developer)
         focus_area: Area of interest (sales, marketing, operations, general)
     """
-    # Build personalized prompt based on user type
-    intro_messages = {
-        "analyst": "I see you're an analyst. Let's explore the data and build some "
-        "detailed visualizations.",
-        "executive": "Welcome! Let's create a high-level dashboard with key business "
-        "metrics.",
-        "developer": "Great to have a developer here! Let's explore both the UI and "
-        "API capabilities.",
-    }
-
-    focus_examples = {
-        "sales": "Since you're interested in sales, we'll focus on revenue, customer, "
-        "and product metrics.",
-        "marketing": "For marketing analytics, we'll look at campaigns, conversions, "
-        "and customer acquisition.",
-        "operations": "Let's explore operational efficiency, inventory, and process "
-        "metrics.",
-        "general": "We'll explore various datasets to find what's most relevant to "
-        "you.",
-    }
-
-    intro = intro_messages.get(user_type, intro_messages["analyst"])
-    focus = focus_examples.get(focus_area, focus_examples["general"])
     app_name = _get_app_name()
 
-    return f"""Welcome to {app_name}! I'll guide you through creating your first
-    dashboard.
+    # Workflow varies by user type
+    workflows = {
+        "analyst": f"""**Workflow for Analysts:**
 
-{intro} {focus}
+1. Call `get_instance_info` to see what's available in this {app_name} instance
+2. Call `list_datasets` to find datasets relevant to {focus_area}
+3. Call `get_dataset_info(id)` to examine columns and metrics
+4. Call `generate_explore_link` to create interactive chart previews
+5. Iterate on chart configuration until the visualization answers your question
+6. Call `generate_chart(save_chart=True)` to save charts you want to keep
+7. Call `generate_dashboard` with your saved chart IDs to build a dashboard""",
+        "executive": f"""**Workflow for Executives:**
 
-I'll help you through these steps:
-1. **Explore Available Data** - See what datasets you can work with
-2. **Understand Your Data** - Examine columns, metrics, and sample data
-3. **Create Visualizations** - Build charts that tell a story
-4. **Design a Dashboard** - Combine charts into an interactive dashboard
-5. **Learn Advanced Features** - Discover filters, SQL Lab, and more
+1. Call `get_instance_info` to see available dashboards and charts
+2. Call `list_dashboards` to find existing dashboards relevant to {focus_area}
+3. Call `get_dashboard_info(id)` to view dashboard details and chart list
+4. To create a new KPI dashboard:
+   a. Call `list_datasets` to find data sources
+   b. Create charts with `generate_chart` (line/bar/table)
+   c. Call `generate_dashboard` with chart IDs""",
+        "developer": """**Workflow for Developers:**
 
-To get started, I'll use these tools:
-- `get_instance_info` - Overview of your {app_name} instance
-- `list_datasets` - Find available datasets
-- `get_dataset_info` - Explore dataset details
-- `generate_chart` - Create visualizations
-- `generate_dashboard` - Build your dashboard
+1. Call `get_instance_info` to understand the instance
+2. Call `get_schema(model_type)` to discover columns and filters
+3. Use `execute_sql(database_id, sql)` to run queries
+4. Use `open_sql_lab_with_context` for SQL Lab URLs
+5. Use `list_datasets`/`list_charts`/`list_dashboards` with filters
+6. Use `generate_explore_link` for chart previews without saving""",
+    }
 
-Let me begin by checking what's available in your {app_name} instance. I'll first get
-an overview, then show you the datasets filtered by your interest in {focus_area}.
+    selected_workflow = workflows.get(user_type, workflows["analyst"])
 
-Would you like me to start by showing you what data you can work with?"""
+    return f"""**{app_name} Quickstart Guide**
+
+{selected_workflow}
+
+**Available Tools Summary:**
+- `get_instance_info` - Instance overview (databases, dataset count, chart count)
+- `list_datasets` / `get_dataset_info` - Find and examine data sources
+- `list_charts` / `get_chart_info` - Browse existing charts
+- `list_dashboards` / `get_dashboard_info` - Browse existing dashboards
+- `generate_explore_link` - Create interactive chart preview (no save)
+- `generate_chart` - Create and save a chart permanently
+- `generate_dashboard` - Create a dashboard from chart IDs
+- `execute_sql` - Run SQL queries against a database
+- `get_schema` - Discover filterable/sortable columns for list tools
+
+Start by calling `get_instance_info` to see what data is available."""
