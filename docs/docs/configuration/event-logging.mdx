@@ -58,5 +58,37 @@ from superset.stats_logger import StatsdStatsLogger
 STATS_LOGGER = StatsdStatsLogger(host='localhost', port=8125, prefix='superset')
 ```
 
-Note that it’s also possible to implement your own logger by deriving
+Note that it's also possible to implement your own logger by deriving
 `superset.stats_logger.BaseStatsLogger`.
+
+### Chart Data Timing Metrics
+
+When `STATS_LOGGER` is configured, Superset emits per-phase timing metrics for each
+`/api/v1/chart/data` request:
+
+| Metric | Description |
+|--------|-------------|
+| `chart_data.validate_ms` | Query object validation time |
+| `chart_data.cache_lookup_ms` | Cache lookup time |
+| `chart_data.db_execution_ms` | Database query execution time (cache miss only) |
+| `chart_data.result_processing_ms` | Result processing and serialization time |
+| `chart_data.total_ms` | Total request time |
+
+These metrics are also included in the API response under the `timing` key.
+
+### Slow Query Logging
+
+To log slow chart queries, set `CHART_DATA_SLOW_QUERY_THRESHOLD_MS` in your `superset_config.py`:
+
+```python
+# Log WARNING when chart queries exceed 5 seconds
+CHART_DATA_SLOW_QUERY_THRESHOLD_MS = 5000
+```
+
+When a query exceeds the threshold, a WARNING log is emitted with a full timing breakdown:
+
+```
+WARNING: Slow chart query: total=6200ms validate=5ms cache_lookup=10ms db_execution=6000ms result_processing=185ms is_cached=False
+```
+
+Set to `None` (default) to disable slow query logging.
