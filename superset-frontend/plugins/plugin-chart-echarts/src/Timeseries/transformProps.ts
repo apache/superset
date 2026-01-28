@@ -419,7 +419,7 @@ export default function transformProps(
         timeCompare: array,
         timeShiftColor,
         theme,
-        hasDimensions: groupBy.length > 0,
+        hasDimensions: (groupBy?.length ?? 0) > 0,
       },
     );
     if (transformedSeries) {
