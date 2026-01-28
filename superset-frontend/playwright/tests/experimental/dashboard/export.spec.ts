@@ -38,6 +38,10 @@ let dashboardPage: DashboardPage;
 const downloads: { delete: () => Promise<void> }[] = [];
 
 test.describe('Dashboard Export', () => {
+  // Dashboard with multiple charts needs extra time for cold-cache CI runs:
+  // waitForLoad (10s) + waitForChartsToLoad (15s) + menu + download + toast
+  test.setTimeout(60_000);
+
   test.beforeEach(async ({ page }) => {
     dashboardPage = new DashboardPage(page);
 
