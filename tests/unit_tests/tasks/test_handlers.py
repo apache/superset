@@ -27,10 +27,6 @@ from superset_core.api.tasks import TaskStatus
 from superset.tasks.context import TaskContext
 from superset.tasks.manager import TaskManager
 
-# =============================================================================
-# Fixtures
-# =============================================================================
-
 
 @pytest.fixture
 def mock_task():
@@ -94,11 +90,6 @@ def task_context(mock_task_dao, mock_update_command, mock_flask_app):
 
     # Restore original Redis state
     TaskManager._redis = original_redis
-
-
-# =============================================================================
-# Task Model Status and Properties
-# =============================================================================
 
 
 class TestTaskStatusEnum:
@@ -262,11 +253,6 @@ class TestTaskDuration:
         task.ended_at = None
 
         assert task.duration_seconds is None
-
-
-# =============================================================================
-# Abort Handler Tests
-# =============================================================================
 
 
 class TestAbortHandlerRegistration:
@@ -491,9 +477,142 @@ class TestAbortHandlerExecution:
         assert handler2_called
 
 
-# =============================================================================
-# Cleanup Handler Tests
-# =============================================================================
+class TestBestEffortHandlerExecution:
+    """Test that all handlers execute even when some fail (best-effort)."""
+
+    def test_all_abort_handlers_run_even_if_all_fail(self, task_context, mock_task):
+        """Test all abort handlers execute even if every one raises an exception."""
+        calls = []
+
+        @task_context.on_abort
+        def handler1():
+            calls.append(1)
+            raise ValueError("Handler 1 failed")
+
+        @task_context.on_abort
+        def handler2():
+            calls.append(2)
+            raise RuntimeError("Handler 2 failed")
+
+        @task_context.on_abort
+        def handler3():
+            calls.append(3)
+            raise TypeError("Handler 3 failed")
+
+        # Trigger abort handlers directly (simulating abort detection)
+        task_context._trigger_abort_handlers()
+
+        # All handlers should have been called (LIFO order: 3, 2, 1)
+        assert calls == [3, 2, 1]
+
+        # Failures should be collected (abort handlers don't write to DB)
+        assert len(task_context._handler_failures) == 3
+        failure_types = [
+            type(ex).__name__ for _, ex, _ in task_context._handler_failures
+        ]
+        assert "TypeError" in failure_types
+        assert "RuntimeError" in failure_types
+        assert "ValueError" in failure_types
+
+    def test_all_cleanup_handlers_run_even_if_all_fail(self, task_context, mock_task):
+        """Test all cleanup handlers execute even if every one raises an exception."""
+        calls = []
+        captured_failures = []
+
+        # Mock _write_handler_failures_to_db to capture failures before clearing
+        original_write = task_context._write_handler_failures_to_db
+
+        def mock_write():
+            captured_failures.extend(task_context._handler_failures)
+            original_write()
+
+        task_context._write_handler_failures_to_db = mock_write
+
+        @task_context.on_cleanup
+        def cleanup1():
+            calls.append(1)
+            raise ValueError("Cleanup 1 failed")
+
+        @task_context.on_cleanup
+        def cleanup2():
+            calls.append(2)
+            raise RuntimeError("Cleanup 2 failed")
+
+        @task_context.on_cleanup
+        def cleanup3():
+            calls.append(3)
+            raise TypeError("Cleanup 3 failed")
+
+        # Set task to SUCCESS (not aborting) so only cleanup handlers run
+        mock_task.status = TaskStatus.SUCCESS.value
+
+        # Run cleanup
+        task_context._run_cleanup()
+
+        # All handlers should have been called (LIFO order: 3, 2, 1)
+        assert calls == [3, 2, 1]
+
+        # Failures should have been captured before clearing
+        assert len(captured_failures) == 3
+        failure_types = [type(ex).__name__ for _, ex, _ in captured_failures]
+        assert "TypeError" in failure_types
+        assert "RuntimeError" in failure_types
+        assert "ValueError" in failure_types
+
+    def test_mixed_abort_and_cleanup_failures_all_collected(
+        self, task_context, mock_task
+    ):
+        """Test abort and cleanup handler failures are collected together."""
+        calls = []
+        captured_failures = []
+
+        # Mock _write_handler_failures_to_db to capture failures before clearing
+        original_write = task_context._write_handler_failures_to_db
+
+        def mock_write():
+            captured_failures.extend(task_context._handler_failures)
+            original_write()
+
+        task_context._write_handler_failures_to_db = mock_write
+
+        @task_context.on_abort
+        def abort1():
+            calls.append("abort1")
+            raise ValueError("Abort 1 failed")
+
+        @task_context.on_abort
+        def abort2():
+            calls.append("abort2")
+            raise RuntimeError("Abort 2 failed")
+
+        @task_context.on_cleanup
+        def cleanup1():
+            calls.append("cleanup1")
+            raise TypeError("Cleanup 1 failed")
+
+        @task_context.on_cleanup
+        def cleanup2():
+            calls.append("cleanup2")
+            raise KeyError("Cleanup 2 failed")
+
+        # Set task to ABORTING so both abort and cleanup handlers run
+        mock_task.status = TaskStatus.ABORTING.value
+
+        # Run cleanup (which triggers abort handlers first, then cleanup handlers)
+        task_context._run_cleanup()
+
+        # All handlers should have been called
+        # Abort handlers run first (LIFO: abort2, abort1)
+        # Then cleanup handlers (LIFO: cleanup2, cleanup1)
+        assert calls == ["abort2", "abort1", "cleanup2", "cleanup1"]
+
+        # All 4 failures should have been captured
+        assert len(captured_failures) == 4
+
+        # Verify handler types are recorded correctly
+        handler_types = [htype for htype, _, _ in captured_failures]
+        assert handler_types.count("abort") == 2
+        assert handler_types.count("cleanup") == 2
 
 
 class TestCleanupHandlers:

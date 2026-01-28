@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import inspect
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any, Callable
 
@@ -73,7 +73,7 @@ def set_and_log_cache(
     if timeout == CACHE_DISABLED_TIMEOUT:
         return
     try:
-        dttm = datetime.utcnow().isoformat().split(".")[0]
+        dttm = datetime.now(timezone.utc).isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger = app.config["STATS_LOGGER"]
@@ -226,7 +226,7 @@ def etag_cache(  # noqa: C901
 
             # Check if the cache is stale. Default the content_changed_time to now
             # if we don't know when it was last modified.
-            content_changed_time = datetime.utcnow()
+            content_changed_time = datetime.now(timezone.utc)
             if get_last_modified:
                 content_changed_time = get_last_modified(*args, **kwargs)
                 if (

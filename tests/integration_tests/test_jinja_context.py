@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import mock
 
 import pytest
@@ -174,7 +174,7 @@ def test_custom_process_template(
     mock_dt = mocker.patch(
         "tests.integration_tests.superset_test_custom_template_processors.datetime"
     )
-    mock_dt.utcnow = mock.Mock(return_value=datetime(1970, 1, 1))
+    mock_dt.now = mock.Mock(return_value=datetime(1970, 1, 1, tzinfo=timezone.utc))
     database = mock.Mock()
     database.backend = "db_for_macros_testing"
     tp = get_template_processor(database=database)

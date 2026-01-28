@@ -202,7 +202,7 @@ test('renders TaskList with title', async () => {
 
 test('renders a ListView', async () => {
   renderTaskList();
-  expect(await screen.findByRole('table')).toBeInTheDocument();
+  expect(await screen.findByTestId('task-list-view')).toBeInTheDocument();
 });
 
 test('fetches info endpoint', async () => {

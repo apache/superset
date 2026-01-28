@@ -44,11 +44,10 @@ class CreateTaskCommand(BaseCommand):
     @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
     def run(self) -> "Task":
         """Execute the command."""
+        from superset.daos.tasks import TaskDAO
+
         self.validate()
         try:
-            # Lazy import to avoid circular dependency
-            from superset.daos.tasks import TaskDAO
-
             return TaskDAO.create_task(
                 task_type=self._properties["task_type"],
                 task_key=self._properties.get("task_key"),
@@ -71,16 +70,18 @@ class CreateTaskCommand(BaseCommand):
                 ValidationError("task_type is required", field_name="task_type")
             )
 
-        # Validate scope if provided
         scope = self._properties.get("scope", TaskScope.PRIVATE.value)
+        scope_value = scope.value if isinstance(scope, TaskScope) else scope
         valid_scopes = [s.value for s in TaskScope]
-        if scope not in valid_scopes:
+        if scope_value not in valid_scopes:
             exceptions.append(
                 ValidationError(
                     f"scope must be one of {valid_scopes}",
                     field_name="scope",
                 )
             )
+        # Store normalized value for use in run()
+        self._properties["scope"] = scope_value
 
         if exceptions:
             raise TaskInvalidError(exceptions=exceptions)

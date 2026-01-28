@@ -18,6 +18,7 @@
 
 import logging
 import threading
+import traceback
 from typing import Callable, TYPE_CHECKING, TypeVar
 
 from flask import current_app
@@ -47,6 +48,9 @@ class TaskContext(CoreTaskContext):
     need to read their own state - they are the source of state, not consumers.
     """
 
+    # Type alias for handler failures: (handler_type, exception, stack_trace)
+    HandlerFailure = tuple[str, Exception, str]
+
     def __init__(self, task_uuid: str) -> None:
         """
         Initialize TaskContext with a task UUID.
@@ -59,6 +63,9 @@ class TaskContext(CoreTaskContext):
         self._abort_listener: "AbortListener | None" = None
         self._abort_detected = False
         self._abort_handlers_completed = False  # Track if all abort handlers finished
+
+        # Collected handler failures for unified reporting
+        self._handler_failures: list[TaskContext.HandlerFailure] = []
 
         # Timeout timer state
         self._timeout_timer: threading.Timer | None = None
@@ -83,7 +90,6 @@ class TaskContext(CoreTaskContext):
         :returns: Task entity with latest state
         :raises ValueError: If task is not found
         """
-        # Lazy import to avoid circular dependencies
         from superset.daos.tasks import TaskDAO
 
         task = TaskDAO.find_one_or_none(uuid=self._task_uuid)
@@ -252,39 +258,115 @@ class TaskContext(CoreTaskContext):
 
     def _trigger_abort_handlers(self) -> None:
         """
-        Execute all registered abort handlers (called by polling thread).
+        Execute all registered abort handlers (called by polling thread or cleanup).
 
-        If any handler fails, the task is marked as FAILED instead of ABORTED.
+        All handlers are attempted even if some fail (best-effort cleanup).
+        Failures are collected in self._handler_failures for unified reporting.
+
+        Note: This method never writes to DB directly. All failures are collected
+        and written by _run_cleanup() in the executor's finally block, ensuring
+        abort and cleanup handler failures are combined into a single record.
         """
-        from superset.commands.tasks.update import UpdateTaskCommand
-
-        handler_failed = False
         for handler in reversed(self._abort_handlers):
             try:
                 handler()
             except Exception as ex:
+                stack_trace = traceback.format_exc()
                 logger.error(
                     "Abort handler failed for task %s: %s",
                     self._task_uuid,
                     str(ex),
                     exc_info=True,
                 )
-                handler_failed = True
-                # Mark task as FAILED since handler threw an exception
-                if self._app:
-                    with self._app.app_context():
-                        UpdateTaskCommand(
-                            self._task_uuid,
-                            status=TaskStatus.FAILURE.value,
-                            properties={
-                                "error_message": f"Abort handler failed: {str(ex)}"
-                            },
-                            skip_security_check=True,
-                        ).run()
-                break  # Stop processing handlers on first failure
+                self._handler_failures.append(("abort", ex, stack_trace))
 
-        if not handler_failed:
+        # Check if all abort handlers completed successfully
+        abort_failures = [f for f in self._handler_failures if f[0] == "abort"]
+        if not abort_failures:
             self._abort_handlers_completed = True
+
+    def _write_handler_failures_to_db(self) -> None:
+        """
+        Write collected handler failures to the database.
+
+        Combines all failures (abort + cleanup) into a single error record.
+        If the task already has an error (e.g., task function threw exception),
+        handler failures are APPENDED to preserve the original error context.
+        """
+        from superset.commands.tasks.update import UpdateTaskCommand
+
+        if not self._handler_failures:
+            return
+
+        # Build error message from all handler failures
+        error_messages = [str(ex) for _, ex, _ in self._handler_failures]
+        handler_types = {htype for htype, _, _ in self._handler_failures}
+
+        if len(self._handler_failures) == 1:
+            htype, ex, handler_stack_trace = self._handler_failures[0]
+            handler_error_msg = (
+                f"{htype.capitalize()} handler failed: {error_messages[0]}"
+            )
+            handler_exception_type = type(ex).__name__
+        else:
+            # Multiple failures
+            handler_error_msg = f"Handler(s) failed: {'; '.join(error_messages)}"
+            if handler_types == {"abort"}:
+                handler_exception_type = "MultipleAbortHandlerFailures"
+            elif handler_types == {"cleanup"}:
+                handler_exception_type = "MultipleCleanupHandlerFailures"
+            else:
+                handler_exception_type = "MultipleHandlerFailures"
+
+            # Combine stack traces with clear separators
+            handler_stack_trace = "\n--- Next handler failure ---\n".join(
+                f"[{htype}:{type(ex).__name__}]\n{trace}"
+                for htype, ex, trace in self._handler_failures
+            )
+
+        if self._app:
+            with self._app.app_context():
+                # Check if task already has an error (preserve original context)
+                task = self._task
+                original_error = task.properties.get("error_message")
+                original_type = task.properties.get("exception_type")
+                original_trace = task.properties.get("stack_trace")
+
+                if original_error:
+                    # Append handler failures to original error
+                    error_msg = f"{original_error} | {handler_error_msg}"
+                    exception_type = (
+                        f"{original_type}+{handler_exception_type}"
+                        if original_type
+                        else handler_exception_type
+                    )
+                    stack_trace = (
+                        f"{original_trace}\n\n"
+                        f"=== Handler failures during cleanup ===\n\n"
+                        f"{handler_stack_trace}"
+                        if original_trace
+                        else handler_stack_trace
+                    )
+                else:
+                    # No original error, just use handler failures
+                    error_msg = handler_error_msg
+                    exception_type = handler_exception_type
+                    stack_trace = handler_stack_trace
+
+                # Update task with combined error info
+                UpdateTaskCommand(
+                    self._task_uuid,
+                    status=TaskStatus.FAILURE.value,
+                    properties={
+                        "error_message": error_msg,
+                        "exception_type": exception_type,
+                        "stack_trace": stack_trace,
+                    },
+                    skip_security_check=True,
+                ).run()
+
+        # Clear failures after writing
+        self._handler_failures = []
 
     def stop_abort_polling(self) -> None:
         """Stop the background abort listener."""
@@ -351,6 +433,10 @@ class TaskContext(CoreTaskContext):
                     )
 
         self._timeout_timer = threading.Timer(timeout_seconds, on_timeout)
+        # Timer is daemon so it won't prevent process exit. If the worker dies,
+        # the task is already in an inconsistent state (stuck IN_PROGRESS) that
+        # requires external recovery (orphan detection). A non-daemon timer with
+        # long timeouts (hours) would block graceful worker shutdown.
         self._timeout_timer.daemon = True
         self._timeout_timer.start()
         logger.debug(
@@ -382,6 +468,9 @@ class TaskContext(CoreTaskContext):
         This runs:
         1. Abort handlers if task was aborting/aborted (but not yet detected)
         2. All cleanup handlers (always)
+
+        All handler failures (abort + cleanup) are collected and written to DB
+        as a unified error record at the end.
         """
         # Stop abort listener and timeout timer
         self.stop_abort_polling()
@@ -413,14 +502,20 @@ class TaskContext(CoreTaskContext):
                     str(ex),
                 )
 
-        # Always run cleanup handlers
+        # Always run cleanup handlers, collecting failures
         for handler in reversed(self._cleanup_handlers):
             try:
                 handler()
             except Exception as ex:
+                stack_trace = traceback.format_exc()
                 logger.error(
                     "Cleanup handler failed for task %s: %s",
                     self._task_uuid,
                     str(ex),
                     exc_info=True,
                 )
+                self._handler_failures.append(("cleanup", ex, stack_trace))
+
+        # Write all collected failures (abort + cleanup) to DB as unified record
+        if self._handler_failures:
+            self._write_handler_failures_to_db()

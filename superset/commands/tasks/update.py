@@ -86,6 +86,8 @@ class UpdateTaskCommand(BaseCommand):
     @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
     def run(self) -> Task:
         """Execute the command."""
+        from superset.daos.tasks import TaskDAO
+
         self.validate()
         assert self._model
 
@@ -105,19 +107,16 @@ class UpdateTaskCommand(BaseCommand):
         if self._properties:
             self._model.update_properties(self._properties)
 
-        # Lazy import to avoid circular dependency
-        from superset.daos.tasks import TaskDAO
-
         return TaskDAO.update(self._model)
 
     def validate(self) -> None:
         """Validate command parameters."""
+        from superset.daos.tasks import TaskDAO
+
         exceptions: list[ValidationError] = []
 
         # Validate/populate model exists
         # When skip_security_check=True, also skip base filter to find any task
-        # Lazy import to avoid circular dependency
-        from superset.daos.tasks import TaskDAO
 
         self._model = TaskDAO.find_one_or_none(
             skip_base_filter=self._skip_security_check,

@@ -68,11 +68,23 @@ class AbortListener:
             except Exception as ex:
                 logger.debug("Error closing pub/sub during stop: %s", ex)
 
-        # Wait for thread to finish
+        # Wait for thread to finish (with timeout to avoid blocking indefinitely)
         if self._thread.is_alive():
             self._thread.join(timeout=2.0)
 
-        logger.debug("Stopped abort listener for task %s", self._task_uuid)
+            # Check if thread is still running after timeout
+            if self._thread.is_alive():
+                # Thread is a daemon, so it will be killed when process exits.
+                # Log warning but continue - cleanup will still proceed.
+                logger.warning(
+                    "Abort listener thread for task %s did not terminate within "
+                    "2 seconds. Thread will be terminated when process exits.",
+                    self._task_uuid,
+                )
+            else:
+                logger.debug("Stopped abort listener for task %s", self._task_uuid)
+        else:
+            logger.debug("Stopped abort listener for task %s", self._task_uuid)
 
 
 class TaskManager:
@@ -330,6 +342,85 @@ class TaskManager:
         thread.start()
         return AbortListener(task_uuid, thread, stop_event, pubsub)
 
+    @staticmethod
+    def _invoke_callback_with_context(
+        callback: Callable[[], None],
+        app: Any,
+    ) -> None:
+        """
+        Invoke callback with Flask app context if provided.
+
+        :param callback: Function to invoke
+        :param app: Flask app for context, or None
+        """
+        if app:
+            with app.app_context():
+                callback()
+        else:
+            callback()
+
+    @classmethod
+    def _check_abort_status(cls, task_uuid: str) -> bool:
+        """
+        Check if task has been aborted via database query.
+
+        :param task_uuid: UUID of the task to check
+        :returns: True if task is in ABORTING or ABORTED state
+        """
+        from superset.daos.tasks import TaskDAO
+
+        task = TaskDAO.find_one_or_none(uuid=task_uuid)
+        return task is not None and task.status in [
+            TaskStatus.ABORTING.value,
+            TaskStatus.ABORTED.value,
+        ]
+
+    @classmethod
+    def _run_abort_listener_loop(
+        cls,
+        task_uuid: str,
+        callback: Callable[[], None],
+        stop_event: threading.Event,
+        interval: float,
+        app: Any,
+        check_fn: Callable[[], bool],
+        source: str,
+    ) -> None:
+        """
+        Common abort listener loop used by both pub/sub and polling modes.
+
+        :param task_uuid: UUID of the task to monitor
+        :param callback: Function to call when abort is detected
+        :param stop_event: Event to signal loop termination
+        :param interval: Wait interval between checks
+        :param app: Flask app for context
+        :param check_fn: Function that returns True if abort was detected
+        :param source: Source identifier for logging ("pub/sub" or "polling")
+        """
+        while not stop_event.is_set():
+            try:
+                if check_fn():
+                    logger.info(
+                        "Abort detected via %s for task %s",
+                        source,
+                        task_uuid,
+                    )
+                    cls._invoke_callback_with_context(callback, app)
+                    break
+
+                # Wait for interval or until stop is requested
+                stop_event.wait(timeout=interval)
+
+            except Exception as ex:
+                logger.error(
+                    "Error in abort %s for task %s: %s",
+                    source,
+                    task_uuid,
+                    str(ex),
+                    exc_info=True,
+                )
+                break
+
     @classmethod
     def _listen_pubsub(  # noqa: C901
         cls,
@@ -345,25 +436,27 @@ class TaskManager:
 
         If pub/sub connection fails, falls back to database polling.
         """
-        try:
-            while not stop_event.is_set():
-                message = pubsub.get_message(
-                    ignore_subscribe_messages=True, timeout=1.0
-                )
+        # Track if abort was received to avoid double-callback
+        abort_received = False
 
-                if message is not None and message.get("type") == "message":
-                    # Abort message received
-                    logger.info(
-                        "Abort received via pub/sub for task %s",
-                        task_uuid,
-                    )
-                    # Invoke callback with app context if provided
-                    if app:
-                        with app.app_context():
-                            callback()
-                    else:
-                        callback()
-                    break
+        def check_pubsub() -> bool:
+            nonlocal abort_received
+            message = pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+            if message is not None and message.get("type") == "message":
+                abort_received = True
+                return True
+            return False
+
+        try:
+            cls._run_abort_listener_loop(
+                task_uuid=task_uuid,
+                callback=callback,
+                stop_event=stop_event,
+                interval=0,  # pub/sub has its own timeout in get_message
+                app=app,
+                check_fn=check_pubsub,
+                source="pub/sub",
+            )
 
         except redis.RedisError as ex:
             # Check if we were asked to stop - if so, this is expected
@@ -436,52 +529,24 @@ class TaskManager:
         app: Any,
     ) -> None:
         """Background polling loop - fallback when pub/sub is unavailable."""
-        # Lazy import to avoid circular dependencies
-        from superset.daos.tasks import TaskDAO
 
-        while not stop_event.is_set():
-            try:
-                # Wrap database access in Flask app context
-                if app:
-                    with app.app_context():
-                        task = TaskDAO.find_one_or_none(uuid=task_uuid)
-                        if task and task.status in [
-                            TaskStatus.ABORTING.value,
-                            TaskStatus.ABORTED.value,
-                        ]:
-                            logger.info(
-                                "Abort detected via polling for task %s (status=%s)",
-                                task_uuid,
-                                task.status,
-                            )
-                            callback()
-                            break
-                else:
-                    # Fallback without app context (e.g., in tests)
-                    task = TaskDAO.find_one_or_none(uuid=task_uuid)
-                    if task and task.status in [
-                        TaskStatus.ABORTING.value,
-                        TaskStatus.ABORTED.value,
-                    ]:
-                        logger.info(
-                            "Abort detected via polling for task %s (status=%s)",
-                            task_uuid,
-                            task.status,
-                        )
-                        callback()
-                        break
+        def check_database() -> bool:
+            # Need app context for database access
+            if app:
+                with app.app_context():
+                    return cls._check_abort_status(task_uuid)
+            else:
+                return cls._check_abort_status(task_uuid)
 
-                # Wait for interval or until stop is requested
-                stop_event.wait(timeout=interval)
-
-            except Exception as ex:
-                logger.error(
-                    "Error in abort polling for task %s: %s",
-                    task_uuid,
-                    str(ex),
-                    exc_info=True,
-                )
-                break
+        cls._run_abort_listener_loop(
+            task_uuid=task_uuid,
+            callback=callback,
+            stop_event=stop_event,
+            interval=interval,
+            app=app,
+            check_fn=check_database,
+            source="polling",
+        )
 
     @staticmethod
     def submit_task(
@@ -512,6 +577,9 @@ class TaskManager:
         :param kwargs: Keyword arguments for the task function
         :returns: Task model representing the scheduled task
         """
+        from superset.commands.tasks.create import CreateTaskCommand
+        from superset.daos.tasks import TaskDAO
+
         if task_key is None:
             task_key = generate_random_task_key()
 
@@ -523,9 +591,6 @@ class TaskManager:
         try:
             # Create task entry in metastore
             # Command automatically extracts current user for subscription
-            # Lazy import to avoid circular dependency
-            from superset.commands.tasks.create import CreateTaskCommand
-
             task = CreateTaskCommand(
                 {
                     "task_key": task_key,
@@ -558,8 +623,6 @@ class TaskManager:
         except TaskCreateFailedError as ex:
             # Task with same task_key already exists and is active
             # Return existing task instead of creating duplicate
-            # Lazy import to avoid circular dependency
-            from superset.daos.tasks import TaskDAO
 
             existing = TaskDAO.find_by_task_key(task_type, task_key, scope.value)
             if existing:

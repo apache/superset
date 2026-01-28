@@ -163,6 +163,21 @@ def my_task() -> None:
 
 Multiple handlers of the same type execute in LIFO order (last registered runs first). Abort handlers run first when abort is detected, then cleanup handlers run when the task ends.
 
+#### Best-Effort Execution
+
+**All registered handlers will always be attempted, even if one fails.** This ensures that a failure in one handler doesn't prevent other handlers from running their cleanup logic.
+
+For example, if you have three cleanup handlers and the second one throws an exception:
+1. Handler 3 runs ✓
+2. Handler 2 throws an exception ✗ (logged, but execution continues)
+3. Handler 1 runs ✓
+
+If any handler fails, the task is marked as `FAILURE` with combined error details showing all handler failures.
+
+:::tip
+Write handlers to be independent and self-contained. Don't assume previous handlers succeeded, and don't rely on shared state between handlers.
+:::
+
 ## Making Tasks Abortable
 
 When users click **Cancel** in the Task List, the system decides whether to **abort** (stop) the task or **unsubscribe** (remove the user from a shared task). Abort occurs when:

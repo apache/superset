@@ -29,6 +29,7 @@ from superset.commands.tasks.exceptions import (
     TaskNotFoundError,
     TaskPermissionDeniedError,
 )
+from superset.extensions import security_manager
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
@@ -72,11 +73,10 @@ class CancelTaskCommand(BaseCommand):
 
         :returns: The updated task model
         """
+        from superset.daos.tasks import TaskDAO
+
         self.validate()
         assert self._model
-
-        # Lazy import to avoid circular dependency
-        from superset.daos.tasks import TaskDAO
 
         user_id = get_user_id()
 
@@ -162,7 +162,7 @@ class CancelTaskCommand(BaseCommand):
         - Only admins can use force=True
         - Force is only meaningful for shared tasks with multiple subscribers
         """
-        from superset import security_manager
+        from superset.daos.tasks import TaskDAO
 
         # Check if admin first
         self._is_admin = security_manager.is_admin()
@@ -174,8 +174,6 @@ class CancelTaskCommand(BaseCommand):
             )
 
         # Find task (skip_base_filter for admin to see all tasks)
-        from superset.daos.tasks import TaskDAO
-
         self._model = TaskDAO.find_one_or_none(
             skip_base_filter=self._is_admin, uuid=self._task_uuid
         )
