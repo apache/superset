@@ -78,6 +78,9 @@ def create_app(
                 for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
                     theme = app.config[theme_key]
                     token = theme.get("token", {})
+                    # Update brandSpinnerUrl if it points to /static/
+                    if token.get("brandSpinnerUrl", "").startswith("/static/"):
+                        token["brandSpinnerUrl"] = f"{app_root}{token['brandSpinnerUrl']}"
                     # Update brandLogoUrl if it points to /static/
                     if token.get("brandLogoUrl", "").startswith("/static/"):
                         token["brandLogoUrl"] = f"{app_root}{token['brandLogoUrl']}"
