@@ -343,11 +343,13 @@ export default function transformProps(
     // - "metric__1 day ago" pattern (via hasTimeOffset)
     // - "1 day ago, groupby" pattern (via hasTimeOffset)
     // - exact match "1 day ago" (via seriesName parameter)
-    const derivedSeries = (isDerivedSeries as (
-      series: typeof entry,
-      formData: typeof chartProps.rawFormData,
-      seriesName?: string,
-    ) => boolean)(entry, chartProps.rawFormData, seriesName);
+    const derivedSeries = (
+      isDerivedSeries as (
+        series: typeof entry,
+        formData: typeof chartProps.rawFormData,
+        seriesName?: string,
+      ) => boolean
+    )(entry, chartProps.rawFormData, seriesName);
     const lineStyle: LineStyleOption = {};
     if (derivedSeries) {
       // Get the time offset for this series to assign different dash patterns
@@ -387,11 +389,13 @@ export default function transformProps(
     if (derivedSeries && array.includes(seriesName)) {
       const originalSeries = rawSeries.find(
         s =>
-          !(isDerivedSeries as (
-            series: typeof s,
-            formData: typeof chartProps.rawFormData,
-            seriesName?: string,
-          ) => boolean)(
+          !(
+            isDerivedSeries as (
+              series: typeof s,
+              formData: typeof chartProps.rawFormData,
+              seriesName?: string,
+            ) => boolean
+          )(
             s,
             chartProps.rawFormData,
             inverted[String(s.name || '')] || String(s.name || ''),
@@ -683,9 +687,11 @@ export default function transformProps(
     if (seriesType === EchartsTimeseriesSeriesType.Bar && showValue) {
       padding.right = Math.max(
         padding.right || 0,
-        (TIMESERIES_CONSTANTS as typeof TIMESERIES_CONSTANTS & {
-          horizontalBarLabelRightPadding: number;
-        }).horizontalBarLabelRightPadding,
+        (
+          TIMESERIES_CONSTANTS as typeof TIMESERIES_CONSTANTS & {
+            horizontalBarLabelRightPadding: number;
+          }
+        ).horizontalBarLabelRightPadding,
       );
     }
   }
