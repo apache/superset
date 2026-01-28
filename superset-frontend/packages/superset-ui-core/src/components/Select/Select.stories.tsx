@@ -136,7 +136,8 @@ InteractiveSelect.argTypes = {
   },
   allowNewOptions: {
     control: 'boolean',
-    description: 'Whether users can create new options by typing a value not in the list.',
+    description:
+      'Whether users can create new options by typing a value not in the list.',
   },
   allowClear: {
     control: 'boolean',
@@ -152,15 +153,18 @@ InteractiveSelect.argTypes = {
   },
   invertSelection: {
     control: 'boolean',
-    description: 'Shows a stop icon instead of a checkmark on selected options, indicating deselection on click.',
+    description:
+      'Shows a stop icon instead of a checkmark on selected options, indicating deselection on click.',
   },
   oneLine: {
     control: 'boolean',
-    description: 'Forces tags onto one line with overflow count. Requires multiple mode.',
+    description:
+      'Forces tags onto one line with overflow count. Requires multiple mode.',
   },
   maxTagCount: {
     control: { type: 'number' },
-    description: 'Maximum number of tags to display in multiple mode before showing an overflow count.',
+    description:
+      'Maximum number of tags to display in multiple mode before showing an overflow count.',
   },
 };
 
@@ -168,8 +172,14 @@ InteractiveSelect.parameters = {
   docs: {
     staticProps: {
       options: [
-        { label: 'Such an incredibly awesome long long label', value: 'long-label-1' },
-        { label: 'Another incredibly awesome long long label', value: 'long-label-2' },
+        {
+          label: 'Such an incredibly awesome long long label',
+          value: 'long-label-1',
+        },
+        {
+          label: 'Another incredibly awesome long long label',
+          value: 'long-label-2',
+        },
         { label: 'Option A', value: 'A' },
         { label: 'Option B', value: 'B' },
         { label: 'Option C', value: 'C' },

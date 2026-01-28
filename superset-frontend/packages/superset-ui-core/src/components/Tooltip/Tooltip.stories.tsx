@@ -71,7 +71,8 @@ InteractiveTooltip.argTypes = {
   },
   mouseLeaveDelay: {
     control: { type: 'number' },
-    description: 'Delay in seconds before hiding the tooltip after mouse leave.',
+    description:
+      'Delay in seconds before hiding the tooltip after mouse leave.',
   },
   color: {
     control: { type: 'color' },

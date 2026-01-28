@@ -100,7 +100,9 @@ export const TreeStory: Story = {
 };
 
 // Interactive story with primitive args for documentation
-export const InteractiveTree = (args: TreeProps) => <Tree {...args} treeData={treeData} />;
+export const InteractiveTree = (args: TreeProps) => (
+  <Tree {...args} treeData={treeData} />
+);
 
 InteractiveTree.args = {
   checkable: false,
