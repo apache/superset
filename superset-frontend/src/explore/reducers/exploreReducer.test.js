@@ -18,7 +18,7 @@
  */
 
 import exploreReducer from './exploreReducer';
-import { setStashFormData } from '../actions/exploreActions';
+import { setStashFormData, setControlValue } from '../actions/exploreActions';
 
 test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
   const initialState = {
@@ -42,4 +42,41 @@ test('skips updates when the field is already updated on SET_STASH_FORM_DATA', (
   const restoreAction = setStashFormData(false, ['c', 'd']);
   const newState = exploreReducer(initialState, restoreAction);
   expect(newState).toBe(initialState);
+});
+
+test('normalizes server_page_length from string to number on SET_FIELD_VALUE', () => {
+  const initialState = {
+    form_data: { viz_type: 'table' },
+    controls: {},
+  };
+  
+  const action = setControlValue('server_page_length', '100');
+  const newState = exploreReducer(initialState, action);
+  
+  expect(newState.form_data.server_page_length).toBe(100);
+  expect(typeof newState.form_data.server_page_length).toBe('number');
+});
+
+test('preserves server_page_length when already numeric', () => {
+  const initialState = {
+    form_data: { viz_type: 'table' },
+    controls: {},
+  };
+  
+  const action = setControlValue('server_page_length', 100);
+  const newState = exploreReducer(initialState, action);
+  
+  expect(newState.form_data.server_page_length).toBe(100);
+});
+
+test('does not normalize other string control values', () => {
+  const initialState = {
+    form_data: { viz_type: 'table' },
+    controls: {},
+  };
+  
+  const action = setControlValue('row_limit', '50');
+  const newState = exploreReducer(initialState, action);
+  
+  expect(newState.form_data.row_limit).toBe('50');
 });

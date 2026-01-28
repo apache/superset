@@ -124,7 +124,12 @@ export default function exploreReducer(state = {}, action) {
     },
     [actions.SET_FIELD_VALUE]() {
       const { controlName, value, validationErrors } = action;
-      let new_form_data = { ...state.form_data, [controlName]: value };
+      // Normalize server_page_length to number if it's a string
+      const normalizedValue =
+        controlName === 'server_page_length' && typeof value === 'string'
+          ? Number(value) || value
+          : value;
+      let new_form_data = { ...state.form_data, [controlName]: normalizedValue };
       const old_metrics_data = state.form_data.metrics;
       const new_column_config = state.form_data.column_config;
 
@@ -161,7 +166,7 @@ export default function exploreReducer(state = {}, action) {
 
       // will call validators again
       const control = {
-        ...getControlStateFromControlConfig(controlConfig, state, action.value),
+        ...getControlStateFromControlConfig(controlConfig, state, normalizedValue),
       };
 
       const column_config = {
@@ -240,7 +245,7 @@ export default function exploreReducer(state = {}, action) {
             };
 
             return {
-              // Re run validation for dependent controls
+              // Re run validation for dependant controls
               controlState: getControlStateFromControlConfig(
                 controlState,
                 overWrittenState,
