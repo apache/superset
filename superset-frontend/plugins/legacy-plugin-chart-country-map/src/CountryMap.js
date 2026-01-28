@@ -101,7 +101,7 @@ function CountryMap(element, props) {
     country,
     linearColorScheme,
     numberFormat,
-    customColorScale = [],
+    customColorScale = props.customColorRules || [],
     colorScheme,
     sliceId,
   } = props;
