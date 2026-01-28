@@ -417,8 +417,9 @@ const FilterBar: FC<FiltersBarProps> = ({
     const newClearAllTriggers = { ...clearAllTriggers };
     nativeFilterValues.forEach(filter => {
       const { id, filterType } = filter;
-      // Range filters use [null, null] as the cleared value; others use null
-      const clearedValue = filterType === 'filter_range' ? [null, null] : null;
+      // Range filters use [null, null] as the cleared value; others use undefined
+      const clearedValue =
+        filterType === 'filter_range' ? [null, null] : undefined;
       const clearedDataMask = {
         filterState: { value: clearedValue },
         extraFormData: {},

@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskType } from '@superset-ui/core';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import { NativeFilterType } from '@superset-ui/core';
 import {
   extractLabel,
+  getAppliedColumnsWithFallback,
   getCrossFilterIndicator,
-  getStatus,
-  IndicatorStatus,
 } from './selectors';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -196,141 +195,373 @@ test('extractLabel uses value when label is undefined', () => {
   expect(extractLabel({ label: undefined, value: ['a'] })).toBe('a');
 });
 
-test('getStatus returns Applied for filter without column but with value', () => {
-  const result = getStatus({
-    label: 'some value',
-    column: undefined,
-    type: DataMaskType.NativeFilters,
-  });
-  expect(result).toBe(IndicatorStatus.Applied);
+test('getAppliedColumnsWithFallback returns columns from query response when available', () => {
+  const chart = {
+    queriesResponse: [
+      {
+        applied_filters: [{ column: 'age' }, { column: 'name' }],
+      },
+    ],
+  };
+  const result = getAppliedColumnsWithFallback(chart);
+  expect(result).toEqual(new Set(['age', 'name']));
 });
 
-test('getStatus returns CrossFilterApplied for cross-filter without column but with value', () => {
-  const result = getStatus({
-    label: 'some value',
-    column: undefined,
-    type: DataMaskType.CrossFilters,
-  });
-  expect(result).toBe(IndicatorStatus.CrossFilterApplied);
+test('getAppliedColumnsWithFallback returns empty set when query response has no applied_filters and no fallback params', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const result = getAppliedColumnsWithFallback(chart);
+  expect(result).toEqual(new Set());
 });
 
-test('getStatus returns Incompatible when column is in rejectedColumns', () => {
-  const rejectedColumns = new Set(['rejected_col']);
-  const result = getStatus({
-    label: 'some value',
-    column: 'rejected_col',
-    rejectedColumns,
-  });
-  expect(result).toBe(IndicatorStatus.Incompatible);
+test('getAppliedColumnsWithFallback derives columns from native filters when query response is empty', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'age' } }],
+    },
+    filter2: {
+      id: 'filter2',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'name' } }],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: '25' },
+      extraFormData: {},
+    },
+    filter2: {
+      id: 'filter2',
+      filterState: { value: 'John' },
+      extraFormData: {},
+    },
+  } as any;
+  const result = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    123,
+  );
+  expect(result).toEqual(new Set(['age', 'name']));
 });
 
-test('getStatus returns Applied when column has value, is not rejected, and is in appliedColumns', () => {
-  const appliedColumns = new Set(['applied_col']);
-  const result = getStatus({
-    label: 'some value',
-    column: 'applied_col',
-    appliedColumns,
-  });
-  expect(result).toBe(IndicatorStatus.Applied);
+test('getAppliedColumnsWithFallback excludes filters not in chart scope', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'age' } }],
+    },
+    filter2: {
+      id: 'filter2',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [456], // Different chart
+      targets: [{ column: { name: 'name' } }],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: '25' },
+      extraFormData: {},
+    },
+    filter2: {
+      id: 'filter2',
+      filterState: { value: 'John' },
+      extraFormData: {},
+    },
+  } as any;
+  const result = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    123,
+  );
+  expect(result).toEqual(new Set(['age']));
 });
 
-test('getStatus returns CrossFilterApplied when column has value, is not rejected, and is in appliedColumns for cross-filter', () => {
-  const appliedColumns = new Set(['applied_col']);
-  const result = getStatus({
-    label: 'some value',
-    column: 'applied_col',
-    type: DataMaskType.CrossFilters,
-    appliedColumns,
-  });
-  expect(result).toBe(IndicatorStatus.CrossFilterApplied);
+test('getAppliedColumnsWithFallback excludes filters without values', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'age' } }],
+    },
+    filter2: {
+      id: 'filter2',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'name' } }],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: '25' },
+      extraFormData: {},
+    },
+    filter2: {
+      id: 'filter2',
+      filterState: { value: null },
+      extraFormData: {},
+    },
+  } as any;
+  const result = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    123,
+  );
+  expect(result).toEqual(new Set(['age']));
 });
 
-test('getStatus returns Applied when column has value, is not rejected, and appliedColumns is empty (chart not loaded)', () => {
-  const appliedColumns = new Set<string>();
-  const result = getStatus({
-    label: 'some value',
-    column: 'test_col',
-    appliedColumns,
-  });
-  expect(result).toBe(IndicatorStatus.Applied);
+test('getAppliedColumnsWithFallback excludes filters without targets', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'age' } }],
+    },
+    filter2: {
+      id: 'filter2',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: '25' },
+      extraFormData: {},
+    },
+    filter2: {
+      id: 'filter2',
+      filterState: { value: 'John' },
+      extraFormData: {},
+    },
+  } as any;
+  const result = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    123,
+  );
+  expect(result).toEqual(new Set(['age']));
 });
 
-test('getStatus returns Applied when column has value, is not rejected, and appliedColumns is undefined (chart not loaded)', () => {
-  const result = getStatus({
-    label: 'some value',
-    column: 'test_col',
-    appliedColumns: undefined,
-  });
-  expect(result).toBe(IndicatorStatus.Applied);
+test('getAppliedColumnsWithFallback excludes non-native filter types', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'age' } }],
+    },
+    filter2: {
+      id: 'filter2',
+      type: 'other_type' as any,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'name' } }],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: '25' },
+      extraFormData: {},
+    },
+    filter2: {
+      id: 'filter2',
+      filterState: { value: 'John' },
+      extraFormData: {},
+    },
+  } as any;
+  const result = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    123,
+  );
+  expect(result).toEqual(new Set(['age']));
 });
 
-test('getStatus returns Applied when column has value, is not rejected, and appliedColumns is null (chart not loaded)', () => {
-  const result = getStatus({
-    label: 'some value',
-    column: 'test_col',
-    appliedColumns: null as any,
-  });
-  expect(result).toBe(IndicatorStatus.Applied);
+test('getAppliedColumnsWithFallback handles missing dataMask entry for filter', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'age' } }],
+    },
+  } as any;
+  const dataMask = {
+    // filter1 is missing
+  } as any;
+  const result = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    123,
+  );
+  expect(result).toEqual(new Set());
 });
 
-test('getStatus returns Unset when column has value but appliedColumns has other columns (not this one)', () => {
-  const appliedColumns = new Set(['other_col']);
-  const result = getStatus({
-    label: 'some value',
-    column: 'test_col',
-    appliedColumns,
-  });
-  expect(result).toBe(IndicatorStatus.Unset);
+test('getAppliedColumnsWithFallback handles empty array values in filterState', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'age' } }],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: [] },
+      extraFormData: {},
+    },
+  } as any;
+  const result = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    123,
+  );
+  expect(result).toEqual(new Set());
 });
 
-test('getStatus returns Unset when label is null', () => {
-  const result = getStatus({
-    label: null,
-    column: 'test_col',
-  });
-  expect(result).toBe(IndicatorStatus.Unset);
+test('getAppliedColumnsWithFallback handles null values in filterState', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'age' } }],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: [null, null] },
+      extraFormData: {},
+    },
+  } as any;
+  const result = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    123,
+  );
+  expect(result).toEqual(new Set());
 });
 
-test('getStatus returns Unset when label is null even with appliedColumns', () => {
-  const appliedColumns = new Set(['test_col']);
-  const result = getStatus({
-    label: null,
-    column: 'test_col',
-    appliedColumns,
-  });
-  expect(result).toBe(IndicatorStatus.Unset);
+test('getAppliedColumnsWithFallback returns empty set when chart is undefined', () => {
+  const result = getAppliedColumnsWithFallback(undefined);
+  expect(result).toEqual(new Set());
 });
 
-test('getStatus returns Unset when column has value but is rejected (rejection takes precedence)', () => {
-  const rejectedColumns = new Set(['test_col']);
-  const appliedColumns = new Set(['test_col']);
-  const result = getStatus({
-    label: 'some value',
-    column: 'test_col',
-    rejectedColumns,
-    appliedColumns,
-  });
-  expect(result).toBe(IndicatorStatus.Incompatible);
+test('getAppliedColumnsWithFallback returns empty set when chart has no queriesResponse', () => {
+  const chart = {};
+  const result = getAppliedColumnsWithFallback(chart);
+  expect(result).toEqual(new Set());
 });
 
-test('getStatus returns Applied for filter without column even when rejectedColumns is provided', () => {
-  const rejectedColumns = new Set(['some_col']);
-  const result = getStatus({
-    label: 'some value',
-    column: undefined,
-    rejectedColumns,
-  });
-  expect(result).toBe(IndicatorStatus.Applied);
+test('getAppliedColumnsWithFallback returns empty set when fallback params are incomplete', () => {
+  const chart = {
+    queriesResponse: [{ applied_filters: [] }],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'age' } }],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: '25' },
+      extraFormData: {},
+    },
+  } as any;
+  // Missing chartId
+  expect(getAppliedColumnsWithFallback(chart, nativeFilters, dataMask)).toEqual(
+    new Set(),
+  );
+  // Missing dataMask
+  expect(
+    getAppliedColumnsWithFallback(chart, nativeFilters, undefined, 123),
+  ).toEqual(new Set());
+  // Missing nativeFilters
+  expect(
+    getAppliedColumnsWithFallback(chart, undefined, dataMask, 123),
+  ).toEqual(new Set());
 });
 
-test('getStatus returns Applied when column has value, is not rejected, and appliedColumns is empty set (chart not loaded)', () => {
-  const appliedColumns = new Set<string>();
-  const rejectedColumns = new Set<string>();
-  const result = getStatus({
-    label: 'filter value',
-    column: 'my_column',
-    appliedColumns,
-    rejectedColumns,
-  });
-  expect(result).toBe(IndicatorStatus.Applied);
+test('getAppliedColumnsWithFallback prioritizes query response over fallback', () => {
+  const chart = {
+    queriesResponse: [
+      {
+        applied_filters: [{ column: 'query_column' }],
+      },
+    ],
+  };
+  const nativeFilters = {
+    filter1: {
+      id: 'filter1',
+      type: NativeFilterType.NativeFilter,
+      chartsInScope: [123],
+      targets: [{ column: { name: 'fallback_column' } }],
+    },
+  } as any;
+  const dataMask = {
+    filter1: {
+      id: 'filter1',
+      filterState: { value: '25' },
+      extraFormData: {},
+    },
+  } as any;
+  const result = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    123,
+  );
+  expect(result).toEqual(new Set(['query_column']));
 });
