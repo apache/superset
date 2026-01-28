@@ -40,7 +40,7 @@ import {
   isRegularMetric,
   isPercentMetric,
 } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core/ui/translation';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
   isAdhocColumn,
