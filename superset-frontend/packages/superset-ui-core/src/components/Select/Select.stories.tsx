@@ -94,11 +94,14 @@ const generateOptions = (opts: SelectOptionsType, count: number) => {
   return generated.slice(0, count);
 };
 
-export const InteractiveSelect = (args: SelectProps) => (
+export const InteractiveSelect = ({
+  options: argOptions,
+  ...args
+}: SelectProps) => (
   <div style={{ width: DEFAULT_WIDTH }}>
     <Select
       ariaLabel="interactive-select"
-      options={options}
+      options={argOptions ?? options}
       {...args}
     />
   </div>

@@ -36,11 +36,9 @@ export default {
       },
     },
   },
-} as Meta<
-  typeof Skeleton & typeof Avatar & typeof Button & typeof Input & typeof Image
->;
+} as Meta<typeof Skeleton>;
 
-type Story = StoryObj<typeof Skeleton & typeof Button & typeof Avatar>;
+type Story = StoryObj<typeof Skeleton>;
 
 export const InteractiveSkeleton: Story = {
   args: {

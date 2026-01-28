@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Meta, StoryObj } from '@storybook/react';
+import { StoryObj } from '@storybook/react';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tree, { TreeProps, type TreeDataNode } from './index';
 

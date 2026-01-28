@@ -18,29 +18,12 @@
  */
 import { Button } from '../Button';
 import { Tooltip } from '.';
-import { TooltipPlacement, TooltipProps } from './types';
+import { TooltipProps } from './types';
 
 export default {
   title: 'Components/Tooltip',
   component: Tooltip,
 };
-
-const PLACEMENTS: TooltipPlacement[] = [
-  'bottom',
-  'bottomLeft',
-  'bottomRight',
-  'left',
-  'leftBottom',
-  'leftTop',
-  'right',
-  'rightBottom',
-  'rightTop',
-  'top',
-  'topLeft',
-  'topRight',
-];
-
-const TRIGGERS = ['hover', 'focus', 'click', 'contextMenu'];
 
 export const InteractiveTooltip = (args: TooltipProps) => (
   <Tooltip {...args}>

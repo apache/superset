@@ -45,7 +45,6 @@ const badgeColors: BadgeColorValue[] = [
   'lime',
 ];
 const badgeSizes: BadgeSizeValue[] = ['default', 'small'];
-const STATUSES = ['default', 'error', 'warning', 'success', 'processing'];
 
 const COLORS = {
   label: 'colors',
