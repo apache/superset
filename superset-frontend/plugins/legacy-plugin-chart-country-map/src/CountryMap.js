@@ -101,7 +101,7 @@ function CountryMap(element, props) {
     country,
     linearColorScheme,
     numberFormat,
-    customColorScale = props.customColorRules || [],
+    customColorScale = props.customColorScale || [],
     colorScheme,
     sliceId,
   } = props;
@@ -161,9 +161,7 @@ function CountryMap(element, props) {
         .clamp(true)
         // Remove interpolation to avoid blending between steps - always return lower boundary
         .interpolate(function (a, b) {
-          return function () {
-            return a;
-          };
+          return a;
         });
     }
   }
