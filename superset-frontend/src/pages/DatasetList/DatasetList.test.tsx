@@ -160,10 +160,13 @@ test('"Bulk select" button exists (when canDelete || canExport)', async () => {
 test('"Bulk select" button exists for export-only users', async () => {
   renderDatasetList(mockExportOnlyUser);
 
+  // Wait for table to render first (deterministic readiness check)
+  await screen.findByTestId('listview-table');
+
   expect(
     await screen.findByRole('button', { name: /bulk select/i }),
   ).toBeInTheDocument();
-}, 30000);
+});
 
 test('"Bulk select" button hidden for read-only users', async () => {
   renderDatasetList(mockReadOnlyUser);

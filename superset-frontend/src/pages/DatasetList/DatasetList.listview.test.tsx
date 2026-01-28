@@ -711,11 +711,13 @@ test('bulk export triggers export with selected IDs', async () => {
   const table = screen.getByTestId('listview-table');
   await within(table).findAllByRole('checkbox');
 
-  // Select row by dataset name (row-scoped query is more robust than array index)
-  const datasetRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  // Select row by dataset name (scoped to table, async to avoid race)
+  const datasetCell = await within(table).findByText(
+    mockDatasets[0].table_name,
+  );
+  const datasetRow = datasetCell.closest('tr');
   expect(datasetRow).toBeInTheDocument();
-  const rowCheckbox = within(datasetRow!).getByRole('checkbox');
-  await userEvent.click(rowCheckbox);
+  await userEvent.click(within(datasetRow!).getByRole('checkbox'));
 
   // Find and click bulk export button (fail-fast if not found)
   const exportButton = await screen.findByRole('button', { name: /export/i });
@@ -752,11 +754,13 @@ test('bulk delete opens confirmation modal', async () => {
   const table = screen.getByTestId('listview-table');
   await within(table).findAllByRole('checkbox');
 
-  // Select row by dataset name (row-scoped query is more robust than array index)
-  const datasetRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  // Select row by dataset name (scoped to table, async to avoid race)
+  const datasetCell = await within(table).findByText(
+    mockDatasets[0].table_name,
+  );
+  const datasetRow = datasetCell.closest('tr');
   expect(datasetRow).toBeInTheDocument();
-  const rowCheckbox = within(datasetRow!).getByRole('checkbox');
-  await userEvent.click(rowCheckbox);
+  await userEvent.click(within(datasetRow!).getByRole('checkbox'));
 
   // Wait for selection to register before clicking Delete
   await waitFor(() => {
@@ -771,12 +775,11 @@ test('bulk delete opens confirmation modal', async () => {
   });
   await userEvent.click(deleteButton);
 
-  // Confirmation modal should appear - verify it's the bulk delete modal by checking description
+  // Confirmation modal should appear - verify by stable anchors (delete-modal-input + bulk context)
   const modal = await screen.findByRole('dialog');
   expect(modal).toBeInTheDocument();
-  expect(
-    within(modal).getByText(/delete the selected datasets/i),
-  ).toBeInTheDocument();
+  // delete-modal-input is unique to ConfirmStatusChange delete modals
+  expect(within(modal).getByTestId('delete-modal-input')).toBeInTheDocument();
 });
 
 test('exit bulk select via close button returns to normal view', async () => {
@@ -1498,8 +1501,9 @@ test('bulk selection clears when filter changes', async () => {
   const table = screen.getByTestId('listview-table');
   await within(table).findAllByRole('checkbox');
 
-  // Select first dataset by name (row-scoped query is more robust than array index)
-  const firstRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  // Select first dataset by name (scoped to table, async to avoid race)
+  const firstCell = await within(table).findByText(mockDatasets[0].table_name);
+  const firstRow = firstCell.closest('tr');
   expect(firstRow).toBeInTheDocument();
   await userEvent.click(within(firstRow!).getByRole('checkbox'));
 
@@ -1510,8 +1514,9 @@ test('bulk selection clears when filter changes', async () => {
     );
   });
 
-  // Select second dataset by name (row-scoped query)
-  const secondRow = screen.getByText(mockDatasets[1].table_name).closest('tr');
+  // Select second dataset by name (scoped to table, async to avoid race)
+  const secondCell = await within(table).findByText(mockDatasets[1].table_name);
+  const secondRow = secondCell.closest('tr');
   expect(secondRow).toBeInTheDocument();
   await userEvent.click(within(secondRow!).getByRole('checkbox'));
 

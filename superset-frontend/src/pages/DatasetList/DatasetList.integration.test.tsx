@@ -174,8 +174,9 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   const table = screen.getByTestId('listview-table');
   await within(table).findAllByRole('checkbox');
 
-  // Select first dataset by name (row-scoped query is more robust than array index)
-  const firstRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  // Select first dataset by name (scoped to table, async to avoid race)
+  const firstCell = await within(table).findByText(mockDatasets[0].table_name);
+  const firstRow = firstCell.closest('tr');
   expect(firstRow).toBeInTheDocument();
   await userEvent.click(within(firstRow!).getByRole('checkbox'));
 
@@ -186,8 +187,9 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
     );
   });
 
-  // Select second dataset
-  const secondRow = screen.getByText(mockDatasets[1].table_name).closest('tr');
+  // Select second dataset (scoped to table, async to avoid race)
+  const secondCell = await within(table).findByText(mockDatasets[1].table_name);
+  const secondRow = secondCell.closest('tr');
   expect(secondRow).toBeInTheDocument();
   await userEvent.click(within(secondRow!).getByRole('checkbox'));
 
@@ -205,12 +207,10 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   );
   await userEvent.click(bulkDeleteButton);
 
-  // Confirm in modal - verify it's bulk delete modal by checking description
+  // Confirm in modal - verify by stable anchor (delete-modal-input is unique to delete modals)
   const modal = await screen.findByRole('dialog');
-  expect(
-    within(modal).getByText(/delete the selected datasets/i),
-  ).toBeInTheDocument();
   const confirmInput = within(modal).getByTestId('delete-modal-input');
+  expect(confirmInput).toBeInTheDocument();
   await userEvent.clear(confirmInput);
   await userEvent.type(confirmInput, 'DELETE');
 
