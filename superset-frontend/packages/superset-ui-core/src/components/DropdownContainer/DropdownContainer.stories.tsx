@@ -144,7 +144,9 @@ export const InteractiveDropdownContainer = (
   );
 };
 
-InteractiveDropdownContainer.args = {};
+InteractiveDropdownContainer.args = {
+  items: [],
+};
 
 InteractiveDropdownContainer.argTypes = {};
 
