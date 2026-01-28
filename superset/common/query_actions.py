@@ -198,6 +198,7 @@ def _get_full(
             "rowcount": payload.get("rowcount"),
             "sql_rowcount": payload.get("sql_rowcount"),
             "detected_currency": payload.get("detected_currency"),
+            "timing": payload.get("timing"),
         }
     return payload
 

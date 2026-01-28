@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
@@ -83,11 +84,19 @@ class QueryContextProcessor:
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> dict[str, Any]:
         """Handles caching around the df payload retrieval"""
+        timing: dict[str, Any] = {}
+        t0 = time.perf_counter()
+
+        # Phase: validate
+        t = time.perf_counter()
         if query_obj:
             # Always validate the query object before generating cache key
             # This ensures sanitize_clause() is called and extras are normalized
             query_obj.validate()
+        timing["validate_ms"] = round((time.perf_counter() - t) * 1000, 2)
 
+        # Phase: cache_lookup
+        t = time.perf_counter()
         cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
@@ -97,6 +106,7 @@ class QueryContextProcessor:
             force_query=force_query,
             force_cached=force_cached,
         )
+        timing["cache_lookup_ms"] = round((time.perf_counter() - t) * 1000, 2)
 
         # If cache is loaded but missing applied_filter_columns and query has filters,
         # treat as cache miss to ensure fresh query with proper applied_filter_columns
@@ -110,7 +120,9 @@ class QueryContextProcessor:
         ):
             cache.is_loaded = False
 
+        # Phase: db_execution (only on cache miss)
         if query_obj and cache_key and not cache.is_loaded:
+            t = time.perf_counter()
             try:
                 if invalid_columns := [
                     col
@@ -142,6 +154,10 @@ class QueryContextProcessor:
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
+            timing["db_execution_ms"] = round((time.perf_counter() - t) * 1000, 2)
+
+        # Phase: result_processing
+        t = time.perf_counter()
 
         # the N-dimensional DataFrame has converted into flat DataFrame
         # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
@@ -189,6 +205,31 @@ class QueryContextProcessor:
             }
         )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
+        timing["result_processing_ms"] = round((time.perf_counter() - t) * 1000, 2)
+
+        timing["total_ms"] = round((time.perf_counter() - t0) * 1000, 2)
+        timing["is_cached"] = cache.is_cached
+
+        # Emit per-phase metrics via STATS_LOGGER
+        stats_logger = current_app.config["STATS_LOGGER"]
+        for phase, value in timing.items():
+            if isinstance(value, (int, float)):
+                stats_logger.timing(f"chart_data.{phase}", value / 1000)
+
+        # Slow query logging
+        threshold = current_app.config.get("CHART_DATA_SLOW_QUERY_THRESHOLD_MS")
+        if threshold is not None and timing["total_ms"] > threshold:
+            logger.warning(
+                "Slow chart query: total=%.0fms validate=%.0fms "
+                "cache_lookup=%.0fms db_execution=%.0fms "
+                "result_processing=%.0fms is_cached=%s",
+                timing["total_ms"],
+                timing.get("validate_ms", 0),
+                timing.get("cache_lookup_ms", 0),
+                timing.get("db_execution_ms", 0),
+                timing.get("result_processing_ms", 0),
+                timing.get("is_cached", False),
+            )
 
         warning: str | None = None
         if cache.bq_memory_limited:
@@ -223,6 +264,7 @@ class QueryContextProcessor:
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,
             "warning": warning,
+            "timing": timing,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
