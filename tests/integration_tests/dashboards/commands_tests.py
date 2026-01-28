@@ -507,6 +507,93 @@ class TestExportDashboardsCommand(SupersetTestCase):
         }
         assert expected_paths == set(contents.keys())
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.security.manager.g")
+    @patch("superset.views.base.g")
+    def test_export_dashboard_cross_database_charts(self, mock_g1, mock_g2):
+        """
+        Test that dashboards with charts from multiple databases export correctly.
+        This reproduces issue #37113 where charts from different databases were missing.
+        """
+        mock_g1.user = security_manager.find_user("admin")
+        mock_g2.user = security_manager.find_user("admin")
+
+        # Create a second database for testing
+        second_db = Database(database_name="test_db_2", sqlalchemy_uri="sqlite://")
+        db.session.add(second_db)
+
+        # Create a dataset in the second database
+        second_dataset = SqlaTable(
+            table_name="second_dataset",
+            database=second_db,
+            database_id=second_db.id,
+            columns=[],
+        )
+        db.session.add(second_dataset)
+
+        # Create a chart using the second database's dataset
+        chart_from_second_db = Slice(
+            slice_name="Chart from Second Database",
+            datasource_type="table",
+            datasource_id=second_dataset.id,
+            datasource_name=second_dataset.table_name,
+            viz_type="bar",
+            params=json.dumps({"viz_type": "bar"}),
+        )
+        db.session.add(chart_from_second_db)
+
+        # Get the example dashboard and add the new chart
+        example_dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").one()
+        )
+
+        # Store original charts count
+        original_charts_count = len(example_dashboard.slices)
+
+        # Add the new chart from different database to the dashboard
+        example_dashboard.slices.append(chart_from_second_db)
+        db.session.commit()
+
+        # Export the dashboard
+        command = ExportDashboardsCommand([example_dashboard.id])
+        contents = dict(command.run())
+
+        # Verify all databases are exported
+        db_files = [key for key in contents.keys() if key.startswith("databases/")]
+        assert len(db_files) >= 2, f"Expected at least 2 database files, got {db_files}"
+
+        # Verify the second database is included
+        assert "databases/test_db_2.yaml" in contents.keys(), \
+            f"Second database not found in export. Keys: {list(contents.keys())}"
+
+        # Verify all charts are exported (original + new one)
+        chart_files = [key for key in contents.keys() if key.startswith("charts/")]
+        assert len(chart_files) == original_charts_count + 1, \
+            f"Expected {original_charts_count + 1} charts, got {len(chart_files)}"
+
+        # Verify the new chart from second database is included
+        chart_from_second_db_file = None
+        for key in chart_files:
+            if f"Chart_from_Second_Database_{chart_from_second_db.id}" in key:
+                chart_from_second_db_file = key
+                break
+
+        assert chart_from_second_db_file is not None, \
+            f"Chart from second database not found in export. Chart files: {chart_files}"
+
+        # Verify the dataset from second database is included
+        dataset_files = [key for key in contents.keys() if key.startswith("datasets/")]
+        second_dataset_file = f"datasets/test_db_2/second_dataset_{second_dataset.id}.yaml"
+        assert second_dataset_file in contents.keys(), \
+            f"Second dataset not found. Dataset files: {dataset_files}"
+
+        # Clean up
+        example_dashboard.slices.remove(chart_from_second_db)
+        db.session.delete(chart_from_second_db)
+        db.session.delete(second_dataset)
+        db.session.delete(second_db)
+        db.session.commit()
+
 
 class TestImportDashboardsCommand(SupersetTestCase):
     def test_import_v0_dashboard_cli_export(self):
