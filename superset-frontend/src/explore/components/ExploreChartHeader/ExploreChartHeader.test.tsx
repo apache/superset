@@ -395,7 +395,7 @@ describe('ExploreChartHeader', () => {
     });
     render(<ExploreHeader {...props} />, { useRedux: true });
 
-    const matrixifyTag = await screen.findByText('Matrixify');
+    const matrixifyTag = await screen.findByText('Matrixified');
     expect(matrixifyTag).toBeInTheDocument();
   });
 
@@ -408,7 +408,7 @@ describe('ExploreChartHeader', () => {
     render(<ExploreHeader {...props} />, { useRedux: true });
 
     await waitFor(() => {
-      expect(screen.queryByText('Matrixify')).not.toBeInTheDocument();
+      expect(screen.queryByText('Matrixified')).not.toBeInTheDocument();
     });
   });
 });

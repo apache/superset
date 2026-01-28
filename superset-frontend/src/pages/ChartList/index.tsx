@@ -388,7 +388,7 @@ function ChartList(props: ChartListProps) {
                   margin-left: ${theme.marginXS}px;
                 `}
               >
-                <Tag name="Matrixify" color="purple" />
+                <Tag name="Matrixified" color="purple" />
               </span>
             )}
           </>
