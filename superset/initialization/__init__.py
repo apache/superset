@@ -527,33 +527,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         initialize_core_api_dependencies()
 
     def init_extensions(self) -> None:
-        from superset.extensions.utils import (
-            eager_import,
-            get_extensions,
-            install_in_memory_importer,
-        )
+        from superset.extensions.utils import get_extensions
 
         try:
-            extensions = get_extensions()
+            # get_extensions() handles loading backend modules and registering
+            # entry points via load_extension_backend()
+            get_extensions()
         except Exception:  # pylint: disable=broad-except  # noqa: S110
             # If the db hasn't been initialized yet, an exception will be raised.
             # It's fine to ignore this, as in this case there are no extensions
             # present yet.
-            return
-
-        for extension in extensions.values():
-            if backend_files := extension.backend:
-                install_in_memory_importer(backend_files)
-
-            backend = extension.manifest.get("backend")
-
-            if backend and (entrypoints := backend.get("entryPoints")):
-                for entrypoint in entrypoints:
-                    try:
-                        eager_import(entrypoint)
-                    except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
-                        # Surface exceptions during initialization of extensions
-                        print(ex)
+            pass
 
     def init_app_in_ctx(self) -> None:
         """
