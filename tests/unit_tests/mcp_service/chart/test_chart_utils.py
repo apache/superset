@@ -152,6 +152,58 @@ class TestMapTableConfig:
         result = map_table_config(config)
         assert result["order_by_cols"] == ["product", "revenue"]
 
+    def test_map_table_config_ag_grid_table(self) -> None:
+        """Test table config mapping with AG Grid Interactive Table viz_type"""
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        # AG Grid tables use 'ag-grid-table' viz_type
+        assert result["viz_type"] == "ag-grid-table"
+        assert result["query_mode"] == "aggregate"
+        assert len(result["metrics"]) == 1
+        assert result["metrics"][0]["aggregate"] == "SUM"
+        # Non-aggregated columns should be in groupby
+        assert "groupby" in result
+        assert "product_line" in result["groupby"]
+
+    def test_map_table_config_ag_grid_raw_mode(self) -> None:
+        """Test AG Grid table with raw columns (no aggregates)"""
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="category"),
+                ColumnRef(name="region"),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["viz_type"] == "ag-grid-table"
+        assert result["query_mode"] == "raw"
+        assert result["all_columns"] == ["product_line", "category", "region"]
+        assert "metrics" not in result
+
+    def test_map_table_config_default_viz_type(self) -> None:
+        """Test that default viz_type is 'table' not 'ag-grid-table'"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+        )
+
+        result = map_table_config(config)
+
+        assert result["viz_type"] == "table"
+
 
 class TestMapXYConfig:
     """Test map_xy_config function"""
@@ -222,6 +274,82 @@ class TestMapXYConfig:
         assert result["viz_type"] == "echarts_timeseries_scatter"
         assert result["show_legend"] is False
         assert result["legend_orientation"] == "top"
+
+    def test_map_xy_config_with_time_grain_month(self) -> None:
+        """Test XY config mapping with monthly time grain"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+            time_grain="P1M",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_bar"
+        assert result["x_axis"] == "order_date"
+        assert result["time_grain_sqla"] == "P1M"
+
+    def test_map_xy_config_with_time_grain_day(self) -> None:
+        """Test XY config mapping with daily time grain"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="created_at"),
+            y=[ColumnRef(name="count", aggregate="COUNT")],
+            kind="line",
+            time_grain="P1D",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["viz_type"] == "echarts_timeseries_line"
+        assert result["x_axis"] == "created_at"
+        assert result["time_grain_sqla"] == "P1D"
+
+    def test_map_xy_config_with_time_grain_hour(self) -> None:
+        """Test XY config mapping with hourly time grain"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="timestamp"),
+            y=[ColumnRef(name="requests", aggregate="SUM")],
+            kind="area",
+            time_grain="PT1H",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["time_grain_sqla"] == "PT1H"
+
+    def test_map_xy_config_without_time_grain(self) -> None:
+        """Test XY config mapping without time grain (should not set time_grain_sqla)"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+        )
+
+        result = map_xy_config(config)
+
+        assert "time_grain_sqla" not in result
+
+    def test_map_xy_config_with_time_grain_and_groupby(self) -> None:
+        """Test XY config mapping with time grain and group by"""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            time_grain="P1W",
+            group_by=ColumnRef(name="category"),
+        )
+
+        result = map_xy_config(config)
+
+        assert result["time_grain_sqla"] == "P1W"
+        assert result["groupby"] == ["category"]
+        assert result["x_axis"] == "order_date"
 
 
 class TestMapConfigToFormData:

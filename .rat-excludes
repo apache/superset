@@ -71,10 +71,14 @@ temporary_superset_ui/*
 google-big-query.svg
 google-sheets.svg
 ibm-db2.svg
+netlify.png
 postgresql.svg
 snowflake.svg
 ydb.svg
 loading.svg
+apache-solr.svg
+azure.svg
+superset.svg
 
 # docs third-party logos, i.e. docs/static/img/logos/*
 logos/*

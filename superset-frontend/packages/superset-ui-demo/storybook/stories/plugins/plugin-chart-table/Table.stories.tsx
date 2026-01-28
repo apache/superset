@@ -18,7 +18,7 @@
  */
 
 import memoizeOne from 'memoize-one';
-import { SuperChart, VizType } from '@superset-ui/core';
+import { DataRecord, SuperChart, VizType } from '@superset-ui/core';
 import TableChartPlugin, {
   TableChartProps,
 } from '@superset-ui/plugin-chart-table';
@@ -77,7 +77,7 @@ export default {
 
 new TableChartPlugin().configure({ key: VizType.Table }).register();
 
-function expandArray<T>(input: T[], targetSize: number) {
+function expandArray<T>(input: T[], targetSize: number): T[] {
   if (!input || input.length === 0) {
     throw new Error('Cannot expand an empty array');
   }
@@ -90,8 +90,14 @@ function expandArray<T>(input: T[], targetSize: number) {
 
 // memoize expanded array so to make sure we always return the same
 // data when changing page sizes
-const expandRecords = memoizeOne(expandArray);
-const expandColumns = memoizeOne(expandArray);
+const expandRecords = memoizeOne(
+  (input: DataRecord[], targetSize: number): DataRecord[] =>
+    expandArray(input, targetSize),
+);
+const expandColumns = memoizeOne(
+  (input: string[], targetSize: number): string[] =>
+    expandArray(input, targetSize),
+);
 
 /**
  * Load sample data for testing

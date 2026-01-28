@@ -32,6 +32,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Guard to prevent multiple initializations
+_watcher_initialized = False
+_watcher_lock = threading.Lock()
+
 
 def _get_file_handler_class() -> Any:
     """Get the file handler class, importing watchdog only when needed."""
@@ -68,6 +72,14 @@ def _get_file_handler_class() -> Any:
 
 def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
     """Set up file watcher for LOCAL_EXTENSIONS directories."""
+    global _watcher_initialized
+
+    # Prevent multiple initializations
+    with _watcher_lock:
+        if _watcher_initialized:
+            return
+        _watcher_initialized = True
+
     # Only set up watcher in debug mode or when Flask reloader is enabled
     if not (app.debug or app.config.get("FLASK_USE_RELOAD", False)):
         return

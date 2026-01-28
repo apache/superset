@@ -30,7 +30,7 @@ from sqlalchemy.engine.reflection import Inspector
 
 from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
 
 if TYPE_CHECKING:
@@ -46,6 +46,23 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
     engine_name = "Apache Impala"
+
+    metadata = {
+        "description": (
+            "Apache Impala is an open-source massively parallel "
+            "processing SQL query engine."
+        ),
+        "logo": "apache-impala.png",
+        "homepage_url": "https://impala.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["impyla"],
+        "connection_string": "impala://{hostname}:{port}/{database}",
+        "default_port": 21050,
+    }
 
     _time_grain_expressions = {
         None: "{col}",
