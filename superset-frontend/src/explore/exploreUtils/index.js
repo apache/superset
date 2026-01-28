@@ -217,6 +217,7 @@ export const buildV1ChartDataPayload = async ({
   resultType,
   setDataMask,
   ownState,
+  clientId,
 }) => {
   const buildQuery =
     getChartBuildQueryRegistry().get(formData.viz_type) ??
@@ -226,7 +227,7 @@ export const buildV1ChartDataPayload = async ({
           ...baseQueryObject,
         },
       ]));
-  return buildQuery(
+  const queryContext = buildQuery(
     {
       ...formData,
       force,
@@ -240,6 +241,15 @@ export const buildV1ChartDataPayload = async ({
       },
     },
   );
+
+  if (clientId) {
+    return {
+      ...queryContext,
+      client_id: clientId,
+    };
+  }
+
+  return queryContext;
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>

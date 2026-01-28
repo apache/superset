@@ -52,6 +52,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
         custom_cache_timeout: int | None = None,
+        client_id: str | None = None,
     ) -> QueryContext:
         datasource_model_instance = None
         if datasource:
@@ -89,6 +90,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             "queries": queries,
             "result_type": result_type,
             "result_format": result_format,
+            "client_id": client_id,
         }
         return QueryContext(
             datasource=datasource_model_instance,
