@@ -34,14 +34,20 @@ export enum TaskScope {
  * Task properties - runtime state and execution config stored in JSON blob.
  */
 export interface TaskProperties {
+  // Execution config - set at task creation
+  execution_mode: 'async' | 'sync' | null;
+  timeout: number | null;
+
+  // Runtime state - set by framework during execution
   is_abortable: boolean | null;
   progress_percent: number | null;
   progress_current: number | null;
   progress_total: number | null;
+
+  // Error info - set when task fails
   error_message: string | null;
   exception_type: string | null;
   stack_trace: string | null;
-  timeout: number | null;
 }
 
 export interface Task {

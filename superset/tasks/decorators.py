@@ -271,8 +271,10 @@ class TaskWrapper(Generic[P]):
         task_key = options.task_key or generate_random_task_key()
         scope = self.scope  # Use scope from decorator
 
-        # Build properties with timeout if configured
-        properties = {"timeout": options.timeout} if options.timeout else None
+        # Build properties with execution_mode and timeout
+        properties: dict[str, str | int] = {"execution_mode": "sync"}
+        if options.timeout:
+            properties["timeout"] = options.timeout
 
         task = CreateTaskCommand(
             {

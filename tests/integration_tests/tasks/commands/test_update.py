@@ -173,13 +173,13 @@ def test_update_all_supported_fields(
     login_as("admin")
     mock_get_user.return_value = admin.username
 
-    # Create a task with initial timeout in properties
+    # Create a task with initial execution_mode and timeout in properties
     task = TaskDAO.create_task(
         task_type="test_type",
         task_key="all_fields_test",
         scope=TaskScope.PRIVATE,
         user_id=admin.id,
-        properties={"timeout": 300},  # Initial timeout
+        properties={"execution_mode": "async", "timeout": 300},
     )
     task.created_by = admin
     task.set_status(TaskStatus.IN_PROGRESS)
@@ -208,7 +208,8 @@ def test_update_all_supported_fields(
         assert result.properties.get("progress_current") == 75
         assert result.properties.get("progress_total") == 100
         assert result.properties.get("is_abortable") is True
-        assert result.properties.get("timeout") == 300  # Timeout preserved
+        assert result.properties.get("execution_mode") == "async"
+        assert result.properties.get("timeout") == 300
 
         # Verify in database
         db.session.refresh(task)
@@ -218,7 +219,8 @@ def test_update_all_supported_fields(
         assert task.properties.get("progress_current") == 75
         assert task.properties.get("progress_total") == 100
         assert task.properties.get("is_abortable") is True
-        assert task.properties.get("timeout") == 300  # Timeout preserved
+        assert task.properties.get("execution_mode") == "async"
+        assert task.properties.get("timeout") == 300
     finally:
         # Cleanup
         db.session.delete(task)
