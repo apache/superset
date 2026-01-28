@@ -746,16 +746,6 @@ const config: ControlPanelConfig = {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Custom conditional formatting'),
-              extraColorChoices: [
-                {
-                  value: ColorSchemeEnum.Green,
-                  label: t('Green for increase, red for decrease'),
-                },
-                {
-                  value: ColorSchemeEnum.Red,
-                  label: t('Red for increase, green for decrease'),
-                },
-              ],
               description: t(
                 'Apply conditional color formatting to numeric columns',
               ),
@@ -768,6 +758,22 @@ const config: ControlPanelConfig = {
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : (explore?.datasource?.columns ?? {});
+                const timeCompareValue = explore?.controls?.time_compare?.value;
+                const hasTimeComparison = !isEmpty(timeCompareValue);
+
+                const extraColorChoices = hasTimeComparison
+                  ? [
+                      {
+                        value: ColorSchemeEnum.Green,
+                        label: t('Green for increase, red for decrease'),
+                      },
+                      {
+                        value: ColorSchemeEnum.Red,
+                        label: t('Red for increase, green for decrease'),
+                      },
+                    ]
+                  : [];
+
                 const chartStatus = chart?.chartStatus;
                 const value = _?.value ?? [];
                 if (value && Array.isArray(value)) {
@@ -796,7 +802,7 @@ const config: ControlPanelConfig = {
                     ? colnames.reduce((acc, colname, index) => {
                         if (
                           coltypes[index] === GenericDataType.Numeric ||
-                          (!explore?.controls?.time_compare?.value &&
+                          (!hasTimeComparison &&
                             (coltypes[index] === GenericDataType.String ||
                               coltypes[index] === GenericDataType.Boolean))
                         ) {
@@ -811,12 +817,10 @@ const config: ControlPanelConfig = {
                         return acc;
                       }, [])
                     : [];
-                const columnOptions = explore?.controls?.time_compare?.value
+                const columnOptions = hasTimeComparison
                   ? processComparisonColumns(
                       numericColumns || [],
-                      ensureIsArray(
-                        explore?.controls?.time_compare?.value,
-                      )[0]?.toString() || '',
+                      ensureIsArray(timeCompareValue)[0]?.toString() || '',
                     )
                   : numericColumns;
 
@@ -828,6 +832,7 @@ const config: ControlPanelConfig = {
                     toAllRowCheck: true,
                     toColorTextCheck: true,
                   },
+                  extraColorChoices,
                 };
               },
             },
