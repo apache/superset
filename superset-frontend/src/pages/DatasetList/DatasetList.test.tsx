@@ -309,11 +309,8 @@ test('typing in name filter updates input value and triggers API with decoded se
       );
       expect(queryString).toBeTruthy();
 
-      // Decode the rison payload
-      const decoded = rison.decode(decodeURIComponent(queryString!)) as Record<
-        string,
-        unknown
-      >;
+      // searchParams.get() already URL-decodes, so pass directly to rison.decode
+      const decoded = rison.decode(queryString!) as Record<string, unknown>;
 
       // Verify filter structure contains table_name search
       expect(decoded.filters).toBeDefined();

@@ -1551,9 +1551,11 @@ test('bulk selection clears when filter changes', async () => {
     'http://localhost',
   ).searchParams.get('q');
   expect(risonAfterFilter).toBeTruthy();
-  const decodedAfterFilter = rison.decode(
-    decodeURIComponent(risonAfterFilter!),
-  ) as Record<string, unknown>;
+  // searchParams.get() already URL-decodes, so pass directly to rison.decode
+  const decodedAfterFilter = rison.decode(risonAfterFilter!) as Record<
+    string,
+    unknown
+  >;
   expect(decodedAfterFilter.filters).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ col: 'sql', value: false }),
@@ -1591,12 +1593,10 @@ test('type filter API call includes correct filter parameter', async () => {
   const url = fetchMock.calls(API_ENDPOINTS.DATASETS).at(-1)?.[0] as string;
   expect(url).toContain('filters');
 
+  // searchParams.get() already URL-decodes, so pass directly to rison.decode
   const risonPayload = new URL(url, 'http://localhost').searchParams.get('q');
   expect(risonPayload).toBeTruthy();
-  const decoded = rison.decode(decodeURIComponent(risonPayload!)) as Record<
-    string,
-    unknown
-  >;
+  const decoded = rison.decode(risonPayload!) as Record<string, unknown>;
   const filters = Array.isArray(decoded?.filters) ? decoded.filters : [];
 
   // Type filter should be present (sql=false for Virtual datasets)
@@ -1642,9 +1642,11 @@ test('type filter persists after duplicating a dataset', async () => {
     'http://localhost',
   ).searchParams.get('q');
   expect(risonAfterFilter).toBeTruthy();
-  const decodedAfterFilter = rison.decode(
-    decodeURIComponent(risonAfterFilter!),
-  ) as Record<string, unknown>;
+  // searchParams.get() already URL-decodes, so pass directly to rison.decode
+  const decodedAfterFilter = rison.decode(risonAfterFilter!) as Record<
+    string,
+    unknown
+  >;
   expect(decodedAfterFilter.filters).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ col: 'sql', value: false }),
@@ -1699,9 +1701,11 @@ test('type filter persists after duplicating a dataset', async () => {
     'http://localhost',
   ).searchParams.get('q');
   expect(risonAfterDuplicate).toBeTruthy();
-  const decodedAfterDuplicate = rison.decode(
-    decodeURIComponent(risonAfterDuplicate!),
-  ) as Record<string, unknown>;
+  // searchParams.get() already URL-decodes, so pass directly to rison.decode
+  const decodedAfterDuplicate = rison.decode(risonAfterDuplicate!) as Record<
+    string,
+    unknown
+  >;
   expect(decodedAfterDuplicate.filters).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ col: 'sql', value: false }),

@@ -377,12 +377,13 @@ test('useDatasetsList encodes schemas with spaces and special characters in endp
   // Schema 'sales analytics' -> encodeURIComponent -> 'sales%20analytics' -> rison.encode_uri -> 'sales%2520analytics'
   expect(callArg).toContain('sales%2520analytics');
 
-  // Decode rison to verify filter structure using URL parser (more robust than split)
+  // Decode rison to verify filter structure using URL parser
+  // searchParams.get() already URL-decodes, so pass directly to rison.decode
   const risonParam = new URL(callArg!, 'http://localhost').searchParams.get(
     'q',
   );
   expect(risonParam).toBeTruthy();
-  const decoded = rison.decode(decodeURIComponent(risonParam!)) as {
+  const decoded = rison.decode(risonParam!) as {
     filters: Array<{ col: string; opr: string; value: string }>;
   };
 

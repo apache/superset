@@ -120,10 +120,8 @@ test('typing in search triggers debounced API call with search filter', async ()
   expect(url).toContain('filters');
   const risonPayload = new URL(url, 'http://localhost').searchParams.get('q');
   expect(risonPayload).toBeTruthy();
-  const decoded = rison.decode(decodeURIComponent(risonPayload!)) as Record<
-    string,
-    unknown
-  >;
+  // searchParams.get() already URL-decodes, so pass directly to rison.decode
+  const decoded = rison.decode(risonPayload!) as Record<string, unknown>;
   const filters = Array.isArray(decoded?.filters) ? decoded.filters : [];
   const hasSalesFilter = filters.some(
     (filter: Record<string, unknown>) =>

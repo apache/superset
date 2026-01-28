@@ -118,10 +118,8 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   // Decode the rison payload using URL parser
   const risonPayload = new URL(url, 'http://localhost').searchParams.get('q');
   expect(risonPayload).toBeTruthy();
-  const decoded = rison.decode(decodeURIComponent(risonPayload!)) as Record<
-    string,
-    unknown
-  >;
+  // searchParams.get() already URL-decodes, so pass directly to rison.decode
+  const decoded = rison.decode(risonPayload!) as Record<string, unknown>;
 
   // Verify ALL three pieces of state are present and merged:
   // 1. Sort (order_column)
