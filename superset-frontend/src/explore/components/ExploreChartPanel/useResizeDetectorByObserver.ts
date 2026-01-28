@@ -20,7 +20,11 @@ import { useMemo } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 
 export default function useResizeDetectorByObserver() {
-  const { width: rawWidth, height: rawHeight, ref } = useResizeDetector({
+  const {
+    width: rawWidth,
+    height: rawHeight,
+    ref,
+  } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 100,
     handleHeight: true,
