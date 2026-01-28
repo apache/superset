@@ -177,13 +177,16 @@ test('SQL Lab screenshot', async ({ page }) => {
   await expect(tableSelectWrapper).toBeVisible({ timeout: 10000 });
   await tableSelectWrapper.click();
   await page.keyboard.type('birth_names');
-  // Select the filtered option via keyboard
+  // Wait for the filtered option to appear, then select it
+  await expect(
+    page.getByRole('option', { name: /birth_names/i }),
+  ).toBeVisible({ timeout: 10000 });
   await page.keyboard.press('Enter');
 
   // Wait for table schema to load and show columns in the left panel
   await expect(
     page.locator('[data-test="col-name"]').first(),
-  ).toBeVisible({ timeout: 10000 });
+  ).toBeVisible({ timeout: 15000 });
 
   // Close the table dropdown by clicking elsewhere, then switch to the query tab
   await page.locator('[data-test="sql-editor-tabs"]').first().click();
