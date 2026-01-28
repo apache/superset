@@ -88,6 +88,14 @@ test('dashboard screenshot', async ({ page }) => {
     dashboardWrapper.locator('[data-test="loading-indicator"]'),
   ).toHaveCount(0, { timeout: 30000 });
 
+  // Wait for at least one chart to finish rendering (SVG or canvas inside a chart holder)
+  await expect(
+    page
+      .locator('.dashboard-component-chart-holder')
+      .first()
+      .locator('canvas, svg'),
+  ).toBeVisible({ timeout: 15000 });
+
   // Open the filter bar (collapsed by default)
   const expandButton = page.locator(
     '[data-test="filter-bar-expand-button"]',
@@ -100,9 +108,10 @@ test('dashboard screenshot', async ({ page }) => {
   await page.waitForTimeout(2000);
 
   await page.addStyleTag({ content: 'body { zoom: 0.8 }' });
-  await dashboardWrapper.screenshot({
+  await page.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'dashboard.jpg'),
     type: 'jpeg',
+    fullPage: true,
   });
 });
 
