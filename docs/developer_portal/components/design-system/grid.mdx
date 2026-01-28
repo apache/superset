@@ -37,8 +37,7 @@ The Grid system of Ant Design is based on a 24-grid layout. The `Row` and `Col` 
   align: "top",
   justify: "start",
   wrap: true,
-  span: 6,
-  offset: 0
+  gutter: 16
 }}
   controls={[
   {
@@ -51,7 +50,7 @@ The Grid system of Ant Design is based on a 24-grid layout. The `Row` and `Col` 
       "bottom",
       "stretch"
     ],
-    description: "Vertical alignment of flex items."
+    description: "Vertical alignment of columns within the row."
   },
   {
     name: "justify",
@@ -65,28 +64,22 @@ The Grid system of Ant Design is based on a 24-grid layout. The `Row` and `Col` 
       "space-between",
       "space-evenly"
     ],
-    description: "Horizontal arrangement of flex items."
+    description: "Horizontal distribution of columns within the row."
   },
   {
     name: "wrap",
     label: "Wrap",
     type: "boolean",
-    description: "Whether the flex container is allowed to wrap its items."
+    description: "Whether columns are allowed to wrap to the next line."
   },
   {
-    name: "span",
-    label: "Span",
+    name: "gutter",
+    label: "Gutter",
     type: "number",
-    description: "Number of grid columns to span (out of 24)."
-  },
-  {
-    name: "offset",
-    label: "Offset",
-    type: "number",
-    description: "Number of grid columns to offset from the left."
+    description: "Spacing between columns in pixels."
   }
 ]}
-  sampleChildren={[{"component":"Col","props":{"span":6,"children":"col-6","style":{"background":"#e6f4ff","padding":"8px","border":"1px solid #91caff","textAlign":"center"}}},{"component":"Col","props":{"span":6,"children":"col-6","style":{"background":"#e6f4ff","padding":"8px","border":"1px solid #91caff","textAlign":"center"}}},{"component":"Col","props":{"span":6,"children":"col-6","style":{"background":"#e6f4ff","padding":"8px","border":"1px solid #91caff","textAlign":"center"}}},{"component":"Col","props":{"span":6,"children":"col-6","style":{"background":"#e6f4ff","padding":"8px","border":"1px solid #91caff","textAlign":"center"}}}]}
+  sampleChildren={[{"component":"Col","props":{"span":4,"children":"col-4","style":{"background":"#e6f4ff","padding":"8px","border":"1px solid #91caff","textAlign":"center"}}},{"component":"Col","props":{"span":4,"children":"col-4 (tall)","style":{"background":"#e6f4ff","padding":"24px 8px","border":"1px solid #91caff","textAlign":"center"}}},{"component":"Col","props":{"span":4,"children":"col-4","style":{"background":"#e6f4ff","padding":"8px","border":"1px solid #91caff","textAlign":"center"}}}]}
 />
 
 ## Try It
@@ -180,11 +173,10 @@ function AlignmentDemo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `align` | `string` | `"top"` | Vertical alignment of flex items. |
-| `justify` | `string` | `"start"` | Horizontal arrangement of flex items. |
-| `wrap` | `boolean` | `true` | Whether the flex container is allowed to wrap its items. |
-| `span` | `number` | `6` | Number of grid columns to span (out of 24). |
-| `offset` | `number` | `0` | Number of grid columns to offset from the left. |
+| `align` | `string` | `"top"` | Vertical alignment of columns within the row. |
+| `justify` | `string` | `"start"` | Horizontal distribution of columns within the row. |
+| `wrap` | `boolean` | `true` | Whether columns are allowed to wrap to the next line. |
+| `gutter` | `number` | `16` | Spacing between columns in pixels. |
 
 ## Import
 

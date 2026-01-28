@@ -43,14 +43,13 @@ export const InteractiveGrid: Story = {
     align: 'top',
     justify: 'start',
     wrap: true,
-    span: 6,
-    offset: 0,
+    gutter: 16,
   },
   argTypes: {
     align: {
       control: 'select',
       options: ['top', 'middle', 'bottom', 'stretch'],
-      description: 'Vertical alignment of flex items.',
+      description: 'Vertical alignment of columns within the row.',
     },
     justify: {
       control: 'select',
@@ -62,19 +61,15 @@ export const InteractiveGrid: Story = {
         'space-between',
         'space-evenly',
       ],
-      description: 'Horizontal arrangement of flex items.',
+      description: 'Horizontal distribution of columns within the row.',
     },
     wrap: {
       control: 'boolean',
-      description: 'Whether the flex container is allowed to wrap its items.',
+      description: 'Whether columns are allowed to wrap to the next line.',
     },
-    span: {
+    gutter: {
       control: 'number',
-      description: 'Number of grid columns to span (out of 24).',
-    },
-    offset: {
-      control: 'number',
-      description: 'Number of grid columns to offset from the left.',
+      description: 'Spacing between columns in pixels.',
     },
   },
   render: ({ align, justify, wrap, ...rest }: RowProps & ColProps) => {
@@ -141,10 +136,9 @@ InteractiveGrid.parameters = {
   docs: {
     renderComponent: 'Row',
     sampleChildren: [
-      { component: 'Col', props: { span: 6, children: 'col-6', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
-      { component: 'Col', props: { span: 6, children: 'col-6', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
-      { component: 'Col', props: { span: 6, children: 'col-6', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
-      { component: 'Col', props: { span: 6, children: 'col-6', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
+      { component: 'Col', props: { span: 4, children: 'col-4', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
+      { component: 'Col', props: { span: 4, children: 'col-4 (tall)', style: { background: '#e6f4ff', padding: '24px 8px', border: '1px solid #91caff', textAlign: 'center' } } },
+      { component: 'Col', props: { span: 4, children: 'col-4', style: { background: '#e6f4ff', padding: '8px', border: '1px solid #91caff', textAlign: 'center' } } },
     ],
     description: {
       story:
