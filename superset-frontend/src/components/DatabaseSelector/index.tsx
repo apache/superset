@@ -184,7 +184,6 @@ export function DatabaseSelector({
   onOpenModal,
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
-  console.log('db', db, showCatalogSelector);
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
   const [errorPayload, setErrorPayload] = useState<SupersetError | null>();
   const [currentCatalog, setCurrentCatalog] = useState<
