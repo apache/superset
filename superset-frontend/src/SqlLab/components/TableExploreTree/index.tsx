@@ -37,7 +37,6 @@ import {
   Empty,
   Typography,
   Button,
-  Flex,
 } from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import type { SqlLabRootState } from 'src/SqlLab/types';
