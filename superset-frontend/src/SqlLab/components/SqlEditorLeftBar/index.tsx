@@ -23,8 +23,10 @@ import { resetState } from 'src/SqlLab/actions/sqlLab';
 import {
   Button,
   EmptyState,
+  Flex,
   Icons,
-  Popconfirm,
+  Popover,
+  Typography,
 } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core';
 import { styled, css } from '@apache-superset/core/ui';
@@ -120,13 +122,18 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
     dispatch(resetState());
   }, [dispatch]);
 
-  const popconfirmDescription = (
-    <div
+  const popoverContent = (
+    <Flex
+      vertical
+      gap="middle"
       data-test="DatabaseSelector"
       css={css`
         min-width: 500px;
       `}
     >
+      <Typography.Title level={5} style={{ margin: 0 }}>
+        {t('Select Database and Schema')}
+      </Typography.Title>
       <DatabaseSelector
         key={modalDb ? modalDb.id : 'no-db'}
         db={modalDb}
@@ -148,41 +155,48 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
         schema={modalSchema?.value}
         sqlLabMode={false}
       />
-    </div>
+      <Flex justify="flex-end" gap="small">
+        <Button
+          buttonStyle="tertiary"
+          onClick={e => {
+            e?.stopPropagation();
+            closeSelectorModal();
+          }}
+        >
+          {t('Cancel')}
+        </Button>
+        <Button
+          type="primary"
+          onClick={e => {
+            e?.stopPropagation();
+            handleModalOk();
+          }}
+        >
+          {t('Select')}
+        </Button>
+      </Flex>
+    </Flex>
   );
 
   return (
     <LeftBarStyles data-test="sql-editor-left-bar">
-      <Popconfirm
-        title={t('Select Database and Schema')}
-        description={popconfirmDescription}
+      <Popover
+        content={popoverContent}
         open={selectorModalOpen}
         onOpenChange={open => !open && closeSelectorModal()}
-        onConfirm={e => {
-          e?.stopPropagation();
-          handleModalOk();
-        }}
-        onCancel={e => {
-          e?.stopPropagation();
-          closeSelectorModal();
-        }}
-        okText={t('Select')}
-        cancelText={t('Cancel')}
         placement="bottomLeft"
-        icon={null}
+        trigger="click"
       >
-        <div>
-          <DatabaseSelector
-            key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
-              schema ?? 'no-schema'
-            }`}
-            {...dbSelectorProps}
-            emptyState={<EmptyState />}
-            sqlLabMode
-            onOpenModal={openSelectorModal}
-          />
-        </div>
-      </Popconfirm>
+        <DatabaseSelector
+          key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
+            schema ?? 'no-schema'
+          }`}
+          {...dbSelectorProps}
+          emptyState={<EmptyState />}
+          sqlLabMode
+          onOpenModal={openSelectorModal}
+        />
+      </Popover>
       <StyledDivider />
       <TableExploreTree queryEditorId={queryEditorId} />
       {shouldShowReset && (
