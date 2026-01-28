@@ -23,7 +23,6 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
-  Currency,
   CurrencyFormatter,
   ensureIsArray,
   getCustomFormatter,
