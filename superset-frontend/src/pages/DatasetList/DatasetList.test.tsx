@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import rison from 'rison';
 import fetchMock from 'fetch-mock';
@@ -40,7 +40,13 @@ beforeEach(() => {
   setupMocks();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // Flush pending React state updates within act() to prevent warnings
+  // and "document global undefined" errors from async operations
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
   // Restore real timers in case a test using fake timers threw early
   jest.useRealTimers();
 
@@ -49,6 +55,7 @@ afterEach(() => {
 
   fetchMock.resetHistory();
   fetchMock.restore();
+  jest.restoreAllMocks();
 });
 
 test('renders page with "Datasets" title', async () => {

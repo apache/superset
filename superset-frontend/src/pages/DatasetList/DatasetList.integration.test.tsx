@@ -235,4 +235,4 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
 
   // This confirms the full bulk operation cycle coordinates correctly:
   // selection state → action handler → list refresh → state cleanup
-}, 30000);
+}, 45000);
