@@ -51,22 +51,29 @@ const useEditorProvider = (language: EditorLanguage) => {
   const [provider, setProvider] = useState(() => manager.getProvider(language));
 
   useEffect(() => {
+    // Helper to safely update provider state, always fetching latest from manager
+    const updateProvider = () => {
+      setProvider(prev => {
+        const current = manager.getProvider(language);
+        return current !== prev ? current : prev;
+      });
+    };
+
     // Subscribe to provider changes
     const registerDisposable = manager.onDidRegister(event => {
       if (event.provider.contribution.languages.includes(language)) {
-        setProvider(event.provider);
+        updateProvider();
       }
     });
 
     const unregisterDisposable = manager.onDidUnregister(event => {
       if (event.contribution.languages.includes(language)) {
-        setProvider(manager.getProvider(language));
+        updateProvider();
       }
     });
 
     // Check for provider on mount (in case it was registered before this component mounted)
-    const currentProvider = manager.getProvider(language);
-    setProvider(prev => (currentProvider !== prev ? currentProvider : prev));
+    updateProvider();
 
     return () => {
       registerDisposable.dispose();
