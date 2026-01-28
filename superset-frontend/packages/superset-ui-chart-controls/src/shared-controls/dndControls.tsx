@@ -39,6 +39,13 @@ import {
   xAxisMixin,
 } from '..';
 
+import { glossary } from '@superset-ui/core';
+
+// Glossary terms used for tooltips
+const DIMENSION_DESCRIPTION = glossary.Query.Dimension.encode();
+const METRIC_DESCRIPTION = glossary.Query.Metric.encode();
+const SORT_DESCRIPTION = glossary.Query.Sort.encode();
+
 type Control = {
   savedMetrics?: Metric[] | null;
   default?: unknown;
@@ -78,11 +85,7 @@ export const dndGroupByControl: SharedControlConfig<
   clearable: true,
   default: [],
   includeTime: false,
-  description: t(
-    'Dimensions contain qualitative values such as names, dates, or geographical data. ' +
-      'Use dimensions to categorize, segment, and reveal the details in your data. ' +
-      'Dimensions affect the level of detail in the view.',
-  ),
+  description: t(DIMENSION_DESCRIPTION),
   optionRenderer: (c: ColumnMeta) => <ColumnOption showType column={c} />,
   valueRenderer: (c: ColumnMeta) => <ColumnOption column={c} />,
   valueKey: 'column_name',
@@ -180,11 +183,7 @@ export const dndAdhocMetricsControl: SharedControlConfig<
     datasource,
     datasourceType: datasource?.type,
   }),
-  description: t(
-    'Select one or many metrics to display. ' +
-      'You can use an aggregation function on a column ' +
-      'or write custom SQL to create a metric.',
-  ),
+  description: t(METRIC_DESCRIPTION),
 };
 
 export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
@@ -224,11 +223,7 @@ export const dndSortByControl: SharedControlConfig<
   type: 'DndMetricSelect',
   label: t('Sort query by'),
   default: null,
-  description: t(
-    'Orders the query result that generates the source data for this chart. ' +
-      'If a series or row limit is reached, this determines what data are truncated. ' +
-      'If undefined, defaults to the first metric (where appropriate).',
-  ),
+  description: t(SORT_DESCRIPTION),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
     savedMetrics: defineSavedMetrics(datasource),
