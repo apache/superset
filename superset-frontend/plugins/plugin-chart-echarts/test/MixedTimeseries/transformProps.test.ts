@@ -45,7 +45,9 @@ import type { SeriesOption } from 'echarts';
  */
 function createTestQueryData(
   data: unknown[],
-  overrides?: Partial<ChartDataResponseResult>,
+  overrides?: Partial<ChartDataResponseResult> & {
+    label_map?: Record<string, string[]>;
+  },
 ): ChartDataResponseResult {
   return {
     annotation_data: null,
@@ -450,14 +452,14 @@ test('should add a formula annotation when X-axis column has dataset-level label
     queriesData: [
       createTestQueryData(testData, {
         label_map: {
-          [timeColumnLabel]: [timeColumnName],
+          [timeColumnName]: [timeColumnLabel],
           boy: ['boy'],
           girl: ['girl'],
         },
       }),
       createTestQueryData(testData, {
         label_map: {
-          [timeColumnLabel]: [timeColumnName],
+          [timeColumnName]: [timeColumnLabel],
           boy: ['boy'],
           girl: ['girl'],
         },
