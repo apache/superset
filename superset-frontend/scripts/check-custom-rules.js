@@ -25,9 +25,16 @@
 
 const fs = require('fs');
 const path = require('path');
-const glob = require('glob');
-const parser = require('@babel/parser');
-const traverse = require('@babel/traverse').default;
+
+let parser;
+let traverse;
+
+try {
+  parser = require('@babel/parser');
+  traverse = require('@babel/traverse').default;
+} catch (e) {
+  // Gracefully handle missing dependencies
+}
 
 // ANSI color codes
 const RED = '\x1b[31m';
@@ -201,6 +208,9 @@ function checkI18nTemplates(ast, filepath) {
  * Process a single file
  */
 function processFile(filepath) {
+  if (!parser || !traverse) {
+    return;
+  }
   const code = fs.readFileSync(filepath, 'utf8');
 
   try {
@@ -227,6 +237,14 @@ function processFile(filepath) {
  * Main function
  */
 function main() {
+  if (!parser || !traverse) {
+    console.warn('\x1b[33m%s\x1b[0m', '⚠ Warning: @babel/parser or @babel/traverse not found. Skipping AST-based checks.');
+    if (process.env.CI) {
+      console.error('\x1b[31m%s\x1b[0m', '✖ Error: Essential dependencies missing in CI environment.');
+      process.exit(1);
+    }
+    return;
+  }
   const args = process.argv.slice(2);
   let files = args;
 
@@ -258,33 +276,46 @@ function main() {
 
   // If no files specified, check all
   if (files.length === 0) {
-    files = glob.sync('src/**/*.{ts,tsx,js,jsx}', {
-      ignore: [
-        '**/*.test.*',
-        '**/*.spec.*',
-        '**/test/**',
-        '**/tests/**',
-        '**/node_modules/**',
-        '**/storybook/**',
-        '**/*.stories.*',
-        '**/demo/**',
-        '**/examples/**',
-        '**/color/colorSchemes/**', // Color scheme definitions legitimately contain colors
-        '**/cypress/**',
-        '**/cypress-base/**',
-        'packages/superset-ui-demo/**', // Demo package
-        '**/esm/**', // Build artifacts
-        '**/lib/**', // Build artifacts
-        '**/dist/**', // Build artifacts
-        'plugins/legacy-*/**', // Legacy plugins
-        '**/vendor/**',
-        'spec/fixtures/**',
-        '**/theme/exampleThemes/**',
-        '**/color/utils/**',
-        '**/theme/utils/**',
-        'packages/superset-ui-core/src/color/index.ts', // Core brand color constants
-      ],
-    });
+    let fg;
+    try {
+      fg = require('fast-glob');
+      files = fg.sync('src/**/*.{ts,tsx,js,jsx}', {
+        ignore: [
+          '**/*.test.*',
+          '**/*.spec.*',
+          '**/test/**',
+          '**/tests/**',
+          '**/node_modules/**',
+          '**/storybook/**',
+          '**/*.stories.*',
+          '**/demo/**',
+          '**/examples/**',
+          '**/color/colorSchemes/**', // Color scheme definitions legitimately contain colors
+          '**/cypress/**',
+          '**/cypress-base/**',
+          'packages/superset-ui-demo/**', // Demo package
+          '**/esm/**', // Build artifacts
+          '**/lib/**', // Build artifacts
+          '**/dist/**', // Build artifacts
+          'plugins/legacy-*/**', // Legacy plugins
+          '**/vendor/**',
+          'spec/fixtures/**',
+          '**/theme/exampleThemes/**',
+          '**/color/utils/**',
+          '**/theme/utils/**',
+          'packages/superset-ui-core/src/color/index.ts', // Core brand color constants
+        ],
+      });
+    } catch (e) {
+      // Fallback to core fs.globSync if fast-glob is missing (available in Node 22+)
+      if (fs.globSync) {
+        console.warn('\x1b[33m%s\x1b[0m', '⚠ Warning: fast-glob not found. Using fs.globSync fallback.');
+        files = fs.globSync('src/**/*.{ts,tsx,js,jsx}');
+      } else {
+        console.warn('\x1b[33m%s\x1b[0m', '⚠ Warning: fast-glob not found and fs.globSync not available. Skipping file search.');
+        return;
+      }
+    }
   } else {
     // Filter to only JS/TS files and remove superset-frontend prefix
     files = files

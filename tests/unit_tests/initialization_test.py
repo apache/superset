@@ -80,12 +80,10 @@ class TestSupersetApp:
         mock_seed_themes_command.return_value = mock_seed_themes
 
         # Mock _is_database_up_to_date to return True
-        with (
-            patch.object(app, "_is_database_up_to_date", return_value=True),
-            patch(
-                "superset.tags.core.register_sqla_event_listeners"
-            ) as mock_register_listeners,
-        ):
+        with patch.object(app, "_is_database_up_to_date", return_value=True), \
+             patch(
+                 "superset.tags.core.register_sqla_event_listeners"
+             ) as mock_register_listeners:
             # Execute
             app.sync_config_to_db()
 
@@ -117,16 +115,14 @@ class TestSupersetAppInitializer:
         app_initializer = SupersetAppInitializer(mock_app)
 
         # Execute init_app_in_ctx which calls sync_config_to_db
-        with (
-            patch.object(app_initializer, "configure_fab"),
-            patch.object(app_initializer, "configure_url_map_converters"),
-            patch.object(app_initializer, "configure_data_sources"),
-            patch.object(app_initializer, "configure_auth_provider"),
-            patch.object(app_initializer, "configure_async_queries"),
-            patch.object(app_initializer, "configure_ssh_manager"),
-            patch.object(app_initializer, "configure_stats_manager"),
-            patch.object(app_initializer, "init_views"),
-        ):
+        with patch.object(app_initializer, "configure_fab"), \
+             patch.object(app_initializer, "configure_url_map_converters"), \
+             patch.object(app_initializer, "configure_data_sources"), \
+             patch.object(app_initializer, "configure_auth_provider"), \
+             patch.object(app_initializer, "configure_async_queries"), \
+             patch.object(app_initializer, "configure_ssh_manager"), \
+             patch.object(app_initializer, "configure_stats_manager"), \
+             patch.object(app_initializer, "init_views"):
             app_initializer.init_app_in_ctx()
 
         # Assert that sync_config_to_db was called on the app

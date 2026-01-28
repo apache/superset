@@ -152,10 +152,8 @@ def test_find_by_ids_sqlalchemy_error_with_model_cls():
     """Test SQLAlchemyError in find_by_ids shows proper model name
     when model_cls is set"""
 
-    with (
-        patch("superset.daos.base.db") as mock_db,
-        patch("superset.daos.base.getattr") as mock_getattr,
-    ):
+    with patch("superset.daos.base.db") as mock_db, \
+         patch("superset.daos.base.getattr") as mock_getattr:
         mock_session = Mock()
         mock_db.session = mock_session
 
@@ -178,10 +176,8 @@ def test_find_by_ids_sqlalchemy_error_with_model_cls():
 def test_find_by_ids_sqlalchemy_error_with_none_model_cls():
     """Test SQLAlchemyError in find_by_ids shows 'Unknown' when model_cls is None"""
 
-    with (
-        patch("superset.daos.base.db") as mock_db,
-        patch("superset.daos.base.getattr") as mock_getattr,
-    ):
+    with patch("superset.daos.base.db") as mock_db, \
+         patch("superset.daos.base.getattr") as mock_getattr:
         mock_session = Mock()
         mock_db.session = mock_session
 
@@ -206,10 +202,8 @@ def test_find_by_ids_sqlalchemy_error_with_none_model_cls():
 def test_find_by_ids_successful_execution():
     """Test that find_by_ids works normally when no SQLAlchemyError occurs"""
 
-    with (
-        patch("superset.daos.base.db") as mock_db,
-        patch("superset.daos.base.getattr") as mock_getattr,
-    ):
+    with patch("superset.daos.base.db") as mock_db, \
+         patch("superset.daos.base.getattr") as mock_getattr:
         mock_session = Mock()
         mock_db.session = mock_session
 

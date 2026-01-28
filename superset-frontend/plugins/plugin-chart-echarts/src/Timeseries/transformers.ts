@@ -178,6 +178,7 @@ export function transformSeries(
     areaOpacity?: number;
     seriesType?: EchartsTimeseriesSeriesType;
     stack?: StackType;
+    stackGroup?: string; // For grouped+stacked charts: the grouping dimension value (e.g., 'Sprint 1') used as the base stack ID. Series with the same stackGroup value to stack together, while different stackGroups will appear side-by-side.
     stackIdSuffix?: string;
     yAxisIndex?: number;
     showValue?: boolean;
@@ -209,6 +210,7 @@ export function transformSeries(
     areaOpacity = 1,
     seriesType,
     stack,
+    stackGroup,
     stackIdSuffix,
     yAxisIndex = 0,
     showValue,
@@ -255,9 +257,12 @@ export function transformSeries(
   } else if (stack && isObservation) {
     // the suffix of the observation series is '' (falsy), which disables
     // stacking. Therefore, we need to set something that is truthy.
-    stackId = getTimeCompareStackId('obs', timeCompare, name);
+    // When stackGroup is provided, use it as the stack ID base for grouped+stacked charts
+    stackId = stackGroup || getTimeCompareStackId('obs', timeCompare, name);
   } else if (stack && isTrend) {
-    stackId = getTimeCompareStackId(forecastSeries.type, timeCompare, name);
+    stackId =
+      stackGroup ||
+      getTimeCompareStackId(forecastSeries.type, timeCompare, name);
   }
   if (stackId && stackIdSuffix) {
     stackId += stackIdSuffix;
@@ -482,7 +487,6 @@ export function transformIntervalAnnotation(
           // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
-            show: true,
             position: 'insideTop',
             verticalAlign: 'top',
             backgroundColor: theme.colorPrimaryBgHover,
@@ -563,7 +567,6 @@ export function transformEventAnnotation(
           emphasis: {
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',
-            show: true,
             backgroundColor: theme.colorPrimaryBgHover,
           },
         };

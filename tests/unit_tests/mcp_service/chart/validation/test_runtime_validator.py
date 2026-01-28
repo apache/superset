@@ -134,20 +134,16 @@ class TestRuntimeValidatorNonBlocking:
         )
 
         # Mock all validators to return warnings
-        with (
-            patch(
-                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_format_compatibility"
-            ) as mock_format,
-            patch(
-                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_cardinality"
-            ) as mock_cardinality,
-            patch(
-                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_chart_type"
-            ) as mock_type,
-        ):
+        with patch(
+            "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
+            "_validate_format_compatibility"
+        ) as mock_format, patch(
+            "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
+            "_validate_cardinality"
+        ) as mock_cardinality, patch(
+            "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
+            "_validate_chart_type"
+        ) as mock_type:
             mock_format.return_value = ["Format mismatch warning"]
             mock_cardinality.return_value = (
                 ["High cardinality warning"],
@@ -173,15 +169,12 @@ class TestRuntimeValidatorNonBlocking:
             kind="line",
         )
 
-        with (
-            patch(
-                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_format_compatibility"
-            ) as mock_format,
-            patch(
-                "superset.mcp_service.chart.validation.runtime.logger"
-            ) as mock_logger,
-        ):
+        with patch(
+            "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
+            "_validate_format_compatibility"
+        ) as mock_format, patch(
+            "superset.mcp_service.chart.validation.runtime.logger"
+        ) as mock_logger:
             mock_format.return_value = ["Test warning message"]
 
             is_valid, error = RuntimeValidator.validate_runtime_issues(config, 1)
@@ -202,16 +195,13 @@ class TestRuntimeValidatorNonBlocking:
         )
 
         # These should not be called for table charts
-        with (
-            patch(
-                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_format_compatibility"
-            ) as mock_format,
-            patch(
-                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_cardinality"
-            ) as mock_cardinality,
-        ):
+        with patch(
+            "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
+            "_validate_format_compatibility"
+        ) as mock_format, patch(
+            "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
+            "_validate_cardinality"
+        ) as mock_cardinality:
             is_valid, error = RuntimeValidator.validate_runtime_issues(config, 1)
 
             # Format and cardinality validation should not be called for table charts

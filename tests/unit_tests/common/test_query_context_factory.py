@@ -225,15 +225,13 @@ class TestQueryContextFactory:
         query_object.columns = []
         form_data = {"tooltip_contents": ["tooltip_col1", "tooltip_col2"]}
 
-        with (
-            patch.object(self.factory, "_extract_tooltip_columns") as mock_extract,
-            patch.object(
-                self.factory, "_get_existing_column_names"
-            ) as mock_get_existing,
-            patch.object(
-                self.factory, "_append_missing_tooltip_columns"
-            ) as mock_append,
-        ):
+        with patch.object(self.factory, "_extract_tooltip_columns") as mock_extract, \
+             patch.object(
+                 self.factory, "_get_existing_column_names"
+             ) as mock_get_existing, \
+             patch.object(
+                 self.factory, "_append_missing_tooltip_columns"
+             ) as mock_append:
             mock_extract.return_value = ["tooltip_col1", "tooltip_col2"]
             mock_get_existing.return_value = set()
 

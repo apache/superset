@@ -322,3 +322,129 @@ test('legend margin: right orientation sets grid.right correctly', () => {
 
   expect((transformed.echartOptions.grid as any).right).toEqual(270);
 });
+
+test('should correctly calculate stackGroup for multi-groupby scenarios', () => {
+  const formDataWithMultiGroupby: EchartsMixedTimeseriesFormData = {
+    ...formData,
+    groupby: ['city', 'gender'],
+    groupbyB: ['city', 'gender'],
+  };
+  const queriesDataWithMultiGroupby = [
+    {
+      data: [
+        { city: 'SF', gender: 'boy', num: 1, ds: 599616000000 },
+        { city: 'SF', gender: 'girl', num: 2, ds: 599616000000 },
+      ],
+      label_map: {
+        ds: ['ds'],
+        'SF, boy': ['SF', 'boy'],
+        'SF, girl': ['SF', 'girl'],
+      },
+    },
+    {
+      data: [
+        { city: 'SF', gender: 'boy', num: 1, ds: 599616000000 },
+        { city: 'SF', gender: 'girl', num: 2, ds: 599616000000 },
+      ],
+      label_map: {
+        ds: ['ds'],
+        'SF, boy': ['SF', 'boy'],
+        'SF, girl': ['SF', 'girl'],
+      },
+    },
+  ];
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: formDataWithMultiGroupby,
+    queriesData: queriesDataWithMultiGroupby,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  const series = transformed.echartOptions.series as any[];
+  // SF should be the stackGroup for both boy and girl in Query A
+  expect(series[0].stack).toEqual('SF\na');
+  expect(series[1].stack).toEqual('SF\na');
+
+  // SF should be the stackGroup for both boy and girl in Query B
+  expect(series[2].stack).toEqual('SF\nb');
+  expect(series[3].stack).toEqual('SF\nb');
+});
+
+test('should fallback to entryName splitting when label_map is missing', () => {
+  const formDataWithMultiGroupby: EchartsMixedTimeseriesFormData = {
+    ...formData,
+    groupby: ['city', 'gender'],
+  };
+  const queriesDataWithoutLabelMap = [
+    {
+      data: [{ 'SF, boy': 1, ds: 599616000000 }],
+      // label_map missing for SF, boy
+      label_map: { ds: ['ds'] },
+    },
+    queriesData[1],
+  ];
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: formDataWithMultiGroupby,
+    queriesData: queriesDataWithoutLabelMap,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const series = transformed.echartOptions.series as any[];
+  // Should still be SF because it split 'SF, boy'
+  expect(series[0].stack).toEqual('SF\na');
+});
+
+test('should handle commas in dimension values correctly when using label_map', () => {
+  const queriesDataWithCommas = [
+    {
+      data: [{ 'City, with comma, boy': 1, ds: 599616000000 }],
+      label_map: {
+        ds: ['ds'],
+        'City, with comma, boy': ['City, with comma', 'boy'],
+      },
+    },
+    queriesData[1],
+  ];
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: { ...formData, groupby: ['city', 'gender'] },
+    queriesData: queriesDataWithCommas,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const series = transformed.echartOptions.series as any[];
+  // Should be 'City, with comma' because it used label_map[0]
+  expect(series[0].stack).toEqual('City, with comma\na');
+});
+
+test('should NOT set stackGroup when groupby length is 1', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: { ...formData, groupby: ['gender'] },
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const series = transformed.echartOptions.series as any[];
+  // When groupby length is 1, stackGroup is undefined, so it uses name + suffix
+  expect(series[0].stack).toEqual('sum__num, boy\na');
+});
+
+test('should handle null or empty label_map values correctly', () => {
+  const queriesDataWithEmptyLabel = [
+    {
+      data: [{ 'SF, boy': 1, ds: 599616000000 }],
+      label_map: {
+        ds: ['ds'],
+        'SF, boy': [null as any, 'boy'],
+      },
+    },
+    queriesData[1],
+  ];
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: { ...formData, groupby: ['city', 'gender'] },
+    queriesData: queriesDataWithEmptyLabel,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const series = transformed.echartOptions.series as any[];
+  // Should be 'null' because it coerced String(null)
+  expect(series[0].stack).toEqual('null\na');
+});

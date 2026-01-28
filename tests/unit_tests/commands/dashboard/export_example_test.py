@@ -236,12 +236,11 @@ def test_export_example_command_single_dataset():
     mock_dashboard.json_metadata = "{}"
     mock_dashboard.slices = [mock_chart]
 
-    with (
-        patch("superset.commands.dashboard.export_example.DashboardDAO") as mock_dao,
-        patch(
-            "superset.commands.dashboard.export_example.export_dataset_data"
-        ) as mock_export_data,
-    ):
+    with patch(
+        "superset.commands.dashboard.export_example.DashboardDAO"
+    ) as mock_dao, patch(
+        "superset.commands.dashboard.export_example.export_dataset_data"
+    ) as mock_export_data:
         mock_dao.find_by_id.return_value = mock_dashboard
         mock_export_data.return_value = b"parquet data"
 
