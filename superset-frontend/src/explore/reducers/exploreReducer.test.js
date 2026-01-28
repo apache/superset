@@ -80,3 +80,16 @@ test('does not normalize other string control values', () => {
   
   expect(newState.form_data.row_limit).toBe('50');
 });
+
+test('normalizes server_page_length from string "0" to number 0', () => {
+  const initialState = {
+    form_data: { viz_type: 'table' },
+    controls: {},
+  };
+
+  const action = setControlValue('server_page_length', '0');
+  const newState = exploreReducer(initialState, action);
+
+  expect(newState.form_data.server_page_length).toBe(0);
+  expect(typeof newState.form_data.server_page_length).toBe('number');
+});

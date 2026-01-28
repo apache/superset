@@ -127,7 +127,7 @@ export default function exploreReducer(state = {}, action) {
       // Normalize server_page_length to number if it's a string
       const normalizedValue =
         controlName === 'server_page_length' && typeof value === 'string'
-          ? Number(value) || value
+          ? (isNaN(Number(value)) ? value : Number(value))
           : value;
       let new_form_data = { ...state.form_data, [controlName]: normalizedValue };
       const old_metrics_data = state.form_data.metrics;
@@ -245,7 +245,7 @@ export default function exploreReducer(state = {}, action) {
             };
 
             return {
-              // Re run validation for dependant controls
+              // Re run validation for dependent controls
               controlState: getControlStateFromControlConfig(
                 controlState,
                 overWrittenState,
