@@ -15,25 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import patch
-
 import pytest
 from superset_core.api.tasks import TaskScope, TaskStatus
 
 from superset import db
 from superset.commands.tasks import UpdateTaskCommand
 from superset.commands.tasks.exceptions import (
+    TaskForbiddenError,
     TaskNotFoundError,
 )
 from superset.daos.tasks import TaskDAO
 
 
-@patch("superset.tasks.utils.get_current_user")
-def test_update_task_success(mock_get_user, app_context, get_user, login_as) -> None:
+def test_update_task_success(app_context, get_user, login_as) -> None:
     """Test successful task update"""
     admin = get_user("admin")
     login_as("admin")
-    mock_get_user.return_value = admin.username
 
     # Create a task using DAO
     task = TaskDAO.create_task(
@@ -80,35 +77,34 @@ def test_update_task_not_found(app_context, login_as) -> None:
         command.run()
 
 
-@patch("superset.tasks.utils.get_current_user")
-def test_update_task_forbidden(mock_get_user, app_context, get_user, login_as) -> None:
+def test_update_task_forbidden(app_context, get_user, login_as) -> None:
     """Test update fails when user doesn't own task (via base filter)"""
-    admin = get_user("admin")
-    mock_get_user.return_value = admin.username
+    gamma = get_user("gamma")
+    login_as("gamma")
 
-    # Create a task owned by admin using DAO
+    # Create a task owned by gamma (non-admin) using DAO
     task = TaskDAO.create_task(
         task_type="test_type",
         task_key="forbidden_test",
         scope=TaskScope.PRIVATE,
-        user_id=admin.id,
+        user_id=gamma.id,
     )
-    task.created_by = admin
+    task.created_by = gamma
     task.set_status(TaskStatus.IN_PROGRESS)
     db.session.commit()
 
     try:
-        # Login as gamma user (non-admin, non-owner)
-        login_as("gamma")
+        # Login as alpha user (different non-admin, non-owner)
+        login_as("alpha")
 
-        # Try to update admin's task as gamma user
+        # Try to update gamma's task as alpha user
         command = UpdateTaskCommand(
             task_uuid=task.uuid,
             status=TaskStatus.SUCCESS.value,
         )
 
-        # Should raise NotFoundError because base filter hides the task
-        with pytest.raises(TaskNotFoundError):
+        # Should raise ForbiddenError because ownership check fails
+        with pytest.raises(TaskForbiddenError):
             command.run()
 
         # Verify task was NOT updated
@@ -120,12 +116,10 @@ def test_update_task_forbidden(mock_get_user, app_context, get_user, login_as) -
         db.session.commit()
 
 
-@patch("superset.tasks.utils.get_current_user")
-def test_update_task_payload(mock_get_user, app_context, get_user, login_as) -> None:
+def test_update_task_payload(app_context, get_user, login_as) -> None:
     """Test updating task payload"""
     admin = get_user("admin")
     login_as("admin")
-    mock_get_user.return_value = admin.username
 
     # Create a task using DAO
     task = TaskDAO.create_task(
@@ -163,15 +157,11 @@ def test_update_task_payload(mock_get_user, app_context, get_user, login_as) -> 
         db.session.commit()
 
 
-@patch("superset.tasks.utils.get_current_user")
-def test_update_all_supported_fields(
-    mock_get_user, app_context, get_user, login_as
-) -> None:
+def test_update_all_supported_fields(app_context, get_user, login_as) -> None:
     """Test updating all supported task fields
     (status, error, progress, abortable, timeout)"""
     admin = get_user("admin")
     login_as("admin")
-    mock_get_user.return_value = admin.username
 
     # Create a task with initial execution_mode and timeout in properties
     task = TaskDAO.create_task(
@@ -227,13 +217,10 @@ def test_update_all_supported_fields(
         db.session.commit()
 
 
-@patch("superset.tasks.utils.get_current_user")
-def test_update_task_skip_security_check(
-    mock_get_user, app_context, get_user, login_as
-) -> None:
+def test_update_task_skip_security_check(app_context, get_user, login_as) -> None:
     """Test skip_security_check allows updating any task"""
     admin = get_user("admin")
-    mock_get_user.return_value = admin.username
+    login_as("admin")
 
     # Create a task owned by admin
     task = TaskDAO.create_task(
