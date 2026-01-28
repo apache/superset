@@ -42,38 +42,12 @@ type Story = StoryObj<typeof Layout>;
 
 export const InteractiveLayout: Story = {
   args: {
-    hasSider: true,
-    collapsible: true,
-    collapsed: false,
-    theme: 'dark',
-    width: 200,
-    reverseArrow: false,
+    hasSider: false,
   },
   argTypes: {
     hasSider: {
       control: 'boolean',
-      description: 'Include a sider in the layout.',
-    },
-    collapsible: {
-      control: 'boolean',
-      description: 'Whether the Sider can be collapsed.',
-    },
-    collapsed: {
-      control: 'boolean',
-      description: 'Whether the Sider is collapsed.',
-    },
-    theme: {
-      control: 'select',
-      options: ['light', 'dark'],
-      description: 'Theme for the Sider.',
-    },
-    width: {
-      control: 'number',
-      description: 'Width of the Sider.',
-    },
-    reverseArrow: {
-      control: 'boolean',
-      description: 'Whether the arrow icon is reversed.',
+      description: 'Whether the layout contains a Sider sub-component.',
     },
   },
   render: ({
@@ -136,6 +110,14 @@ export const InteractiveLayout: Story = {
 
 InteractiveLayout.parameters = {
   docs: {
+    staticProps: {
+      style: { minHeight: 200 },
+    },
+    sampleChildren: [
+      { component: 'Layout.Header', props: { children: 'Header', style: { background: '#001529', color: '#fff', padding: '0 24px', lineHeight: '64px' } } },
+      { component: 'Layout.Content', props: { children: 'Content Area', style: { padding: '24px', background: '#fff', flex: 1 } } },
+      { component: 'Layout.Footer', props: { children: 'Footer', style: { textAlign: 'center', background: '#f5f5f5', padding: '12px' } } },
+    ],
     description: {
       story:
         'Layout component with Header, Footer, Sider, and Content areas.',
