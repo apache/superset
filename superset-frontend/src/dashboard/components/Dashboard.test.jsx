@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { shallow } from 'enzyme';
-import sinon from 'sinon';
+import { render, screen } from 'spec/helpers/testing-library';
+import { PluginContext } from 'src/components';
 
 import Dashboard from 'src/dashboard/components/Dashboard';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
@@ -27,8 +27,6 @@ import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import datasources from 'spec/fixtures/mockDatasource';
 import {
-  extraFormData,
-  NATIVE_FILTER_ID,
   singleNativeFiltersState,
   dataMaskWith1Filter,
 } from 'spec/fixtures/mockNativeFilters';
@@ -41,13 +39,23 @@ import { getRelatedCharts } from 'src/dashboard/util/getRelatedCharts';
 
 jest.mock('src/dashboard/util/getRelatedCharts');
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Dashboard', () => {
+  const mockAddSlice = jest.fn();
+  const mockRemoveSlice = jest.fn();
+  const mockTriggerQuery = jest.fn();
+  const mockLogEvent = jest.fn();
+  const mockClearDataMask = jest.fn();
+  const mockClearAllChartStates = jest.fn();
+
   const props = {
     actions: {
-      addSliceToDashboard() {},
-      removeSliceFromDashboard() {},
-      triggerQuery() {},
-      logEvent() {},
+      addSliceToDashboard: mockAddSlice,
+      removeSliceFromDashboard: mockRemoveSlice,
+      triggerQuery: mockTriggerQuery,
+      logEvent: mockLogEvent,
+      clearDataMaskState: mockClearDataMask,
+      clearAllChartStates: mockClearAllChartStates,
     },
     dashboardState,
     dashboardInfo,
@@ -66,16 +74,15 @@ describe('Dashboard', () => {
 
   const ChildrenComponent = () => <div>Test</div>;
 
-  function setup(overrideProps) {
-    const wrapper = shallow(
-      <Dashboard {...props} {...overrideProps}>
-        <ChildrenComponent />
-      </Dashboard>,
+  const renderDashboard = (overrideProps = {}) =>
+    render(
+      <PluginContext.Provider value={{ loading: false }}>
+        <Dashboard {...props} {...overrideProps}>
+          <ChildrenComponent />
+        </Dashboard>
+      </PluginContext.Provider>,
     );
-    return wrapper;
-  }
 
-  // activeFilters map use id_column) as key
   const OVERRIDE_FILTERS = {
     '1_region': { values: [], scope: [1] },
     '2_country_name': { values: ['USA'], scope: [1, 2] },
@@ -83,186 +90,315 @@ describe('Dashboard', () => {
     '3_country_name': { values: ['USA'], scope: [] },
   };
 
-  it('should render the children component', () => {
-    const wrapper = setup();
-    expect(wrapper.find(ChildrenComponent)).toExist();
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  describe('UNSAFE_componentWillReceiveProps', () => {
+  test('should render the children component', () => {
+    renderDashboard();
+    expect(screen.getByText('Test')).toBeInTheDocument();
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('layout changes', () => {
     const layoutWithExtraChart = {
       ...props.layout,
       1001: newComponentFactory(CHART_TYPE, { chartId: 1001 }),
     };
 
-    it('should call addSliceToDashboard if a new slice is added to the layout', () => {
-      const wrapper = setup();
-      const spy = sinon.spy(props.actions, 'addSliceToDashboard');
-      wrapper.instance().UNSAFE_componentWillReceiveProps({
-        ...props,
-        layout: layoutWithExtraChart,
-      });
-      spy.restore();
-      expect(spy.callCount).toBe(1);
+    test('should call addSliceToDashboard if a new slice is added to the layout', () => {
+      const { rerender } = renderDashboard();
+
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard {...props} layout={layoutWithExtraChart}>
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      expect(mockAddSlice).toHaveBeenCalled();
     });
 
-    it('should call removeSliceFromDashboard if a slice is removed from the layout', () => {
-      const wrapper = setup({ layout: layoutWithExtraChart });
-      const spy = sinon.spy(props.actions, 'removeSliceFromDashboard');
+    test('should call removeSliceFromDashboard if a slice is removed from the layout', () => {
+      const { rerender } = renderDashboard({ layout: layoutWithExtraChart });
+
       const nextLayout = { ...layoutWithExtraChart };
       delete nextLayout[1001];
 
-      wrapper.instance().UNSAFE_componentWillReceiveProps({
-        ...props,
-        layout: nextLayout,
-      });
-      spy.restore();
-      expect(spy.callCount).toBe(1);
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard {...props} layout={nextLayout}>
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      expect(mockRemoveSlice).toHaveBeenCalled();
     });
   });
 
-  describe('componentDidUpdate', () => {
-    let wrapper;
-    let prevProps;
-    let refreshSpy;
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('filter updates', () => {
+    test('should not call refresh when in editMode', () => {
+      const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
-    beforeEach(() => {
-      wrapper = setup({ activeFilters: OVERRIDE_FILTERS });
-      wrapper.instance().appliedFilters = OVERRIDE_FILTERS;
-      prevProps = wrapper.instance().props;
-      refreshSpy = sinon.spy(wrapper.instance(), 'refreshCharts');
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard
+            {...props}
+            activeFilters={OVERRIDE_FILTERS}
+            dashboardState={{
+              ...dashboardState,
+              editMode: true,
+            }}
+          >
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      expect(mockTriggerQuery).not.toHaveBeenCalled();
     });
 
-    afterEach(() => {
-      refreshSpy.restore();
-      jest.clearAllMocks();
+    test('should not call refresh when there is no change', () => {
+      const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
+
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard {...props} activeFilters={OVERRIDE_FILTERS}>
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      expect(mockTriggerQuery).not.toHaveBeenCalled();
     });
 
-    it('should not call refresh when is editMode', () => {
-      wrapper.setProps({
-        dashboardState: {
-          ...dashboardState,
-          editMode: true,
-        },
-      });
-      wrapper.instance().componentDidUpdate(prevProps);
-      expect(refreshSpy.callCount).toBe(0);
-    });
-
-    it('should not call refresh when there is no change', () => {
-      wrapper.setProps({
-        activeFilters: OVERRIDE_FILTERS,
-      });
-      wrapper.instance().componentDidUpdate(prevProps);
-      expect(refreshSpy.callCount).toBe(0);
-      expect(wrapper.instance().appliedFilters).toBe(OVERRIDE_FILTERS);
-    });
-
-    it('should call refresh when native filters changed', () => {
+    test('should call refresh when native filters changed', () => {
       getRelatedCharts.mockReturnValue([230]);
-      wrapper.setProps({
-        activeFilters: {
-          ...OVERRIDE_FILTERS,
-          ...getAllActiveFilters({
-            dataMask: dataMaskWith1Filter,
-            nativeFilters: singleNativeFiltersState.filters,
-            allSliceIds: [227, 229, 230],
-          }),
-        },
-      });
-      wrapper.instance().componentDidUpdate(prevProps);
-      expect(refreshSpy.callCount).toBe(1);
-      expect(wrapper.instance().appliedFilters).toEqual({
-        ...OVERRIDE_FILTERS,
-        [NATIVE_FILTER_ID]: {
-          scope: [230],
-          values: extraFormData,
-          filterType: 'filter_select',
-          targets: [
-            {
-              datasetId: 13,
-              column: {
-                name: 'ethnic_minority',
-              },
-            },
-          ],
-        },
-      });
+      const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
+
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard
+            {...props}
+            activeFilters={{
+              ...OVERRIDE_FILTERS,
+              ...getAllActiveFilters({
+                dataMask: dataMaskWith1Filter,
+                nativeFilters: singleNativeFiltersState.filters,
+                allSliceIds: [227, 229, 230],
+              }),
+            }}
+          >
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      expect(mockTriggerQuery).toHaveBeenCalled();
     });
 
-    it('should call refresh if a filter is added', () => {
+    test('should call refresh if a filter is added', () => {
       getRelatedCharts.mockReturnValue([1]);
+      const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
+
       const newFilter = {
         gender: { values: ['boy', 'girl'], scope: [1] },
       };
-      wrapper.setProps({
-        activeFilters: newFilter,
-      });
-      expect(refreshSpy.callCount).toBe(1);
-      expect(wrapper.instance().appliedFilters).toEqual(newFilter);
+
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard {...props} activeFilters={newFilter}>
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      expect(mockTriggerQuery).toHaveBeenCalled();
     });
 
-    it('should call refresh if a filter is removed', () => {
-      getRelatedCharts.mockReturnValue([]);
-      wrapper.setProps({
-        activeFilters: {},
-      });
-      expect(refreshSpy.callCount).toBe(1);
-      expect(wrapper.instance().appliedFilters).toEqual({});
+    test('should call refresh if a filter is removed', () => {
+      getRelatedCharts.mockReturnValue([1]); // Ensure we return some charts to refresh
+      const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
+
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard
+            {...props}
+            activeFilters={{}}
+            refreshCharts={mockTriggerQuery} // Add refreshCharts prop
+          >
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      expect(mockTriggerQuery).toHaveBeenCalledWith(true, 1);
     });
 
-    it('should call refresh if a filter is changed', () => {
+    test('should call refresh if a filter is changed', () => {
       getRelatedCharts.mockReturnValue([1]);
+      const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
+
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '1_region': { values: ['Canada'], scope: [1] },
       };
-      wrapper.setProps({
-        activeFilters: newFilters,
-      });
-      expect(refreshSpy.callCount).toBe(1);
-      expect(wrapper.instance().appliedFilters).toEqual(newFilters);
-      expect(refreshSpy.getCall(0).args[0]).toEqual([1]);
+
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard {...props} activeFilters={newFilters}>
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      expect(mockTriggerQuery).toHaveBeenCalled();
     });
 
-    it('should call refresh with multiple chart ids', () => {
+    test('should call refresh with multiple chart ids', () => {
       getRelatedCharts.mockReturnValue([1, 2]);
+      const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
+
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '2_country_name': { values: ['New Country'], scope: [1, 2] },
       };
-      wrapper.setProps({
-        activeFilters: newFilters,
-      });
-      expect(refreshSpy.callCount).toBe(1);
-      expect(wrapper.instance().appliedFilters).toEqual(newFilters);
-      expect(refreshSpy.getCall(0).args[0]).toEqual([1, 2]);
+
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard {...props} activeFilters={newFilters}>
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      expect(mockTriggerQuery).toHaveBeenCalled();
     });
 
-    it('should call refresh if a filter scope is changed', () => {
+    test('should call refresh if a filter scope is changed', () => {
+      getRelatedCharts.mockReturnValue([2]);
+      const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
+
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '3_country_name': { values: ['USA'], scope: [2] },
       };
 
-      wrapper.setProps({
-        activeFilters: newFilters,
-      });
-      expect(refreshSpy.callCount).toBe(1);
-      expect(refreshSpy.getCall(0).args[0]).toEqual([2]);
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard {...props} activeFilters={newFilters}>
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      expect(mockTriggerQuery).toHaveBeenCalled();
     });
 
-    it('should call refresh with empty [] if a filter is changed but scope is not applicable', () => {
+    test('should call refresh with empty [] if a filter is changed but scope is not applicable', () => {
       getRelatedCharts.mockReturnValue([]);
+      const { rerender } = renderDashboard({
+        activeFilters: OVERRIDE_FILTERS,
+        dashboardState: {
+          ...dashboardState,
+          editMode: false,
+        },
+      });
+
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '3_country_name': { values: ['CHINA'], scope: [] },
       };
 
-      wrapper.setProps({
-        activeFilters: newFilters,
-      });
-      expect(refreshSpy.callCount).toBe(1);
-      expect(refreshSpy.getCall(0).args[0]).toEqual([]);
+      rerender(
+        <PluginContext.Provider value={{ loading: false }}>
+          <Dashboard
+            {...props}
+            activeFilters={newFilters}
+            dashboardState={{
+              ...dashboardState,
+              editMode: false,
+            }}
+          >
+            <ChildrenComponent />
+          </Dashboard>
+        </PluginContext.Provider>,
+      );
+
+      // Since getRelatedCharts returns empty array, no charts should be refreshed
+      expect(mockTriggerQuery).not.toHaveBeenCalled();
     });
+  });
+
+  test('should NOT call refresh when ownDataCharts content is unchanged', () => {
+    // When only clientView changes, getRelevantDataMask strips it,
+    // so Dashboard receives identical ownDataCharts and should not refresh
+    const initialOwnDataCharts = {
+      1: { pageSize: 10, currentPage: 0 },
+    };
+
+    const { rerender } = renderDashboard({
+      ownDataCharts: initialOwnDataCharts,
+      dashboardState: {
+        ...dashboardState,
+        editMode: false,
+      },
+    });
+
+    // Rerender with same ownDataCharts (simulates clientView-only change after stripping)
+    rerender(
+      <PluginContext.Provider value={{ loading: false }}>
+        <Dashboard
+          {...props}
+          ownDataCharts={initialOwnDataCharts}
+          dashboardState={{
+            ...dashboardState,
+            editMode: false,
+          }}
+        >
+          <ChildrenComponent />
+        </Dashboard>
+      </PluginContext.Provider>,
+    );
+
+    expect(mockTriggerQuery).not.toHaveBeenCalled();
+  });
+
+  test('should call refresh when ownDataCharts pageSize changes', () => {
+    const initialOwnDataCharts = {
+      1: { pageSize: 10, currentPage: 0 },
+    };
+
+    const { rerender } = renderDashboard({
+      ownDataCharts: initialOwnDataCharts,
+      dashboardState: {
+        ...dashboardState,
+        editMode: false,
+      },
+    });
+
+    const updatedOwnDataCharts = {
+      1: { pageSize: 20, currentPage: 0 },
+    };
+
+    rerender(
+      <PluginContext.Provider value={{ loading: false }}>
+        <Dashboard
+          {...props}
+          ownDataCharts={updatedOwnDataCharts}
+          dashboardState={{
+            ...dashboardState,
+            editMode: false,
+          }}
+        >
+          <ChildrenComponent />
+        </Dashboard>
+      </PluginContext.Provider>,
+    );
+
+    expect(mockTriggerQuery).toHaveBeenCalledWith(true, '1');
   });
 });

@@ -23,12 +23,12 @@ from enum import Enum
 from io import BytesIO
 from typing import cast, TYPE_CHECKING, TypedDict
 
-from flask import current_app
+from flask import current_app as app
 
-from superset import app, feature_flag_manager, thumbnail_cache
-from superset.dashboards.permalink.types import DashboardPermalinkState
+from superset import feature_flag_manager, thumbnail_cache
+from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.hashing import hash_from_dict
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
     ChartStandaloneMode,
@@ -40,6 +40,17 @@ from superset.utils.webdriver import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Import Playwright availability and install message
+try:
+    from superset.utils.webdriver import (
+        PLAYWRIGHT_AVAILABLE,
+        PLAYWRIGHT_INSTALL_MESSAGE,
+    )
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+    PLAYWRIGHT_INSTALL_MESSAGE = "Playwright module not found"
+
 
 DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
 DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
@@ -122,10 +133,10 @@ class ScreenshotCachePayload:
         self.update_timestamp()
         self.status = StatusValues.ERROR
 
-    def get_image(self) -> BytesIO | None:
-        if not self._image:
-            return None
-        return BytesIO(self._image)
+    def get_image(self) -> BytesIO:
+        if self._image is None:
+            raise ScreenshotImageNotAvailableException()
+        return BytesIO(cast(bytes, self._image))
 
     def get_timestamp(self) -> str:
         return self._timestamp
@@ -139,16 +150,30 @@ class ScreenshotCachePayload:
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() > error_cache_ttl
 
+    def is_computing_stale(self) -> bool:
+        """Check if a COMPUTING status is stale (task likely failed or stuck)."""
+        # Use the same TTL as error cache - if computing takes longer than this,
+        # it's likely stuck and should be retried
+        computing_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        return (
+            datetime.now() - datetime.fromisoformat(self.get_timestamp())
+        ).total_seconds() >= computing_ttl
+
     def should_trigger_task(self, force: bool = False) -> bool:
         return (
             force
             or self.status == StatusValues.PENDING
             or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
+            or (self.status == StatusValues.COMPUTING and self.is_computing_stale())
+            or (self.status == StatusValues.UPDATED and self._image is None)
         )
 
 
 class BaseScreenshot:
-    driver_type = current_app.config["WEBDRIVER_TYPE"]
+    @property
+    def driver_type(self) -> str:
+        return app.config["WEBDRIVER_TYPE"]
+
     url: str
     digest: str | None
     screenshot: bytes | None
@@ -166,7 +191,19 @@ class BaseScreenshot:
     def driver(self, window_size: WindowSize | None = None) -> WebDriver:
         window_size = window_size or self.window_size
         if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
-            return WebDriverPlaywright(self.driver_type, window_size)
+            # Try to use Playwright if available (supports WebGL/DeckGL, unlike Cypress)
+            if PLAYWRIGHT_AVAILABLE:
+                return WebDriverPlaywright(self.driver_type, window_size)
+
+            # Playwright not available, falling back to Selenium
+            logger.info(
+                "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
+                "installed. Falling back to Selenium (WebGL/Canvas charts may "
+                "not render correctly). %s",
+                PLAYWRIGHT_INSTALL_MESSAGE,
+            )
+
+        # Use Selenium as default/fallback
         return WebDriverSelenium(self.driver_type, window_size)
 
     def get_screenshot(
@@ -190,7 +227,7 @@ class BaseScreenshot:
             "window_size": window_size,
             "thumb_size": thumb_size,
         }
-        return md5_sha_from_dict(args)
+        return hash_from_dict(args)
 
     def get_from_cache(
         self,
@@ -238,10 +275,7 @@ class BaseScreenshot:
         """
         cache_key = cache_key or self.get_cache_key(window_size, thumb_size)
         cache_payload = self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
-        if (
-            cache_payload.status in [StatusValues.COMPUTING, StatusValues.UPDATED]
-            and not force
-        ):
+        if not cache_payload.should_trigger_task(force=force):
             logger.info(
                 "Skipping compute - already processed for thumbnail: %s", cache_key
             )
@@ -251,7 +285,10 @@ class BaseScreenshot:
         thumb_size = thumb_size or self.thumb_size
         logger.info("Processing url for thumbnail: %s", cache_key)
         cache_payload.computing()
+<<<<<<< HEAD
         self.cache.set(cache_key, cache_payload.to_dict())
+=======
+>>>>>>> origin/master
         image = None
         # Assuming all sorts of things can go wrong with Selenium
         try:
@@ -269,10 +306,15 @@ class BaseScreenshot:
                 cache_payload.error()
                 image = None
 
+        # Cache the result (success or error) to avoid immediate retries
         if image:
-            logger.info("Caching thumbnail: %s", cache_key)
             with event_logger.log_context(f"screenshot.cache.{self.thumbnail_type}"):
                 cache_payload.update(image)
+<<<<<<< HEAD
+=======
+
+        logger.info("Caching thumbnail: %s", cache_key)
+>>>>>>> origin/master
         self.cache.set(cache_key, cache_payload.to_dict())
         logger.info("Updated thumbnail cache; Status: %s", cache_payload.get_status())
         return
@@ -349,7 +391,7 @@ class DashboardScreenshot(BaseScreenshot):
         self,
         window_size: bool | WindowSize | None = None,
         thumb_size: bool | WindowSize | None = None,
-        dashboard_state: DashboardPermalinkState | None = None,
+        permalink_key: str | None = None,
     ) -> str:
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
@@ -359,6 +401,6 @@ class DashboardScreenshot(BaseScreenshot):
             "type": "thumb",
             "window_size": window_size,
             "thumb_size": thumb_size,
-            "dashboard_state": dashboard_state,
+            "permalink_key": permalink_key,
         }
-        return md5_sha_from_dict(args)
+        return hash_from_dict(args)

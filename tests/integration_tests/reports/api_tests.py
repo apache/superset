@@ -1293,7 +1293,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         with patch.dict(
-            "superset.commands.report.base.current_app.config",
+            "flask.current_app.config",
             {
                 "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=2).total_seconds()),
                 "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=5).total_seconds()),
@@ -1340,7 +1340,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         with patch.dict(
-            "superset.commands.report.base.current_app.config",
+            "flask.current_app.config",
             {
                 "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=6).total_seconds()),
                 "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=8).total_seconds()),
@@ -1390,7 +1390,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "crontab": "5,10 * * * *",
         }
         with patch.dict(
-            "superset.commands.report.base.current_app.config",
+            "flask.current_app.config",
             {
                 "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=5).total_seconds()),
                 "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=3).total_seconds()),
@@ -1409,7 +1409,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             assert rv.status_code == 200
 
         with patch.dict(
-            "superset.commands.report.base.current_app.config",
+            "flask.current_app.config",
             {
                 "ALERT_MINIMUM_INTERVAL": 0,
                 "REPORT_MINIMUM_INTERVAL": 0,
@@ -1439,7 +1439,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "crontab": "5,10 * * * *",
         }
         with patch.dict(
-            "superset.commands.report.base.current_app.config",
+            "flask.current_app.config",
             {
                 "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=6).total_seconds()),
                 "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=4).total_seconds()),
@@ -1698,7 +1698,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             .filter(ReportSchedule.name == "name1")
             .one_or_none()
         )
-        assert updated_report.owners == current_owners
+        assert set(updated_report.owners) == set(current_owners)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_clear_owner_list(self):

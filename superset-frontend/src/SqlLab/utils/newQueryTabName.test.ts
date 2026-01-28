@@ -29,13 +29,14 @@ const emptyEditor = {
   remoteId: null,
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('newQueryTabName', () => {
-  it("should return default title if queryEditor's length is 0", () => {
+  test("should return default title if queryEditor's length is 0", () => {
     const defaultTitle = 'default title';
     const title = newQueryTabName([], defaultTitle);
     expect(title).toEqual(defaultTitle);
   });
-  it('should return next available number if there are unsaved editors', () => {
+  test('should return next available number if there are unsaved editors', () => {
     const untitledQueryText = 'Untitled Query';
     const unsavedEditors = [
       { ...emptyEditor, name: `${untitledQueryText} 1` },

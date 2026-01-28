@@ -17,13 +17,14 @@
  * under the License.
  */
 
-import { t, styled } from '@superset-ui/core';
-import { EmptyState } from 'src/components/EmptyState';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
+import { EmptyState } from '@superset-ui/core/components';
 import { Link } from 'react-router-dom';
 
 const StyledContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 8}px
-    ${({ theme }) => theme.gridUnit * 6}px;
+  padding: ${({ theme }) => theme.sizeUnit * 8}px
+    ${({ theme }) => theme.sizeUnit * 6}px;
 
   display: flex;
   align-items: center;
@@ -35,7 +36,7 @@ const StyledEmptyState = styled(EmptyState)`
   max-width: 50%;
 
   p {
-    width: ${({ theme }) => theme.gridUnit * 115}px;
+    width: ${({ theme }) => theme.sizeUnit * 115}px;
   }
 `;
 
@@ -93,7 +94,8 @@ export const MessageContent = (props: MessageContentProps) => {
     <StyledContainer>
       <StyledEmptyState
         image={currentImage}
-        size="large"
+        size="medium"
+        textSize="large"
         title={currentTitle}
         description={currentDescription}
       />

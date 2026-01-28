@@ -20,11 +20,11 @@ import { SortSeriesType } from '@superset-ui/chart-controls';
 import {
   AxisType,
   DataRecord,
-  GenericDataType,
   getNumberFormatter,
   getTimeFormatter,
-  supersetTheme as theme,
 } from '@superset-ui/core';
+import { supersetTheme as theme } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   calculateLowerLogTick,
   dedupSeries,
@@ -53,11 +53,12 @@ import { NULL_STRING } from '../../src/constants';
 
 const expectedThemeProps = {
   selector: ['all', 'inverse'],
+  selected: undefined,
   selectorLabel: {
-    fontFamily: theme.typography.families.sansSerif,
-    fontSize: theme.typography.sizes.s,
-    color: theme.colors.grayscale.base,
-    borderColor: theme.colors.grayscale.base,
+    fontFamily: theme.fontFamily,
+    fontSize: theme.fontSizeSM,
+    color: theme.colorText,
+    borderColor: theme.colorBorder,
   },
 };
 
@@ -492,6 +493,43 @@ describe('extractSeries', () => {
     ]);
   });
 
+  it('should convert NULL x-values to NULL_STRING for categorical axis', () => {
+    const data = [
+      {
+        browser: 'Firefox',
+        count: 5,
+      },
+      {
+        browser: null,
+        count: 10,
+      },
+      {
+        browser: 'Chrome',
+        count: 8,
+      },
+    ];
+    expect(
+      extractSeries(data, {
+        xAxis: 'browser',
+        xAxisType: AxisType.Category,
+      }),
+    ).toEqual([
+      [
+        {
+          id: 'count',
+          name: 'count',
+          data: [
+            ['Firefox', 5],
+            [NULL_STRING, 10],
+            ['Chrome', 8],
+          ],
+        },
+      ],
+      [],
+      5,
+    ]);
+  });
+
   it('should do missing value imputation', () => {
     const data = [
       {
@@ -853,14 +891,27 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with bottom orientation', () => {
+  it('should default plain legends to scroll for bottom orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
     ).toEqual({
       show: false,
       bottom: 0,
       orient: 'horizontal',
-      type: 'plain',
+      type: 'scroll',
+      ...expectedThemeProps,
+    });
+  });
+
+  it('should default plain legends to scroll for top orientation', () => {
+    expect(
+      getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
+    ).toEqual({
+      show: false,
+      top: 0,
+      right: 0,
+      orient: 'horizontal',
+      type: 'scroll',
       ...expectedThemeProps,
     });
   });

@@ -19,9 +19,10 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
+from flask import current_app as app
 from flask_babel import gettext as __
 
-from superset import app, db, results_backend, results_backend_use_msgpack
+from superset import db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SerializationError, SupersetErrorException
@@ -30,10 +31,6 @@ from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 from superset.views.utils import _deserialize_results_payload
-
-config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = config["STATS_LOGGER"]
 
 logger = logging.getLogger(__name__)
 
@@ -62,30 +59,18 @@ class SqlExecutionResultsCommand(BaseCommand):
                 )
             )
 
-        read_from_results_backend_start = now_as_float()
-        self._blob = results_backend.get(self._key)
-        stats_logger.timing(
-            "sqllab.query.results_backend_read",
-            now_as_float() - read_from_results_backend_start,
-        )
+        stats_logger = app.config["STATS_LOGGER"]
 
-        if not self._blob:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "Data could not be retrieved from the results backend. You "
-                        "need to re-run the original query."
-                    ),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=410,
-            )
-
+        # Check if query exists in database first (fast, avoids unnecessary S3 call)
         self._query = (
             db.session.query(Query).filter_by(results_key=self._key).one_or_none()
         )
         if self._query is None:
+            logger.warning(
+                "404 Error - Query not found in database for key: %s",
+                self._key,
+            )
+            stats_logger.incr("sqllab.results_backend.404_query_not_found")
             raise SupersetErrorException(
                 SupersetError(
                     message=__(
@@ -96,6 +81,43 @@ class SqlExecutionResultsCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                 ),
                 status=404,
+            )
+
+        # Now fetch results from backend (query exists, so this is a valid request)
+        read_from_results_backend_start = now_as_float()
+        self._blob = results_backend.get(self._key)
+        stats_logger.timing(
+            "sqllab.query.results_backend_read",
+            now_as_float() - read_from_results_backend_start,
+        )
+
+        if not self._blob:
+            # Query exists in DB but results not in S3 - enhanced diagnostics
+            query_age_seconds = now_as_float() - (
+                self._query.end_time if self._query.end_time else now_as_float()
+            )
+            logger.warning(
+                "410 Error - Query exists in DB but results not in results backend"
+                " Query ID: %s, Status: %s, Age: %.2f seconds, "
+                "End time: %s, Results key: %s",
+                self._query.id,
+                self._query.status,
+                query_age_seconds,
+                self._query.end_time,
+                self._key,
+            )
+            stats_logger.incr("sqllab.results_backend.410_results_missing")
+
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "Data could not be retrieved from the results backend. You "
+                        "need to re-run the original query."
+                    ),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=410,
             )
 
     def run(

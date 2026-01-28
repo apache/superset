@@ -19,7 +19,8 @@
 
 from __future__ import annotations
 
-import json
+import json  # noqa: TID251
+import re
 from textwrap import dedent
 from typing import Any
 
@@ -27,13 +28,40 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import types
 from sqlalchemy.dialects import sqlite
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
-from superset.sql_parse import Table
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
+
+
+def create_expected_superset_error(
+    message: str,
+    error_type: SupersetErrorType = SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+    engine_name: str | None = None,
+) -> SupersetError:
+    """
+    Helper function to create expected SupersetError objects for testing.
+    """
+    extra = {
+        "engine_name": engine_name,
+        "issue_codes": [
+            {
+                "code": 1002,
+                "message": "Issue 1002 - The database returned an unexpected error.",
+            }
+        ],
+    }
+
+    return SupersetError(
+        message=message,
+        error_type=error_type,
+        level=ErrorLevel.ERROR,
+        extra=extra,
+    )
 
 
 def test_get_text_clause_with_colon() -> None:
@@ -49,32 +77,6 @@ def test_get_text_clause_with_colon() -> None:
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
 
 
-def test_parse_sql_single_statement() -> None:
-    """
-    `parse_sql` should properly strip leading and trailing spaces and semicolons
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql(" SELECT foo FROM tbl ; ")
-    assert queries == ["SELECT foo FROM tbl"]
-
-
-def test_parse_sql_multi_statement() -> None:
-    """
-    For string with multiple SQL-statements `parse_sql` method should return list
-    where each element represents the single SQL-statement
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql("SELECT foo FROM tbl1; SELECT bar FROM tbl2;")
-    assert queries == [
-        "SELECT foo FROM tbl1",
-        "SELECT bar FROM tbl2",
-    ]
-
-
 def test_validate_db_uri(mocker: MockerFixture) -> None:
     """
     Ensures that the `validate_database_uri` method invokes the validator correctly
@@ -84,7 +86,7 @@ def test_validate_db_uri(mocker: MockerFixture) -> None:
         raise ValueError("Invalid URI")
 
     mocker.patch(
-        "superset.db_engine_specs.base.current_app.config",
+        "flask.current_app.config",
         {"DB_SQLA_URI_VALIDATOR": mock_validate},
     )
 
@@ -206,9 +208,6 @@ def test_select_star(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    class NoLimitDBEngineSpec(BaseEngineSpec):
-        allow_limit_clause = False
-
     cols: list[ResultSetColumnType] = [
         {
             "column_name": "a",
@@ -235,7 +234,7 @@ def test_select_star(mocker: MockerFixture) -> None:
 
     sql = BaseEngineSpec.select_star(
         database=database,
-        table=Table("my_table"),
+        table=Table("my_table", "my_schema", "my_catalog"),
         engine=engine,
         limit=100,
         show_cols=True,
@@ -243,19 +242,7 @@ def test_select_star(mocker: MockerFixture) -> None:
         latest_partition=False,
         cols=cols,
     )
-    assert sql == "SELECT a\nFROM my_table\nLIMIT ?\nOFFSET ?"
-
-    sql = NoLimitDBEngineSpec.select_star(
-        database=database,
-        table=Table("my_table"),
-        engine=engine,
-        limit=100,
-        show_cols=True,
-        indent=True,
-        latest_partition=False,
-        cols=cols,
-    )
-    assert sql == "SELECT a\nFROM my_table"
+    assert sql == "SELECT\n  a\nFROM my_schema.my_table\nLIMIT ?\nOFFSET ?"
 
 
 def test_extra_table_metadata(mocker: MockerFixture) -> None:
@@ -382,3 +369,577 @@ def test_unmask_encrypted_extra() -> None:
             },
         }
     )
+
+
+def test_impersonate_user_backwards_compatible(mocker: MockerFixture) -> None:
+    """
+    Test that the `impersonate_user` method calls the original methods it replaced.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.MagicMock()
+    url = make_url("sqlite://foo.db")
+    new_url = make_url("sqlite://bar.db")
+    engine_kwargs = {"connect_args": {"user": "alice"}}
+
+    get_url_for_impersonation = mocker.patch.object(
+        BaseEngineSpec,
+        "get_url_for_impersonation",
+        return_value=new_url,
+    )
+    update_impersonation_config = mocker.patch.object(
+        BaseEngineSpec,
+        "update_impersonation_config",
+    )
+    signature = mocker.patch("superset.db_engine_specs.base.signature")
+    signature().parameters = [
+        "cls",
+        "database",
+        "connect_args",
+        "uri",
+        "username",
+        "access_token",
+    ]
+
+    BaseEngineSpec.impersonate_user(database, "alice", "SECRET", url, engine_kwargs)
+
+    get_url_for_impersonation.assert_called_once_with(url, True, "alice", "SECRET")
+    update_impersonation_config.assert_called_once_with(
+        database,
+        {"user": "alice"},
+        new_url,
+        "alice",
+        "SECRET",
+    )
+
+
+def test_impersonate_user_no_database(mocker: MockerFixture) -> None:
+    """
+    Test `impersonate_user` when `update_impersonation_config` has an old signature.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.MagicMock()
+    url = make_url("sqlite://foo.db")
+    new_url = make_url("sqlite://bar.db")
+    engine_kwargs = {"connect_args": {"user": "alice"}}
+
+    get_url_for_impersonation = mocker.patch.object(
+        BaseEngineSpec,
+        "get_url_for_impersonation",
+        return_value=new_url,
+    )
+    update_impersonation_config = mocker.patch.object(
+        BaseEngineSpec,
+        "update_impersonation_config",
+    )
+    signature = mocker.patch("superset.db_engine_specs.base.signature")
+    signature().parameters = [
+        "cls",
+        "connect_args",
+        "uri",
+        "username",
+        "access_token",
+    ]
+
+    BaseEngineSpec.impersonate_user(database, "alice", "SECRET", url, engine_kwargs)
+
+    get_url_for_impersonation.assert_called_once_with(url, True, "alice", "SECRET")
+    update_impersonation_config.assert_called_once_with(
+        {"user": "alice"},
+        new_url,
+        "alice",
+        "SECRET",
+    )
+
+
+def test_handle_boolean_filter_default_behavior() -> None:
+    """
+    Test that BaseEngineSpec uses IS operators for boolean filters by default.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    # Create a mock SQLAlchemy column
+    bool_col = Column("test_col", Boolean)
+
+    # Test IS_TRUE filter - should use IS operator by default
+    result_true = BaseEngineSpec.handle_boolean_filter(bool_col, "IS TRUE", True)
+    assert hasattr(result_true, "left")  # IS comparison has left/right attributes
+    assert hasattr(result_true, "right")
+
+    # Test IS_FALSE filter - should use IS operator by default
+    result_false = BaseEngineSpec.handle_boolean_filter(bool_col, "IS FALSE", False)
+    assert hasattr(result_false, "left")
+    assert hasattr(result_false, "right")
+
+
+def test_handle_boolean_filter_with_equality() -> None:
+    """
+    Test that BaseEngineSpec can use equality operators when configured.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    # Create a test engine spec that uses equality
+    class TestEngineSpec(BaseEngineSpec):
+        use_equality_for_boolean_filters = True
+
+    bool_col = Column("test_col", Boolean)
+
+    # Test with equality enabled
+    result_true = TestEngineSpec.handle_boolean_filter(bool_col, "IS TRUE", True)
+    # Equality comparison should have different structure than IS comparison
+    assert str(type(result_true)).endswith("BinaryExpression'>")
+
+    result_false = TestEngineSpec.handle_boolean_filter(bool_col, "IS FALSE", False)
+    assert str(type(result_false)).endswith("BinaryExpression'>")
+
+
+def test_handle_null_filter() -> None:
+    """
+    Test null/not null filter handling.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    bool_col = Column("test_col", Boolean)
+
+    # Test IS_NULL - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
+    result_null = BaseEngineSpec.handle_null_filter(bool_col, FilterOperator.IS_NULL)
+    assert hasattr(result_null, "left")
+    assert hasattr(result_null, "right")
+
+    # Test IS_NOT_NULL
+    result_not_null = BaseEngineSpec.handle_null_filter(
+        bool_col, FilterOperator.IS_NOT_NULL
+    )
+    assert hasattr(result_not_null, "left")
+    assert hasattr(result_not_null, "right")
+
+    # Test invalid operator
+    with pytest.raises(ValueError, match="Invalid null filter operator"):
+        BaseEngineSpec.handle_null_filter(bool_col, "INVALID")  # type: ignore[arg-type]
+
+
+def test_handle_comparison_filter() -> None:
+    """
+    Test comparison filter handling for all operators.
+    """
+    from sqlalchemy import Column, Integer
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    int_col = Column("test_col", Integer)
+
+    # Test all comparison operators - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
+    operators_and_values = [
+        (FilterOperator.EQUALS, 5),
+        (FilterOperator.NOT_EQUALS, 5),
+        (FilterOperator.GREATER_THAN, 5),
+        (FilterOperator.LESS_THAN, 5),
+        (FilterOperator.GREATER_THAN_OR_EQUALS, 5),
+        (FilterOperator.LESS_THAN_OR_EQUALS, 5),
+    ]
+
+    for op, value in operators_and_values:
+        result = BaseEngineSpec.handle_comparison_filter(int_col, op, value)
+        # All comparison operators should return binary expressions
+        assert str(type(result)).endswith("BinaryExpression'>")
+
+    # Test invalid operator
+    with pytest.raises(ValueError, match="Invalid comparison filter operator"):
+        BaseEngineSpec.handle_comparison_filter(int_col, "INVALID", 5)  # type: ignore[arg-type]
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that BaseEngineSpec has the correct default value for boolean filter property.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    # Default should be False (use IS operators)
+    assert BaseEngineSpec.use_equality_for_boolean_filters is False
+
+
+def test_extract_errors(mocker: MockerFixture) -> None:
+    """
+    Test that error is extracted correctly when no custom error message is provided.
+    """
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mocker.patch(
+        "flask.current_app.config",
+        {},
+    )
+
+    msg = "This connector does not support roles"
+    result = BaseEngineSpec.extract_errors(Exception(msg))
+
+    expected = create_expected_superset_error(
+        message="This connector does not support roles",
+        engine_name=None,
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_from_config(mocker: MockerFixture) -> None:
+    """
+    Test that custom error messages are extracted correctly from app config
+    using database_name.
+    """
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "ExampleEngine"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "examples": {
+                    re.compile("This connector does not support roles"): (
+                        "Custom error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                }
+            }
+        },
+    )
+
+    msg = "This connector does not support roles"
+    result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples")
+
+    expected = create_expected_superset_error(
+        message="Custom error message",
+        engine_name="ExampleEngine",
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_only_to_specified_database(mocker: MockerFixture) -> None:
+    """
+    Test that custom error messages are only applied to the specified database_name.
+    """
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "ExampleEngine"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "examples": {
+                    re.compile("This connector does not support roles"): (
+                        "Custom error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                }
+            }
+        },
+    )
+
+    msg = "This connector does not support roles"
+    # database_name doesn't match configured one, so default message is used
+    result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples_2")
+
+    expected = create_expected_superset_error(
+        message="This connector does not support roles",
+        engine_name="ExampleEngine",
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
+    """
+    Test that custom error messages with regex, custom_doc_links,
+    and show_issue_info are extracted correctly from config.
+    """
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "ExampleEngine"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "examples": {
+                    re.compile(r'message="(?P<message>[^"]*)"'): (
+                        'Unexpected error: "%(message)s"',
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {
+                            "custom_doc_links": [
+                                {
+                                    "url": "https://example.com/docs",
+                                    "label": "Check documentation",
+                                },
+                            ],
+                            "show_issue_info": False,
+                        },
+                    )
+                }
+            }
+        },
+    )
+
+    msg = (
+        "db error: SomeUserError(type=USER_ERROR, name=TABLE_NOT_FOUND, "
+        'message="line 3:6: Table '
+        "'example_catalog.example_schema.example_table' does not exist"
+        '", '
+        "query_id=20250812_074513_00084_kju62)"
+    )
+    result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples")
+
+    assert result == [
+        SupersetError(
+            message=(
+                'Unexpected error: "line 3:6: Table '
+                "'example_catalog.example_schema.example_table' does not exist"
+                '"'
+            ),
+            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "engine_name": "ExampleEngine",
+                "issue_codes": [
+                    {
+                        "code": 1002,
+                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
+                    }
+                ],
+                "custom_doc_links": [
+                    {
+                        "url": "https://example.com/docs",
+                        "label": "Check documentation",
+                    },
+                ],
+                "show_issue_info": False,
+            },
+        )
+    ]
+
+
+def test_extract_errors_with_non_dict_custom_errors(mocker: MockerFixture):
+    """
+    Test that extract_errors doesn't fail when custom database errors
+    are in wrong format.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "ExampleEngine"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {"CUSTOM_DATABASE_ERRORS": "not a dict"},
+    )
+
+    msg = "This connector does not support roles"
+    result = TestEngineSpec.extract_errors(Exception(msg))
+
+    expected = create_expected_superset_error(
+        message="This connector does not support roles",
+        engine_name="ExampleEngine",
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_with_non_dict_engine_custom_errors(mocker: MockerFixture):
+    """
+    Test that extract_errors doesn't fail when database-specific custom errors
+    are in wrong format.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "ExampleEngine"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {"CUSTOM_DATABASE_ERRORS": {"examples": "not a dict"}},
+    )
+
+    msg = "This connector does not support roles"
+    result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples")
+
+    expected = create_expected_superset_error(
+        message="This connector does not support roles",
+        engine_name="ExampleEngine",
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_with_empty_custom_error_message(mocker: MockerFixture):
+    """
+    Test that when the custom error message is empty,
+    the original error message is preserved.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "ExampleEngine"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "examples": {
+                    re.compile("This connector does not support roles"): (
+                        "",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                }
+            }
+        },
+    )
+
+    msg = "This connector does not support roles"
+    result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples")
+
+    expected = create_expected_superset_error(
+        message="This connector does not support roles",
+        engine_name="ExampleEngine",
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_matches_database_name_selection(mocker: MockerFixture) -> None:
+    """
+    Test that custom error messages are matched by database_name.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "ExampleEngine"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "examples": {
+                    re.compile("connection error"): (
+                        "Examples DB error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                },
+                "examples_2": {
+                    re.compile("connection error"): (
+                        "Examples_2 DB error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                },
+            }
+        },
+    )
+
+    msg = "connection error occurred"
+    # When database_name is examples_2 we should get that specific message
+    result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples_2")
+
+    expected = create_expected_superset_error(
+        message="Examples_2 DB error message",
+        engine_name="ExampleEngine",
+    )
+    assert result == [expected]
+
+
+def test_extract_errors_no_match_falls_back(mocker: MockerFixture) -> None:
+    """
+    Test that when database_name has no match, the original error message is preserved.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class TestEngineSpec(BaseEngineSpec):
+        engine_name = "ExampleEngine"
+
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "CUSTOM_DATABASE_ERRORS": {
+                "examples": {
+                    re.compile("connection error"): (
+                        "Examples DB error message",
+                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        {},
+                    )
+                },
+            }
+        },
+    )
+
+    msg = "some other error"
+    result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples_2")
+
+    expected = create_expected_superset_error(
+        message="some other error",
+        engine_name="ExampleEngine",
+    )
+    assert result == [expected]
+
+
+def test_get_oauth2_authorization_uri_standard_params(mocker: MockerFixture) -> None:
+    """
+    Test that BaseEngineSpec.get_oauth2_authorization_uri uses standard OAuth 2.0
+    parameters only and does not include provider-specific params like prompt=consent.
+    """
+    from urllib.parse import parse_qs, urlparse
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.superset_typing import OAuth2ClientConfig, OAuth2State
+    from superset.utils.oauth2 import decode_oauth2_state
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    state: OAuth2State = {
+        "database_id": 1,
+        "user_id": 1,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "1234",
+    }
+
+    url = BaseEngineSpec.get_oauth2_authorization_uri(config, state)
+    parsed = urlparse(url)
+    assert parsed.netloc == "oauth.example.com"
+    assert parsed.path == "/authorize"
+
+    query = parse_qs(parsed.query)
+
+    # Verify standard OAuth 2.0 parameters are included
+    assert query["scope"][0] == "read write"
+    assert query["response_type"][0] == "code"
+    assert query["client_id"][0] == "client-id"
+    assert query["redirect_uri"][0] == "http://localhost:8088/api/v1/database/oauth2/"
+    encoded_state = query["state"][0].replace("%2E", ".")
+    assert decode_oauth2_state(encoded_state) == state
+
+    # Verify Google-specific parameters are NOT included (standard OAuth 2.0)
+    assert "prompt" not in query
+    assert "access_type" not in query
+    assert "include_granted_scopes" not in query

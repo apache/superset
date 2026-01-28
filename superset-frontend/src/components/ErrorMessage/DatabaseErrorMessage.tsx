@@ -17,11 +17,13 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t, tn } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { tn } from '@apache-superset/core';
 
-import { ErrorMessageComponentProps } from './types';
-import IssueCode from './IssueCode';
-import ErrorAlert from './ErrorAlert';
+import type { ErrorMessageComponentProps } from './types';
+import { IssueCode } from './IssueCode';
+import { ErrorAlert } from './ErrorAlert';
+import { CustomDocLink, CustomDocLinkProps } from './CustomDocLink';
 
 interface DatabaseErrorExtra {
   owners?: string[];
@@ -30,31 +32,44 @@ interface DatabaseErrorExtra {
     message: string;
   }[];
   engine_name: string | null;
+  custom_doc_links?: CustomDocLinkProps[];
+  show_issue_info?: boolean;
 }
 
-function DatabaseErrorMessage({
+export function DatabaseErrorMessage({
   error,
   source,
-  subtitle,
 }: ErrorMessageComponentProps<DatabaseErrorExtra | null>) {
   const { extra, level, message } = error;
 
   const isVisualization = ['dashboard', 'explore'].includes(source || '');
   const [firstLine, ...remainingLines] = message.split('\n');
-  const alertMessage = firstLine;
   const alertDescription =
     remainingLines.length > 0 ? remainingLines.join('\n') : null;
+  let alertMessage: ReactNode = firstLine;
 
-  const body = extra && (
+  if (Array.isArray(extra?.custom_doc_links)) {
+    alertMessage = (
+      <>
+        {firstLine}
+        {extra.custom_doc_links.map(link => (
+          <div key={link.url}>
+            <CustomDocLink {...link} />
+          </div>
+        ))}
+      </>
+    );
+  }
+
+  const body = extra && extra.show_issue_info !== false && (
     <>
       <p>
         {t('This may be triggered by:')}
         <br />
-        {extra.issue_codes
-          ?.map<ReactNode>(issueCode => (
-            <IssueCode {...issueCode} key={issueCode.code} />
-          ))
-          .reduce((prev, curr) => [prev, <br />, curr])}
+        {extra.issue_codes?.flatMap((issueCode, idx, arr) => [
+          <IssueCode {...issueCode} key={issueCode.code} />,
+          idx < arr.length - 1 ? <br key={`br-${issueCode.code}`} /> : null,
+        ])}
       </p>
       {isVisualization && extra.owners && (
         <>
@@ -89,5 +104,3 @@ function DatabaseErrorMessage({
     />
   );
 }
-
-export default DatabaseErrorMessage;

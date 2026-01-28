@@ -69,9 +69,10 @@ export interface Dataset {
   columns: ColumnMeta[];
   metrics: Metric[];
   column_formats: Record<string, string>;
-  currency_formats: Record<string, Currency>;
+  currency_formats?: Record<string, Currency>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
+  currency_code_column?: string;
   // eg. ['["ds", true]', 'ds [asc]']
   order_by_choices?: [string, string][] | null;
   time_grain_sqla?: [string, string][];
@@ -90,6 +91,10 @@ export interface Dataset {
   database?: Record<string, unknown>;
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
+<<<<<<< HEAD
+=======
+  extra?: object | string;
+>>>>>>> origin/master
 }
 
 export interface ControlPanelState {
@@ -161,6 +166,7 @@ export type InternalControlType =
   | 'DatasourceControl'
   | 'DateFilterControl'
   | 'FixedOrMetricControl'
+  | 'ColorBreakpointsControl'
   | 'HiddenControl'
   | 'SelectAsyncControl'
   | 'SelectControl'
@@ -188,7 +194,7 @@ export type InternalControlType =
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ControlType = InternalControlType | ComponentType<any>;
 
-export type TabOverride = 'data' | 'customize' | boolean;
+export type TabOverride = 'data' | 'customize' | 'matrixify' | boolean;
 
 /**
  * Control config specifying how chart controls appear in the control panel, all
@@ -301,7 +307,7 @@ export interface FilterOption<T extends SelectOption> {
   data: T;
 }
 
-// Ref: superset-frontend/src/components/Select/SupersetStyledSelect.tsx
+// Ref: superset-frontend/@superset-ui/core/components/Select/SupersetStyledSelect.tsx
 export interface SelectControlConfig<
   O extends SelectOption = SelectOption,
   T extends SelectControlType = SelectControlType,
@@ -315,7 +321,7 @@ export interface SelectControlConfig<
   optionRenderer?: (option: O) => ReactNode;
   valueRenderer?: (option: O) => ReactNode;
   filterOption?:
-    | ((option: FilterOption<O>, rawInput: string) => Boolean)
+    | ((option: FilterOption<O>, rawInput: string) => boolean)
     | null;
 }
 
@@ -456,6 +462,14 @@ export enum Comparator {
   BetweenOrEqual = '≤ x ≤',
   BetweenOrLeftEqual = '≤ x <',
   BetweenOrRightEqual = '< x ≤',
+  BeginsWith = 'begins with',
+  EndsWith = 'ends with',
+  Containing = 'containing',
+  NotContaining = 'not containing',
+  IsTrue = 'is true',
+  IsFalse = 'is false',
+  IsNull = 'is null',
+  IsNotNull = 'is not null',
 }
 
 export const MultipleValueComparators = [
@@ -467,16 +481,23 @@ export const MultipleValueComparators = [
 
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
-  targetValue?: number;
+  targetValue?: number | string;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
   colorScheme?: string;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
+  useGradient?: boolean;
 };
 
 export type ColorFormatters = {
   column: string;
-  getColorFromValue: (value: number) => string | undefined;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
+  getColorFromValue: (
+    value: number | string | boolean | null,
+  ) => string | undefined;
 }[];
 
 export default {};

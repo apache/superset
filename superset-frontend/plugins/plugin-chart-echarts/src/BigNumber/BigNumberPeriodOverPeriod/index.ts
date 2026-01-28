@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 
 export default class PopKPIPlugin extends ChartPlugin {
   constructor() {
@@ -32,11 +34,13 @@ export default class PopKPIPlugin extends ChartPlugin {
       tags: [
         t('Comparison'),
         t('Business'),
+        t('ECharts'),
         t('Percentages'),
         t('Report'),
         t('Advanced-Analytics'),
       ],
       thumbnail,
+      thumbnailDark,
     });
 
     super({

@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD
 import { render, waitFor, within } from 'spec/helpers/testing-library';
+=======
+import { render, waitFor, screen } from 'spec/helpers/testing-library';
+>>>>>>> origin/master
 import SouthPane from 'src/SqlLab/components/SouthPane';
-import '@testing-library/jest-dom';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { denormalizeTimestamp } from '@superset-ui/core';
@@ -126,25 +129,25 @@ test('should render offline when the state is offline', async () => {
 });
 
 test('should render empty result state when latestQuery is empty', () => {
-  const { getAllByRole } = render(
-    <SouthPane {...mockedProps} latestQueryId={undefined} />,
-    {
-      useRedux: true,
-      initialState: mockState,
-    },
-  );
-
-  const resultPanel = getAllByRole('tabpanel')[0];
-  expect(resultPanel).toHaveTextContent('Run a query to display results');
-});
-
-test('should render tabs for table metadata view', () => {
-  const { getAllByRole } = render(<SouthPane {...mockedProps} />, {
+  render(<SouthPane {...mockedProps} latestQueryId={undefined} />, {
     useRedux: true,
     initialState: mockState,
   });
 
-  const tabs = getAllByRole('tab');
+  const resultPanel = screen.getByText('Run a query to display results');
+  expect(resultPanel).toBeInTheDocument();
+});
+
+test('should render tabs for table metadata view', () => {
+  const { container } = render(<SouthPane {...mockedProps} />, {
+    useRedux: true,
+    initialState: mockState,
+  });
+
+  const tabs = Array.from(container.querySelectorAll('[role="tab"]')).filter(
+    tab => !tab.classList.contains('ant-tabs-tab-remove'),
+  );
+
   expect(tabs).toHaveLength(mockState.sqlLab.tables.length + 2);
   expect(tabs[0]).toHaveTextContent('Results');
   expect(tabs[1]).toHaveTextContent('Query history');
@@ -152,13 +155,19 @@ test('should render tabs for table metadata view', () => {
     expect(tabs[index + 2]).toHaveTextContent(`${schema}.${name}`);
   });
 });
+<<<<<<< HEAD
 
 test('should remove tab', async () => {
   const { getAllByRole } = await render(<SouthPane {...mockedProps} />, {
+=======
+test('should remove tab', async () => {
+  const { container } = await render(<SouthPane {...mockedProps} />, {
+>>>>>>> origin/master
     useRedux: true,
     initialState: mockState,
   });
 
+<<<<<<< HEAD
   const tabs = getAllByRole('tab');
   const totalTabs = mockState.sqlLab.tables.length + 2;
   expect(tabs).toHaveLength(totalTabs);
@@ -170,4 +179,29 @@ test('should remove tab', async () => {
   );
   userEvent.click(removeButton);
   await waitFor(() => expect(getAllByRole('tab')).toHaveLength(totalTabs - 1));
+=======
+  let tabs = Array.from(container.querySelectorAll('[role="tab"]')).filter(
+    tab => !tab.classList.contains('ant-tabs-tab-remove'),
+  );
+  const totalTabs = mockState.sqlLab.tables.length + 2;
+  expect(tabs).toHaveLength(totalTabs);
+
+  console.log(tabs[2].parentElement?.innerHTML); // debug
+
+  const removeButton = tabs[2].parentElement?.querySelector(
+    'button[aria-label="remove"]',
+  );
+  expect(removeButton).toBeTruthy();
+
+  if (removeButton) {
+    userEvent.click(removeButton);
+  }
+
+  await waitFor(() => {
+    tabs = Array.from(container.querySelectorAll('[role="tab"]')).filter(
+      tab => !tab.classList.contains('ant-tabs-tab-remove'),
+    );
+    expect(tabs).toHaveLength(totalTabs - 1);
+  });
+>>>>>>> origin/master
 });

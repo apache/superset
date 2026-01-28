@@ -18,8 +18,12 @@
  */
 
 import { Component } from 'react';
-import { t, safeHtmlSpan } from '@superset-ui/core';
+import { safeHtmlSpan } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 import PropTypes from 'prop-types';
+import { FaSort } from '@react-icons/all-files/fa/FaSort';
+import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
+import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
@@ -34,6 +38,12 @@ const parseLabel = value => {
   return String(value);
 };
 
+function displayCell(value, allowRenderHtml) {
+  if (allowRenderHtml && typeof value === 'string') {
+    return safeHtmlSpan(value);
+  }
+  return parseLabel(value);
+}
 function displayHeaderCell(
   needToggle,
   ArrowIcon,
@@ -65,6 +75,88 @@ function displayHeaderCell(
   );
 }
 
+function sortHierarchicalObject(obj, objSort, rowPartialOnTop) {
+  // Performs a recursive sort of nested object structures. Sorts objects based on
+  // their currentVal property. The function preserves the hierarchical structure
+  // while sorting each level according to the specified criteria.
+  const sortedKeys = Object.keys(obj).sort((a, b) => {
+    const valA = obj[a].currentVal || 0;
+    const valB = obj[b].currentVal || 0;
+    if (rowPartialOnTop) {
+      if (obj[a].currentVal !== undefined && obj[b].currentVal === undefined) {
+        return -1;
+      }
+      if (obj[b].currentVal !== undefined && obj[a].currentVal === undefined) {
+        return 1;
+      }
+    }
+    return objSort === 'asc' ? valA - valB : valB - valA;
+  });
+
+  const result = new Map();
+  sortedKeys.forEach(key => {
+    const value = obj[key];
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      result.set(key, sortHierarchicalObject(value, objSort, rowPartialOnTop));
+    } else {
+      result.set(key, value);
+    }
+  });
+  return result;
+}
+
+function convertToArray(
+  obj,
+  rowEnabled,
+  rowPartialOnTop,
+  maxRowIndex,
+  parentKeys = [],
+  result = [],
+  flag = false,
+) {
+  // Recursively flattens a hierarchical Map structure into an array of key paths.
+  // Handles different rendering scenarios based on row grouping configurations and
+  // depth limitations. The function supports complex hierarchy flattening with
+  let updatedFlag = flag;
+
+  const keys = Array.from(obj.keys());
+  const getValue = key => obj.get(key);
+
+  keys.forEach(key => {
+    if (key === 'currentVal') {
+      return;
+    }
+    const value = getValue(key);
+    if (rowEnabled && rowPartialOnTop && parentKeys.length < maxRowIndex - 1) {
+      result.push(parentKeys.length > 0 ? [...parentKeys, key] : [key]);
+      updatedFlag = true;
+    }
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      convertToArray(
+        value,
+        rowEnabled,
+        rowPartialOnTop,
+        maxRowIndex,
+        [...parentKeys, key],
+        result,
+      );
+    }
+    if (
+      parentKeys.length >= maxRowIndex - 1 ||
+      (rowEnabled && !rowPartialOnTop)
+    ) {
+      if (!updatedFlag) {
+        result.push(parentKeys.length > 0 ? [...parentKeys, key] : [key]);
+        return;
+      }
+    }
+    if (parentKeys.length === 0 && maxRowIndex === 1) {
+      result.push([key]);
+    }
+  });
+  return result;
+}
+
 export class TableRenderer extends Component {
   constructor(props) {
     super(props);
@@ -72,8 +164,8 @@ export class TableRenderer extends Component {
     // We need state to record which entries are collapsed and which aren't.
     // This is an object with flat-keys indicating if the corresponding rows
     // should be collapsed.
-    this.state = { collapsedRows: {}, collapsedCols: {} };
-
+    this.state = { collapsedRows: {}, collapsedCols: {}, sortingOrder: [] };
+    this.sortCache = new Map();
     this.clickHeaderHandler = this.clickHeaderHandler.bind(this);
     this.clickHandler = this.clickHandler.bind(this);
   }
@@ -342,6 +434,108 @@ export class TableRenderer extends Component {
     return spans;
   }
 
+  getAggregatedData(pivotData, visibleColName, rowPartialOnTop) {
+    // Transforms flat row keys into a hierarchical group structure where each level
+    // represents a grouping dimension. For each row key path, it calculates the
+    // aggregated value for the specified column and builds a nested object that
+    // preserves the hierarchy while storing aggregation values at each level.
+    const groups = {};
+    const rows = pivotData.rowKeys;
+    rows.forEach(rowKey => {
+      const aggValue =
+        pivotData.getAggregator(rowKey, visibleColName).value() ?? 0;
+
+      if (rowPartialOnTop) {
+        const parent = rowKey
+          .slice(0, -1)
+          .reduce((acc, key) => (acc[key] ??= {}), groups);
+        parent[rowKey.at(-1)] = { currentVal: aggValue };
+      } else {
+        rowKey.reduce((acc, key) => {
+          acc[key] = acc[key] || { currentVal: 0 };
+          acc[key].currentVal = aggValue;
+          return acc[key];
+        }, groups);
+      }
+    });
+    return groups;
+  }
+
+  sortAndCacheData(
+    groups,
+    sortOrder,
+    rowEnabled,
+    rowPartialOnTop,
+    maxRowIndex,
+  ) {
+    // Processes hierarchical data by first sorting it according to the specified order
+    // and then converting the sorted structure into a flat array format. This function
+    // serves as an intermediate step between hierarchical data representation and
+    // flat array representation needed for rendering.
+    const sortedGroups = sortHierarchicalObject(
+      groups,
+      sortOrder,
+      rowPartialOnTop,
+    );
+    return convertToArray(
+      sortedGroups,
+      rowEnabled,
+      rowPartialOnTop,
+      maxRowIndex,
+    );
+  }
+
+  sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex) {
+    // Handles column sorting with direction toggling (asc/desc) and implements
+    // caching mechanism to avoid redundant sorting operations. When sorting the same
+    // column multiple times, it cycles through sorting directions. Uses composite
+    // cache keys based on sorting parameters for optimal performance.
+    this.setState(state => {
+      const { sortingOrder, activeSortColumn } = state;
+
+      const newSortingOrder = [];
+      let newDirection = 'asc';
+
+      if (activeSortColumn === columnIndex) {
+        newDirection = sortingOrder[columnIndex] === 'asc' ? 'desc' : 'asc';
+      }
+
+      const { rowEnabled, rowPartialOnTop } = pivotData.subtotals;
+      newSortingOrder[columnIndex] = newDirection;
+
+      const cacheKey = `${columnIndex}-${visibleColKeys.length}-${rowEnabled}-${rowPartialOnTop}-${newDirection}`;
+      let newRowKeys;
+      if (this.sortCache.has(cacheKey)) {
+        const cachedRowKeys = this.sortCache.get(cacheKey);
+        newRowKeys = cachedRowKeys;
+      } else {
+        const groups = this.getAggregatedData(
+          pivotData,
+          visibleColKeys[columnIndex],
+          rowPartialOnTop,
+        );
+        const sortedRowKeys = this.sortAndCacheData(
+          groups,
+          newDirection,
+          rowEnabled,
+          rowPartialOnTop,
+          maxRowIndex,
+        );
+        this.sortCache.set(cacheKey, sortedRowKeys);
+        newRowKeys = sortedRowKeys;
+      }
+      this.cachedBasePivotSettings = {
+        ...this.cachedBasePivotSettings,
+        rowKeys: newRowKeys,
+      };
+
+      return {
+        sortingOrder: newSortingOrder,
+        activeSortColumn: columnIndex,
+      };
+    });
+  }
+
   renderColHeaderRow(attrName, attrIdx, pivotSettings) {
     // Render a single row in the column header at the top of the pivot table.
 
@@ -427,11 +621,35 @@ export class TableRenderer extends Component {
         ) {
           colLabelClass += ' active';
         }
+        const { maxRowVisible: maxRowIndex, maxColVisible } = pivotSettings;
+        const visibleSortIcon = maxColVisible - 1 === attrIdx;
+        const columnName = colKey[maxColVisible - 1];
 
         const rowSpan = 1 + (attrIdx === colAttrs.length - 1 ? rowIncrSpan : 0);
         const flatColKey = flatKey(colKey.slice(0, attrIdx + 1));
         const onArrowClick = needToggle ? this.toggleColKey(flatColKey) : null;
+        const getSortIcon = key => {
+          const { activeSortColumn, sortingOrder } = this.state;
 
+          if (activeSortColumn !== key) {
+            return (
+              <FaSort
+                onClick={() =>
+                  this.sortData(key, visibleColKeys, pivotData, maxRowIndex)
+                }
+              />
+            );
+          }
+
+          const SortIcon = sortingOrder[key] === 'asc' ? FaSortAsc : FaSortDesc;
+          return (
+            <SortIcon
+              onClick={() =>
+                this.sortData(key, visibleColKeys, pivotData, maxRowIndex)
+              }
+            />
+          );
+        };
         const headerCellFormattedValue =
           dateFormatters &&
           dateFormatters[attrName] &&
@@ -464,6 +682,22 @@ export class TableRenderer extends Component {
               namesMapping,
               allowRenderHtml,
             )}
+            <span
+              role="columnheader"
+              tabIndex={0}
+              // Prevents event bubbling to avoid conflict with column header click handlers
+              // Ensures sort operation executes without triggering cross-filtration
+              onClick={e => {
+                e.stopPropagation();
+              }}
+              aria-label={
+                this.state.activeSortColumn === i
+                  ? `Sorted by ${columnName} ${this.state.sortingOrder[i] === 'asc' ? 'ascending' : 'descending'}`
+                  : undefined
+              }
+            >
+              {visibleSortIcon && getSortIcon(i)}
+            </span>
           </th>,
         );
       } else if (attrIdx === colKey.length) {
@@ -742,7 +976,7 @@ export class TableRenderer extends Component {
           onContextMenu={e => this.props.onContextMenu(e, colKey, rowKey)}
           style={style}
         >
-          {agg.format(aggValue)}
+          {displayCell(agg.format(aggValue, agg), allowRenderHtml)}
         </td>
       );
     });
@@ -759,7 +993,7 @@ export class TableRenderer extends Component {
           onClick={rowTotalCallbacks[flatRowKey]}
           onContextMenu={e => this.props.onContextMenu(e, undefined, rowKey)}
         >
-          {agg.format(aggValue)}
+          {displayCell(agg.format(aggValue, agg), allowRenderHtml)}
         </td>
       );
     }
@@ -823,7 +1057,7 @@ export class TableRenderer extends Component {
           onContextMenu={e => this.props.onContextMenu(e, colKey, undefined)}
           style={{ padding: '5px' }}
         >
-          {agg.format(aggValue)}
+          {displayCell(agg.format(aggValue, agg), this.props.allowRenderHtml)}
         </td>
       );
     });
@@ -840,7 +1074,7 @@ export class TableRenderer extends Component {
           onClick={grandTotalCallback}
           onContextMenu={e => this.props.onContextMenu(e, undefined, undefined)}
         >
-          {agg.format(aggValue)}
+          {displayCell(agg.format(aggValue, agg), this.props.allowRenderHtml)}
         </td>
       );
     }
@@ -872,8 +1106,15 @@ export class TableRenderer extends Component {
     return document.contains(document.querySelector('.dashboard--editing'));
   }
 
+  componentWillUnmount() {
+    this.sortCache.clear();
+  }
+
   render() {
     if (this.cachedProps !== this.props) {
+      this.sortCache.clear();
+      this.state.sortingOrder = [];
+      this.state.activeSortColumn = null;
       this.cachedProps = this.props;
       this.cachedBasePivotSettings = this.getBasePivotSettings();
     }

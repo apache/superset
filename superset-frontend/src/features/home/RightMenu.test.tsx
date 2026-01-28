@@ -18,8 +18,12 @@
  */
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
 
@@ -28,7 +32,11 @@ jest.mock('react-redux', () => ({
   useSelector: jest.fn(),
 }));
 
-jest.mock('src/features/databases/DatabaseModal', () => () => <span />);
+jest.mock('src/features/databases/DatabaseModal', () => {
+  const DatabaseModal = () => <span />;
+  DatabaseModal.displayName = 'DatabaseModal';
+  return DatabaseModal;
+});
 
 const dropdownItems = [
   {
@@ -123,24 +131,26 @@ const createProps = (): RightMenuProps => ({
   },
 });
 
-const mockNonExamplesDB = [...new Array(2)].map((_, i) => ({
-  changed_by: {
-    first_name: `user`,
-    last_name: `${i}`,
-  },
-  database_name: `db ${i}`,
-  backend: 'postgresql',
-  allow_run_async: true,
-  allow_dml: false,
-  allow_file_upload: true,
-  expose_in_sqllab: false,
-  changed_on_delta_humanized: `${i} day(s) ago`,
-  changed_on: new Date().toISOString,
-  id: i,
-  engine_information: {
-    supports_file_upload: true,
-  },
-}));
+const mockNonExamplesDB = Array.from({ length: 2 })
+  .fill(undefined)
+  .map((_, i) => ({
+    changed_by: {
+      first_name: `user`,
+      last_name: `${i}`,
+    },
+    database_name: `db ${i}`,
+    backend: 'postgresql',
+    allow_run_async: true,
+    allow_dml: false,
+    allow_file_upload: true,
+    expose_in_sqllab: false,
+    changed_on_delta_humanized: `${i} day(s) ago`,
+    changed_on: new Date().toISOString,
+    id: i,
+    engine_information: {
+      supports_file_upload: true,
+    },
+  }));
 
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
@@ -156,7 +166,7 @@ beforeEach(async () => {
   );
 });
 
-afterEach(fetchMock.restore);
+afterEach(() => fetchMock.restore());
 
 const resetUseSelectorMock = () => {
   useSelectorMock.mockReturnValueOnce({
@@ -196,6 +206,7 @@ test('renders', async () => {
   const { container } = render(<RightMenu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,
+    useTheme: true,
   });
   // expect(await screen.findByText(/Settings/i)).toBeInTheDocument();
   await waitFor(() => expect(container).toBeInTheDocument());
@@ -208,6 +219,7 @@ test('If user has permission to upload files AND connect DBs we query existing D
   const { container } = render(<RightMenu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,
+    useTheme: true,
   });
   await waitFor(() => expect(container).toBeVisible());
   const callsD = fetchMock.calls(/database\/\?q/);
@@ -242,6 +254,7 @@ test('If only examples DB exist we must show the Connect Database option', async
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -273,6 +286,7 @@ test('If more than just examples DB exist we must show the Create dataset option
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -304,6 +318,7 @@ test('If there is a DB with allow_file_upload set as True the option should be e
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -340,6 +355,7 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -359,11 +375,14 @@ test('Logs out and clears local storage item redux', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
 
-  // Set an item in local storage to test if it gets cleared
+  // Set items in local and session storage to test if they get cleared
   localStorage.setItem('redux', JSON.stringify({ test: 'test' }));
+  sessionStorage.setItem('login_attempted', 'true');
   expect(localStorage.getItem('redux')).not.toBeNull();
+  expect(sessionStorage.getItem('login_attempted')).not.toBeNull();
 
   userEvent.hover(await screen.findByText(/Settings/i));
 
@@ -373,8 +392,9 @@ test('Logs out and clears local storage item redux', async () => {
     userEvent.click(logoutButton);
   });
 
-  // Wait for local storage to be cleared
+  // Wait for local and session storage to be cleared
   await waitFor(() => {
     expect(localStorage.getItem('redux')).toBeNull();
+    expect(sessionStorage.getItem('login_attempted')).toBeNull();
   });
 });

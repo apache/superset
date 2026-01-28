@@ -17,15 +17,15 @@
  * under the License.
  */
 import { useState, useMemo } from 'react';
-import { styled, t } from '@superset-ui/core';
-import { Select } from 'src/components';
-import { FormLabel } from 'src/components/Form';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
+import { FormLabel, Select } from '@superset-ui/core/components';
 import { SELECT_WIDTH } from './utils';
 import { CardSortSelectOption, SortColumn } from './types';
 
 const SortContainer = styled.div`
   display: inline-flex;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   align-items: center;
   text-align: left;
   width: ${SELECT_WIDTH}px;
@@ -86,6 +86,7 @@ export const CardSortSelect = ({
         options={formattedOptions}
         showSearch
         value={value}
+        data-test="card-sort-select"
       />
     </SortContainer>
   );

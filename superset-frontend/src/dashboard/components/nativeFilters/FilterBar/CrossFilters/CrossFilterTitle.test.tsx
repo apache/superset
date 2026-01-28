@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import CrossFilterTitle from './CrossFilterTitle';
 
@@ -32,20 +36,37 @@ const setup = (props: typeof mockedProps) =>
     useRedux: true,
   });
 
-test('CrossFilterTitle should render', () => {
+// Add cleanup
+afterEach(async () => {
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+
+test('CrossFilterTitle should render', async () => {
   const { container } = setup(mockedProps);
-  expect(container).toBeInTheDocument();
+  await waitFor(() => {
+    expect(container).toBeInTheDocument();
+  });
 });
 
-test('Title should be visible', () => {
+test('Title should be visible', async () => {
   setup(mockedProps);
-  expect(screen.getByText('test-title')).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getByText('test-title')).toBeInTheDocument();
+  });
 });
 
-test('Search icon should highlight emitter', () => {
+test('Search icon should highlight emitter', async () => {
   setup(mockedProps);
+  await waitFor(() => {
+    const search = screen.getByTestId('cross-filters-highlight-emitter');
+    expect(search).toBeInTheDocument();
+  });
+
   const search = screen.getByTestId('cross-filters-highlight-emitter');
-  expect(search).toBeInTheDocument();
-  userEvent.click(search);
-  expect(mockedProps.onHighlightFilterSource).toHaveBeenCalled();
+  await userEvent.click(search);
+
+  await waitFor(() => {
+    expect(mockedProps.onHighlightFilterSource).toHaveBeenCalled();
+  });
 });

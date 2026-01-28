@@ -22,35 +22,37 @@ Create Date: 2022-04-01 14:38:09.499483
 
 """
 
+import os
+from datetime import datetime
+from typing import Optional, Union
+from uuid import uuid4
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy import select
+from sqlalchemy.exc import NoSuchModuleError
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.orm import backref, relationship, Session
+from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.sql import functions as func
+from sqlalchemy.sql.expression import and_, or_
+from sqlalchemy_utils import UUIDType
+
+from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES_LOWER
+from superset.connectors.sqla.utils import (
+    get_identifier_quoter,
+)
+from superset.databases.utils import make_url_safe
+from superset.db_engine_specs import BaseEngineSpec, get_engine_spec
+from superset.extensions import encrypted_field_factory
+from superset.migrations.shared.utils import assign_uuids
+from superset.sql.parse import SQLScript, Table
+from superset.utils import json
+from superset.utils.core import MediumText
+
 # revision identifiers, used by Alembic.
 revision = "a9422eeaae74"
 down_revision = "ad07e4fdbaba"
-
-import os  # noqa: E402
-from datetime import datetime  # noqa: E402
-from typing import Optional, Union  # noqa: E402
-from uuid import uuid4  # noqa: E402
-
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
-from sqlalchemy import select  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base, declared_attr  # noqa: E402
-from sqlalchemy.orm import backref, relationship, Session  # noqa: E402
-from sqlalchemy.schema import UniqueConstraint  # noqa: E402
-from sqlalchemy.sql import functions as func  # noqa: E402
-from sqlalchemy.sql.expression import and_, or_  # noqa: E402
-from sqlalchemy_utils import UUIDType  # noqa: E402
-
-from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES_LOWER  # noqa: E402
-from superset.connectors.sqla.utils import (  # noqa: E402
-    get_dialect_name,
-    get_identifier_quoter,
-)
-from superset.extensions import encrypted_field_factory  # noqa: E402
-from superset.migrations.shared.utils import assign_uuids  # noqa: E402
-from superset.sql_parse import extract_table_references, Table  # noqa: E402
-from superset.utils import json  # noqa: E402
-from superset.utils.core import MediumText  # noqa: E402
 
 Base = declarative_base()
 SHOW_PROGRESS = os.environ.get("SHOW_PROGRESS") == "1"
@@ -60,6 +62,20 @@ UNKNOWN_TYPE = "UNKNOWN"
 user_table = sa.Table(
     "ab_user", Base.metadata, sa.Column("id", sa.Integer(), primary_key=True)
 )
+
+
+def get_db_engine_spec(sqlalchemy_uri: str) -> type[BaseEngineSpec]:
+    """
+    Return the DB engine spec associated with a given SQLAlchemy URL.
+    """
+    url = make_url_safe(sqlalchemy_uri)
+    backend = url.get_backend_name()
+    try:
+        driver = url.get_driver_name()
+    except NoSuchModuleError:
+        driver = None
+
+    return get_engine_spec(backend, driver)
 
 
 class UUIDMixin:
@@ -593,11 +609,18 @@ def postprocess_datasets(session: Session) -> None:  # noqa: C901
                 updated = True
 
             if not is_physical and drivername and expression:
-                table_refrences = extract_table_references(
-                    expression, get_dialect_name(drivername), show_warning=False
-                )
+                db_engine_spec = get_db_engine_spec(sqlalchemy_uri)
+                parsed_script = SQLScript(expression, db_engine_spec.engine)
+                table_references = {
+                    table
+                    for statement in parsed_script.statements
+                    for table in statement.tables
+                }
                 found_tables = find_tables(
-                    session, database_id, schema, table_refrences
+                    session,
+                    database_id,
+                    schema,
+                    table_references,
                 )
                 if found_tables:
                     op.bulk_insert(
@@ -867,15 +890,17 @@ new_tables: sa.Table = [
 
 
 def reset_postgres_id_sequence(table: str) -> None:
+    """Reset PostgreSQL sequence ID for a table's id column."""
     op.execute(
-        f"""
+        """
         SELECT setval(
-            pg_get_serial_sequence('{table}', 'id'),
+            pg_get_serial_sequence(:table, 'id'),
             COALESCE(max(id) + 1, 1),
             false
         )
-        FROM {table};
-    """
+        FROM :table;
+        """,
+        {"table": table},
     )
 
 

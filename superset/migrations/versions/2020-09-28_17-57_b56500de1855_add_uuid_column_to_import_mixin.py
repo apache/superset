@@ -111,7 +111,7 @@ def update_dashboards(session, uuid_map):
         update_position_json(dashboard, session, uuid_map)
         if i and i % default_batch_size == 0:
             session.commit()
-        print(f"{message} {i+1}/{dashboard_count}\r", end="")
+        print(f"{message} {i + 1}/{dashboard_count}\r", end="")
 
     session.commit()
     # Extra whitespace to override very long numbers, e.g. 99999/99999.

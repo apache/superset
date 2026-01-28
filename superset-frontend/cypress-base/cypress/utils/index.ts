@@ -25,8 +25,14 @@ export interface ChartSpec {
   viz: string;
 }
 
+const viewTypeIcons = {
+  card: 'appstore',
+  list: 'unordered-list',
+};
+
 export function setGridMode(type: 'card' | 'list') {
-  cy.get(`[aria-label="${type}-view"]`).click();
+  const icon = viewTypeIcons[type];
+  cy.get(`[aria-label="${icon}"]`).click();
 }
 
 export function toggleBulkSelect() {
@@ -137,3 +143,29 @@ export function resize(selector: string) {
     },
   };
 }
+
+export const setSelectSearchInput = (
+  $input: any,
+  value: string,
+  async = false,
+) => {
+  // Ant Design 5 Select crashes Chromium with type/click events when showSearch is true.
+  // This copies the value directly to the input element as a workaround.
+  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype,
+    'value',
+  )?.set;
+  nativeInputValueSetter?.call($input[0], value);
+
+  // Trigger the input and change events
+  if (async) {
+    $input[0].dispatchEvent(new Event('mousedown', { bubbles: true }));
+  }
+
+  $input[0].dispatchEvent(new Event('input', { bubbles: true }));
+  $input[0].dispatchEvent(new Event('change', { bubbles: true }));
+
+  cy.get('.ant-select-item-option-content').should('exist').first().click({
+    force: true,
+  });
+};

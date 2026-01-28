@@ -16,28 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
-import Alert from 'src/components/Alert';
-import { EmptyState } from 'src/components/EmptyState';
-import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
+import { EmptyState } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { styled, Alert } from '@apache-superset/core/ui';
 
 import { SqlLabRootState } from 'src/SqlLab/types';
 import ResultSet from '../ResultSet';
 import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../../constants';
-
-const EXTRA_HEIGHT_RESULTS = 8; // we need extra height in RESULTS tab. because the height from props was calculated based on PREVIEW tab.
+import QueryStatusBar from '../QueryStatusBar';
 
 type Props = {
   latestQueryId?: string;
-  height: number;
   displayLimit: number;
   defaultQueryLimit: number;
 };
 
 const StyledEmptyStateWrapper = styled.div`
   height: 100%;
-  .antd5-empty-image img {
+  .ant-empty-image img {
     margin-right: 28px;
   }
 
@@ -48,7 +47,6 @@ const StyledEmptyStateWrapper = styled.div`
 
 const Results: FC<Props> = ({
   latestQueryId,
-  height,
   displayLimit,
   defaultQueryLimit,
 }) => {
@@ -56,9 +54,13 @@ const Results: FC<Props> = ({
     ({ sqlLab: { databases } }: SqlLabRootState) => databases,
     shallowEqual,
   );
-  const latestQuery = useSelector(
-    ({ sqlLab: { queries } }: SqlLabRootState) => queries[latestQueryId || ''],
+  const queries = useSelector(
+    ({ sqlLab: { queries } }: SqlLabRootState) => queries,
     shallowEqual,
+  );
+  const latestQuery = useMemo(
+    () => queries[latestQueryId ?? ''],
+    [queries, latestQueryId],
   );
 
   if (
@@ -75,31 +77,32 @@ const Results: FC<Props> = ({
     );
   }
 
-  if (
+  const hasNoStoredResults =
     isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
     latestQuery.state === 'success' &&
     !latestQuery.resultsKey &&
-    !latestQuery.results
-  ) {
-    return (
-      <Alert
-        type="warning"
-        message={t('No stored results found, you need to re-run your query')}
-      />
-    );
-  }
+    !latestQuery.results;
 
   return (
-    <ResultSet
-      search
-      queryId={latestQuery.id}
-      height={height + EXTRA_HEIGHT_RESULTS}
-      database={databases[latestQuery.dbId]}
-      displayLimit={displayLimit}
-      defaultQueryLimit={defaultQueryLimit}
-      showSql
-      showSqlInline
-    />
+    <>
+      <QueryStatusBar key={latestQueryId} query={latestQuery} />
+      {hasNoStoredResults ? (
+        <Alert
+          type="info"
+          message={t('No stored results found, you need to re-run your query')}
+        />
+      ) : (
+        <ResultSet
+          search
+          queryId={latestQuery.id}
+          database={databases[latestQuery.dbId]}
+          displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
+          showSql
+          showSqlInline
+        />
+      )}
+    </>
   );
 };
 

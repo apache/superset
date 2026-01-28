@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled, isDefined, QueryData, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { isDefined, QueryData } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 
 const DATA_SIZE = 15;
 
 const PaginationContainer = styled.div`
   ${({ theme }) => css`
     & .pagination-container {
-      bottom: ${-theme.gridUnit * 4}px;
+      bottom: ${-theme.sizeUnit * 4}px;
     }
   `}
 `;
@@ -55,9 +57,12 @@ export const useResultsTableView = (
     );
   }
   return (
-    <Tabs fullWidth={false} data-test="drill-by-results-tabs">
-      {chartDataResult.map((res, index) => (
-        <Tabs.TabPane tab={t('Results %s', index + 1)} key={index}>
+    <Tabs
+      defaultActiveKey="result-tab-0"
+      items={chartDataResult.map((res, index) => ({
+        key: `result-tab-${index}`,
+        label: t('Results %s', index + 1),
+        children: (
           <PaginationContainer>
             <SingleQueryResultPane
               colnames={res.colnames}
@@ -70,8 +75,8 @@ export const useResultsTableView = (
               canDownload={canDownload}
             />
           </PaginationContainer>
-        </Tabs.TabPane>
-      ))}
-    </Tabs>
+        ),
+      }))}
+    />
   );
 };

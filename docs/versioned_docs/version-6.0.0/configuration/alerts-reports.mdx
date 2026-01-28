@@ -1,0 +1,436 @@
+---
+title: Alerts and Reports
+hide_title: true
+sidebar_position: 2
+version: 2
+---
+
+# Alerts and Reports
+
+Users can configure automated alerts and reports to send dashboards or charts to an email recipient or Slack channel.
+
+- *Alerts* are sent when a SQL condition is reached
+- *Reports* are sent on a schedule
+
+Alerts and reports are disabled by default. To turn them on, you need to do some setup, described here.
+
+## Requirements
+
+### Commons
+
+#### In your `superset_config.py` or `superset_config_docker.py`
+
+- `"ALERT_REPORTS"` [feature flag](/docs/configuration/configuring-superset#feature-flags) must be turned to True.
+- `beat_schedule` in CeleryConfig must contain schedule for `reports.scheduler`.
+- At least one of those must be configured, depending on what you want to use:
+  - emails: `SMTP_*` settings
+  - Slack messages: `SLACK_API_TOKEN`
+- Users can customize the email subject by including date code placeholders, which will automatically be replaced with the corresponding UTC date when the email is sent. To enable this functionality, activate the `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/docs/configuration/configuring-superset#feature-flags). This enables date formatting in email subjects, preventing all reporting emails from being grouped into the same thread (optional for the reporting feature).
+    - Use date codes from [strftime.org](https://strftime.org/) to create the email subject.
+    - If no date code is provided, the original string will be used as the email subject.
+
+##### Disable dry-run mode
+
+Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `docker/pythonpath_dev/superset_config.py`.  To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
+
+#### In your `Dockerfile`
+
+- You must install a headless browser, for taking screenshots of the charts and dashboards. Only Firefox and Chrome are currently supported.
+  > If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
+
+Note: All the components required (Firefox headless browser, Redis, Postgres db, celery worker and celery beat) are present in the *dev* docker image if you are following [Installing Superset Locally](/docs/installation/docker-compose/).
+All you need to do is add the required config variables described in this guide (See `Detailed Config`).
+
+If you are running a non-dev docker image, e.g., a stable release like `apache/superset:3.1.0`, that image does not include a headless browser.  Only the `superset_worker` container needs this headless browser to browse to the target chart or dashboard.
+You can either install and configure the headless browser - see "Custom Dockerfile" section below - or when deploying via `docker compose`, modify your `docker-compose.yml` file to use a dev image for the worker container and a stable release image for the `superset_app` container.
+
+*Note*: In this context, a "dev image" is the same application software as its corresponding non-dev image, just bundled with additional tools.  So an image like `3.1.0-dev` is identical to `3.1.0` when it comes to stability, functionality, and running in production.  The actual "in-development" versions of Superset - cutting-edge and unstable - are not tagged with version numbers on Docker Hub and will display version `0.0.0-dev` within the Superset UI.
+
+### Slack integration
+
+To send alerts and reports to Slack channels, you need to create a new Slack Application on your workspace.
+
+1. Connect to your Slack workspace, then head to [https://api.slack.com/apps].
+2. Create a new app.
+3. Go to "OAuth & Permissions" section, and give the following scopes to your app:
+   - `incoming-webhook`
+   - `files:write`
+   - `chat:write`
+   - `channels:read`
+   - `groups:read`
+4. At the top of the "OAuth and Permissions" section, click "install to workspace".
+5. Select a default channel for your app and continue.
+   (You can post to any channel by inviting your Superset app into that channel).
+6. The app should now be installed in your workspace, and a "Bot User OAuth Access Token" should have been created. Copy that token in the `SLACK_API_TOKEN` variable of your `superset_config.py`.
+7. Ensure the feature flag `ALERT_REPORT_SLACK_V2` is set to True in `superset_config.py`
+8. Restart the service (or run `superset init`) to pull in the new configuration.
+
+Note: when you configure an alert or a report, the Slack channel list takes channel names without the leading '#' e.g. use `alerts` instead of `#alerts`.
+
+### Kubernetes-specific
+
+- You must have a `celery beat` pod running. If you're using the chart included in the GitHub repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset), you need to put `supersetCeleryBeat.enabled = true` in your values override.
+- You can see the dedicated docs about [Kubernetes installation](/docs/installation/kubernetes) for more details.
+
+### Docker Compose specific
+
+#### You must have in your `docker-compose.yml`
+
+- A Redis message broker
+- PostgreSQL DB instead of SQLlite
+- One or more `celery worker`
+- A single `celery beat`
+
+This process also works in a Docker swarm environment, you would just need to add `Deploy:` to the Superset, Redis and Postgres services along with your specific configs for your swarm.
+
+### Detailed config
+
+The following configurations need to be added to the `superset_config.py` file. This file is loaded when the image runs, and any configurations in it will override the default configurations found in the `config.py`.
+
+You can find documentation about each field in the default `config.py` in the GitHub repository under [superset/config.py](https://github.com/apache/superset/blob/master/superset/config.py).
+
+You need to replace default values with your custom Redis, Slack and/or SMTP config.
+
+Superset uses Celery beat and Celery worker(s) to send alerts and reports.
+
+- The beat is the scheduler that tells the worker when to perform its tasks. This schedule is defined when you create the alert or report.
+- The worker will process the  tasks that need to be performed when an alert or report is fired.
+
+In the `CeleryConfig`, only the `beat_schedule` is relevant to this feature, the rest of the `CeleryConfig` can be changed for your needs.
+
+```python
+from celery.schedules import crontab
+
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True
+}
+
+REDIS_HOST = "superset_cache"
+REDIS_PORT = "6379"
+
+class CeleryConfig:
+    broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+    imports = (
+        "superset.sql_lab",
+        "superset.tasks.scheduler",
+    )
+    result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+    worker_prefetch_multiplier = 10
+    task_acks_late = True
+    task_annotations = {
+        "sql_lab.get_sql_results": {
+            "rate_limit": "100/s",
+        },
+    }
+    beat_schedule = {
+        "reports.scheduler": {
+            "task": "reports.scheduler",
+            "schedule": crontab(minute="*", hour="*"),
+        },
+        "reports.prune_log": {
+            "task": "reports.prune_log",
+            "schedule": crontab(minute=0, hour=0),
+        },
+    }
+CELERY_CONFIG = CeleryConfig
+
+SCREENSHOT_LOCATE_WAIT = 100
+SCREENSHOT_LOAD_WAIT = 600
+
+# Slack configuration
+SLACK_API_TOKEN = "xoxb-"
+
+# Email configuration
+SMTP_HOST = "smtp.sendgrid.net" # change to your host
+SMTP_PORT = 2525 # your port, e.g. 587
+SMTP_STARTTLS = True
+SMTP_SSL_SERVER_AUTH = True # If you're using an SMTP server with a valid certificate
+SMTP_SSL = False
+SMTP_USER = "your_user" # use the empty string "" if using an unauthenticated SMTP server
+SMTP_PASSWORD = "your_password" # use the empty string "" if using an unauthenticated SMTP server
+SMTP_MAIL_FROM = "noreply@youremail.com"
+EMAIL_REPORTS_SUBJECT_PREFIX = "[Superset] " # optional - overwrites default value in config.py of "[Report] "
+
+# WebDriver configuration
+# If you use Firefox, you can stick with default values
+# If you use Chrome, then add the following WEBDRIVER_TYPE and WEBDRIVER_OPTION_ARGS
+WEBDRIVER_TYPE = "chrome"
+WEBDRIVER_OPTION_ARGS = [
+    "--force-device-scale-factor=2.0",
+    "--high-dpi-support=2.0",
+    "--headless",
+    "--disable-gpu",
+    "--disable-dev-shm-usage",
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-extensions",
+]
+
+# This is for internal use, you can keep http
+WEBDRIVER_BASEURL = "http://superset:8088" # When running using docker compose use "http://superset_app:8088'
+# This is the link sent to the recipient. Change to your domain, e.g. https://superset.mydomain.com
+WEBDRIVER_BASEURL_USER_FRIENDLY = "http://localhost:8088"
+```
+
+You also need
+to specify on behalf of which username to render the dashboards. In general, dashboards and charts
+are not accessible to unauthorized requests, that is why the worker needs to take over credentials
+of an existing user to take a snapshot.
+
+By default, Alerts and Reports are executed as the owner of the alert/report object. To use a fixed user account,
+just change the config as follows (`admin` in this example):
+
+```python
+from superset.tasks.types import FixedExecutor
+
+ALERT_REPORTS_EXECUTORS = [FixedExecutor("admin")]
+```
+
+Please refer to `ExecutorType` in the codebase for other executor types.
+
+**Important notes**
+
+- Be mindful of the concurrency setting for celery (using `-c 4`). Selenium/webdriver instances can
+  consume a lot of CPU / memory on your servers.
+- In some cases, if you notice a lot of leaked geckodriver processes, try running your celery
+  processes with `celery worker --pool=prefork --max-tasks-per-child=128 ...`
+- It is recommended to run separate workers for the `sql_lab` and `email_reports` tasks. This can be
+  done using the `queue` field in `task_annotations`.
+- Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
+  its default value of `http://0.0.0.0:8080/`.
+
+It's also possible to specify a minimum interval between each report's execution through the config file:
+
+``` python
+# Set a minimum interval threshold between executions (for each Alert/Report)
+# Value should be an integer
+ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=10).total_seconds())
+REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=5).total_seconds())
+```
+
+Alternatively, you can assign a function to `ALERT_MINIMUM_INTERVAL` and/or `REPORT_MINIMUM_INTERVAL`. This is useful to dynamically retrieve a value as needed:
+
+``` python
+def alert_dynamic_minimal_interval(**kwargs) -> int:
+    """
+    Define logic here to retrieve the value dynamically
+    """
+
+ALERT_MINIMUM_INTERVAL = alert_dynamic_minimal_interval
+```
+
+## Custom Dockerfile
+
+If you're running the dev version of a released Superset image, like `apache/superset:3.1.0-dev`, you should be set with the above.
+
+But if you're building your own image, or starting with a non-dev version, a webdriver (and headless browser) is needed to capture screenshots of the charts and dashboards which are then sent to the recipient.
+Here's how you can modify your Dockerfile to take the screenshots either with Firefox or Chrome.
+
+### Using Firefox
+
+```docker
+FROM apache/superset:3.1.0
+
+USER root
+
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y firefox-esr
+
+ENV GECKODRIVER_VERSION=0.29.0
+RUN wget -q https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz && \
+    tar -x geckodriver -zf geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz -O > /usr/bin/geckodriver && \
+    chmod 755 /usr/bin/geckodriver && \
+    rm geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz
+
+RUN pip install --no-cache gevent psycopg2 redis
+
+USER superset
+```
+
+### Using Chrome
+
+```docker
+FROM apache/superset:3.1.0
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y wget zip libaio1
+
+RUN export CHROMEDRIVER_VERSION=$(curl --silent https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_116) && \
+    wget -O google-chrome-stable_current_amd64.deb -q http://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROMEDRIVER_VERSION}-1_amd64.deb && \
+    apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb && \
+    rm -f google-chrome-stable_current_amd64.deb
+
+RUN export CHROMEDRIVER_VERSION=$(curl --silent https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_116) && \
+    wget -q https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip && \
+    unzip -j chromedriver-linux64.zip -d /usr/bin && \
+    chmod 755 /usr/bin/chromedriver && \
+    rm -f chromedriver-linux64.zip
+
+RUN pip install --no-cache gevent psycopg2 redis
+
+USER superset
+```
+
+Don't forget to set `WEBDRIVER_TYPE` and `WEBDRIVER_OPTION_ARGS` in your config if you use Chrome.
+
+## Troubleshooting
+
+There are many reasons that reports might not be working.  Try these steps to check for specific issues.
+
+### Confirm feature flag is enabled and you have sufficient permissions
+
+If you don't see "Alerts & Reports" under the *Manage* section of the Settings dropdown in the Superset UI, you need to enable the `ALERT_REPORTS` feature flag (see above). Enable another feature flag and check to see that it took effect, to verify that your config file is getting loaded.
+
+Log in as an admin user to ensure you have adequate permissions.
+
+### Check the logs of your Celery worker
+
+This is the best source of information about the problem.  In a docker compose deployment, you can do this with a command like `docker logs superset_worker --since 1h`.
+
+### Check web browser and webdriver installation
+
+To take a screenshot, the worker visits the dashboard or chart using a headless browser, then takes a screenshot. If you are able to send a chart as CSV or text but can't send as PNG, your problem may lie with the browser.
+
+Superset docker images that have a tag ending with `-dev` have the Firefox headless browser and geckodriver already installed. You can test that these are installed and in the proper path by entering your Superset worker and running `firefox --headless` and then `geckodriver`. Both commands should start those applications.
+
+If you are handling the installation of that software on your own, or wish to use Chromium instead, do your own verification to ensure that the headless browser opens successfully in the worker environment.
+
+### Send a test email
+
+One symptom of an invalid connection to an email server is receiving an error of `[Errno 110] Connection timed out` in your logs when the report tries to send.
+
+Confirm via testing that your outbound email configuration is correct.  Here is the simplest test, for an un-authenticated email SMTP email service running on port 25.  If you are sending over SSL, for instance, study how [Superset's codebase sends emails](https://github.com/apache/superset/blob/master/superset/utils/core.py#L818) and then test with those commands and arguments.
+
+Start Python in your worker environment, replace all example values, and run:
+
+```python
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from_email = 'superset_emails@example.com'
+to_email = 'your_email@example.com'
+msg = MIMEMultipart()
+msg['From'] = from_email
+msg['To'] = to_email
+msg['Subject'] = 'Superset SMTP config test'
+message = 'It worked'
+msg.attach(MIMEText(message))
+mailserver = smtplib.SMTP('smtpmail.example.com', 25)
+mailserver.sendmail(from_email, to_email, msg.as_string())
+mailserver.quit()
+```
+
+This should send an email.
+
+Possible fixes:
+
+- Some cloud hosts disable outgoing unauthenticated SMTP email to prevent spam.  For instance, [Azure blocks port 25 by default on some machines](https://learn.microsoft.com/en-us/azure/virtual-network/troubleshoot-outbound-smtp-connectivity). Enable that port or use another sending method.
+- Use another set of SMTP credentials that you verify works in this setup.
+
+### Browse to your report from the worker
+
+The worker may be unable to reach the report. It will use the value of `WEBDRIVER_BASEURL` to browse to the report.  If that route is invalid, or presents an authentication challenge that the worker can't pass, the report screenshot will fail.
+
+Check this by attempting to `curl` the URL of a report that you see in the error logs of your worker. For instance, from the worker environment, run `curl http://superset_app:8088/superset/dashboard/1/`. You may get different responses depending on whether the dashboard exists - for example, you may need to change the `1` in that URL. If there's a URL in your logs from a failed report screenshot, that's a good place to start. The goal is to determine a valid value for `WEBDRIVER_BASEURL` and determine if an issue like HTTPS or authentication is redirecting your worker.
+
+In a deployment with authentication measures enabled like HTTPS and Single Sign-On, it may make sense to have the worker navigate directly to the Superset application running in the same location, avoiding the need to sign in.  For instance, you could use `WEBDRIVER_BASEURL="http://superset_app:8088"` for a docker compose deployment, and set `"force_https": False,` in your `TALISMAN_CONFIG`.
+
+## Scheduling Queries as Reports
+
+You can optionally allow your users to schedule queries directly in SQL Lab. This is done by adding
+extra metadata to saved queries, which are then picked up by an external scheduled (like
+[Apache Airflow](https://airflow.apache.org/)).
+
+To allow scheduled queries, add the following to `SCHEDULED_QUERIES` in your configuration file:
+
+```python
+SCHEDULED_QUERIES = {
+    # This information is collected when the user clicks "Schedule query",
+    # and saved into the `extra` field of saved queries.
+    # See: https://github.com/mozilla-services/react-jsonschema-form
+    'JSONSCHEMA': {
+        'title': 'Schedule',
+        'description': (
+            'In order to schedule a query, you need to specify when it '
+            'should start running, when it should stop running, and how '
+            'often it should run. You can also optionally specify '
+            'dependencies that should be met before the query is '
+            'executed. Please read the documentation for best practices '
+            'and more information on how to specify dependencies.'
+        ),
+        'type': 'object',
+        'properties': {
+            'output_table': {
+                'type': 'string',
+                'title': 'Output table name',
+            },
+            'start_date': {
+                'type': 'string',
+                'title': 'Start date',
+                # date-time is parsed using the chrono library, see
+                # https://www.npmjs.com/package/chrono-node#usage
+                'format': 'date-time',
+                'default': 'tomorrow at 9am',
+            },
+            'end_date': {
+                'type': 'string',
+                'title': 'End date',
+                # date-time is parsed using the chrono library, see
+                # https://www.npmjs.com/package/chrono-node#usage
+                'format': 'date-time',
+                'default': '9am in 30 days',
+            },
+            'schedule_interval': {
+                'type': 'string',
+                'title': 'Schedule interval',
+            },
+            'dependencies': {
+                'type': 'array',
+                'title': 'Dependencies',
+                'items': {
+                    'type': 'string',
+                },
+            },
+        },
+    },
+    'UISCHEMA': {
+        'schedule_interval': {
+            'ui:placeholder': '@daily, @weekly, etc.',
+        },
+        'dependencies': {
+            'ui:help': (
+                'Check the documentation for the correct format when '
+                'defining dependencies.'
+            ),
+        },
+    },
+    'VALIDATION': [
+        # ensure that start_date <= end_date
+        {
+            'name': 'less_equal',
+            'arguments': ['start_date', 'end_date'],
+            'message': 'End date cannot be before start date',
+            # this is where the error message is shown
+            'container': 'end_date',
+        },
+    ],
+    # link to the scheduler; this example links to an Airflow pipeline
+    # that uses the query id and the output table as its name
+    'linkback': (
+        'https://airflow.example.com/admin/airflow/tree?'
+        'dag_id=query_${id}_${extra_json.schedule_info.output_table}'
+    ),
+}
+```
+
+This configuration is based on
+[react-jsonschema-form](https://github.com/mozilla-services/react-jsonschema-form) and will add a
+menu item called “Schedule” to SQL Lab. When the menu item is clicked, a modal will show up where
+the user can add the metadata required for scheduling the query.
+
+This information can then be retrieved from the endpoint `/api/v1/saved_query/` and used to
+schedule the queries that have `schedule_info` in their JSON metadata. For schedulers other than
+Airflow, additional fields can be easily added to the configuration file above.

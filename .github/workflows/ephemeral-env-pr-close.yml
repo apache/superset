@@ -1,4 +1,10 @@
-name: Cleanup ephemeral envs (PR close)
+name: Cleanup ephemeral envs (PR close) [DEPRECATED]
+
+# ⚠️  DEPRECATION NOTICE ⚠️
+# This workflow is deprecated and will be removed in a future version.
+# The new Superset Showtime workflow handles cleanup automatically.
+# See .github/workflows/showtime.yml and showtime-cleanup.yml for replacements.
+# Migration guide: https://github.com/mistercrunch/superset-showtime
 
 on:
   pull_request_target:
@@ -27,7 +33,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -63,7 +69,7 @@ jobs:
 
       - name: Comment (success)
         if: steps.describe-services.outputs.active == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{github.token}}
           script: |
@@ -71,5 +77,5 @@ jobs:
               issue_number: ${{ github.event.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Ephemeral environment shutdown and build artifacts deleted.'
+              body: '⚠️ **DEPRECATED WORKFLOW** - Ephemeral environment shutdown and build artifacts deleted. Please migrate to the new Superset Showtime system for future PRs.'
             })

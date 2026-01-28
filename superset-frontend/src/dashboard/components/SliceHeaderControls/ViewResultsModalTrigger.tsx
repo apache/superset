@@ -18,9 +18,9 @@
  */
 import { ReactChild, RefObject, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
-import { css, t, useTheme } from '@superset-ui/core';
-import Button from 'src/components/Button';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { t } from '@apache-superset/core';
+import { css, useTheme } from '@apache-superset/core/ui';
+import { Button, ModalTrigger } from '@superset-ui/core/components';
 
 export const ViewResultsModalTrigger = ({
   canExplore,
@@ -52,15 +52,15 @@ export const ViewResultsModalTrigger = ({
       responsive
       resizable
       resizableConfig={{
-        minHeight: theme.gridUnit * 128,
-        minWidth: theme.gridUnit * 128,
+        minHeight: theme.sizeUnit * 128,
+        minWidth: theme.sizeUnit * 128,
         defaultSize: {
           width: 'auto',
           height: '75vh',
         },
       }}
       draggable
-      destroyOnClose
+      destroyOnHidden
       modalFooter={
         <>
           <Button
@@ -81,7 +81,7 @@ export const ViewResultsModalTrigger = ({
             buttonSize="small"
             onClick={handleCloseModal}
             css={css`
-              margin-left: ${theme.gridUnit * 2}px;
+              margin-left: ${theme.sizeUnit * 2}px;
             `}
           >
             {t('Close')}

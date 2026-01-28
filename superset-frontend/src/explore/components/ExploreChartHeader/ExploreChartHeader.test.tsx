@@ -18,15 +18,24 @@
  */
 
 import sinon from 'sinon';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import * as chartAction from 'src/components/Chart/chartAction';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { FeatureFlag, VizType } from '@superset-ui/core';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import ExploreHeader from '.';
+import { getChartMetadataRegistry } from '@superset-ui/core';
+import fs from 'fs';
+import path from 'path';
 
 const chartEndpoint = 'glob:*api/v1/chart/*';
 
@@ -34,6 +43,17 @@ fetchMock.get(chartEndpoint, { json: 'foo' });
 
 window.featureFlags = {
   [FeatureFlag.EmbeddableCharts]: true,
+};
+
+jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: jest.fn(),
+}));
+
+const mockExportCurrentViewBehavior = () => {
+  const registry = getChartMetadataRegistry();
+  return jest.spyOn(registry, 'get').mockReturnValue({
+    behaviors: ['EXPORT_CURRENT_VIEW'],
+  } as any);
 };
 
 const createProps = (additionalProps = {}) => ({
@@ -55,6 +75,7 @@ const createProps = (additionalProps = {}) => ({
       link_length: '25',
       x_axis_label: 'age',
       y_axis_label: 'count',
+      server_pagination: false as any,
     },
     chartStatus: 'rendered',
   },
@@ -127,96 +148,285 @@ fetchMock.post(
     sendAsJson: false,
   },
 );
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('ExploreChartHeader', () => {
+  jest.setTimeout(15000); // ✅ Applies to all tests in this suite
 
-test('Cancelling changes to the properties should reset previous properties', async () => {
-  const props = createProps();
-  render(<ExploreHeader {...props} />, { useRedux: true });
-  const newChartName = 'New chart name';
-  const prevChartName = props.slice_name;
-  expect(
-    await screen.findByText(/add the name of the chart/i),
-  ).toBeInTheDocument();
+  beforeEach(() => {
+    jest.clearAllMocks();
 
-  userEvent.click(screen.getByLabelText('Menu actions trigger'));
-  userEvent.click(screen.getByText('Edit chart properties'));
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: false,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave: jest.fn(),
+    });
+  });
 
-  const nameInput = await screen.findByRole('textbox', { name: 'Name' });
+  test('Cancelling changes to the properties should reset previous properties', async () => {
+    const props = createProps();
+    render(<ExploreHeader {...props} />, { useRedux: true });
+    const newChartName = 'New chart name';
+    const prevChartName = props.slice_name;
+    expect(
+      await screen.findByText(/add the name of the chart/i),
+    ).toBeInTheDocument();
 
-  userEvent.clear(nameInput);
-  userEvent.type(nameInput, newChartName);
+    userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    userEvent.click(screen.getByText('Edit chart properties'));
 
-  expect(screen.getByDisplayValue(newChartName)).toBeInTheDocument();
+    const nameInput = await screen.findByRole('textbox', { name: 'Name' });
 
-  userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    userEvent.clear(nameInput);
+    userEvent.type(nameInput, newChartName);
 
-  userEvent.click(screen.getByLabelText('Menu actions trigger'));
-  userEvent.click(screen.getByText('Edit chart properties'));
+    expect(screen.getByDisplayValue(newChartName)).toBeInTheDocument();
 
-  expect(await screen.findByDisplayValue(prevChartName)).toBeInTheDocument();
+    userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    userEvent.click(screen.getByText('Edit chart properties'));
+
+    expect(await screen.findByDisplayValue(prevChartName)).toBeInTheDocument();
+  });
+
+  test('renders the metadata bar when saved', async () => {
+    const props = createProps({ showTitlePanelItems: true });
+    render(<ExploreHeader {...props} />, { useRedux: true });
+    expect(await screen.findByText('Added to 1 dashboard')).toBeInTheDocument();
+    expect(await screen.findByText('Simple description')).toBeInTheDocument();
+    expect(await screen.findByText('John Doe')).toBeInTheDocument();
+    expect(await screen.findByText('2 days ago')).toBeInTheDocument();
+  });
+
+  test('Changes "Added to X dashboards" to plural when more than 1 dashboard', async () => {
+    const props = createProps({ showTitlePanelItems: true });
+    render(
+      <ExploreHeader
+        {...props}
+        metadata={{
+          ...props.metadata,
+          dashboards: [
+            { id: 1, dashboard_title: 'Test' },
+            { id: 2, dashboard_title: 'Test2' },
+          ],
+        }}
+      />,
+      { useRedux: true },
+    );
+    expect(
+      await screen.findByText('Added to 2 dashboards'),
+    ).toBeInTheDocument();
+  });
+
+  test('does not render the metadata bar when not saved', async () => {
+    const props = createProps({ showTitlePanelItems: true, slice: null });
+    render(<ExploreHeader {...props} />, { useRedux: true });
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Added to 1 dashboard'),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  test('Save chart', async () => {
+    const setSaveChartModalVisibilitySpy = jest.spyOn(
+      saveModalActions,
+      'setSaveChartModalVisibility',
+    );
+
+    const setSaveChartModalVisibilityMock =
+      setSaveChartModalVisibilitySpy as jest.Mock;
+
+    const triggerManualSave = jest.fn(() => {
+      setSaveChartModalVisibilityMock(true);
+    });
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: false,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave,
+    });
+
+    const props = createProps();
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    const saveButton: HTMLElement = await screen.findByRole('button', {
+      name: /save/i,
+    });
+
+    userEvent.click(saveButton);
+
+    expect(triggerManualSave).toHaveBeenCalled();
+    expect(setSaveChartModalVisibilityMock).toHaveBeenCalledWith(true);
+
+    setSaveChartModalVisibilityMock.mockClear();
+  });
+
+  test('Save disabled', async () => {
+    const triggerManualSave = jest.fn();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: false,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave,
+    });
+
+    const props = createProps();
+    render(<ExploreHeader {...props} saveDisabled />, { useRedux: true });
+
+    const saveButton: HTMLElement = await screen.findByRole('button', {
+      name: /save/i,
+    });
+
+    expect(saveButton).toBeDisabled();
+
+    userEvent.click(saveButton);
+
+    expect(triggerManualSave).not.toHaveBeenCalled();
+  });
+
+  test('should render UnsavedChangesModal when showModal is true', async () => {
+    const props = createProps();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: true,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave: jest.fn(),
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Save changes to your chart?'),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("If you don't save, changes will be lost."),
+    ).toBeInTheDocument();
+  });
+
+  test('should call handleSaveAndCloseModal when clicking Save in UnsavedChangesModal', async () => {
+    const handleSaveAndCloseModal = jest.fn();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: true,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal,
+      triggerManualSave: jest.fn(),
+    });
+
+    const props = createProps();
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    const modal: HTMLElement = await screen.findByRole('dialog');
+    const saveButton: HTMLElement = within(modal).getByRole('button', {
+      name: /save/i,
+    });
+
+    userEvent.click(saveButton);
+
+    expect(handleSaveAndCloseModal).toHaveBeenCalled();
+  });
+
+  test('should call handleConfirmNavigation when clicking Discard in UnsavedChangesModal', async () => {
+    const handleConfirmNavigation = jest.fn();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: true,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation,
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave: jest.fn(),
+    });
+
+    const props = createProps();
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    const modal: HTMLElement = await screen.findByRole('dialog');
+    const discardButton: HTMLElement = within(modal).getByRole('button', {
+      name: /discard/i,
+    });
+
+    userEvent.click(discardButton);
+
+    expect(handleConfirmNavigation).toHaveBeenCalled();
+  });
+
+  test('should call setShowModal(false) when clicking close button in UnsavedChangesModal', async () => {
+    const setShowModal = jest.fn();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: true,
+      setShowModal,
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave: jest.fn(),
+    });
+
+    const props = createProps();
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    const closeButton: HTMLElement = await screen.findByRole('button', {
+      name: /close/i,
+    });
+
+    userEvent.click(closeButton);
+
+    expect(setShowModal).toHaveBeenCalledWith(false);
+  });
+
+  test('renders Matrixify tag when matrixify is enabled', async () => {
+    const props = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+        matrixify_enable_vertical_layout: true,
+        matrixify_mode_rows: 'metrics',
+        matrixify_rows: [{ label: 'COUNT(*)', expressionType: 'SIMPLE' }],
+      },
+    });
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    const matrixifyTag = await screen.findByText('Matrixify');
+    expect(matrixifyTag).toBeInTheDocument();
+  });
+
+  test('does not render Matrixify tag when matrixify is disabled', async () => {
+    const props = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+      },
+    });
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Matrixify')).not.toBeInTheDocument();
+    });
+  });
 });
 
-test('renders the metadata bar when saved', async () => {
-  const props = createProps({ showTitlePanelItems: true });
-  render(<ExploreHeader {...props} />, { useRedux: true });
-  expect(await screen.findByText('Added to 1 dashboard')).toBeInTheDocument();
-  expect(await screen.findByText('Simple description')).toBeInTheDocument();
-  expect(await screen.findByText('John Doe')).toBeInTheDocument();
-  expect(await screen.findByText('2 days ago')).toBeInTheDocument();
-});
-
-test('Changes "Added to X dashboards" to plural when more than 1 dashboard', async () => {
-  const props = createProps({ showTitlePanelItems: true });
-  render(
-    <ExploreHeader
-      {...props}
-      metadata={{
-        ...props.metadata,
-        dashboards: [
-          { id: 1, dashboard_title: 'Test' },
-          { id: 2, dashboard_title: 'Test2' },
-        ],
-      }}
-    />,
-    { useRedux: true },
-  );
-  expect(await screen.findByText('Added to 2 dashboards')).toBeInTheDocument();
-});
-
-test('does not render the metadata bar when not saved', async () => {
-  const props = createProps({ showTitlePanelItems: true, slice: null });
-  render(<ExploreHeader {...props} />, { useRedux: true });
-  await waitFor(() =>
-    expect(screen.queryByText('Added to 1 dashboard')).not.toBeInTheDocument(),
-  );
-});
-
-test('Save chart', async () => {
-  const setSaveChartModalVisibility = jest.spyOn(
-    saveModalActions,
-    'setSaveChartModalVisibility',
-  );
-  const props = createProps();
-  render(<ExploreHeader {...props} />, { useRedux: true });
-  expect(await screen.findByText('Save')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Save'));
-  expect(setSaveChartModalVisibility).toHaveBeenCalledWith(true);
-  setSaveChartModalVisibility.mockClear();
-});
-
-test('Save disabled', async () => {
-  const setSaveChartModalVisibility = jest.spyOn(
-    saveModalActions,
-    'setSaveChartModalVisibility',
-  );
-  const props = createProps();
-  render(<ExploreHeader {...props} saveDisabled />, { useRedux: true });
-  expect(await screen.findByText('Save')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Save'));
-  expect(setSaveChartModalVisibility).not.toHaveBeenCalled();
-  setSaveChartModalVisibility.mockClear();
-});
-
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Additional actions tests', () => {
+  jest.setTimeout(15000); // ✅ Applies to all tests in this suite
+
+  beforeEach(() => {
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: false,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave: jest.fn(),
+    });
+  });
+
   test('Should render a button', async () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });
@@ -236,7 +446,7 @@ describe('Additional actions tests', () => {
     expect(
       await screen.findByText('Edit chart properties'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Download')).toBeInTheDocument();
+    expect(screen.getByText('Data Export Options')).toBeInTheDocument();
     expect(screen.getByText('Share')).toBeInTheDocument();
     expect(screen.getByText('View query')).toBeInTheDocument();
     expect(screen.getByText('Run in SQL Lab')).toBeInTheDocument();
@@ -247,7 +457,7 @@ describe('Additional actions tests', () => {
     expect(screen.queryByText('Manage email report')).not.toBeInTheDocument();
   });
 
-  test('Should open download submenu', async () => {
+  test('Should open all data download submenu', async () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
@@ -255,15 +465,45 @@ describe('Additional actions tests', () => {
 
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
 
-    expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
-    expect(screen.queryByText('Export to .JSON')).not.toBeInTheDocument();
-    expect(screen.queryByText('Download as image')).not.toBeInTheDocument();
+    userEvent.hover(await screen.findByText('Data Export Options'));
+    userEvent.hover(await screen.findByText('Export All Data'));
 
-    expect(screen.getByText('Download')).toBeInTheDocument();
-    userEvent.hover(screen.getByText('Download'));
     expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
     expect(await screen.findByText('Export to .JSON')).toBeInTheDocument();
-    expect(await screen.findByText('Download as image')).toBeInTheDocument();
+    expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Export screenshot (jpeg)'),
+    ).toBeInTheDocument();
+  });
+
+  test('Should open current view data download submenu', async () => {
+    const props = createProps();
+    props.chart.latestQueryFormData.viz_type = VizType.Table;
+
+    // Force-enable EXPORT_CURRENT_VIEW for this viz in this test
+    const registry = getChartMetadataRegistry();
+    const getSpy = jest.spyOn(registry, 'get').mockReturnValue({
+      behaviors: ['EXPORT_CURRENT_VIEW'],
+    } as any);
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    userEvent.hover(await screen.findByText('Data Export Options'));
+
+    // Now the submenu should exist
+    userEvent.hover(await screen.findByText('Export Current View'));
+
+    expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
+    expect(await screen.findByText('Export to .JSON')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Export to (Excel|\.XLSX)/i),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText('Export screenshot (jpeg)'),
+    ).toBeInTheDocument();
+
+    getSpy.mockRestore();
   });
 
   test('Should open share submenu', async () => {
@@ -296,13 +536,11 @@ describe('Additional actions tests', () => {
     });
     expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
-
-    expect(screen.queryByText('Edit Chart Properties')).not.toBeInTheDocument();
     userEvent.click(
       screen.getByRole('menuitem', { name: 'Edit chart properties' }),
     );
     expect(
-      await screen.findByText('Edit Chart Properties'),
+      await screen.findByText('Edit chart properties'),
     ).toBeInTheDocument();
   });
 
@@ -338,36 +576,49 @@ describe('Additional actions tests', () => {
     expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(1);
   });
 
-  describe('Download', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('Export All Data', () => {
     let spyDownloadAsImage = sinon.spy();
     let spyExportChart = sinon.spy();
 
     beforeEach(() => {
       spyDownloadAsImage = sinon.spy(downloadAsImage, 'default');
       spyExportChart = sinon.spy(exploreUtils, 'exportChart');
-    });
-    afterEach(() => {
-      spyDownloadAsImage.restore();
-      spyExportChart.restore();
+
+      (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+        showModal: false,
+        setShowModal: jest.fn(),
+        handleConfirmNavigation: jest.fn(),
+        handleSaveAndCloseModal: jest.fn(),
+        triggerManualSave: jest.fn(),
+      });
     });
 
-    test('Should call downloadAsImage when click on "Download as image"', async () => {
+    afterEach(async () => {
+      spyDownloadAsImage.restore();
+      spyExportChart.restore();
+      // Wait for any pending effects to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    test('Should call downloadAsImage when click on "Export screenshot (jpeg)"', async () => {
       const props = createProps();
-      const spy = jest.spyOn(downloadAsImage, 'default');
       render(<ExploreHeader {...props} />, {
         useRedux: true,
       });
 
-      expect(spy).toHaveBeenCalledTimes(0);
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      expect(spy).toHaveBeenCalledTimes(0);
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
 
-      userEvent.hover(screen.getByText('Download'));
-      const downloadAsImageElement =
-        await screen.findByText('Download as image');
+      const downloadAsImageElement = await screen.findByText(
+        'Export screenshot (jpeg)',
+      );
       userEvent.click(downloadAsImageElement);
 
-      expect(spy).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(spyDownloadAsImage.callCount).toBe(1);
+      });
     });
 
     test('Should not export to CSV if canDownload=false', async () => {
@@ -376,7 +627,8 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText('Export to .CSV');
       userEvent.click(exportCSVElement);
       expect(spyExportChart.callCount).toBe(0);
@@ -391,7 +643,8 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText('Export to .CSV');
       userEvent.click(exportCSVElement);
       expect(spyExportChart.callCount).toBe(1);
@@ -404,7 +657,8 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportJsonElement = await screen.findByText('Export to .JSON');
       userEvent.click(exportJsonElement);
       expect(spyExportChart.callCount).toBe(0);
@@ -419,7 +673,8 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportJsonElement = await screen.findByText('Export to .JSON');
       userEvent.click(exportJsonElement);
       expect(spyExportChart.callCount).toBe(1);
@@ -433,7 +688,8 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText(
         'Export to pivoted .CSV',
       );
@@ -450,7 +706,8 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText(
         'Export to pivoted .CSV',
       );
@@ -464,7 +721,8 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportExcelElement = await screen.findByText('Export to Excel');
       userEvent.click(exportExcelElement);
       expect(spyExportChart.callCount).toBe(0);
@@ -478,10 +736,272 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Download'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export All Data'));
       const exportExcelElement = await screen.findByText('Export to Excel');
       userEvent.click(exportExcelElement);
       expect(spyExportChart.callCount).toBe(1);
+    });
+  });
+
+  describe('Current View', () => {
+    let spyDownloadAsImage = sinon.spy();
+    let spyExportChart = sinon.spy();
+
+    let originalURL: typeof URL;
+    let anchorClickSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+      originalURL = global.URL;
+
+      // Replace global.URL with a version that has the blob helpers
+      const mockedURL = {
+        ...originalURL,
+        createObjectURL: jest.fn(() => 'blob:mock-url'),
+        revokeObjectURL: jest.fn(),
+      } as unknown as typeof URL;
+
+      Object.defineProperty(global, 'URL', {
+        writable: true,
+        value: mockedURL,
+      });
+
+      // Avoid jsdom navigation side-effects on <a>.click()
+      anchorClickSpy = jest
+        .spyOn(HTMLAnchorElement.prototype, 'click')
+        .mockImplementation(() => {});
+    });
+
+    afterAll(() => {
+      // restore URL
+      Object.defineProperty(global, 'URL', {
+        writable: true,
+        value: originalURL,
+      });
+      anchorClickSpy.mockRestore();
+    });
+
+    beforeEach(() => {
+      spyDownloadAsImage = sinon.spy(downloadAsImage, 'default');
+      spyExportChart = sinon.spy(exploreUtils, 'exportChart');
+
+      (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+        showModal: false,
+        setShowModal: jest.fn(),
+        handleConfirmNavigation: jest.fn(),
+        handleSaveAndCloseModal: jest.fn(),
+        triggerManualSave: jest.fn(),
+      });
+    });
+
+    afterEach(async () => {
+      spyDownloadAsImage.restore();
+      spyExportChart.restore();
+      await new Promise(r => setTimeout(r, 0));
+    });
+
+    test('Screenshot (Current View) calls downloadAsImage', async () => {
+      const props = createProps();
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+
+      const getSpy = mockExportCurrentViewBehavior();
+
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      // clear previous calls on the sinon spy you created in beforeEach
+      spyDownloadAsImage.resetHistory();
+
+      const item = await screen.findByText('Export screenshot (jpeg)');
+      userEvent.click(item);
+
+      await waitFor(() => {
+        expect(spyDownloadAsImage.called).toBe(true);
+      });
+
+      getSpy.mockRestore();
+    });
+
+    test('CSV (Current View) uses client-side export when pagination disabled & clientView present', async () => {
+      const props = createProps({
+        ownState: {
+          clientView: {
+            columns: [
+              { key: 'a', label: 'A' },
+              { key: 'b', label: 'B' },
+            ],
+            rows: [
+              { a: 1, b: 'x' },
+              { a: 2, b: 'y' },
+            ],
+          },
+        },
+      });
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = false;
+
+      const getSpy = mockExportCurrentViewBehavior();
+
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      spyExportChart.resetHistory();
+
+      userEvent.click(await screen.findByText('Export to .CSV'));
+
+      expect(spyExportChart.called).toBe(false); // or: expect(spyExportChart.callCount).toBe(0)
+
+      getSpy.mockRestore();
+    });
+
+    test('JSON (Current View) uses client-side export when pagination disabled & clientView present', async () => {
+      const props = createProps({
+        ownState: {
+          clientView: {
+            columns: [{ key: 'a', label: 'A' }],
+            rows: [{ a: 123 }],
+          },
+        },
+      });
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = false;
+
+      const getSpy = mockExportCurrentViewBehavior();
+
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      spyExportChart.resetHistory();
+      userEvent.click(await screen.findByText('Export to .JSON'));
+
+      expect(spyExportChart.called).toBe(false);
+
+      getSpy.mockRestore();
+    });
+
+    test('CSV (Current View) falls back to server export when server_pagination is true', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = true;
+
+      const getSpy = mockExportCurrentViewBehavior();
+
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      spyExportChart.resetHistory();
+      userEvent.click(await screen.findByText('Export to .CSV'));
+
+      expect(spyExportChart.callCount).toBe(1);
+      const args = spyExportChart.getCall(0).args[0];
+      expect(args.resultType).toBe('results');
+      expect(args.resultFormat).toBe('csv');
+
+      getSpy.mockRestore();
+    });
+
+    test('Excel (Current View) uses client-side export when pagination disabled & clientView present', async () => {
+      const props = createProps({
+        ownState: {
+          clientView: {
+            columns: [{ key: 'c', label: 'C' }],
+            rows: [{ c: 'foo' }],
+          },
+        },
+      });
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = false;
+
+      const getSpy = mockExportCurrentViewBehavior();
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(await screen.findByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      spyExportChart.resetHistory();
+      userEvent.click(await screen.findByText(/Export to (Excel|\.XLSX)/i));
+
+      expect(spyExportChart.called).toBe(false);
+      getSpy.mockRestore();
+    });
+
+    test('Excel (Current View) falls back to server export when server_pagination is true', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = true;
+
+      const getSpy = mockExportCurrentViewBehavior();
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(await screen.findByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      spyExportChart.resetHistory();
+      userEvent.click(await screen.findByText(/Export to (Excel|\.XLSX)/i));
+
+      expect(spyExportChart.callCount).toBe(1);
+      const args = spyExportChart.getCall(0).args[0];
+      expect(args.resultType).toBe('results');
+      expect(args.resultFormat).toBe('xlsx');
+      getSpy.mockRestore();
+
+      // delete test excel files
+      const cwd = process.cwd();
+      for (const file of fs.readdirSync(cwd)) {
+        if (file.endsWith('.xlsx')) {
+          fs.unlinkSync(path.join(cwd, file));
+        }
+      }
+    });
+
+    test('JSON (Current View) falls back to server export when server_pagination is true', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.Table;
+      props.chart.latestQueryFormData.server_pagination = true;
+
+      const getSpy = mockExportCurrentViewBehavior();
+
+      render(<ExploreHeader {...props} />, { useRedux: true });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Export Current View'));
+
+      // server path expected → use the sinon spy and inspect call args
+      spyExportChart.resetHistory();
+
+      const jsonItem = await screen.findByText('Export to .JSON');
+      userEvent.click(jsonItem);
+
+      await waitFor(() => {
+        expect(spyExportChart.callCount).toBe(1);
+      });
+
+      const args = spyExportChart.getCall(0).args[0];
+      expect(args.resultType).toBe('results');
+      expect(args.resultFormat).toBe('json');
+
+      getSpy.mockRestore();
     });
   });
 });

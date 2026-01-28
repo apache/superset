@@ -1,7 +1,7 @@
 ---
 title: Kubernetes
 hide_title: true
-sidebar_position: 2
+sidebar_position: 3
 version: 1
 ---
 
@@ -150,7 +150,10 @@ For production clusters it's recommended to build own image with this step done 
 Superset requires a Python DB-API database driver and a SQLAlchemy
 dialect to be installed for each datastore you want to connect to.
 
-See [Install Database Drivers](/docs/configuration/databases) for more information.
+See [Install Database Drivers](/docs/databases#installing-database-drivers) for more information.
+It is recommended that you refer to versions listed in
+[pyproject.toml](https://github.com/apache/superset/blob/master/pyproject.toml)
+instead of hard-coding them in your bootstrap script, as seen below.
 
 :::
 
@@ -159,9 +162,15 @@ The following example installs the drivers for BigQuery and Elasticsearch, allow
 ```yaml
 bootstrapScript: |
   #!/bin/bash
+<<<<<<< HEAD
   uv pip install psycopg2==2.9.6 \
     sqlalchemy-bigquery==1.6.1 \
     elasticsearch-dbapi==0.2.5 &&\
+=======
+  uv pip install .[postgres] \
+    .[bigquery] \
+    .[elasticsearch] &&\
+>>>>>>> origin/master
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 ```
 
@@ -442,3 +451,8 @@ To load the examples, add the following to the `my_values.yaml` file:
 init:
   loadExamples: true
 ```
+
+:::resources
+- [Tutorial: Mastering Data Visualization — Installing Superset on Kubernetes with Helm Chart](https://mahira-technology.medium.com/mastering-data-visualization-installing-superset-on-kubernetes-cluster-using-helm-chart-e4ec99199e1e)
+- [Tutorial: Installing Apache Superset in Kubernetes](https://aws.plainenglish.io/installing-apache-superset-in-kubernetes-1aec192ac495)
+:::

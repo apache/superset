@@ -25,9 +25,10 @@ import {
   FC,
 } from 'react';
 
-import { t, styled } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import { Tooltip } from 'src/components/Tooltip';
+import { t } from '@apache-superset/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
+import { Input, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const TitleLabel = styled.span`
   display: inline-block;
@@ -37,7 +38,7 @@ const TitleLabel = styled.span`
 const StyledInput = styled(Input)`
   border-radius: ${({ theme }) => theme.borderRadius};
   height: 26px;
-  padding-left: ${({ theme }) => theme.gridUnit * 2.5}px;
+  padding-left: ${({ theme }) => theme.sizeUnit * 2.5}px;
 `;
 
 export interface AdhocMetricEditPopoverTitleProps {
@@ -54,6 +55,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
   isEditDisabled,
   onChange,
 }) => {
+  const theme = useTheme();
   const [isHovered, setIsHovered] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -120,9 +122,9 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
       >
         <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
         &nbsp;
-        <i
-          className="fa fa-pencil"
-          style={{ color: isHovered ? 'black' : 'grey' }}
+        <Icons.EditOutlined
+          iconColor={isHovered ? theme.colorPrimary : theme.colorIcon}
+          iconSize="m"
         />
       </span>
     </Tooltip>

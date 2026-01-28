@@ -17,20 +17,22 @@
  * under the License.
  */
 import { useEffect, useRef, useMemo } from 'react';
-import { Select } from 'src/components';
-import { styled, t, useTheme } from '@superset-ui/core';
-import { SQLEditor } from 'src/components/AsyncAceEditor';
+import { Select } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { OptionSortType } from 'src/explore/types';
 import { ColumnMeta } from '@superset-ui/chart-controls';
+import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
+import { SqlExpressionType } from 'src/types/SqlExpression';
 import { Clauses, ExpressionTypes } from '../types';
 
 const StyledSelect = styled(Select)`
   ${({ theme }) => `
-    width: ${theme.gridUnit * 30}px;
-    marginRight: ${theme.gridUnit}px;
+    width: ${theme.sizeUnit * 30}px;
+    marginRight: ${theme.sizeUnit}px;
   `}
 `;
 
@@ -39,11 +41,13 @@ export default function AdhocFilterEditPopoverSqlTabContent({
   onChange,
   options,
   height,
+  datasource,
 }: {
   adhocFilter: AdhocFilter;
   onChange: (filter: AdhocFilter) => void;
   options: OptionSortType[];
   height: number;
+  datasource?: any;
 }) {
   const aceEditorRef = useRef(null);
   const theme = useTheme();
@@ -85,7 +89,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
           ),
         ),
       ),
-    [sqlKeywords],
+    [options],
   );
 
   const selectOptions = useMemo(
@@ -94,7 +98,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
         label: clause,
         value: clause,
       })),
-    [Clauses],
+    [],
   );
 
   return (
@@ -115,10 +119,16 @@ export default function AdhocFilterEditPopoverSqlTabContent({
           <strong>HAVING</strong> {t('Filters by metrics')}
         </span>
       </div>
-      <div css={{ marginTop: theme.gridUnit * 4 }}>
-        <SQLEditor
+      <div
+        css={css`
+          margin-top: ${theme.sizeUnit * 4}px;
+        `}
+      >
+        <SQLEditorWithValidation
           ref={aceEditorRef}
-          keywords={keywords}
+          keywords={keywords.map((k: any) =>
+            typeof k === 'string' ? k : k.value || k.name || k,
+          )}
           height={`${height - 130}px`}
           onChange={onSqlExpressionChange}
           width="100%"
@@ -128,6 +138,14 @@ export default function AdhocFilterEditPopoverSqlTabContent({
           enableLiveAutocompletion
           className="filter-sql-editor"
           wrapEnabled
+          showValidation
+          expressionType={
+            adhocFilter.clause === 'HAVING'
+              ? SqlExpressionType.HAVING
+              : SqlExpressionType.WHERE
+          }
+          datasourceId={datasource?.id}
+          datasourceType={datasource?.type}
         />
       </div>
     </span>

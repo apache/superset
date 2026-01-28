@@ -31,7 +31,8 @@ describe('SupersetClientClass', () => {
   describe('new SupersetClientClass()', () => {
     it('fallback protocol to https when setting only host', () => {
       const client = new SupersetClientClass({ host: 'TEST-HOST' });
-      expect(client.baseUrl).toEqual('https://test-host');
+      expect(client.protocol).toEqual('https:');
+      expect(client.host).toEqual('test-host');
     });
   });
 
@@ -70,6 +71,15 @@ describe('SupersetClientClass', () => {
       expect(client.getUrl({ endpoint: '/test' })).toBe(
         'https://config_host/test',
       );
+    });
+
+    it('constructs a valid url if url, endpoint, and host are all empty and appRoot is defined', () => {
+      client = new SupersetClientClass({
+        protocol: 'https:',
+        host: 'config_host',
+        appRoot: '/prefix',
+      });
+      expect(client.getUrl()).toBe('https://config_host/prefix/');
     });
 
     it('does not throw if url, endpoint, and host are all empty', () => {
@@ -648,26 +658,36 @@ describe('SupersetClientClass', () => {
       jest.restoreAllMocks();
     });
 
-    it('makes postForm request', async () => {
-      await client.postForm(mockPostFormUrl, {});
+    it.each(['', '/prefix'])(
+      "makes postForm request when appRoot is '%s'",
+      async appRoot => {
+        if (appRoot !== '') {
+          client = new SupersetClientClass({ protocol, host, appRoot });
+          authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
+          await client.init();
+        }
+        await client.postForm(mockPostFormEndpoint, {});
 
-      const hiddenForm = createElement.mock.results[0].value;
-      const csrfTokenInput = createElement.mock.results[1].value;
+        const hiddenForm = createElement.mock.results[0].value;
+        const csrfTokenInput = createElement.mock.results[1].value;
 
-      expect(createElement.mock.calls).toHaveLength(2);
+        expect(createElement.mock.calls).toHaveLength(2);
 
-      expect(hiddenForm.action).toBe(mockPostFormUrl);
-      expect(hiddenForm.method).toBe('POST');
-      expect(hiddenForm.target).toBe('_blank');
+        expect(hiddenForm.action).toBe(
+          `${protocol}//${host}${appRoot}${mockPostFormEndpoint}`,
+        );
+        expect(hiddenForm.method).toBe('POST');
+        expect(hiddenForm.target).toBe('_blank');
 
-      expect(csrfTokenInput.type).toBe('hidden');
-      expect(csrfTokenInput.name).toBe('csrf_token');
-      expect(csrfTokenInput.value).toBe(1234);
+        expect(csrfTokenInput.type).toBe('hidden');
+        expect(csrfTokenInput.name).toBe('csrf_token');
+        expect(csrfTokenInput.value).toBe(1234);
 
-      expect(appendChild.mock.calls).toHaveLength(1);
-      expect(removeChild.mock.calls).toHaveLength(1);
-      expect(authSpy).toHaveBeenCalledTimes(1);
-    });
+        expect(appendChild.mock.calls).toHaveLength(1);
+        expect(removeChild.mock.calls).toHaveLength(1);
+        expect(authSpy).toHaveBeenCalledTimes(1);
+      },
+    );
 
     it('makes postForm request with guest token', async () => {
       client = new SupersetClientClass({ protocol, host, guestToken });

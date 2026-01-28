@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactElement, JSXElementConstructor } from 'react';
-import { useTheme } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 
 import {
@@ -58,8 +58,8 @@ export default function DatasetLayout({
         {leftPanel && (
           <ResizableSidebar
             id="dataset"
-            initialWidth={theme.gridUnit * 80}
-            minWidth={theme.gridUnit * 80}
+            initialWidth={theme.sizeUnit * 80}
+            minWidth={theme.sizeUnit * 80}
             enable
           >
             {adjustedWidth => (

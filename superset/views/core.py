@@ -19,11 +19,22 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import os
+import re
 from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-from flask import abort, flash, g, redirect, request, Response
+from flask import (
+    abort,
+    current_app as app,
+    g,
+    redirect,
+    request,
+    Response,
+    send_file,
+    url_for,
+)
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -32,11 +43,9 @@ from flask_appbuilder.security.decorators import (
 )
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.utils import safe_join
 
 from superset import (
-    app,
-    appbuilder,
-    conf,
     db,
     event_logger,
     is_feature_enabled,
@@ -67,9 +76,12 @@ from superset.extensions import async_query_manager, cache_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
-from superset.superset_typing import FlaskResponse
+from superset.superset_typing import (
+    ExplorableData,
+    FlaskResponse,
+)
+from superset.tasks.utils import get_current_user
 from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
@@ -98,14 +110,11 @@ from superset.views.utils import (
     get_form_data,
     get_viz,
     loads_request_json,
-    redirect_with_flash,
+    redirect_to_login,
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
 
-config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
@@ -132,11 +141,16 @@ class Superset(BaseSupersetView):
         if not slc:
             abort(404)
         form_data = parse.quote(json.dumps({"slice_id": slice_id}))
-        endpoint = f"/explore/?form_data={form_data}"
+        endpoint_params = {"form_data": f"{form_data}"}
 
         if ReservedUrlParameters.is_standalone_mode():
+<<<<<<< HEAD
             endpoint += f"&{ReservedUrlParameters.STANDALONE.value}=true"
         return redirect(endpoint)
+=======
+            endpoint_params[ReservedUrlParameters.STANDALONE.value] = "true"
+        return redirect(url_for("ExploreView.root", **endpoint_params))
+>>>>>>> origin/master
 
     def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:
         query = None
@@ -149,7 +163,7 @@ class Superset(BaseSupersetView):
             return json_error_response(err_msg)
 
         if not query:
-            query = "No query."
+            query = __("Query cannot be loaded.")
 
         return self.json_response(
             {"query": query, "language": viz_obj.datasource.query_language}
@@ -159,15 +173,16 @@ class Superset(BaseSupersetView):
         payload = viz_obj.get_df_payload()
         if viz_obj.has_error(payload):
             return json_error_response(payload=payload, status=400)
-        return self.json_response(
-            {
-                "data": payload["df"].to_dict("records"),
-                "colnames": payload.get("colnames"),
-                "coltypes": payload.get("coltypes"),
-                "rowcount": payload.get("rowcount"),
-                "sql_rowcount": payload.get("sql_rowcount"),
-            },
-        )
+        response = {
+            "data": payload["df"].to_dict("records")
+            if payload["df"] is not None
+            else [],
+            "colnames": payload.get("colnames"),
+            "coltypes": payload.get("coltypes"),
+            "rowcount": payload.get("rowcount"),
+            "sql_rowcount": payload.get("sql_rowcount"),
+        }
+        return self.json_response(response)
 
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
         return self.json_response(viz_obj.get_samples())
@@ -405,7 +420,6 @@ class Superset(BaseSupersetView):
 
         initial_form_data = {}
 
-        form_data_key = request.args.get("form_data_key")
         if key is not None:
             command = GetExplorePermalinkCommand(key)
             try:
@@ -420,9 +434,10 @@ class Superset(BaseSupersetView):
                         _("Error: permalink state not found"), status=404
                     )
             except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
-                flash(__("Error: %(msg)s", msg=ex.message), "danger")
-                return redirect("/chart/list/")
-        elif form_data_key:
+                return json_error_response(
+                    __("Error: %(msg)s", msg=ex.message), status=404
+                )
+        elif form_data_key := request.args.get("form_data_key"):
             parameters = CommandParameters(key=form_data_key)
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
@@ -432,18 +447,8 @@ class Superset(BaseSupersetView):
             dataset_id = request.args.get("dataset_id")
             if slice_id:
                 initial_form_data["slice_id"] = slice_id
-                if form_data_key:
-                    flash(
-                        _("Form data not found in cache, reverting to chart metadata.")
-                    )
             elif dataset_id:
                 initial_form_data["datasource"] = f"{dataset_id}__table"
-                if form_data_key:
-                    flash(
-                        _(
-                            "Form data not found in cache, reverting to dataset metadata."  # noqa: E501
-                        )
-                    )
 
         form_data, slc = get_form_data(
             use_slice_data=True, initial_form_data=initial_form_data
@@ -529,13 +534,14 @@ class Superset(BaseSupersetView):
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         force = request.args.get("force") in {"force", "1", "true"}
-        dummy_datasource_data: dict[str, Any] = {
-            "type": datasource_type,
+        dummy_datasource_data: ExplorableData = {
+            "type": datasource_type or "unknown",
             "name": datasource_name,
             "columns": [],
             "metrics": [],
             "database": {"id": 0, "backend": ""},
         }
+        datasource_data: ExplorableData
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
         except (SupersetException, SQLAlchemyError):
@@ -543,8 +549,6 @@ class Superset(BaseSupersetView):
 
         if datasource:
             datasource_data["owners"] = datasource.owners_data
-            if isinstance(datasource, Query):
-                datasource_data["columns"] = datasource.columns
 
         bootstrap_data = {
             "can_add": slice_add_perm,
@@ -571,11 +575,8 @@ class Superset(BaseSupersetView):
         else:
             title = _("Explore")
 
-        return self.render_template(
-            "superset/basic.html",
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
-            ),
+        return self.render_app_template(
+            extra_bootstrap_data=bootstrap_data,
             entry="explore",
             title=title,
             standalone_mode=standalone_mode,
@@ -619,13 +620,9 @@ class Superset(BaseSupersetView):
         if action == "saveas" and slice_add_perm:
             ChartDAO.create(slc)
             db.session.commit()  # pylint: disable=consider-using-transaction
-            msg = _("Chart [{}] has been saved").format(slc.slice_name)
-            flash(msg, "success")
         elif action == "overwrite" and slice_overwrite_perm:
             ChartDAO.update(slc)
             db.session.commit()  # pylint: disable=consider-using-transaction
-            msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
-            flash(msg, "success")
 
         # Adding slice to a dashboard if requested
         dash: Dashboard | None = None
@@ -647,13 +644,6 @@ class Superset(BaseSupersetView):
                     _("You don't have the rights to alter this dashboard"),
                     status=403,
                 )
-
-            flash(
-                _("Chart [{}] was added to dashboard [{}]").format(
-                    slc.slice_name, dash.dashboard_title
-                ),
-                "success",
-            )
         elif new_dashboard_name:
             # Creating and adding to a new dashboard
             # check create dashboard permissions
@@ -667,12 +657,6 @@ class Superset(BaseSupersetView):
             dash = Dashboard(
                 dashboard_title=request.args.get("new_dashboard_name"),
                 owners=[g.user] if g.user else [],
-            )
-            flash(
-                _(
-                    "Dashboard [{}] just got created and chart [{}] was added to it"
-                ).format(dash.dashboard_title, slc.slice_name),
-                "success",
             )
 
         if dash and slc not in dash.slices:
@@ -787,23 +771,21 @@ class Superset(BaseSupersetView):
         dashboard = Dashboard.get(dashboard_id_or_slug)
 
         if not dashboard:
+            if not get_current_user():
+                return redirect_to_login()
             abort(404)
+
+        # Redirect anonymous users to login for unpublished dashboards,
+        # in the edge case where a dataset has been shared with public
+        if not get_current_user() and not dashboard.published:
+            return redirect_to_login()
 
         try:
             dashboard.raise_for_access()
-        except SupersetSecurityException as ex:
-            # anonymous users should get the login screen, others should go to dashboard list  # noqa: E501
-            if g.user is None or g.user.is_anonymous:
-                redirect_url = f"{appbuilder.get_url_for_login}?next={request.url}"
-                warn_msg = "Users must be logged in to view this dashboard."
-            else:
-                redirect_url = "/dashboard/list/"
-                warn_msg = utils.error_msg_from_exception(ex)
-            return redirect_with_flash(
-                url=redirect_url,
-                message=warn_msg,
-                category="danger",
-            )
+        except SupersetSecurityException:
+            if not get_current_user():
+                return redirect_to_login()
+            abort(404)
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
@@ -816,17 +798,13 @@ class Superset(BaseSupersetView):
             ),
         )
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
+        bootstrap_payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+        return self.render_app_template(
+            extra_bootstrap_data=bootstrap_payload,
             title=dashboard.dashboard_title,  # dashboard title is always visible
-            bootstrap_data=json.dumps(
-                {
-                    "user": bootstrap_user_data(g.user, include_perms=True),
-                    "common": common_bootstrap_payload(),
-                },
-                default=json.pessimistic_json_iso_dttm_ser,
-            ),
             standalone_mode=ReservedUrlParameters.is_standalone_mode(),
         )
 
@@ -838,23 +816,28 @@ class Superset(BaseSupersetView):
     ) -> FlaskResponse:
         try:
             value = GetDashboardPermalinkCommand(key).run()
-        except DashboardPermalinkGetFailedError as ex:
-            flash(__("Error: %(msg)s", msg=ex.message), "danger")
-            return redirect("/dashboard/list/")
-        except DashboardAccessDeniedError as ex:
-            flash(__("Error: %(msg)s", msg=ex.message), "danger")
-            return redirect("/dashboard/list/")
+        except (DashboardPermalinkGetFailedError, DashboardAccessDeniedError) as ex:
+            return json_error_response(__("Error: %(msg)s", msg=ex.message), status=404)
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
+
         dashboard_id, state = value["dashboardId"], value.get("state", {})
-        url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
+        url = url_for(
+            "Superset.dashboard", dashboard_id_or_slug=dashboard_id, permalink_key=key
+        )
         if url_params := state.get("urlParams"):
-            params = parse.urlencode(url_params)
-            url = f"{url}&{params}"
+            for param_key, param_val in url_params:
+                if param_key == "native_filters":
+                    # native_filters doesnt need to be encoded here
+                    url = f"{url}&native_filters={param_val}"
+                else:
+                    params = parse.urlencode([(param_key, param_val)])
+                    url = f"{url}&{params}"
         if original_params := request.query_string.decode():
             url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
             url = f"{url}#{hash_}"
+
         return redirect(url)
 
     @api
@@ -891,13 +874,29 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
     @event_logger.log_this
+    @has_access
+    @expose("/language_pack/<lang>/")
+    def language_pack(self, lang: str) -> FlaskResponse:
+        # Only allow expected language formats like "en", "pt_BR", etc.
+        if not re.match(r"^[a-z]{2,3}(_[A-Z]{2})?$", lang):
+            abort(400, "Invalid language code")
+
+        base_dir = os.path.join(os.path.dirname(__file__), "..", "translations")
+        file_path = safe_join(base_dir, lang, "LC_MESSAGES", "messages.json")
+
+        if file_path and os.path.isfile(file_path):
+            return send_file(file_path, mimetype="application/json")
+
+        return json_error_response(
+            "Language pack doesn't exist on the server", status=404
+        )
+
+    @event_logger.log_this
     @expose("/welcome/")
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
         if not g.user or not get_user_id():
-            if conf["PUBLIC_ROLE_LIKE"]:
-                return self.render_template("superset/public_welcome.html")
-            return redirect(appbuilder.get_url_for_login)
+            return redirect_to_login()
 
         if welcome_dashboard_id := (
             db.session.query(UserAttribute.welcome_dashboard_id)
@@ -911,17 +910,11 @@ class Superset(BaseSupersetView):
             "common": common_bootstrap_payload(),
         }
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=json.pessimistic_json_iso_dttm_ser
-            ),
-        )
+        return self.render_app_template(extra_bootstrap_data=payload)
 
     @has_access
     @event_logger.log_this
     @expose("/sqllab/history/", methods=("GET",))
     @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:
-        return redirect("/sqllab/history")
+        return redirect(url_for("SqllabView.history"))

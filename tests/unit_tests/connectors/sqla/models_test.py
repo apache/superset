@@ -26,7 +26,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
 
 
@@ -187,13 +187,10 @@ def test_query_datasources_by_permissions_with_catalog_schema(
         ["[my_db].[db1].[schema1]", "[my_other_db].[schema]"],  # type: ignore
     )
     clause = db.session.query().filter_by().filter.mock_calls[0].args[0]
-    assert (
-        str(clause.compile(engine, compile_kwargs={"literal_binds": True}))
-        == (
-            "tables.perm IN ('[my_db].[table1](id:1)') OR "
-            "tables.schema_perm IN ('[my_db].[db1].[schema1]', '[my_other_db].[schema]') OR "  # noqa: E501
-            "tables.catalog_perm IN ('[my_db].[db1]')"
-        )
+    assert str(clause.compile(engine, compile_kwargs={"literal_binds": True})) == (
+        "tables.perm IN ('[my_db].[table1](id:1)') OR "
+        "tables.schema_perm IN ('[my_db].[db1].[schema1]', '[my_other_db].[schema]') OR "  # noqa: E501
+        "tables.catalog_perm IN ('[my_db].[db1]')"
     )
 
 
@@ -290,3 +287,622 @@ def test_normalize_prequery_result_type_custom_sql() -> None:
         sqla_table._normalize_prequery_result_type(row, dimension, columns_by_name)
         == "Car"
     )
+
+
+def test_fetch_metadata_with_comment_field_new_columns(mocker: MockerFixture) -> None:
+    """Test that fetch_metadata correctly assigns comment field to description
+    for new columns
+    """
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+    )
+
+    # Mock external_metadata to return columns with comment fields
+    mock_columns = [
+        {
+            "column_name": "id",
+            "type": "INTEGER",
+            "comment": "Primary key identifier",
+        },
+        {
+            "column_name": "name",
+            "type": "VARCHAR",
+            "comment": "Full name of the user",
+        },
+        {
+            "column_name": "status",
+            "type": "VARCHAR",
+            # No comment field for this column
+        },
+    ]
+
+    # Mock dependencies
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch("superset.connectors.sqla.models.db.session")
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    # Execute fetch_metadata
+    result = table.fetch_metadata()
+
+    # Verify results
+    assert len(result.added) == 3
+    assert set(result.added) == {"id", "name", "status"}
+
+    # Check that descriptions were set correctly from comments
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    assert columns_by_name["id"].description == "Primary key identifier"
+    assert columns_by_name["name"].description == "Full name of the user"
+    # Column without comment should have None description
+    assert columns_by_name["status"].description is None
+
+
+def test_fetch_metadata_with_comment_field_existing_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Test that fetch_metadata correctly updates description for existing columns"""
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table with existing columns
+    table = SqlaTable(
+        table_name="test_table_existing",
+        database=database,
+    )
+    table.id = 1  # Set ID so it's treated as existing table
+
+    # Create existing columns
+    existing_col1 = TableColumn(
+        column_name="id",
+        type="INTEGER",
+        table=table,
+        description="Old description",
+    )
+    existing_col2 = TableColumn(
+        column_name="name",
+        type="VARCHAR",
+        table=table,
+    )
+    table.columns = [existing_col1, existing_col2]
+
+    # Mock external_metadata to return updated columns with comments
+    mock_columns = [
+        {
+            "column_name": "id",
+            "type": "INTEGER",
+            "comment": "Updated primary key description",
+        },
+        {
+            "column_name": "name",
+            "type": "VARCHAR",
+            "comment": "Updated name description",
+        },
+    ]
+
+    # Mock dependencies
+    mock_session = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session.query.return_value.filter.return_value.all.return_value = [
+        existing_col1,
+        existing_col2,
+    ]
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    # Execute fetch_metadata
+    result = table.fetch_metadata()
+
+    # Verify no new columns were added
+    assert len(result.added) == 0
+
+    # Check that descriptions were updated from comments
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    assert columns_by_name["id"].description == "Updated primary key description"
+    assert columns_by_name["name"].description == "Updated name description"
+
+
+def test_fetch_metadata_mixed_comment_scenarios(mocker: MockerFixture) -> None:
+    """Test fetch_metadata with mix of new/existing columns and with/without
+    comments
+    """
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table with one existing column
+    table = SqlaTable(
+        table_name="test_table_mixed",
+        database=database,
+    )
+    table.id = 1
+
+    existing_col = TableColumn(
+        column_name="existing_col",
+        type="INTEGER",
+        table=table,
+        description="Existing description",
+    )
+    table.columns = [existing_col]
+
+    # Mock external_metadata with mixed scenarios
+    mock_columns = [
+        {
+            "column_name": "existing_col",
+            "type": "INTEGER",
+            "comment": "Updated existing column comment",
+        },
+        {
+            "column_name": "new_with_comment",
+            "type": "VARCHAR",
+            "comment": "New column with comment",
+        },
+        {
+            "column_name": "new_without_comment",
+            "type": "VARCHAR",
+            # No comment field
+        },
+    ]
+
+    # Mock dependencies
+    mock_session = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session.query.return_value.filter.return_value.all.return_value = [
+        existing_col
+    ]
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    # Execute fetch_metadata
+    result = table.fetch_metadata()
+
+    # Check added columns
+    assert len(result.added) == 2
+    assert set(result.added) == {"new_with_comment", "new_without_comment"}
+
+    # Check all column descriptions
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    # Existing column should have updated description
+    assert (
+        columns_by_name["existing_col"].description == "Updated existing column comment"
+    )
+
+    # New column with comment should have description set
+    assert columns_by_name["new_with_comment"].description == "New column with comment"
+
+    # New column without comment should have None description
+    assert columns_by_name["new_without_comment"].description is None
+
+
+def test_fetch_metadata_no_comment_field_safe_handling(
+    mocker: MockerFixture,
+) -> None:
+    """Test that fetch_metadata safely handles columns with no comment field"""
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table
+    table = SqlaTable(
+        table_name="test_table_no_comments",
+        database=database,
+    )
+
+    # Mock external_metadata with columns that have no comment fields
+    mock_columns = [
+        {"column_name": "col1", "type": "INTEGER"},
+        {"column_name": "col2", "type": "VARCHAR"},
+    ]
+
+    # Mock dependencies
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch("superset.connectors.sqla.models.db.session")
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    # Execute fetch_metadata - should not raise any exceptions
+    result = table.fetch_metadata()
+
+    # Check that columns were added successfully
+    assert len(result.added) == 2
+    assert set(result.added) == {"col1", "col2"}
+
+    # Check that descriptions are None (not set)
+    columns_by_name = {col.column_name: col for col in table.columns}
+    assert columns_by_name["col1"].description is None
+    assert columns_by_name["col2"].description is None
+
+
+def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> None:
+    """Test that fetch_metadata handles empty comment fields correctly"""
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table
+    table = SqlaTable(
+        table_name="test_table_empty_comments",
+        database=database,
+    )
+
+    # Mock external_metadata with empty comment fields
+    mock_columns = [
+        {
+            "column_name": "col_with_empty_comment",
+            "type": "INTEGER",
+            "comment": "",  # Empty string comment
+        },
+        {
+            "column_name": "col_with_none_comment",
+            "type": "VARCHAR",
+            "comment": None,  # None comment
+        },
+        {
+            "column_name": "col_with_valid_comment",
+            "type": "VARCHAR",
+            "comment": "Valid comment",
+        },
+    ]
+
+    # Mock dependencies
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch("superset.connectors.sqla.models.db.session")
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    # Execute fetch_metadata
+    result = table.fetch_metadata()
+
+    # Check that all columns were added
+    assert len(result.added) == 3
+
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    # Empty string comment should not be set (falsy)
+    assert columns_by_name["col_with_empty_comment"].description is None
+
+    # None comment should not be set
+    assert columns_by_name["col_with_none_comment"].description is None
+
+    # Valid comment should be set
+    assert columns_by_name["col_with_valid_comment"].description == "Valid comment"
+
+
+@pytest.mark.parametrize(
+    "supports_cross_catalog,table_name,catalog,schema,expected_name,expected_schema",
+    [
+        # Database supports cross-catalog queries (like BigQuery)
+        (
+            True,
+            "test_table",
+            "test_project",
+            "test_dataset",
+            '"test_project"."test_dataset"."test_table"',
+            None,
+        ),
+        # Database supports cross-catalog queries, catalog only (no schema)
+        (
+            True,
+            "test_table",
+            "test_project",
+            None,
+            '"test_project"."test_table"',
+            None,
+        ),
+        # Database supports cross-catalog queries, schema only (no catalog)
+        (
+            True,
+            "test_table",
+            None,
+            "test_schema",
+            "test_table",
+            "test_schema",
+        ),
+        # Database supports cross-catalog queries, no catalog or schema
+        (
+            True,
+            "test_table",
+            None,
+            None,
+            "test_table",
+            None,
+        ),
+        # Database doesn't support cross-catalog queries, catalog ignored
+        (
+            False,
+            "test_table",
+            "test_catalog",
+            "test_schema",
+            "test_table",
+            "test_schema",
+        ),
+        # Database doesn't support cross-catalog queries, no schema
+        (
+            False,
+            "test_table",
+            "test_catalog",
+            None,
+            "test_table",
+            None,
+        ),
+    ],
+)
+def test_get_sqla_table_with_catalog(
+    mocker: MockerFixture,
+    supports_cross_catalog: bool,
+    table_name: str,
+    catalog: str | None,
+    schema: str | None,
+    expected_name: str,
+    expected_schema: str | None,
+) -> None:
+    """
+    Test that `get_sqla_table` handles catalog inclusion correctly.
+    """
+    # Mock database with specified cross-catalog support
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = supports_cross_catalog
+    # Provide a simple quote_identifier
+    database.quote_identifier = lambda x: f'"{x}"'
+
+    # Create table with specified parameters
+    table = SqlaTable(
+        table_name=table_name,
+        database=database,
+        schema=schema,
+        catalog=catalog,
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+
+    # Verify expected table name and schema
+    assert sqla_table.name == expected_name
+    assert sqla_table.schema == expected_schema
+
+
+@pytest.mark.parametrize(
+    "table_name, catalog, schema, expected_in_sql, not_expected_in_sql",
+    [
+        (
+            "My-Table",
+            "My-DB",
+            "My-Schema",
+            '"My-DB"."My-Schema"."My-Table"',
+            '"My-DB.My-Schema.My-Table"',  # Should NOT be one quoted string
+        ),
+        (
+            "ORDERS",
+            "PROD_DB",
+            "SALES",
+            '"PROD_DB"."SALES"."ORDERS"',
+            '"PROD_DB.SALES.ORDERS"',  # Should NOT be one quoted string
+        ),
+        (
+            "My Table",
+            "My DB",
+            "My Schema",
+            '"My DB"."My Schema"."My Table"',
+            '"My DB.My Schema.My Table"',  # Should NOT be one quoted string
+        ),
+    ],
+)
+def test_get_sqla_table_quoting_for_cross_catalog(
+    mocker: MockerFixture,
+    table_name: str,
+    catalog: str | None,
+    schema: str | None,
+    expected_in_sql: str,
+    not_expected_in_sql: str,
+) -> None:
+    """
+    Test that `get_sqla_table` properly quotes each component of the identifier.
+    """
+    from sqlalchemy import create_engine, select
+
+    # Create a Postgres-like engine to test proper quoting
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    # Mock database with cross-catalog support and proper quote_identifier
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = True
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Create table
+    table = SqlaTable(
+        table_name=table_name,
+        database=database,
+        schema=schema,
+        catalog=catalog,
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # The compiled SQL should contain each part quoted separately
+    assert expected_in_sql in compiled, f"Expected {expected_in_sql} in SQL: {compiled}"
+    # Should NOT have the entire identifier quoted as one string
+    assert not_expected_in_sql not in compiled, (
+        f"Should not have {not_expected_in_sql} in SQL: {compiled}"
+    )
+
+
+def test_get_sqla_table_without_cross_catalog_ignores_catalog(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that databases without cross-catalog support ignore the catalog field.
+    """
+    from sqlalchemy import create_engine, select
+
+    # Create a PostgreSQL engine (doesn't support cross-catalog queries)
+    engine = create_engine("postgresql://user:pass@localhost/db")
+
+    # Mock database without cross-catalog support
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Create table with catalog - should be ignored
+    table = SqlaTable(
+        table_name="my_table",
+        database=database,
+        schema="my_schema",
+        catalog="my_catalog",
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+
+    # Compile to SQL
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # Should only have schema.table, not catalog.schema.table
+    assert "my_schema" in compiled
+    assert "my_table" in compiled
+    assert "my_catalog" not in compiled
+
+
+def test_quoted_name_prevents_double_quoting(mocker: MockerFixture) -> None:
+    """
+    Test that `quoted_name(..., quote=False)` does not cause double quoting.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    # Mock database
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = True
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Use uppercase table name to force quoting
+    table = SqlaTable(
+        table_name="MY_TABLE",
+        database=database,
+        schema="MY_SCHEMA",
+        catalog="MY_DB",
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+
+    # Compile to SQL
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # Should NOT have the entire identifier quoted as one:
+    # BAD:  '"MY_DB.MY_SCHEMA.MY_TABLE"'
+    # This would cause: SQL compilation error: Object '"MY_DB.MY_SCHEMA.MY_TABLE"'
+    # does not exist
+    assert '"MY_DB.MY_SCHEMA.MY_TABLE"' not in compiled
+
+    # Should have each part quoted separately:
+    # GOOD: "MY_DB"."MY_SCHEMA"."MY_TABLE"
+    assert '"MY_DB"."MY_SCHEMA"."MY_TABLE"' in compiled
+
+
+def test_sqla_table_currency_code_column_property() -> None:
+    """
+    Test currency_code_column property on SqlaTable.
+    """
+    database = Database(database_name="my_db")
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        currency_code_column="currency",
+    )
+    assert table.currency_code_column == "currency"
+
+
+def test_sqla_table_data_includes_currency_code_column(mocker: MockerFixture) -> None:
+    """
+    Test that data property includes currency_code_column.
+    """
+    database = mocker.MagicMock()
+    database.get_sqla_engine.return_value.__enter__ = mocker.MagicMock()
+    database.get_sqla_engine.return_value.__exit__ = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        currency_code_column="currency_code",
+        main_dttm_col="ds",
+    )
+    table.columns = []
+    table.metrics = []
+
+    # Mock the columns property to return empty list
+    mocker.patch.object(SqlaTable, "columns", [])
+    mocker.patch.object(SqlaTable, "metrics", [])
+
+    data = table.data
+    assert data["currency_code_column"] == "currency_code"
+    assert data["main_dttm_col"] == "ds"
+
+
+def test_sqla_table_link_escapes_url(mocker: MockerFixture) -> None:
+    """
+    Test that link property properly escapes URL to prevent XSS.
+    """
+    database = Database(database_name="my_db")
+    table = SqlaTable(
+        table_name='test<script>alert("xss")</script>',
+        database=database,
+        id=1,
+    )
+
+    # Mock explore_url to return a URL with special characters
+    mocker.patch.object(
+        SqlaTable,
+        "explore_url",
+        new_callable=mocker.PropertyMock,
+        return_value='/explore/?datasource_type=table&datasource_id=1&name=<script>alert("xss")</script>',
+    )
+
+    link = table.link
+    # Verify that special characters are escaped in both name and URL
+    assert "&lt;script&gt;" in str(link)
+    assert "<script>" not in str(link)

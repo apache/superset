@@ -17,17 +17,48 @@
  * under the License.
  */
 import rison from 'rison';
+import { t } from '@apache-superset/core';
 import {
   DatasourceType,
   SupersetClient,
-  t,
   getClientErrorObject,
 } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Dispatch } from 'redux';
 import { Slice } from '../types';
+import { HYDRATE_DASHBOARD } from './hydrate';
 
 const FETCH_SLICES_PAGE_SIZE = 200;
+
+// State types
+export interface SliceEntitiesState {
+  slices: { [id: number]: Slice };
+  isLoading: boolean;
+  errorMessage: string | null;
+  lastUpdated: number;
+}
+
+// Action types
+export type SliceEntitiesActionPayload =
+  | {
+      type: typeof ADD_SLICES;
+      payload: { slices: { [id: number]: Slice } };
+    }
+  | {
+      type: typeof SET_SLICES;
+      payload: { slices: { [id: number]: Slice } };
+    }
+  | {
+      type: typeof FETCH_ALL_SLICES_STARTED;
+    }
+  | {
+      type: typeof FETCH_ALL_SLICES_FAILED;
+      payload: { error: string };
+    }
+  | {
+      type: typeof HYDRATE_DASHBOARD;
+      data: { sliceEntities: SliceEntitiesState };
+    };
 
 export function getDatasourceParameter(
   datasourceId: number,

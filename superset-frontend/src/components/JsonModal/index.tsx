@@ -35,6 +35,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD
 import JSONbig from 'json-bigint';
 import { FC, useMemo } from 'react';
 import { JSONTree } from 'react-json-tree';
@@ -77,11 +78,21 @@ export function convertBigIntStrToNumber(value: string | number) {
   }
   return value;
 }
+=======
+import { FC, useMemo } from 'react';
+import { JSONTree } from 'react-json-tree';
+import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
+import { Button, ModalTrigger } from '@superset-ui/core/components';
+import { CopyToClipboard } from '../CopyToClipboard';
+import { convertBigIntStrToNumber } from './utils';
+import type { JsonModalProps } from './types';
+>>>>>>> origin/master
 
 function renderBigIntStrToNumber(value: string | number) {
   return <>{convertBigIntStrToNumber(value)}</>;
 }
 
+<<<<<<< HEAD
 type CellDataType = string | number | null | object;
 
 export interface Props {
@@ -91,6 +102,13 @@ export interface Props {
 }
 
 export const JsonModal: FC<Props> = ({ modalTitle, jsonObject, jsonValue }) => {
+=======
+export const JsonModal: FC<JsonModalProps> = ({
+  modalTitle,
+  jsonObject,
+  jsonValue,
+}) => {
+>>>>>>> origin/master
   const jsonTreeTheme = useJsonTreeTheme();
   const content = useMemo(
     () =>
@@ -117,3 +135,5 @@ export const JsonModal: FC<Props> = ({ modalTitle, jsonObject, jsonValue }) => {
     />
   );
 };
+
+export type { JsonModalProps };

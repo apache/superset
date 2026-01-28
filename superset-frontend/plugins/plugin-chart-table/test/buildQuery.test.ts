@@ -148,5 +148,139 @@ describe('plugin-chart-table', () => {
       expect(queries[1].extras?.time_grain_sqla).toEqual(TimeGranularity.MONTH);
       expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
     });
+<<<<<<< HEAD
+=======
+
+    describe('Percent Metric Calculation Modes', () => {
+      const baseFormDataWithPercents: TableChartFormData = {
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        metrics: ['count'],
+        percent_metrics: ['sum_sales'],
+        groupby: ['category'],
+      };
+
+      it('should default to row_limit mode with single query', () => {
+        const { queries } = buildQuery(baseFormDataWithPercents);
+
+        expect(queries).toHaveLength(1);
+        expect(queries[0].metrics).toEqual(['count', 'sum_sales']);
+        expect(queries[0].post_processing).toEqual([
+          {
+            operation: 'contribution',
+            options: {
+              columns: ['sum_sales'],
+              rename_columns: ['%sum_sales'],
+            },
+          },
+        ]);
+      });
+
+      it('should create extra query in all_records mode', () => {
+        const formData = {
+          ...baseFormDataWithPercents,
+          percent_metric_calculation: 'all_records',
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(2);
+
+        expect(queries[0].post_processing).toEqual([
+          {
+            operation: 'contribution',
+            options: {
+              columns: ['sum_sales'],
+              rename_columns: ['%sum_sales'],
+            },
+          },
+        ]);
+
+        expect(queries[1]).toMatchObject({
+          columns: [],
+          metrics: ['sum_sales'],
+          post_processing: [],
+          row_limit: 0,
+          row_offset: 0,
+          orderby: [],
+          is_timeseries: false,
+        });
+      });
+
+      it('should work with show_totals in all_records mode', () => {
+        const formData = {
+          ...baseFormDataWithPercents,
+          percent_metric_calculation: 'all_records',
+          show_totals: true,
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(3);
+        expect(queries[1].metrics).toEqual(['sum_sales']);
+        expect(queries[2].metrics).toEqual(['count', 'sum_sales']);
+      });
+
+      it('should handle empty percent_metrics in all_records mode', () => {
+        const formData = {
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: ['count'],
+          percent_metrics: [],
+          percent_metric_calculation: 'all_records',
+          groupby: ['category'],
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(1);
+        expect(queries[0].post_processing).toEqual([]);
+      });
+    });
+
+    describe('Testing for server pagination with search filter', () => {
+      const baseFormDataWithServerPagination: TableChartFormData = {
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        metrics: ['count'],
+        server_pagination: true,
+        search_filter: 'A',
+        groupby: ['category'],
+      };
+
+      const ownState = {
+        searchText: 'A',
+        searchColumn: 'category',
+      };
+
+      it('includes search filter in query payload when server pagination is enabled', () => {
+        const { queries } = buildQuery(baseFormDataWithServerPagination, {
+          ownState,
+        });
+
+        expect(queries[0].filters).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              col: `${ownState.searchColumn}`,
+              op: 'ILIKE',
+              val: `${ownState.searchText}%`,
+            }),
+          ]),
+        );
+      });
+
+      it('does not include search filter when not provided', () => {
+        const { queries } = buildQuery(
+          {
+            ...baseFormDataWithServerPagination,
+            server_pagination: false,
+          },
+          { ownState },
+        );
+
+        expect(queries[0].filters?.some(f => f.op === 'ILIKE')).toBeFalsy();
+      });
+    });
+>>>>>>> origin/master
   });
 });

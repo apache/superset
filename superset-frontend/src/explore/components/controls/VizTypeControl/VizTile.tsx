@@ -17,9 +17,10 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { css, t, useTheme } from '@superset-ui/core';
-import { usePluginContext } from 'src/components/DynamicPlugins';
-import { Tooltip } from 'src/components/Tooltip';
+import { t } from '@apache-superset/core';
+import { css, useTheme } from '@apache-superset/core/ui';
+import { Tooltip } from '@superset-ui/core/components';
+import { usePluginContext } from 'src/components';
 import { VizTileProps } from './types';
 
 export const VizTile = ({
@@ -31,13 +32,13 @@ export const VizTile = ({
   const { mountedPluginMetadata } = usePluginContext();
   const chartNameRef = useRef<HTMLSpanElement>(null);
   const theme = useTheme();
-  const TILE_TRANSITION_TIME = theme.transitionTiming * 2;
+  const TILE_TRANSITION_TIME = theme.motionDurationSlow;
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const chartName = vizMeta.name
     ? mountedPluginMetadata[vizMeta.name]?.name || `${vizMeta.name}`
-    : t('Select Viz Type');
+    : t('Select chart type');
 
   const handleTileClick = useCallback(() => {
     onTileClick(vizMeta.name);
@@ -45,7 +46,7 @@ export const VizTile = ({
     setTooltipVisible(false);
     setTimeout(() => {
       setIsTransitioning(false);
-    }, TILE_TRANSITION_TIME * 1000);
+    }, 300);
   }, [onTileClick, TILE_TRANSITION_TIME, vizMeta.name]);
 
   // Antd tooltip seems to be bugged - when elements move, the tooltip sometimes
@@ -55,10 +56,10 @@ export const VizTile = ({
     setShowTooltip(
       Boolean(
         !isTransitioning &&
-          (!isActive ||
-            (chartNameRef.current &&
-              chartNameRef.current.scrollWidth >
-                chartNameRef.current.clientWidth)),
+        (!isActive ||
+          (chartNameRef.current &&
+            chartNameRef.current.scrollWidth >
+              chartNameRef.current.clientWidth)),
       ),
     );
   }, [isActive, isTransitioning]);
@@ -80,7 +81,7 @@ export const VizTile = ({
   return (
     <Tooltip
       title={tooltipTitle}
-      onOpenChange={visible => setTooltipVisible(visible)}
+      onOpenChange={(visible: boolean) => setTooltipVisible(visible)}
       open={tooltipVisible && !isTransitioning}
       placement="top"
       mouseEnterDelay={0.4}
@@ -90,46 +91,53 @@ export const VizTile = ({
         css={css`
           display: flex;
           align-items: center;
-          color: ${theme.colors.grayscale.base};
-          font-weight: ${theme.typography.weights.bold};
+          color: ${theme.colorText};
+          font-weight: ${theme.fontWeightStrong};
           border-radius: 6px;
           white-space: nowrap;
           overflow: hidden;
           max-width: fit-content;
-
           ${!isActive &&
           css`
             flex-shrink: 0;
-            width: ${theme.gridUnit * 6}px;
+            width: ${theme.sizeUnit * 6}px;
             background-color: transparent;
             transition: none;
             &:hover svg path {
-              fill: ${theme.colors.primary.base};
-              transition: fill ${theme.transitionTiming}s ease-out;
+              fill: ${theme.colorPrimary};
+              transition: fill ${theme.motionDurationMid} ease-out;
             }
           `}
 
           ${isActive &&
           css`
             width: 100%;
-            background-color: ${theme.colors.grayscale.light4};
+            background-color: ${theme.colorBgLayout};
             transition:
-              width ${TILE_TRANSITION_TIME}s ease-out,
-              background-color ${TILE_TRANSITION_TIME}s ease-out;
+              width ${TILE_TRANSITION_TIME} ease-out,
+              background-color ${TILE_TRANSITION_TIME} ease-out;
             cursor: default;
             svg path {
-              fill: ${theme.colors.primary.base};
+              fill: ${theme.colorPrimary};
             }
           `}
         `}
       >
-        {vizMeta.icon}{' '}
+        <span
+          css={css`
+            padding: 0px ${theme.sizeUnit * 1.25}px;
+          `}
+        >
+          {vizMeta.icon}
+        </span>
         <span
           css={css`
             overflow: hidden;
             text-overflow: ellipsis;
+            font-size: ${theme.fontSizeSM}px;
             min-width: 0;
-            padding-right: ${theme.gridUnit}px;
+            padding-right: ${theme.sizeUnit}px;
+            line-height: 1.5;
           `}
           ref={chartNameRef}
         >

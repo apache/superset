@@ -371,6 +371,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "allow_csv_upload",
             "extra",
             "impersonate_user",
+            "configuration_method",
             "uuid",
             "version",
         ]
@@ -609,7 +610,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to Database."]}
         }
@@ -622,7 +623,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "datasets/imported_dataset.yaml": {
                 "table_name": ["Missing data for required field."],
@@ -643,7 +644,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": ["Must provide a password for the database"]
@@ -667,7 +668,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": ["Must provide a password for the ssh tunnel"]
@@ -691,7 +692,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": [
@@ -813,7 +814,10 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Must provide credentials for the SSH Tunnel"
+        assert str(excinfo.value) == (
+            "Error importing database: databases/imported_database.yaml: "
+            "{'ssh_tunnel': {'password': 'Either password or private_key is required'}}"
+        )
 
     @patch("superset.databases.schemas.is_feature_enabled")
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
@@ -855,13 +859,15 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
-                "_schema": [
-                    "Must provide a private key for the ssh tunnel",
-                    "Must provide a private key password for the ssh tunnel",
-                ]
+                "ssh_tunnel": {
+                    "password": "Either password or private_key is required",
+                    "private_key": (
+                        "private_key is required when private_key_password is provided"
+                    ),
+                }
             }
         }
 
@@ -891,7 +897,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @patch("superset.daos.database.Database._get_sqla_engine")
+    @patch("superset.models.core.Database._get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_exception(
@@ -912,7 +918,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             )
         mock_event_logger.assert_called()
 
-    @patch("superset.daos.database.Database._get_sqla_engine")
+    @patch("superset.models.core.Database._get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_do_ping_exception(
@@ -935,7 +941,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
         )
 
-    @patch("superset.utils.core.timeout")
+    @patch("superset.commands.database.utils.timeout")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_do_ping_timeout(
@@ -961,7 +967,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.CONNECTION_DATABASE_TIMEOUT
         )
 
-    @patch("superset.daos.database.Database._get_sqla_engine")
+    @patch("superset.models.core.Database._get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_superset_security_connection(
@@ -984,7 +990,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         mock_event_logger.assert_called()
 
-    @patch("superset.daos.database.Database._get_sqla_engine")
+    @patch("superset.models.core.Database._get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_api_exc(
@@ -1202,3 +1208,54 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         assert result["count"] > 0
         assert len(result["result"]) > 0
         assert len(result["result"]) == result["count"]
+
+    @patch("superset.daos.database.DatabaseDAO.find_by_id")
+    @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @patch("superset.utils.core.g")
+    def test_database_tables_list_tables_default_catalog(
+        self, mock_g, mock_can_access_database, mock_find_by_id
+    ):
+        database = get_example_database()
+        mock_find_by_id.return_value = database
+        mock_can_access_database.return_value = True
+        mock_g.user = security_manager.find_user("admin")
+
+        with (
+            patch.object(
+                database, "get_default_catalog", return_value="default_catalog"
+            ),
+            patch.object(
+                database, "get_all_table_names_in_schema", return_value=[]
+            ) as mock_get_all_table_names,
+            patch.object(
+                database, "get_all_view_names_in_schema", return_value=[]
+            ) as mock_get_all_view_names,
+            patch.object(
+                database, "get_all_materialized_view_names_in_schema", return_value=[]
+            ) as mock_get_all_materialized_view_names,
+        ):
+            command = TablesDatabaseCommand(database.id, None, "schema_name", False)
+            command.run()
+
+            # Assert that the default catalog is used instead of None
+            mock_get_all_table_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+            mock_get_all_view_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+            mock_get_all_materialized_view_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )

@@ -20,21 +20,25 @@
 # If you choose to use this type of deployment make sure to
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
+#
+# For verbose logging during development:
+# - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
 # -----------------------------------------------------------------------
 x-superset-user: &superset-user root
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - ./superset:/app/superset
+  - ./superset-core:/app/superset-core
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
-
+  - superset_data:/app/data
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
-    - apache/superset-cache:3.10-slim-bookworm
+    - apache/superset-cache:3.10-slim-trixie
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
@@ -43,21 +47,26 @@ x-common-build: &common-build
 
 services:
   nginx:
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     image: nginx:latest
-    container_name: superset_nginx
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "${NGINX_PORT:-80}:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/templates:/etc/nginx/templates:ro
+
   redis:
     image: redis:7
-    container_name: superset_cache
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis:/data
 
@@ -67,11 +76,10 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:15
-    container_name: superset_db
+    image: postgres:16
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DATABASE_PORT:-5432}:5432"
     volumes:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -84,13 +92,12 @@ services:
         required: false
     build:
       <<: *common-build
-    container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
     ports:
-      - 8088:8088
+      - ${SUPERSET_PORT:-8088}:8088
       # When in cypress-mode ->
-      - 8081:8081
+      - ${CYPRESS_PORT:-8081}:8081
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
@@ -98,15 +105,11 @@ services:
       superset-init:
         condition: service_completed_successfully
     volumes: *superset-volumes
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-websocket:
-    container_name: superset_websocket
     build: ./superset-websocket
     ports:
-      - 8080:8080
+      - ${WEBSOCKET_PORT:-8080}:8080
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -126,9 +129,9 @@ services:
       - /home/superset-websocket/node_modules
       - /home/superset-websocket/dist
 
-      # Mounting a config file that contains a dummy secret required to boot up.
-      # do not use this docker compose in production
-      - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
+      # Mount config file. Create your own docker/superset-websocket/config.json
+      # for custom settings, then point to it here. Do not use this example in production.
+      - ./docker/superset-websocket/config.example.json:/home/superset-websocket/config.json:ro
     environment:
       - PORT=8080
       - REDIS_HOST=redis
@@ -138,7 +141,6 @@ services:
   superset-init:
     build:
       <<: *common-build
-    container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
     env_file:
       - path: docker/.env # default
@@ -152,10 +154,6 @@ services:
         condition: service_started
     user: *superset-user
     volumes: *superset-volumes
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
-      SUPERSET_LOAD_EXAMPLES: "${SUPERSET_LOAD_EXAMPLES:-yes}"
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     healthcheck:
       disable: true
 
@@ -176,10 +174,11 @@ services:
       NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
-      superset: "http://host.docker.internal:8088"
+      superset: "http://superset:8088"
+      # Bind to all interfaces so Docker port mapping works
+      WEBPACK_DEVSERVER_HOST: "0.0.0.0"
     ports:
-      - "127.0.0.1:9000:9000"  # exposing the dynamic webpack dev server
-    container_name: superset_node
+      - "127.0.0.1:${NODE_PORT:-9000}:9000"  # exposing the dynamic webpack dev server
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
       - path: docker/.env # default
@@ -191,7 +190,6 @@ services:
   superset-worker:
     build:
       <<: *common-build
-    container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
       - path: docker/.env # default
@@ -200,8 +198,6 @@ services:
         required: false
     environment:
       CELERYD_CONCURRENCY: 2
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     restart: unless-stopped
     depends_on:
       superset-init:
@@ -219,7 +215,6 @@ services:
   superset-worker-beat:
     build:
       <<: *common-build
-    container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file:
       - path: docker/.env # default
@@ -233,14 +228,10 @@ services:
     volumes: *superset-volumes
     healthcheck:
       disable: true
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-tests-worker:
     build:
       <<: *common-build
-    container_name: superset_tests_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
       - path: docker/.env # default
@@ -256,7 +247,6 @@ services:
       REDIS_RESULTS_DB: 3
       REDIS_HOST: localhost
       CELERYD_CONCURRENCY: 8
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
     network_mode: host
     depends_on:
       superset-init:
@@ -272,4 +262,6 @@ volumes:
   db_home:
     external: false
   redis:
+    external: false
+  superset_data:
     external: false

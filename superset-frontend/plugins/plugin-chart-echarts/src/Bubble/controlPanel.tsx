@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
@@ -31,6 +31,7 @@ import {
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
+  xAxisLabelInterval,
 } from '../controls';
 import { defaultYAxis } from '../defaults';
 
@@ -133,6 +134,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [xAxisLabelRotation],
+        [xAxisLabelInterval],
         [
           {
             name: 'x_axis_title_margin',
@@ -140,7 +142,7 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               freeForm: true,
               clearable: true,
-              label: t('X AXIS TITLE MARGIN'),
+              label: t('X axis title margin'),
               renderTrigger: true,
               default: sections.TITLE_MARGIN_OPTIONS[1],
               choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
@@ -212,7 +214,7 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               freeForm: true,
               clearable: true,
-              label: t('Y AXIS TITLE MARGIN'),
+              label: t('Y axis title margin'),
               renderTrigger: true,
               default: sections.TITLE_MARGIN_OPTIONS[1],
               choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),

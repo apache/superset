@@ -16,16 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Button from 'src/components/Button';
-import { EmptyState as EmptyStateComponent } from 'src/components/EmptyState';
+import {
+  Button,
+  EmptyState as EmptyStateComponent,
+} from '@superset-ui/core/components';
 import { TableTab } from 'src/views/CRUD/types';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
+import { navigateTo } from 'src/utils/navigationUtils';
+import { makeUrl } from 'src/utils/pathUtils';
 import { WelcomeTable } from './types';
 
 const EmptyContainer = styled.div`
   min-height: 200px;
   display: flex;
-  color: ${({ theme }) => theme.colors.grayscale.light2};
+  color: ${({ theme }) => theme.colorTextDescription};
   flex-direction: column;
   justify-content: space-around;
 `;
@@ -34,14 +39,27 @@ const ICONS = {
   [WelcomeTable.Charts]: 'empty-charts.svg',
   [WelcomeTable.Dashboards]: 'empty-dashboard.svg',
   [WelcomeTable.Recents]: 'union.svg',
-  [WelcomeTable.SavedQueries]: 'empty-queries.svg',
+  [WelcomeTable.SavedQueries]: 'empty.svg',
+} as const;
+
+const LABELS = {
+  create: {
+    [WelcomeTable.Charts]: t('Chart'),
+    [WelcomeTable.Dashboards]: t('Dashboard'),
+    [WelcomeTable.SavedQueries]: t('SQL query'),
+  },
+  viewAll: {
+    [WelcomeTable.Charts]: t('charts'),
+    [WelcomeTable.Dashboards]: t('dashboards'),
+    [WelcomeTable.SavedQueries]: t('SQL Lab queries'),
+  },
 } as const;
 
 const REDIRECTS = {
   create: {
     [WelcomeTable.Charts]: '/chart/add',
     [WelcomeTable.Dashboards]: '/dashboard/new',
-    [WelcomeTable.SavedQueries]: '/sqllab?new=true',
+    [WelcomeTable.SavedQueries]: makeUrl('/sqllab?new=true'),
   },
   viewAll: {
     [WelcomeTable.Charts]: '/chart/list',
@@ -56,25 +74,16 @@ export interface EmptyStateProps {
   otherTabTitle?: string;
 }
 
-export default function EmptyState({
-  tableName,
-  tab,
-  otherTabTitle,
-}: EmptyStateProps) {
+export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const getActionButton = () => {
     if (tableName === WelcomeTable.Recents) {
       return null;
     }
 
     const isFavorite = tab === TableTab.Favorite;
-    const buttonText =
-      tableName === WelcomeTable.SavedQueries
-        ? isFavorite
-          ? t('SQL Lab queries')
-          : t('SQL query')
-        : isFavorite
-          ? t(tableName.toLowerCase())
-          : tableName.slice(0, -1);
+    const buttonText = isFavorite
+      ? LABELS.viewAll[tableName]
+      : LABELS.create[tableName];
 
     const url = isFavorite
       ? REDIRECTS.viewAll[tableName]
@@ -82,9 +91,9 @@ export default function EmptyState({
 
     return (
       <Button
-        buttonStyle="default"
+        buttonStyle="secondary"
         onClick={() => {
-          window.location.href = url;
+          navigateTo(url);
         }}
       >
         {isFavorite

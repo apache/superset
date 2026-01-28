@@ -17,11 +17,10 @@
  * under the License.
  */
 import { FC } from 'react';
-import { styled, t } from '@superset-ui/core';
-
-import { Typography } from 'src/components';
-import TagsList from 'src/components/Tags/TagsList';
-import TagType from 'src/types/TagType';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
+import { Typography } from '@superset-ui/core/components';
+import { type TagType, TagsList } from 'src/components';
 
 interface ColumnsPreviewProps {
   columns: string[];

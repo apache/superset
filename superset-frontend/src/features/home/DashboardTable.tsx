@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
-import { filter } from 'lodash';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
@@ -37,10 +37,11 @@ import {
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Loading from 'src/components/Loading';
-import DeleteModal from 'src/components/DeleteModal';
+import { DeleteModal, Loading } from '@superset-ui/core/components';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
 import SubMenu from './SubMenu';
 import { WelcomeTable } from './types';
@@ -61,10 +62,7 @@ function DashboardTable({
     TableTab.Other,
   );
 
-  const filteredOtherTabData = filter(
-    otherTabData,
-    obj => !('viz_type' in obj),
-  );
+  const filteredOtherTabData = otherTabData.filter(obj => !('viz_type' in obj));
 
   const {
     state: { loading, resourceCollection: dashboards },
@@ -121,12 +119,17 @@ function DashboardTable({
     setLoaded(true);
   }, [activeTab]);
 
-  const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
+  const handleBulkDashboardExport = async (dashboardsToExport: Dashboard[]) => {
     const ids = dashboardsToExport.map(({ id }) => id);
-    handleResourceExport('dashboard', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('dashboard', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected dashboards'));
+    }
   };
 
   const handleDashboardEdit = (edits: Dashboard) =>
@@ -185,18 +188,20 @@ function DashboardTable({
     <>
       <SubMenu
         activeChild={activeTab}
+        backgroundColor="transparent"
         tabs={menuTabs}
         buttons={[
           {
-            name: (
-              <>
-                <i className="fa fa-plus" />
-                {t('Dashboard')}
-              </>
+            icon: (
+              <Icons.PlusOutlined
+                iconSize="m"
+                data-test="add-annotation-layer-button"
+              />
             ),
-            buttonStyle: 'tertiary',
+            name: t('Dashboard'),
+            buttonStyle: 'secondary',
             onClick: () => {
-              window.location.assign('/dashboard/new');
+              navigateTo('/dashboard/new', { assign: true });
             },
           },
           {
@@ -238,6 +243,7 @@ function DashboardTable({
               addDangerToast,
               activeTab,
               user?.userId,
+              getData,
             );
             setDashboardToDelete(null);
           }}

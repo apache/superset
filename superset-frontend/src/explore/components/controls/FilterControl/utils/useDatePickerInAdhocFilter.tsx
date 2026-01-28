@@ -18,13 +18,14 @@
  */
 import { ReactElement } from 'react';
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import { Dataset, isTemporalColumn } from '@superset-ui/chart-controls';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 interface DatePickerInFilterProps {
-  columnName: string;
+  columnName?: string;
   timeRange?: string;
   datasource: Dataset;
   onChange: (columnName: string, timeRange: string) => void;
@@ -36,16 +37,22 @@ export const useDatePickerInAdhocFilter = ({
   datasource,
   onChange,
 }: DatePickerInFilterProps): ReactElement | undefined => {
-  const onTimeRangeChange = (val: string) => onChange(columnName, val);
+  const onTimeRangeChange = (val: string) => onChange(columnName ?? '', val);
 
-  return isTemporalColumn(columnName, datasource) ? (
+  const extensionsRegistry = getExtensionsRegistry();
+
+  const DateFilterControlExtension = extensionsRegistry.get(
+    'filter.dateFilterControl',
+  );
+  const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
+
+  return columnName && isTemporalColumn(columnName, datasource) ? (
     <>
       <ControlHeader label={t('Time Range')} />
-      <DateFilterControl
+      <DateFilterComponent
         value={timeRange}
         name="time_range"
         onChange={onTimeRangeChange}
-        overlayStyle="Modal"
       />
     </>
   ) : undefined;

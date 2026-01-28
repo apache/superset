@@ -25,9 +25,11 @@ import {
   FALSE_STRING,
 } from 'src/utils/common';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('utils/common', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('optionFromValue', () => {
-    it('converts values as expected', () => {
+    test('converts values as expected', () => {
       expect(optionFromValue(false)).toEqual({
         value: false,
         label: FALSE_STRING,
@@ -48,13 +50,14 @@ describe('utils/common', () => {
       expect(optionFromValue(5)).toEqual({ value: 5, label: '5' });
     });
   });
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('prepareCopyToClipboardTabularData', () => {
-    it('converts empty array', () => {
+    test('converts empty array', () => {
       const data = [];
       const columns = [];
       expect(prepareCopyToClipboardTabularData(data, columns)).toEqual('');
     });
-    it('converts non empty array', () => {
+    test('converts non empty array', () => {
       const data = [
         { column1: 'lorem', column2: 'ipsum' },
         { column1: 'dolor', column2: 'sit', column3: 'amet' },
@@ -64,7 +67,7 @@ describe('utils/common', () => {
         'column1\tcolumn2\tcolumn3\nlorem\tipsum\t\ndolor\tsit\tamet\n',
       );
     });
-    it('includes 0 values and handle column objects', () => {
+    test('includes 0 values and handle column objects', () => {
       const data = [
         { column1: 0, column2: 0 },
         { column1: 1, column2: -1, 0: 0 },
@@ -75,19 +78,20 @@ describe('utils/common', () => {
       );
     });
   });
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('applyFormattingToTabularData', () => {
-    it('does not mutate empty array', () => {
+    test('does not mutate empty array', () => {
       const data = [];
       expect(applyFormattingToTabularData(data, [])).toEqual(data);
     });
-    it('does not mutate array without temporal column', () => {
+    test('does not mutate array without temporal column', () => {
       const data = [
         { column1: 'lorem', column2: 'ipsum' },
         { column1: 'dolor', column2: 'sit', column3: 'amet' },
       ];
       expect(applyFormattingToTabularData(data, [])).toEqual(data);
     });
-    it('changes formatting of columns selected for formatting', () => {
+    test('changes formatting of columns selected for formatting', () => {
       const originalData = [
         {
           __timestamp: null,

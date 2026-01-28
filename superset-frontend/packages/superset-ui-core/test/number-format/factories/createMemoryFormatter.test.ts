@@ -83,6 +83,54 @@ test('formats bytes in human readable format with additional binary option', () 
   expect(formatter(Math.pow(1024, 10))).toBe('1048576YiB');
 });
 
+test('formats bytes in human readable format with additional transfer option', () => {
+  const formatter = createMemoryFormatter({ transfer: true });
+  expect(formatter(0)).toBe('0B/s');
+  expect(formatter(50)).toBe('50B/s');
+  expect(formatter(555)).toBe('555B/s');
+  expect(formatter(1000)).toBe('1kB/s');
+  expect(formatter(1111)).toBe('1.11kB/s');
+  expect(formatter(1024)).toBe('1.02kB/s');
+  expect(formatter(1337)).toBe('1.34kB/s');
+  expect(formatter(1999)).toBe('2kB/s');
+  expect(formatter(10 * 1000)).toBe('10kB/s');
+  expect(formatter(100 * 1000)).toBe('100kB/s');
+  expect(formatter(Math.pow(1000, 2))).toBe('1MB/s');
+  expect(formatter(Math.pow(1000, 3))).toBe('1GB/s');
+  expect(formatter(Math.pow(1000, 4))).toBe('1TB/s');
+  expect(formatter(Math.pow(1000, 5))).toBe('1PB/s');
+  expect(formatter(Math.pow(1000, 6))).toBe('1EB/s');
+  expect(formatter(Math.pow(1000, 7))).toBe('1ZB/s');
+  expect(formatter(Math.pow(1000, 8))).toBe('1YB/s');
+  expect(formatter(Math.pow(1000, 9))).toBe('1RB/s');
+  expect(formatter(Math.pow(1000, 10))).toBe('1QB/s');
+  expect(formatter(Math.pow(1000, 11))).toBe('1000QB/s');
+  expect(formatter(Math.pow(1000, 12))).toBe('1000000QB/s');
+});
+
+test('formats bytes in human readable format with additional binary AND transfer option', () => {
+  const formatter = createMemoryFormatter({ binary: true, transfer: true });
+  expect(formatter(0)).toBe('0B/s');
+  expect(formatter(50)).toBe('50B/s');
+  expect(formatter(555)).toBe('555B/s');
+  expect(formatter(1000)).toBe('1000B/s');
+  expect(formatter(1111)).toBe('1.08KiB/s');
+  expect(formatter(1024)).toBe('1KiB/s');
+  expect(formatter(1337)).toBe('1.31KiB/s');
+  expect(formatter(2047)).toBe('2KiB/s');
+  expect(formatter(10 * 1024)).toBe('10KiB/s');
+  expect(formatter(100 * 1024)).toBe('100KiB/s');
+  expect(formatter(Math.pow(1024, 2))).toBe('1MiB/s');
+  expect(formatter(Math.pow(1024, 3))).toBe('1GiB/s');
+  expect(formatter(Math.pow(1024, 4))).toBe('1TiB/s');
+  expect(formatter(Math.pow(1024, 5))).toBe('1PiB/s');
+  expect(formatter(Math.pow(1024, 6))).toBe('1EiB/s');
+  expect(formatter(Math.pow(1024, 7))).toBe('1ZiB/s');
+  expect(formatter(Math.pow(1024, 8))).toBe('1YiB/s');
+  expect(formatter(Math.pow(1024, 9))).toBe('1024YiB/s');
+  expect(formatter(Math.pow(1024, 10))).toBe('1048576YiB/s');
+});
+
 test('formats bytes in human readable format with additional decimals option', () => {
   const formatter0decimals = createMemoryFormatter({ decimals: 0 });
   expect(formatter0decimals(0)).toBe('0B');

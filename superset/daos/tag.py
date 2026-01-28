@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from operator import and_
 from typing import Any, Optional
 
 from flask import g
@@ -24,11 +23,11 @@ from sqlalchemy.exc import NoResultFound
 from superset.commands.tag.exceptions import TagNotFoundError
 from superset.commands.tag.utils import to_object_type
 from superset.daos.base import BaseDAO
+from superset.daos.chart import ChartDAO
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.query import SavedQueryDAO
 from superset.exceptions import MissingUserContextException
 from superset.extensions import db
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
-from superset.models.sql_lab import SavedQuery
 from superset.tags.models import (
     get_tag,
     ObjectType,
@@ -43,8 +42,6 @@ logger = logging.getLogger(__name__)
 
 
 class TagDAO(BaseDAO[Tag]):
-    # base_filter = TagAccessFilter
-
     @staticmethod
     def create_custom_tagged_objects(
         object_type: ObjectType, object_id: int, tag_names: list[str]
@@ -57,9 +54,6 @@ class TagDAO(BaseDAO[Tag]):
         for name in clean_tag_names:
             type_ = TagType.custom
             tag = TagDAO.get_by_name(name, type_)
-            tagged_objects.append(
-                TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
-            )
 
             # Check if the association already exists
             existing_tagged_object = (
@@ -140,6 +134,13 @@ class TagDAO(BaseDAO[Tag]):
         return db.session.query(Tag).filter(Tag.name == name).first()
 
     @staticmethod
+    def find_by_names(names: list[str]) -> list[Tag]:
+        """
+        returns tags by their names.
+        """
+        return db.session.query(Tag).filter(Tag.name.in_(names)).all()
+
+    @staticmethod
     def find_tagged_object(
         object_type: ObjectType, object_id: int, tag_id: int
     ) -> TaggedObject:
@@ -157,111 +158,105 @@ class TagDAO(BaseDAO[Tag]):
         )
 
     @staticmethod
-    def get_tagged_objects_by_tag_id(
+    def get_tagged_objects_by_tag_ids(
         tag_ids: Optional[list[int]], obj_types: Optional[list[str]] = None
     ) -> list[dict[str, Any]]:
-        tags = db.session.query(Tag).filter(Tag.id.in_(tag_ids)).all()
-        tag_names = [tag.name for tag in tags]
-        return TagDAO.get_tagged_objects_for_tags(tag_names, obj_types)
+        results: list[dict[str, Any]] = []
+
+        query = db.session.query(TaggedObject).filter(TaggedObject.tag_id.in_(tag_ids))
+        if obj_types:
+            query = query.filter(
+                TaggedObject.object_type.in_(
+                    [ObjectType[obj_type] for obj_type in obj_types]
+                )
+            )
+        tagged_objects = query.all()
+
+        # dashboards
+        if not obj_types or "dashboard" in obj_types:
+            tagged_dashboards = [
+                tagged_object.object_id
+                for tagged_object in tagged_objects
+                if tagged_object.object_type == ObjectType.dashboard
+            ]
+            if tagged_dashboards:
+                results.extend(
+                    {
+                        "id": obj.id,
+                        "type": ObjectType.dashboard.name,
+                        "name": obj.dashboard_title,
+                        "url": obj.url,
+                        "changed_on": obj.changed_on,
+                        "created_by": obj.created_by_fk,
+                        "creator": obj.creator(),
+                        "tags": obj.tags,
+                        "owners": obj.owners,
+                    }
+                    for obj in DashboardDAO.find_by_ids(tagged_dashboards)
+                )
+
+        # charts
+        if not obj_types or "chart" in obj_types:
+            tagged_charts = [
+                tagged_object.object_id
+                for tagged_object in tagged_objects
+                if tagged_object.object_type == ObjectType.chart
+            ]
+            if tagged_charts:
+                results.extend(
+                    {
+                        "id": obj.id,
+                        "type": ObjectType.chart.name,
+                        "name": obj.slice_name,
+                        "url": obj.url,
+                        "changed_on": obj.changed_on,
+                        "created_by": obj.created_by_fk,
+                        "creator": obj.creator(),
+                        "tags": obj.tags,
+                        "owners": obj.owners,
+                    }
+                    for obj in ChartDAO.find_by_ids(tagged_charts)
+                )
+
+        # saved queries
+        if not obj_types or "query" in obj_types:
+            tagged_queries = [
+                tagged_object.object_id
+                for tagged_object in tagged_objects
+                if tagged_object.object_type == ObjectType.query
+            ]
+            if tagged_queries:
+                results.extend(
+                    {
+                        "id": obj.id,
+                        "type": ObjectType.query.name,
+                        "name": obj.label,
+                        "url": obj.url(),
+                        "changed_on": obj.changed_on,
+                        "created_by": obj.created_by_fk,
+                        "creator": obj.creator(),
+                        "tags": obj.tags,
+                        "owners": [obj.creator()],
+                    }
+                    for obj in SavedQueryDAO.find_by_ids(tagged_queries)
+                )
+
+        return results
 
     @staticmethod
-    def get_tagged_objects_for_tags(
-        tags: Optional[list[str]] = None, obj_types: Optional[list[str]] = None
+    def get_tagged_objects_by_tag_names(
+        tag_names: Optional[list[str]] = None, obj_types: Optional[list[str]] = None
     ) -> list[dict[str, Any]]:
         """
         returns a list of tagged objects filtered by tag names and object types
         if no filters applied returns all tagged objects
         """
-        results: list[dict[str, Any]] = []
+        tags = TagDAO.find_by_names(tag_names) if tag_names else TagDAO.find_all()
+        if not tags:
+            return []
 
-        # dashboards
-        if (not obj_types) or ("dashboard" in obj_types):
-            dashboards = (
-                db.session.query(Dashboard)
-                .join(
-                    TaggedObject,
-                    and_(
-                        TaggedObject.object_id == Dashboard.id,
-                        TaggedObject.object_type == ObjectType.dashboard,
-                    ),
-                )
-                .join(Tag, TaggedObject.tag_id == Tag.id)
-                .filter(not tags or Tag.name.in_(tags))
-            )
-
-            results.extend(
-                {
-                    "id": obj.id,
-                    "type": ObjectType.dashboard.name,
-                    "name": obj.dashboard_title,
-                    "url": obj.url,
-                    "changed_on": obj.changed_on,
-                    "created_by": obj.created_by_fk,
-                    "creator": obj.creator(),
-                    "tags": obj.tags,
-                    "owners": obj.owners,
-                }
-                for obj in dashboards
-            )
-
-        # charts
-        if (not obj_types) or ("chart" in obj_types):
-            charts = (
-                db.session.query(Slice)
-                .join(
-                    TaggedObject,
-                    and_(
-                        TaggedObject.object_id == Slice.id,
-                        TaggedObject.object_type == ObjectType.chart,
-                    ),
-                )
-                .join(Tag, TaggedObject.tag_id == Tag.id)
-                .filter(not tags or Tag.name.in_(tags))
-            )
-            results.extend(
-                {
-                    "id": obj.id,
-                    "type": ObjectType.chart.name,
-                    "name": obj.slice_name,
-                    "url": obj.url,
-                    "changed_on": obj.changed_on,
-                    "created_by": obj.created_by_fk,
-                    "creator": obj.creator(),
-                    "tags": obj.tags,
-                    "owners": obj.owners,
-                }
-                for obj in charts
-            )
-
-        # saved queries
-        if (not obj_types) or ("query" in obj_types):
-            saved_queries = (
-                db.session.query(SavedQuery)
-                .join(
-                    TaggedObject,
-                    and_(
-                        TaggedObject.object_id == SavedQuery.id,
-                        TaggedObject.object_type == ObjectType.query,
-                    ),
-                )
-                .join(Tag, TaggedObject.tag_id == Tag.id)
-                .filter(not tags or Tag.name.in_(tags))
-            )
-            results.extend(
-                {
-                    "id": obj.id,
-                    "type": ObjectType.query.name,
-                    "name": obj.label,
-                    "url": obj.url(),
-                    "changed_on": obj.changed_on,
-                    "created_by": obj.created_by_fk,
-                    "creator": obj.creator(),
-                    "tags": obj.tags,
-                    "owners": [obj.creator()],
-                }
-                for obj in saved_queries
-            )
-        return results
+        tag_ids = [tag.id for tag in tags]
+        return TagDAO.get_tagged_objects_by_tag_ids(tag_ids, obj_types)
 
     @staticmethod
     def favorite_tag_by_id_for_current_user(  # pylint: disable=invalid-name

@@ -18,23 +18,23 @@
  */
 import { useCallback, useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
+import { t } from '@apache-superset/core';
 import {
   Column,
   ensureIsArray,
-  t,
   useChangeEffect,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { Select, FormInstance } from 'src/components';
+import { type FormInstance, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
-import { NativeFiltersForm } from '../types';
+import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 
 interface ColumnSelectProps {
   allowClear?: boolean;
   filterValues?: (column: Column) => boolean;
   form: FormInstance<NativeFiltersForm>;
-  formField?: string;
+  formField?: keyof NativeFiltersFormItem;
   filterId: string;
   datasetId?: number;
   value?: string | string[];
@@ -99,6 +99,7 @@ export function ColumnSelect({
             'columns.column_name',
             'columns.is_dttm',
             'columns.type_generic',
+            'columns.filterable',
           ],
         })}`,
       })

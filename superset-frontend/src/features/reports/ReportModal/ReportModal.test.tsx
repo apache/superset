@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
 import * as actions from 'src/features/reports/ReportModal/actions';
 import ReportModal from '.';
@@ -53,6 +57,7 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Email Report Modal', () => {
   beforeEach(() => {
     mockedIsFeatureEnabled.mockImplementation(
@@ -61,7 +66,7 @@ describe('Email Report Modal', () => {
     render(<ReportModal {...defaultProps} />, { useRedux: true });
   });
 
-  it('inputs respond correctly', () => {
+  test('inputs respond correctly', () => {
     // ----- Report name textbox
     // Initial value
     const reportNameTextbox = screen.getByTestId('report-name-test');
@@ -88,7 +93,7 @@ describe('Email Report Modal', () => {
     expect(crontabInputs).toHaveLength(5);
   });
 
-  it('does not allow user to create a report without a name', () => {
+  test('does not allow user to create a report without a name', () => {
     // Grab name textbox and add button
     const reportNameTextbox = screen.getByTestId('report-name-test');
     const addButton = screen.getByRole('button', { name: /add/i });
@@ -105,6 +110,7 @@ describe('Email Report Modal', () => {
     expect(addButton).toBeDisabled();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Email Report Modal', () => {
     let dispatch: any;
 
@@ -112,7 +118,7 @@ describe('Email Report Modal', () => {
       dispatch = sinon.spy();
     });
 
-    it('creates a new email report', async () => {
+    test('creates a new email report', async () => {
       // ---------- Render/value setup ----------
       const reportValues = {
         id: 1,

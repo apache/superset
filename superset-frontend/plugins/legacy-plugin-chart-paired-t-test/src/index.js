@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
+import example from './images/example.jpg';
+import exampleDark from './images/example-dark.jpg';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -26,9 +30,11 @@ const metadata = new ChartMetadata({
   description: t(
     'Table that visualizes paired t-tests, which are used to understand statistical differences between groups.',
   ),
+  exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('Paired t-test Table'),
   tags: [t('Legacy'), t('Statistical'), t('Tabular')],
   thumbnail,
+  thumbnailDark,
   useLegacyApi: true,
 });
 

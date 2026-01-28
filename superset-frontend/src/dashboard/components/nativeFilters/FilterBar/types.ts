@@ -23,6 +23,8 @@ import {
   DataMaskStateWithId,
   Divider,
   Filter,
+  ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 
@@ -31,11 +33,18 @@ interface CommonFiltersBarProps {
   canEdit: boolean;
   dataMaskSelected: DataMaskStateWithId;
   filterValues: (Filter | Divider)[];
+  chartCustomizationValues: (ChartCustomization | ChartCustomizationDivider)[];
   isInitialized: boolean;
   onSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMask>,
   ) => void;
+  onPendingCustomizationDataMaskChange: (
+    customizationId: string,
+    dataMask: DataMask,
+  ) => void;
+  clearAllTriggers?: Record<string, boolean>;
+  onClearAllComplete?: (filterId: string) => void;
 }
 
 interface VerticalBarConfig {

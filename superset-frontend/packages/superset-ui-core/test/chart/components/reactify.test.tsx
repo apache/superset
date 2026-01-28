@@ -17,10 +17,11 @@
  * under the License.
  */
 
+import '@testing-library/jest-dom';
 import PropTypes from 'prop-types';
 import { PureComponent } from 'react';
-import { mount } from 'enzyme';
 import { reactify } from '@superset-ui/core';
+import { render, screen } from '@testing-library/react';
 import { RenderFuncType } from '../../../src/chart/components/reactify';
 
 describe('reactify(renderFn)', () => {
@@ -78,14 +79,18 @@ describe('reactify(renderFn)', () => {
 
   it('returns a React component class', () =>
     new Promise(done => {
-      const wrapper = mount(<TestComponent />);
+      render(<TestComponent />);
 
       expect(renderFn).toHaveBeenCalledTimes(1);
-      expect(wrapper.html()).toEqual('<div id="test"><b>abc</b></div>');
+      expect(screen.getByText('abc')).toBeInTheDocument();
+      expect(screen.getByText('abc').parentNode).toHaveAttribute('id', 'test');
       setTimeout(() => {
         expect(renderFn).toHaveBeenCalledTimes(2);
-        expect(wrapper.html()).toEqual('<div id="test"><b>def</b></div>');
-        wrapper.unmount();
+        expect(screen.getByText('def')).toBeInTheDocument();
+        expect(screen.getByText('def').parentNode).toHaveAttribute(
+          'id',
+          'test',
+        );
         done(undefined);
       }, 20);
     }));
@@ -101,26 +106,20 @@ describe('reactify(renderFn)', () => {
   describe('propTypes', () => {
     it('has propTypes if renderFn.propTypes is defined', () => {
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
-      expect(Object.keys(TheChart.propTypes ?? {})).toEqual([
-        'id',
-        'className',
-        'content',
-      ]);
+      expect(Object.keys(TheChart.propTypes ?? {})).toEqual(['content']);
     });
     it('does not have propTypes if renderFn.propTypes is not defined', () => {
       const AnotherChart = reactify(() => {});
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
-      expect(Object.keys(AnotherChart.propTypes ?? {})).toEqual([
-        'id',
-        'className',
-      ]);
+      expect(Object.keys(AnotherChart.propTypes ?? {})).toEqual([]);
     });
   });
   describe('defaultProps', () => {
     it('has defaultProps if renderFn.defaultProps is defined', () => {
       expect(TheChart.defaultProps).toBe(renderFn.defaultProps);
-      const wrapper = mount(<TheChart id="test" />);
-      expect(wrapper.html()).toEqual('<div id="test"><b>ghi</b></div>');
+      render(<TheChart id="test" />);
+      expect(screen.getByText('ghi')).toBeInTheDocument();
+      expect(screen.getByText('ghi').parentNode).toHaveAttribute('id', 'test');
     });
     it('does not have defaultProps if renderFn.defaultProps is not defined', () => {
       const AnotherChart = reactify(() => {});
@@ -136,9 +135,9 @@ describe('reactify(renderFn)', () => {
   });
   it('calls willUnmount hook when it is provided', () =>
     new Promise(done => {
-      const wrapper = mount(<AnotherTestComponent />);
+      const { unmount } = render(<AnotherTestComponent />);
       setTimeout(() => {
-        wrapper.unmount();
+        unmount();
         expect(willUnmountCb).toHaveBeenCalledTimes(1);
         done(undefined);
       }, 20);

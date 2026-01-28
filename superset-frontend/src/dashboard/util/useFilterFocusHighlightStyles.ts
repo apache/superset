@@ -17,13 +17,21 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { Filter, useTheme } from '@superset-ui/core';
+import { Filter, ChartCustomization } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
-
 import { RootState } from 'src/dashboard/types';
-import { getRelatedCharts } from './getRelatedCharts';
+import { useChartCustomizationFromRedux } from 'src/dashboard/components/nativeFilters/state';
+import {
+  getRelatedCharts,
+  getRelatedChartsForChartCustomization,
+} from './getRelatedCharts';
 
-const unfocusedChartStyles = { opacity: 0.3, pointerEvents: 'none' };
+const unfocusedChartStyles = {
+  opacity: 0.3,
+  pointerEvents: 'none' as const,
+};
+
 const EMPTY = {};
 
 const useFilterFocusHighlightStyles = (chartId: number) => {
@@ -31,34 +39,55 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
 
   const focusedChartStyles = useMemo(
     () => ({
-      borderColor: theme.colors.primary.light2,
+      borderColor: theme.colorPrimaryBorder,
       opacity: 1,
-      boxShadow: `0px 0px ${theme.gridUnit * 2}px ${theme.colors.primary.base}`,
+      boxShadow: `0px 0px ${theme.sizeUnit * 3}px ${theme.colorPrimary}`,
       pointerEvents: 'auto',
     }),
     [theme],
   );
 
   const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
-
   const slices =
     useSelector((state: RootState) => state.sliceEntities.slices) || {};
+  const chartCustomizationItems = useChartCustomizationFromRedux();
 
   const highlightedFilterId =
     nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
+  const highlightedChartCustomizationId = (nativeFilters as any)
+    ?.hoveredChartCustomizationId;
 
-  if (!highlightedFilterId) {
+  if (!highlightedFilterId && !highlightedChartCustomizationId) {
     return EMPTY;
   }
 
-  const relatedCharts = getRelatedCharts(
-    highlightedFilterId as string,
-    nativeFilters.filters[highlightedFilterId as string] as Filter,
-    slices,
-  );
+  if (highlightedFilterId) {
+    const relatedCharts = getRelatedCharts(
+      highlightedFilterId as string,
+      nativeFilters.filters[highlightedFilterId as string] as Filter,
+      slices,
+    );
 
-  if (highlightedFilterId && relatedCharts.includes(chartId)) {
-    return focusedChartStyles;
+    if (relatedCharts.includes(chartId)) {
+      return focusedChartStyles;
+    }
+  }
+
+  if (highlightedChartCustomizationId) {
+    const customizationItem = chartCustomizationItems.find(
+      item => item.id === highlightedChartCustomizationId,
+    );
+
+    if (customizationItem && 'targets' in customizationItem) {
+      const relatedCharts = getRelatedChartsForChartCustomization(
+        customizationItem as ChartCustomization,
+        slices,
+      );
+
+      if (relatedCharts.includes(chartId)) {
+        return focusedChartStyles;
+      }
+    }
   }
 
   // inline styles are used here due to a performance issue when adding/changing a class, which causes a reflow

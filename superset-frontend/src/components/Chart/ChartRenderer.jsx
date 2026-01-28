@@ -21,16 +21,16 @@ import PropTypes from 'prop-types';
 import { createRef, Component } from 'react';
 import {
   SuperChart,
-  logging,
   Behavior,
-  t,
   getChartMetadataRegistry,
   VizType,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
+import { t } from '@apache-superset/core/ui';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
@@ -64,6 +64,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
+  onChartStateChange: PropTypes.func,
 };
 
 const BLANK = {};
@@ -126,6 +127,10 @@ class ChartRenderer extends Component {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
       onLegendScroll: this.handleLegendScroll,
+<<<<<<< HEAD
+=======
+      onChartStateChange: this.props.onChartStateChange,
+>>>>>>> origin/master
     };
 
     // TODO: queriesResponse comes from Redux store but it's being edited by
@@ -151,6 +156,23 @@ class ChartRenderer extends Component {
         this.mutableQueriesResponse = cloneDeep(nextProps.queriesResponse);
       }
 
+      // Check if any matrixify-related properties have changed
+      const hasMatrixifyChanges = () => {
+        const isMatrixifyEnabled =
+          nextProps.formData.matrixify_enable_vertical_layout === true ||
+          nextProps.formData.matrixify_enable_horizontal_layout === true;
+        if (!isMatrixifyEnabled) return false;
+
+        // Check all matrixify-related properties
+        const matrixifyKeys = Object.keys(nextProps.formData).filter(key =>
+          key.startsWith('matrixify_'),
+        );
+
+        return matrixifyKeys.some(
+          key => !isEqual(nextProps.formData[key], this.props.formData[key]),
+        );
+      };
+
       return (
         this.hasQueryResponseChange ||
         !isEqual(nextProps.datasource, this.props.datasource) ||
@@ -164,8 +186,12 @@ class ChartRenderer extends Component {
         nextProps.labelsColorMap !== this.props.labelsColorMap ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.formData.stack !== this.props.formData.stack ||
+        nextProps.formData.subcategories !==
+          this.props.formData.subcategories ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
-        nextProps.emitCrossFilters !== this.props.emitCrossFilters
+        nextProps.emitCrossFilters !== this.props.emitCrossFilters ||
+        nextProps.postTransformProps !== this.props.postTransformProps ||
+        hasMatrixifyChanges()
       );
     }
     return false;
@@ -323,7 +349,7 @@ class ChartRenderer extends Component {
       );
     } else {
       noResultsComponent = (
-        <EmptyState size="small" title={noResultTitle} image={noResultImage} />
+        <EmptyState title={noResultTitle} image={noResultImage} size="small" />
       );
     }
 
@@ -334,6 +360,18 @@ class ChartRenderer extends Component {
       ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
       ? { inContextMenu: this.state.inContextMenu }
       : {};
+    // By pass no result component when server pagination is enabled & the table has:
+    // - a backend search query, OR
+    // - non-empty AG Grid filter model
+    const hasSearchText = (ownState?.searchText?.length || 0) > 0;
+    const hasAgGridFilters =
+      ownState?.agGridFilterModel &&
+      Object.keys(ownState.agGridFilterModel).length > 0;
+
+    const bypassNoResult = !(
+      formData?.server_pagination &&
+      (hasSearchText || hasAgGridFilters)
+    );
 
     return (
       <>
@@ -374,6 +412,10 @@ class ChartRenderer extends Component {
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
+<<<<<<< HEAD
+=======
+            enableNoResults={bypassNoResult}
+>>>>>>> origin/master
             legendIndex={this.state.legendIndex}
             {...drillToDetailProps}
           />

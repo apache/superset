@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from flask import current_app, g
+from flask import current_app as app, g
 from sqlalchemy import Column, text, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -39,18 +39,15 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
-from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
-    # prevent circular imports
-
     from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
@@ -69,7 +66,7 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     import boto3  # pylint: disable=all
     from boto3.s3.transfer import TransferConfig  # pylint: disable=all
 
-    bucket_path = current_app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
+    bucket_path = app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
 
     if not bucket_path:
         logger.info("No upload bucket specified")
@@ -98,6 +95,23 @@ class HiveEngineSpec(PrestoEngineSpec):
     allows_hidden_orderby_agg = False
 
     supports_dynamic_schema = True
+    supports_cross_catalog_queries = False
+
+    metadata = {
+        "description": (
+            "Apache Hive is a data warehouse infrastructure built on Hadoop."
+        ),
+        "logo": "apache-hive.svg",
+        "homepage_url": "https://hive.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pyhive"],
+        "connection_string": "hive://hive@{hostname}:{port}/{database}",
+        "default_port": 10000,
+    }
 
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?
@@ -226,7 +240,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
 
         with tempfile.NamedTemporaryFile(
-            dir=current_app.config["UPLOAD_FOLDER"], suffix=".parquet"
+            dir=app.config["UPLOAD_FOLDER"], suffix=".parquet"
         ) as file:
             pq.write_table(pa.Table.from_pandas(df), where=file.name)
 
@@ -245,9 +259,9 @@ class HiveEngineSpec(PrestoEngineSpec):
                     ),
                     location=upload_to_s3(
                         filename=file.name,
-                        upload_prefix=current_app.config[
-                            "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                        ](database, g.user, table.schema),
+                        upload_prefix=app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
+                            database, g.user, table.schema
+                        ),
                         table=table,
                     ),
                 )
@@ -261,8 +275,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if isinstance(sqla_type, types.TIMESTAMP):
-            return f"""CAST('{dttm
-                .isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""
+            return f"""CAST('{
+                dttm.isoformat(sep=" ", timespec="microseconds")
+            }' AS TIMESTAMP)"""
         return None
 
     @classmethod
@@ -402,12 +417,13 @@ class HiveEngineSpec(PrestoEngineSpec):
                     last_log_line = len(log_lines)
                 if needs_commit:
                     db.session.commit()  # pylint: disable=consider-using-transaction
-            if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
+            if sleep_interval := app.config.get("HIVE_POLL_INTERVAL"):
                 logger.warning(
-                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"  # noqa: E501
+                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. "
+                    "Please use DB_POLL_INTERVAL_SECONDS instead"
                 )
             else:
-                sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
+                sleep_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )
             time.sleep(sleep_interval)
@@ -499,6 +515,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         latest_partition: bool = True,
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
+        # remove catalog from table name if it exists
+        table = Table(table.table, table.schema, None)
+
         return super(PrestoEngineSpec, cls).select_star(
             database,
             table,
@@ -511,53 +530,25 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
 
     @classmethod
-    def get_url_for_impersonation(
-        cls,
-        url: URL,
-        impersonate_user: bool,
-        username: str | None,
-        access_token: str | None,
-    ) -> URL:
-        """
-        Return a modified URL with the username set.
-
-        :param url: SQLAlchemy URL object
-        :param impersonate_user: Flag indicating if impersonation is enabled
-        :param username: Effective username
-        """
-        # Do nothing in the URL object since instead this should modify
-        # the configuration dictionary. See get_configuration_for_impersonation
-        return url
-
-    @classmethod
-    def update_impersonation_config(  # pylint: disable=too-many-arguments
+    def impersonate_user(
         cls,
         database: Database,
-        connect_args: dict[str, Any],
-        uri: str,
         username: str | None,
-        access_token: str | None,
-    ) -> None:
-        """
-        Update a configuration dictionary
-        that can set the correct properties for impersonating users
-        :param database: the Database Object
-        :param connect_args:
-        :param uri: URI string
-        :param impersonate_user: Flag indicating if impersonation is enabled
-        :param username: Effective username
-        :return: None
-        """
-        url = make_url_safe(uri)
-        backend_name = url.get_backend_name()
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        if username is None:
+            return url, engine_kwargs
 
-        # Must be Hive connection, enable impersonation, and set optional param
-        # auth=LDAP|KERBEROS
-        # this will set hive.server2.proxy.user=$effective_username on connect_args['configuration']  # noqa: E501
-        if backend_name == "hive" and username is not None:
+        backend_name = url.get_backend_name()
+        connect_args = engine_kwargs.setdefault("connect_args", {})
+        if backend_name == "hive":
             configuration = connect_args.get("configuration", {})
             configuration["hive.server2.proxy.user"] = username
             connect_args["configuration"] = configuration
+
+        return url, engine_kwargs
 
     @staticmethod
     def execute(  # type: ignore

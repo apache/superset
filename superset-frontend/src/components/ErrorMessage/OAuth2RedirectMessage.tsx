@@ -25,10 +25,11 @@ import { RootState } from 'src/dashboard/types';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
-import { QueryResponse, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { QueryResponse } from '@superset-ui/core';
 
-import { ErrorMessageComponentProps } from './types';
-import ErrorAlert from './ErrorAlert';
+import type { ErrorMessageComponentProps } from './types';
+import { ErrorAlert } from './ErrorAlert';
 
 interface OAuth2RedirectExtra {
   url: string;
@@ -59,7 +60,7 @@ interface OAuth2RedirectExtra {
  * by the backend and sent from the opened tab to the original tab. For extra security,
  * we also check that the source of the message is the opened tab via a ref.
  */
-function OAuth2RedirectMessage({
+export function OAuth2RedirectMessage({
   error,
   source,
 }: ErrorMessageComponentProps<OAuth2RedirectExtra>) {
@@ -175,5 +176,3 @@ function OAuth2RedirectMessage({
     />
   );
 }
-
-export default OAuth2RedirectMessage;

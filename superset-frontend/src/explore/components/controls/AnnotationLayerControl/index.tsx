@@ -16,26 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { List } from 'src/components/List';
 import { connect } from 'react-redux';
 import { PureComponent } from 'react';
+import { t } from '@apache-superset/core';
 import {
   HandlerFunction,
   JsonObject,
   Payload,
   QueryFormData,
-  SupersetTheme,
-  t,
-  withTheme,
 } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { SupersetTheme, withTheme } from '@apache-superset/core/ui';
+import {
+  AsyncEsmComponent,
+  List,
+  InfoTooltip,
+} from '@superset-ui/core/components';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ControlPopover, {
   getSectionContainerElement,
 } from '../ControlPopover/ControlPopover';
@@ -104,17 +106,23 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
     AnnotationLayer.preload();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    const { name, annotationError, validationErrors, value } = nextProps;
-    if (Object.keys(annotationError).length && !validationErrors.length) {
-      this.props.actions.setControlValue(
-        name,
-        value,
-        Object.keys(annotationError),
-      );
-    }
-    if (!Object.keys(annotationError).length && validationErrors.length) {
-      this.props.actions.setControlValue(name, value, []);
+  componentDidUpdate(prevProps: Props) {
+    const { name, annotationError, validationErrors, value } = this.props;
+    if (
+      (Object.keys(annotationError).length && !validationErrors.length) ||
+      (!Object.keys(annotationError).length && validationErrors.length)
+    ) {
+      if (
+        annotationError !== prevProps.annotationError ||
+        validationErrors !== prevProps.validationErrors ||
+        value !== prevProps.value
+      ) {
+        this.props.actions.setControlValue(
+          name,
+          value,
+          Object.keys(annotationError),
+        );
+      }
     }
   }
 
@@ -186,25 +194,19 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
   renderInfo(anno: Annotation) {
     const { annotationError, annotationQuery, theme } = this.props;
     if (annotationQuery[anno.name]) {
-      return (
-        <i
-          className="fa fa-refresh"
-          style={{ color: theme.colors.primary.base }}
-          aria-hidden
-        />
-      );
+      return <Icons.SyncOutlined iconColor={theme.colorPrimary} iconSize="m" />;
     }
     if (annotationError[anno.name]) {
       return (
-        <InfoTooltipWithTrigger
+        <InfoTooltip
           label="validation-errors"
-          bsStyle="danger"
+          type="error"
           tooltip={annotationError[anno.name]}
         />
       );
     }
     if (!anno.show) {
-      return <span style={{ color: theme.colors.error.base }}> Hidden </span>;
+      return <span style={{ color: theme.colorError }}> Hidden </span>;
     }
     return '';
   }
@@ -223,7 +225,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
         css={theme => ({
           '&:hover': {
             cursor: 'pointer',
-            backgroundColor: theme.colors.grayscale.light4,
+            backgroundColor: theme.colorFillContentHover,
           },
         })}
         content={this.renderPopover(
@@ -231,8 +233,8 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
           anno,
           this.props.annotationError[anno.name],
         )}
-        visible={this.state.popoverVisible[i]}
-        onVisibleChange={visible => this.handleVisibleChange(visible, i)}
+        open={this.state.popoverVisible[i]}
+        onOpenChange={visible => this.handleVisibleChange(visible, i)}
       >
         <CustomListItem selectable>
           <span>{anno.name}</span>
@@ -244,7 +246,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
     return (
       <div>
-        <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
+        <List bordered css={theme => ({ borderRadius: theme.borderRadius })}>
           {annotations}
           <ControlPopover
             trigger="click"
@@ -254,18 +256,18 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
               '',
             )}
             title={t('Add annotation layer')}
-            visible={this.state.popoverVisible[addLayerPopoverKey]}
+            open={this.state.popoverVisible[addLayerPopoverKey]}
             destroyTooltipOnHide
-            onVisibleChange={visible =>
+            onOpenChange={visible =>
               this.handleVisibleChange(visible, addLayerPopoverKey)
             }
           >
             <CustomListItem selectable>
-              <i
+              <Icons.PlusOutlined
+                iconSize="m"
                 data-test="add-annotation-layer-button"
-                className="fa fa-plus"
-              />{' '}
-              &nbsp; {t('Add annotation layer')}
+              />
+              {t('Add annotation layer')}
             </CustomListItem>
           </ControlPopover>
         </List>

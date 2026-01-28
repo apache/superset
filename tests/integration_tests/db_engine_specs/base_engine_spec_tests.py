@@ -25,28 +25,27 @@ from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
     builtin_time_grains,
-    LimitMethod,
 )
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.database import get_example_database
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 
-from ..fixtures.birth_names_dashboard import (
+from ..fixtures.birth_names_dashboard import (  # noqa: TID252
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
-from ..fixtures.energy_dashboard import (
+from ..fixtures.energy_dashboard import (  # noqa: TID252
     load_energy_table_data,  # noqa: F401
     load_energy_table_with_slice,  # noqa: F401
 )
-from ..fixtures.pyodbcRow import Row
+from ..fixtures.pyodbcRow import Row  # noqa: TID252
 
 
-class TestDbEngineSpecs(TestDbEngineSpec):
+class SupersetTestCases(SupersetTestCase):
     def test_extract_limit_from_query(self, engine_spec_class=BaseEngineSpec):
         q0 = "select * from table"
         q1 = "select * from mytable limit 10"
@@ -74,123 +73,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         assert engine_spec_class.get_limit_from_sql(q10) is None
         assert engine_spec_class.get_limit_from_sql(q11) is None
 
-    def test_wrapped_semi_tabs(self):
-        self.sql_limit_regex(
-            "SELECT * FROM a  \t \n   ; \t  \n  ", "SELECT * FROM a\nLIMIT 1000"
-        )
-
-    def test_simple_limit_query(self):
-        self.sql_limit_regex("SELECT * FROM a", "SELECT * FROM a\nLIMIT 1000")
-
-    def test_modify_limit_query(self):
-        self.sql_limit_regex("SELECT * FROM a LIMIT 9999", "SELECT * FROM a LIMIT 1000")
-
-    def test_limit_query_with_limit_subquery(self):  # pylint: disable=invalid-name
-        self.sql_limit_regex(
-            "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 9999",
-            "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 1000",
-        )
-
-    def test_limit_query_without_force(self):
-        self.sql_limit_regex(
-            "SELECT * FROM a LIMIT 10",
-            "SELECT * FROM a LIMIT 10",
-            limit=11,
-        )
-
-    def test_limit_query_with_force(self):
-        self.sql_limit_regex(
-            "SELECT * FROM a LIMIT 10",
-            "SELECT * FROM a LIMIT 11",
-            limit=11,
-            force=True,
-        )
-
-    def test_limit_with_expr(self):
-        self.sql_limit_regex(
-            """
-            SELECT
-                'LIMIT 777' AS a
-                , b
-            FROM
-            table
-            LIMIT 99990""",
-            """SELECT
-                'LIMIT 777' AS a
-                , b
-            FROM
-            table
-            LIMIT 1000""",
-        )
-
-    def test_limit_expr_and_semicolon(self):
-        self.sql_limit_regex(
-            """
-                SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT         99990            ;""",
-            """SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT         1000""",
-        )
-
     def test_get_datatype(self):
         assert "VARCHAR" == BaseEngineSpec.get_datatype("VARCHAR")
-
-    def test_limit_with_implicit_offset(self):
-        self.sql_limit_regex(
-            """
-                SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT 99990, 999999""",
-            """SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT 99990, 1000""",
-        )
-
-    def test_limit_with_explicit_offset(self):
-        self.sql_limit_regex(
-            """
-                SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT 99990
-                OFFSET 999999""",
-            """SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT 1000
-                OFFSET 999999""",
-        )
-
-    def test_limit_with_non_token_limit(self):
-        self.sql_limit_regex(
-            """SELECT 'LIMIT 777'""", """SELECT 'LIMIT 777'\nLIMIT 1000"""
-        )
-
-    def test_limit_with_fetch_many(self):
-        class DummyEngineSpec(BaseEngineSpec):
-            limit_method = LimitMethod.FETCH_MANY
-
-        self.sql_limit_regex(
-            "SELECT * FROM table", "SELECT * FROM table", DummyEngineSpec
-        )
 
     def test_engine_time_grain_validity(self):
         time_grains = set(builtin_time_grains.keys())
@@ -231,6 +115,10 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             database=mock.ANY, schema="schema", inspector=inspector
         )
         assert base_result_expected == base_result
+
+    def test_get_column_description_limit_size(self):
+        base_result = BaseEngineSpec.get_column_description_limit_size()
+        assert base_result == 1
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):
@@ -432,8 +320,7 @@ def test_validate_parameters_missing():
         assert errors == [
             SupersetError(
                 message=(
-                    "One or more parameters are missing: "
-                    "database, host, port, username"
+                    "One or more parameters are missing: database, host, port, username"
                 ),
                 error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                 level=ErrorLevel.WARNING,

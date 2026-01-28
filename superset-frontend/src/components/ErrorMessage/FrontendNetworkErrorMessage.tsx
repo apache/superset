@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 
-import { ErrorMessageComponentProps } from './types';
-import ErrorAlert from './ErrorAlert';
+import type { ErrorMessageComponentProps } from './types';
+import { ErrorAlert } from './ErrorAlert';
 
-function FrontendNetworkErrorMessage({
+export function FrontendNetworkErrorMessage({
   error,
   subtitle,
   compact,
@@ -36,4 +36,3 @@ function FrontendNetworkErrorMessage({
     />
   );
 }
-export default FrontendNetworkErrorMessage;

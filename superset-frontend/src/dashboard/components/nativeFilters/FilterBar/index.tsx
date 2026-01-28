@@ -33,28 +33,41 @@ import {
   DataMaskStateWithId,
   DataMaskWithId,
   Filter,
+  Divider,
   DataMask,
-  SLOW_DEBOUNCE,
   isNativeFilter,
   usePrevious,
-  styled,
+  NativeFilterTarget,
+  ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
-import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
+import { updateDataMask, removeDataMask } from 'src/dataMask/actions';
+import {
+  saveChartCustomization,
+  clearAllPendingChartCustomizations,
+  clearAllChartCustomizationsFromMetadata,
+} from 'src/dashboard/actions/chartCustomizationActions';
+
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { isChartCustomization } from '../FiltersConfigModal/utils';
 import { checkIsApplyDisabled } from './utils';
+import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
 import {
-  useNativeFiltersDataMask,
+  useAllAppliedDataMask,
   useFilters,
   useFilterUpdates,
   useInitialization,
@@ -63,7 +76,10 @@ import { createFilterKey, updateFilterKey } from './keyValue';
 import ActionButtons from './ActionButtons';
 import Horizontal from './Horizontal';
 import Vertical from './Vertical';
-import { useSelectFiltersInScope } from '../state';
+import {
+  useSelectFiltersInScope,
+  useChartCustomizationConfiguration,
+} from '../state';
 
 // FilterBar is just being hidden as it must still
 // render fully due to encapsulated logics
@@ -75,6 +91,8 @@ const EXCLUDED_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFilters.name,
   URL_PARAMS.permalinkKey.name,
 ];
+
+const EMPTY_DATA_MASK_RECORD: Record<string, DataMask> = {};
 
 const publishDataMask = debounce(
   async (
@@ -97,6 +115,7 @@ const publishDataMask = debounce(
 
     const nativeFiltersCacheKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
     const dataMask = JSON.stringify(dataMaskSelected);
+
     if (
       updateKey &&
       nativeFiltersCacheKey &&
@@ -120,13 +139,22 @@ const publishDataMask = debounce(
     // replace params only when current page is /superset/dashboard
     // this prevents a race condition between updating filters and navigating to Explore
     if (window.location.pathname.includes('/superset/dashboard')) {
-      history.location.pathname = window.location.pathname;
+      // The history API is part of React router and understands that a basename may exist.
+      // Internally it treats all paths as if they are relative to the root and appends
+      // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
+      // double it up.
+      const appRoot = applicationRoot();
+      let replacement_pathname = window.location.pathname;
+      if (appRoot !== '/' && replacement_pathname.startsWith(appRoot)) {
+        replacement_pathname = replacement_pathname.substring(appRoot.length);
+      }
+      history.location.pathname = replacement_pathname;
       history.replace({
         search: newParams.toString(),
       });
     }
   },
-  SLOW_DEBOUNCE,
+  Constants.SLOW_DEBOUNCE,
 );
 
 const FilterBar: FC<FiltersBarProps> = ({
@@ -135,15 +163,22 @@ const FilterBar: FC<FiltersBarProps> = ({
   hidden = false,
 }) => {
   const history = useHistory();
-  const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
+  const dataMaskApplied: DataMaskStateWithId = useAllAppliedDataMask();
+
   const [dataMaskSelected, setDataMaskSelected] =
     useImmer<DataMaskStateWithId>(dataMaskApplied);
+  const [pendingCustomizationDataMasks, setPendingCustomizationDataMasks] =
+    useState<Record<string, DataMask>>(EMPTY_DATA_MASK_RECORD);
+  const chartCustomizationValues = useChartCustomizationConfiguration();
   const dispatch = useDispatch();
   const [updateKey, setUpdateKey] = useState(0);
   const tabId = useTabId();
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
-  const filterValues = useMemo(() => Object.values(filters), [filters]);
+  const filterValues = useMemo(
+    () => Object.values(filters) as (Filter | Divider)[],
+    [filters],
+  );
   const nativeFilterValues = useMemo(
     () => filterValues.filter(isNativeFilter),
     [filterValues],
@@ -161,6 +196,14 @@ const FilterBar: FC<FiltersBarProps> = ({
   >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
+  const [clearAllTriggers, setClearAllTriggers] = useState<
+    Record<string, boolean>
+  >({});
+  const [initializedFilters, setInitializedFilters] = useState<Set<string>>(
+    new Set(),
+  );
+  const [hasClearedChartCustomizations, setHasClearedChartCustomizations] =
+    useState(false);
 
   const dataMaskSelectedRef = useRef(dataMaskSelected);
   dataMaskSelectedRef.current = dataMaskSelected;
@@ -170,23 +213,78 @@ const FilterBar: FC<FiltersBarProps> = ({
       dataMask: Partial<DataMask>,
     ) => {
       setDataMaskSelected(draft => {
-        // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
-        if (
-          // filterState.value === undefined - means that value not initialized
+        const appliedDataMask = dataMaskApplied[filter.id];
+        const isFirstTimeInitialization = !initializedFilters.has(filter.id);
+
+        // Auto-apply when filter has value but empty extraFormData in applied state
+        // This fixes the bug where defaultDataMask.filterState.value exists but extraFormData is empty
+        // Only auto-apply if: value matches what's applied AND extraFormData is missing in applied but present in incoming
+        const needsAutoApply =
+          appliedDataMask?.filterState?.value !== undefined &&
           dataMask.filterState?.value !== undefined &&
-          dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
-            undefined &&
-          filter.requiredFirst
-        ) {
+          isEqual(
+            appliedDataMask.filterState.value,
+            dataMask.filterState.value,
+          ) &&
+          (!appliedDataMask?.extraFormData ||
+            Object.keys(appliedDataMask.extraFormData || {}).length === 0) &&
+          dataMask.extraFormData &&
+          Object.keys(dataMask.extraFormData).length > 0;
+
+        // Force instant updating for requiredFirst filters or auto-apply when needed
+        const shouldDispatch =
+          dataMask.filterState?.value !== undefined &&
+          ((isFirstTimeInitialization && filter.requiredFirst) ||
+            needsAutoApply);
+
+        if (shouldDispatch) {
           dispatch(updateDataMask(filter.id, dataMask));
         }
-        draft[filter.id] = {
+
+        // Mark filter as initialized after getting its first value WITH extraFormData
+        // This ensures we don't mark it as initialized on the first sync (value but no extraFormData)
+        // but do mark it after the second sync (value AND extraFormData)
+        if (
+          dataMask.filterState?.value !== undefined &&
+          dataMask.extraFormData &&
+          Object.keys(dataMask.extraFormData).length > 0 &&
+          !initializedFilters.has(filter.id)
+        ) {
+          setInitializedFilters(prev => new Set(prev).add(filter.id));
+        }
+
+        const baseDataMask = {
           ...(getInitialDataMask(filter.id) as DataMaskWithId),
           ...dataMask,
         };
+
+        // Recalculate validation status
+        const isRequired = !!filter.controlValues?.enableEmptyFilter;
+        const value = baseDataMask.filterState?.value;
+
+        const isEmptyValue =
+          value == null ||
+          (Array.isArray(value) && value.length === 0) ||
+          (typeof value === 'string' && value.trim() === '');
+
+        const hasRequiredValue = isRequired && isEmptyValue;
+
+        draft[filter.id] = {
+          ...baseDataMask,
+          filterState: {
+            ...baseDataMask.filterState,
+            validateStatus: hasRequiredValue ? 'error' : undefined,
+          },
+        };
       });
     },
-    [dispatch, setDataMaskSelected],
+    [
+      dispatch,
+      setDataMaskSelected,
+      initializedFilters,
+      setInitializedFilters,
+      dataMaskApplied,
+    ],
   );
 
   useEffect(() => {
@@ -224,7 +322,7 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   useEffect(() => {
     setDataMaskSelected(() => dataMaskApplied);
-  }, [dataMaskAppliedText, setDataMaskSelected]);
+  }, [dataMaskAppliedText, setDataMaskSelected, dashboardId]);
 
   useEffect(() => {
     // embedded users can't persist filter combinations
@@ -234,45 +332,180 @@ const FilterBar: FC<FiltersBarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
 
+  const pendingChartCustomizations = useSelector<
+    RootState,
+    Record<string, ChartCustomization> | undefined
+  >(state => state.dashboardInfo.pendingChartCustomizations);
+
+  const handlePendingCustomizationDataMaskChange = useCallback(
+    (customizationId: string, dataMask: DataMask) => {
+      setPendingCustomizationDataMasks(prev => ({
+        ...prev,
+        [customizationId]: dataMask,
+      }));
+    },
+    [],
+  );
+
   const handleApply = useCallback(() => {
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
-    const filterIds = Object.keys(dataMaskSelected);
     setUpdateKey(1);
-    filterIds.forEach(filterId => {
-      if (dataMaskSelected[filterId]) {
-        dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
+
+    Object.entries(dataMaskSelected).forEach(([filterId, dataMask]) => {
+      if (dataMask) {
+        dispatch(updateDataMask(filterId, dataMask));
       }
     });
-  }, [dataMaskSelected, dispatch]);
+
+    if (
+      pendingCustomizationDataMasks &&
+      Object.keys(pendingCustomizationDataMasks).length > 0
+    ) {
+      Object.entries(pendingCustomizationDataMasks).forEach(
+        ([customizationId, dataMask]) => {
+          const customizationFilterId = customizationId;
+          if (dataMask) {
+            dispatch(updateDataMask(customizationFilterId, dataMask));
+          }
+        },
+      );
+    }
+
+    if (
+      pendingChartCustomizations &&
+      Object.keys(pendingChartCustomizations).length > 0
+    ) {
+      const pendingItems = Object.values(pendingChartCustomizations).filter(
+        Boolean,
+      ) as (ChartCustomization | ChartCustomizationDivider)[];
+
+      if (pendingItems.length > 0) {
+        dispatch(saveChartCustomization(pendingItems, []));
+      }
+      dispatch(clearAllPendingChartCustomizations());
+      setPendingCustomizationDataMasks({});
+    } else if (hasClearedChartCustomizations) {
+      const clearedChartCustomizations = chartCustomizationValues.map(item => ({
+        ...item,
+        targets: [
+          {
+            datasetId: item.targets?.[0]?.datasetId,
+          },
+        ] as [Partial<NativeFilterTarget>],
+      }));
+
+      chartCustomizationValues.forEach(item => {
+        dispatch(removeDataMask(item.id));
+      });
+
+      dispatch(clearAllChartCustomizationsFromMetadata());
+
+      dispatch(saveChartCustomization(clearedChartCustomizations, []));
+    }
+
+    setHasClearedChartCustomizations(false);
+  }, [
+    dataMaskSelected,
+    dispatch,
+    pendingChartCustomizations,
+    pendingCustomizationDataMasks,
+    hasClearedChartCustomizations,
+    chartCustomizationValues,
+  ]);
 
   const handleClearAll = useCallback(() => {
-    const clearDataMaskIds: string[] = [];
-    let dispatchAllowed = false;
-    filtersInScope.filter(isNativeFilter).forEach(filter => {
+    const newClearAllTriggers = { ...clearAllTriggers };
+    nativeFilterValues.forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
-        if (filter.controlValues?.enableEmptyFilter) {
-          dispatchAllowed = false;
-        }
-        clearDataMaskIds.push(id);
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
             draft[id].filterState!.value = undefined;
           }
+          draft[id].extraFormData = {};
         });
+        newClearAllTriggers[id] = true;
       }
     });
-    if (dispatchAllowed) {
-      clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
+
+    const allDataMasks = { ...dataMaskSelected, ...dataMaskApplied };
+    const hasCustomizationDataMasks = Object.keys(allDataMasks).some(key =>
+      isChartCustomization(key),
+    );
+    const hasSavedCustomizations = chartCustomizationValues.some(item => {
+      if (item.removed) return false;
+      const mask = dataMaskApplied[item.id] || dataMaskSelected[item.id];
+      return extractLabel(mask?.filterState) !== null;
+    });
+
+    if (hasCustomizationDataMasks || hasSavedCustomizations) {
+      chartCustomizationValues.forEach(item => {
+        setDataMaskSelected(draft => {
+          draft[item.id] = {
+            id: item.id,
+            filterState: { value: null },
+            ownState: { column: null },
+            extraFormData: {},
+          };
+        });
+      });
+
+      dispatch(clearAllPendingChartCustomizations());
+      setPendingCustomizationDataMasks({});
+      setHasClearedChartCustomizations(true);
     }
-  }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
+
+    setClearAllTriggers(newClearAllTriggers);
+  }, [
+    dataMaskSelected,
+    dataMaskApplied,
+    nativeFilterValues,
+    setDataMaskSelected,
+    chartCustomizationValues,
+    clearAllTriggers,
+    dispatch,
+  ]);
+
+  const handleClearAllComplete = useCallback((filterId: string) => {
+    setClearAllTriggers(prev => {
+      const newTriggers = { ...prev };
+      delete newTriggers[filterId];
+      return newTriggers;
+    });
+  }, []);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
-  const isApplyDisabled = checkIsApplyDisabled(
+
+  const hasPendingChartCustomizations =
+    pendingChartCustomizations &&
+    Object.keys(pendingChartCustomizations).length > 0;
+
+  const hasMissingRequiredChartCustomization =
+    chartCustomizationValues?.some(item => {
+      if (item.removed) return false;
+
+      const required = !!item.controlValues?.enableEmptyFilter;
+      if (!required) return false;
+
+      const mask =
+        pendingCustomizationDataMasks?.[item.id] || dataMaskSelected[item.id];
+      const hasValue = extractLabel(mask?.filterState) !== null;
+
+      return !hasValue;
+    }) || false;
+
+  const checkResult = checkIsApplyDisabled(
     dataMaskSelected,
     dataMaskApplied,
     filtersInScope.filter(isNativeFilter),
   );
+
+  const isApplyDisabled =
+    (checkResult &&
+      !hasPendingChartCustomizations &&
+      !hasClearedChartCustomizations) ||
+    hasMissingRequiredChartCustomization;
+
   const isInitialized = useInitialization();
 
   const actions = useMemo(
@@ -285,6 +518,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         dataMaskSelected={dataMaskSelected}
         dataMaskApplied={dataMaskApplied}
         isApplyDisabled={isApplyDisabled}
+        chartCustomizationItems={chartCustomizationValues}
       />
     ),
     [
@@ -293,8 +527,9 @@ const FilterBar: FC<FiltersBarProps> = ({
       handleApply,
       handleClearAll,
       dataMaskSelected,
-      dataMaskAppliedText,
+      dataMaskApplied,
       isApplyDisabled,
+      chartCustomizationValues,
     ],
   );
 
@@ -306,8 +541,14 @@ const FilterBar: FC<FiltersBarProps> = ({
         dashboardId={dashboardId}
         dataMaskSelected={dataMaskSelected}
         filterValues={filterValues}
+        chartCustomizationValues={chartCustomizationValues}
         isInitialized={isInitialized}
         onSelectionChange={handleFilterSelectionChange}
+        onPendingCustomizationDataMaskChange={
+          handlePendingCustomizationDataMaskChange
+        }
+        clearAllTriggers={clearAllTriggers}
+        onClearAllComplete={handleClearAllComplete}
       />
     ) : verticalConfig ? (
       <Vertical
@@ -316,12 +557,18 @@ const FilterBar: FC<FiltersBarProps> = ({
         dataMaskSelected={dataMaskSelected}
         filtersOpen={verticalConfig.filtersOpen}
         filterValues={filterValues}
+        chartCustomizationValues={chartCustomizationValues}
         isInitialized={isInitialized}
         height={verticalConfig.height}
         offset={verticalConfig.offset}
         onSelectionChange={handleFilterSelectionChange}
+        onPendingCustomizationDataMaskChange={
+          handlePendingCustomizationDataMaskChange
+        }
         toggleFiltersBar={verticalConfig.toggleFiltersBar}
         width={verticalConfig.width}
+        clearAllTriggers={clearAllTriggers}
+        onClearAllComplete={handleClearAllComplete}
       />
     ) : null;
 

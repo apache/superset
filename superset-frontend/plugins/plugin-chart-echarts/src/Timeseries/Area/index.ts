@@ -16,16 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, AnnotationType, Behavior } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { AnnotationType, Behavior } from '@superset-ui/core';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
 } from '../types';
 import example1 from './images/Area1.png';
+import example1Dark from './images/Area1-dark.png';
 import { EchartsChartPlugin } from '../../types';
 
 const areaTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
@@ -54,7 +57,7 @@ export default class EchartsAreaChartPlugin extends EchartsChartPlugin<
         description: t(
           'Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.',
         ),
-        exampleGallery: [{ url: example1 }],
+        exampleGallery: [{ url: example1, urlDark: example1Dark }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,
@@ -73,6 +76,7 @@ export default class EchartsAreaChartPlugin extends EchartsChartPlugin<
           t('Featured'),
         ],
         thumbnail,
+        thumbnailDark,
       },
       transformProps: areaTransformProps,
     });

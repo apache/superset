@@ -17,9 +17,11 @@
  * under the License.
  */
 import { FC } from 'react';
-import { FormItem } from 'src/components/Form';
-import { Input, TextArea } from 'src/components/Input';
-import { NativeFilterType, styled, t } from '@superset-ui/core';
+import { FormItem, Input } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core';
+import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import { CHART_CUSTOMIZATION_DIVIDER_PREFIX } from './utils';
 
 interface Props {
   componentId: string;
@@ -30,35 +32,44 @@ interface Props {
 }
 const Container = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 4}px;
+    padding: ${theme.sizeUnit * 4}px;
   `}
 `;
 
-const DividerConfigForm: FC<Props> = ({ componentId, divider }) => (
-  <Container>
-    <FormItem
-      initialValue={divider ? divider.title : ''}
-      label={t('Title')}
-      name={['filters', componentId, 'title']}
-      rules={[
-        { required: true, message: t('Title is required'), whitespace: true },
-      ]}
-    >
-      <Input />
-    </FormItem>
-    <FormItem
-      initialValue={divider ? divider.description : ''}
-      label={t('Description')}
-      name={['filters', componentId, 'description']}
-    >
-      <TextArea rows={4} />
-    </FormItem>
-    <FormItem
-      hidden
-      name={['filters', componentId, 'type']}
-      initialValue={NativeFilterType.Divider}
-    />
-  </Container>
-);
+const DividerConfigForm: FC<Props> = ({ componentId, divider }) => {
+  const isChartCustomization = componentId.startsWith(
+    CHART_CUSTOMIZATION_DIVIDER_PREFIX,
+  );
+  const dividerType = isChartCustomization
+    ? ChartCustomizationType.Divider
+    : NativeFilterType.Divider;
+
+  return (
+    <Container>
+      <FormItem
+        initialValue={divider ? divider.title : ''}
+        label={t('Title')}
+        name={['filters', componentId, 'title']}
+        rules={[
+          { required: true, message: t('Title is required'), whitespace: true },
+        ]}
+      >
+        <Input />
+      </FormItem>
+      <FormItem
+        initialValue={divider ? divider.description : ''}
+        label={t('Description')}
+        name={['filters', componentId, 'description']}
+      >
+        <Input.TextArea rows={4} />
+      </FormItem>
+      <FormItem
+        hidden
+        name={['filters', componentId, 'type']}
+        initialValue={dividerType}
+      />
+    </Container>
+  );
+};
 
 export default DividerConfigForm;

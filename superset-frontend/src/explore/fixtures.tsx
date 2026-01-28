@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { DatasourceType, t, VizType } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { DatasourceType, VizType } from '@superset-ui/core';
 import {
   ColumnMeta,
   ColumnOption,
@@ -133,9 +134,11 @@ export const exploreInitialData: ExplorePageInitialData = {
     id: 8,
     type: DatasourceType.Table,
     columns: [{ column_name: 'a' }],
-    metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
+    metrics: [
+      { metric_name: 'first', uuid: '1' },
+      { metric_name: 'second', uuid: '2' },
+    ],
     column_formats: {},
-    currency_formats: {},
     verbose_map: {},
     main_dttm_col: '',
     datasource_name: '8__table',
@@ -154,12 +157,11 @@ export const fallbackExploreInitialData: ExplorePageInitialData = {
     columns: [],
     metrics: [],
     column_formats: {},
-    currency_formats: {},
     verbose_map: {},
     main_dttm_col: '',
     owners: [],
-    datasource_name: 'missing_datasource',
-    name: 'missing_datasource',
+    datasource_name: '',
+    name: '',
     description: null,
   },
   slice: null,

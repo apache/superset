@@ -22,7 +22,7 @@ from typing import Any, TYPE_CHECKING
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -31,6 +31,30 @@ if TYPE_CHECKING:
 class CrateEngineSpec(BaseEngineSpec):
     engine = "crate"
     engine_name = "CrateDB"
+
+    metadata = {
+        "description": (
+            "CrateDB is a distributed SQL database for machine data and IoT workloads."
+        ),
+        "logo": "cratedb.png",
+        "homepage_url": "https://crate.io/",
+        "categories": [DatabaseCategory.TIME_SERIES, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["crate", "sqlalchemy-cratedb"],
+        "connection_string": "crate://{host}:{port}",
+        "default_port": 4200,
+        "parameters": {
+            "host": "CrateDB host",
+            "port": "CrateDB HTTP port (default 4200)",
+        },
+        "drivers": [
+            {
+                "name": "crate",
+                "pypi_package": "crate[sqlalchemy]",
+                "connection_string": "crate://{host}:{port}",
+                "is_recommended": True,
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",

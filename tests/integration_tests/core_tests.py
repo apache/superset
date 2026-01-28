@@ -48,7 +48,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import core as utils, json
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
@@ -85,11 +85,9 @@ class TestCore(SupersetTestCase):
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
         }
-        self.original_unsafe_db_setting = app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]
 
     def tearDown(self):
         db.session.query(Query).delete()
-        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = self.original_unsafe_db_setting
         super().tearDown()
 
     def insert_dashboard_created_by(self, username: str) -> Dashboard:
@@ -108,19 +106,6 @@ class TestCore(SupersetTestCase):
         yield dashboard
         db.session.delete(dashboard)
         db.session.commit()
-
-    def test_login(self):
-        resp = self.get_resp("/login/", data=dict(username="admin", password="general"))  # noqa: S106, C408
-        assert "User confirmation needed" not in resp
-
-        resp = self.get_resp("/logout/", follow_redirects=True)
-        assert "User confirmation needed" in resp
-
-        resp = self.get_resp(
-            "/login/",
-            data=dict(username="admin", password="wrongPassword"),  # noqa: S106, C408
-        )
-        assert "User confirmation needed" in resp
 
     def test_dashboard_endpoint(self):
         self.login(ADMIN_USERNAME)
@@ -161,7 +146,7 @@ class TestCore(SupersetTestCase):
             role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
             assert_func("ResetPasswordView", view_menus)
-            assert_func("RoleModelView", view_menus)
+            assert_func("RoleRestAPI", view_menus)
             assert_func("Security", view_menus)
             assert_func("SQL Lab", view_menus)
 
@@ -257,7 +242,7 @@ class TestCore(SupersetTestCase):
                 (slc.slice_name, "explore", slc.slice_url),
             ]
         for name, method, url in urls:
-            logger.info(f"[{name}]/[{method}]: {url}")
+            logger.info("[%s]/[%s]: %s", name, method, url)
             print(f"[{name}]/[{method}]: {url}")
             resp = self.client.get(url)
             assert resp.status_code == 200
@@ -312,13 +297,13 @@ class TestCore(SupersetTestCase):
         def custom_password_store(uri):
             return "password_store_test"
 
-        models.custom_password_store = custom_password_store
-        conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
-        if conn_pre.password:
-            assert conn.password == "password_store_test"  # noqa: S105
-            assert conn.password != conn_pre.password
-        # Disable for password store for later tests
-        models.custom_password_store = None
+        with mock.patch.dict(
+            app.config, {"SQLALCHEMY_CUSTOM_PASSWORD_STORE": custom_password_store}
+        ):
+            conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
+            if conn_pre.password:
+                assert conn.password == "password_store_test"  # noqa: S105
+                assert conn.password != conn_pre.password
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
@@ -359,7 +344,7 @@ class TestCore(SupersetTestCase):
 
     def test_fetch_datasource_metadata(self):
         self.login(ADMIN_USERNAME)
-        url = "/superset/fetch_datasource_metadata?" "datasourceKey=1__table"
+        url = "/superset/fetch_datasource_metadata?datasourceKey=1__table"
         resp = self.get_json_resp(url)
         keys = [
             "name",
@@ -866,7 +851,7 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         resp = self.client.get("superset/dashboard/p/123/")
 
-        expected_url = "/superset/dashboard/1?permalink_key=123&standalone=3"
+        expected_url = "/superset/dashboard/1/?permalink_key=123&standalone=3"
 
         assert resp.headers["Location"] == expected_url
         assert resp.status_code == 302
@@ -874,7 +859,11 @@ class TestCore(SupersetTestCase):
 
 class TestLocalePatch(SupersetTestCase):
     MOCK_LANGUAGES = (
+<<<<<<< HEAD
         "superset.views.filters.current_app.config",
+=======
+        "flask.current_app.config",
+>>>>>>> origin/master
         {
             "LANGUAGES": {
                 "es": {"flag": "es", "name": "Español"},

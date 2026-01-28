@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import { render, screen, act } from 'spec/helpers/testing-library';
+import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import HeaderReportDropdown, { HeaderReportProps } from '.';
+import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
+import { useHeaderReportMenuItems, HeaderReportProps } from './index';
 
 const createProps = () => ({
   dashboardId: 1,
-  useTextMenu: false,
-  isDropdownVisible: true,
-  setIsDropdownVisible: jest.fn,
   setShowReportSubMenu: jest.fn,
+  showReportModal: jest.fn,
+  setCurrentReportDeleting: jest.fn,
 });
 
 const stateWithOnlyUser = {
@@ -115,13 +114,14 @@ const stateWithUserAndReport = {
   },
 };
 
+const MenuWrapper = (props: HeaderReportProps) => {
+  const reportMenuItems = useHeaderReportMenuItems(props);
+  const menuItems: MenuItem[] = [reportMenuItems];
+  return <Menu items={menuItems} forceSubMenuRender />;
+};
+
 function setup(props: HeaderReportProps, initialState = {}) {
-  render(
-    <div>
-      <HeaderReportDropdown {...props} />
-    </div>,
-    { useRedux: true, initialState },
-  );
+  render(<MenuWrapper {...props} />, { useRedux: true, initialState });
 }
 
 jest.mock('@superset-ui/core', () => ({
@@ -131,6 +131,7 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Header Report Dropdown', () => {
   beforeAll(() => {
     mockedIsFeatureEnabled.mockImplementation(
@@ -142,112 +143,86 @@ describe('Header Report Dropdown', () => {
     mockedIsFeatureEnabled.mockRestore();
   });
 
-  it('renders correctly', () => {
+  test('renders correctly', () => {
     const mockedProps = createProps();
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
     });
-    expect(screen.getByRole('button')).toBeInTheDocument();
+    expect(screen.getAllByRole('menuitem')[0]).toBeInTheDocument();
   });
 
-  it('renders the dropdown correctly', () => {
+  test('renders the dropdown correctly', async () => {
     const mockedProps = createProps();
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
     });
-    const emailReportModalButton = screen.getByRole('button');
-    userEvent.click(emailReportModalButton);
-    expect(screen.getByText('Email reports active')).toBeInTheDocument();
+    expect(await screen.findByText('Email reports active')).toBeInTheDocument();
     expect(screen.getByText('Edit email report')).toBeInTheDocument();
     expect(screen.getByText('Delete email report')).toBeInTheDocument();
   });
 
-  it('opens an edit modal', async () => {
+  test('opens an edit modal', async () => {
     const mockedProps = createProps();
+    mockedProps.showReportModal = jest.fn();
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
     });
-    const emailReportModalButton = screen.getByRole('button');
-    userEvent.click(emailReportModalButton);
-    const editModal = screen.getByText('Edit email report');
+    const editModal = await screen.findByText('Edit email report');
     userEvent.click(editModal);
-    const textBoxes = await screen.findAllByText('Edit email report');
-    expect(textBoxes).toHaveLength(2);
+    expect(mockedProps.showReportModal).toHaveBeenCalled();
   });
 
-  it('opens a delete modal', () => {
+  test('opens a delete modal', async () => {
     const mockedProps = createProps();
+    mockedProps.setCurrentReportDeleting = jest.fn();
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
     });
-    const emailReportModalButton = screen.getByRole('button');
-    userEvent.click(emailReportModalButton);
-    const deleteModal = screen.getByText('Delete email report');
+    const deleteModal = await screen.findByText('Delete email report');
     userEvent.click(deleteModal);
-    expect(screen.getByText('Delete Report?')).toBeInTheDocument();
+    expect(mockedProps.setCurrentReportDeleting).toHaveBeenCalled();
   });
 
-  it('renders a new report modal if there is no report', () => {
+  test('renders Manage Email Reports Menu if there is a report', async () => {
     const mockedProps = createProps();
-    act(() => {
-      setup(mockedProps, stateWithOnlyUser);
-    });
-    const emailReportModalButton = screen.getByRole('button');
-    userEvent.click(emailReportModalButton);
-    expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
-  });
-
-  it('renders Manage Email Reports Menu if textMenu is set to true and there is a report', () => {
-    let mockedProps = createProps();
-    mockedProps = {
-      ...mockedProps,
-      useTextMenu: true,
-      isDropdownVisible: true,
-    };
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
     });
-    expect(screen.getByText('Email reports active')).toBeInTheDocument();
+    expect(await screen.findByText('Email reports active')).toBeInTheDocument();
     expect(screen.getByText('Edit email report')).toBeInTheDocument();
     expect(screen.getByText('Delete email report')).toBeInTheDocument();
   });
 
-  it('renders Schedule Email Reports if textMenu is set to true and there is a report', () => {
-    let mockedProps = createProps();
-    mockedProps = {
-      ...mockedProps,
-      useTextMenu: true,
-      isDropdownVisible: true,
-    };
+  test('renders Schedule Email Reports if there is a report', async () => {
+    const mockedProps = createProps();
+
     act(() => {
       setup(mockedProps, stateWithOnlyUser);
     });
-    expect(screen.getByText('Set up an email report')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Set up an email report'),
+    ).toBeInTheDocument();
   });
 
-  it('renders Schedule Email Reports as long as user has permission through any role', () => {
-    let mockedProps = createProps();
-    mockedProps = {
-      ...mockedProps,
-      useTextMenu: true,
-      isDropdownVisible: true,
-    };
+  test('renders Schedule Email Reports as long as user has permission through any role', async () => {
+    const mockedProps = createProps();
     act(() => {
       setup(mockedProps, stateWithNonAdminUser);
     });
-    expect(screen.getByText('Set up an email report')).toBeInTheDocument();
+    userEvent.click(screen.getByRole('menuitem'));
+    expect(
+      await screen.findByText('Set up an email report'),
+    ).toBeInTheDocument();
   });
 
-  it('do not render Schedule Email Reports if user no permission', () => {
-    let mockedProps = createProps();
-    mockedProps = {
-      ...mockedProps,
-      useTextMenu: true,
-      isDropdownVisible: true,
-    };
+  test('do not render Schedule Email Reports if user no permission', () => {
+    const mockedProps = createProps();
+
     act(() => {
       setup(mockedProps, stateWithNonMenuAccessOnManage);
     });
+
+    userEvent.click(screen.getByRole('menu'));
     expect(
       screen.queryByText('Set up an email report'),
     ).not.toBeInTheDocument();

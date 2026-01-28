@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { DashboardPermalinkValue } from 'src/dashboard/types';
 
 const assembleEndpoint = (
@@ -24,7 +25,7 @@ const assembleEndpoint = (
   key?: string | null,
   tabId?: string,
 ) => {
-  let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
+  let endpoint = `/api/v1/dashboard/${dashId}/filter_state`;
   if (key) {
     endpoint = endpoint.concat(`/${key}`);
   }

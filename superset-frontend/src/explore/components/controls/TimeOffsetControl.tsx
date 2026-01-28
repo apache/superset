@@ -18,7 +18,7 @@
  */
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { isEmpty, isEqual } from 'lodash';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   parseDttmToDate,
   BinaryAdhocFilter,
@@ -27,8 +27,10 @@ import {
   computeCustomDateTime,
   fetchTimeRange,
 } from '@superset-ui/core';
-import { DatePicker } from 'src/components/DatePicker';
-import { RangePickerProps } from 'antd-v5/es/date-picker';
+import {
+  DatePicker,
+  type RangePickerProps,
+} from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -204,7 +206,7 @@ export default function TimeOffsetControls({
         .subtract(1, 'day');
       setStartDate(resetDate.toString());
       setFormatedDate(resetDate);
-      onChange(extendedDayjs.utc(resetDate).format(DAYJS_FORMAT));
+      onChange(extendedDayjs(resetDate).utc().format(DAYJS_FORMAT));
       setIsDateSelected(true);
     }
   }, [formatedFilterDate, formatedDate, customStartDateInFilter]);

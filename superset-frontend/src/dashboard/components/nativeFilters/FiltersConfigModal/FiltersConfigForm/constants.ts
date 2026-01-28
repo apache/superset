@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 
 export const INPUT_HEIGHT = 32;
 
@@ -35,4 +35,15 @@ export const FILTER_SUPPORTED_TYPES = {
     GenericDataType.Temporal,
   ],
   filter_range: [GenericDataType.Numeric],
+};
+
+export const CHART_CUSTOMIZATION_SUPPORTED_TYPES = {
+  customization_dynamic_group_by: [
+    GenericDataType.Boolean,
+    GenericDataType.String,
+    GenericDataType.Numeric,
+    GenericDataType.Temporal,
+  ],
+  customization_timecolumn: [GenericDataType.Temporal],
+  customization_timegrain: [GenericDataType.Temporal],
 };

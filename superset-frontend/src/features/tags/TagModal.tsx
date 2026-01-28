@@ -19,22 +19,28 @@
 import { ChangeEvent, useState, useEffect, FC } from 'react';
 
 import rison from 'rison';
-import Modal from 'src/components/Modal';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
-import { FormLabel } from 'src/components/Form';
-import { t, styled, SupersetClient } from '@superset-ui/core';
-import { Input } from 'antd';
-import { Divider } from 'src/components/Divider';
-import Button from 'src/components/Button';
+import {
+  AsyncSelect,
+  Button,
+  Divider,
+  Flex,
+  FormLabel,
+  Input,
+  Modal,
+} from '@superset-ui/core/components';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
-    max-height: ${({ theme }) => theme.gridUnit * 40}px;
+    max-height: ${({ theme }) => theme.sizeUnit * 40}px;
   }
   .tag-input {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
   }
 `;
 
@@ -79,9 +85,9 @@ const TagModal: FC<TagModalProps> = ({
 
   const [tagName, setTagName] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const theme = useTheme();
 
   const isEditMode = !!editTag;
-  const modalTitle = isEditMode ? 'Edit Tag' : 'Create Tag';
 
   const clearResources = () => {
     setDashboardsToTag([]);
@@ -232,7 +238,7 @@ const TagModal: FC<TagModalProps> = ({
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
       })
-        .then(({ json = {} }) => {
+        .then(() => {
           refreshData();
           clearTagForm();
           addSuccessToast(t('Tag updated'));
@@ -250,7 +256,7 @@ const TagModal: FC<TagModalProps> = ({
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
       })
-        .then(({ json = {} }) => {
+        .then(() => {
           refreshData();
           clearTagForm();
           addSuccessToast(t('Tag created'));
@@ -262,7 +268,13 @@ const TagModal: FC<TagModalProps> = ({
 
   return (
     <Modal
-      title={modalTitle}
+      name={isEditMode ? t('Edit Tag') : t('Create Tag')}
+      title={
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit Tag') : t('Create Tag')}
+        />
+      }
       onHide={() => {
         if (clearOnHide) clearTagForm();
         onHide();
@@ -288,20 +300,26 @@ const TagModal: FC<TagModalProps> = ({
       }
     >
       <StyledModalBody>
-        <FormLabel>{t('Tag name')}</FormLabel>
-        <Input
-          className="tag-input"
-          onChange={handleTagNameChange}
-          placeholder={t('Name of your tag')}
-          value={tagName}
-        />
-        <FormLabel>{t('Description')}</FormLabel>
-        <Input
-          className="tag-input"
-          onChange={handleDescriptionChange}
-          placeholder={t('Add description of your tag')}
-          value={description}
-        />
+        <Flex vertical gap={theme.sizeUnit}>
+          <FormLabel htmlFor="tag-name">{t('Tag name')}</FormLabel>
+          <Input
+            id="tag-name"
+            className="tag-input"
+            onChange={handleTagNameChange}
+            placeholder={t('Name of your tag')}
+            value={tagName}
+          />
+        </Flex>
+
+        <Flex vertical gap={theme.sizeUnit}>
+          <FormLabel>{t('Description')}</FormLabel>
+          <Input
+            className="tag-input"
+            onChange={handleDescriptionChange}
+            placeholder={t('Add description of your tag')}
+            value={description}
+          />
+        </Flex>
         <Divider />
         <AsyncSelect
           className="tag-input"

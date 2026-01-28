@@ -22,7 +22,7 @@ describe('SqlLab query tabs', () => {
   });
 
   const tablistSelector = '[data-test="sql-editor-tabs"] > [role="tablist"]';
-  const tabSelector = `${tablistSelector} [role="tab"]`;
+  const tabSelector = `${tablistSelector} [role="tab"]:not([type="button"])`;
 
   it('allows you to create and close a tab', () => {
     cy.get(tabSelector).then(tabs => {

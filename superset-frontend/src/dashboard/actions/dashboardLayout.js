@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 import { TABS_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
@@ -159,7 +159,7 @@ export function resizeComponent({ id, width, height }) {
   };
 }
 
-// Drag and drop --------------------------------------------------------------
+// Drag and Drop --------------------------------------------------------------
 export const MOVE_COMPONENT = 'MOVE_COMPONENT';
 const moveComponent = setUnsavedChangesAfterAction(dropResult => ({
   type: MOVE_COMPONENT,

@@ -16,24 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactElement } from 'react';
 import { VizType } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { css } from '@apache-superset/core/ui';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { VizMeta } from './types';
+
+// Custom icons for non-featured charts
+export const CUSTOM_CHART_ICONS: Record<string, ReactElement> = {
+  deck_multi: <Icons.Multiple iconSize="l" viewBox="5 4 15 20" />,
+};
 
 export const FEATURED_CHARTS: VizMeta[] = [
   {
     name: VizType.Line,
-    icon: <Icons.LineChartTile />,
+    icon: <Icons.LineChartOutlined iconSize="l" />,
   },
   {
     name: VizType.Bar,
-    icon: <Icons.BarChartTile />,
+    icon: <Icons.BarChartOutlined iconSize="l" />,
   },
-  { name: VizType.Area, icon: <Icons.AreaChartTile /> },
-  { name: VizType.Table, icon: <Icons.TableChartTile /> },
+  { name: VizType.Area, icon: <Icons.AreaChartOutlined iconSize="l" /> },
+  { name: VizType.Table, icon: <Icons.TableOutlined iconSize="l" /> },
   {
     name: VizType.BigNumberTotal,
-    icon: <Icons.BigNumberChartTile />,
+    icon: (
+      <Icons.BigNumberChartTile
+        iconSize="l"
+        viewBox="0 0 16 14"
+        css={css`
+          path {
+            fill: currentColor;
+          }
+        `}
+      />
+    ),
   },
-  { name: VizType.Pie, icon: <Icons.PieChartTile /> },
+  { name: VizType.Pie, icon: <Icons.PieChartOutlined iconSize="l" /> },
 ];

@@ -344,6 +344,12 @@ dashboard_metadata_config: dict[str, Any] = {
     "type": "Dashboard",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
+metadata_files = {
+    "database": database_metadata_config,
+    "dataset": dataset_metadata_config,
+    "chart": chart_metadata_config,
+    "dashboard": dashboard_metadata_config,
+}
 saved_queries_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "SavedQuery",
@@ -503,6 +509,7 @@ database_with_ssh_tunnel_config_private_pass_only: dict[str, Any] = {
 dataset_config: dict[str, Any] = {
     "table_name": "imported_dataset",
     "main_dttm_col": None,
+    "currency_code_column": "currency",
     "description": "This is a dataset that was exported",
     "default_endpoint": "",
     "offset": 66,

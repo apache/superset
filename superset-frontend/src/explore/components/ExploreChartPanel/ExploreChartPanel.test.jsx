@@ -17,8 +17,12 @@
  * under the License.
  */
 import { isValidElement } from 'react';
-import userEvent from '@testing-library/user-event';
-import { render, screen, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import {
   getChartMetadataRegistry,
   ChartMetadata,
@@ -62,7 +66,10 @@ const createProps = (overrides = {}) => ({
   ...overrides,
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartContainer', () => {
+  jest.setTimeout(10000);
+
   test('renders when vizType is line', () => {
     const props = createProps();
     expect(isValidElement(<ChartContainer {...props} />)).toBe(true);
@@ -156,7 +163,7 @@ describe('ChartContainer', () => {
     expect(screen.queryByText(/cached/i)).not.toBeInTheDocument();
   });
 
-  it('hides gutter when collapsing data panel', async () => {
+  test('hides gutter when collapsing data panel', async () => {
     const props = createProps();
     setItem(LocalStorageKeys.IsDatapanelOpen, true);
     const { container } = render(<ChartContainer {...props} />, {

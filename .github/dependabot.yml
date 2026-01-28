@@ -1,19 +1,31 @@
 version: 2
+enable-beta-ecosystems: true
 updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
 
   - package-ecosystem: "npm"
     ignore:
       # not until React >= 18.0.0
       - dependency-name: "storybook"
       - dependency-name: "@storybook*"
+      # remark-gfm v4+ requires react-markdown v9+, which needs React 18
+      - dependency-name: "remark-gfm"
+      - dependency-name: "react-markdown"
+      # JSDOM v30 doesn't play well with Jest v30
+      # Source: https://jestjs.io/blog#known-issues
+      # GH thread: https://github.com/jsdom/jsdom/issues/3492
+      - dependency-name: "jest-environment-jsdom"
+      # `@swc/plugin-transform-imports` doesn't work with current Webpack-SWC hybrid setup
+      # See https://github.com/apache/superset/pull/37384#issuecomment-3793991389
+      # TODO: remove the plugin once Lodash usage has been migrated to a more readily tree-shakeable alternative
+      - dependency-name: "@swc/plugin-transform-imports"
     directory: "/superset-frontend/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -21,28 +33,35 @@ updates:
     versioning-strategy: increase
 
 
-  # - package-ecosystem: "pip"
-  # NOTE: as dependabot isn't compatible with our usage of `uv pip compile` we're using
-  # `supersetbot` instead
+  # NOTE: `uv` support is in beta, more details here:
+  # https://github.com/dependabot/dependabot-core/pull/10040#issuecomment-2696978430
+  - package-ecosystem: "uv"
+    directory: "requirements/"
+    open-pull-requests-limit: 10
+    schedule:
+      interval: "weekly"
+    labels:
+      - uv
+      - dependabot
 
   - package-ecosystem: "npm"
     directory: ".github/actions"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
     directory: "/docs/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
     directory: "/superset-websocket/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -51,7 +70,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-websocket/utils/client-ws-app/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -63,7 +82,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-calendar/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -73,7 +92,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-histogram/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -83,7 +102,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-partition/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -93,7 +112,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-world-map/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -103,7 +122,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-pivot-table/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -113,7 +132,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-chord/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -123,7 +142,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-horizon/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -133,7 +152,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-rose/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -143,7 +162,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-preset-chart-deckgl/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -153,7 +172,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-table/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -163,7 +182,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-country-map/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -173,7 +192,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-map-box/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -183,7 +202,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-sankey/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -193,7 +212,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-preset-chart-nvd3/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -203,7 +222,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-word-cloud/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -213,7 +232,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-event-flow/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -223,7 +242,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-paired-t-test/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -233,7 +252,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-sankey-loop/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -243,7 +262,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-echarts/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -253,7 +272,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/preset-chart-xy/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -263,7 +282,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-heatmap/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -273,7 +292,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -283,7 +302,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-sunburst/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -293,7 +312,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-handlebars/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -303,7 +322,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/generator-superset/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -313,7 +332,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-chart-controls/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -327,7 +346,7 @@ updates:
       - dependency-name: "react-markdown"
       - dependency-name: "remark-gfm"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -337,7 +356,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-demo/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot
@@ -347,7 +366,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-switchboard/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
     labels:
       - npm
       - dependabot

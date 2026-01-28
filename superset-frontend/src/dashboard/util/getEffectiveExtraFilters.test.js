@@ -18,8 +18,9 @@
  */
 import getEffectiveExtraFilters from 'src/dashboard/util/charts/getEffectiveExtraFilters';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getEffectiveExtraFilters', () => {
-  it('should create valid filters', () => {
+  test('should create valid filters', () => {
     const result = getEffectiveExtraFilters({
       gender: ['girl'],
       name: null,

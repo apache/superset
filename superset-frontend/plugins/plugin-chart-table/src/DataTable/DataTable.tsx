@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable import/no-extraneous-dependencies */
 import {
   useCallback,
   useRef,
@@ -24,8 +25,10 @@ import {
   MutableRefObject,
   CSSProperties,
   DragEvent,
+  useEffect,
+  useMemo,
 } from 'react';
-
+import { typedMemo, usePrevious } from '@superset-ui/core';
 import {
   useTable,
   usePagination,
@@ -39,8 +42,8 @@ import {
   Row,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
-import { typedMemo, usePrevious } from '@superset-ui/core';
 import { isEqual } from 'lodash';
+import { Flex, Space } from '@superset-ui/core/components';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,
@@ -50,6 +53,8 @@ import SimplePagination from './components/Pagination';
 import useSticky from './hooks/useSticky';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
+import { SearchOption, SortByItem } from '../types';
+import SearchSelectDropdown from './components/SearchSelectDropdown';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
@@ -62,15 +67,30 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   height?: string | number;
   serverPagination?: boolean;
   onServerPaginationChange: (pageNumber: number, pageSize: number) => void;
-  serverPaginationData: { pageSize?: number; currentPage?: number };
+  serverPaginationData: {
+    pageSize?: number;
+    currentPage?: number;
+    sortBy?: SortByItem[];
+    searchColumn?: string;
+  };
   pageSize?: number;
   noResults?: string | ((filterString: string) => ReactNode);
   sticky?: boolean;
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
-  onColumnOrderChange: () => void;
+  onColumnOrderChange?: () => void;
   renderGroupingHeaders?: () => JSX.Element;
   renderTimeComparisonDropdown?: () => JSX.Element;
+  handleSortByChange: (sortBy: SortByItem[]) => void;
+  sortByFromParent: SortByItem[];
+  manualSearch?: boolean;
+  onSearchChange?: (searchText: string) => void;
+  initialSearchText?: string;
+  searchInputId?: string;
+  onSearchColChange: (searchCol: string) => void;
+  searchOptions: SearchOption[];
+  onFilteredDataChange?: (rows: Row<D>[], filterValue?: string) => void;
+  onFilteredRowsChange?: (rows: D[]) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -105,6 +125,16 @@ export default typedMemo(function DataTable<D extends object>({
   onColumnOrderChange,
   renderGroupingHeaders,
   renderTimeComparisonDropdown,
+  handleSortByChange,
+  sortByFromParent = [],
+  manualSearch = false,
+  onSearchChange,
+  initialSearchText,
+  searchInputId,
+  onSearchColChange,
+  searchOptions,
+  onFilteredDataChange,
+  onFilteredRowsChange,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -115,6 +145,7 @@ export default typedMemo(function DataTable<D extends object>({
     doSticky ? useSticky : [],
     hooks || [],
   ].flat();
+
   const columnNames = Object.keys(data?.[0] || {});
   const previousColumnNames = usePrevious(columnNames);
   const resultsSize = serverPagination ? rowCount : data.length;
@@ -127,7 +158,8 @@ export default typedMemo(function DataTable<D extends object>({
     ...initialState_,
     // zero length means all pages, the `usePagination` plugin does not
     // understand pageSize = 0
-    sortBy: sortByRef.current,
+    // sortBy: sortByRef.current,
+    sortBy: serverPagination ? sortByFromParent : sortByRef.current,
     pageSize: initialPageSize > 0 ? initialPageSize : resultsSize || 10,
   };
   const defaultWrapperRef = useRef<HTMLDivElement>(null);
@@ -174,6 +206,7 @@ export default typedMemo(function DataTable<D extends object>({
   );
 
   const {
+    rows, // filtered/sorted rows before pagination
     getTableProps,
     getTableBodyProps,
     prepareRow,
@@ -188,7 +221,13 @@ export default typedMemo(function DataTable<D extends object>({
     wrapStickyTable,
     setColumnOrder,
     allColumns,
-    state: { pageIndex, pageSize, globalFilter: filterValue, sticky = {} },
+    state: {
+      pageIndex,
+      pageSize,
+      globalFilter: filterValue,
+      sticky = {},
+      sortBy,
+    },
   } = useTable<D>(
     {
       columns,
@@ -198,10 +237,70 @@ export default typedMemo(function DataTable<D extends object>({
       globalFilter: defaultGlobalFilter,
       sortTypes,
       autoResetSortBy: !isEqual(columnNames, previousColumnNames),
+      manualSortBy: !!serverPagination,
       ...moreUseTableOptions,
     },
     ...tableHooks,
   );
+
+  const rowSignature = useMemo(
+    // sort the rows by id to ensure the total is not recalculated when the rows are only reordered
+    () =>
+      rows
+        .map((row, index) => row.id ?? index)
+        .sort()
+        .join('|'),
+    [rows],
+  );
+
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+
+  useEffect(() => {
+    if (!onFilteredDataChange) {
+      return;
+    }
+
+    const searchText =
+      typeof filterValue === 'string' ? filterValue : undefined;
+
+    onFilteredDataChange(rowsRef.current, searchText);
+  }, [filterValue, onFilteredDataChange, rowSignature]);
+
+  const handleSearchChange = useCallback(
+    (query: string) => {
+      if (manualSearch && onSearchChange) {
+        onSearchChange(query);
+      } else {
+        setGlobalFilter(query);
+      }
+    },
+    [manualSearch, onSearchChange, setGlobalFilter],
+  );
+
+  // updating the sort by to the own State of table viz
+  useEffect(() => {
+    const serverSortBy = serverPaginationData?.sortBy || [];
+
+    if (serverPagination && !isEqual(sortBy, serverSortBy)) {
+      if (Array.isArray(sortBy) && sortBy.length > 0) {
+        const [sortByItem] = sortBy;
+        const matchingColumn = columns.find(col => col?.id === sortByItem?.id);
+
+        if (matchingColumn && 'columnKey' in matchingColumn) {
+          const sortByWithColumnKey: SortByItem = {
+            ...sortByItem,
+            key: (matchingColumn as { columnKey: string }).columnKey,
+          };
+
+          handleSortByChange([sortByWithColumnKey]);
+        }
+      } else {
+        handleSortByChange([]);
+      }
+    }
+  }, [sortBy]);
+
   // make setPageSize accept 0
   const setPageSize = (size: number) => {
     if (serverPagination) {
@@ -249,8 +348,7 @@ export default typedMemo(function DataTable<D extends object>({
       const colToBeMoved = currentCols.splice(columnBeingDragged, 1);
       currentCols.splice(newPosition, 0, colToBeMoved[0]);
       setColumnOrder(currentCols);
-      // toggle value in TableChart to trigger column width recalc
-      onColumnOrderChange();
+      onColumnOrderChange?.();
     }
     e.preventDefault();
   };
@@ -355,6 +453,84 @@ export default typedMemo(function DataTable<D extends object>({
     resultOnPageChange = (pageNumber: number) =>
       onServerPaginationChange(pageNumber, serverPageSize);
   }
+
+  // Emit filtered rows to parent in client-side mode (debounced via RAF)
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const rafRef = useRef<number | null>(null);
+  const lastSigRef = useRef<string>('');
+
+  // Prefer a stable identifier from original row data; otherwise use a deterministic
+  // concatenation of visible values (keys sorted so column order changes are detected).
+  function stableRowKey<D extends object>(r: Row<D>): string {
+    const orig = r.original as Record<string, unknown> | undefined;
+    if (orig) {
+      const idLike =
+        (orig as any).id ??
+        (orig as any).ID ??
+        (orig as any).key ??
+        (orig as any).uuid;
+      if (idLike != null) return String(idLike);
+    }
+
+    // Fallback: derive from row.values, but make it stable against column order changes.
+    const v = r.values as Record<string, unknown>;
+    const keys = Object.keys(v).sort(); // detect column order changes
+    return keys.map(k => String(v[k] ?? '')).join('|');
+  }
+
+  // Very small, fast hash for strings (no crypto dependency).
+  function hashString(s: string): string {
+    let h = 0;
+    for (let i = 0; i < s.length; i += 1) {
+      h = (h * 31 + s.charCodeAt(i)) | 0;
+    }
+    return String(h);
+  }
+
+  function signatureOfRows<D extends object>(rs: Row<D>[]): string {
+    const keys = rs.map(stableRowKey);
+    const len = keys.length;
+    const first = keys[0] ?? '';
+    const last = keys[len - 1] ?? '';
+    const digest = hashString(keys.join('\u0001')); // non-printable separator to avoid collisions
+    return `${len}|${first}|${last}|${digest}`;
+  }
+
+  useEffect(() => {
+    if (serverPagination || typeof onFilteredRowsChange !== 'function') {
+      return;
+    }
+
+    const sig = signatureOfRows(rows);
+
+    if (sig !== lastSigRef.current) {
+      lastSigRef.current = sig;
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      rafRef.current = requestAnimationFrame(() => {
+        if (isMountedRef.current) {
+          // Only emit originals when the signature truly changed
+          onFilteredRowsChange(rows.map(r => r.original as D));
+        }
+      });
+    }
+
+    return () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [rows, serverPagination, onFilteredRowsChange]);
+
   return (
     <div
       ref={wrapperRef}
@@ -362,45 +538,57 @@ export default typedMemo(function DataTable<D extends object>({
     >
       {hasGlobalControl ? (
         <div ref={globalControlRef} className="form-inline dt-controls">
-          <div className="row">
-            <div
-              className={renderTimeComparisonDropdown ? 'col-sm-5' : 'col-sm-6'}
-            >
-              {hasPagination ? (
-                <SelectPageSize
-                  total={resultsSize}
-                  current={resultCurrentPageSize}
-                  options={pageSizeOptions}
-                  selectRenderer={
-                    typeof selectPageSize === 'boolean'
-                      ? undefined
-                      : selectPageSize
-                  }
-                  onChange={setPageSize}
-                />
-              ) : null}
-            </div>
-            {searchInput ? (
-              <div className="col-sm-6">
+          <Flex
+            wrap
+            className="row"
+            align="center"
+            justify="space-between"
+            gap="middle"
+          >
+            {hasPagination ? (
+              <SelectPageSize
+                total={resultsSize}
+                current={resultCurrentPageSize}
+                options={pageSizeOptions}
+                selectRenderer={
+                  typeof selectPageSize === 'boolean'
+                    ? undefined
+                    : selectPageSize
+                }
+                onChange={setPageSize}
+              />
+            ) : null}
+            <Flex wrap align="center" gap="middle">
+              {serverPagination && (
+                <Space size="small" className="search-select-container">
+                  <span className="search-by-label">Search by:</span>
+                  <SearchSelectDropdown
+                    searchOptions={searchOptions}
+                    value={serverPaginationData?.searchColumn || ''}
+                    onChange={onSearchColChange}
+                  />
+                </Space>
+              )}
+              {searchInput && (
                 <GlobalFilter<D>
                   searchInput={
                     typeof searchInput === 'boolean' ? undefined : searchInput
                   }
                   preGlobalFilteredRows={preGlobalFilteredRows}
-                  setGlobalFilter={setGlobalFilter}
-                  filterValue={filterValue}
+                  setGlobalFilter={
+                    manualSearch ? handleSearchChange : setGlobalFilter
+                  }
+                  filterValue={manualSearch ? initialSearchText : filterValue}
+                  id={searchInputId}
+                  serverPagination={!!serverPagination}
+                  rowCount={rowCount}
                 />
-              </div>
-            ) : null}
-            {renderTimeComparisonDropdown ? (
-              <div
-                className="col-sm-1"
-                style={{ float: 'right', marginTop: '6px' }}
-              >
-                {renderTimeComparisonDropdown()}
-              </div>
-            ) : null}
-          </div>
+              )}
+              {renderTimeComparisonDropdown
+                ? renderTimeComparisonDropdown()
+                : null}
+            </Flex>
+          </Flex>
         </div>
       ) : null}
       {wrapStickyTable ? wrapStickyTable(renderTable) : renderTable()}

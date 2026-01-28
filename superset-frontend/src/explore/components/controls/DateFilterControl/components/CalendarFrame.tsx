@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { t } from '@superset-ui/core';
-import { Radio } from 'src/components/Radio';
+import { t } from '@apache-superset/core';
+import { Radio } from '@superset-ui/core/components/Radio';
 import {
   CALENDAR_RANGE_OPTIONS,
   CALENDAR_RANGE_SET,

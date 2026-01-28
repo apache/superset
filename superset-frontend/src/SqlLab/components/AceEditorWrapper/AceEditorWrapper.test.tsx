@@ -23,9 +23,9 @@ import { Store } from 'redux';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import {
-  AsyncAceEditorProps,
   FullSQLEditor,
-} from 'src/components/AsyncAceEditor';
+  type AsyncAceEditorProps,
+} from '@superset-ui/core/components';
 import {
   queryEditorSetCursorPosition,
   queryEditorSetDb,
@@ -36,14 +36,14 @@ fetchMock.get('glob:*/api/v1/database/*/function_names/', {
   function_names: [],
 });
 
-jest.mock('src/components/Select/Select', () => () => (
+jest.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('src/components/Select/AsyncSelect', () => () => (
+jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 
-jest.mock('src/components/AsyncAceEditor', () => ({
+jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
   FullSQLEditor: jest
     .fn()
     .mockImplementation((props: AsyncAceEditorProps) => (
@@ -68,12 +68,13 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AceEditorWrapper', () => {
   beforeEach(() => {
     (FullSQLEditor as any as jest.Mock).mockClear();
   });
 
-  it('renders ace editor including sql value', async () => {
+  test('renders ace editor including sql value', async () => {
     const store = createStore(initialState, reducerIndex);
     const { getByTestId } = setup(defaultQueryEditor, store);
     await waitFor(() => expect(getByTestId('react-ace')).toBeInTheDocument());
@@ -83,7 +84,7 @@ describe('AceEditorWrapper', () => {
     );
   });
 
-  it('renders current sql for unrelated unsaved changes', () => {
+  test('renders current sql for unrelated unsaved changes', () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
     const store = createStore(
       {
@@ -108,7 +109,7 @@ describe('AceEditorWrapper', () => {
     );
   });
 
-  it('skips rerendering for updating cursor position', () => {
+  test('skips rerendering for updating cursor position', () => {
     const store = createStore(initialState, reducerIndex);
     setup(defaultQueryEditor, store);
 

@@ -20,7 +20,8 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
-import { ensureIsArray, styled } from '@superset-ui/core';
+import { ensureIsArray } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import HorizonRow, { DEFAULT_COLORS } from './HorizonRow';
 
 const propTypes = {
@@ -65,7 +66,7 @@ const StyledDiv = styled.div`
     }
 
     .superset-legacy-chart-horizon .horizon-row {
-      border-bottom: solid 1px ${theme.colors.grayscale.light2};
+      border-bottom: solid 1px ${theme.colorBorderSecondary};
       border-top: 0;
       padding: 0;
       margin: 0;
@@ -73,8 +74,8 @@ const StyledDiv = styled.div`
 
     .superset-legacy-chart-horizon .horizon-row span.title {
       position: absolute;
-      color: ${theme.colors.grayscale.dark1};
-      font-size: ${theme.typography.sizes.s}px;
+      color: ${theme.colorText};
+      font-size: ${theme.fontSizeSM}px;
       margin: 0;
     }
   `}

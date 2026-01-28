@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, GenericDataType, ValueOf } from '@superset-ui/core';
-import {
-  ControlPanelState,
-  isDataset,
-  isQueryResponse,
-} from '@superset-ui/chart-controls';
+import { ensureIsArray, ValueOf } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
+import { ControlPanelState, isDataset, isQueryResponse } from '../types';
 
 export function checkColumnType(
   columnName: string,

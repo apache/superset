@@ -22,6 +22,7 @@ import {
   AnnotationData,
   AdhocMetric,
   JsonObject,
+  LatestQueryFormData,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -33,6 +34,11 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Slice } from 'src/types/Chart';
 
 export type SaveActionType = 'overwrite' | 'saveas';
+
+export enum ChartStatusType {
+  overwrite = 'overwrite',
+  saveas = 'saveas',
+}
 
 export type ChartStatus =
   | 'loading'
@@ -52,7 +58,7 @@ export interface ChartState {
   chartUpdateEndTime: number | null;
   chartUpdateStartTime: number;
   lastRendered: number;
-  latestQueryFormData: Partial<QueryFormData>;
+  latestQueryFormData: LatestQueryFormData;
   sliceFormData: QueryFormData | null;
   queryController: AbortController | null;
   queriesResponse: QueryData[] | null;
@@ -69,7 +75,7 @@ export type Datasource = Dataset & {
   catalog?: string | null;
   schema?: string;
   is_sqllab_view?: boolean;
-  extra?: string;
+  extra?: string | object;
 };
 
 export interface ExplorePageInitialData {
@@ -97,7 +103,6 @@ export interface ExploreResponsePayload {
 export interface ExplorePageState {
   user: UserWithPermissionsAndRoles;
   common: {
-    flash_messages: string[];
     conf: JsonObject;
     locale: string;
   };
@@ -122,4 +127,18 @@ export interface ExplorePageState {
     common: JsonObject;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
+}
+
+export interface TabNode {
+  value: string;
+  title: string;
+  parents: string[];
+  children?: TabNode[];
+}
+
+export interface TabTreeNode {
+  value: string;
+  title: string;
+  key: string;
+  children?: TabTreeNode[];
 }

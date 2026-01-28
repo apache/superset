@@ -22,14 +22,15 @@ Create Date: 2020-04-24 10:46:24.119363
 
 """
 
+import sqlalchemy as sa
+from alembic import op
+
+from superset.migrations.shared.utils import create_table
+from superset.utils.core import generic_find_fk_constraint_name
+
 # revision identifiers, used by Alembic.
 revision = "e557699a813e"
 down_revision = "743a117f0d98"
-
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
-
-from superset.utils.core import generic_find_fk_constraint_name  # noqa: E402
 
 
 def upgrade():
@@ -37,7 +38,7 @@ def upgrade():
     metadata = sa.MetaData(bind=bind)
     insp = sa.engine.reflection.Inspector.from_engine(bind)
 
-    rls_filter_tables = op.create_table(
+    rls_filter_tables = create_table(
         "rls_filter_tables",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("table_id", sa.Integer(), nullable=True),

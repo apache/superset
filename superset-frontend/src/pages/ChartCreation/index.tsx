@@ -18,20 +18,19 @@
  */
 import { PureComponent, ReactNode } from 'react';
 import rison from 'rison';
-import querystring from 'query-string';
-import {
-  isDefined,
-  JsonResponse,
-  styled,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { isDefined, JsonResponse, SupersetClient } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
-import Button from 'src/components/Button';
-import { AsyncSelect } from 'src/components';
-import { Steps } from 'src/components/Steps';
+import {
+  AsyncSelect,
+  Button,
+  Loading,
+  Steps,
+} from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
@@ -44,17 +43,20 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
   addSuccessToast: (arg: string) => void;
+  theme: Theme;
 }
 
 export type ChartCreationState = {
-  datasource?: { label: string; value: string };
+  datasource?: { label: string | ReactNode; value: string };
   datasetName?: string | string[] | null;
   vizType: string | null;
   canCreateDataset: boolean;
+  loading: boolean;
 };
 
 const ESTIMATED_NAV_HEIGHT = 56;
@@ -74,23 +76,23 @@ const StyledContainer = styled.div`
     width: 100%;
     max-width: ${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px;
     max-height: calc(100vh - ${ESTIMATED_NAV_HEIGHT}px);
-    border-radius: ${theme.gridUnit}px;
-    background-color: ${theme.colors.grayscale.light5};
+    border-radius: ${theme.borderRadius}px;
+    background-color: ${theme.colorBgContainer};
     margin-left: auto;
     margin-right: auto;
-    padding-left: ${theme.gridUnit * 4}px;
-    padding-right: ${theme.gridUnit * 4}px;
-    padding-bottom: ${theme.gridUnit * 4}px;
+    padding-left: ${theme.padding}px;
+    padding-right: ${theme.padding}px;
+    padding-bottom: ${theme.padding}px;
 
     h3 {
-      padding-bottom: ${theme.gridUnit * 3}px;
+      padding-bottom: ${theme.paddingSM}px;
     }
 
     & .dataset {
       display: flex;
       flex-direction: row;
       align-items: center;
-      margin-bottom: ${theme.gridUnit * 5}px;
+      margin-bottom: ${theme.marginMD}px;
 
       & > div {
         min-width: 200px;
@@ -98,15 +100,15 @@ const StyledContainer = styled.div`
       }
 
       & > span {
-        color: ${theme.colors.grayscale.light1};
-        margin-left: ${theme.gridUnit * 4}px;
+        color: ${theme.colorText};
+        margin-left: ${theme.margin}px;
       }
     }
 
     & .viz-gallery {
-      border: 1px solid ${theme.colors.grayscale.light2};
-      border-radius: ${theme.gridUnit}px;
-      margin: ${theme.gridUnit}px 0px;
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.borderRadius}px;
+      margin: ${theme.marginXXS}px 0px;
       max-height: calc(100vh - ${ELEMENTS_EXCEPT_VIZ_GALLERY}px);
       flex: 1;
     }
@@ -119,70 +121,55 @@ const StyledContainer = styled.div`
       align-items: center;
 
       & > span {
-        color: ${theme.colors.grayscale.light1};
-        margin-right: ${theme.gridUnit * 4}px;
+        color: ${theme.colorText};
+        margin-right: ${theme.margin}px;
       }
     }
 
     /* The following extra ampersands (&&&&) are used to boost selector specificity */
 
-    &&&& .antd5-steps-item-tail {
+    &&&& .ant-steps-item-tail {
       display: none;
     }
 
-    &&&& .antd5-steps-item-icon {
-      margin-right: ${theme.gridUnit * 2}px;
-      width: ${theme.gridUnit * 5}px;
-      height: ${theme.gridUnit * 5}px;
-      line-height: ${theme.gridUnit * 5}px;
+    &&&& .ant-steps-item-icon {
+      margin-right: ${theme.marginXS}px;
+      width: ${theme.sizeUnit * 5}px;
+      height: ${theme.sizeUnit * 5}px;
+      line-height: ${theme.sizeUnit * 5}px;
     }
 
-    &&&& .antd5-steps-item-title {
-      line-height: ${theme.gridUnit * 5}px;
+    &&&& .ant-steps-item-title {
+      line-height: ${theme.sizeUnit * 5}px;
     }
 
-    &&&& .antd5-steps-item-content {
+    &&&& .ant-steps-item-content {
       overflow: unset;
 
-      .antd5-steps-item-description {
-        margin-top: ${theme.gridUnit}px;
-        padding-bottom: ${theme.gridUnit}px;
+      .ant-steps-item-description {
+        margin-top: ${theme.sizeUnit}px;
+        padding-bottom: ${theme.sizeUnit}px;
       }
     }
 
-    &&&& .antd5-tooltip-open {
+    &&&& .ant-tooltip-open {
       display: inline;
-    }
-
-    &&&& .ant-select-selector {
-      padding: 0;
-    }
-
-    &&&& .ant-select-selection-placeholder {
-      padding-left: ${theme.gridUnit * 3}px;
-    }
-
-    &&&& .ant-select-selection-item {
-      padding-left: ${theme.gridUnit * 3}px;
     }
   `}
 `;
 
 const StyledStepTitle = styled.span`
-  ${({
-    theme: {
-      typography: { sizes, weights },
-    },
-  }) => `
-      font-size: ${sizes.m}px;
-      font-weight: ${weights.bold};
+  ${({ theme: { fontSize, fontWeightStrong } }) => `
+      font-size: ${fontSize}px;
+      font-weight: ${fontWeightStrong};
     `}
 `;
 
 const StyledStepDescription = styled.div`
-  ${({ theme: { gridUnit } }) => `
-    margin-top: ${gridUnit * 4}px;
-    margin-bottom: ${gridUnit * 3}px;
+  ${({ theme }) => `
+    margin-top: ${theme.margin}px;
+    margin-bottom: ${theme.marginSM}px;
+    margin-left: ${theme.marginMD}px;
   `}
 `;
 
@@ -192,6 +179,9 @@ export class ChartCreation extends PureComponent<
 > {
   constructor(props: ChartCreationProps) {
     super(props);
+    const hasDatasetParam = new URLSearchParams(window.location.search).has(
+      'dataset',
+    );
     this.state = {
       vizType: null,
       canCreateDataset: findPermission(
@@ -199,6 +189,7 @@ export class ChartCreation extends PureComponent<
         'Dataset',
         props.user.roles,
       ),
+      loading: hasDatasetParam,
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
@@ -209,16 +200,16 @@ export class ChartCreation extends PureComponent<
   }
 
   componentDidMount() {
-    const params = querystring.parse(window.location.search)?.dataset as string;
+    const params = new URLSearchParams(window.location.search).get('dataset');
     if (params) {
-      this.loadDatasources(params, 0, 1).then(r => {
-        const datasource = r.data[0];
-        // override here to force styling of option label
-        // which expects a reactnode instead of string
-        // @ts-expect-error
-        datasource.label = datasource.customLabel;
-        this.setState({ datasource });
-      });
+      this.loadDatasources(params, 0, 1, true)
+        .then(r => {
+          const datasource = r.data[0];
+          this.setState({ datasource, loading: false });
+        })
+        .catch(() => {
+          this.setState({ loading: false });
+        });
       this.props.addSuccessToast(t('The dataset has been saved'));
     }
   }
@@ -236,7 +227,7 @@ export class ChartCreation extends PureComponent<
     this.props.history.push(this.exploreUrl());
   }
 
-  changeDatasource(datasource: { label: string; value: string }) {
+  changeDatasource(datasource: { label: string | ReactNode; value: string }) {
     this.setState({ datasource });
   }
 
@@ -254,7 +245,12 @@ export class ChartCreation extends PureComponent<
     }
   }
 
-  loadDatasources(search: string, page: number, pageSize: number) {
+  loadDatasources(
+    search: string,
+    page: number,
+    pageSize: number,
+    exactMatch = false,
+  ) {
     const query = rison.encode({
       columns: [
         'id',
@@ -263,7 +259,9 @@ export class ChartCreation extends PureComponent<
         'database.database_name',
         'schema',
       ],
-      filters: [{ col: 'table_name', opr: 'ct', value: search }],
+      filters: [
+        { col: 'table_name', opr: exactMatch ? 'eq' : 'ct', value: search },
+      ],
       page,
       page_size: pageSize,
       order_column: 'table_name',
@@ -273,15 +271,15 @@ export class ChartCreation extends PureComponent<
       endpoint: `/api/v1/dataset/?q=${query}`,
     }).then((response: JsonResponse) => {
       const list: {
-        customLabel: ReactNode;
         id: number;
-        label: string;
+        label: string | ReactNode;
         value: string;
+        table_name: string;
       }[] = response.json.result.map((item: Dataset) => ({
         id: item.id,
         value: `${item.id}__${item.datasource_type}`,
-        customLabel: DatasetSelectLabel(item),
-        label: item.table_name,
+        label: DatasetSelectLabel(item),
+        table_name: item.table_name,
       }));
       return {
         data: list,
@@ -291,6 +289,7 @@ export class ChartCreation extends PureComponent<
   }
 
   render() {
+    const { theme } = this.props;
     const isButtonDisabled = this.isBtnDisabled();
     const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
     const datasetHelpText = this.state.canCreateDataset ? (
@@ -306,7 +305,7 @@ export class ChartCreation extends PureComponent<
           data-test="add-chart-new-dataset-instructions"
         >
           {`${VIEW_INSTRUCTIONS_TEXT} `}
-          <i className="fa fa-external-link" />
+          <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
         </a>
         .
       </span>
@@ -318,11 +317,15 @@ export class ChartCreation extends PureComponent<
           target="_blank"
         >
           {`${VIEW_INSTRUCTIONS_TEXT} `}
-          <i className="fa fa-external-link" />
+          <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
         </a>
         .
       </span>
     );
+
+    if (this.state.loading) {
+      return <Loading />;
+    }
 
     return (
       <StyledContainer>
@@ -339,7 +342,7 @@ export class ChartCreation extends PureComponent<
                   name="select-datasource"
                   onChange={this.changeDatasource}
                   options={this.loadDatasources}
-                  optionFilterProps={['id', 'label']}
+                  optionFilterProps={['id', 'table_name']}
                   placeholder={t('Choose a dataset')}
                   showSearch
                   value={this.state.datasource}
@@ -383,4 +386,4 @@ export class ChartCreation extends PureComponent<
   }
 }
 
-export default withRouter(withToasts(ChartCreation));
+export default withRouter(withToasts(withTheme(ChartCreation)));

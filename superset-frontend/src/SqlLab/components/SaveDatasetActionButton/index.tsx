@@ -16,63 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
-import { t, useTheme, styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import { DropdownButton } from 'src/components/DropdownButton';
-import Button from 'src/components/Button';
-import { DropdownButtonProps } from 'antd/lib/dropdown';
+import { t } from '@apache-superset/core';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Button } from '@superset-ui/core/components';
 
 interface SaveDatasetActionButtonProps {
   setShowSave: (arg0: boolean) => void;
-  overlayMenu: JSX.Element | null;
+  onSaveAsExplore?: () => void;
 }
 
 const SaveDatasetActionButton = ({
   setShowSave,
-  overlayMenu,
-}: SaveDatasetActionButtonProps) => {
-  const theme = useTheme();
-
-  const StyledDropdownButton = styled(
-    DropdownButton as FC<DropdownButtonProps>,
-  )`
-    &.ant-dropdown-button button.ant-btn.ant-btn-default {
-      font-weight: ${theme.gridUnit * 150};
-      background-color: ${theme.colors.primary.light4};
-      color: ${theme.colors.primary.dark1};
-      &:nth-of-type(2) {
-        &:before,
-        &:hover:before {
-          border-left: 2px solid ${theme.colors.primary.dark2};
-        }
-      }
-    }
-    span[name='caret-down'] {
-      margin-left: ${theme.gridUnit * 1}px;
-      color: ${theme.colors.primary.dark2};
-    }
-  `;
-
-  return !overlayMenu ? (
-    <Button onClick={() => setShowSave(true)} buttonStyle="primary">
-      {t('Save')}
-    </Button>
-  ) : (
-    <StyledDropdownButton
+  onSaveAsExplore,
+}: SaveDatasetActionButtonProps) => (
+  <>
+    <Button
+      color="primary"
+      variant="text"
       onClick={() => setShowSave(true)}
-      overlay={overlayMenu}
-      icon={
-        <Icons.CaretDown
-          iconColor={theme.colors.grayscale.light5}
-          name="caret-down"
-        />
-      }
-      trigger={['click']}
-    >
-      {t('Save')}
-    </StyledDropdownButton>
-  );
-};
+      icon={<Icons.SaveOutlined />}
+      tooltip={t('Save query')}
+      aria-label={t('Save')}
+    />
+    {onSaveAsExplore && (
+      <Button
+        color="primary"
+        variant="text"
+        onClick={() => onSaveAsExplore?.()}
+        icon={<Icons.TableOutlined />}
+        tooltip={t('Save or Overwrite Dataset')}
+        aria-label={t('Save dataset')}
+      />
+    )}
+  </>
+);
 
 export default SaveDatasetActionButton;

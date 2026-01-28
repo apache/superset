@@ -17,8 +17,11 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t, tn } from '@superset-ui/core';
-import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
+import { t } from '@apache-superset/core';
+import { tn } from '@apache-superset/core';
+import MetadataBar, {
+  MetadataType,
+} from '@superset-ui/core/components/MetadataBar';
 import { ExplorePageInitialData } from 'src/explore/types';
 
 export const useExploreMetadataBar = (

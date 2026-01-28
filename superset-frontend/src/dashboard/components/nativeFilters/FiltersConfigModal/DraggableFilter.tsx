@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useRef, FC } from 'react';
 import {
   DragSourceMonitor,
@@ -25,21 +25,23 @@ import {
   useDrop,
   XYCoord,
 } from 'react-dnd';
-import Icons, { IconType } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import type { IconType } from '@superset-ui/core/components/Icons/types';
+import { isDivider } from './utils';
 
 interface TitleContainerProps {
   readonly isDragging: boolean;
 }
 
-const FILTER_TYPE = 'FILTER';
+export const FILTER_TYPE = 'FILTER';
+export const CUSTOMIZATION_TYPE = 'CUSTOMIZATION';
 
 const Container = styled.div<TitleContainerProps>`
-  ${({ isDragging, theme }) => `
+  ${({ isDragging }) => `
     opacity: ${isDragging ? 0.3 : 1};
     cursor: ${isDragging ? 'grabbing' : 'pointer'};
     width: 100%;
     display: flex;
-    padding:  ${theme.gridUnit}px;
   `}
 `;
 
@@ -47,40 +49,72 @@ const DragIcon = styled(Icons.Drag, {
   shouldForwardProp: propName => propName !== 'isDragging',
 })<IconType & { isDragging: boolean }>`
   ${({ isDragging, theme }) => `
-    font-size: ${theme.typography.sizes.m}px;
-    margin-top: 15px;
+    font-size: ${theme.fontSize}px;
     cursor: ${isDragging ? 'grabbing' : 'grab'};
-    padding-left: ${theme.gridUnit}px;
+    padding-left: ${theme.sizeUnit}px;
   `}
 `;
 
 interface FilterTabTitleProps {
   index: number;
   filterIds: string[];
-  onRearrange: (dragItemIndex: number, targetIndex: number) => void;
+  onRearrange: (
+    dragItemIndex: number,
+    targetIndex: number,
+    itemId: string,
+  ) => void;
+  onCrossListDrop?: (
+    sourceId: string,
+    targetIndex: number,
+    sourceType: 'filter' | 'customization',
+  ) => void;
+  dragType?: string;
 }
 
 interface DragItem {
   index: number;
   filterIds: string[];
   type: string;
+  isDivider: boolean;
+  dragType: string;
 }
 
 export const DraggableFilter: FC<FilterTabTitleProps> = ({
   index,
   onRearrange,
+  onCrossListDrop,
   filterIds,
+  dragType = FILTER_TYPE,
   children,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const itemId = filterIds[0];
+  const isDividerItem = isDivider(itemId);
+
   const [{ isDragging }, drag] = useDrag({
-    item: { filterIds, type: FILTER_TYPE, index },
+    item: {
+      filterIds,
+      type: dragType,
+      index,
+      isDivider: isDividerItem,
+      dragType,
+    },
     collect: (monitor: DragSourceMonitor) => ({
       isDragging: monitor.isDragging(),
     }),
   });
+
   const [, drop] = useDrop({
-    accept: FILTER_TYPE,
+    accept: [FILTER_TYPE, CUSTOMIZATION_TYPE],
+    drop: (item: DragItem) => {
+      const isCrossListDrop = item.dragType !== dragType;
+
+      if (isCrossListDrop && item.isDivider && onCrossListDrop) {
+        const sourceType: 'filter' | 'customization' =
+          item.dragType === FILTER_TYPE ? 'filter' : 'customization';
+        onCrossListDrop(item.filterIds[0], index, sourceType);
+      }
+    },
     hover: (item: DragItem, monitor: DropTargetMonitor) => {
       if (!ref.current) {
         return;
@@ -89,43 +123,30 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
       const dragIndex = item.index;
       const hoverIndex = index;
 
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
+      if (dragIndex === hoverIndex && item.dragType === dragType) {
         return;
       }
-      // Determine rectangle on screen
-      const hoverBoundingRect = ref.current?.getBoundingClientRect();
 
-      // Get vertical middle
+      const hoverBoundingRect = ref.current?.getBoundingClientRect();
       const hoverMiddleY =
         (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-
-      // Determine mouse position
       const clientOffset = monitor.getClientOffset();
-
-      // Get pixels to the top
       const hoverClientY = (clientOffset as XYCoord).y - hoverBoundingRect.top;
 
-      // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
+      const isCrossListDrop = item.dragType !== dragType;
 
-      // Dragging downwards
+      if (isCrossListDrop) {
+        return;
+      }
+
       if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
         return;
       }
-
-      // Dragging upwards
       if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
         return;
       }
 
-      onRearrange(dragIndex, hoverIndex);
-      // Note: we're mutating the monitor item here.
-      // Generally it's better to avoid mutations,
-      // but it's good here for the sake of performance
-      // to avoid expensive index searches.
-      // eslint-disable-next-line no-param-reassign
+      onRearrange(dragIndex, hoverIndex, item.filterIds[0]);
       item.index = hoverIndex;
     },
   });

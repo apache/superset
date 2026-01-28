@@ -30,6 +30,7 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { URL_PARAMS } from 'src/constants';
 import {
   DISABLE_INPUT_OPERATORS,
@@ -69,7 +70,7 @@ export function getAnnotationJsonUrl(slice_id, force) {
 
   const uri = URI(window.location.search);
   return uri
-    .pathname('/api/v1/chart/data')
+    .pathname(ensureAppRoot('/api/v1/chart/data'))
     .search({
       form_data: safeStringify({ slice_id }),
       force,
@@ -77,21 +78,24 @@ export function getAnnotationJsonUrl(slice_id, force) {
     .toString();
 }
 
-export function getURIDirectory(endpointType = 'base') {
+export function getURIDirectory(endpointType = 'base', includeAppRoot = true) {
   // Building the directory part of the URI
-  if (
-    ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
-      endpointType,
-    )
-  ) {
-    return '/superset/explore_json/';
-  }
-  return '/explore/';
+  const uri = ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
+    endpointType,
+  )
+    ? '/superset/explore_json/'
+    : '/explore/';
+  return includeAppRoot ? ensureAppRoot(uri) : uri;
 }
 
-export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
+export function mountExploreUrl(
+  endpointType,
+  extraSearch = {},
+  force = false,
+  includeAppRoot = true,
+) {
   const uri = new URI('/');
-  const directory = getURIDirectory(endpointType);
+  const directory = getURIDirectory(endpointType, includeAppRoot);
   const search = uri.search(true);
   Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];
@@ -113,7 +117,7 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
     protocol: window.location.protocol.slice(0, -1),
     hostname: getHostName(allowDomainSharding),
     port: window.location.port ? window.location.port : '',
-    path,
+    path: ensureAppRoot(path),
   });
   if (qs) {
     uri = uri.search(qs);
@@ -143,7 +147,10 @@ export function getExploreUrl({
   // eslint-disable-next-line no-param-reassign
   delete formData.label_colors;
 
-  let uri = getChartDataUri({ path: '/', allowDomainSharding });
+  let uri = getChartDataUri({
+    path: '/',
+    allowDomainSharding,
+  });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
@@ -203,7 +210,7 @@ export const getQuerySettings = formData => {
   ];
 };
 
-export const buildV1ChartDataPayload = ({
+export const buildV1ChartDataPayload = async ({
   formData,
   force,
   resultFormat,
@@ -238,12 +245,13 @@ export const buildV1ChartDataPayload = ({
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
 
-export const exportChart = ({
+export const exportChart = async ({
   formData,
   resultFormat = 'json',
   resultType = 'full',
   force = false,
   ownState = {},
+  onStartStreamingExport = null,
 }) => {
   let url;
   let payload;
@@ -257,8 +265,8 @@ export const exportChart = ({
     });
     payload = formData;
   } else {
-    url = '/api/v1/chart/data';
-    payload = buildV1ChartDataPayload({
+    url = ensureAppRoot('/api/v1/chart/data');
+    payload = await buildV1ChartDataPayload({
       formData,
       force,
       resultFormat,
@@ -268,7 +276,18 @@ export const exportChart = ({
     });
   }
 
-  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  // Check if streaming export handler is provided (from dashboard Chart.jsx)
+  if (onStartStreamingExport) {
+    // Streaming is handled by the caller - pass URL, payload, and export type
+    onStartStreamingExport({
+      url,
+      payload,
+      exportType: resultFormat,
+    });
+  } else {
+    // Fallback to original behavior for non-streaming exports
+    SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  }
 };
 
 export const exploreChart = (formData, requestParams) => {

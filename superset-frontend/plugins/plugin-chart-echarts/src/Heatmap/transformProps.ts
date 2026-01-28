@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  GenericDataType,
   NumberFormats,
   QueryFormColumn,
   getColumnLabel,
@@ -25,8 +24,13 @@ import {
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
+  rgbToHex,
+  addAlpha,
   tooltipHtml,
+  DataRecordValue,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import memoizeOne from 'memoize-one';
 import { maxBy, minBy } from 'lodash';
 import type { ComposeOption } from 'echarts/core';
@@ -36,12 +40,103 @@ import { HeatmapChartProps, HeatmapTransformedProps } from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
-import { NULL_STRING } from '../constants';
 import { getPercentFormatter } from '../utils/formatters';
 
 type EChartsOption = ComposeOption<HeatmapSeriesOption>;
 
 const DEFAULT_ECHARTS_BOUNDS = [0, 200];
+
+/**
+ * Extract unique values for an axis from the data.
+ * Filters out null and undefined values.
+ *
+ * @param data - The dataset to extract values from
+ * @param columnName - The column to extract unique values from
+ * @returns Array of unique values from the specified column
+ */
+function extractUniqueValues(
+  data: Record<string, DataRecordValue>[],
+  columnName: string,
+): DataRecordValue[] {
+  const uniqueSet = new Set<DataRecordValue>();
+  data.forEach(row => {
+    const value = row[columnName];
+    if (value !== null && value !== undefined) {
+      uniqueSet.add(value);
+    }
+  });
+  return Array.from(uniqueSet);
+}
+
+/**
+ * Sort axis values based on the sort configuration.
+ * Supports alphabetical (with numeric awareness) and metric value-based sorting.
+ *
+ * @param values - The unique values to sort
+ * @param data - The full dataset
+ * @param sortOption - Sort option string (e.g., 'alpha_asc', 'value_desc')
+ * @param metricLabel - Label of the metric for value-based sorting
+ * @param axisColumn - Column name for the axis being sorted
+ * @returns Sorted array of values
+ */
+function sortAxisValues(
+  values: DataRecordValue[],
+  data: Record<string, DataRecordValue>[],
+  sortOption: string | undefined,
+  metricLabel: string,
+  axisColumn: string,
+): DataRecordValue[] {
+  if (!sortOption) {
+    // No sorting specified, return values as they appear in the data
+    return values;
+  }
+
+  const isAscending = sortOption.includes('asc');
+  const isValueSort = sortOption.includes('value');
+
+  if (isValueSort) {
+    // Sort by metric value - aggregate metric values for each axis category
+    const valueMap = new Map<DataRecordValue, number>();
+    data.forEach(row => {
+      const axisValue = row[axisColumn];
+      const metricValue = row[metricLabel];
+      if (
+        axisValue !== null &&
+        axisValue !== undefined &&
+        typeof metricValue === 'number'
+      ) {
+        const current = valueMap.get(axisValue) || 0;
+        valueMap.set(axisValue, current + metricValue);
+      }
+    });
+
+    return [...values].sort((a, b) => {
+      const aValue = valueMap.get(a) || 0;
+      const bValue = valueMap.get(b) || 0;
+      return isAscending ? aValue - bValue : bValue - aValue;
+    });
+  }
+
+  // Alphabetical/lexicographic sort
+  return [...values].sort((a, b) => {
+    // Check if both values are numeric for proper numeric sorting
+    const aNum = typeof a === 'number' ? a : Number(a);
+    const bNum = typeof b === 'number' ? b : Number(b);
+    const aIsNumeric = Number.isFinite(aNum);
+    const bIsNumeric = Number.isFinite(bNum);
+
+    if (aIsNumeric && bIsNumeric) {
+      // Both are numeric, sort numerically
+      return isAscending ? aNum - bNum : bNum - aNum;
+    }
+
+    // At least one is non-numeric, use locale-aware string comparison
+    const aStr = String(a);
+    const bStr = String(b);
+    const comparison = aStr.localeCompare(bStr, undefined, { numeric: true });
+    return isAscending ? comparison : -comparison;
+  });
+}
 
 // Calculated totals per x and y categories plus total
 const calculateTotals = memoizeOne(
@@ -75,7 +170,8 @@ export default function transformProps(
   chartProps: HeatmapChartProps,
 ): HeatmapTransformedProps {
   const refs: Refs = {};
-  const { width, height, formData, queriesData, datasource } = chartProps;
+  const { width, height, formData, queriesData, datasource, theme } =
+    chartProps;
   const {
     bottomMargin,
     xAxis,
@@ -86,6 +182,8 @@ export default function transformProps(
     metric = '',
     normalizeAcross,
     normalized,
+    borderColor,
+    borderWidth = 0,
     showLegend,
     showPercentage,
     showValues,
@@ -94,14 +192,26 @@ export default function transformProps(
     valueBounds,
     yAxisFormat,
     xAxisTimeFormat,
+    xAxisLabelRotation,
     currencyFormat,
+    sortXAxis,
+    sortYAxis,
   } = formData;
   const metricLabel = getMetricLabel(metric);
   const xAxisLabel = getColumnLabel(xAxis);
   // groupby is overridden to be a single value
   const yAxisLabel = getColumnLabel(groupby as unknown as QueryFormColumn);
-  const { data, colnames, coltypes } = queriesData[0];
-  const { columnFormats = {}, currencyFormats = {} } = datasource;
+  const {
+    data,
+    colnames,
+    coltypes,
+    detected_currency: detectedCurrency,
+  } = queriesData[0];
+  const {
+    columnFormats = {},
+    currencyFormats = {},
+    currencyCodeColumn,
+  } = datasource;
   const colorColumn = normalized ? 'rank' : metricLabel;
   const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
   const getAxisFormatter =
@@ -124,6 +234,10 @@ export default function transformProps(
     columnFormats,
     yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   let [min, max] = (valueBounds || []).map(parseAxisBound);
@@ -138,10 +252,42 @@ export default function transformProps(
       DEFAULT_ECHARTS_BOUNDS[1];
   }
 
+  // Extract and sort unique axis values
+  // Use colnames to get the actual column names in the data
+  const xAxisColumnName = colnames[0];
+  const yAxisColumnName = colnames[1];
+
+  const xAxisValues = extractUniqueValues(data, xAxisColumnName);
+  const yAxisValues = extractUniqueValues(data, yAxisColumnName);
+
+  const sortedXAxisValues = sortAxisValues(
+    xAxisValues,
+    data,
+    sortXAxis,
+    metricLabel,
+    xAxisColumnName,
+  );
+  const sortedYAxisValues = sortAxisValues(
+    yAxisValues,
+    data,
+    sortYAxis,
+    metricLabel,
+    yAxisColumnName,
+  );
+
+  // Create lookup maps for axis indices
+  const xAxisIndexMap = new Map<DataRecordValue, number>(
+    sortedXAxisValues.map((value, index) => [value, index]),
+  );
+  const yAxisIndexMap = new Map<DataRecordValue, number>(
+    sortedYAxisValues.map((value, index) => [value, index]),
+  );
+
   const series: HeatmapSeriesOption[] = [
     {
       name: metricLabel,
       type: 'heatmap',
+<<<<<<< HEAD
       data: data.map(row =>
         colnames.map(col => {
           const value = row[col];
@@ -154,11 +300,46 @@ export default function transformProps(
           return value;
         }),
       ),
+=======
+      data: data.flatMap(row => {
+        const xValue = row[xAxisColumnName];
+        const yValue = row[yAxisColumnName];
+        const metricValue = row[metricLabel];
+
+        // Convert to axis indices for ECharts when explicit axis data is provided
+        const xIndex = xAxisIndexMap.get(xValue);
+        const yIndex = yAxisIndexMap.get(yValue);
+
+        if (xIndex === undefined || yIndex === undefined) {
+          // Log a warning for debugging
+          logging.warn(
+            `Heatmap: Skipping row due to missing axis value. xValue: ${xValue}, yValue: ${yValue}, metricValue: ${metricValue}`,
+            row,
+          );
+          return [];
+        }
+        return [[xIndex, yIndex, metricValue] as [number, number, any]];
+      }),
+>>>>>>> origin/master
       label: {
         show: showValues,
         formatter: (params: CallbackDataParams) => {
           const paramsValue = params.value as (string | number)[];
           return valueFormatter(paramsValue?.[2] as number | null | undefined);
+        },
+      },
+      itemStyle: {
+        borderColor: addAlpha(
+          rgbToHex(borderColor.r, borderColor.g, borderColor.b),
+          borderColor.a,
+        ),
+        borderWidth,
+      },
+      emphasis: {
+        itemStyle: {
+          borderColor: 'transparent',
+          shadowBlur: 10,
+          shadowColor: addAlpha(theme.colorText, 0.3),
         },
       },
     },
@@ -229,13 +410,16 @@ export default function transformProps(
     },
     xAxis: {
       type: 'category',
+      data: sortedXAxisValues,
       axisLabel: {
         formatter: xAxisFormatter,
         interval: xscaleInterval === -1 ? 'auto' : xscaleInterval - 1,
+        rotate: xAxisLabelRotation,
       },
     },
     yAxis: {
       type: 'category',
+      data: sortedYAxisValues,
       axisLabel: {
         formatter: yAxisFormatter,
         interval: yscaleInterval === -1 ? 'auto' : yscaleInterval - 1,

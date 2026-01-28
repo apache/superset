@@ -20,19 +20,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { omit } from 'lodash';
-import { EmptyState } from 'src/components/EmptyState';
-import {
-  t,
-  styled,
-  css,
-  FeatureFlag,
-  isFeatureEnabled,
-} from '@superset-ui/core';
+import { EmptyState, Skeleton } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';
-import { Skeleton } from 'src/components';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import PanelToolbar from 'src/components/PanelToolbar';
+import { ViewContribution } from 'src/SqlLab/contributions';
 
 interface QueryHistoryProps {
   queryEditorId: string | number;
@@ -42,7 +40,7 @@ interface QueryHistoryProps {
 
 const StyledEmptyStateWrapper = styled.div`
   height: 100%;
-  .antd5-empty-image img {
+  .ant-empty-image img {
     margin-right: 28px;
   }
 
@@ -64,6 +62,10 @@ const QueryHistory = ({
   displayLimit,
   latestQueryId,
 }: QueryHistoryProps) => {
+  const { id, tabViewId } = useQueryEditor(String(queryEditorId), [
+    'tabViewId',
+  ]);
+  const editorId = tabViewId ?? id;
   const [ref, hasReachedBottom] = useInView({ threshold: 0 });
   const [pageIndex, setPageIndex] = useState(0);
   const queries = useSelector(
@@ -75,7 +77,7 @@ const QueryHistory = ({
     isLoading,
     isFetching,
   } = useEditorQueriesQuery(
-    { editorId: `${queryEditorId}`, pageIndex },
+    { editorId, pageIndex },
     {
       skip: !isFeatureEnabled(FeatureFlag.SqllabBackendPersistence),
     },
@@ -88,12 +90,16 @@ const QueryHistory = ({
               queries,
               data.result.map(({ id }) => id),
             ),
-            queryEditorId,
+            editorId,
           )
             .concat(data.result)
-            .reverse()
-        : getEditorQueries(queries, queryEditorId),
-    [queries, data, queryEditorId],
+            .sort((a, b) => {
+              const aTime = a.startDttm || 0;
+              const bTime = b.startDttm || 0;
+              return aTime - bTime;
+            })
+        : getEditorQueries(queries, editorId),
+    [queries, data, editorId],
   );
 
   const loadNext = useEffectEvent(() => {
@@ -115,6 +121,7 @@ const QueryHistory = ({
 
   return editorQueries.length > 0 ? (
     <>
+      <PanelToolbar viewId={ViewContribution.QueryHistory} />
       <QueryTable
         columns={[
           'state',

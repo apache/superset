@@ -18,18 +18,25 @@
  */
 import type { Column, GridApi } from 'ag-grid-community';
 import { act, fireEvent, render } from 'spec/helpers/testing-library';
-import Header from './Header';
+import { Header } from './Header';
 import { PIVOT_COL_ID } from './constants';
 
-jest.mock('src/components/Dropdown', () => ({
+jest.mock('@superset-ui/core/components/Dropdown', () => ({
   Dropdown: () => <div data-test="mock-dropdown" />,
 }));
 
-jest.mock('src/components/Icons', () => ({
-  Sort: () => <div data-test="mock-sort" />,
-  SortAsc: () => <div data-test="mock-sort-asc" />,
-  SortDesc: () => <div data-test="mock-sort-desc" />,
-}));
+jest.mock('@superset-ui/core/components/Icons', () => {
+  const actualIcons = jest.requireActual('@superset-ui/core/components/Icons');
+  return {
+    __esModule: true,
+    Icons: {
+      ...actualIcons.Icons, // retain the real `Icons` export
+      Sort: jest.fn(() => <div data-test="mock-sort" />),
+      SortAsc: jest.fn(() => <div data-test="mock-sort-asc" />),
+      SortDesc: jest.fn(() => <div data-test="mock-sort-desc" />),
+    },
+  };
+});
 
 class MockApi extends EventTarget {
   getAllDisplayedColumns() {
@@ -74,7 +81,7 @@ test('sorts by clicking a column header', () => {
   expect(queryByTestId('mock-sort-desc')).not.toBeInTheDocument();
 });
 
-test('synchronizes the current sort when sortChanged event occured', async () => {
+test('synchronizes the current sort when sortChanged event occurred', async () => {
   const { findByTestId } = render(<Header {...mockedProps} />);
   act(() => {
     mockedProps.api.dispatchEvent(new Event('sortChanged'));

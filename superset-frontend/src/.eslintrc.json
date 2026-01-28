@@ -1,0 +1,11 @@
+{
+  "overrides": [
+    {
+      "files": ["*.test.ts", "*.test.tsx", "*.test.js", "*.test.jsx"],
+      "rules": {
+        "jest/consistent-test-it": ["error", { "fn": "test" }],
+        "no-restricted-globals": ["error", "describe", "it"]
+      }
+    }
+  ]
+}

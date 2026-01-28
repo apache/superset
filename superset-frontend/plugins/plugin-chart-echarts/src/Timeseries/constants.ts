@@ -20,7 +20,7 @@ import {
   DEFAULT_SORT_SERIES_DATA,
   sections,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { LegendOrientation, LegendType } from '../types';
 import {
   OrientationType,
@@ -71,6 +71,8 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   seriesType: EchartsTimeseriesSeriesType.Line,
   stack: false,
   tooltipTimeFormat: 'smart_date',
+  xAxisTimeFormat: 'smart_date',
+  xAxisNumberFormat: 'SMART_NUMBER',
   truncateXAxis: true,
   truncateYAxis: false,
   yAxisBounds: [null, null],
@@ -78,6 +80,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   richTooltip: true,
   xAxisForceCategorical: false,
   xAxisLabelRotation: defaultXAxis.xAxisLabelRotation,
+  xAxisLabelInterval: defaultXAxis.xAxisLabelInterval,
   groupby: [],
   showValue: false,
   onlyTotal: false,

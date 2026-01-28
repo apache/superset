@@ -45,6 +45,60 @@ ul.dropdown__menu svg {
   display: none;
 }
 
+/* Consistent dropdown styling for navbar */
+.navbar__item.dropdown .dropdown__menu {
+  background-color: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.navbar__item.dropdown .dropdown__link {
+  color: #1c1e21 !important;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+  padding: 0.5rem 1rem !important;
+  display: block !important;
+}
+
+.navbar__item.dropdown .dropdown__link:hover {
+  background-color: #f5f5f5 !important;
+  color: #1c1e21 !important;
+  text-decoration: none !important;
+}
+
+/* Remove the blue box styling for doc links in dropdowns */
+.navbar__item.dropdown .dropdown__link--active {
+  background-color: transparent !important;
+  color: #1c1e21 !important;
+}
+
+.navbar__item.dropdown .dropdown__link--active:hover {
+  background-color: #f5f5f5 !important;
+}
+
+/* Dark mode support */
+[data-theme='dark'] .navbar__item.dropdown .dropdown__menu {
+  background-color: #242526;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .navbar__item.dropdown .dropdown__link {
+  color: #f5f6f7 !important;
+}
+
+[data-theme='dark'] .navbar__item.dropdown .dropdown__link:hover {
+  background-color: #3a3b3c !important;
+  color: #f5f6f7 !important;
+}
+
+[data-theme='dark'] .navbar__item.dropdown .dropdown__link--active {
+  color: #f5f6f7 !important;
+}
+
+[data-theme='dark'] .navbar__item.dropdown .dropdown__link--active:hover {
+  background-color: #3a3b3c !important;
+}
+
 :root {
   --ifm-color-primary: #20a7c9;
   --ifm-color-primary-dark: #1985a0;
@@ -58,7 +112,6 @@ ul.dropdown__menu svg {
   --ifm-code-font-size: 95%;
   --ifm-menu-link-padding-vertical: 12px;
   --doc-sidebar-width: 350px !important;
-  --ifm-navbar-height: none;
   --ifm-font-family-base: Roboto;
   --ifm-footer-background-color: #173036;
   --ifm-footer-color: #87939a;
@@ -68,4 +121,69 @@ ul.dropdown__menu svg {
   --ifm-secondary-text: #5f5f5f;
   --ifm-code-padding-vertical: 3px;
   --ifm-code-padding-horizontal: 5px;
+}
+
+/* Database logo images in intro/README */
+.database-logo {
+  object-fit: contain;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --ifm-font-base-color: #bbb5ac;
+  --ifm-border-color: #797063;
+}
+
+/* Custom "resources" admonition for additional resources/links */
+.alert--resources {
+  --ifm-alert-background-color: #f8f9fa;
+  --ifm-alert-border-color: #6c757d;
+  --ifm-alert-foreground-color: #495057;
+  background-color: var(--ifm-alert-background-color);
+  border-left: 5px solid var(--ifm-alert-border-color);
+}
+
+.alert--resources .admonition-heading h5 {
+  color: var(--ifm-alert-foreground-color);
+}
+
+.alert--resources .admonition-icon svg {
+  fill: var(--ifm-alert-foreground-color);
+  stroke: var(--ifm-alert-foreground-color);
+}
+
+/* Resources admonition - dark mode */
+[data-theme='dark'] .alert--resources {
+  --ifm-alert-background-color: #2d3748;
+  --ifm-alert-border-color: #718096;
+  --ifm-alert-foreground-color: #e2e8f0;
+}
+
+/* Style links within resources admonition */
+.alert--resources a {
+  color: var(--ifm-link-color);
+  text-decoration: none;
+}
+
+.alert--resources a:hover {
+  text-decoration: underline;
+}
+
+[data-theme='dark'] .alert--resources a {
+  color: var(--ifm-color-primary-light);
+}
+
+/* Fix Ant Design Collapse arrow visibility in dark mode */
+[data-theme='dark'] .ant-collapse-expand-icon {
+  color: var(--ifm-font-base-color);
+}
+
+[data-theme='dark'] .ant-collapse-header {
+  color: var(--ifm-font-base-color);
 }

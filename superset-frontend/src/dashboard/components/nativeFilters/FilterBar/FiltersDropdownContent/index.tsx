@@ -18,7 +18,8 @@
  */
 
 import { ReactNode } from 'react';
-import { css, Divider, Filter, SupersetTheme } from '@superset-ui/core';
+import { Divider, Filter } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { CrossFilterIndicator } from '../../selectors';
@@ -48,8 +49,8 @@ export const FiltersDropdownContent = ({
 }: FiltersDropdownContentProps) => (
   <div
     css={(theme: SupersetTheme) => css`
-      width: ${theme.gridUnit * 56}px;
-      padding: ${theme.gridUnit}px 0;
+      width: ${theme.sizeUnit * 56}px;
+      padding: ${theme.sizeUnit}px 0;
     `}
   >
     {overflowedCrossFilters.map(crossFilter =>
@@ -65,7 +66,6 @@ export const FiltersDropdownContent = ({
         filtersOutOfScope={filtersOutOfScope}
         renderer={renderer}
         forceRender={forceRenderOutOfScope}
-        horizontalOverflow
       />
     )}
   </div>

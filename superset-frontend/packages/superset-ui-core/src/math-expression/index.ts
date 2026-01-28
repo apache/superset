@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import mexp from 'math-expression-evaluator';
+import Mexp from 'math-expression-evaluator';
+
+const mexp = new Mexp();
 
 const REPLACE_OPERATORS: [RegExp, string][] = [
   [new RegExp(/==/g), 'Eq'],

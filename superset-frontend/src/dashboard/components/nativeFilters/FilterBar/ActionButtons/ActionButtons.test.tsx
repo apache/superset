@@ -17,8 +17,7 @@
  * under the License.
  */
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import ActionButtons from './index';
 
 const createProps = () => ({
@@ -78,18 +77,18 @@ test('should apply', () => {
   expect(mockedProps.onApply).toHaveBeenCalled();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('custom width', () => {
-  it('sets its default width with OPEN_FILTER_BAR_WIDTH', () => {
+  test('sets its default width with OPEN_FILTER_BAR_WIDTH', () => {
     const mockedProps = createProps();
     render(<ActionButtons {...mockedProps} />, { useRedux: true });
     const container = screen.getByTestId('filterbar-action-buttons');
-    expect(container).toHaveStyleRule(
-      'width',
-      `${OPEN_FILTER_BAR_WIDTH - 1}px`,
-    );
+    expect(container).toHaveStyle({
+      width: `${OPEN_FILTER_BAR_WIDTH - 1}px`,
+    });
   });
 
-  it('sets custom width', () => {
+  test('sets custom width', () => {
     const mockedProps = createProps();
     const expectedWidth = 423;
     const { getByTestId } = render(
@@ -99,6 +98,8 @@ describe('custom width', () => {
       },
     );
     const container = getByTestId('filterbar-action-buttons');
-    expect(container).toHaveStyleRule('width', `${expectedWidth - 1}px`);
+    expect(container).toHaveStyle({
+      width: `${expectedWidth - 1}px`,
+    });
   });
 });

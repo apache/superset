@@ -24,18 +24,19 @@ import {
   RefObject,
 } from 'react';
 
-import { withTheme } from '@superset-ui/core';
+import { withTheme } from '@apache-superset/core/ui';
 
-import {
-  FilterValue,
-  Filters,
+import type {
+  ListViewFilterValue as FilterValue,
+  ListViewFilters as Filters,
   InternalFilter,
   SelectOption,
-} from 'src/components/ListView/types';
+} from '../types';
+import type { FilterHandler } from './types';
 import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
-import { FilterHandler } from './Base';
+import NumericalRangeFilter from './NumericalRange';
 
 interface UIFiltersProps {
   filters: Filters;
@@ -75,6 +76,13 @@ function UIFilters(
             selects,
             toolTipDescription,
             onFilterUpdate,
+            loading,
+            dateFilterValueType,
+            min,
+            max,
+            dropdownStyle,
+            autoComplete,
+            inputName,
           },
           index,
         ) => {
@@ -103,6 +111,8 @@ function UIFilters(
                 }}
                 paginate={paginate}
                 selects={selects}
+                loading={loading ?? false}
+                dropdownStyle={dropdownStyle}
               />
             );
           }
@@ -113,7 +123,7 @@ function UIFilters(
                 Header={Header}
                 initialValue={initialValue}
                 key={key}
-                name={id}
+                name={inputName ?? id}
                 toolTipDescription={toolTipDescription}
                 onSubmit={(value: string) => {
                   if (onFilterUpdate) {
@@ -122,6 +132,7 @@ function UIFilters(
 
                   updateFilterValue(index, value);
                 }}
+                autoComplete={autoComplete}
               />
             );
           }
@@ -131,6 +142,21 @@ function UIFilters(
                 ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
+                key={key}
+                name={id}
+                onSubmit={value => updateFilterValue(index, value)}
+                dateFilterValueType={dateFilterValueType || 'unix'}
+              />
+            );
+          }
+          if (input === 'numerical_range') {
+            return (
+              <NumericalRangeFilter
+                ref={filterRefs[index]}
+                Header={Header}
+                initialValue={initialValue}
+                min={min}
+                max={max}
                 key={key}
                 name={id}
                 onSubmit={value => updateFilterValue(index, value)}

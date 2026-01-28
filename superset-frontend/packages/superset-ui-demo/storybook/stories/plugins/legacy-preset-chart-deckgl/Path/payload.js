@@ -81,7 +81,7 @@ export const payload = theme => ({
   data: {
     features: [
       {
-        color: theme.colors.primary.base,
+        color: theme.colorPrimary,
         path: [
           [-122.3535851, 37.9360513],
           [-122.3179784, 37.9249513],
@@ -108,10 +108,10 @@ export const payload = theme => ({
           [-122.3876274, 37.5993171],
         ],
         __timestamp: null,
-        extraProps: { color: theme.colors.primary.base },
+        extraProps: { color: theme.colorPrimary },
       },
       {
-        color: theme.colors.warning.base,
+        color: theme.colorWarning,
         path: [
           [-122.353165, 37.936887],
           [-122.317269, 37.925655],
@@ -133,10 +133,10 @@ export const payload = theme => ({
           [-121.9772135, 37.5567286],
         ],
         __timestamp: null,
-        extraProps: { color: theme.colors.warning.base },
+        extraProps: { color: theme.colorWarning },
       },
       {
-        color: theme.colors.error.base,
+        color: theme.colorError,
         path: [
           [-121.945154, 38.018914],
           [-122.024597, 38.003275],
@@ -166,10 +166,10 @@ export const payload = theme => ({
           [-122.38666, 37.599787],
         ],
         __timestamp: null,
-        extraProps: { color: theme.colors.error.base },
+        extraProps: { color: theme.colorError },
       },
       {
-        color: theme.colors.success.base,
+        color: theme.colorSuccess,
         path: [
           [-121.900367, 37.701695],
           [-121.928099, 37.699759],
@@ -191,10 +191,10 @@ export const payload = theme => ({
           [-122.469081, 37.706121],
         ],
         __timestamp: null,
-        extraProps: { color: theme.colors.success.base },
+        extraProps: { color: theme.colorSuccess },
       },
       {
-        color: theme.colors.warning.base,
+        color: theme.colorWarning,
         path: [
           [-121.9764, 37.557355],
           [-122.017867, 37.591208],
@@ -217,7 +217,7 @@ export const payload = theme => ({
           [-122.4683093, 37.705461],
         ],
         __timestamp: null,
-        extraProps: { color: theme.colors.warning.base },
+        extraProps: { color: theme.colorWarning },
       },
     ],
     mapboxApiKey:

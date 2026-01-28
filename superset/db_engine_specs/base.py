@@ -22,6 +22,7 @@ import logging
 import re
 import warnings
 from datetime import datetime
+from inspect import signature
 from re import Match, Pattern
 from typing import (
     Any,
@@ -29,6 +30,7 @@ from typing import (
     cast,
     ContextManager,
     NamedTuple,
+    Optional,
     TYPE_CHECKING,
     TypedDict,
     Union,
@@ -38,11 +40,10 @@ from uuid import uuid4
 
 import pandas as pd
 import requests
-import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
-from flask import current_app, g, url_for
+from flask import current_app as app, g, url_for
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
@@ -54,17 +55,22 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
+from sqlalchemy.sql.expression import BinaryExpression, ColumnClause, Select, TextClause
 from sqlalchemy.types import TypeEngine
-from sqlparse.tokens import CTE
 
-from superset import db, sql_parse
+from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
-from superset.sql.parse import BaseSQLStatement, SQLScript, Table
-from superset.sql_parse import ParsedQuery
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.sql.parse import (
+    BaseSQLStatement,
+    LimitMethod,
+    RLSMethod,
+    SQLScript,
+    SQLStatement,
+    Table,
+)
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,
@@ -73,8 +79,8 @@ from superset.superset_typing import (
     SQLAColumnType,
 )
 from superset.utils import core as utils, json
-from superset.utils.core import ColumnSpec, GenericDataType
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
+from superset.utils.hashing import hash_from_str
 from superset.utils.json import redact_sensitive, reveal_sensitive
 from superset.utils.network import is_hostname_valid, is_port_open
 from superset.utils.oauth2 import encode_oauth2_state
@@ -165,14 +171,6 @@ def compile_timegrain_expression(
     return element.name.replace("{col}", compiler.process(element.col, **kwargs))
 
 
-class LimitMethod:  # pylint: disable=too-few-public-methods
-    """Enum the ways that limits can be applied"""
-
-    FETCH_MANY = "fetch_many"
-    WRAP_SQL = "wrap_sql"
-    FORCE_LIMIT = "force_limit"
-
-
 class MetricType(TypedDict, total=False):
     """
     Type for metrics return by `get_metrics`.
@@ -187,6 +185,135 @@ class MetricType(TypedDict, total=False):
     currency: str | None
     warning_text: str | None
     extra: str | None
+
+
+class DatabaseCategory:
+    """
+    Standard categories for database classification.
+    Used for organizing databases in documentation and UI.
+
+    Categories are grouped into:
+    - Cloud providers (where the database runs)
+    - Database types (what kind of database it is)
+    - Licensing (open source vs proprietary)
+    """
+
+    # Cloud providers
+    CLOUD_AWS = "Cloud - AWS"
+    CLOUD_GCP = "Cloud - Google"
+    CLOUD_AZURE = "Cloud - Azure"
+    CLOUD_DATA_WAREHOUSES = "Cloud Data Warehouses"
+
+    # Database types
+    APACHE_PROJECTS = "Apache Projects"
+    TRADITIONAL_RDBMS = "Traditional RDBMS"
+    ANALYTICAL_DATABASES = "Analytical Databases"
+    SEARCH_NOSQL = "Search & NoSQL"
+    QUERY_ENGINES = "Query Engines"
+    TIME_SERIES = "Time Series Databases"
+    OTHER = "Other Databases"
+
+    # Licensing
+    OPEN_SOURCE = "Open Source"
+    HOSTED_OPEN_SOURCE = "Hosted Open Source"
+    PROPRIETARY = "Proprietary"
+
+
+class DriverInfo(TypedDict, total=False):
+    """Information about a database driver."""
+
+    name: str
+    pypi_package: str
+    connection_string: str
+    is_recommended: bool
+    notes: str
+    docs_url: str
+
+
+class AuthenticationMethod(TypedDict, total=False):
+    """Information about an authentication method."""
+
+    name: str
+    description: str
+    requirements: str
+    connection_string: str
+    engine_parameters: dict[str, Any]
+    secure_extra: dict[str, Any]
+    notes: str
+
+
+class ConnectionExample(TypedDict, total=False):
+    """Example connection string configuration."""
+
+    description: str
+    connection_string: str
+
+
+class CompatibleDatabase(TypedDict, total=False):
+    """Information about a compatible/derived database."""
+
+    name: str
+    description: str
+    logo: str
+    homepage_url: str
+    pypi_packages: list[str]
+    connection_string: str
+    parameters: dict[str, str]
+    connection_examples: list[ConnectionExample]
+    notes: str
+    docs_url: str
+    categories: list[str]  # Override parent categories (e.g., for HOSTED_OPEN_SOURCE)
+
+
+class DBEngineSpecMetadata(TypedDict, total=False):
+    """
+    Metadata for database engine documentation and UI display.
+
+    This centralizes all documentation-related information for a database
+    engine, making it easier to add new databases without modifying
+    multiple files.
+    """
+
+    # Basic information
+    description: str
+    logo: str  # Filename in docs/static/img/databases/ or full URL
+    homepage_url: str
+    docs_url: str
+    sqlalchemy_docs_url: str
+    categories: list[str]  # Use DatabaseCategory constants, supports multiple
+
+    # Connection information
+    pypi_packages: list[str]
+    connection_string: str
+    default_port: int
+    parameters: dict[str, str]  # Parameter name -> description
+    connection_examples: list[ConnectionExample]
+
+    # Driver options (for databases with multiple drivers)
+    drivers: list[DriverInfo]
+
+    # Authentication methods
+    authentication_methods: list[AuthenticationMethod]
+
+    # Engine parameters (JSON configs for advanced options)
+    engine_parameters: list[dict[str, Any]]
+
+    # Additional information
+    notes: str
+    warnings: list[str]
+    tutorials: list[str]
+    install_instructions: str
+    version_requirements: str
+
+    # Related databases (e.g., PostgreSQL-compatible databases)
+    compatible_databases: list[CompatibleDatabase]
+
+    # Host examples (for databases with platform-specific configs)
+    host_examples: list[dict[str, str]]
+
+    # Advanced features documentation
+    ssl_configuration: dict[str, Any]
+    advanced_features: dict[str, str]
 
 
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
@@ -204,6 +331,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """
 
     engine_name: str | None = None  # for user messages, overridden in child classes
+
+    # Documentation metadata for this engine spec. Centralizes all documentation
+    # information so adding a new database only requires modifying one file.
+    # See DBEngineSpecMetadata TypedDict for available fields.
+    metadata: DBEngineSpecMetadata = {}
 
     # These attributes map the DB engine spec to one or more SQLAlchemy dialects/drivers;  # noqa: E501
     # see the ``supports_url`` and ``supports_backend`` methods below.
@@ -376,20 +508,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_cte_in_subquery = True
     # Define alias for CTE
     cte_alias = "__cte"
-    # Whether allow LIMIT clause in the SQL
-    # If True, then the database engine is allowed for LIMIT clause
-    # If False, then the database engine is allowed for TOP clause
-    allow_limit_clause = True
-    # This set will give keywords for select statements
-    # to consider for the engines with TOP SQL parsing
-    select_keywords: set[str] = {"SELECT"}
-    # This set will give the keywords for data limit statements
-    # to consider for the engines with TOP SQL parsing
-    top_keywords: set[str] = {"TOP"}
     # A set of disallowed connection query parameters by driver name
     disallow_uri_query_params: dict[str, set[str]] = {}
     # A Dict of query parameters that will always be used on every connection
     # by driver name
+
+    # Whether to use equality operators (= true/false) instead of IS operators
+    # for boolean filters. Some databases like Snowflake don't support IS true/false
+    use_equality_for_boolean_filters = False
     enforce_uri_query_params: dict[str, dict[str, Any]] = {}
 
     force_column_alias_quotes = False
@@ -427,6 +553,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Can the catalog be changed on a per-query basis?
     supports_dynamic_catalog = False
 
+    # Does the DB engine spec support cross-catalog queries?
+    supports_cross_catalog_queries = False
+
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
@@ -447,10 +576,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     has_query_id_before_execute = True
 
     @classmethod
+    def get_rls_method(cls) -> RLSMethod:
+        """
+        Returns the RLS method to be used for this engine.
+
+        There are two ways to insert RLS: either replacing the table with a subquery
+        that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
+        safer, but not supported in all databases.
+        """
+        return (
+            RLSMethod.AS_SUBQUERY
+            if cls.allows_subqueries and cls.allows_alias_in_select
+            else RLSMethod.AS_PREDICATE
+        )
+
+    @classmethod
     def is_oauth2_enabled(cls) -> bool:
         return (
             cls.supports_oauth2
-            and cls.engine_name in current_app.config["DATABASE_OAUTH2_CLIENTS"]
+            and cls.engine_name in app.config["DATABASE_OAUTH2_CLIENTS"]
         )
 
     @classmethod
@@ -503,12 +647,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Build the DB engine spec level OAuth2 client config.
         """
-        oauth2_config = current_app.config["DATABASE_OAUTH2_CLIENTS"]
+        oauth2_config = app.config["DATABASE_OAUTH2_CLIENTS"]
         if cls.engine_name not in oauth2_config:
             return None
 
         db_engine_spec_config = oauth2_config[cls.engine_name]
-        redirect_uri = current_app.config.get(
+        redirect_uri = app.config.get(
             "DATABASE_OAUTH2_REDIRECT_URI",
             url_for("DatabaseRestApi.oauth2", _external=True),
         )
@@ -541,17 +685,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ) -> str:
         """
         Return URI for initial OAuth2 request.
+
+        Uses standard OAuth 2.0 parameters only. Subclasses can override
+        to add provider-specific parameters (e.g., Google's prompt=consent).
         """
         uri = config["authorization_request_uri"]
         params = {
             "scope": config["scope"],
-            "access_type": "offline",
-            "include_granted_scopes": "false",
             "response_type": "code",
             "state": encode_oauth2_state(state),
             "redirect_uri": config["redirect_uri"],
             "client_id": config["id"],
-            "prompt": "consent",
         }
         return urljoin(uri, "?" + urlencode(params))
 
@@ -564,7 +708,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Exchange authorization code for refresh/access tokens.
         """
-        timeout = current_app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
+        timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
         req_body = {
             "code": code,
@@ -573,9 +717,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "redirect_uri": config["redirect_uri"],
             "grant_type": "authorization_code",
         }
-        if config["request_content_type"] == "data":
-            return requests.post(uri, data=req_body, timeout=timeout).json()
-        return requests.post(uri, json=req_body, timeout=timeout).json()
+        response = (
+            requests.post(uri, data=req_body, timeout=timeout)
+            if config["request_content_type"] == "data"
+            else requests.post(uri, json=req_body, timeout=timeout)
+        )
+        response.raise_for_status()
+        return response.json()
 
     @classmethod
     def get_oauth2_fresh_token(
@@ -586,7 +734,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Refresh an access token that has expired.
         """
-        timeout = current_app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
+        timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
         req_body = {
             "client_id": config["id"],
@@ -594,9 +742,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "refresh_token": refresh_token,
             "grant_type": "refresh_token",
         }
-        if config["request_content_type"] == "data":
-            return requests.post(uri, data=req_body, timeout=timeout).json()
-        return requests.post(uri, json=req_body, timeout=timeout).json()
+        response = (
+            requests.post(uri, data=req_body, timeout=timeout)
+            if config["request_content_type"] == "data"
+            else requests.post(uri, json=req_body, timeout=timeout)
+        )
+        response.raise_for_status()
+        return response.json()
 
     @classmethod
     def get_allows_alias_in_select(
@@ -698,6 +850,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         query: Query,
+        template_params: Optional[dict[str, Any]] = None,
     ) -> str | None:
         """
         Return the default schema for a given query.
@@ -862,7 +1015,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         ret_list = []
         time_grains = builtin_time_grains.copy()
-        time_grains.update(current_app.config["TIME_GRAIN_ADDONS"])
+        time_grains.update(app.config["TIME_GRAIN_ADDONS"])
         for duration, func in cls.get_time_grain_expressions().items():
             if duration in time_grains:
                 name = time_grains[duration]
@@ -941,9 +1094,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
         time_grain_expressions = cls._time_grain_expressions.copy()
-        grain_addon_expressions = current_app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
+        grain_addon_expressions = app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
-        denylist: list[str] = current_app.config["TIME_GRAIN_DENYLIST"]
+        denylist: list[str] = app.config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
             time_grain_expressions.pop(key, None)
 
@@ -1023,7 +1176,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         For instance special column like `__time` for Druid can be
         set to is_dttm=True. Note that this only gets called when new
         columns are detected/created"""
-        # TODO: Fix circular import caused by importing TableColumn
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -1117,101 +1269,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
-    def apply_limit_to_sql(
-        cls, sql: str, limit: int, database: Database, force: bool = False
-    ) -> str:
-        """
-        Alters the SQL statement to apply a LIMIT clause
-
-        :param sql: SQL query
-        :param limit: Maximum number of rows to be returned by the query
-        :param database: Database instance
-        :return: SQL query with limit clause
-        """
-        # TODO: Fix circular import caused by importing Database
-        if cls.limit_method == LimitMethod.WRAP_SQL:
-            sql = sql.strip("\t\n ;")
-            qry = (
-                select("*")
-                .select_from(TextAsFrom(text(sql), ["*"]).alias("inner_qry"))
-                .limit(limit)
-            )
-            return database.compile_sqla_query(qry)
-
-        if cls.limit_method == LimitMethod.FORCE_LIMIT:
-            parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-            sql = parsed_query.set_or_update_query_limit(limit, force=force)
-
-        return sql
-
-    @classmethod
-    def apply_top_to_sql(cls, sql: str, limit: int) -> str:  # noqa: C901
-        """
-        Alters the SQL statement to apply a TOP clause
-        :param limit: Maximum number of rows to be returned by the query
-        :param sql: SQL query
-        :return: SQL query with top clause
-        """
-
-        cte = None
-        sql_remainder = None
-        sql = sql.strip(" \t\n;")
-        query_limit: int | None = sql_parse.extract_top_from_query(
-            sql, cls.top_keywords
-        )
-        if not limit:
-            final_limit = query_limit
-        elif int(query_limit or 0) < limit and query_limit is not None:
-            final_limit = query_limit
-        else:
-            final_limit = limit
-        if not cls.allows_cte_in_subquery:
-            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql)
-        if cte:
-            str_statement = str(sql_remainder)
-            cte = cte + "\n"
-        else:
-            cte = ""
-            str_statement = str(sql)
-        str_statement = str_statement.replace("\n", " ").replace("\r", "")
-
-        tokens = str_statement.rstrip().split(" ")
-        tokens = [token for token in tokens if token]
-        if cls.top_not_in_sql(str_statement):
-            selects = [
-                i
-                for i, word in enumerate(tokens)
-                if word.upper() in cls.select_keywords
-            ]
-            first_select = selects[0]
-            if tokens[first_select + 1].upper() == "DISTINCT":
-                first_select += 1
-
-            tokens.insert(first_select + 1, "TOP")
-            tokens.insert(first_select + 2, str(final_limit))
-
-        next_is_limit_token = False
-        new_tokens = []
-
-        for token in tokens:
-            if token in cls.top_keywords:
-                next_is_limit_token = True
-            elif next_is_limit_token:
-                if token.isdigit():
-                    token = str(final_limit)
-                    next_is_limit_token = False
-            new_tokens.append(token)
-        sql = " ".join(new_tokens)
-        return cte + sql
-
-    @classmethod
-    def top_not_in_sql(cls, sql: str) -> bool:
-        for top_word in cls.top_keywords:
-            if top_word.upper() in sql.upper():
-                return False
-        return True
-
-    @classmethod
     def get_limit_from_sql(cls, sql: str) -> int | None:
         """
         Extract limit from SQL query
@@ -1219,20 +1276,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param sql: SQL query
         :return: Value of limit clause in query
         """
-        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-        return parsed_query.limit
-
-    @classmethod
-    def set_or_update_query_limit(cls, sql: str, limit: int) -> str:
-        """
-        Create a query based on original query but with new limit clause
-
-        :param sql: SQL query
-        :param limit: New limit to insert/replace into query
-        :return: Query with new limit
-        """
-        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-        return parsed_query.set_or_update_query_limit(limit)
+        script = SQLScript(sql, engine=cls.engine)
+        return script.statements[-1].get_limit_value()
 
     @classmethod
     def get_cte_query(cls, sql: str) -> str | None:
@@ -1244,20 +1289,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         """
         if not cls.allows_cte_in_subquery:
-            stmt = sqlparse.parse(sql)[0]
-
-            # The first meaningful token for CTE will be with WITH
-            idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
-            if not (token and token.ttype == CTE):
-                return None
-            idx, token = stmt.token_next(idx)
-            idx = stmt.token_index(token) + 1
-
-            # extract rest of the SQLs after CTE
-            remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
-            return f"WITH {token.value},\n{cls.cte_alias} AS (\n{remainder}\n)"
+            statement = SQLStatement(sql, engine=cls.engine)
+            if statement.has_cte():
+                return statement.as_cte(cls.cte_alias).format()
 
         return None
+
+    @classmethod
+    def normalize_table_name_for_upload(
+        cls,
+        table_name: str,
+        schema_name: str | None = None,
+    ) -> tuple[str, str | None]:
+        """
+        Normalize table and schema names for file upload.
+
+        Some databases (e.g., Redshift) fold unquoted identifiers to lowercase,
+        which can cause issues when the upload creates a table with one case
+        but metadata operations use a different case. Override this method
+        to normalize names according to database-specific rules.
+
+        :param table_name: The table name to normalize
+        :param schema_name: The schema name to normalize (optional)
+        :return: Tuple of (normalized_table_name, normalized_schema_name)
+        """
+        return table_name, schema_name
 
     @classmethod
     def df_to_sql(
@@ -1315,13 +1371,84 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def handle_boolean_filter(
+        cls, sqla_col: Any, op: str, value: bool
+    ) -> BinaryExpression:
+        """
+        Handle boolean filter operations with engine-specific logic.
+
+        By default, uses SQLAlchemy's IS operator (column IS true/false).
+        Engines that don't support IS for boolean values can override
+        use_equality_for_boolean_filters to use equality operators instead.
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator (IS_TRUE or IS_FALSE)
+        :param value: Boolean value (True or False)
+        :return: SQLAlchemy expression for the boolean filter
+        """
+        if cls.use_equality_for_boolean_filters:
+            return sqla_col == value
+        else:
+            return sqla_col.is_(value)
+
+    @classmethod
+    def handle_null_filter(
+        cls,
+        sqla_col: Any,
+        op: utils.FilterOperator,
+    ) -> BinaryExpression:
+        """
+        Handle null/not null filter operations.
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator (IS_NULL or IS_NOT_NULL)
+        :return: SQLAlchemy expression for the null filter
+        """
+        from superset.utils import core as utils
+
+        if op == utils.FilterOperator.IS_NULL:
+            return sqla_col.is_(None)
+        elif op == utils.FilterOperator.IS_NOT_NULL:
+            return sqla_col.isnot(None)
+        else:
+            raise ValueError(f"Invalid null filter operator: {op}")
+
+    @classmethod
+    def handle_comparison_filter(
+        cls, sqla_col: Any, op: utils.FilterOperator, value: Any
+    ) -> BinaryExpression:
+        """
+        Handle comparison filter operations (=, !=, >, <, >=, <=).
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator
+        :param value: Filter value
+        :return: SQLAlchemy expression for the comparison filter
+        """
+        from superset.utils import core as utils
+
+        if op == utils.FilterOperator.EQUALS:
+            return sqla_col == value
+        elif op == utils.FilterOperator.NOT_EQUALS:
+            return sqla_col != value
+        elif op == utils.FilterOperator.GREATER_THAN:
+            return sqla_col > value
+        elif op == utils.FilterOperator.LESS_THAN:
+            return sqla_col < value
+        elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS:
+            return sqla_col >= value
+        elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS:
+            return sqla_col <= value
+        else:
+            raise ValueError(f"Invalid comparison filter operator: {op}")
+
+    @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Handle a live cursor between the execute and fetchall calls
 
         The flow works without this method doing anything, but it allows
         for handling the cursor and updating progress information in the
         query object"""
-        # TODO: Fix circular import error caused by importing sql_lab.Query
 
     @classmethod
     # pylint: disable=consider-using-transaction
@@ -1362,20 +1489,43 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(ex)
 
     @classmethod
+    def get_database_custom_errors(
+        cls, database_name: str | None
+    ) -> dict[Any, tuple[str, SupersetErrorType, dict[str, Any]]]:
+        config_custom_errors = app.config.get("CUSTOM_DATABASE_ERRORS", {})
+        if not isinstance(config_custom_errors, dict):
+            return {}
+
+        if database_name and database_name in config_custom_errors:
+            database_errors = config_custom_errors[database_name]
+            if isinstance(database_errors, dict):
+                return database_errors
+        return {}
+
+    @classmethod
     def extract_errors(
-        cls, ex: Exception, context: dict[str, Any] | None = None
+        cls,
+        ex: Exception,
+        context: dict[str, Any] | None = None,
+        database_name: str | None = None,
     ) -> list[SupersetError]:
         raw_message = cls._extract_error_message(ex)
 
         context = context or {}
-        for regex, (message, error_type, extra) in cls.custom_errors.items():
+        db_engine_custom_errors = cls.get_database_custom_errors(database_name)
+
+        for regex, (message, error_type, extra) in [
+            *db_engine_custom_errors.items(),
+            *cls.custom_errors.items(),
+        ]:
             if match := regex.search(raw_message):
                 params = {**context, **match.groupdict()}
                 extra["engine_name"] = cls.engine_name
+                formatted_message = (message % params) if message else raw_message
                 return [
                     SupersetError(
                         error_type=error_type,
-                        message=message % params,
+                        message=formatted_message,
                         level=ErrorLevel.ERROR,
                         extra=extra,
                     )
@@ -1414,11 +1564,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         should also have the attribute ``supports_dynamic_schema`` set to true, so that
         Superset knows in which schema a given query is running in order to enforce
         permissions (see #23385 and #23401).
-
-        Currently, changing the catalog is not supported. The method accepts a catalog so
-        that when catalog support is added to Superset the interface remains the same.
-        This is important because DB engine specs can be installed from 3rd party
-        packages, so we want to keep these methods as stable as possible.
         """  # noqa: E501
         return uri, {
             **connect_args,
@@ -1532,6 +1677,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if schema and cls.try_remove_schema_from_table_name:
             views = {re.sub(f"^{schema}\\.", "", view) for view in views}
         return views
+
+    @classmethod
+    def get_materialized_view_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all materialized views.
+        """
+        return set()
 
     @classmethod
     def get_indexes(
@@ -1664,7 +1821,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """
-        Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
+        Generate a "SELECT * from [catalog.][schema.]table_name" query with limit.
 
         WARNING: expects only unquoted table and schema names.
 
@@ -1678,6 +1835,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
+        if not cls.supports_cross_catalog_queries:
+            table = Table(table.table, table.schema, None)
+
         # pylint: disable=redefined-outer-name
         fields: str | list[Any] = "*"
         cols = cols or []
@@ -1690,8 +1850,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         full_table_name = cls.quote_table(table, engine.dialect)
         qry = select(fields).select_from(text(full_table_name))
 
-        if limit and cls.allow_limit_clause:
-            qry = qry.limit(limit)
+        qry = qry.limit(limit)
         if latest_partition:
             partition_query = cls.where_latest_partition(
                 database,
@@ -1768,7 +1927,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param sql: SQL query with possibly multiple statements
         :param source: Source of the query (eg, "sql_lab")
         """
-        extra = database.get_extra() or {}
+        extra = database.get_extra(source) or {}
         if not cls.get_allow_cost_estimate(extra):
             raise Exception(  # pylint: disable=broad-exception-raised
                 "Database does not support cost estimation"
@@ -1792,6 +1951,38 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             ]
 
     @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Modify URL and/or engine kwargs to impersonate a different user.
+        """
+        # Update URL using old methods until 6.0.0.
+        url = cls.get_url_for_impersonation(url, True, username, user_token)
+
+        # Update engine kwargs using old methods. Note that #30674 modified the method
+        # signature, so we need to check if the method has the old signature.
+        connect_args = engine_kwargs.setdefault("connect_args", {})
+        args = [
+            connect_args,
+            url,
+            username,
+            user_token,
+        ]
+        if "database" in signature(cls.update_impersonation_config).parameters:
+            args.insert(0, database)
+
+        cls.update_impersonation_config(*args)
+
+        return url, engine_kwargs
+
+    @classmethod
+    @deprecated(deprecated_in="6.0.0")
     def get_url_for_impersonation(
         cls,
         url: URL,
@@ -1813,6 +2004,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return url
 
     @classmethod
+    @deprecated(deprecated_in="6.0.0")
     def update_impersonation_config(  # pylint: disable=too-many-arguments
         cls,
         database: Database,
@@ -1850,14 +2042,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: kwargs to be passed to cursor.execute()
         :return:
         """
-        if not cls.allows_sql_comments:
-            query = sql_parse.strip_comments_from_sql(query, engine=cls.engine)
-        disallowed_functions = current_app.config["DISALLOWED_SQL_FUNCTIONS"].get(
-            cls.engine, set()
-        )
-        if sql_parse.check_sql_functions_exist(query, disallowed_functions, cls.engine):
-            raise DisallowedSQLFunction(disallowed_functions)
-
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
@@ -1953,7 +2137,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param label: Expected expression label
         :return: Truncated label
         """
-        label = md5_sha_from_str(label)
+        label = hash_from_str(label)
         # truncate hash if it exceeds max length
         if cls.max_column_name_length and len(label) > cls.max_column_name_length:
             label = label[: cls.max_column_name_length]
@@ -1993,6 +2177,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return []
 
+    @classmethod
+    def get_column_description_limit_size(cls) -> int:
+        """
+        Get a minimum limit size for the sample SELECT column query
+        to fetch the column metadata.
+
+        :return: A number of limit size
+        """
+        return 1
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
@@ -2019,12 +2213,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         Some databases require adding elements to connection parameters,
         like passing certificates to `extra`. This can be done here.
 
         :param database: database instance from which to extract extras
+        :param source: in which context is the connection needed
         :raises CertificateException: If certificate is not valid/unparseable
         """
         extra: dict[str, Any] = {}
@@ -2055,14 +2252,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
             raise
-
-    @classmethod
-    def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
-        """
-        Determine if the statement should be considered as SELECT statement.
-        Some query dialects do not contain "SELECT" word in queries (eg. Kusto)
-        """
-        return parsed_query.is_select()
 
     @classmethod
     def get_column_spec(  # pylint: disable=unused-argument
@@ -2170,10 +2359,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return False
 
     @classmethod
-    def parse_sql(cls, sql: str) -> list[str]:
-        return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
-
-    @classmethod
     def get_impersonation_key(cls, user: User | None) -> Any:
         """
         Construct an impersonation key, by default it's the given username.
@@ -2259,7 +2444,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param sqlalchemy_uri:
         """
-        if db_engine_uri_validator := current_app.config["DB_SQLA_URI_VALIDATOR"]:
+        if db_engine_uri_validator := app.config["DB_SQLA_URI_VALIDATOR"]:
             db_engine_uri_validator(sqlalchemy_uri)
 
         if existing_disallowed := cls.disallow_uri_query_params.get(
@@ -2434,7 +2619,7 @@ class BasicParametersMixin:
         if missing := sorted(required - present):
             errors.append(
                 SupersetError(
-                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"missing": missing},
@@ -2473,8 +2658,7 @@ class BasicParametersMixin:
             errors.append(
                 SupersetError(
                     message=(
-                        "The port must be an integer between 0 and 65535 "
-                        "(inclusive)."
+                        "The port must be an integer between 0 and 65535 (inclusive)."
                     ),
                     error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
                     level=ErrorLevel.ERROR,

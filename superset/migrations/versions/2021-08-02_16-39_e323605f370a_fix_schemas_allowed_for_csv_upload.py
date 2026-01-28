@@ -38,6 +38,8 @@ down_revision = "31b2a1039d4a"
 
 Base = declarative_base()
 
+logger = logging.getLogger("alembic.env")
+
 
 class Database(Base):
     __tablename__ = "dbs"
@@ -56,7 +58,7 @@ def upgrade():
         try:
             extra = json.loads(database.extra)
         except json.JSONDecodeError as ex:
-            logging.warning(str(ex))
+            logger.warning(str(ex))
             continue
 
         schemas_allowed_for_csv_upload = extra.get("schemas_allowed_for_csv_upload")

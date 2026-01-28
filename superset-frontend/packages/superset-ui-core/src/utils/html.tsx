@@ -17,6 +17,7 @@
  * under the License.
  */
 import { FilterXSS, getDefaultWhiteList } from 'xss';
+import { DataRecordValue } from '../types';
 
 const xssFilter = new FilterXSS({
   whiteList: {
@@ -35,6 +36,13 @@ const xssFilter = new FilterXSS({
       'width',
       'muted',
     ],
+    table: ['width', 'border', 'align', 'valign', 'style'],
+    tr: ['rowspan', 'align', 'valign', 'style'],
+    td: ['width', 'rowspan', 'colspan', 'align', 'valign', 'style'],
+    th: ['width', 'rowspan', 'colspan', 'align', 'valign', 'style'],
+    tbody: ['align', 'valign', 'style'],
+    thead: ['align', 'valign', 'style'],
+    tfoot: ['align', 'valign', 'style'],
   },
   stripIgnoreTag: true,
   css: false,
@@ -44,11 +52,73 @@ export function sanitizeHtml(htmlString: string) {
   return xssFilter.process(htmlString);
 }
 
-export function hasHtmlTagPattern(str: string): boolean {
-  const htmlTagPattern =
-    /<(html|head|body|div|span|a|p|h[1-6]|title|meta|link|script|style)/i;
+const KNOWN_HTML_TAGS = new Set([
+  'div',
+  'span',
+  'p',
+  'a',
+  'b',
+  'i',
+  'u',
+  'em',
+  'strong',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'table',
+  'tr',
+  'td',
+  'th',
+  'tbody',
+  'thead',
+  'tfoot',
+  'ul',
+  'ol',
+  'li',
+  'img',
+  'br',
+  'hr',
+  'pre',
+  'code',
+  'blockquote',
+  'section',
+  'article',
+  'nav',
+  'header',
+  'footer',
+  'form',
+  'input',
+  'button',
+  'select',
+  'option',
+  'textarea',
+  'label',
+  'fieldset',
+  'legend',
+  'video',
+  'audio',
+  'canvas',
+  'iframe',
+  'script',
+  'style',
+  'link',
+  'meta',
+  'title',
+  'html',
+  'head',
+  'body',
+]);
 
-  return htmlTagPattern.test(str);
+const HTML_TAG_PATTERN = new RegExp(
+  `<(${Array.from(KNOWN_HTML_TAGS).join('|')})\\b`,
+  'i',
+);
+
+export function hasHtmlTagPattern(str: string): boolean {
+  return HTML_TAG_PATTERN.test(str);
 }
 
 export function isProbablyHTML(text: string) {
@@ -61,9 +131,30 @@ export function isProbablyHTML(text: string) {
     return true;
   }
 
+  // Check if the string contains common HTML patterns
+  if (!hasHtmlTagPattern(text)) {
+    return false;
+  }
+
   const parser = new DOMParser();
   const doc = parser.parseFromString(cleanedStr, 'text/html');
-  return Array.from(doc.body.childNodes).some(({ nodeType }) => nodeType === 1);
+
+  // Check if parsing created actual HTML elements (not just text nodes)
+  const elements = Array.from(doc.body.childNodes).filter(
+    node => node.nodeType === 1,
+  ) as Element[];
+
+  // If no elements were created, it's not HTML
+  if (elements.length === 0) {
+    return false;
+  }
+
+  // Check if the elements are known HTML tags (not custom/unknown tags)
+  // This prevents strings like "<abcdef:12345>" from being treated as HTML
+  return elements.some(element => {
+    const tagName = element.tagName.toLowerCase();
+    return KNOWN_HTML_TAGS.has(tagName);
+  });
 }
 
 export function sanitizeHtmlIfNeeded(htmlString: string) {
@@ -84,7 +175,10 @@ export function safeHtmlSpan(possiblyHtmlString: string) {
 }
 
 export function removeHTMLTags(str: string): string {
-  return str.replace(/<[^>]*>/g, '');
+  const doc = new DOMParser().parseFromString(str, 'text/html');
+  const bodyText = doc.body?.textContent || '';
+  const headText = doc.head?.textContent || '';
+  return headText + bodyText;
 }
 
 export function isJsonString(str: string): boolean {
@@ -118,4 +212,11 @@ export function getParagraphContents(
   });
 
   return paragraphContents;
+}
+
+export function extractTextFromHTML(value: DataRecordValue): DataRecordValue {
+  if (typeof value === 'string' && isProbablyHTML(value)) {
+    return removeHTMLTags(value);
+  }
+  return value;
 }

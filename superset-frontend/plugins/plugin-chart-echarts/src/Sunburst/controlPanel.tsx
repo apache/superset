@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -163,7 +163,7 @@ const config: ControlPanelConfig = {
       visibility: ({ controls }: ControlPanelsContainerProps) =>
         Boolean(
           !controls?.secondary_metric?.value ||
-            controls?.secondary_metric?.value === controls?.metric.value,
+          controls?.secondary_metric?.value === controls?.metric.value,
         ),
     },
     linear_color_scheme: {
@@ -173,7 +173,7 @@ const config: ControlPanelConfig = {
       visibility: ({ controls }: ControlPanelsContainerProps) =>
         Boolean(
           controls?.secondary_metric?.value &&
-            controls?.secondary_metric?.value !== controls?.metric.value,
+          controls?.secondary_metric?.value !== controls?.metric.value,
         ),
     },
     columns: {

@@ -17,11 +17,11 @@
  * under the License.
  */
 import { PureComponent } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 
 import PopoverDropdown, {
   OnChangeHandler,
-} from 'src/components/PopoverDropdown';
+} from '@superset-ui/core/components/PopoverDropdown';
 
 interface MarkdownModeDropdownProps {
   id: string;
@@ -46,6 +46,7 @@ export default class MarkdownModeDropdown extends PureComponent<MarkdownModeDrop
 
     return (
       <PopoverDropdown
+        data-test="markdown-mode-dropdown"
         id={id}
         options={dropdownOptions}
         value={value}

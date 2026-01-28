@@ -17,8 +17,10 @@
  * under the License.
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
-import { css, styled, t } from '@superset-ui/core';
-import { Form, Tag } from 'antd';
+import { t } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core/ui';
+import { Form } from '@superset-ui/core/components';
+import { Tag } from 'src/components';
 import { FC, useState } from 'react';
 import { isZoomConfigsLinear, isZoomConfigsExp } from './typeguards';
 import { ZoomConfigs, ZoomConfigsControlProps } from './types';

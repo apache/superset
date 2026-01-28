@@ -17,42 +17,89 @@
  * under the License.
  */
 
-import { useMemo } from 'react';
-import Collapse from 'src/components/Collapse';
-import { styled, t, useTheme, css } from '@superset-ui/core';
+import { useMemo, useState, useCallback } from 'react';
+import { t } from '@apache-superset/core';
+import { css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import CrossFilter from './CrossFilter';
 import { CrossFilterIndicator } from '../../selectors';
 
-const StyledCollapse = styled(Collapse)`
-  ${({ theme }) => `
-    .ant-collapse-header {
-      margin-bottom: ${theme.gridUnit * 4}px;
-    }
-    .ant-collapse-item > .ant-collapse-header {
-      padding-bottom: 0;
-    }
-    .ant-collapse-item > .ant-collapse-header > .ant-collapse-arrow {
-      font-size: ${theme.typography.sizes.xs}px;
-      padding-top: ${theme.gridUnit * 3}px;
-    }
-    .ant-collapse-item > .ant-collapse-content > .ant-collapse-content-box {
-      padding-top: 0;
-    }
-  `}
-`;
-
-const StyledCrossFiltersTitle = styled.span`
-  ${({ theme }) => `
-    font-size: ${theme.typography.sizes.s}px;
-  `}
-`;
-
 const CrossFiltersVerticalCollapse = (props: {
   crossFilters: CrossFilterIndicator[];
+  hideHeader?: boolean;
 }) => {
-  const { crossFilters } = props;
+  const { crossFilters, hideHeader = false } = props;
   const theme = useTheme();
+  const [isOpen, setIsOpen] = useState(true);
+
+  const toggleSection = useCallback(() => {
+    setIsOpen(prev => !prev);
+  }, []);
+
+  const sectionContainerStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin-bottom: ${theme.sizeUnit * 3}px;
+      padding: 0 ${theme.sizeUnit * 4}px;
+    `,
+    [],
+  );
+
+  const sectionHeaderStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: ${theme.sizeUnit * 2}px 0;
+      cursor: pointer;
+      user-select: none;
+
+      &:hover {
+        background: ${theme.colorBgTextHover};
+        margin: 0 -${theme.sizeUnit * 2}px;
+        padding: ${theme.sizeUnit * 2}px;
+        border-radius: ${theme.borderRadius}px;
+      }
+    `,
+    [],
+  );
+
+  const sectionTitleStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin: 0;
+      font-size: ${theme.fontSize}px;
+      font-weight: ${theme.fontWeightStrong};
+      color: ${theme.colorText};
+      line-height: 1.3;
+    `,
+    [],
+  );
+
+  const sectionContentStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      padding: ${theme.sizeUnit * 2}px 0;
+    `,
+    [],
+  );
+
+  const dividerStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      height: 1px;
+      background: ${theme.colorSplit};
+      margin: ${theme.sizeUnit * 2}px 0;
+    `,
+    [],
+  );
+
+  const iconStyle = useCallback(
+    (isOpen: boolean, theme: SupersetTheme) => css`
+      transform: ${isOpen ? 'rotate(0deg)' : 'rotate(180deg)'};
+      transition: transform 0.2s ease;
+      color: ${theme.colorTextSecondary};
+    `,
+    [],
+  );
+
   const crossFiltersIndicators = useMemo(
     () =>
       crossFilters.map(filter => (
@@ -70,32 +117,27 @@ const CrossFiltersVerticalCollapse = (props: {
   }
 
   return (
-    <StyledCollapse
-      ghost
-      defaultActiveKey="crossFilters"
-      expandIconPosition="right"
-    >
-      <Collapse.Panel
-        key="crossFilters"
-        header={
-          <StyledCrossFiltersTitle>
-            {t('Cross-filters')}
-          </StyledCrossFiltersTitle>
-        }
-      >
-        {crossFiltersIndicators}
-        <span
-          data-test="cross-filters-divider"
-          css={css`
-            width: 100%;
-            height: 1px;
-            display: block;
-            background: ${theme.colors.grayscale.light3};
-            margin: ${theme.gridUnit * 8}px auto 0 auto;
-          `}
-        />
-      </Collapse.Panel>
-    </StyledCollapse>
+    <div css={sectionContainerStyle}>
+      {!hideHeader && (
+        <div
+          css={sectionHeaderStyle}
+          onClick={toggleSection}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleSection();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <h4 css={sectionTitleStyle}>{t('Cross-filters')}</h4>
+          <Icons.UpOutlined iconSize="m" css={iconStyle(isOpen, theme)} />
+        </div>
+      )}
+      {isOpen && <div css={sectionContentStyle}>{crossFiltersIndicators}</div>}
+      {isOpen && <div css={dividerStyle} data-test="cross-filters-divider" />}
+    </div>
   );
 };
 

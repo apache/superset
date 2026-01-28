@@ -48,6 +48,11 @@ def histogram(
     if groupby is None:
         groupby = []
 
+    # drop empty values from the target column
+    df = df.dropna(subset=[column])
+    if df.empty:
+        return df
+
     # convert to numeric, coercing errors to NaN
     df[column] = to_numeric(df[column], errors="coerce")
 
@@ -60,7 +65,11 @@ def histogram(
 
     # convert the bin edges to strings
     bin_edges_str = [
+<<<<<<< HEAD
         f"{bin_edges[i]} - {bin_edges[i+1]}" for i in range(len(bin_edges) - 1)
+=======
+        f"{bin_edges[i]} - {bin_edges[i + 1]}" for i in range(len(bin_edges) - 1)
+>>>>>>> origin/master
     ]
 
     def hist_values(series: Series) -> np.ndarray:

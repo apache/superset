@@ -16,14 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD
 import { useRef, useState } from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
 import { Button, AntdSelect } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
+=======
+import { useState, useEffect } from 'react';
+import { t } from '@apache-superset/core';
+import { SupersetTheme, css } from '@apache-superset/core/ui';
+import {
+  Input,
+  Button,
+  FormLabel,
+  Select,
+  Upload,
+  type UploadFile,
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+>>>>>>> origin/master
 import { DatabaseParameters, FieldPropTypes } from '../../types';
-import { infoTooltip, labelMarginBottom, CredentialInfoForm } from '../styles';
+import { infoTooltip, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
   JsonUpload,
@@ -38,25 +54,22 @@ export const encryptedCredentialsMap = {
   bigquery: 'credentials_info',
 };
 
-const castStringToBoolean = (optionValue: string) => optionValue === 'true';
-
 export const EncryptedField = ({
   changeMethods,
   isEditMode,
   db,
   editNewDb,
 }: FieldPropTypes) => {
+<<<<<<< HEAD
   const selectedFileInputRef = useRef<HTMLInputElement | null>(null);
+=======
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+>>>>>>> origin/master
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
-  const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
-    null,
-  );
-  const [isPublic, setIsPublic] = useState<boolean>(true);
-  const showCredentialsInfo =
-    db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
-  const isEncrypted = isEditMode && db?.masked_encrypted_extra !== '{}';
+  const { addDangerToast } = useToasts();
+  const showCredentialsInfo = !isEditMode;
   const encryptedField =
     db?.engine &&
     encryptedCredentialsMap[db.engine as keyof typeof encryptedCredentialsMap];
@@ -66,58 +79,56 @@ export const EncryptedField = ({
     paramValue && typeof paramValue === 'object'
       ? JSON.stringify(paramValue)
       : paramValue;
+
+  const readTextFile = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsText(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+    });
+
+  useEffect(() => {
+    changeMethods.onParametersChange({
+      target: {
+        name: encryptedField,
+        value: '',
+      },
+    });
+  }, []);
+
   return (
     <CredentialInfoForm>
-      {db?.engine === 'gsheets' && (
-        <div className="catalog-type-select">
-          <FormLabel
-            css={(theme: SupersetTheme) => labelMarginBottom(theme)}
-            required
-          >
-            {t('Type of Google Sheets allowed')}
-          </FormLabel>
-          <AntdSelect
-            style={{ width: '100%' }}
-            defaultValue={isEncrypted ? 'false' : 'true'}
-            onChange={(value: string) =>
-              setIsPublic(castStringToBoolean(value))
-            }
-          >
-            <AntdSelect.Option value="true" key={1}>
-              {t('Publicly shared sheets only')}
-            </AntdSelect.Option>
-            <AntdSelect.Option value="false" key={2}>
-              {t('Public and privately shared sheets')}
-            </AntdSelect.Option>
-          </AntdSelect>
-        </div>
-      )}
       {showCredentialsInfo && (
         <>
-          <FormLabel required>
+          <FormLabel>
             {t('How do you want to enter service account credentials?')}
           </FormLabel>
-          <AntdSelect
+          <Select
             defaultValue={uploadOption}
-            style={{ width: '100%' }}
-            onChange={option => setUploadOption(option)}
-          >
-            <AntdSelect.Option value={CredentialInfoOptions.JsonUpload}>
-              {t('Upload JSON file')}
-            </AntdSelect.Option>
-
-            <AntdSelect.Option value={CredentialInfoOptions.CopyPaste}>
-              {t('Copy and Paste JSON credentials')}
-            </AntdSelect.Option>
-          </AntdSelect>
+            css={css`
+              width: 100%;
+            `}
+            onChange={option => setUploadOption(option as number)}
+            options={[
+              {
+                value: CredentialInfoOptions.JsonUpload,
+                label: t('Upload JSON file'),
+              },
+              {
+                value: CredentialInfoOptions.CopyPaste,
+                label: t('Copy and Paste JSON credentials'),
+              },
+            ]}
+          />
         </>
       )}
       {uploadOption === CredentialInfoOptions.CopyPaste ||
       isEditMode ||
       editNewDb ? (
         <div className="input-container">
-          <FormLabel required>{t('Service Account')}</FormLabel>
-          <textarea
+          <FormLabel>{t('Service Account')}</FormLabel>
+          <Input.TextArea
             className="input-form"
             name={encryptedField}
             value={
@@ -130,9 +141,6 @@ export const EncryptedField = ({
               'Paste content of service credentials JSON file here',
             )}
           />
-          <span className="label-paste">
-            {t('Copy and paste the entire service account .json file here')}
-          </span>
         </div>
       ) : (
         showCredentialsInfo && (
@@ -140,6 +148,7 @@ export const EncryptedField = ({
             className="input-container"
             css={(theme: SupersetTheme) => infoTooltip(theme)}
           >
+<<<<<<< HEAD
             <div css={{ display: 'flex', alignItems: 'center' }}>
               <FormLabel required>{t('Upload Credentials')}</FormLabel>
               <InfoTooltip
@@ -179,28 +188,66 @@ export const EncryptedField = ({
             <input
               ref={selectedFileInputRef}
               id="selectedFile"
+=======
+            <Upload
+>>>>>>> origin/master
               accept=".json"
-              className="input-upload"
-              type="file"
-              onChange={async event => {
-                let file;
-                if (event.target.files) {
-                  file = event.target.files[0];
-                }
-                setFileToUpload(file?.name);
+              maxCount={1}
+              fileList={fileList}
+              // avoid automatic upload
+              beforeUpload={() => false}
+              onRemove={() => {
+                setFileList([]);
                 changeMethods.onParametersChange({
                   target: {
-                    type: null,
                     name: encryptedField,
-                    value: await file?.text(),
-                    checked: false,
+                    value: '',
                   },
                 });
+<<<<<<< HEAD
                 if (selectedFileInputRef.current) {
                   selectedFileInputRef.current.value = null as any;
                 }
+=======
+                return true;
+>>>>>>> origin/master
               }}
-            />
+              onChange={async info => {
+                const file = info.fileList?.[0]?.originFileObj;
+                if (file) {
+                  try {
+                    const fileContent = await readTextFile(file);
+                    changeMethods.onParametersChange({
+                      target: {
+                        type: null,
+                        name: encryptedField,
+                        value: fileContent,
+                        checked: false,
+                      },
+                    });
+                    setFileList(info.fileList);
+                  } catch (error) {
+                    setFileList([]);
+                    addDangerToast(
+                      t(
+                        'Unable to read the file, please refresh and try again.',
+                      ),
+                    );
+                  }
+                } else {
+                  changeMethods.onParametersChange({
+                    target: {
+                      name: encryptedField,
+                      value: '',
+                    },
+                  });
+                }
+              }}
+            >
+              <Button icon={<Icons.LinkOutlined iconSize="m" />}>
+                {t('Upload credentials')}
+              </Button>
+            </Upload>
           </div>
         )
       )}

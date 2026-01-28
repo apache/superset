@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { CopyToClipboardButton } from '.';
 
 test('Render a button', () => {

@@ -17,11 +17,16 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { t, SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Select } from 'src/components';
-import { SelectOptionsType, SelectProps } from 'src/components/Select/types';
-import { SelectValue, LabeledValue } from 'antd/lib/select';
+import {
+  Select,
+  type SelectValue,
+  type LabeledValue,
+  type SelectOptionsType,
+  type SelectProps,
+} from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel' | 'onChange'>;
@@ -43,8 +48,13 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
   label?: string;
 }
 
-function isLabeledValue(arg: any): arg is LabeledValue {
-  return arg.value !== undefined;
+function isLabeledValue(arg: unknown): arg is LabeledValue {
+  return (
+    typeof arg === 'object' &&
+    arg !== null &&
+    'value' in arg &&
+    arg.value !== undefined
+  );
 }
 
 const SelectAsyncControl = ({
@@ -60,7 +70,8 @@ const SelectAsyncControl = ({
   ...props
 }: SelectAsyncControlProps) => {
   const [options, setOptions] = useState<SelectOptionsType>([]);
-  const [loaded, setLoaded] = useState<Boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(false);
+  const [rawData, setRawData] = useState<Record<string, unknown> | null>(null);
 
   const handleOnChange = (val: SelectValue) => {
     let onChangeVal = val;
@@ -96,6 +107,7 @@ const SelectAsyncControl = ({
         endpoint: dataEndpoint,
       })
         .then(response => {
+          setRawData(response.json);
           const data = mutator
             ? mutator(response.json, value)
             : response.json.result;
@@ -110,6 +122,13 @@ const SelectAsyncControl = ({
       loadOptions();
     }
   }, [addDangerToast, dataEndpoint, mutator, value, loaded]);
+
+  useEffect(() => {
+    if (rawData && mutator) {
+      const data = mutator(rawData, value);
+      setOptions(data);
+    }
+  }, [value, mutator, rawData]);
 
   return (
     <Select

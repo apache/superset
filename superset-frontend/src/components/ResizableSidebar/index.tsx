@@ -18,7 +18,7 @@
  */
 import { FC, ReactNode } from 'react';
 import { Resizable } from 're-resizable';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import useStoredSidebarWidth from './useStoredSidebarWidth';
 
 const ResizableWrapper = styled.div`
@@ -26,7 +26,7 @@ const ResizableWrapper = styled.div`
   height: 100%;
 
   :hover .sidebar-resizer::after {
-    background-color: ${({ theme }) => theme.colors.primary.base};
+    background-color: ${({ theme }) => theme.colorPrimary};
   }
 
   .sidebar-resizer {

@@ -19,7 +19,7 @@
 import SliderControl from './SliderControl';
 
 export default {
-  title: 'SliderControl',
+  title: 'Components/SliderControl',
   component: SliderControl,
 };
 

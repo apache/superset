@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsInt, t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsInt, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -80,6 +81,23 @@ const config: ControlPanelConfig = {
               default: 5,
               description: t(
                 'Minimum threshold in percentage points for showing labels.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'threshold_for_other',
+            config: {
+              type: 'NumberControl',
+              label: t('Threshold for Other'),
+              min: 0,
+              step: 0.5,
+              max: 100,
+              default: 0,
+              renderTrigger: true,
+              description: t(
+                'Values less than this percentage will be grouped into the Other category.',
               ),
             },
           },

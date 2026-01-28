@@ -18,7 +18,9 @@
 import logging
 from typing import Any
 
-from superset import app, db, security_manager
+from flask import current_app as app
+
+from superset import db, security_manager
 from superset.commands.database.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -32,7 +34,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def import_database(
+def import_database(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
@@ -57,8 +59,14 @@ def import_database(
         except SupersetSecurityException as exc:
             raise ImportFailedError(exc.message) from exc
     # https://github.com/apache/superset/pull/16756 renamed ``csv`` to ``file``.
-    config["allow_file_upload"] = config.pop("allow_csv_upload")
-    if "schemas_allowed_for_csv_upload" in config["extra"]:
+    # Handle both old and new field names, defaulting to True for examples database
+    if "allow_csv_upload" in config:
+        config["allow_file_upload"] = config.pop("allow_csv_upload")
+    elif "allow_file_upload" not in config:
+        # Default to True for backward compatibility
+        config["allow_file_upload"] = True
+
+    if "schemas_allowed_for_csv_upload" in config.get("extra", {}):
         config["extra"]["schemas_allowed_for_file_upload"] = config["extra"].pop(
             "schemas_allowed_for_csv_upload"
         )
@@ -66,11 +74,14 @@ def import_database(
     # TODO (betodealmeida): move this logic to import_from_dict
     config["extra"] = json.dumps(config["extra"])
 
-    # Before it gets removed in import_from_dict
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
 
     # set SQLAlchemy URI via `set_sqlalchemy_uri` so that the password gets masked
     sqlalchemy_uri = config.pop("sqlalchemy_uri")
+<<<<<<< HEAD
+=======
+    # TODO (betodealmeida): we should use the `CreateDatabaseCommand` for imports
+>>>>>>> origin/master
     database: Database = Database.import_from_dict(config, recursive=False)
     database.set_sqlalchemy_uri(sqlalchemy_uri)
 
@@ -79,14 +90,13 @@ def import_database(
 
     if ssh_tunnel_config:
         ssh_tunnel_config["database_id"] = database.id
-        ssh_tunnel = SSHTunnel.import_from_dict(ssh_tunnel_config, recursive=False)
-    else:
-        ssh_tunnel = None
-
-    # TODO (betodealmeida): we should use the `CreateDatabaseCommand` for imports
+        database.ssh_tunnel = SSHTunnel.import_from_dict(
+            ssh_tunnel_config,
+            recursive=False,
+        )
 
     try:
-        add_permissions(database, ssh_tunnel)
+        add_permissions(database)
     except SupersetDBAPIConnectionError as ex:
         logger.warning(ex.message)
 

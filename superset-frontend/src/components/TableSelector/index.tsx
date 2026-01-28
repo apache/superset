@@ -23,23 +23,18 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import { SelectValue } from 'antd/lib/select';
+import type { SelectValue } from '@superset-ui/core/components';
 
-import {
-  styled,
-  t,
-  getClientErrorMessage,
-  getClientErrorObject,
-} from '@superset-ui/core';
-import { Select } from 'src/components';
-import { FormLabel } from 'src/components/Form';
-import Icons from 'src/components/Icons';
-import DatabaseSelector, {
-  DatabaseObject,
-} from 'src/components/DatabaseSelector';
-import RefreshLabel from 'src/components/RefreshLabel';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import { t } from '@apache-superset/core';
+import { SupersetError } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import { CertifiedBadge, Select } from '@superset-ui/core/components';
+import { DatabaseSelector, ErrorMessageWithStackTrace } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
+import { StyledFormLabel } from 'src/components/DatabaseSelector/styles';
+import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useTables, Table } from 'src/hooks/apiResources';
 
@@ -51,8 +46,7 @@ const TableSelectorWrapper = styled.div`
       display: flex;
       align-items: center;
       width: ${REFRESH_WIDTH}px;
-      margin-left: ${theme.gridUnit}px;
-      margin-top: ${theme.gridUnit * 5}px;
+      margin-left: ${theme.sizeUnit}px;
     }
 
     .section {
@@ -62,17 +56,17 @@ const TableSelectorWrapper = styled.div`
     }
 
     .divider {
-      border-bottom: 1px solid ${theme.colors.secondary.light5};
+      border-bottom: 1px solid ${theme.colorSplit};
       margin: 15px 0;
     }
 
     .table-length {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextSecondary};
     }
 
     .select {
       flex: 1;
-      max-width: calc(100% - ${theme.gridUnit + REFRESH_WIDTH}px)
+      max-width: calc(100% - ${theme.sizeUnit + REFRESH_WIDTH}px)
     }
   `}
 `;
@@ -84,7 +78,7 @@ const TableLabel = styled.span`
 
   svg,
   small {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -125,9 +119,11 @@ export const TableOption = ({ table }: { table: Table }) => {
   return (
     <TableLabel title={value}>
       {type === 'view' ? (
-        <Icons.Eye iconSize="m" />
+        <Icons.FunctionOutlined iconSize="m" />
+      ) : type === 'materialized_view' ? (
+        <Icons.ProfileOutlined iconSize="m" />
       ) : (
-        <Icons.Table iconSize="m" />
+        <Icons.TableOutlined iconSize="m" />
       )}
       {extra?.certification && (
         <CertifiedBadge
@@ -187,6 +183,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [tableSelectValue, setTableSelectValue] = useState<
     SelectValue | undefined
   >(undefined);
+  const [errorPayload, setErrorPayload] = useState<SupersetError | null>(null);
   const {
     currentData: data,
     isFetching: loadingTables,
@@ -196,19 +193,17 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     catalog: currentCatalog,
     schema: currentSchema,
     onSuccess: (data, isFetched) => {
+      setErrorPayload(null);
       if (isFetched) {
         addSuccessToast(t('List updated'));
       }
     },
-    onError: err => {
-      getClientErrorObject(err).then(clientError => {
-        handleError(
-          getClientErrorMessage(
-            t('There was an error loading the tables'),
-            clientError,
-          ),
-        );
-      });
+    onError: error => {
+      if (error?.errors) {
+        setErrorPayload(error?.errors?.[0] ?? null);
+      } else {
+        handleError(error?.error || t('There was an error loading the tables'));
+      }
     },
   });
 
@@ -217,11 +212,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       data
         ? data.options.map(table => ({
             value: table.value,
-            label: <TableOption table={table} />,
+            label: customTableOptionLabelRenderer ? (
+              customTableOptionLabelRenderer(table)
+            ) : (
+              <TableOption table={table} />
+            ),
             text: table.value,
-            ...(customTableOptionLabelRenderer && {
-              customLabel: customTableOptionLabelRenderer(table),
-            }),
           }))
         : [],
     [data, customTableOptionLabelRenderer],
@@ -310,18 +306,13 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   function renderTableSelect() {
     const disabled = (currentSchema && !formMode && readOnly) || !currentSchema;
 
-    const header = sqlLabMode ? (
-      <FormLabel>{t('See table schema')}</FormLabel>
-    ) : (
-      <FormLabel>{t('Table')}</FormLabel>
-    );
+    const label = sqlLabMode ? t('See table schema') : t('Table');
 
     const select = (
       <Select
         ariaLabel={t('Select table or type to search tables')}
         disabled={disabled}
         filterOption={handleFilterOption}
-        header={header}
         labelInValue
         loading={loadingTables}
         name="select-table"
@@ -345,7 +336,18 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       />
     );
 
-    return renderSelectRow(select, refreshLabel);
+    return (
+      <>
+        <StyledFormLabel>{label}</StyledFormLabel>
+        {renderSelectRow(select, refreshLabel)}
+      </>
+    );
+  }
+
+  function renderError() {
+    return errorPayload ? (
+      <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
+    ) : null;
   }
 
   return (
@@ -367,6 +369,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         readOnly={readOnly}
       />
       {sqlLabMode && !formMode && <div className="divider" />}
+      {renderError()}
       {renderTableSelect()}
     </TableSelectorWrapper>
   );

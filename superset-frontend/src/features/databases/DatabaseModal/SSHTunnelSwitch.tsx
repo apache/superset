@@ -17,14 +17,11 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import {
-  t,
-  SupersetTheme,
-  isFeatureEnabled,
-  FeatureFlag,
-} from '@superset-ui/core';
-import { Switch } from 'src/components/Switch';
-import InfoTooltip from 'src/components/InfoTooltip';
+import { t } from '@apache-superset/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
+import { Switch } from '@superset-ui/core/components/Switch';
+import { InfoTooltip } from '@superset-ui/core/components';
 import { isEmpty } from 'lodash';
 import { infoTooltip, toggleStyle } from './styles';
 import { SwitchProps } from '../types';
@@ -89,7 +86,6 @@ const SSHTunnelSwitch = ({
       <InfoTooltip
         tooltip={t('SSH Tunnel configuration parameters')}
         placement="right"
-        viewBox="0 -5 24 24"
       />
     </div>
   ) : null;

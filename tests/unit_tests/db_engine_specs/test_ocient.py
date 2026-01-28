@@ -223,9 +223,9 @@ def test_connection_errors(msg: str, expected: SupersetError) -> None:
     assert result == [expected]
 
 
-def _generate_gis_type_sanitization_test_cases() -> (
-    list[tuple[str, int, Any, dict[str, Any]]]
-):
+def _generate_gis_type_sanitization_test_cases() -> list[
+    tuple[str, int, Any, dict[str, Any]]
+]:
     if not ocient_is_installed():
         return []
 

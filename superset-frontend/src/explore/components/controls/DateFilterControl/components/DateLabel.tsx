@@ -19,8 +19,9 @@
 
 import { forwardRef, MouseEvent, ReactNode, RefObject } from 'react';
 
-import { css, styled, useTheme, t } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { t } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core/ui';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 export type DateLabelProps = {
   name?: string;
@@ -30,28 +31,22 @@ export type DateLabelProps = {
   onClick?: (event: MouseEvent) => void;
 };
 
-// This is the color that antd components (such as Select or Input) use on hover
-// TODO: use theme.colors.primary.base here and in antd components
-const ACTIVE_BORDER_COLOR = '#45BED6';
-
 const LabelContainer = styled.div<{
   isActive?: boolean;
   isPlaceholder?: boolean;
 }>`
   ${({ theme, isActive, isPlaceholder }) => css`
-    width: 100%;
-    height: ${theme.gridUnit * 8}px;
+    height: ${theme.sizeUnit * 8}px;
 
     display: flex;
     align-items: center;
     flex-wrap: nowrap;
 
-    padding: 0 ${theme.gridUnit * 3}px;
+    padding: 0 ${theme.sizeUnit * 3}px;
 
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
 
-    border: 1px solid
-      ${isActive ? ACTIVE_BORDER_COLOR : theme.colors.grayscale.light2};
+    border: 1px solid ${isActive ? theme.colorPrimary : theme.colorBorder};
     border-radius: ${theme.borderRadius}px;
 
     cursor: pointer;
@@ -59,13 +54,11 @@ const LabelContainer = styled.div<{
     transition: border-color 0.3s cubic-bezier(0.65, 0.05, 0.36, 1);
     :hover,
     :focus {
-      border-color: ${ACTIVE_BORDER_COLOR};
+      border-color: ${theme.colorPrimary};
     }
 
     .date-label-content {
-      color: ${isPlaceholder
-        ? theme.colors.grayscale.light1
-        : theme.colors.grayscale.dark1};
+      color: ${isPlaceholder ? theme.colorTextPlaceholder : theme.colorText};
       overflow: hidden;
       text-overflow: ellipsis;
       min-width: 0;
@@ -74,8 +67,9 @@ const LabelContainer = styled.div<{
     }
 
     span[role='img'] {
+      color: ${isPlaceholder ? theme.colorTextPlaceholder : theme.colorText};
       margin-left: auto;
-      padding-left: ${theme.gridUnit}px;
+      padding-left: ${theme.sizeUnit}px;
 
       & > span[role='img'] {
         line-height: 0;
@@ -85,22 +79,16 @@ const LabelContainer = styled.div<{
 `;
 
 export const DateLabel = forwardRef(
-  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => {
-    const theme = useTheme();
-    return (
-      <LabelContainer {...props} tabIndex={0} role="button">
-        <span
-          id={`date-label-${props.name}`}
-          className="date-label-content"
-          ref={ref}
-        >
-          {typeof props.label === 'string' ? t(props.label) : props.label}
-        </span>
-        <Icons.CalendarOutlined
-          iconSize="s"
-          iconColor={theme.colors.grayscale.base}
-        />
-      </LabelContainer>
-    );
-  },
+  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => (
+    <LabelContainer {...props} tabIndex={0} role="button">
+      <span
+        id={`date-label-${props.name}`}
+        className="date-label-content"
+        ref={ref}
+      >
+        {typeof props.label === 'string' ? t(props.label) : props.label}
+      </span>
+      <Icons.CalendarOutlined iconSize="s" />
+    </LabelContainer>
+  ),
 );

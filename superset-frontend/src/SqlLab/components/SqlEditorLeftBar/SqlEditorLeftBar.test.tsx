@@ -17,8 +17,13 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import SqlEditorLeftBar, {
   SqlEditorLeftBarProps,
 } from 'src/SqlLab/components/SqlEditorLeftBar';
@@ -34,12 +39,14 @@ import type { Store } from 'redux';
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
+  height: 0,
+};
+const mockData = {
   database: {
     id: 1,
     database_name: 'main',
     backend: 'mysql',
   },
-  height: 0,
 };
 
 beforeEach(() => {
@@ -106,7 +113,14 @@ test('renders a TableElement', async () => {
   const { findByText, getAllByTestId } = await renderAndWait(
     mockedProps,
     undefined,
-    { ...initialState, sqlLab: { ...initialState.sqlLab, tables: [table] } },
+    {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        tables: [table],
+        databases: { [mockData.database.id]: { ...mockData.database } },
+      },
+    },
   );
   expect(await findByText(/Database/i)).toBeInTheDocument();
   const tableElement = getAllByTestId('table-element');
@@ -117,14 +131,18 @@ test('table should be visible when expanded is true', async () => {
   const { container, getByText, getByRole, getAllByLabelText } =
     await renderAndWait(mockedProps, undefined, {
       ...initialState,
-      sqlLab: { ...initialState.sqlLab, tables: [table] },
+      sqlLab: {
+        ...initialState.sqlLab,
+        tables: [table],
+        databases: { [mockData.database.id]: { ...mockData.database } },
+      },
     });
 
   const dbSelect = getByRole('combobox', {
     name: 'Select database or type to search databases',
   });
   const schemaSelect = getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema or type to search schemas: main',
   });
   const tableSelect = getAllByLabelText(
     /Select table or type to search tables/i,
@@ -146,17 +164,24 @@ test('table should be visible when expanded is true', async () => {
 
 test('catalog selector should be visible when enabled in the database', async () => {
   const { container, getByText, getByRole } = await renderAndWait(
-    {
-      ...mockedProps,
-      database: {
-        ...mockedProps.database,
-        allow_multi_catalog: true,
-      },
-    },
+    mockedProps,
     undefined,
     {
       ...initialState,
-      sqlLab: { ...initialState.sqlLab, tables: [table] },
+      sqlLab: {
+        ...initialState.sqlLab,
+        unsavedQueryEditor: {
+          id: mockedProps.queryEditorId,
+          dbId: mockData.database.id,
+        },
+        tables: [table],
+        databases: {
+          [mockData.database.id]: {
+            ...mockData.database,
+            allow_multi_catalog: true,
+          },
+        },
+      },
     },
   );
 
@@ -189,7 +214,20 @@ test('catalog selector should be visible when enabled in the database', async ()
 test('should toggle the table when the header is clicked', async () => {
   const { container } = await renderAndWait(mockedProps, undefined, {
     ...initialState,
-    sqlLab: { ...initialState.sqlLab, tables: [table] },
+    sqlLab: {
+      ...initialState.sqlLab,
+      tables: [table],
+      unsavedQueryEditor: {
+        id: mockedProps.queryEditorId,
+        dbId: mockData.database.id,
+      },
+      databases: {
+        [mockData.database.id]: {
+          ...mockData.database,
+          allow_multi_catalog: true,
+        },
+      },
+    },
   });
 
   const header = container.querySelector('.ant-collapse-header');
@@ -214,6 +252,7 @@ test('When changing database the schema and table list must be updated', async (
       unsavedQueryEditor: {
         id: defaultQueryEditor.id,
         schema: 'db1_schema',
+        dbId: mockData.database.id,
       },
       queryEditors: [
         defaultQueryEditor,
@@ -237,6 +276,17 @@ test('When changing database the schema and table list must be updated', async (
           queryEditorId: extraQueryEditor1.id,
         },
       ],
+      databases: {
+        [mockData.database.id]: {
+          ...mockData.database,
+          allow_multi_catalog: true,
+        },
+        2: {
+          id: 2,
+          database_name: 'new_db',
+          backend: 'postgresql',
+        },
+      },
     },
   };
   const { rerender } = await renderAndWait(mockedProps, undefined, reduxState);
@@ -245,15 +295,7 @@ test('When changing database the schema and table list must be updated', async (
   expect(screen.getAllByText(/ab_user/i)[0]).toBeInTheDocument();
 
   rerender(
-    <SqlEditorLeftBar
-      {...mockedProps}
-      database={{
-        id: 2,
-        database_name: 'new_db',
-        backend: 'postgresql',
-      }}
-      queryEditorId={extraQueryEditor1.id}
-    />,
+    <SqlEditorLeftBar {...mockedProps} queryEditorId={extraQueryEditor1.id} />,
   );
   const updatedDbSelector = await screen.findAllByText(/new_db/i);
   expect(updatedDbSelector[0]).toBeInTheDocument();
@@ -270,7 +312,7 @@ test('When changing database the schema and table list must be updated', async (
     await screen.findByRole('option', { name: 'new_schema' }),
   ).toBeInTheDocument();
 
-  userEvent.click(screen.getAllByText('new_schema')[1]);
+  userEvent.click(screen.getByText('new_schema'));
 
   const updatedTableSelector = await screen.findAllByText(/new_table/i);
   expect(updatedTableSelector[0]).toBeInTheDocument();
@@ -288,17 +330,23 @@ test('display no compatible schema found when schema api throws errors', async (
           schema: undefined,
         },
       ],
+      databases: {
+        [mockData.database.id]: {
+          ...mockData.database,
+          allow_multi_catalog: true,
+        },
+        3: {
+          id: 3,
+          database_name: 'unauth_db',
+          backend: 'minervasql',
+        },
+      },
     },
   };
   await renderAndWait(
     {
       ...mockedProps,
       queryEditorId: extraQueryEditor2.id,
-      database: {
-        id: 3,
-        database_name: 'unauth_db',
-        backend: 'minervasql',
-      },
     },
     undefined,
     reduxState,
@@ -326,8 +374,14 @@ test('ignore schema api when current schema is deprecated', async () => {
       unsavedQueryEditor: {
         id: defaultQueryEditor.id,
         schema: invalidSchemaName,
+        dbId: mockData.database.id,
       },
       tables: [table],
+      databases: {
+        [mockData.database.id]: {
+          ...mockData.database,
+        },
+      },
     },
   });
 
@@ -335,7 +389,7 @@ test('ignore schema api when current schema is deprecated', async () => {
   expect(fetchMock.calls()).not.toContainEqual(
     expect.arrayContaining([
       expect.stringContaining(
-        `/tables/${mockedProps.database.id}/${invalidSchemaName}/`,
+        `/tables/${mockData.database.id}/${invalidSchemaName}/`,
       ),
     ]),
   );

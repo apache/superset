@@ -33,7 +33,11 @@ import useInterval from 'src/SqlLab/utils/useInterval';
 import {
   refreshQueries,
   clearInactiveQueries,
+<<<<<<< HEAD
   logFailedQuery,
+=======
+  queryFailed,
+>>>>>>> origin/master
 } from 'src/SqlLab/actions/sqlLab';
 import type { DatabaseObject } from 'src/features/databases/types';
 
@@ -119,7 +123,18 @@ function QueryAutoRefresh({
                   !failedQueries.current.has(id) &&
                   state === QueryState.Failed
                 ) {
+<<<<<<< HEAD
                   dispatch(logFailedQuery(query, query.extra?.errors));
+=======
+                  dispatch(
+                    queryFailed(
+                      query,
+                      query.errorMessage ?? '',
+                      query.extra?.errors?.[0]?.extra?.link,
+                      query.extra?.errors,
+                    ),
+                  );
+>>>>>>> origin/master
                   failedQueries.current.set(id, true);
                 }
               });

@@ -79,23 +79,21 @@ export default function EchartsMixedTimeseries({
             filters:
               values.length === 0
                 ? []
-                : [
-                    ...currentGroupBy.map((col, idx) => {
-                      const val: DataRecordValue[] = groupbyValues.map(
-                        v => v[idx],
-                      );
-                      if (val === null || val === undefined)
-                        return {
-                          col,
-                          op: 'IS NULL' as const,
-                        };
+                : currentGroupBy.map((col, idx) => {
+                    const val: DataRecordValue[] = groupbyValues.map(
+                      v => v[idx],
+                    );
+                    if (val === null || val === undefined)
                       return {
                         col,
-                        op: 'IN' as const,
-                        val: val as (string | number | boolean)[],
+                        op: 'IS NULL' as const,
                       };
-                    }),
-                  ],
+                    return {
+                      col,
+                      op: 'IN' as const,
+                      val: val as (string | number | boolean)[],
+                    };
+                  }),
           },
           filterState: {
             value: !groupbyValues.length ? null : groupbyValues,
@@ -217,6 +215,7 @@ export default function EchartsMixedTimeseries({
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
+      vizType={formData.vizType}
     />
   );
 }

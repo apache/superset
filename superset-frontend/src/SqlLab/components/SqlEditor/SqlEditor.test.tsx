@@ -17,13 +17,18 @@
  * under the License.
  */
 import { FocusEventHandler } from 'react';
-import { act } from 'react-dom/test-utils';
 import {
   isFeatureEnabled,
   getExtensionsRegistry,
   FeatureFlag,
 } from '@superset-ui/core';
-import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import reducers from 'spec/helpers/reducerIndex';
 import { setupStore } from 'src/views/store';
@@ -33,15 +38,24 @@ import {
   table,
   defaultQueryEditor,
 } from 'src/SqlLab/fixtures';
-import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import type { Action, Middleware, Store } from 'redux';
 import SqlEditor, { Props } from '.';
 
-jest.mock('src/components/AsyncAceEditor', () => ({
-  ...jest.requireActual('src/components/AsyncAceEditor'),
+jest.mock(
+  'react-virtualized-auto-sizer',
+  () =>
+    ({
+      children,
+    }: {
+      children: (params: { height: number }) => React.ReactChild;
+    }) =>
+      children({ height: 500 }),
+);
+jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('@superset-ui/core/components/AsyncAceEditor'),
   FullSQLEditor: ({
     onChange,
     onBlur,
@@ -59,7 +73,6 @@ jest.mock('src/components/AsyncAceEditor', () => ({
     />
   ),
 }));
-jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => jest.fn());
 jest.mock('src/SqlLab/components/ResultSet', () => jest.fn());
 
 fetchMock.get('glob:*/api/v1/database/*/function_names/', {
@@ -134,7 +147,17 @@ const createStore = (initState: object) =>
       getDefaultMiddleware().concat(api.middleware, logAction),
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SqlEditor', () => {
+  beforeAll(() => {
+    jest.setTimeout(30000);
+  });
+
+  afterEach(async () => {
+    cleanup();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
   const mockedProps = {
     queryEditor: initialState.sqlLab.queryEditors[0],
     tables: [table],
@@ -152,10 +175,6 @@ describe('SqlEditor', () => {
     store = createStore(mockInitialState);
     actions = [];
 
-    (SqlEditorLeftBar as jest.Mock).mockClear();
-    (SqlEditorLeftBar as jest.Mock).mockImplementation(() => (
-      <div data-test="mock-sql-editor-left-bar" />
-    ));
     (ResultSet as unknown as jest.Mock).mockClear();
     (ResultSet as unknown as jest.Mock).mockImplementation(() => (
       <div data-test="mock-result-set" />
@@ -168,7 +187,7 @@ describe('SqlEditor', () => {
     });
   });
 
-  it('does not render SqlEditor if no db selected', async () => {
+  test('does not render SqlEditor if no db selected', async () => {
     const queryEditor = initialState.sqlLab.queryEditors[2];
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);
     expect(
@@ -176,7 +195,7 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders db unavailable message', async () => {
+  test('renders db unavailable message', async () => {
     const queryEditor = initialState.sqlLab.queryEditors[1];
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);
     expect(
@@ -186,46 +205,41 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  it('render a SqlEditorLeftBar', async () => {
-    const { getByTestId } = setup(mockedProps, store);
-    await waitFor(() =>
-      expect(getByTestId('mock-sql-editor-left-bar')).toBeInTheDocument(),
+  // Update other similar tests with timeouts
+  test('render an AceEditorWrapper', async () => {
+    const { findByTestId, unmount } = setup(mockedProps, store);
+
+    await waitFor(
+      () => expect(findByTestId('react-ace')).resolves.toBeInTheDocument(),
+      { timeout: 10000 },
     );
-  });
 
-  it('render an AceEditorWrapper', async () => {
-    const { findByTestId } = setup(mockedProps, store);
-    expect(await findByTestId('react-ace')).toBeInTheDocument();
-  });
+    unmount();
+  }, 15000);
 
-  it('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
-    const { findByTestId, queryByTestId } = setup(
+  test('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
+    const { queryByTestId } = setup(
       {
         ...mockedProps,
         queryEditor: initialState.sqlLab.queryEditors[1],
       },
       store,
     );
-    expect(await findByTestId('mock-sql-editor-left-bar')).toBeInTheDocument();
     expect(queryByTestId('react-ace')).not.toBeInTheDocument();
   });
 
-  it('avoids rerendering EditorLeftBar and ResultSet while typing', async () => {
+  test('avoids rerendering EditorLeftBar and ResultSet while typing', async () => {
     const { findByTestId } = setup(mockedProps, store);
     const editor = await findByTestId('react-ace');
     const sql = 'select *';
-    const renderCount = (SqlEditorLeftBar as jest.Mock).mock.calls.length;
     const renderCountForSouthPane = (ResultSet as unknown as jest.Mock).mock
       .calls.length;
-    expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
     fireEvent.change(editor, { target: { value: sql } });
-    // Verify the rendering regression
-    expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
   });
 
-  it('renders sql from unsaved change', async () => {
+  test('renders sql from unsaved change', async () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
     store = createStore({
       ...initialState,
@@ -258,12 +272,12 @@ describe('SqlEditor', () => {
     expect(editor).toHaveValue(expectedSql);
   });
 
-  it('render a SouthPane', async () => {
+  test('render a SouthPane', async () => {
     const { findByTestId } = setup(mockedProps, store);
     expect(await findByTestId('mock-result-set')).toBeInTheDocument();
   });
 
-  it('runs query action with ctas false', async () => {
+  test('runs query action with ctas false', async () => {
     store = createStore({
       ...initialState,
       sqlLab: {
@@ -303,28 +317,29 @@ describe('SqlEditor', () => {
     );
   });
 
-  it('render a Limit Dropdown', async () => {
+  test('render a Limit Dropdown', async () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const { findByText } = setup(updatedProps, store);
-    fireEvent.click(await findByText('LIMIT:'));
+    fireEvent.click(await findByText('Limit'));
     expect(await findByText('10 000')).toBeInTheDocument();
   });
 
-  it('renders an Extension if provided', async () => {
+  test('renders an Extension if provided', async () => {
     const extensionsRegistry = getExtensionsRegistry();
 
     extensionsRegistry.set('sqleditor.extension.form', () => (
       <>sqleditor.extension.form extension component</>
     ));
 
-    setupExtensions();
+    setupCodeOverrides();
     const { findByText } = setup(mockedProps, store);
     expect(
       await findByText('sqleditor.extension.form extension component'),
     ).toBeInTheDocument();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('with EstimateQueryCost enabled', () => {
     beforeEach(() => {
       mockIsFeatureEnabled.mockImplementation(
@@ -335,7 +350,7 @@ describe('SqlEditor', () => {
       mockIsFeatureEnabled.mockClear();
     });
 
-    it('sends the catalog and schema to the endpoint', async () => {
+    test('sends the catalog and schema to the endpoint', async () => {
       const estimateApi = 'http://localhost/api/v1/sqllab/estimate/';
       fetchMock.post(estimateApi, {});
 
@@ -367,8 +382,8 @@ describe('SqlEditor', () => {
           },
         },
       });
-      const { findByText } = setup(mockedProps, store);
-      const button = await findByText('Estimate cost');
+      const { findByLabelText } = setup(mockedProps, store);
+      const button = await findByLabelText('Estimate cost');
       expect(button).toBeInTheDocument();
 
       // click button
@@ -401,6 +416,7 @@ describe('SqlEditor', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('with SqllabBackendPersistence enabled', () => {
     beforeEach(() => {
       mockIsFeatureEnabled.mockImplementation(
@@ -411,7 +427,7 @@ describe('SqlEditor', () => {
       mockIsFeatureEnabled.mockClear();
     });
 
-    it('should render loading state when its Editor is not loaded', async () => {
+    test('should render loading state when its Editor is not loaded', async () => {
       const switchTabApi = `glob:*/tabstateview/${defaultQueryEditor.id}/activate`;
       fetchMock.post(switchTabApi, {});
       const { getByTestId } = setup(

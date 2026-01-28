@@ -21,8 +21,9 @@ from unittest.mock import patch
 
 from superset import security_manager
 from superset.utils import json, slack  # noqa: F401
+from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_config, with_feature_flags
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME
 
 meUri = "/api/v1/me/"  # noqa: N816
@@ -65,6 +66,37 @@ class TestCurrentUserApi(SupersetTestCase):
         mock_g.user = security_manager.get_anonymous_user
         rv = self.client.get(meUri)
         assert 401 == rv.status_code
+
+    def test_update_me_success(self):
+        self.login(ADMIN_USERNAME)
+
+        payload = {
+            "first_name": "UpdatedFirst",
+            "last_name": "UpdatedLast",
+        }
+
+        rv = self.client.put("/api/v1/me/", json=payload)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"]["first_name"] == "UpdatedFirst"
+        assert data["result"]["last_name"] == "UpdatedLast"
+
+    def test_update_me_unauthenticated(self):
+        rv = self.client.put("/api/v1/me/", json={"first_name": "Hacker"})
+        assert rv.status_code == 401
+
+    def test_update_me_invalid_payload(self):
+        self.login(ADMIN_USERNAME)
+        rv = self.client.put("/api/v1/me/", json={"first_name": 123})
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "first_name" in data["message"]
+
+    def test_update_me_empty_payload(self):
+        self.login(ADMIN_USERNAME)
+        rv = self.client.put("/api/v1/me/", json={})
+        assert rv.status_code == 400
 
 
 class TestUserApi(SupersetTestCase):

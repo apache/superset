@@ -20,14 +20,17 @@ import {
   ControlPanelConfig,
   formatSelectOptions,
 } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core';
 import {
-  t,
   validateNonEmpty,
   legacyValidateNumber,
   legacyValidateInteger,
 } from '@superset-ui/core';
 import {
   autozoom,
+  deckGLCategoricalColorSchemeTypeSelect,
+  deckGLFixedColor,
+  deckGLLinearColorSchemeSelect,
   filterNulls,
   jsColumns,
   jsDataMutator,
@@ -36,7 +39,10 @@ import {
   mapboxStyle,
   spatial,
   viewport,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const INTENSITY_OPTIONS = Array.from(
   { length: 10 },
@@ -58,6 +64,8 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
         [
           {
             name: 'intensity',
@@ -99,7 +107,21 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [mapboxStyle],
         [viewport],
-        ['linear_color_scheme'],
+        [
+          {
+            name: 'color_scheme_type',
+            config: {
+              ...deckGLCategoricalColorSchemeTypeSelect.config,
+              choices: [
+                [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+                [COLOR_SCHEME_TYPES.linear_palette, t('Linear palette')],
+              ],
+              default: COLOR_SCHEME_TYPES.linear_palette,
+            },
+          },
+        ],
+        [deckGLFixedColor],
+        [deckGLLinearColorSchemeSelect],
         [autozoom],
         [
           {

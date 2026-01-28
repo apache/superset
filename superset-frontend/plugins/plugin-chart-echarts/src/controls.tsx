@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, VizType } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { VizType } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
   ControlSetItem,
   ControlSetRow,
   ControlSubSectionHeader,
+  CustomControlItem,
   DEFAULT_SORT_SERIES_DATA,
   SORT_SERIES_CHOICES,
   sharedControls,
@@ -66,7 +68,7 @@ const legendTypeControl: ControlSetItem = {
     label: t('Type'),
     choices: [
       ['scroll', t('Scroll')],
-      ['plain', t('Plain')],
+      ['plain', t('List')],
     ],
     default: legendType,
     renderTrigger: true,
@@ -96,19 +98,38 @@ const legendOrientationControl: ControlSetItem = {
   },
 };
 
+export const legendSortControl: ControlSetItem = {
+  name: 'legendSort',
+  config: {
+    type: 'SelectControl',
+    label: t('Sort legend'),
+    default: null,
+    renderTrigger: true,
+    choices: [
+      ['asc', t('Label ascending')],
+      ['desc', t('Label descending')],
+      [null, t('Sort by data')],
+    ],
+    description: t('Changes the sort value of the items in the legend only'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_legend?.value),
+  },
+};
+
 export const legendSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
   [legendTypeControl],
   [legendOrientationControl],
   [legendMarginControl],
+  [legendSortControl],
 ];
 
 export const showValueControl: ControlSetItem = {
   name: 'show_value',
   config: {
     type: 'CheckboxControl',
-    label: t('Show Value'),
+    label: t('Show value'),
     default: false,
     renderTrigger: true,
     description: t('Show series values on the chart'),
@@ -185,12 +206,21 @@ const richTooltipControl: ControlSetItem = {
   },
 };
 
-const tooltipTimeFormatControl: ControlSetItem = {
+export const tooltipTimeFormatControl: ControlSetItem = {
   name: 'tooltipTimeFormat',
   config: {
     ...sharedControls.x_axis_time_format,
     label: t('Tooltip time format'),
     default: 'smart_date',
+    clearable: false,
+  },
+};
+
+export const tooltipValuesFormatControl: CustomControlItem = {
+  name: 'tooltipValuesFormat',
+  config: {
+    ...sharedControls.y_axis_format,
+    label: t('Number format'),
     clearable: false,
   },
 };
@@ -292,6 +322,38 @@ export const xAxisLabelRotation = {
   },
 };
 
+export const xAxisLabelInterval = {
+  name: 'xAxisLabelInterval',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    clearable: false,
+    label: t('X Axis Label Interval'),
+    choices: [
+      ['auto', t('Auto')],
+      ['0', t('All')],
+    ],
+    default: defaultXAxis.xAxisLabelInterval,
+    renderTrigger: true,
+    description: t('Choose how many X-Axis labels to show'),
+  },
+};
+
+export const forceMaxInterval = {
+  name: 'force_max_interval',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Force Time Grain as Max Interval'),
+    renderTrigger: true,
+    default: false,
+    description: t(
+      'Forces selected Time Grain as the maximum interval for X Axis Labels',
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.time_grain_sqla?.value),
+  },
+};
+
 export const seriesOrderSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Series Order')}</ControlSubSectionHeader>],
   [sortSeriesType],
@@ -348,5 +410,15 @@ export const forceCategorical: ControlSetItem = {
     default: false,
     renderTrigger: true,
     description: t('Make the x-axis categorical'),
+  },
+};
+
+export const showExtraControls: CustomControlItem = {
+  name: 'show_extra_controls',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Extra Controls'),
+    renderTrigger: true,
+    default: false,
   },
 };

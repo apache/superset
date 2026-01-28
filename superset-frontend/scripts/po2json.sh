@@ -22,6 +22,8 @@
 
 set -e
 
+export NODE_NO_WARNINGS=1
+
 for file in $( find ../superset/translations/** -name '*.po' );
 do
   extension=${file##*.}
@@ -29,7 +31,7 @@ do
   if [ $extension == "po" ]
   then
     echo "po2json --domain superset --format jed1.x $file $filename.json"
-    po2json --domain superset --format jed1.x $file $filename.json
+    po2json --domain superset --format jed1.x --fuzzy $file $filename.json
     prettier --write $filename.json
   fi
 done

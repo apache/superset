@@ -17,11 +17,11 @@
  * under the License.
  */
 import {
-  GenericDataType,
   getColumnLabel,
   isPhysicalColumn,
   QueryFormColumn,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { checkColumnType, ControlStateMapping } from '..';
 
 export function isSortable(controls: ControlStateMapping): boolean {

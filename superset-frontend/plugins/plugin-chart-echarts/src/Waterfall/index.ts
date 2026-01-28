@@ -17,14 +17,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example1 from './images/example1.png';
 import example2 from './images/example2.png';
 import example3 from './images/example3.png';
+import example1Dark from './images/example1-dark.png';
+import example2Dark from './images/example2-dark.png';
+import example3Dark from './images/example3-dark.png';
 import { EchartsWaterfallChartProps, EchartsWaterfallFormData } from './types';
 
 // TODO: Implement cross filtering
@@ -56,13 +61,14 @@ export default class EchartsWaterfallChartPlugin extends ChartPlugin<
           These intermediate values can either be time based or category based.`,
         ),
         exampleGallery: [
-          { url: example1 },
-          { url: example2 },
-          { url: example3 },
+          { url: example1, urlDark: example1Dark },
+          { url: example2, urlDark: example2Dark },
+          { url: example3, urlDark: example3Dark },
         ],
         name: t('Waterfall Chart'),
         tags: [t('Categorical'), t('Comparison'), t('ECharts'), t('Featured')],
         thumbnail,
+        thumbnailDark,
       }),
       transformProps,
     });

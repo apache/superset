@@ -31,17 +31,18 @@
   "dependencies": {
     "d3": "^3.5.17",
     "d3-tip": "^0.9.1",
-    "dompurify": "^3.2.3",
     "fast-safe-stringify": "^2.1.1",
-    "lodash": "^4.17.21",
-    "dayjs": "^1.11.13",
+    "lodash": "^4.17.23",
     "nvd3-fork": "^2.0.5",
+    "dompurify": "^3.3.1",
     "prop-types": "^15.8.1",
     "urijs": "^1.19.11"
   },
   "peerDependencies": {
+    "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "dayjs": "^1.11.19",
     "react": "^17.0.2"
   }
 }

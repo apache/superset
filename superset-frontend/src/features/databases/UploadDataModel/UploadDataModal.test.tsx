@@ -20,10 +20,13 @@ import fetchMock from 'fetch-mock';
 import UploadDataModal, {
   validateUploadFileExtension,
 } from 'src/features/databases/UploadDataModel';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { waitFor } from '@testing-library/react';
-import { UploadFile } from 'antd/lib/upload/interface';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+  fireEvent,
+} from 'spec/helpers/testing-library';
 
 const csvProps = {
   show: true,
@@ -46,10 +49,9 @@ const columnarProps = {
   type: 'columnar',
 };
 
-beforeEach(() => {
+// Helper function to setup common mocks
+const setupMocks = () => {
   fetchMock.post('glob:*api/v1/database/1/upload/', {});
-
-  // 4 mocks below are not necessary
   fetchMock.post('glob:*api/v1/database/csv_metadata/', {});
   fetchMock.post('glob:*api/v1/database/excel_metadata/', {});
   fetchMock.post('glob:*api/v1/database/columnar_metadata/', {});
@@ -75,369 +77,583 @@ beforeEach(() => {
     result: [],
   });
 
-  fetchMock.get('glob:*api/v1/database/1/schemas/', {
+  fetchMock.get('glob:*api/v1/database/1/schemas/?q=(upload_allowed:!t)', {
     result: ['information_schema', 'public'],
   });
 
-  fetchMock.get('glob:*api/v1/database/2/schemas/', {
+  fetchMock.get('glob:*api/v1/database/2/schemas/?q=(upload_allowed:!t)', {
     result: ['schema1', 'schema2'],
   });
+};
+
+// Set timeout for all tests in this file to 60 seconds
+jest.setTimeout(60000);
+
+beforeEach(() => {
+  setupMocks();
 });
 
 afterEach(() => {
   fetchMock.restore();
 });
 
-test('CSV, renders the general information elements correctly', () => {
-  render(<UploadDataModal {...csvProps} />, {
-    useRedux: true,
+// Helper function to get common elements
+const getCommonElements = () => ({
+  cancelButton: screen.getByRole('button', { name: 'Cancel' }),
+  uploadButton: screen.getByRole('button', { name: 'Upload' }),
+  selectButton: screen.getByRole('button', { name: 'Select' }),
+  panel1: screen.getByText(/General information/i, { selector: 'strong' }),
+  panel2: screen.getByText(/file settings/i, { selector: 'strong' }),
+  panel3: screen.getByText(/columns/i, { selector: 'strong' }),
+  selectDatabase: screen.getByRole('combobox', { name: /select a database/i }),
+  inputTableName: screen.getByRole('textbox', { name: /table name/i }),
+  inputSchema: screen.getByRole('combobox', { name: /schema/i }),
+});
+
+// Helper function to check element visibility
+const expectElementsVisible = (elements: any[]) => {
+  elements.forEach((element: any) => {
+    expect(element).toBeInTheDocument();
+  });
+};
+
+// Helper function to check element absence
+const expectElementsNotVisible = (elements: any[]) => {
+  elements.forEach((element: any) => {
+    expect(element).not.toBeInTheDocument();
+  });
+};
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('UploadDataModal - General Information Elements', () => {
+  test('CSV renders correctly', () => {
+    render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+    const common = getCommonElements();
+    const title = screen.getByRole('heading', { name: /csv upload/i });
+    const panel4 = screen.getByText(/rows/i);
+    const selectDelimiter = screen.getByRole('combobox', {
+      name: /choose a delimiter/i,
+    });
+
+    expectElementsVisible([
+      common.cancelButton,
+      common.uploadButton,
+      common.selectButton,
+      title,
+      common.panel1,
+      common.panel2,
+      common.panel3,
+      panel4,
+      common.selectDatabase,
+      selectDelimiter,
+      common.inputTableName,
+      common.inputSchema,
+    ]);
   });
 
-  const cancelButton = screen.getByRole('button', {
-    name: 'Cancel',
-  });
-  const uploadButton = screen.getByRole('button', {
-    name: 'Upload',
-  });
-  const selectButton = screen.getByRole('button', {
-    name: 'Select',
+  test('Excel renders correctly', () => {
+    render(<UploadDataModal {...excelProps} />, { useRedux: true });
+
+    const common = getCommonElements();
+    const title = screen.getByRole('heading', { name: /excel upload/i });
+    const panel4 = screen.getByText(/rows/i);
+    const selectSheetName = screen.getByRole('combobox', {
+      name: /choose sheet name/i,
+    });
+
+    expectElementsVisible([
+      common.cancelButton,
+      common.uploadButton,
+      common.selectButton,
+      title,
+      common.panel1,
+      common.panel2,
+      common.panel3,
+      panel4,
+      common.selectDatabase,
+      selectSheetName,
+      common.inputTableName,
+      common.inputSchema,
+    ]);
+
+    // Check elements that should NOT be visible
+    expect(screen.queryByText(/csv upload/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: /choose a delimiter/i }),
+    ).not.toBeInTheDocument();
   });
 
-  const title = screen.getByRole('heading', {
-    name: /csv upload/i,
-  });
-  const panel1 = screen.getByRole('heading', {
-    name: /General information/i,
-  });
-  const panel2 = screen.getByRole('heading', {
-    name: /file settings/i,
-  });
-  const panel3 = screen.getByRole('heading', {
-    name: /columns/i,
-  });
-  const panel4 = screen.getByRole('heading', {
-    name: /rows/i,
-  });
-  const selectDatabase = screen.getByRole('combobox', {
-    name: /select a database/i,
-  });
-  const selectDelimiter = screen.getByRole('combobox', {
-    name: /choose a delimiter/i,
-  });
-  const inputTableName = screen.getByRole('textbox', {
-    name: /table name/i,
-  });
-  const inputSchema = screen.getByRole('combobox', {
-    name: /schema/i,
-  });
+  test('Columnar renders correctly', () => {
+    render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
-  const visibleComponents = [
-    cancelButton,
-    uploadButton,
-    selectButton,
-    title,
-    panel1,
-    panel2,
-    panel3,
-    panel4,
-    selectDatabase,
-    selectDelimiter,
-    inputTableName,
-    inputSchema,
-  ];
-  visibleComponents.forEach(component => {
-    expect(component).toBeInTheDocument();
+    const common = getCommonElements();
+    const title = screen.getByRole('heading', { name: /columnar upload/i });
+
+    expectElementsVisible([
+      common.cancelButton,
+      common.uploadButton,
+      common.selectButton,
+      title,
+      common.panel1,
+      common.panel2,
+      common.panel3,
+      common.selectDatabase,
+      common.inputTableName,
+      common.inputSchema,
+    ]);
+
+    // Check elements that should NOT be visible
+    expectElementsNotVisible([
+      screen.queryByText(/csv upload/i),
+      screen.queryByText(/rows/i),
+      screen.queryByRole('combobox', { name: /choose a delimiter/i }),
+      screen.queryByRole('combobox', { name: /choose sheet name/i }),
+    ]);
   });
 });
 
-test('Excel, renders the general information elements correctly', () => {
-  render(<UploadDataModal {...excelProps} />, {
-    useRedux: true,
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('UploadDataModal - File Settings Elements', () => {
+  const openFileSettings = async () => {
+    const panelHeader = screen.getByText(/file settings/i);
+    await userEvent.click(panelHeader);
+  };
+
+  test('CSV file settings render correctly', async () => {
+    render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+    expect(
+      screen.queryByText('If Table Already Exists'),
+    ).not.toBeInTheDocument();
+    await openFileSettings();
+
+    const elements = [
+      screen.getByRole('combobox', { name: /choose already exists/i }),
+      screen.getByTestId('skipInitialSpace'),
+      screen.getByTestId('skipBlankLines'),
+      screen.getByTestId('dayFirst'),
+      screen.getByRole('textbox', { name: /decimal character/i }),
+      screen.getByRole('combobox', { name: /null values/i }),
+    ];
+
+    expectElementsVisible(elements);
   });
 
-  const cancelButton = screen.getByRole('button', {
-    name: 'Cancel',
-  });
-  const uploadButton = screen.getByRole('button', {
-    name: 'Upload',
-  });
-  const selectButton = screen.getByRole('button', {
-    name: 'Select',
+  test('Excel file settings render correctly', async () => {
+    render(<UploadDataModal {...excelProps} />, { useRedux: true });
+
+    expect(
+      screen.queryByText('If Table Already Exists'),
+    ).not.toBeInTheDocument();
+    await openFileSettings();
+
+    const visibleElements = [
+      screen.getByRole('combobox', { name: /choose already exists/i }),
+      screen.getByRole('textbox', { name: /decimal character/i }),
+      screen.getByRole('combobox', { name: /null values/i }),
+    ];
+
+    expectElementsVisible(visibleElements);
+
+    // Check elements that should NOT be visible
+    expectElementsNotVisible([
+      screen.queryByText('skipInitialSpace'),
+      screen.queryByText('skipBlankLines'),
+      screen.queryByText('dayFirst'),
+    ]);
   });
 
-  const title = screen.getByRole('heading', {
-    name: /excel upload/i,
-  });
-  const missingTitle = screen.queryByRole('heading', {
-    name: /csv upload/i,
-  });
-  expect(missingTitle).not.toBeInTheDocument();
-  const panel1 = screen.getByRole('heading', {
-    name: /General information/i,
-  });
-  const panel2 = screen.getByRole('heading', {
-    name: /file settings/i,
-  });
-  const panel3 = screen.getByRole('heading', {
-    name: /columns/i,
-  });
-  const panel4 = screen.getByRole('heading', {
-    name: /rows/i,
-  });
-  const selectDatabase = screen.getByRole('combobox', {
-    name: /select a database/i,
-  });
-  const selectDelimiter = screen.queryByRole('combobox', {
-    name: /choose a delimiter/i,
-  });
-  expect(selectDelimiter).not.toBeInTheDocument();
-  const selectSheetName = screen.getByRole('combobox', {
-    name: /choose sheet name/i,
-  });
-  const inputTableName = screen.getByRole('textbox', {
-    name: /table name/i,
-  });
-  const inputSchema = screen.getByRole('combobox', {
-    name: /schema/i,
-  });
+  test('Columnar file settings render correctly', async () => {
+    render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
-  const visibleComponents = [
-    cancelButton,
-    uploadButton,
-    selectButton,
-    title,
-    panel1,
-    panel2,
-    panel3,
-    panel4,
-    selectDatabase,
-    selectSheetName,
-    inputTableName,
-    inputSchema,
-  ];
-  visibleComponents.forEach(component => {
-    expect(component).toBeInTheDocument();
+    expect(
+      screen.queryByText('If Table Already Exists'),
+    ).not.toBeInTheDocument();
+    await openFileSettings();
+
+    const visibleElements = [
+      screen.getByRole('combobox', { name: /choose already exists/i }),
+    ];
+
+    expectElementsVisible(visibleElements);
+
+    // Check elements that should NOT be visible
+    expectElementsNotVisible([
+      screen.queryByRole('textbox', { name: /decimal character/i }),
+      screen.queryByRole('combobox', {
+        name: /choose columns to be parsed as dates/i,
+      }),
+      screen.queryByRole('combobox', { name: /null values/i }),
+      screen.queryByText('skipInitialSpace'),
+      screen.queryByText('skipBlankLines'),
+      screen.queryByText('dayFirst'),
+    ]);
   });
 });
 
-test('Columnar, renders the general information elements correctly', () => {
-  render(<UploadDataModal {...columnarProps} />, {
-    useRedux: true,
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('UploadDataModal - Columns Elements', () => {
+  const openColumns = async () => {
+    const panelHeader = screen.getByText(/columns/i, { selector: 'strong' });
+    await userEvent.click(panelHeader);
+  };
+
+  test('CSV columns render correctly', async () => {
+    render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+    await openColumns();
+    const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
+    await userEvent.click(switchDataFrameIndex);
+
+    const elements = [
+      screen.getByRole('combobox', { name: /Choose index column/i }),
+      switchDataFrameIndex,
+      screen.getByRole('textbox', { name: /Index label/i }),
+      screen.getByRole('combobox', { name: /Choose columns to read/i }),
+      screen.getByRole('textbox', { name: /Column data types/i }),
+    ];
+
+    expectElementsVisible(elements);
   });
 
-  const cancelButton = screen.getByRole('button', {
-    name: 'Cancel',
-  });
-  const uploadButton = screen.getByRole('button', {
-    name: 'Upload',
-  });
-  const selectButton = screen.getByRole('button', {
-    name: 'Select',
+  test('Excel columns render correctly', async () => {
+    render(<UploadDataModal {...excelProps} />, { useRedux: true });
+
+    await openColumns();
+    const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
+    await userEvent.click(switchDataFrameIndex);
+
+    const visibleElements = [
+      screen.getByRole('combobox', { name: /Choose index column/i }),
+      switchDataFrameIndex,
+      screen.getByRole('textbox', { name: /Index label/i }),
+      screen.getByRole('combobox', { name: /Choose columns to read/i }),
+    ];
+
+    expectElementsVisible(visibleElements);
+
+    // Check elements that should NOT be visible
+    expect(
+      screen.queryByRole('textbox', { name: /Column data types/i }),
+    ).not.toBeInTheDocument();
   });
 
-  const title = screen.getByRole('heading', {
-    name: /columnar upload/i,
-  });
-  const missingTitle = screen.queryByRole('heading', {
-    name: /csv upload/i,
-  });
-  expect(missingTitle).not.toBeInTheDocument();
-  const panel1 = screen.getByRole('heading', {
-    name: /General information/i,
-  });
-  const panel2 = screen.getByRole('heading', {
-    name: /file settings/i,
-  });
-  const panel3 = screen.getByRole('heading', {
-    name: /columns/i,
-  });
-  const panel4 = screen.queryByRole('heading', {
-    name: /rows/i,
-  });
-  expect(panel4).not.toBeInTheDocument();
+  test('Columnar columns render correctly', async () => {
+    render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
-  const selectDatabase = screen.getByRole('combobox', {
-    name: /select a database/i,
-  });
-  const selectDelimiter = screen.queryByRole('combobox', {
-    name: /choose a delimiter/i,
-  });
-  expect(selectDelimiter).not.toBeInTheDocument();
+    await openColumns();
+    const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
+    await userEvent.click(switchDataFrameIndex);
 
-  const selectSheetName = screen.queryByRole('combobox', {
-    name: /choose sheet name/i,
-  });
-  expect(selectSheetName).not.toBeInTheDocument();
-  const inputTableName = screen.getByRole('textbox', {
-    name: /table name/i,
-  });
-  const inputSchema = screen.getByRole('combobox', {
-    name: /schema/i,
-  });
+    const visibleElements = [
+      switchDataFrameIndex,
+      screen.getByRole('textbox', { name: /Index label/i }),
+      screen.getByRole('combobox', { name: /Choose columns to read/i }),
+    ];
 
-  const visibleComponents = [
-    cancelButton,
-    uploadButton,
-    selectButton,
-    title,
-    panel1,
-    panel2,
-    panel3,
-    selectDatabase,
-    inputTableName,
-    inputSchema,
-  ];
-  visibleComponents.forEach(component => {
-    expect(component).toBeInTheDocument();
+    expectElementsVisible(visibleElements);
+
+    // Check elements that should NOT be visible
+    expectElementsNotVisible([
+      screen.queryByRole('combobox', { name: /Choose index column/i }),
+      screen.queryByRole('textbox', { name: /Column data types/i }),
+    ]);
   });
 });
 
-test('CSV, renders the file settings elements correctly', () => {
-  render(<UploadDataModal {...csvProps} />, {
-    useRedux: true,
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('UploadDataModal - Rows Elements', () => {
+  test('CSV/Excel rows render correctly', async () => {
+    render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+    const panelHeader = screen.getByText(/rows/i);
+    await userEvent.click(panelHeader);
+
+    const elements = [
+      screen.getByRole('spinbutton', { name: /header row/i }),
+      screen.getByRole('spinbutton', { name: /rows to read/i }),
+      screen.getByRole('spinbutton', { name: /skip rows/i }),
+    ];
+
+    expectElementsVisible(elements);
   });
 
-  expect(screen.queryByText('If Table Already Exists')).not.toBeInTheDocument();
-  const panelHeader = screen.getByRole('heading', {
-    name: /file settings/i,
-  });
-  userEvent.click(panelHeader);
-  const selectTableAlreadyExists = screen.getByRole('combobox', {
-    name: /choose already exists/i,
-  });
-  const switchSkipInitialSpace = screen.getByTestId('skipInitialSpace');
-  const switchSkipBlankLines = screen.getByTestId('skipBlankLines');
-  const switchDayFirst = screen.getByTestId('dayFirst');
-  const inputDecimalCharacter = screen.getByRole('textbox', {
-    name: /decimal character/i,
-  });
-  const selectColumnsDates = screen.getByRole('combobox', {
-    name: /choose columns to be parsed as dates/i,
-  });
-  const selectNullValues = screen.getByRole('combobox', {
-    name: /null values/i,
-  });
-  userEvent.click(selectColumnsDates);
-  userEvent.click(selectNullValues);
-  const visibleComponents = [
-    selectTableAlreadyExists,
-    switchSkipInitialSpace,
-    switchDayFirst,
-    switchSkipBlankLines,
-    inputDecimalCharacter,
-    selectNullValues,
-  ];
-  visibleComponents.forEach(component => {
-    expect(component).toBeInTheDocument();
+  test('Columnar does not render rows', () => {
+    render(<UploadDataModal {...columnarProps} />, { useRedux: true });
+
+    const panelHeader = screen.queryByText(/rows/i);
+    expect(panelHeader).not.toBeInTheDocument();
   });
 });
 
-test('Excel, renders the file settings elements correctly', () => {
-  render(<UploadDataModal {...excelProps} />, {
-    useRedux: true,
-  });
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('UploadDataModal - Database and Schema Population', () => {
+  test('database and schema are correctly populated', async () => {
+    render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
-  expect(screen.queryByText('If Table Already Exists')).not.toBeInTheDocument();
-  const panelHeader = screen.getByRole('heading', {
-    name: /file settings/i,
-  });
-  userEvent.click(panelHeader);
-  const selectTableAlreadyExists = screen.getByRole('combobox', {
-    name: /choose already exists/i,
-  });
-  const inputDecimalCharacter = screen.getByRole('textbox', {
-    name: /decimal character/i,
-  });
-  const selectColumnsDates = screen.getByRole('combobox', {
-    name: /choose columns to be parsed as dates/i,
-  });
-  const selectNullValues = screen.getByRole('combobox', {
-    name: /null values/i,
-  });
-  userEvent.click(selectColumnsDates);
-  userEvent.click(selectNullValues);
+    const selectDatabase = screen.getByRole('combobox', {
+      name: /select a database/i,
+    });
+    const selectSchema = screen.getByRole('combobox', { name: /schema/i });
 
-  const switchSkipInitialSpace = screen.queryByText('skipInitialSpace');
-  expect(switchSkipInitialSpace).not.toBeInTheDocument();
-  const switchSkipBlankLines = screen.queryByText('skipBlankLines');
-  expect(switchSkipBlankLines).not.toBeInTheDocument();
-  const switchDayFirst = screen.queryByText('dayFirst');
-  expect(switchDayFirst).not.toBeInTheDocument();
+    // Test database selection
+    await userEvent.click(selectDatabase);
+    await waitFor(() => screen.getByText('database1'));
+    await waitFor(() => screen.getByText('database2'));
 
-  const visibleComponents = [
-    selectTableAlreadyExists,
-    inputDecimalCharacter,
-    selectNullValues,
-  ];
-  visibleComponents.forEach(component => {
-    expect(component).toBeInTheDocument();
+    // Select database1 and check schemas
+    await userEvent.click(screen.getByText('database1'));
+    await userEvent.click(selectSchema);
+    await waitFor(() => screen.getAllByText('information_schema'));
+    await waitFor(() => screen.getAllByText('public'));
+
+    // Switch to database2 and check schemas
+    await userEvent.click(selectDatabase);
+    await userEvent.click(screen.getByText('database2'));
+    await userEvent.click(selectSchema);
+    await waitFor(() => screen.getAllByText('schema1'));
+    await waitFor(() => screen.getAllByText('schema2'));
+  }, 60000);
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('UploadDataModal - Form Validation', () => {
+  test('form validation without required fields', async () => {
+    render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+    const uploadButton = screen.getByRole('button', { name: 'Upload' });
+    await userEvent.click(uploadButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Uploading a file is required'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Selecting a database is required'),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Table name is required')).toBeInTheDocument();
+    });
   });
 });
 
-test('Columnar, renders the file settings elements correctly', () => {
-  render(<UploadDataModal {...columnarProps} />, {
-    useRedux: true,
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('UploadDataModal - Form Submission', () => {
+  // Helper function to fill out form
+  const fillForm = async (
+    fileType: string,
+    fileName: string,
+    mimeType = 'text/csv',
+  ) => {
+    const selectButton = screen.getByRole('button', { name: 'Select' });
+    await userEvent.click(selectButton);
+
+    const file = new File(['test'], fileName, { type: mimeType });
+    const inputElement = screen.getByTestId('model-file-input');
+    fireEvent.change(inputElement, { target: { files: [file] } });
+
+    const selectDatabase = screen.getByRole('combobox', {
+      name: /select a database/i,
+    });
+    await userEvent.click(selectDatabase);
+
+    await waitFor(() => screen.getByText('database1'));
+    await userEvent.click(screen.getByText('database1'));
+
+    const selectSchema = screen.getByRole('combobox', { name: /schema/i });
+    await userEvent.click(selectSchema);
+
+    await waitFor(() => screen.getAllByText('public'));
+    await userEvent.click(screen.getAllByText('public')[1]);
+
+    const inputTableName = screen.getByRole('textbox', { name: /table name/i });
+    await userEvent.type(inputTableName, 'table1');
+
+    const uploadButton = screen.getByRole('button', { name: 'Upload' });
+    await userEvent.click(uploadButton);
+
+    await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'), {
+      timeout: 10000,
+    });
+    return fetchMock.calls('glob:*api/v1/database/1/upload/')[0];
+  };
+
+  test('CSV form submission', async () => {
+    render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+    const [, options] = await fillForm('csv', 'test.csv');
+    const formData = options?.body as FormData;
+
+    expect(formData.get('type')).toBe('csv');
+    expect(formData.get('table_name')).toBe('table1');
+    expect(formData.get('schema')).toBe('public');
+    expect((formData.get('file') as File).name).toBe('test.csv');
+  }, 60000);
+
+  test('Excel form submission', async () => {
+    render(<UploadDataModal {...excelProps} />, { useRedux: true });
+
+    const [, options] = await fillForm('excel', 'test.xls', 'text');
+    const formData = options?.body as FormData;
+
+    expect(formData.get('type')).toBe('excel');
+    expect(formData.get('table_name')).toBe('table1');
+    expect(formData.get('schema')).toBe('public');
+    expect((formData.get('file') as File).name).toBe('test.xls');
+  }, 60000);
+
+  test('Columnar form submission', async () => {
+    render(<UploadDataModal {...columnarProps} />, { useRedux: true });
+
+    const [, options] = await fillForm('columnar', 'test.parquet', 'text');
+    const formData = options?.body as FormData;
+
+    expect(formData.get('type')).toBe('columnar');
+    expect(formData.get('table_name')).toBe('table1');
+    expect(formData.get('schema')).toBe('public');
+    expect((formData.get('file') as File).name).toBe('test.parquet');
+  }, 60000);
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('File Extension Validation', () => {
+  const createTestFile = (fileName: string) => ({
+    name: fileName,
+    uid: 'xp',
+    size: 100,
+    type: 'text/csv',
   });
 
-  expect(screen.queryByText('If Table Already Exists')).not.toBeInTheDocument();
-  const panelHeader = screen.getByRole('heading', {
-    name: /file settings/i,
-  });
-  userEvent.click(panelHeader);
-  const selectTableAlreadyExists = screen.getByRole('combobox', {
-    name: /choose already exists/i,
-  });
-  const inputDecimalCharacter = screen.queryByRole('textbox', {
-    name: /decimal character/i,
-  });
-  expect(inputDecimalCharacter).not.toBeInTheDocument();
-  const selectColumnsDates = screen.queryByRole('combobox', {
-    name: /choose columns to be parsed as dates/i,
-  });
-  expect(selectColumnsDates).not.toBeInTheDocument();
-  const selectNullValues = screen.queryByRole('combobox', {
-    name: /null values/i,
-  });
-  expect(selectNullValues).not.toBeInTheDocument();
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('CSV validation', () => {
+    test('returns false for invalid extensions', () => {
+      const invalidFiles = ['out', 'out.exe', 'out.csv.exe', '.csv', 'out.xls'];
+      invalidFiles.forEach(fileName => {
+        expect(
+          validateUploadFileExtension(createTestFile(fileName), ['csv', 'tsv']),
+        ).toBe(false);
+      });
+    });
 
-  const switchSkipInitialSpace = screen.queryByText('skipInitialSpace');
-  expect(switchSkipInitialSpace).not.toBeInTheDocument();
-  const switchSkipBlankLines = screen.queryByText('skipBlankLines');
-  expect(switchSkipBlankLines).not.toBeInTheDocument();
-  const switchDayFirst = screen.queryByText('dayFirst');
-  expect(switchDayFirst).not.toBeInTheDocument();
+    test('returns true for valid extensions', () => {
+      const validFiles = ['out.csv', 'out.tsv', 'out.exe.csv', 'out a.csv'];
+      validFiles.forEach(fileName => {
+        expect(
+          validateUploadFileExtension(createTestFile(fileName), ['csv', 'tsv']),
+        ).toBe(true);
+      });
+    });
+  });
 
-  const visibleComponents = [selectTableAlreadyExists];
-  visibleComponents.forEach(component => {
-    expect(component).toBeInTheDocument();
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('Excel validation', () => {
+    test('returns false for invalid extensions', () => {
+      const invalidFiles = ['out', 'out.exe', 'out.xls.exe', '.csv', 'out.csv'];
+      invalidFiles.forEach(fileName => {
+        expect(
+          validateUploadFileExtension(createTestFile(fileName), [
+            'xls',
+            'xlsx',
+          ]),
+        ).toBe(false);
+      });
+    });
+
+    test('returns true for valid extensions', () => {
+      const validFiles = ['out.xls', 'out.xlsx', 'out.exe.xls', 'out a.xls'];
+      validFiles.forEach(fileName => {
+        expect(
+          validateUploadFileExtension(createTestFile(fileName), [
+            'xls',
+            'xlsx',
+          ]),
+        ).toBe(true);
+      });
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('Columnar validation', () => {
+    test('returns false for invalid extensions', () => {
+      const invalidFiles = [
+        'out',
+        'out.exe',
+        'out.parquet.exe',
+        '.parquet',
+        'out.excel',
+      ];
+      invalidFiles.forEach(fileName => {
+        expect(
+          validateUploadFileExtension(createTestFile(fileName), [
+            'parquet',
+            'zip',
+          ]),
+        ).toBe(false);
+      });
+    });
+
+    test('returns true for valid extensions', () => {
+      const validFiles = [
+        'out.parquet',
+        'out.zip',
+        'out.exe.zip',
+        'out a.parquet',
+      ];
+      validFiles.forEach(fileName => {
+        expect(
+          validateUploadFileExtension(createTestFile(fileName), [
+            'parquet',
+            'zip',
+          ]),
+        ).toBe(true);
+      });
+    });
   });
 });
 
-test('CSV, renders the columns elements correctly', () => {
-  render(<UploadDataModal {...csvProps} />, {
-    useRedux: true,
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('UploadDataModal Collapse Tabs', () => {
+  test('renders the collaps tab CSV correctly and resets to default tab after closing', async () => {
+    const { rerender } = render(<UploadDataModal {...csvProps} />, {
+      useRedux: true,
+    });
+    const generalInfoTab = screen.getByRole('tab', {
+      name: /expanded General information/i,
+    });
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+    const fileSettingsTab = screen.getByRole('tab', {
+      name: /collapsed File settings/i,
+    });
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
+    rerender(<UploadDataModal {...csvProps} show={false} />);
+    rerender(<UploadDataModal {...csvProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  const panelHeader = screen.getByRole('heading', {
-    name: /columns/i,
+  test('renders the collaps tab Excel correctly and resets to default tab after closing', async () => {
+    const { rerender } = render(<UploadDataModal {...excelProps} />, {
+      useRedux: true,
+    });
+    const generalInfoTab = screen.getByRole('tab', {
+      name: /expanded General information/i,
+    });
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+    const fileSettingsTab = screen.getByRole('tab', {
+      name: /collapsed File settings/i,
+    });
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
+    rerender(<UploadDataModal {...excelProps} show={false} />);
+    rerender(<UploadDataModal {...excelProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
-  userEvent.click(panelHeader);
-  const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
-  userEvent.click(switchDataFrameIndex);
-  const selectIndexColumn = screen.getByRole('combobox', {
-    name: /Choose index column/i,
-  });
-  const inputColumnLabels = screen.getByRole('textbox', {
-    name: /Index label/i,
-  });
-  const selectColumnsToRead = screen.getByRole('combobox', {
-    name: /Choose columns to read/i,
-  });
-  const inputColumnDataTypes = screen.getByRole('textbox', {
-    name: /Column data types/i,
-  });
-  userEvent.click(selectColumnsToRead);
 
+<<<<<<< HEAD
   const visibleComponents = [
     selectIndexColumn,
     switchDataFrameIndex,
@@ -870,5 +1086,25 @@ test('Columnar, validate file extension returns true', () => {
       type: 'text/csv',
     };
     expect(validateUploadFileExtension(file, ['parquet', 'zip'])).toBe(true);
+=======
+  test('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
+    const { rerender } = render(<UploadDataModal {...columnarProps} />, {
+      useRedux: true,
+    });
+    const generalInfoTab = screen.getByRole('tab', {
+      name: /expanded General information/i,
+    });
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+    const fileSettingsTab = screen.getByRole('tab', {
+      name: /collapsed File settings/i,
+    });
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
+    rerender(<UploadDataModal {...columnarProps} show={false} />);
+    rerender(<UploadDataModal {...columnarProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+>>>>>>> origin/master
   });
 });

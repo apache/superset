@@ -16,44 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
-import { Popover } from 'antd';
-import type ReactAce from 'react-ace';
-import type { PopoverProps } from 'antd/lib/popover';
+import {
+  Popover,
+  type PopoverProps,
+  SQLEditor,
+} from '@superset-ui/core/components';
 import { CalculatorOutlined } from '@ant-design/icons';
-import { css, styled, useTheme, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 
 const StyledCalculatorIcon = styled(CalculatorOutlined)`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
-    font-size: ${theme.typography.sizes.s}px;
+    color: ${theme.colorIcon};
+    font-size: ${theme.fontSizeSM}px;
     & svg {
-      margin-left: ${theme.gridUnit}px;
-      margin-right: ${theme.gridUnit}px;
+      margin-left: ${theme.sizeUnit}px;
+      margin-right: ${theme.sizeUnit}px;
     }
   `}
 `;
 
 export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
   const theme = useTheme();
-  const [AceEditor, setAceEditor] = useState<typeof ReactAce | null>(null);
-  useEffect(() => {
-    Promise.all([
-      import('react-ace'),
-      import('ace-builds/src-min-noconflict/mode-sql'),
-    ]).then(([reactAceModule]) => {
-      setAceEditor(() => reactAceModule.default);
-    });
-  }, []);
-
-  if (!AceEditor) {
-    return null;
-  }
   return (
     <Popover
       content={
-        <AceEditor
-          mode="sql"
+        <SQLEditor
           value={props.sqlExpression}
           editorProps={{ $blockScrolling: true }}
           setOptions={{
@@ -65,14 +53,13 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
           readOnly
           wrapEnabled
           style={{
-            border: `1px solid ${theme.colors.grayscale.light2}`,
-            background: theme.colors.secondary.light5,
-            maxWidth: theme.gridUnit * 100,
+            border: `1px solid ${theme.colorBorder}`,
+            maxWidth: theme.sizeUnit * 100,
           }}
         />
       }
       placement="bottomLeft"
-      arrowPointAtCenter
+      arrow={{ pointAtCenter: true }}
       title={t('SQL expression')}
       {...props}
     >

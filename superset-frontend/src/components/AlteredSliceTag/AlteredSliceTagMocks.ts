@@ -18,10 +18,16 @@
  */
 import { QueryFormData } from '@superset-ui/core';
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
-import { DiffType, RowType } from './index';
+import type { DiffType } from 'src/types/DiffType';
+import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
+import type { RowType } from './types';
 
-export const defaultProps: Record<string, Partial<QueryFormData>> = {
+export const defaultProps: {
+  origFormData: QueryFormData;
+  currentFormData: QueryFormData;
+} = {
   origFormData: {
+    datasource: '123__table',
     viz_type: 'altered_slice_tag_spec',
     adhoc_filters: [
       {
@@ -40,7 +46,10 @@ export const defaultProps: Record<string, Partial<QueryFormData>> = {
     never: 5,
     ever: { a: 'b', c: 'd' },
   },
+
   currentFormData: {
+    datasource: '123__table',
+    viz_type: 'altered_slice_tag_spec',
     adhoc_filters: [
       {
         clause: 'WHERE',
@@ -106,6 +115,7 @@ export const expectedDiffs: Record<string, DiffType> = {
     after: { x: 'y', z: 'z' },
   },
 };
+
 export const expectedRows: RowType[] = [
   {
     control: 'Fake Filters',
@@ -131,6 +141,7 @@ export const expectedRows: RowType[] = [
     after: '{"x":"y","z":"z"}',
   },
 ];
+
 export const fakePluginControls: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -175,3 +186,6 @@ export const fakePluginControls: ControlPanelConfig = {
     },
   ],
 };
+
+export const createDiffs = (original: QueryFormData, current: QueryFormData) =>
+  getChartFormDiffs(original, current);

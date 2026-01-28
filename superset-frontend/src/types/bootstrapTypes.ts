@@ -1,17 +1,3 @@
-import {
-  ColorSchemeConfig,
-  FeatureFlagMap,
-  JsonObject,
-  LanguagePack,
-  Locale,
-  SequentialSchemeConfig,
-} from '@superset-ui/core';
-import { FormatLocaleDefinition } from 'd3-format';
-import { TimeLocaleDefinition } from 'd3-time-format';
-import { isPlainObject } from 'lodash';
-import { Languages } from 'src/features/home/LanguagePicker';
-import { FlashMessage } from '../components/FlashProvider';
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -30,6 +16,23 @@ import { FlashMessage } from '../components/FlashProvider';
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FormatLocaleDefinition } from 'd3-format';
+import { TimeLocaleDefinition } from 'd3-time-format';
+import { isPlainObject } from 'lodash';
+import { Languages } from 'src/features/home/LanguagePicker';
+import type {
+  AnyThemeConfig,
+  SerializableThemeConfig,
+} from '@apache-superset/core/ui';
+import type {
+  ColorSchemeConfig,
+  FeatureFlagMap,
+  JsonObject,
+  SequentialSchemeConfig,
+} from '@superset-ui/core';
+
+import type { LanguagePack, Locale } from '@apache-superset/core/ui';
+
 export type User = {
   createdOn?: string;
   email?: string;
@@ -39,6 +42,7 @@ export type User = {
   lastName: string;
   userId?: number; // optional because guest user doesn't have a user id
   username: string;
+  loginCount?: number;
 };
 
 export type UserRoles = Record<string, [string, string][]>;
@@ -116,7 +120,7 @@ export interface NavBarProps {
 export interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   index?: number;
   url?: string;
   onClick?: () => void;
@@ -142,18 +146,26 @@ export interface MenuData {
   };
 }
 
+export interface BootstrapThemeDataConfig {
+  default: SerializableThemeConfig | {};
+  dark: SerializableThemeConfig | {};
+  enableUiThemeAdministration?: boolean;
+}
+
 export interface CommonBootstrapData {
-  flash_messages: FlashMessage[];
+  application_root: string;
+  static_assets_prefix: string;
   conf: JsonObject;
   locale: Locale;
   feature_flags: FeatureFlagMap;
   language_pack: LanguagePack;
   extra_categorical_color_schemes: ColorSchemeConfig[];
   extra_sequential_color_schemes: SequentialSchemeConfig[];
-  theme_overrides: JsonObject;
+  theme: BootstrapThemeDataConfig;
   menu_data: MenuData;
   d3_format: Partial<FormatLocaleDefinition>;
   d3_time_format: Partial<TimeLocaleDefinition>;
+  pdf_compression_level: 'NONE' | 'FAST' | 'MEDIUM' | 'SLOW';
 }
 
 export interface BootstrapData {
@@ -164,6 +176,12 @@ export interface BootstrapData {
     dashboard_id: string;
   };
   requested_query?: JsonObject;
+}
+
+export interface BootstrapThemeData {
+  bootstrapDefaultTheme: AnyThemeConfig | null;
+  bootstrapDarkTheme: AnyThemeConfig | null;
+  hasCustomThemes: boolean;
 }
 
 export function isUser(user: any): user is User {

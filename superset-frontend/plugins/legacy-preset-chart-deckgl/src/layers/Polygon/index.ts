@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.png';
-import transformProps from '../../transformProps';
+import exampleDark from './images/example-dark.png';
+import transformProps from './transformProps';
+import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -30,14 +34,16 @@ const metadata = new ChartMetadata({
   ),
   name: t('deck.gl Polygon'),
   thumbnail,
-  exampleGallery: [{ url: example }],
-  useLegacyApi: true,
+  thumbnailDark,
+  exampleGallery: [{ url: example, urlDark: exampleDark }],
   tags: [t('deckGL'), t('3D'), t('Multi-Dimensions'), t('Geo')],
+  behaviors: [Behavior.InteractiveChart],
 });
 
 export default class PolygonChartPlugin extends ChartPlugin {
   constructor() {
     super({
+      buildQuery,
       loadChart: () => import('./Polygon'),
       controlPanel,
       metadata,

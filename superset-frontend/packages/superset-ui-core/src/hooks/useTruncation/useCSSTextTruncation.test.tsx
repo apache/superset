@@ -59,3 +59,37 @@ test('should truncate', () => {
 
   expect(isTruncated).toBe(true);
 });
+
+test('should not truncate with vertical orientation', () => {
+  const ref = { current: document.createElement('p') };
+  Object.defineProperty(ref.current, 'offsetHeight', { get: () => 100 });
+  Object.defineProperty(ref.current, 'scrollHeight', { get: () => 50 });
+  jest.spyOn(global.React, 'useRef').mockReturnValue({ current: ref.current });
+
+  const { result } = renderHook(() =>
+    useCSSTextTruncation<HTMLParagraphElement>({
+      isVertical: true,
+      isHorizontal: false,
+    }),
+  );
+  const [, isTruncated] = result.current;
+
+  expect(isTruncated).toBe(false);
+});
+
+test('should truncate with vertical orientation', () => {
+  const ref = { current: document.createElement('p') };
+  Object.defineProperty(ref.current, 'offsetHeight', { get: () => 50 });
+  Object.defineProperty(ref.current, 'scrollHeight', { get: () => 100 });
+  jest.spyOn(global.React, 'useRef').mockReturnValue({ current: ref.current });
+
+  const { result } = renderHook(() =>
+    useCSSTextTruncation<HTMLParagraphElement>({
+      isVertical: true,
+      isHorizontal: false,
+    }),
+  );
+  const [, isTruncated] = result.current;
+
+  expect(isTruncated).toBe(true);
+});

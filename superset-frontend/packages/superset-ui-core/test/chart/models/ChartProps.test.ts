@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { Behavior, ChartProps, supersetTheme } from '@superset-ui/core';
+import { Behavior, ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 
 const RAW_FORM_DATA = {
   some_field: 1,
@@ -119,7 +120,7 @@ describe('ChartProps', () => {
       });
       expect(props1).not.toBe(props2);
     });
-    it('selector returns a new chartProps if some input fields change', () => {
+    it('selector returns a new chartProps if some input fields change and returns memoized chart props', () => {
       const props1 = selector({
         width: 800,
         height: 600,
@@ -145,7 +146,7 @@ describe('ChartProps', () => {
         theme: supersetTheme,
       });
       expect(props1).not.toBe(props2);
-      expect(props1).not.toBe(props3);
+      expect(props1).toBe(props3);
     });
   });
 });

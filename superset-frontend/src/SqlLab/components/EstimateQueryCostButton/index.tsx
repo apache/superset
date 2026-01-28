@@ -18,14 +18,17 @@
  */
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { css, styled, Alert } from '@apache-superset/core/ui';
 
-import Alert from 'src/components/Alert';
-import TableView from 'src/components/TableView';
-import Button from 'src/components/Button';
-import Loading from 'src/components/Loading';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { EmptyWrapperType } from 'src/components/TableView/TableView';
+import {
+  Button,
+  Loading,
+  ModalTrigger,
+  TableView,
+  EmptyWrapperType,
+  Icons,
+} from '@superset-ui/core/components';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, QueryCostEstimate } from 'src/SqlLab/types';
 
@@ -38,7 +41,7 @@ export interface EstimateQueryCostButtonProps {
 
 const CostEstimateModalStyles = styled.div`
   ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.s};
+    font-size: ${theme.fontSizeSM};
   `}
 `;
 
@@ -59,7 +62,11 @@ const EstimateQueryCostButton = ({
   const columns = useMemo(
     () =>
       Array.isArray(cost) && cost.length
-        ? Object.keys(cost[0]).map(key => ({ accessor: key, Header: key }))
+        ? Object.keys(cost[0]).map(key => ({
+            accessor: key,
+            Header: key,
+            id: key,
+          }))
         : [],
     [cost],
   );
@@ -105,14 +112,16 @@ const EstimateQueryCostButton = ({
         modalBody={renderModalBody()}
         triggerNode={
           <Button
+            color="primary"
+            variant="text"
             style={{ height: 32, padding: '4px 15px' }}
             onClick={onClickHandler}
             key="query-estimate-btn"
             tooltip={tooltip}
             disabled={disabled}
-          >
-            {btnText}
-          </Button>
+            icon={<Icons.MonitorOutlined iconSize="m" />}
+            aria-label={btnText}
+          />
         }
       />
     </span>

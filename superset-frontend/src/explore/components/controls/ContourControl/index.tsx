@@ -18,7 +18,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import ContourPopoverTrigger from './ContourPopoverTrigger';
 import ContourOption from './ContourOption';
@@ -47,8 +48,8 @@ const DEFAULT_CONTOURS: ContourType[] = [
 
 const NewContourFormatPlaceholder = styled('div')`
   position: relative;
-  width: calc(100% - ${({ theme }) => theme.gridUnit}px);
-  bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  width: calc(100% - ${({ theme }) => theme.sizeUnit}px);
+  bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   left: 0;
 `;
 

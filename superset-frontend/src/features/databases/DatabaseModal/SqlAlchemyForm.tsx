@@ -17,10 +17,11 @@
  * under the License.
  */
 import { EventHandler, ChangeEvent, MouseEvent, ReactNode } from 'react';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import SupersetText from 'src/utils/textUtils';
-import Button from 'src/components/Button';
-import { StyledInputContainer, wideButton } from './styles';
+import { Input, Button } from '@superset-ui/core/components';
+import { StyledInputContainer, wideButton, marginBottom } from './styles';
 import { DatabaseObject } from '../types';
 
 const SqlAlchemyTab = ({
@@ -53,8 +54,7 @@ const SqlAlchemyTab = ({
           <span className="required">*</span>
         </div>
         <div className="input-container">
-          <input
-            type="text"
+          <Input
             name="database_name"
             data-test="database-name-input"
             value={db?.database_name || ''}
@@ -72,8 +72,7 @@ const SqlAlchemyTab = ({
           <span className="required">*</span>
         </div>
         <div className="input-container">
-          <input
-            type="text"
+          <Input
             name="sqlalchemy_uri"
             data-test="sqlalchemy-uri-input"
             value={db?.sqlalchemy_uri || ''}
@@ -103,7 +102,7 @@ const SqlAlchemyTab = ({
         loading={testInProgress}
         cta
         buttonStyle="link"
-        css={(theme: SupersetTheme) => wideButton(theme)}
+        css={(theme: SupersetTheme) => [wideButton(theme), marginBottom(theme)]}
       >
         {t('Test connection')}
       </Button>

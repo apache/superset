@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { styled, t, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { t } from '@apache-superset/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { Icons, InfoTooltip } from '@superset-ui/core/components';
 import {
   CaretContainer,
   CloseContainer,
@@ -26,10 +27,9 @@ import {
   Label,
 } from 'src/explore/components/controls/OptionControls';
 import { OptionProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
-const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
-  margin: 0 ${({ theme }) => theme.gridUnit}px;
+const StyledInfoTooltip = styled(InfoTooltip)`
+  margin: 0 ${({ theme }) => theme.sizeUnit}px;
 `;
 
 export default function Option({
@@ -40,6 +40,7 @@ export default function Option({
   isExtra,
   datasourceWarningMessage,
   canDelete = true,
+  multiValueWarningMessage,
 }: OptionProps) {
   const theme = useTheme();
   const onClickClose = useCallback(
@@ -53,19 +54,34 @@ export default function Option({
     <OptionControlContainer data-test="option-label" withCaret={withCaret}>
       {canDelete && (
         <CloseContainer
+          css={css`
+            text-align: center;
+          `}
           role="button"
           data-test="remove-control-button"
           onClick={onClickClose}
         >
-          <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+          <Icons.CloseOutlined
+            iconSize="m"
+            iconColor={theme.colorIcon}
+            css={css`
+              vertical-align: sub;
+            `}
+          />
         </CloseContainer>
       )}
       <Label data-test="control-label">{children}</Label>
-      {(!!datasourceWarningMessage || isExtra) && (
-        <StyledInfoTooltipWithTrigger
-          icon="exclamation-triangle"
+      {!!multiValueWarningMessage && (
+        <StyledInfoTooltip
+          type="warning"
           placement="top"
-          bsStyle="warning"
+          tooltip={multiValueWarningMessage}
+        />
+      )}
+      {(!!datasourceWarningMessage || isExtra) && (
+        <StyledInfoTooltip
+          type="warning"
+          placement="top"
           tooltip={
             datasourceWarningMessage ||
             t(`
@@ -77,7 +93,13 @@ export default function Option({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
+          <Icons.RightOutlined
+            iconSize="m"
+            css={css`
+              margin: ${theme.sizeUnit}px;
+            `}
+            iconColor={theme.colorIcon}
+          />
         </CaretContainer>
       )}
     </OptionControlContainer>

@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
-import userEvent from '@testing-library/user-event';
 
 const defaultProps = {
   name: 'show_legend',
@@ -29,21 +27,20 @@ const defaultProps = {
 };
 
 const setup = (overrides = {}) => (
-  <ThemeProvider theme={supersetTheme}>
-    <CheckboxControl {...defaultProps} {...overrides} />;
-  </ThemeProvider>
+  <CheckboxControl {...defaultProps} {...overrides} />
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CheckboxControl', () => {
-  it('renders a Checkbox', () => {
+  test('renders a Checkbox', () => {
     render(setup());
 
     const checkbox = screen.getByRole('checkbox');
-    expect(checkbox).toBeVisible();
+    expect(checkbox).toBeInTheDocument();
     expect(checkbox).not.toBeChecked();
   });
 
-  it('Checks the box when the label is clicked', () => {
+  test('Checks the box when the label is clicked', () => {
     render(setup());
     const label = screen.getByRole('button', {
       name: /checkbox label/i,

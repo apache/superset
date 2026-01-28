@@ -18,9 +18,10 @@
  */
 import { useEffect, useMemo, useRef } from 'react';
 import { useSelector, useDispatch, shallowEqual, useStore } from 'react-redux';
-import { getExtensionsRegistry, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getExtensionsRegistry } from '@superset-ui/core';
 
-import { Editor } from 'src/components/AsyncAceEditor';
+import type { Editor } from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { addTable, addDangerToast } from 'src/SqlLab/actions/sqlLab';
 import {
@@ -44,6 +45,7 @@ type Params = {
   dbId?: string | number;
   catalog?: string | null;
   schema?: string;
+  tabViewId?: string;
 };
 
 const EMPTY_LIST = [] as typeof sqlKeywords;
@@ -59,7 +61,7 @@ const getHelperText = (value: string) =>
 const extensionsRegistry = getExtensionsRegistry();
 
 export function useKeywords(
-  { queryEditorId, dbId, catalog, schema }: Params,
+  { queryEditorId, dbId, catalog, schema, tabViewId }: Params,
   skip = false,
 ) {
   const useCustomKeywords = extensionsRegistry.get(
@@ -147,7 +149,13 @@ export function useKeywords(
   const insertMatch = useEffectEvent((editor: Editor, data: any) => {
     if (data.meta === 'table') {
       dispatch(
-        addTable({ id: queryEditorId, dbId }, data.value, catalog, schema),
+        addTable(
+          { id: String(queryEditorId), dbId: dbId as number, tabViewId },
+          data.value,
+          catalog ?? null,
+          schema ?? '',
+          false, // Don't auto-expand/switch tabs when adding via autocomplete
+        ),
       );
     }
 

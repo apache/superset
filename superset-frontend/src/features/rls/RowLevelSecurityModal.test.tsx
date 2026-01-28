@@ -18,13 +18,13 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  act,
   render,
   screen,
   selectOption,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { act } from 'react-dom/test-utils';
-import userEvent from '@testing-library/user-event';
 import RowLevelSecurityModal, {
   RowLevelSecurityModalProps,
 } from './RowLevelSecurityModal';
@@ -146,6 +146,7 @@ const addNewRuleDefaultProps: RowLevelSecurityModalProps = {
   onHide: NOOP,
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Rule modal', () => {
   async function renderAndWait(props: RowLevelSecurityModalProps) {
     const mounted = act(async () => {
@@ -154,7 +155,7 @@ describe('Rule modal', () => {
     return mounted;
   }
 
-  it('Sets correct title for adding new rule', async () => {
+  test('Sets correct title for adding new rule', async () => {
     await renderAndWait(addNewRuleDefaultProps);
     const title = screen.getByText('Add Rule');
     expect(title).toBeInTheDocument();
@@ -163,7 +164,7 @@ describe('Rule modal', () => {
     expect(fetchMock.calls(getRelatedRolesEndpoint)).toHaveLength(0);
   });
 
-  it('Sets correct title for editing existing rule', async () => {
+  test('Sets correct title for editing existing rule', async () => {
     await renderAndWait({
       ...addNewRuleDefaultProps,
       rule: {
@@ -181,7 +182,7 @@ describe('Rule modal', () => {
     expect(fetchMock.calls(getRelatedRolesEndpoint)).toHaveLength(0);
   });
 
-  it('Fills correct values when editing rule', async () => {
+  test('Fills correct values when editing rule', async () => {
     await renderAndWait({
       ...addNewRuleDefaultProps,
       rule: {
@@ -225,7 +226,8 @@ describe('Rule modal', () => {
     expect(description).toHaveValue('test description');
   });
 
-  it('Does not allow to create rule without name, tables and clause', async () => {
+  test('Does not allow to create rule without name, tables and clause', async () => {
+    jest.setTimeout(10000);
     await renderAndWait(addNewRuleDefaultProps);
 
     const addButton = screen.getByRole('button', { name: /add/i });
@@ -245,7 +247,7 @@ describe('Rule modal', () => {
     expect(addButton).toBeEnabled();
   });
 
-  it('Creates a new rule', async () => {
+  test('Creates a new rule', async () => {
     await renderAndWait(addNewRuleDefaultProps);
 
     const addButton = screen.getByRole('button', { name: /add/i });
@@ -258,12 +260,17 @@ describe('Rule modal', () => {
     const clause = await screen.findByTestId('clause-test');
     userEvent.type(clause, 'gender="girl"');
 
-    await waitFor(() => userEvent.click(addButton));
+    await waitFor(() => userEvent.click(addButton), { timeout: 10000 });
 
-    expect(fetchMock.calls(postRuleEndpoint)).toHaveLength(1);
+    await waitFor(
+      () => {
+        expect(fetchMock.calls(postRuleEndpoint)).toHaveLength(1);
+      },
+      { timeout: 10000 },
+    );
   });
 
-  it('Updates existing rule', async () => {
+  test('Updates existing rule', async () => {
     await renderAndWait({
       ...addNewRuleDefaultProps,
       rule: {
@@ -275,6 +282,17 @@ describe('Rule modal', () => {
 
     const addButton = screen.getByRole('button', { name: /save/i });
     await waitFor(() => userEvent.click(addButton));
-    expect(fetchMock.calls(putRuleEndpoint)).toHaveLength(4);
+
+    await waitFor(
+      () => {
+        const allCalls = fetchMock.calls(putRuleEndpoint);
+        // Find the PUT request among all calls
+        const putCall = allCalls.find(call => call[1]?.method === 'PUT');
+        expect(putCall).toBeTruthy();
+        expect(putCall?.[1]?.body).toContain('"name":"rls 1"');
+        expect(putCall?.[1]?.body).toContain('"filter_type":"Base"');
+      },
+      { timeout: 10000 },
+    );
   });
 });

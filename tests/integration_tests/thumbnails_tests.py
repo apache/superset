@@ -191,7 +191,8 @@ class TestWebDriverSelenium(SupersetTestCase):
 class TestThumbnails(SupersetTestCase):
     mock_image = b"bytes mock image"
     digest_return_value = "foo_bar"
-    digest_hash = "5c7d96a3dd7a87850a2ef34087565a6e"
+    # SHA-256 hash of "foo_bar" (default HASH_ALGORITHM is sha256)
+    digest_hash = "4928cae8b37b3d1113f5e01e60c967df6c2b9e826dc7d91488d23a62fec715ba"
 
     def _get_id_and_thumbnail_url(self, url: str) -> tuple[int, str]:
         rv = self.client.get(url)
@@ -230,7 +231,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ALPHA_USERNAME)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
                     "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
                 },
@@ -258,7 +259,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(username)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
                     "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
                 },
@@ -308,7 +309,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
                     "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
                 },
@@ -336,7 +337,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(username)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
                     "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
                 },

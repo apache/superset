@@ -23,7 +23,7 @@ import pytest
 from flask import g
 import prison
 
-from superset import db, security_manager, app  # noqa: F401
+from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.security.guest_token import (
     GuestTokenResourceType,
@@ -33,7 +33,6 @@ from superset.utils import json
 from flask_babel import lazy_gettext as _  # noqa: F401
 from flask_appbuilder.models.sqla import filters
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_config  # noqa: F401
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -312,6 +311,105 @@ class TestRowLevelSecurity(SupersetTestCase):
             "gender = 'boy'-gender",
         ]
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_rls_filter_applies_to_virtual_dataset(self):
+        """
+        Test that RLS filters from underlying tables are applied to virtual
+        datasets.
+        """
+        # Get the physical birth_names table which has RLS filters
+        physical_table = self.get_table(name="birth_names")
+
+        # Create a virtual dataset that queries the birth_names table
+        virtual_dataset = SqlaTable(
+            table_name="virtual_birth_names",
+            database=physical_table.database,
+            schema=physical_table.schema,
+            sql="SELECT * FROM birth_names",
+        )
+        db.session.add(virtual_dataset)
+        db.session.commit()
+
+        try:
+            # Test as gamma user who has RLS filters
+            g.user = self.get_user(username="gamma")
+
+            # Get the SQL query for the virtual dataset
+            sql = virtual_dataset.get_query_str(self.query_obj)
+
+            # Verify that RLS filters from the physical table are applied
+            # Gamma user should have the name filters (A%, B%, Q%) and gender filter
+            # Note: SQL uses uppercase LIKE and %% escaping
+            sql_lower = sql.lower()
+            assert "name like 'a%" in sql_lower or "name like 'q%" in sql_lower, (
+                f"RLS name filters not found in virtual dataset query: {sql}"
+            )
+            assert "gender = 'boy'" in sql_lower, (
+                f"RLS gender filter not found in virtual dataset query: {sql}"
+            )
+
+            # Test as admin user who has no RLS filters
+            g.user = self.get_user(username="admin")
+            sql = virtual_dataset.get_query_str(self.query_obj)
+
+            # Admin should not have RLS filters applied
+            assert not self.NAMES_A_REGEX.search(sql)
+            assert not self.NAMES_B_REGEX.search(sql)
+            assert not self.NAMES_Q_REGEX.search(sql)
+            assert not self.BASE_FILTER_REGEX.search(sql)
+
+        finally:
+            # Cleanup
+            db.session.delete(virtual_dataset)
+            db.session.commit()
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice"
+    )
+    def test_rls_filter_applies_to_virtual_dataset_with_join(self):
+        """
+        Test that RLS filters are applied when virtual dataset joins
+        multiple tables.
+        """
+        # Get the physical tables
+        birth_names_table = self.get_table(name="birth_names")
+        self.get_table(name="energy_usage")  # Load the table for the test
+
+        # Create a virtual dataset with a JOIN query
+        virtual_dataset = SqlaTable(
+            table_name="virtual_joined",
+            database=birth_names_table.database,
+            schema=birth_names_table.schema,
+            sql="SELECT b.name, e.value FROM birth_names b JOIN energy_usage e ON 1=1",
+        )
+        db.session.add(virtual_dataset)
+        db.session.commit()
+
+        try:
+            # Test as gamma user who has RLS filters on both tables
+            g.user = self.get_user(username="gamma")
+
+            # Get the SQL query for the virtual dataset
+            sql = virtual_dataset.get_query_str(self.query_obj)
+
+            # Verify that RLS filters from both physical tables are applied
+            # birth_names filters
+            sql_lower = sql.lower()
+            assert "name like 'a%" in sql_lower or "name like 'q%" in sql_lower, (
+                f"birth_names RLS filters not found: {sql}"
+            )
+            assert "gender = 'boy'" in sql_lower, (
+                f"birth_names gender filter not found: {sql}"
+            )
+
+            # energy_usage filter
+            assert "value > 1" in sql_lower, f"energy_usage RLS filter not found: {sql}"
+
+        finally:
+            # Cleanup
+            db.session.delete(virtual_dataset)
+            db.session.commit()
+
 
 class TestRowLevelSecurityCreateAPI(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -472,7 +570,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
 
-        assert status_code == 201
+        assert status_code == 200
 
         rls = (
             db.session.query(RowLevelSecurityFilter)
@@ -556,6 +654,30 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert len(result) == len(db_tables)
         assert db_table_names == received_tables
 
+    def test_rls_tables_related_api_with_filter_matching_birth(self):
+        self.login(ADMIN_USERNAME)
+        # Test with filter that should match 'birth_names'
+        params = prison.dumps({"filter": "birth", "page": 0, "page_size": 100})
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        received_tables = {table["text"] for table in result}
+        # Should only return tables with 'birth' in the name
+        assert all("birth" in table_name.lower() for table_name in received_tables)
+        assert len(result) >= 1  # At least birth_names should be returned
+
+    def test_rls_tables_related_api_with_filter_no_matches(self):
+        self.login(ADMIN_USERNAME)
+        # Test with filter that should match nothing
+        params = prison.dumps({"filter": "nonexistent", "page": 0, "page_size": 100})
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert len(result) == 0
+        assert data["count"] == 0
+
     def test_rls_roles_related_api(self):
         self.login(ADMIN_USERNAME)
         params = prison.dumps({"page": 0, "page_size": 100})
@@ -602,15 +724,16 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         def _base_filter(query):
             return query.filter_by(name="Alpha")
 
-        with mock.patch.dict(
-            "superset.views.filters.current_app.config",
-            {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
-        ):
+        original_conf = self.app.config.get("EXTRA_RELATED_QUERY_FILTERS", {}).copy()
+        try:
+            self.app.config["EXTRA_RELATED_QUERY_FILTERS"] = {"role": _base_filter}
             rv = self.client.get("/api/v1/rowlevelsecurity/related/roles")  # noqa: F541
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
             response_roles = [result["text"] for result in response["result"]]
             assert response_roles == ["Alpha"]
+        finally:
+            self.app.config["EXTRA_RELATED_QUERY_FILTERS"] = original_conf
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")

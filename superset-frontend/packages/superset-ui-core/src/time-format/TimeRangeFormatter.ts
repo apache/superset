@@ -19,6 +19,8 @@
 import { ExtensibleFunction } from '../models';
 import { TimeRangeFormatFunction } from './types';
 
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
+
 // Use type augmentation to indicate that
 // an instance of TimeFormatter is also a function
 interface TimeRangeFormatter {

@@ -20,41 +20,60 @@
 const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
+
+const { ModuleFederationPlugin } = webpack.container;
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+const LightningCSS = require('lightningcss');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const {
   WebpackManifestPlugin,
   getCompilerHooks,
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
-const packageConfig = require('./package');
+const packageConfig = require('./package.json');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, '../superset/static/assets');
 const ROOT_DIR = path.resolve(__dirname, '..');
+// Public path for extracted css src:urls. All assets are compiled into the same
+// folder. This forces the src:url in the extracted css to only contain the filename
+// and will therefore be relative to the .css file itself and not have to worry about
+// any url prefix.
+const MINI_CSS_EXTRACT_PUBLICPATH = './';
 
 const {
   mode = 'development',
-  devserverPort = 9000,
+  devserverPort: cliPort,
+  devserverHost: cliHost,
   measure = false,
   nameChunks = false,
 } = parsedArgs;
+
+// Precedence: CLI args > env vars > defaults
+const devserverPort = cliPort || process.env.WEBPACK_DEVSERVER_PORT || 9000;
+const devserverHost =
+  cliHost || process.env.WEBPACK_DEVSERVER_HOST || '127.0.0.1';
+
 const isDevMode = mode !== 'production';
-const isDevServer = process.argv[1].includes('webpack-dev-server');
-const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
+const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
+
+// TypeScript checker memory limit (in MB)
+const TYPESCRIPT_MEMORY_LIMIT = 4096;
 
 const output = {
   path: BUILD_DIR,
-  publicPath: `${ASSET_BASE_URL}/static/assets/`,
+  publicPath: '/static/assets/',
 };
 if (isDevMode) {
   output.filename = '[name].[contenthash:8].entry.js';
@@ -120,11 +139,7 @@ const plugins = [
   }),
 
   new CopyPlugin({
-    patterns: [
-      'package.json',
-      { from: 'src/assets/images', to: 'images' },
-      { from: 'src/assets/stylesheets', to: 'stylesheets' },
-    ],
+    patterns: ['package.json', { from: 'src/assets/images', to: 'images' }],
   }),
 
   // static pages
@@ -140,10 +155,36 @@ const plugins = [
     chunks: [],
     filename: '500.html',
   }),
+  new ModuleFederationPlugin({
+    name: 'superset',
+    filename: 'remoteEntry.js',
+    shared: {
+      react: {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies.react,
+      },
+      'react-dom': {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies['react-dom'],
+      },
+      antd: {
+        singleton: true,
+        requiredVersion: packageConfig.dependencies.antd,
+        eager: true,
+      },
+    },
+  }),
 ];
 
 if (!process.env.CI) {
   plugins.push(new webpack.ProgressPlugin());
+}
+
+// Add React Refresh plugin for development mode
+if (isDevMode) {
+  plugins.push(new ReactRefreshWebpackPlugin());
 }
 
 if (!isDevMode) {
@@ -154,9 +195,28 @@ if (!isDevMode) {
       chunkFilename: '[name].[chunkhash].chunk.css',
     }),
   );
+}
 
-  // Runs type checking on a separate process to speed up the build
-  plugins.push(new ForkTsCheckerWebpackPlugin());
+// TypeScript type checking configuration
+// SWC handles transpilation, but we still need ForkTsCheckerWebpackPlugin
+// to generate .d.ts files for the plugin packages
+if (!isDevMode) {
+  plugins.push(
+    new ForkTsCheckerWebpackPlugin({
+      async: false,
+      typescript: {
+        memoryLimit: 4096,
+        build: true, // CRITICAL: Generate .d.ts files for plugins
+        mode: 'write-references', // Handle project references
+        configOverwrite: {
+          compilerOptions: {
+            skipLibCheck: true,
+            incremental: true,
+          },
+        },
+      },
+    }),
+  );
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
@@ -174,33 +234,64 @@ function addPreamble(entry) {
   return PREAMBLE.concat([path.join(APP_DIR, entry)]);
 }
 
-const babelLoader = {
-  loader: 'babel-loader',
-  options: {
-    cacheDirectory: true,
-    // disable gzip compression for cache files
-    // faster when there are millions of small files
-    cacheCompression: false,
-    presets: [
-      [
-        '@babel/preset-react',
-        {
-          runtime: 'automatic',
-          importSource: '@emotion/react',
+// SWC configuration for TypeScript/JavaScript transpilation
+function createSwcLoader(syntax = 'typescript', tsx = true) {
+  return {
+    loader: 'swc-loader',
+    options: {
+      jsc: {
+        parser: {
+          syntax,
+          tsx: syntax === 'typescript' ? tsx : undefined,
+          jsx: syntax === 'ecmascript',
+          decorators: false,
+          dynamicImport: true,
         },
-      ],
-    ],
-    plugins: [
-      [
-        '@emotion/babel-plugin',
-        {
-          autoLabel: 'dev-only',
-          labelFormat: '[local]',
+        transform: {
+          react: {
+            runtime: 'automatic',
+            importSource: '@emotion/react',
+            development: isDevMode,
+            refresh: isDevMode,
+          },
         },
-      ],
-    ],
-  },
-};
+        target: 'es2015',
+        loose: true,
+        externalHelpers: false,
+        experimental: {
+          plugins: [
+            [
+              '@swc/plugin-emotion',
+              {
+                sourceMap: isDevMode,
+                autoLabel: isDevMode ? 'dev-only' : 'never',
+                labelFormat: '[local]',
+              },
+            ],
+            [
+              '@swc/plugin-transform-imports',
+              {
+                lodash: {
+                  transform: 'lodash/{{member}}',
+                  preventFullImport: true,
+                  skipDefaultConversion: false,
+                },
+                'lodash-es': {
+                  transform: 'lodash-es/{{member}}',
+                  preventFullImport: true,
+                  skipDefaultConversion: false,
+                },
+              },
+            ],
+          ],
+        },
+      },
+      module: {
+        type: 'es6',
+      },
+    },
+  };
+}
 
 const config = {
   entry: {
@@ -258,7 +349,6 @@ const config = {
           name: 'vendors',
           test: new RegExp(
             `/node_modules/(${[
-              'abortcontroller-polyfill',
               'react',
               'react-dom',
               'prop-types',
@@ -296,15 +386,41 @@ const config = {
       },
     },
     usedExports: 'global',
-    minimizer: [new CssMinimizerPlugin(), '...'],
+    minimizer: [
+      new CssMinimizerPlugin({
+        minify: CssMinimizerPlugin.lightningCssMinify,
+        minimizerOptions: {
+          targets: LightningCSS.browserslistToTargets([
+            'last 3 chrome versions',
+            'last 3 firefox versions',
+            'last 3 safari versions',
+            'last 3 edge versions',
+          ]),
+        },
+      }),
+      new TerserPlugin({
+        minify: TerserPlugin.swcMinify,
+        terserOptions: {
+          compress: {
+            drop_console: false,
+          },
+          mangle: true,
+          format: {
+            comments: false,
+          },
+        },
+      }),
+    ],
   },
   resolve: {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
-    modules: ['node_modules', APP_DIR],
+    modules: [
+      'node_modules',
+      APP_DIR,
+      path.resolve(APP_DIR, 'packages'),
+      path.resolve(APP_DIR, 'plugins'),
+    ],
     alias: {
-      // TODO: remove aliases once React has been upgraded to v17 and
-      //  AntD version conflict has been resolved
-      antd: path.resolve(path.join(APP_DIR, './node_modules/antd')),
       react: path.resolve(path.join(APP_DIR, './node_modules/react')),
       // TODO: remove Handlebars alias once Handlebars NPM package has been updated to
       // correctly support webpack import (https://github.com/handlebars-lang/handlebars.js/issues/953)
@@ -329,6 +445,7 @@ const config = {
       fs: false,
       vm: require.resolve('vm-browserify'),
       path: false,
+      stream: require.resolve('stream-browserify'),
       ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
     },
   },
@@ -343,30 +460,16 @@ const config = {
         },
       },
       {
+        test: /node_modules\/(@deck\.gl|@luma\.gl).*\.js$/,
+        loader: 'imports-loader',
+        options: {
+          additionalCode: 'var module = module || {exports: {}};',
+        },
+      },
+      {
         test: /\.tsx?$/,
-        exclude: [/\.test.tsx?$/],
-        use: [
-          'thread-loader',
-          babelLoader,
-          {
-            loader: 'ts-loader',
-            options: {
-              // transpile only in happyPack mode
-              // type checking is done via fork-ts-checker-webpack-plugin
-              happyPackMode: true,
-              transpileOnly: true,
-              // must override compiler options here, even though we have set
-              // the same options in `tsconfig.json`, because they may still
-              // be overridden by `tsconfig.json` in node_modules subdirectories.
-              compilerOptions: {
-                esModuleInterop: false,
-                importHelpers: false,
-                module: 'esnext',
-                target: 'esnext',
-              },
-            },
-          },
-        ],
+        exclude: [/\.test.tsx?$/, /node_modules/],
+        use: ['thread-loader', createSwcLoader('typescript', true)],
       },
       {
         test: /\.jsx?$/,
@@ -379,54 +482,28 @@ const config = {
           ), // redundant but required for windows
           /@encodable/,
         ],
-        use: [babelLoader],
+        use: [createSwcLoader('ecmascript')],
       },
       {
         test: /ace-builds.*\/worker-.*$/,
         type: 'asset/resource',
       },
-      // react-hot-loader use "ProxyFacade", which is a wrapper for react Component
-      // see https://github.com/gaearon/react-hot-loader/issues/1311
-      // TODO: refactor recurseReactClone
-      {
-        test: /\.js$/,
-        include: /node_modules\/react-dom/,
-        use: ['react-hot-loader/webpack'],
-      },
       {
         test: /\.css$/,
         include: [APP_DIR, /superset-ui.+\/src/],
         use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: true,
-            },
-          },
-        ],
-      },
-      {
-        test: /\.less$/,
-        include: APP_DIR,
-        use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: true,
-            },
-          },
-          {
-            loader: 'less-loader',
-            options: {
-              sourceMap: true,
-              lessOptions: {
-                javascriptEnabled: true,
-                modifyVars: {
-                  'root-entry-name': 'default',
+          isDevMode
+            ? 'style-loader'
+            : {
+                loader: MiniCssExtractPlugin.loader,
+                options: {
+                  publicPath: MINI_CSS_EXTRACT_PUBLICPATH,
                 },
               },
+          {
+            loader: 'css-loader',
+            options: {
+              sourceMap: true,
             },
           },
         ],
@@ -507,6 +584,16 @@ const config = {
   },
   plugins,
   devtool: isDevMode ? 'eval-cheap-module-source-map' : false,
+  watchOptions: isDevMode
+    ? {
+        // Watch all plugin and package source directories
+        ignored: ['**/node_modules', '**/.git', '**/lib', '**/esm', '**/dist'],
+        // Poll less frequently to reduce file handles
+        poll: 2000,
+        // Aggregate changes for 500ms before rebuilding
+        aggregateTimeout: 500,
+      }
+    : undefined,
 };
 
 // find all the symlinked plugins and use their source code for imports
@@ -514,7 +601,10 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
   const dir = relativeDir.replace('file:', '');
 
-  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+  if (
+    (pkg.startsWith('@superset-ui') || pkg.startsWith('@apache-superset')) &&
+    fs.existsSync(srcPath)
+  ) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
   }
@@ -535,9 +625,23 @@ if (isDevMode) {
   });
 
   config.devServer = {
+    devMiddleware: {
+      writeToDisk: true,
+    },
     historyApiFallback: true,
     hot: true,
+    host: devserverHost,
     port: devserverPort,
+    allowedHosts: [
+      ...new Set([
+        devserverHost,
+        'localhost',
+        '.localhost',
+        '127.0.0.1',
+        '::1',
+        '.local',
+      ]),
+    ],
     proxy: [() => proxyConfig],
     client: {
       overlay: {
@@ -546,6 +650,11 @@ if (isDevMode) {
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
       logging: 'error',
+      webSocketURL: {
+        hostname: '0.0.0.0',
+        pathname: '/ws',
+        port: 0,
+      },
     },
     static: {
       directory: path.join(process.cwd(), '../static/assets'),

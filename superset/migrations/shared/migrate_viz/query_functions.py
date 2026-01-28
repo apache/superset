@@ -14,7 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+<<<<<<< HEAD
 import json
+=======
+import json  # noqa: TID251
+>>>>>>> origin/master
 import math
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union

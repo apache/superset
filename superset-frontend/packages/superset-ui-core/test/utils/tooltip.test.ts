@@ -119,6 +119,38 @@ test('should return a table with the given data and no title', () => {
         </table>
     </div>`),
   );
+<<<<<<< HEAD
+  expect(html).toMatch(expectedHtml);
+});
+
+test('should sanitize HTML input', () => {
+  const title = 'Title<script>alert("message");</script>';
+  const data = [
+    ['<b onclick="alert(\'message\')">B message</b>', 'message2'],
+    ['<img src="x" onerror="alert(\'message\');" />', '<i>Italic</i>'],
+  ];
+
+  const html = removeWhitespaces(tooltipHtml(data, title));
+
+  const expectedHtml = removeWhitespaces(
+    sanitizeHtml(`
+    <div>
+        <span ${TITLE_STYLE}>Titlealert("message");</span>
+        <table>
+            <tr ${TR_STYLE}>
+                <td ${TD_TEXT_STYLE}><b>B message</b></td>
+                <td ${TD_NUMBER_STYLE}>message2</td>
+            </tr>
+            <tr ${TR_STYLE}>
+                <td ${TD_TEXT_STYLE}><img src="x" /></td>
+                <td ${TD_NUMBER_STYLE}><i>Italic</i></td>
+            </tr>
+        </table>
+    </div>`),
+  );
+
+=======
+>>>>>>> origin/master
   expect(html).toMatch(expectedHtml);
 });
 
@@ -149,4 +181,33 @@ test('should sanitize HTML input', () => {
   );
 
   expect(html).toMatch(expectedHtml);
+});
+
+test('should preserve table styling after sanitization (fixes ECharts tooltip formatting)', () => {
+  const tableWithStyles = `
+    <table>
+      <tr style="opacity: 0.8;">
+        <td style="text-align: left; padding-left: 0px;">Label</td>
+        <td style="text-align: right; padding-left: 16px;">Value</td>
+      </tr>
+    </table>
+  `;
+
+  const sanitized = sanitizeHtml(tableWithStyles);
+  expect(sanitized).toContain('style="opacity: 0.8;"');
+  expect(sanitized).toContain('style="text-align: left; padding-left: 0px;"');
+  expect(sanitized).toContain('style="text-align: right; padding-left: 16px;"');
+
+  const data = [
+    ['Metric', 'Value'],
+    ['Sales', '$1,234'],
+  ];
+  const html = tooltipHtml(data, 'Test Tooltip');
+
+  expect(html).toContain('style="opacity: 0.8;"');
+  expect(html).toContain('text-align: left');
+  expect(html).toContain('text-align: right');
+  expect(html).toContain('padding-left: 0px');
+  expect(html).toContain('padding-left: 16px');
+  expect(html).toContain('max-width: 300px');
 });

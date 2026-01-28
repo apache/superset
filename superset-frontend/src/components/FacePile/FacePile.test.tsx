@@ -16,13 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Provider } from 'react-redux';
-import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+  cleanup,
+} from 'spec/helpers/testing-library';
 import { store } from 'src/views/store';
-import FacePile from '.';
+import { isFeatureEnabled } from '@superset-ui/core';
+import { FacePile } from '.';
 import { getRandomColor } from './utils';
 
-const users = [...new Array(10)].map((_, i) => ({
+// Mock the feature flag
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+  typeof isFeatureEnabled
+>;
+
+const users = new Array(10).fill(undefined).map((_, i) => ({
   first_name: 'user',
   last_name: `${i}`,
   id: i,
@@ -30,62 +47,123 @@ const users = [...new Array(10)].map((_, i) => ({
 
 beforeEach(() => {
   jest.useFakeTimers();
+  // Default to Slack avatars disabled
+  mockIsFeatureEnabled.mockImplementation(() => false);
 });
 
 afterEach(() => {
   jest.useRealTimers();
+  mockIsFeatureEnabled.mockReset();
+  cleanup();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FacePile', () => {
-  let container: HTMLElement;
+  test('renders empty state with no users', () => {
+    const { container } = render(<FacePile users={[]} />, { store });
 
-  beforeEach(() => {
-    ({ container } = render(
-      <Provider store={store}>
-        <FacePile users={users} />
-      </Provider>,
-    ));
+    expect(container.querySelector('.ant-avatar-group')).toBeInTheDocument();
+    expect(container.querySelectorAll('.ant-avatar')).toHaveLength(0);
   });
 
-  it('is a valid element', () => {
-    const exposedFaces = screen.getAllByText(/U/);
-    expect(exposedFaces).toHaveLength(4);
-    const overflownFaces = screen.getByText('+6');
-    expect(overflownFaces).toBeVisible();
+  test('renders single user without truncation', () => {
+    const { container } = render(<FacePile users={users.slice(0, 1)} />, {
+      store,
+    });
 
-    // Display user info when hovering over one of exposed face in the pile.
-    fireEvent.mouseEnter(exposedFaces[0]);
+    const avatars = container.querySelectorAll('.ant-avatar');
+    expect(avatars).toHaveLength(1);
+    expect(within(container).getByText('U0')).toBeInTheDocument();
+    expect(within(container).queryByText(/\+/)).not.toBeInTheDocument();
+  });
+
+  test('renders multiple users no truncation', () => {
+    const { container } = render(<FacePile users={users.slice(0, 4)} />, {
+      store,
+    });
+
+    const avatars = container.querySelectorAll('.ant-avatar');
+    expect(avatars).toHaveLength(4);
+    expect(within(container).getByText('U0')).toBeInTheDocument();
+    expect(within(container).getByText('U1')).toBeInTheDocument();
+    expect(within(container).getByText('U2')).toBeInTheDocument();
+    expect(within(container).getByText('U3')).toBeInTheDocument();
+    expect(within(container).queryByText(/\+/)).not.toBeInTheDocument();
+  });
+
+  test('renders multiple users with truncation', () => {
+    const { container } = render(<FacePile users={users} />, { store });
+
+    // Should show 4 avatars + 1 overflow indicator = 5 total elements
+    const avatars = container.querySelectorAll('.ant-avatar');
+    expect(avatars).toHaveLength(5);
+
+    // Should show first 4 users
+    expect(within(container).getByText('U0')).toBeInTheDocument();
+    expect(within(container).getByText('U1')).toBeInTheDocument();
+    expect(within(container).getByText('U2')).toBeInTheDocument();
+    expect(within(container).getByText('U3')).toBeInTheDocument();
+
+    // Should show overflow count (+6 because 10 total - 4 shown)
+    expect(within(container).getByText('+6')).toBeInTheDocument();
+  });
+
+  test('displays user tooltip on hover', () => {
+    const { container } = render(<FacePile users={users.slice(0, 2)} />, {
+      store,
+    });
+
+    const firstAvatar = within(container).getByText('U0');
+    fireEvent.mouseEnter(firstAvatar);
     act(() => jest.runAllTimers());
+
     expect(screen.getByRole('tooltip')).toHaveTextContent('user 0');
   });
 
-  it('renders an Avatar', () => {
-    expect(container.querySelector('.ant-avatar')).toBeVisible();
-  });
+  test('displays avatar images when Slack avatars are enabled', () => {
+    // Enable Slack avatars feature flag
+    mockIsFeatureEnabled.mockImplementation(
+      feature => feature === 'SLACK_ENABLE_AVATARS',
+    );
 
-  it('hides overflow', () => {
-    expect(container.querySelectorAll('.ant-avatar')).toHaveLength(5);
+    const { container: testContainer } = render(
+      <FacePile users={users.slice(0, 2)} />,
+      {
+        store,
+      },
+    );
+
+    const avatars = testContainer.querySelectorAll('.ant-avatar');
+    expect(avatars).toHaveLength(2);
+
+    // Should have img elements with correct src attributes
+    const imgs = testContainer.querySelectorAll('.ant-avatar img');
+    expect(imgs).toHaveLength(2);
+    expect(imgs[0]).toHaveAttribute('src', '/api/v1/user/0/avatar.png');
+    expect(imgs[1]).toHaveAttribute('src', '/api/v1/user/1/avatar.png');
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('utils', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getRandomColor', () => {
     const colors = ['color1', 'color2', 'color3'];
 
-    it('produces the same color for the same input values', () => {
+    test('produces the same color for the same input values', () => {
       const name = 'foo';
       expect(getRandomColor(name, colors)).toEqual(
         getRandomColor(name, colors),
       );
     });
 
-    it('produces a different color for different input values', () => {
+    test('produces a different color for different input values', () => {
       expect(getRandomColor('foo', colors)).not.toEqual(
         getRandomColor('bar', colors),
       );
     });
 
-    it('handles non-ascii input values', () => {
+    test('handles non-ascii input values', () => {
       expect(getRandomColor('泰', colors)).toMatchInlineSnapshot(`"color1"`);
       expect(getRandomColor('مُحَمَّد‎', colors)).toMatchInlineSnapshot(
         `"color2"`,

@@ -17,7 +17,8 @@
  * under the License.
  */
 import PropTypes from 'prop-types';
-import { styled, reactify, useTheme } from '@superset-ui/core';
+import { reactify } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import WorldMap from './WorldMap';
 
 const ReactWorldMap = reactify(WorldMap);
@@ -39,7 +40,11 @@ export default styled(WorldMapComponent)`
   .superset-legacy-chart-world-map {
     position: relative;
     svg {
-      background-color: ${({ theme }) => theme.colors.grayscale.light5};
+      background-color: ${({ theme }) => theme.colorBgLayout};
     }
+  }
+  .hoverinfo {
+    background-color: ${({ theme }) => theme.colorBgElevated};
+    color: ${({ theme }) => theme.colorTextSecondary};
   }
 `;

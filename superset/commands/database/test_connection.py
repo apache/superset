@@ -15,13 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import sqlite3
-from contextlib import closing
 from typing import Any, Optional
 
-from flask import current_app as app
 from flask_babel import gettext as _
-from sqlalchemy.engine import Engine
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset import is_feature_enabled
@@ -35,8 +31,8 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
     SSHTunnelingNotEnabledError,
 )
-from superset.daos.database import DatabaseDAO, SSHTunnelDAO
-from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.commands.database.utils import ping
+from superset.daos.database import DatabaseDAO
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
@@ -47,7 +43,6 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.models.core import Database
-from superset.utils import core as utils
 from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
@@ -93,10 +88,14 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._context = context
         self._uri = uri
 
-    def run(self) -> None:  # pylint: disable=too-many-statements,too-many-branches  # noqa: C901
+    def run(  # noqa: C901
+        self,
+    ) -> None:  # pylint: disable=too-many-statements,too-many-branches
         self.validate()
         ex_str = ""
-        ssh_tunnel = self._properties.get("ssh_tunnel")
+
+        url = make_url_safe(self._uri)
+        engine_name = url.get_backend_name()
 
         serialized_encrypted_extra = self._properties.get(
             "masked_encrypted_extra",
@@ -110,45 +109,39 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 )
             )
 
+        # collect SSH tunnel info
+        ssh_tunnel_properties = self._properties.get("ssh_tunnel")
+        if ssh_tunnel_properties and self._model and self._model.ssh_tunnel:
+            # unmask password while allowing for updated values
+            ssh_tunnel_properties = unmask_password_info(
+                ssh_tunnel_properties,
+                self._model.ssh_tunnel,
+            )
+
+        database: Database | None = None
         try:
             database = DatabaseDAO.build_db_for_connection_test(
                 server_cert=self._properties.get("server_cert", ""),
                 extra=self._properties.get("extra", "{}"),
                 impersonate_user=self._properties.get("impersonate_user", False),
                 encrypted_extra=serialized_encrypted_extra,
+                ssh_tunnel=ssh_tunnel_properties,
             )
 
             database.set_sqlalchemy_uri(self._uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
-            # Generate tunnel if present in the properties
-            if ssh_tunnel:
-                # unmask password while allowing for updated values
-                if ssh_tunnel_id := ssh_tunnel.pop("id", None):
-                    if existing_ssh_tunnel := SSHTunnelDAO.find_by_id(ssh_tunnel_id):
-                        ssh_tunnel = unmask_password_info(
-                            ssh_tunnel, existing_ssh_tunnel
-                        )
-                ssh_tunnel = SSHTunnel(**ssh_tunnel)
-
             event_logger.log_with_context(
-                action=get_log_connection_action("test_connection_attempt", ssh_tunnel),
-                engine=database.db_engine_spec.__name__,
+                action=get_log_connection_action(
+                    "test_connection_attempt",
+                    ssh_tunnel_properties,
+                ),
+                engine=engine_name,
             )
 
-            def ping(engine: Engine) -> bool:
-                with closing(engine.raw_connection()) as conn:
-                    return engine.dialect.do_ping(conn)
-
-            with database.get_sqla_engine(override_ssh_tunnel=ssh_tunnel) as engine:
+            with database.get_sqla_engine() as engine:
                 try:
-                    time_delta = app.config["TEST_DATABASE_CONNECTION_TIMEOUT"]
-                    with utils.timeout(int(time_delta.total_seconds())):
-                        alive = ping(engine)
-                except (sqlite3.ProgrammingError, RuntimeError):
-                    # SQLite can't run on a separate thread, so ``utils.timeout`` fails
-                    # RuntimeError catches the equivalent error from duckdb.
-                    alive = engine.dialect.do_ping(engine)
+                    alive = ping(engine)
                 except SupersetTimeoutException as ex:
                     raise SupersetTimeoutException(
                         error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
@@ -175,63 +168,85 @@ class TestConnectionDatabaseCommand(BaseCommand):
             if not alive:
                 raise DBAPIError(ex_str or None, None, None)
 
-            # Log succesful connection test with engine
+            # Log successful connection test with engine
             event_logger.log_with_context(
-                action=get_log_connection_action("test_connection_success", ssh_tunnel),
-                engine=database.db_engine_spec.__name__,
+                action=get_log_connection_action(
+                    "test_connection_success",
+                    ssh_tunnel_properties,
+                ),
+                engine=engine_name,
             )
 
         except (NoSuchModuleError, ModuleNotFoundError) as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(
-                    "test_connection_error", ssh_tunnel, ex
+                    "test_connection_error",
+                    ssh_tunnel_properties,
+                    ex,
                 ),
-                engine=database.db_engine_spec.__name__,
+                engine=engine_name,
             )
             raise DatabaseTestConnectionDriverError(
-                message=_("Could not load database driver: {}").format(
-                    database.db_engine_spec.__name__
+                message=_(
+                    "Could not load database driver for: %(engine)s",
+                    engine=engine_name,
                 ),
             ) from ex
         except DBAPIError as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(
-                    "test_connection_error", ssh_tunnel, ex
+                    "test_connection_error",
+                    ssh_tunnel_properties,
+                    ex,
                 ),
-                engine=database.db_engine_spec.__name__,
+                engine=engine_name,
             )
+
+            if not database:
+                raise
             # check for custom errors (wrong username, wrong password, etc)
-            errors = database.db_engine_spec.extract_errors(ex, self._context)
-            raise SupersetErrorsException(errors) from ex
+            errors = database.db_engine_spec.extract_errors(
+                ex, self._context, database_name=database.unique_name
+            )
+            raise SupersetErrorsException(errors, status=400) from ex
         except OAuth2RedirectError:
             raise
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(
-                    "test_connection_error", ssh_tunnel, ex
+                    "test_connection_error",
+                    ssh_tunnel_properties,
+                    ex,
                 ),
-                engine=database.db_engine_spec.__name__,
+                engine=engine_name,
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
         except (SupersetTimeoutException, SSHTunnelingNotEnabledError) as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(
-                    "test_connection_error", ssh_tunnel, ex
+                    "test_connection_error",
+                    ssh_tunnel_properties,
+                    ex,
                 ),
-                engine=database.db_engine_spec.__name__,
+                engine=engine_name,
             )
             # bubble up the exception to return proper status code
             raise
         except Exception as ex:
+            if not database:
+                raise
+
             if database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(
                 ex
             ):
                 database.start_oauth2_dance()
             event_logger.log_with_context(
                 action=get_log_connection_action(
-                    "test_connection_error", ssh_tunnel, ex
+                    "test_connection_error",
+                    ssh_tunnel_properties,
+                    ex,
                 ),
-                engine=database.db_engine_spec.__name__,
+                engine=engine_name,
             )
             errors = database.db_engine_spec.extract_errors(ex, self._context)
             raise DatabaseTestConnectionUnexpectedError(errors) from ex

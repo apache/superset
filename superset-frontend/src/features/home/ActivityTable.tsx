@@ -17,11 +17,12 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { extendedDayjs } from 'src/utils/dates';
-import { styled, t } from '@superset-ui/core';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
-import ListViewCard from 'src/components/ListViewCard';
+import { ListViewCard } from '@superset-ui/core/components';
 import { Dashboard, SavedQueryObject, TableTab } from 'src/views/CRUD/types';
 import { ActivityData, LoadingCards } from 'src/pages/Home';
 import {
@@ -30,7 +31,7 @@ import {
   getEditedObjects,
 } from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable, RecentActivity } from './types';
@@ -66,7 +67,7 @@ interface ActivityProps {
 const Styles = styled.div`
   .recentCards {
     max-height: none;
-    grid-gap: ${({ theme }) => `${theme.gridUnit * 4}px`};
+    grid-gap: ${({ theme }) => `${theme.sizeUnit * 4}px`};
   }
 `;
 
@@ -81,13 +82,13 @@ const getEntityTitle = (entity: ActivityObject) => {
 };
 
 const getEntityIcon = (entity: ActivityObject) => {
-  if ('sql' in entity) return <Icons.Sql />;
+  if ('sql' in entity) return <Icons.ConsoleSqlOutlined />;
   const url = 'item_url' in entity ? entity.item_url : entity.url;
   if (url?.includes('dashboard')) {
-    return <Icons.NavDashboard />;
+    return <Icons.DashboardOutlined />;
   }
   if (url?.includes('explore')) {
-    return <Icons.NavCharts />;
+    return <Icons.BarChartOutlined />;
   }
   return null;
 };
@@ -100,15 +101,18 @@ const getEntityUrl = (entity: ActivityObject) => {
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
   if ('time' in entity) {
-    return t('Viewed %s', extendedDayjs(entity.time).fromNow());
+    return t('Viewed %s', (extendedDayjs(entity.time) as any).fromNow());
   }
 
   let time: number | string | undefined | null;
+  if (entity.changed_on_delta_humanized != null) {
+    return t('Modified %s', entity.changed_on_delta_humanized);
+  }
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
   return t(
     'Modified %s',
-    time == null ? UNKNOWN_TIME : extendedDayjs(time).fromNow(),
+    time == null ? UNKNOWN_TIME : (extendedDayjs(time) as any).fromNow(),
   );
 };
 
@@ -195,7 +199,11 @@ export default function ActivityTable({
   }
   return (
     <Styles>
-      <SubMenu activeChild={activeChild} tabs={tabs} />
+      <SubMenu
+        activeChild={activeChild}
+        tabs={tabs}
+        backgroundColor="transparent"
+      />
       {Number(activityData[activeChild as keyof ActivityData]?.length) > 0 ||
       (activeChild === TableTab.Edited && editedCards?.length) ? (
         <CardContainer className="recentCards">

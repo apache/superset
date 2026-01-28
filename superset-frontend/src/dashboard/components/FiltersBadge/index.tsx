@@ -29,18 +29,18 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
+import { t } from '@apache-superset/core';
 import {
   DataMaskStateWithId,
   Filters,
   JsonObject,
-  styled,
-  t,
   usePrevious,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { styled } from '@apache-superset/core/ui';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
-import Badge from 'src/components/Badge';
+import { Badge } from '@superset-ui/core/components';
 import DetailsPanelPopover from './DetailsPanel';
 import {
   Indicator,
@@ -60,42 +60,32 @@ const StyledFilterCount = styled.div`
     justify-items: center;
     align-items: center;
     cursor: pointer;
-    margin-right: ${theme.gridUnit}px;
-    padding-left: ${theme.gridUnit * 2}px;
-    padding-right: ${theme.gridUnit * 2}px;
-    background: ${theme.colors.grayscale.light4};
+    margin-right: ${theme.sizeUnit}px;
+    padding-left: ${theme.sizeUnit * 2}px;
+    padding-right: ${theme.sizeUnit * 2}px;
+    background: ${theme.colorBgContainer};
     border-radius: 4px;
     height: 100%;
     .anticon {
       vertical-align: middle;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorIcon};
       &:hover {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorIconHover};
       }
     }
 
     .incompatible-count {
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
     }
     &:focus-visible {
-      outline: 2px solid ${theme.colors.primary.dark2};
+      outline: 2px solid ${theme.colorPrimary};
     }
   `}
 `;
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    margin-left: ${theme.gridUnit * 2}px;
-    &>sup.antd5-badge-count {
-      padding: 0 ${theme.gridUnit}px;
-      min-width: ${theme.gridUnit * 4}px;
-      height: ${theme.gridUnit * 4}px;
-      line-height: 1.5;
-      font-weight: ${theme.typography.weights.medium};
-      font-size: ${theme.typography.sizes.s - 1}px;
-      box-shadow: none;
-      padding: 0 ${theme.gridUnit}px;
-    }
+    margin-left: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -211,30 +201,37 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevChartConfig = usePrevious(chartConfiguration);
 
   useEffect(() => {
-    if (!showIndicators && nativeIndicators.length > 0) {
+    const shouldReset =
+      (!chart ||
+        chart.chartStatus === 'failed' ||
+        chart.chartStatus === null) &&
+      nativeIndicators.length > 0;
+
+    const shouldRecalculate =
+      chart?.queriesResponse?.[0]?.rejected_filters !==
+        prevChart?.queriesResponse?.[0]?.rejected_filters ||
+      chart?.queriesResponse?.[0]?.applied_filters !==
+        prevChart?.queriesResponse?.[0]?.applied_filters ||
+      nativeFilters !== prevNativeFilters ||
+      chartLayoutItems !== prevChartLayoutItems ||
+      dataMask !== prevDataMask ||
+      prevChartConfig !== chartConfiguration;
+
+    if (shouldReset) {
       setNativeIndicators(indicatorsInitialState);
-    } else if (prevChartStatus !== 'success') {
-      if (
-        chart?.queriesResponse?.[0]?.rejected_filters !==
-          prevChart?.queriesResponse?.[0]?.rejected_filters ||
-        chart?.queriesResponse?.[0]?.applied_filters !==
-          prevChart?.queriesResponse?.[0]?.applied_filters ||
-        nativeFilters !== prevNativeFilters ||
-        chartLayoutItems !== prevChartLayoutItems ||
-        dataMask !== prevDataMask ||
-        prevChartConfig !== chartConfiguration
-      ) {
-        setNativeIndicators(
-          selectNativeIndicatorsForChart(
-            nativeFilters,
-            dataMask,
-            chartId,
-            chart,
-            chartLayoutItems,
-            chartConfiguration,
-          ),
-        );
-      }
+    } else if (
+      showIndicators &&
+      (shouldRecalculate || nativeIndicators.length === 0)
+    ) {
+      const newIndicators = selectNativeIndicatorsForChart(
+        nativeFilters,
+        dataMask,
+        chartId,
+        chart,
+        chartLayoutItems,
+        chartConfiguration,
+      );
+      setNativeIndicators(newIndicators);
     }
   }, [
     chart,
@@ -309,11 +306,12 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
-        <Icons.Filter iconSize="m" />
+        <Icons.FilterOutlined iconSize="m" />
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"
           count={filterCount}
+          size="small"
           showZero
         />
       </StyledFilterCount>

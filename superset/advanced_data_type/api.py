@@ -29,9 +29,6 @@ from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.extensions import event_logger
 from superset.views.base_api import BaseSupersetApi
 
-config = app.config
-ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
-
 
 class AdvancedDataTypeRestApi(BaseSupersetApi):
     """
@@ -96,7 +93,7 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
         item = kwargs["rison"]
         advanced_data_type = item["type"]
         values = item["values"]
-        addon = ADVANCED_DATA_TYPES.get(advanced_data_type)
+        addon = app.config["ADVANCED_DATA_TYPES"].get(advanced_data_type)
         if not addon:
             return self.response(
                 400,
@@ -148,4 +145,4 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
-        return self.response(200, result=list(ADVANCED_DATA_TYPES.keys()))
+        return self.response(200, result=list(app.config["ADVANCED_DATA_TYPES"].keys()))

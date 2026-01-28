@@ -1,0 +1,131 @@
+---
+title: Alert
+sidebar_label: Alert
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+import { Alert } from '@apache-superset/core/ui';
+
+# Alert
+
+Alert component for displaying important messages to users. Wraps Ant Design Alert with sensible defaults and improved accessibility.
+
+## Live Example
+
+<StoryWithControls
+  component={Alert}
+  props={{
+  closable: true,
+  type: 'info',
+  message: 'This is a sample alert message.',
+  description: 'Sample description for additional context.',
+  showIcon: true
+}}
+  controls={[
+  {
+    name: 'type',
+    label: 'Type',
+    type: 'select',
+    options: [
+      'info',
+      'error',
+      'warning',
+      'success'
+    ]
+  },
+  {
+    name: 'closable',
+    label: 'Closable',
+    type: 'boolean'
+  },
+  {
+    name: 'showIcon',
+    label: 'Show Icon',
+    type: 'boolean'
+  },
+  {
+    name: 'message',
+    label: 'Message',
+    type: 'text'
+  },
+  {
+    name: 'description',
+    label: 'Description',
+    type: 'text'
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Alert
+      closable
+      type="info"
+      message="This is a sample alert message."
+      description="Sample description for additional context."
+      showIcon
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `closable` | `boolean` | `true` | Whether the Alert can be closed with a close button. |
+| `type` | `string` | `"info"` | Type of the alert (e.g., info, error, warning, success). |
+| `message` | `string` | `"This is a sample alert message."` | Message |
+| `description` | `string` | `"Sample description for additional context."` | Description |
+| `showIcon` | `boolean` | `true` | Whether to display an icon in the Alert. |
+
+## Usage in Extensions
+
+This component is available in the `@apache-superset/core/ui` package, which is automatically available to Superset extensions.
+
+```tsx
+import { Alert } from '@apache-superset/core/ui';
+
+function MyExtension() {
+  return (
+    <Alert
+      closable
+      type="info"
+      message="This is a sample alert message."
+    />
+  );
+}
+```
+
+## Source Links
+
+- [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-core/src/ui/components/Alert/Alert.stories.tsx)
+- [Component source](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-core/src/ui/components/Alert/index.tsx)
+
+---
+
+*This page was auto-generated from the component's Storybook story.*

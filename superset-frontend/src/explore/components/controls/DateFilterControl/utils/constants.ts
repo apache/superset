@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   SelectOptionType,
   PreviousCalendarWeek,
@@ -32,8 +32,8 @@ import {
   CurrentQuarter,
   CurrentDay,
 } from 'src/explore/components/controls/DateFilterControl/types';
-import { CheckboxOptionType } from 'src/components/Radio';
-import { extendedDayjs } from 'src/utils/dates';
+import { CheckboxOptionType } from '@superset-ui/core/components/Radio';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },

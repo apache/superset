@@ -117,6 +117,19 @@ testdata() {
   say "::endgroup::"
 }
 
+playwright_testdata() {
+  cd "$GITHUB_WORKSPACE"
+  say "::group::Load all examples for Playwright tests"
+  # must specify PYTHONPATH to make `tests.superset_test_config` importable
+  export PYTHONPATH="$GITHUB_WORKSPACE"
+  pip install -e .
+  superset db upgrade
+  superset load_test_users
+  superset load_examples
+  superset init
+  say "::endgroup::"
+}
+
 celery-worker() {
   cd "$GITHUB_WORKSPACE"
   say "::group::Start Celery worker"
@@ -145,6 +158,7 @@ cypress-install() {
 
 cypress-run-all() {
   local USE_DASHBOARD=$1
+  local APP_ROOT=$2
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
 
   # Start Flask and run it in background
@@ -152,7 +166,12 @@ cypress-run-all() {
   # so errors can print to stderr.
   local flasklog="${HOME}/flask.log"
   local port=8081
-  export CYPRESS_BASE_URL="http://localhost:${port}"
+  CYPRESS_BASE_URL="http://localhost:${port}"
+  if [ -n "$APP_ROOT" ]; then
+    export SUPERSET_APP_ROOT=$APP_ROOT
+    CYPRESS_BASE_URL=${CYPRESS_BASE_URL}${APP_ROOT}
+  fi
+  export CYPRESS_BASE_URL
 
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
@@ -174,6 +193,95 @@ cypress-run-all() {
   echo "::endgroup::"
   # make sure the program exits
   kill $flaskProcessId
+}
+
+playwright-install() {
+  cd "$GITHUB_WORKSPACE/superset-frontend"
+
+  say "::group::Install Playwright browsers"
+  npx playwright install --with-deps chromium
+  # Create output directories for test results and debugging
+  mkdir -p playwright-results
+  mkdir -p test-results
+  say "::endgroup::"
+}
+
+playwright-run() {
+  local APP_ROOT=$1
+  local TEST_PATH=$2
+
+  # Start Flask from the project root (same as Cypress)
+  cd "$GITHUB_WORKSPACE"
+  local flasklog="${HOME}/flask-playwright.log"
+  local port=8081
+  PLAYWRIGHT_BASE_URL="http://localhost:${port}"
+  if [ -n "$APP_ROOT" ]; then
+    export SUPERSET_APP_ROOT=$APP_ROOT
+    PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL}${APP_ROOT}/
+  fi
+  export PLAYWRIGHT_BASE_URL
+
+  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
+  local flaskProcessId=$!
+
+  # Ensure cleanup on exit
+  trap "kill $flaskProcessId 2>/dev/null || true" EXIT
+
+  # Wait for server to be ready with health check
+  local timeout=60
+  say "Waiting for Flask server to start on port $port..."
+  while [ $timeout -gt 0 ]; do
+    if curl -f ${PLAYWRIGHT_BASE_URL}/health >/dev/null 2>&1; then
+      say "Flask server is ready"
+      break
+    fi
+    sleep 1
+    timeout=$((timeout - 1))
+  done
+
+  if [ $timeout -eq 0 ]; then
+    echo "::error::Flask server failed to start within 60 seconds"
+    echo "::group::Flask startup log"
+    cat "$flasklog"
+    echo "::endgroup::"
+    return 1
+  fi
+
+  # Change to frontend directory for Playwright execution
+  cd "$GITHUB_WORKSPACE/superset-frontend"
+
+  say "::group::Run Playwright tests"
+  echo "Running Playwright with baseURL: ${PLAYWRIGHT_BASE_URL}"
+  if [ -n "$TEST_PATH" ]; then
+    # Check if there are any test files in the specified path
+    if ! find "playwright/tests/${TEST_PATH}" -name "*.spec.ts" -type f 2>/dev/null | grep -q .; then
+      echo "No test files found in ${TEST_PATH} - skipping test run"
+      say "::endgroup::"
+      kill $flaskProcessId
+      return 0
+    fi
+    echo "Running tests: ${TEST_PATH}"
+    # Set INCLUDE_EXPERIMENTAL=true to allow experimental tests to run
+    export INCLUDE_EXPERIMENTAL=true
+    npx playwright test "${TEST_PATH}" --output=playwright-results
+    local status=$?
+    # Unset to prevent leaking into subsequent commands
+    unset INCLUDE_EXPERIMENTAL
+  else
+    echo "Running all required tests (experimental/ excluded via playwright.config.ts)"
+    npx playwright test --output=playwright-results
+    local status=$?
+  fi
+  say "::endgroup::"
+
+  # After job is done, print out Flask log for debugging
+  echo "::group::Flask log for Playwright run"
+  cat "$flasklog"
+  echo "::endgroup::"
+  # make sure the program exits
+  kill $flaskProcessId
+
+  return $status
 }
 
 eyes-storybook-dependencies() {

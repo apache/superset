@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SafeMarkdown, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
+import { SafeMarkdown } from '@superset-ui/core/components';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars from 'handlebars';
-import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 import { isPlainObject } from 'lodash';
 import Helpers from 'just-handlebars-helpers';
@@ -75,7 +77,7 @@ export const HandlebarsViewer = ({
   return <p>{t('Loading...')}</p>;
 };
 
-//  usage: {{dateFormat my_date format="MMMM YYYY"}}
+//  usage: {{ dateFormat my_date format="MMMM YYYY" }}
 Handlebars.registerHelper('dateFormat', function (context, block) {
   const f = block.hash.format || 'YYYY-MM-DD';
   return dayjs(context).format(f);
@@ -98,6 +100,19 @@ Handlebars.registerHelper(
     return number.toLocaleString(locale);
   },
 );
+
+// usage: {{parseJson jsonString}}
+Handlebars.registerHelper('parseJson', (jsonString: string) => {
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    if (error instanceof Error) {
+      error.message = `Invalid JSON string: ${error.message}`;
+      throw error;
+    }
+    throw new Error(`Invalid JSON string: ${String(error)}`);
+  }
+});
 
 Helpers.registerHelpers(Handlebars);
 HandlebarsGroupBy.register(Handlebars);

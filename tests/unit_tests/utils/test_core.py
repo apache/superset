@@ -24,6 +24,10 @@ import pandas as pd
 import pytest
 from flask import current_app
 from pandas.api.types import is_datetime64_dtype
+<<<<<<< HEAD
+=======
+from pytest_mock import MockerFixture
+>>>>>>> origin/master
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
@@ -33,7 +37,13 @@ from superset.utils.core import (
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
     get_datasource_full_name,
+<<<<<<< HEAD
     get_stacktrace,
+=======
+    get_query_source_from_request,
+    get_stacktrace,
+    get_user_agent,
+>>>>>>> origin/master
     is_test,
     merge_extra_filters,
     merge_request_params,
@@ -41,8 +51,12 @@ from superset.utils.core import (
     parse_boolean_string,
     parse_js_uri_path_item,
     QueryObjectFilterClause,
+    QuerySource,
     remove_extra_adhoc_filters,
+    sanitize_svg_content,
+    sanitize_url,
 )
+from tests.conftest import with_config
 
 ADHOC_FILTER: QueryObjectFilterClause = {
     "col": "foo",
@@ -596,6 +610,63 @@ def test_get_datasource_full_name():
     )
 
 
+<<<<<<< HEAD
+=======
+@pytest.mark.parametrize(
+    "referrer,expected",
+    [
+        (None, None),
+        ("https://mysuperset.com/abc", None),
+        ("https://mysuperset.com/superset/dashboard/", QuerySource.DASHBOARD),
+        ("https://mysuperset.com/explore/", QuerySource.CHART),
+        ("https://mysuperset.com/sqllab/", QuerySource.SQL_LAB),
+    ],
+)
+def test_get_query_source_from_request(
+    referrer: str | None,
+    expected: QuerySource | None,
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    if referrer:
+        # Use has_request_context to mock request when not in a request context
+        with mocker.patch("flask.has_request_context", return_value=True):
+            request_mock = mocker.MagicMock()
+            request_mock.referrer = referrer
+            mocker.patch("superset.utils.core.request", request_mock)
+            assert get_query_source_from_request() == expected
+    else:
+        # When no referrer, test without request context
+        with mocker.patch("flask.has_request_context", return_value=False):
+            assert get_query_source_from_request() == expected
+
+
+@with_config({"USER_AGENT_FUNC": None})
+def test_get_user_agent(mocker: MockerFixture, app_context: None) -> None:
+    database_mock = mocker.MagicMock()
+    database_mock.database_name = "mydb"
+
+    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "Apache Superset", (
+        "The default user agent should be returned"
+    )
+
+
+@with_config(
+    {
+        "USER_AGENT_FUNC": lambda database,
+        source: f"{database.database_name} {source.name}"
+    }
+)
+def test_get_user_agent_custom(mocker: MockerFixture, app_context: None) -> None:
+    database_mock = mocker.MagicMock()
+    database_mock.database_name = "mydb"
+
+    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "mydb DASHBOARD", (
+        "the custom user agent function result should have been returned"
+    )
+
+
+>>>>>>> origin/master
 def test_merge_extra_filters():
     # does nothing if no extra filters
     form_data = {"A": 1, "B": 2, "c": "test"}
@@ -626,7 +697,13 @@ def test_merge_extra_filters():
                 "clause": "WHERE",
                 "comparator": "someval",
                 "expressionType": "SIMPLE",
+<<<<<<< HEAD
                 "filterOptionName": "90cfb3c34852eb3bc741b0cc20053b46",
+=======
+                "filterOptionName": (
+                    "eb77ff8188437d8722af8c932727da1e83ec37e88aaf800a3859ed352d87119f"
+                ),
+>>>>>>> origin/master
                 "isExtra": True,
                 "operator": "in",
                 "subject": "a",
@@ -635,7 +712,13 @@ def test_merge_extra_filters():
                 "clause": "WHERE",
                 "comparator": ["c1", "c2"],
                 "expressionType": "SIMPLE",
+<<<<<<< HEAD
                 "filterOptionName": "6c178d069965f1c02640661280415d96",
+=======
+                "filterOptionName": (
+                    "48dd60c7ecb8699b51e36ce956ba481aa5382548811aecec71af7e550c59762c"
+                ),
+>>>>>>> origin/master
                 "isExtra": True,
                 "operator": "==",
                 "subject": "B",
@@ -674,7 +757,13 @@ def test_merge_extra_filters():
                 "clause": "WHERE",
                 "comparator": "someval",
                 "expressionType": "SIMPLE",
+<<<<<<< HEAD
                 "filterOptionName": "90cfb3c34852eb3bc741b0cc20053b46",
+=======
+                "filterOptionName": (
+                    "eb77ff8188437d8722af8c932727da1e83ec37e88aaf800a3859ed352d87119f"
+                ),
+>>>>>>> origin/master
                 "isExtra": True,
                 "operator": "in",
                 "subject": "a",
@@ -683,7 +772,13 @@ def test_merge_extra_filters():
                 "clause": "WHERE",
                 "comparator": ["c1", "c2"],
                 "expressionType": "SIMPLE",
+<<<<<<< HEAD
                 "filterOptionName": "6c178d069965f1c02640661280415d96",
+=======
+                "filterOptionName": (
+                    "48dd60c7ecb8699b51e36ce956ba481aa5382548811aecec71af7e550c59762c"
+                ),
+>>>>>>> origin/master
                 "isExtra": True,
                 "operator": "==",
                 "subject": "B",
@@ -708,7 +803,13 @@ def test_merge_extra_filters():
                 "clause": "WHERE",
                 "comparator": "hello",
                 "expressionType": "SIMPLE",
+<<<<<<< HEAD
                 "filterOptionName": "e3cbdd92a2ae23ca92c6d7fca42e36a6",
+=======
+                "filterOptionName": (
+                    "2ca91524f5ab8e39d6aa5373d1f11301ad2c5b95f5aa77eb30d92f572f5b9157"
+                ),
+>>>>>>> origin/master
                 "isExtra": True,
                 "operator": "like",
                 "subject": "A",
@@ -872,7 +973,13 @@ def test_merge_extra_filters_merges_different_val_types():
                 "clause": "WHERE",
                 "comparator": ["g1", "g2"],
                 "expressionType": "SIMPLE",
+<<<<<<< HEAD
                 "filterOptionName": "c11969c994b40a83a4ae7d48ff1ea28e",
+=======
+                "filterOptionName": (
+                    "e2f7d6304169124258364916403b2d9208fce39dd7771797726111b7498bbd52"
+                ),
+>>>>>>> origin/master
                 "isExtra": True,
                 "operator": "in",
                 "subject": "a",
@@ -924,7 +1031,13 @@ def test_merge_extra_filters_merges_different_val_types():
                 "clause": "WHERE",
                 "comparator": "someval",
                 "expressionType": "SIMPLE",
+<<<<<<< HEAD
                 "filterOptionName": "90cfb3c34852eb3bc741b0cc20053b46",
+=======
+                "filterOptionName": (
+                    "eb77ff8188437d8722af8c932727da1e83ec37e88aaf800a3859ed352d87119f"
+                ),
+>>>>>>> origin/master
                 "isExtra": True,
                 "operator": "in",
                 "subject": "a",
@@ -979,7 +1092,13 @@ def test_merge_extra_filters_adds_unequal_lists():
                 "clause": "WHERE",
                 "comparator": ["g1", "g2", "g3"],
                 "expressionType": "SIMPLE",
+<<<<<<< HEAD
                 "filterOptionName": "21cbb68af7b17e62b3b2f75e2190bfd7",
+=======
+                "filterOptionName": (
+                    "b3f17391546e130560efd1e841742bc5f154d09a7d534b8c0ec33fc1c8a146cd"
+                ),
+>>>>>>> origin/master
                 "isExtra": True,
                 "operator": "in",
                 "subject": "a",
@@ -988,7 +1107,13 @@ def test_merge_extra_filters_adds_unequal_lists():
                 "clause": "WHERE",
                 "comparator": ["c1", "c2", "c3"],
                 "expressionType": "SIMPLE",
+<<<<<<< HEAD
                 "filterOptionName": "0a8dcb928f1f4bba97643c6e68d672f1",
+=======
+                "filterOptionName": (
+                    "41ef70f6edada46006253189b27778088da2cf27ccc69f703634493d7396708a"
+                ),
+>>>>>>> origin/master
                 "isExtra": True,
                 "operator": "==",
                 "subject": "B",
@@ -1063,3 +1188,44 @@ def test_get_stacktrace():
     except Exception:
         stacktrace = get_stacktrace()
         assert stacktrace is None
+<<<<<<< HEAD
+=======
+
+
+def test_sanitize_svg_content_safe():
+    """Test that safe SVG content is preserved."""
+    safe_svg = '<svg><rect width="10" height="10"/></svg>'
+    result = sanitize_svg_content(safe_svg)
+    assert "svg" in result
+    assert "rect" in result
+
+
+def test_sanitize_svg_content_removes_scripts():
+    """Test that nh3 removes dangerous script content."""
+    malicious_svg = '<svg><script>alert("xss")</script><rect/></svg>'
+    result = sanitize_svg_content(malicious_svg)
+    assert "script" not in result.lower()
+    assert "alert" not in result
+
+
+def test_sanitize_url_relative():
+    """Test that relative URLs are allowed."""
+    assert sanitize_url("/static/spinner.gif") == "/static/spinner.gif"
+
+
+def test_sanitize_url_safe_absolute():
+    """Test that safe absolute URLs are allowed."""
+    assert (
+        sanitize_url("https://example.com/spinner.gif")
+        == "https://example.com/spinner.gif"
+    )
+    assert (
+        sanitize_url("http://localhost/spinner.png") == "http://localhost/spinner.png"
+    )
+
+
+def test_sanitize_url_blocks_dangerous():
+    """Test that dangerous URL schemes are blocked."""
+    assert sanitize_url("javascript:alert('xss')") == ""
+    assert sanitize_url("data:text/html,<script>alert(1)</script>") == ""
+>>>>>>> origin/master

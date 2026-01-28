@@ -117,7 +117,7 @@ test('returns a formatted error message from response', async () => {
   expect(timeRange).toEqual({
     error: 'Network error',
   });
-}, 10000);
+});
 
 test('fetchTimeRange with shift', async () => {
   fetchMock.getOnce(

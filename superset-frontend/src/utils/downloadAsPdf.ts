@@ -19,8 +19,12 @@
 import { SyntheticEvent } from 'react';
 import domToPdf from 'dom-to-pdf';
 import { kebabCase } from 'lodash';
-import { logging, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { logging } from '@apache-superset/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import getBootstrapData from 'src/utils/getBootstrapData';
+
+const pdfCompressionLevel = getBootstrapData().common.pdf_compression_level;
 
 /**
  * generate a consistent file stem from a description and date
@@ -58,6 +62,7 @@ export default function downloadAsPdf(
 
     const options = {
       margin: 10,
+      compression: pdfCompressionLevel,
       filename: `${generateFileStem(description)}.pdf`,
       image: { type: 'jpeg', quality: 1 },
       html2canvas: { scale: 2 },

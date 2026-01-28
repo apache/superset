@@ -23,12 +23,24 @@ import sys
 from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
+from colorama import Fore, Style
 from deprecation import deprecated
+<<<<<<< HEAD
 from flask import abort, Flask, redirect, request, session
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
 from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import gettext as __, refresh
+=======
+from flask import abort, current_app, Flask, redirect, request, session, url_for
+from flask_appbuilder import expose, IndexView
+from flask_appbuilder.api import safe
+from flask_appbuilder.utils.base import get_safe_redirect
+
+# using lazy_gettext since initialization happens prior to the request scope
+# and confuses flask-babel
+from flask_babel import lazy_gettext as _, refresh
+>>>>>>> origin/master
 from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -58,7 +70,6 @@ from superset.extensions import (
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
-from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
@@ -76,11 +87,35 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.superset_app = app
         self.config = app.config
         self.manifest: dict[Any, Any] = {}
+        self._db_uri_cache: str | None = None  # Cache for valid database URIs
 
     @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
+
+    @property
+    def database_uri(self) -> str:
+        """Lazy property for database URI to avoid early config access issues"""
+        # If we have a cached valid value, return it
+        if self._db_uri_cache is not None:
+            return self._db_uri_cache
+
+        # Try to get the URI from config
+        uri = self.config.get("SQLALCHEMY_DATABASE_URI", "")
+
+        # Check if this is a fallback value that indicates config isn't ready
+        if uri and not any(
+            fallback in uri.lower()
+            for fallback in ["nouser", "nopassword", "nohost", "nodb"]
+        ):
+            # Valid URI - cache it and return
+            self._db_uri_cache = uri
+            return uri
+
+        # Return the fallback value without caching
+        # This allows retry on next access when config might be ready
+        return uri
 
     def pre_init(self) -> None:
         """
@@ -130,10 +165,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
-        from superset.connectors.sqla.views import (
-            RowLevelSecurityView,
-            TableModelView,
-        )
         from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
@@ -148,16 +179,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
+        from superset.extensions.view import ExtensionsView
         from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
-        from superset.security.api import SecurityRestApi
+        from superset.security.api import (
+            RoleRestAPI,
+            SecurityRestApi,
+            UserRegistrationsRestAPI,
+        )
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
+        from superset.themes.api import ThemeRestApi
         from superset.views.alerts import AlertView, ReportView
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
@@ -174,18 +211,34 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
+        from superset.views.groups import GroupsListView
         from superset.views.log.api import LogRestApi
-        from superset.views.log.views import LogModelView
+        from superset.views.logs import ActionLogView
+        from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
             SavedQueryView,
             TableSchemaView,
             TabStateView,
         )
+        from superset.views.sqla import (
+            RowLevelSecurityView,
+            TableModelView,
+        )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
+        from superset.views.themes import ThemeModelView
+        from superset.views.user_info import UserInfoView
+        from superset.views.user_registrations import UserRegistrationsView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
+        from superset.views.users_list import UsersListView
 
         set_app_error_handlers(self.superset_app)
+        self.register_request_handlers()
+
+        # Register health blueprint
+        from superset.views.health import health_blueprint
+
+        self.superset_app.register_blueprint(health_blueprint)
 
         #
         # Setup API views
@@ -199,6 +252,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
+        appbuilder.add_api(ThemeRestApi)
         appbuilder.add_api(CurrentUserRestApi)
         appbuilder.add_api(UserRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)
@@ -222,28 +276,39 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
+        appbuilder.add_api(LogRestApi)
+
+        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            from superset.extensions.api import ExtensionsRestApi
+
+            appbuilder.add_api(ExtensionsRestApi)
+
         #
         # Setup regular views
         #
+        app_root = appbuilder.app.config["APPLICATION_ROOT"]
+        if app_root.endswith("/"):
+            app_root = app_root.rstrip("/")
+
         appbuilder.add_link(
             "Home",
-            label=__("Home"),
+            label=_("Home"),
             href="/superset/welcome/",
-            cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
+            cond=lambda: bool(current_app.config["LOGO_TARGET_PATH"]),
         )
 
         appbuilder.add_view(
             DatabaseView,
             "Databases",
-            label=__("Database Connections"),
+            label=_("Database Connections"),
             icon="fa-database",
             category="Data",
-            category_label=__("Data"),
+            category_label=_("Data"),
         )
         appbuilder.add_view(
             DashboardModelView,
             "Dashboards",
-            label=__("Dashboards"),
+            label=_("Dashboards"),
             icon="fa-dashboard",
             category="",
             category_icon="",
@@ -251,7 +316,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             SliceModelView,
             "Charts",
-            label=__("Charts"),
+            label=_("Charts"),
             icon="fa-bar-chart",
             category="",
             category_icon="",
@@ -259,19 +324,61 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         appbuilder.add_link(
             "Datasets",
-            label=__("Datasets"),
-            href="/tablemodelview/list/",
+            label=_("Datasets"),
+            href=f"{app_root}/tablemodelview/list/",
             icon="fa-table",
             category="",
             category_icon="",
         )
 
         appbuilder.add_view(
+            RolesListView,
+            "List Roles",
+            label=_("List Roles"),
+            category="Security",
+            category_label=_("Security"),
+            menu_cond=lambda: bool(
+                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+            ),
+        )
+
+        appbuilder.add_view(
+            UserRegistrationsView,
+            "User Registrations",
+            label=_("User Registrations"),
+            category="Security",
+            category_label=_("Security"),
+            menu_cond=lambda: bool(appbuilder.app.config["AUTH_USER_REGISTRATION"]),
+        )
+
+        appbuilder.add_view(
+            UsersListView,
+            "List Users",
+            label=_("List Users"),
+            category="Security",
+            category_label=_("Security"),
+            menu_cond=lambda: bool(
+                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+            ),
+        )
+
+        appbuilder.add_view(
+            GroupsListView,
+            "List Groups",
+            label=_("List Groups"),
+            category="Security",
+            category_label=_("Security"),
+            menu_cond=lambda: bool(
+                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+            ),
+        )
+
+        appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
-            label=__("Plugins"),
+            label=_("Plugins"),
             category="Manage",
-            category_label=__("Manage"),
+            category_label=_("Manage"),
             icon="fa-puzzle-piece",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled(
                 "DYNAMIC_PLUGINS"
@@ -280,11 +387,33 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             CssTemplateModelView,
             "CSS Templates",
-            label=__("CSS Templates"),
+            label=_("CSS Templates"),
             icon="fa-css3",
             category="Manage",
-            category_label=__("Manage"),
+            category_label=_("Manage"),
             category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("CSS_TEMPLATES"),
+        )
+        appbuilder.add_view(
+            ThemeModelView,
+            "Themes",
+            href="/theme/list/",
+            label=_("Themes"),
+            icon="fa-palette",
+            category="Manage",
+            category_label=_("Manage"),
+            category_icon="",
+        )
+
+        appbuilder.add_view(
+            ExtensionsView,
+            "Extensions",
+            label=_("Extensions"),
+            category="Manage",
+            category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "ENABLE_EXTENSIONS"
+            ),
         )
 
         #
@@ -306,52 +435,55 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view_no_menu(RoleRestAPI)
+        appbuilder.add_view_no_menu(UserInfoView)
 
         #
         # Add links
         #
         appbuilder.add_link(
             "SQL Editor",
-            label=__("SQL Lab"),
-            href="/sqllab/",
+            label=_("SQL Lab"),
+            href=f"{app_root}/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL"),
+            category_label=_("SQL"),
         )
         appbuilder.add_link(
             "Saved Queries",
-            label=__("Saved Queries"),
-            href="/savedqueryview/list/",
+            label=_("Saved Queries"),
+            href=f"{app_root}/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
-            category_label=__("SQL"),
+            category_label=_("SQL"),
         )
         appbuilder.add_link(
             "Query Search",
-            label=__("Query History"),
-            href="/sqllab/history/",
+            label=_("Query History"),
+            href=f"{app_root}/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL Lab"),
+            category_label=_("SQL Lab"),
         )
         appbuilder.add_view(
             TagModelView,
             "Tags",
-            label=__("Tags"),
+            label=_("Tags"),
             icon="",
             category_icon="",
             category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
         appbuilder.add_api(LogRestApi)
+        appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_view(
-            LogModelView,
+            ActionLogView,
             "Action Log",
-            label=__("Action Log"),
+            label=_("Action Log"),
             category="Security",
-            category_label=__("Security"),
+            category_label=_("Security"),
             icon="fa-list-ol",
             menu_cond=lambda: (
                 self.config["FAB_ADD_SECURITY_VIEWS"]
@@ -366,9 +498,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             AlertView,
             "Alerts & Report",
-            label=__("Alerts & Reports"),
+            label=_("Alerts & Reports"),
             category="Manage",
-            category_label=__("Manage"),
+            category_label=_("Manage"),
             icon="fa-exclamation-triangle",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("ALERT_REPORTS"),
         )
@@ -376,23 +508,82 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             AnnotationLayerView,
             "Annotation Layers",
-            label=__("Annotation Layers"),
-            href="/annotationlayer/list/",
+            label=_("Annotation Layers"),
+            href="AnnotationLayerView.list",
             icon="fa-comment",
             category_icon="",
             category="Manage",
-            category_label=__("Manage"),
+            category_label=_("Manage"),
         )
 
         appbuilder.add_view(
             RowLevelSecurityView,
             "Row Level Security",
-            href="/rowlevelsecurity/list/",
-            label=__("Row Level Security"),
+            href="RowLevelSecurityView.list",
+            label=_("Row Level Security"),
             category="Security",
-            category_label=__("Security"),
+            category_label=_("Security"),
             icon="fa-lock",
         )
+
+    def init_core_dependencies(self) -> None:
+        """Initialize core dependency injection for direct import patterns."""
+        from superset.core.api.core_api_injection import (
+            initialize_core_api_dependencies,
+        )
+        from superset.core.mcp.core_mcp_injection import (
+            initialize_core_mcp_dependencies,
+        )
+
+        initialize_core_api_dependencies()
+        initialize_core_mcp_dependencies()
+
+    def init_all_dependencies_and_extensions(self) -> None:
+        """
+        Initialize all core dependencies and extensions.
+
+        Core dependencies are always initialized.
+        Extensions are only initialized if the ENABLE_EXTENSIONS feature flag
+        is enabled.
+        """
+        # Always initialize core dependencies
+        self.init_core_dependencies()
+
+        # Conditionally initialize extensions based on feature flag
+        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            self.init_extensions()
+
+    def init_extensions(self) -> None:
+        from superset.extensions.utils import (
+            eager_import,
+            get_extensions,
+            install_in_memory_importer,
+        )
+
+        try:
+            extensions = get_extensions()
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
+            # If the db hasn't been initialized yet, an exception will be raised.
+            # It's fine to ignore this, as in this case there are no extensions
+            # present yet.
+            return
+
+        for extension in extensions.values():
+            if backend_files := extension.backend:
+                install_in_memory_importer(
+                    backend_files,
+                    source_base_path=extension.source_base_path,
+                )
+
+            backend = extension.manifest.backend
+
+            if backend and (entrypoints := backend.entryPoints):
+                for entrypoint in entrypoints:
+                    try:
+                        eager_import(entrypoint)
+                    except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
+                        # Surface exceptions during initialization of extensions
+                        print(ex)
 
     def init_app_in_ctx(self) -> None:
         """
@@ -411,10 +602,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:
             flask_app_mutator(self.superset_app)
 
-        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            register_sqla_event_listeners()
+        # Sync configuration to database (themes, etc.)
+        # This can be called separately in multi-tenant environments
+        self.superset_app.sync_config_to_db()
 
         self.init_views()
+
+        self.init_all_dependencies_and_extensions()
 
     def check_secret_key(self) -> None:
         def log_default_secret_key_warning() -> None:
@@ -449,6 +643,65 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if self.config["SESSION_SERVER_SIDE"]:
             Session(self.superset_app)
 
+    def register_request_handlers(self) -> None:
+        """Register app-level request handlers"""
+        from flask import Response
+
+        @self.superset_app.after_request
+        def apply_http_headers(response: Response) -> Response:
+            """Applies the configuration's http headers to all responses"""
+            # HTTP_HEADERS is deprecated, this provides backwards compatibility
+            response.headers.extend(
+                {
+                    **self.superset_app.config["OVERRIDE_HTTP_HEADERS"],
+                    **self.superset_app.config["HTTP_HEADERS"],
+                }
+            )
+
+            for k, v in self.superset_app.config["DEFAULT_HTTP_HEADERS"].items():
+                if k not in response.headers:
+                    response.headers[k] = v
+            return response
+
+        @self.superset_app.after_request
+        def cleanup_analytics_memory(response: Response) -> Response:
+            """Force garbage collection after each request if feature flag enabled"""
+            if feature_flag_manager.is_feature_enabled(
+                "FORCE_GARBAGE_COLLECTION_AFTER_EVERY_REQUEST"
+            ):
+                import gc
+
+                gc.collect()
+            return response
+
+        @self.superset_app.context_processor
+        def get_common_bootstrap_data() -> dict[str, Any]:
+            # Import here to avoid circular imports
+            from superset.utils import json
+            from superset.views.base import common_bootstrap_payload
+
+            def serialize_bootstrap_data() -> str:
+                return json.dumps(
+                    {"common": common_bootstrap_payload()},
+                    default=json.pessimistic_json_iso_dttm_ser,
+                )
+
+            return {"bootstrap_data": serialize_bootstrap_data}
+
+    def check_and_warn_database_connection(self) -> None:
+        """Check database connection and warn if unavailable"""
+        try:
+            with self.superset_app.app_context():
+                # Simple connection test
+                db.engine.execute("SELECT 1")
+        except Exception:
+            db_uri = self.database_uri
+            safe_uri = make_url_safe(db_uri) if db_uri else "Not configured"
+            print(
+                f"{Fore.RED}ERROR: Cannot connect to database {safe_uri}\n"
+                f"NOTE: Most CLI commands require a database{Style.RESET_ALL}"
+            )
+
     def init_app(self) -> None:
         """
         Main entry point which will delegate to other methods in
@@ -464,6 +717,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_feature_flags()
         self.configure_db_encrypt()
         self.setup_db()
+
+        # Check database connection and warn if unavailable
+        self.check_and_warn_database_connection()
+
         self.configure_celery()
         self.enable_profiling()
         self.setup_event_logger()
@@ -489,14 +746,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         set_isolation_level_to = None
 
         if not isolation_level:
-            backend = make_url_safe(
-                self.config["SQLALCHEMY_DATABASE_URI"]
-            ).get_backend_name()
+            backend = make_url_safe(self.database_uri).get_backend_name()
             if backend in ("mysql", "postgresql"):
                 set_isolation_level_to = "READ COMMITTED"
 
         if set_isolation_level_to:
-            logger.info(
+            logger.debug(
                 "Setting database isolation level to %s",
                 set_isolation_level_to,
             )
@@ -556,7 +811,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             )
 
         appbuilder.indexview = SupersetIndexView
-        appbuilder.base_template = "superset/base.html"
         appbuilder.security_manager_class = custom_sm
         appbuilder.init_app(self.superset_app, db.session)
 
@@ -675,6 +929,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             async_query_manager_factory.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
+        # Register custom blueprints from config
         for bp in self.config["BLUEPRINTS"]:
             try:
                 logger.info("Registering blueprint: %s", bp.name)
@@ -693,7 +948,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
+<<<<<<< HEAD
         return redirect("/superset/welcome/")
+=======
+        return redirect(url_for("Superset.welcome"))
+>>>>>>> origin/master
 
     @expose("/lang/<string:locale>")
     @safe

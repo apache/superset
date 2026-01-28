@@ -68,6 +68,7 @@ import {
   EchartsWaterfallChartPlugin,
   BigNumberPeriodOverPeriodChartPlugin,
   EchartsHeatmapChartPlugin,
+  EchartsGanttChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -76,9 +77,16 @@ import {
   TimeColumnFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
+import {
+  ChartCustomizationTimeGrainPlugin,
+  ChartCustomizationDynamicGroupBy,
+  ChartCustomizationTimeColumnPlugin,
+  DeckglLayerVisibilityCustomizationPlugin,
+} from 'src/chartCustomizations/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
-import { FilterPlugins } from 'src/constants';
+import { ChartCustomizationPlugins, FilterPlugins } from 'src/constants';
+import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
 
 export default class MainPreset extends Preset {
@@ -91,6 +99,10 @@ export default class MainPreset extends Preset {
             key: VizType.BigNumberPeriodOverPeriod,
           }),
         ]
+      : [];
+
+    const agGridTablePlugin = isFeatureEnabled(FeatureFlag.AgGridTableEnabled)
+      ? [new AgGridTableChartPlugin().configure({ key: VizType.TableAgGrid })]
       : [];
 
     super({
@@ -111,6 +123,7 @@ export default class MainPreset extends Preset {
         new EchartsFunnelChartPlugin().configure({ key: VizType.Funnel }),
         new EchartsSankeyChartPlugin().configure({ key: VizType.Sankey }),
         new EchartsTreemapChartPlugin().configure({ key: VizType.Treemap }),
+        new EchartsGanttChartPlugin().configure({ key: VizType.Gantt }),
         new EchartsGaugeChartPlugin().configure({ key: VizType.Gauge }),
         new EchartsGraphChartPlugin().configure({ key: VizType.Graph }),
         new EchartsRadarChartPlugin().configure({ key: VizType.Radar }),
@@ -167,6 +180,18 @@ export default class MainPreset extends Preset {
         new TimeGrainFilterPlugin().configure({
           key: FilterPlugins.TimeGrain,
         }),
+        new ChartCustomizationTimeGrainPlugin().configure({
+          key: ChartCustomizationPlugins.TimeGrain,
+        }),
+        new ChartCustomizationTimeColumnPlugin().configure({
+          key: ChartCustomizationPlugins.TimeColumn,
+        }),
+        new ChartCustomizationDynamicGroupBy().configure({
+          key: ChartCustomizationPlugins.DynamicGroupBy,
+        }),
+        new DeckglLayerVisibilityCustomizationPlugin().configure({
+          key: ChartCustomizationPlugins.DeckglLayerVisibility,
+        }),
         new EchartsTreeChartPlugin().configure({ key: VizType.Tree }),
         new EchartsSunburstChartPlugin().configure({ key: VizType.Sunburst }),
         new HandlebarsChartPlugin().configure({ key: VizType.Handlebars }),
@@ -185,6 +210,7 @@ export default class MainPreset extends Preset {
           ],
         }).configure({ key: VizType.Cartodiagram }),
         ...experimentalPlugins,
+        ...agGridTablePlugin,
       ],
     });
   }

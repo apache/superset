@@ -17,6 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
+import { t } from '@apache-superset/core';
 import {
   ComparisonType,
   CurrencyFormatter,
@@ -24,25 +25,25 @@ import {
   DataRecord,
   ensureIsArray,
   extractTimegrain,
-  GenericDataType,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
   getTimeFormatterForGranularity,
+  normalizeCurrency,
   NumberFormats,
   QueryMode,
-  t,
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ColorFormatters,
   ConditionalFormattingConfig,
   getColorFormatters,
 } from '@superset-ui/chart-controls';
 
-import { isEmpty } from 'lodash';
+import { isEmpty, merge } from 'lodash';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
@@ -89,6 +90,15 @@ const processDataRecords = memoizeOne(function processDataRecords(
   }
   return data;
 });
+
+// Create a map to store cached values per slice
+const sliceCache = new Map<
+  number,
+  {
+    cachedServerLength: number;
+    passedColumns?: DataColumnMeta[];
+  }
+>();
 
 const calculateDifferences = (
   originalValue: number,
@@ -191,17 +201,28 @@ const processColumns = memoizeOne(function processColumns(
   props: TableChartProps,
 ) {
   const {
-    datasource: { columnFormats, currencyFormats, verboseMap },
+    datasource: {
+      columnFormats,
+      currencyFormats,
+      verboseMap,
+      currencyCodeColumn,
+    },
     rawFormData: {
       table_timestamp_format: tableTimestampFormat,
       metrics: metrics_,
       percent_metrics: percentMetrics_,
       column_config: columnConfig = {},
     },
+    rawDatasource,
     queriesData,
   } = props;
   const granularity = extractTimegrain(props.rawFormData);
-  const { data: records, colnames, coltypes } = queriesData[0] || {};
+  const {
+    data: records,
+    colnames,
+    coltypes,
+    detected_currency: detectedCurrency,
+  } = queriesData[0] || {};
   // convert `metrics` and `percentMetrics` to the key names in `data.records`
   const metrics = (metrics_ ?? []).map(getMetricLabel);
   const rawPercentMetrics = (percentMetrics_ ?? []).map(getMetricLabel);
@@ -237,6 +258,12 @@ const processColumns = memoizeOne(function processColumns(
         ? config.currencyFormat
         : savedCurrency;
 
+      const description =
+        rawDatasource.columns?.find((item: any) => item.column_name === key)
+          ?.description ??
+        rawDatasource.metrics?.find((item: any) => item.metric_name === key)
+          ?.description;
+
       let formatter;
 
       if (isTime || config.d3TimeFormat) {
@@ -267,10 +294,25 @@ const processColumns = memoizeOne(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && (numberFormat || currency))) {
-        formatter = currency
+        // Resolve AUTO currency when currency column isn't in query results
+        let resolvedCurrency = currency;
+        if (
+          currency?.symbol === 'AUTO' &&
+          detectedCurrency &&
+          (!currencyCodeColumn || !colnames?.includes(currencyCodeColumn))
+        ) {
+          const normalizedCurrency = normalizeCurrency(detectedCurrency);
+          if (normalizedCurrency) {
+            resolvedCurrency = {
+              ...currency,
+              symbol: normalizedCurrency,
+            };
+          }
+        }
+        formatter = resolvedCurrency?.symbol
           ? new CurrencyFormatter({
               d3Format: numberFormat,
-              currency,
+              currency: resolvedCurrency,
             })
           : getNumberFormatter(numberFormat);
       }
@@ -283,6 +325,8 @@ const processColumns = memoizeOne(function processColumns(
         isPercentMetric,
         formatter,
         config,
+        description,
+        currencyCodeColumn,
       };
     });
   return [metrics, percentMetrics, columns] as [
@@ -450,7 +494,7 @@ const transformProps = (
   const {
     height,
     width,
-    rawFormData: formData,
+    rawFormData: originalFormData,
     queriesData = [],
     filterState,
     ownState: serverPaginationData,
@@ -460,7 +504,14 @@ const transformProps = (
       onContextMenu,
     },
     emitCrossFilters,
+    theme,
   } = chartProps;
+
+  const formData = merge(
+    {},
+    originalFormData,
+    originalFormData.extra_form_data,
+  );
 
   const {
     align_pn: alignPositiveNegative = true,
@@ -480,6 +531,7 @@ const transformProps = (
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
     comparison_type,
+    slice_id,
   } = formData;
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
@@ -666,7 +718,7 @@ const transformProps = (
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData) ??
+    getColorFormatters(conditionalFormatting, passedData, theme) ??
     defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
@@ -675,6 +727,26 @@ const transformProps = (
     conditionalFormatting,
   );
 
+  // Get cached values for this slice
+  const cachedValues = sliceCache.get(slice_id);
+  let hasServerPageLengthChanged = false;
+
+  if (
+    cachedValues?.cachedServerLength !== undefined &&
+    cachedValues.cachedServerLength !== serverPageLength
+  ) {
+    hasServerPageLengthChanged = true;
+  }
+
+  // Update cache with new values
+  sliceCache.set(slice_id, {
+    cachedServerLength: serverPageLength,
+    passedColumns:
+      Array.isArray(passedColumns) && passedColumns?.length > 0
+        ? passedColumns
+        : cachedValues?.passedColumns,
+  });
+
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   return {
     height,
@@ -682,7 +754,10 @@ const transformProps = (
     isRawRecords: queryMode === QueryMode.Raw,
     data: passedData,
     totals,
-    columns: passedColumns,
+    columns:
+      Array.isArray(passedColumns) && passedColumns?.length > 0
+        ? passedColumns
+        : cachedValues?.passedColumns || [],
     serverPagination,
     metrics,
     percentMetrics,
@@ -697,7 +772,9 @@ const transformProps = (
     includeSearch,
     rowCount,
     pageSize: serverPagination
-      ? serverPageLength
+      ? serverPaginationData?.pageSize
+        ? serverPaginationData?.pageSize
+        : serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
     filters: filterState.filters,
     emitCrossFilters,
@@ -711,6 +788,9 @@ const transformProps = (
     basicColorFormatters,
     startDateOffset,
     basicColorColumnFormatters,
+    hasServerPageLengthChanged,
+    serverPageLength,
+    slice_id,
   };
 };
 

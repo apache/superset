@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import 'whatwg-fetch'; // for adding Response polyfill
 import {
   JsonObject,
   SupersetApiError,

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, ReactNode } from 'react';
-import { NativeFilterType, styled } from '@superset-ui/core';
+import { NativeFilterType } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import FilterTitlePane from './FilterTitlePane';
 import { FilterRemoval } from './types';
 
@@ -42,13 +43,12 @@ const Container = styled.div`
 
 const ContentHolder = styled.div`
   flex-grow: 3;
-  margin-left: ${({ theme }) => theme.gridUnit * -1 - 1};
 `;
 
 const TitlesContainer = styled.div`
-  min-width: 300px;
-  max-width: 300px;
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  min-width: 290px;
+  max-width: 290px;
+  border-right: 1px solid ${({ theme }) => theme.colorSplit};
 `;
 
 const FilterConfigurePane: FC<Props> = ({

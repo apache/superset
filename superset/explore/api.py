@@ -27,6 +27,7 @@ from superset.commands.temporary_cache.exceptions import (
     TemporaryCacheResourceNotFoundError,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.exceptions import SupersetSecurityException
 from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.schemas import ExploreContextSchema
@@ -118,6 +119,11 @@ class ExploreRestApi(BaseSupersetApi):
             return self.response(200, result=result)
         except ValueError as ex:
             return self.response(400, message=str(ex))
+        except SupersetSecurityException as ex:
+            return self.response(
+                403,
+                **ex.to_dict(),
+            )
         except DatasetAccessDeniedError as ex:
             return self.response(
                 403,

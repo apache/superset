@@ -18,8 +18,7 @@
  */
 
 import { CSSProperties } from 'react';
-import { css, styled } from '../../style';
-import { t } from '../../translation';
+import { css, styled, t } from '@apache-superset/core/ui';
 
 const MESSAGE_STYLES: CSSProperties = { maxWidth: 800 };
 const MIN_WIDTH_FOR_BODY = 250;
@@ -36,16 +35,16 @@ const Container = styled.div<{
     text-align: center;
     height: ${height}px;
     width: ${width}px;
-    padding: ${theme.gridUnit * 4}px;
+    padding: ${theme.sizeUnit * 4}px;
 
     & .no-results-title {
-      font-size: ${theme.typography.sizes.l}px;
-      font-weight: ${theme.typography.weights.bold};
-      padding-bottom: ${theme.gridUnit * 2};
+      font-size: ${theme.fontSizeLG}px;
+      font-weight: ${theme.fontWeightStrong};
+      padding-bottom: ${theme.sizeUnit * 2};
     }
 
     & .no-results-body {
-      font-size: ${theme.typography.sizes.m}px;
+      font-size: ${theme.fontSize}px;
     }
   `}
 `;

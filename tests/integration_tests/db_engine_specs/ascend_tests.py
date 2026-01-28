@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.db_engine_specs.ascend import AscendEngineSpec
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.base_tests import SupersetTestCase
 
 
-class TestAscendDbEngineSpec(TestDbEngineSpec):
+class TestAscendDbEngineSpec(SupersetTestCase):
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 

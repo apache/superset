@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
+import { ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.jpg';
+import exampleDark from './images/example-dark.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -28,7 +31,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Visualizes many different time-series objects in a single chart. This chart is being deprecated and we recommend using the Time-series Chart instead.',
   ),
-  exampleGallery: [{ url: example }],
+  exampleGallery: [{ url: example, urlDark: exampleDark }],
   label: ChartLabel.Deprecated,
   name: t('Time-series Percent Change'),
   tags: [
@@ -43,6 +46,7 @@ const metadata = new ChartMetadata({
     t('Trend'),
   ],
   thumbnail,
+  thumbnailDark,
   useLegacyApi: true,
 });
 

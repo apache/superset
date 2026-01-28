@@ -18,8 +18,10 @@
  */
 
 import { ReactNode } from 'react';
-import { t } from '@superset-ui/core';
-import Button from 'src/components/Button';
+import { t } from '@apache-superset/core';
+import { useTheme } from '@apache-superset/core/ui';
+import { Button } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 export type RunQueryButtonProps = {
   loading: boolean;
@@ -39,10 +41,12 @@ export const RunQueryButton = ({
   isNewChart,
   canStopQuery,
   chartIsStale,
-}: RunQueryButtonProps) =>
-  loading ? (
-    <Button onClick={onStop} buttonStyle="warning" disabled={!canStopQuery}>
-      <i className="fa fa-stop" /> {t('Stop')}
+}: RunQueryButtonProps) => {
+  const theme = useTheme();
+  return loading ? (
+    <Button onClick={onStop} buttonStyle="danger" disabled={!canStopQuery}>
+      <Icons.Square iconSize="xs" iconColor={theme.colorIcon} />
+      {t('Stop')}
     </Button>
   ) : (
     <Button
@@ -54,3 +58,4 @@ export const RunQueryButton = ({
       {isNewChart ? t('Create chart') : t('Update chart')}
     </Button>
   );
+};

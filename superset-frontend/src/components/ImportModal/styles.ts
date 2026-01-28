@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import { css, SupersetTheme } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
 
 export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
-  margin: ${theme.gridUnit * 4}px 0;
+  margin: ${theme.sizeUnit * 4}px 0;
 
-  .antd5-alert-message {
+  .ant-alert-message {
     margin: 0;
   }
 `;

@@ -17,7 +17,7 @@
 
 import pytest
 
-from superset.utils.slack import get_channels_with_search
+from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 
 
 class MockResponse:
@@ -150,15 +150,43 @@ class TestGetChannelsWithSearch:
 The server responded with: missing scope: channels:read"""
         )
 
-    def test_filter_channels_by_specified_types(self, mocker):
+    @pytest.mark.parametrize(
+        "types, expected_channel_ids",
+        [
+            ([SlackChannelTypes.PUBLIC], {"public_channel_id"}),
+            ([SlackChannelTypes.PRIVATE], {"private_channel_id"}),
+            (
+                [SlackChannelTypes.PUBLIC, SlackChannelTypes.PRIVATE],
+                {"public_channel_id", "private_channel_id"},
+            ),
+            ([], {"public_channel_id", "private_channel_id"}),
+        ],
+    )
+    def test_filter_channels_by_specified_types(
+        self, types: list[SlackChannelTypes], expected_channel_ids: set[str], mocker
+    ):
         mock_data = {
             "channels": [
                 {
+<<<<<<< HEAD
                     "id": "C12345",
                     "name": "general",
                     "is_member": False,
                     "is_private": False,
                 },
+=======
+                    "id": "public_channel_id",
+                    "name": "open",
+                    "is_member": False,
+                    "is_private": False,
+                },
+                {
+                    "id": "private_channel_id",
+                    "name": "secret",
+                    "is_member": False,
+                    "is_private": True,
+                },
+>>>>>>> origin/master
             ],
             "response_metadata": {"next_cursor": None},
         }
@@ -168,6 +196,7 @@ The server responded with: missing scope: channels:read"""
         mock_client.conversations_list.return_value = mock_response_instance
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
+<<<<<<< HEAD
         result = get_channels_with_search(types=["public"])
         assert result == [
             {
@@ -177,6 +206,10 @@ The server responded with: missing scope: channels:read"""
                 "is_private": False,
             }
         ]
+=======
+        result = get_channels_with_search(types=types)
+        assert {channel["id"] for channel in result} == expected_channel_ids
+>>>>>>> origin/master
 
     def test_handle_pagination_multiple_pages(self, mocker):
         mock_data_page1 = {

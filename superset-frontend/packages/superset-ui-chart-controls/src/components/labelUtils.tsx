@@ -18,7 +18,8 @@
  */
 import { ReactNode, RefObject } from 'react';
 
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 
 const TooltipSectionWrapper = styled.div`
@@ -29,18 +30,26 @@ const TooltipSectionWrapper = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
 
+<<<<<<< HEAD
     font-size: ${theme.typography.sizes.s}px;
     line-height: 1.2;
 
     &:not(:last-of-type) {
       margin-bottom: ${theme.gridUnit * 2}px;
+=======
+    font-size: ${theme.fontSizeSM}px;
+    line-height: 1.2;
+
+    &:not(:last-of-type) {
+      margin-bottom: ${theme.sizeUnit * 2}px;
+>>>>>>> origin/master
     }
   `}
 `;
 
 const TooltipSectionLabel = styled.span`
   ${({ theme }) => css`
-    font-weight: ${theme.typography.weights.bold};
+    font-weight: ${theme.fontWeightStrong};
   `}
 `;
 
@@ -97,7 +106,7 @@ export const getColumnTooltipNode = (
   );
 };
 
-type MetricType = Omit<Metric, 'id'> & { label?: string };
+type MetricType = Omit<Metric, 'id' | 'uuid'> & { label?: string };
 
 export const getMetricTooltipNode = (
   metric: MetricType,

@@ -18,12 +18,8 @@
  */
 
 /* eslint-disable max-classes-per-file */
-import {
-  QueryFormData,
-  ChartMetadata,
-  ChartPlugin,
-  useTheme,
-} from '@superset-ui/core';
+import { QueryFormData, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 
 const DIMENSION_STYLE = {
   fontSize: 36,
@@ -51,8 +47,8 @@ export const TestComponent = ({
       style={{
         width,
         height,
-        backgroundColor: theme.colors.primary.light5,
-        color: theme.colors.grayscale.light3,
+        backgroundColor: theme.colorPrimaryBg,
+        color: theme.colorTextSecondary,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -66,7 +62,7 @@ export const TestComponent = ({
         {[width, height].join('x')}
       </div>
       <div className="formData" style={{ padding: 10 }}>
-        <code style={{ color: theme.colors.primary.light2 }}>
+        <code style={{ color: theme.colorTextSecondary }}>
           {JSON.stringify(formData)}
         </code>
       </div>

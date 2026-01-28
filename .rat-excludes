@@ -11,6 +11,7 @@
 .nvmrc
 .prettierrc
 .rat-excludes
+.swcrc
 .*log
 .*pyc
 .*lock
@@ -32,6 +33,8 @@ apache_superset.egg-info
 # json and csv in general cannot have comments
 .*json
 .*csv
+# jinja templates often need to be as-is
+.*j2
 # Generated doc files
 env/*
 docs/.htaccess*
@@ -68,11 +71,29 @@ temporary_superset_ui/*
 google-big-query.svg
 google-sheets.svg
 ibm-db2.svg
+netlify.png
 postgresql.svg
 snowflake.svg
 ydb.svg
+loading.svg
+apache-solr.svg
+azure.svg
+superset.svg
+
+# docs third-party logos, i.e. docs/static/img/logos/*
+logos/*
 
 # docs-related
 erd.puml
 erd.svg
 intro_header.txt
+
+# for LLMs
+llm-context.md
+llms.txt
+AGENTS.md
+LLMS.md
+CLAUDE.md
+CURSOR.md
+GEMINI.md
+GPT.md

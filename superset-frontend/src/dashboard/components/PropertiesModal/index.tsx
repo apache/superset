@@ -18,54 +18,48 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { omit } from 'lodash';
-import { Input } from 'src/components/Input';
-import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
-import Button from 'src/components/Button';
-import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
+import {
+  Form,
+  Collapse,
+  CollapseLabelInModal,
+  JsonEditor,
+} from '@superset-ui/core/components';
+import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
+import { type TagType } from 'src/components';
 import rison from 'rison';
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
   getCategoricalSchemeRegistry,
-  styled,
   SupersetClient,
-  t,
   getClientErrorObject,
 } from '@superset-ui/core';
 
-import Modal from 'src/components/Modal';
-import { JsonEditor } from 'src/components/AsyncAceEditor';
-
-import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
-import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import TagType from 'src/types/TagType';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
-import { loadTags } from 'src/components/Tags/utils';
 import {
   applyColors,
   getColorNamespace,
   getFreshLabelsColorMapEntries,
 } from 'src/utils/colorScheme';
-import getOwnerName from 'src/utils/getOwnerName';
-import Owner from 'src/types/Owner';
 import { useDispatch } from 'react-redux';
 import {
   setColorScheme,
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
-
-const StyledFormItem = styled(FormItem)`
-  margin-bottom: 0;
-`;
-
-const StyledJsonEditor = styled(JsonEditor)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
-`;
+import { StandardModal, useModalValidation } from 'src/components/Modal';
+import {
+  BasicInfoSection,
+  AccessSection,
+  StylingSection,
+  RefreshSection,
+  CertificationSection,
+  AdvancedSection,
+} from './sections';
 
 type PropertiesModalProps = {
   dashboardId: number;
@@ -95,6 +89,11 @@ type DashboardInfo = {
   certificationDetails: string;
   isManagedExternally: boolean;
   metadata: Record<string, any>;
+  common?: {
+    conf?: {
+      SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT?: number;
+    };
+  };
 };
 
 const PropertiesModal = ({
@@ -110,31 +109,43 @@ const PropertiesModal = ({
   show = false,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
-  const [form] = AntdForm.useForm();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [form] = Form.useForm();
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isApplying, setIsApplying] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
   const [dashboardInfo, setDashboardInfo] = useState<DashboardInfo>();
+
+  // JSON validation for metadata
+  const jsonAnnotations = useJsonValidation(jsonMetadata, {
+    errorPrefix: 'Invalid JSON metadata',
+  });
   const [owners, setOwners] = useState<Owners>([]);
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
+  const [customCss, setCustomCss] = useState('');
+  const [refreshFrequency, setRefreshFrequency] = useState(0);
+  const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
+  const [showChartTimestamps, setShowChartTimestamps] = useState(false);
+  const [themes, setThemes] = useState<
+    Array<{
+      id: number;
+      theme_name: string;
+    }>
+  >([]);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
-
-  const tagsAsSelectValues = useMemo(() => {
-    const selectTags = tags.map((tag: { id: number; name: string }) => ({
-      value: tag.id,
-      label: tag.name,
-    }));
-    return selectTags;
-  }, [tags.length]);
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
     let errorText = error || statusText || t('An error has occurred');
-    if (typeof message === 'object' && 'json_metadata' in message) {
+    if (
+      typeof message === 'object' &&
+      'json_metadata' in message &&
+      typeof (message as { json_metadata: unknown }).json_metadata === 'string'
+    ) {
       errorText = (message as { json_metadata: string }).json_metadata;
     } else if (typeof message === 'string') {
       errorText = message;
@@ -144,36 +155,8 @@ const PropertiesModal = ({
       }
     }
 
-    Modal.error({
-      title: t('Error'),
-      content: errorText,
-      okButtonProps: { danger: true, className: 'btn-danger' },
-    });
+    addDangerToast(String(errorText));
   };
-
-  const loadAccessOptions = useCallback(
-    (accessType = 'owners', input = '', page: number, pageSize: number) => {
-      const query = rison.encode({
-        filter: input,
-        page,
-        page_size: pageSize,
-      });
-      return SupersetClient.get({
-        endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
-      }).then(response => ({
-        data: response.json.result
-          .filter((item: { extra: { active: boolean } }) =>
-            item.extra.active !== undefined ? item.extra.active : true,
-          )
-          .map((item: { value: number; text: string }) => ({
-            value: item.value,
-            label: item.text,
-          })),
-        totalCount: response.json.count,
-      }));
-    },
-    [],
-  );
 
   const handleDashboardData = useCallback(
     dashboardData => {
@@ -187,6 +170,8 @@ const PropertiesModal = ({
         roles,
         metadata,
         is_managed_externally,
+        theme,
+        css,
       } = dashboardData;
       const dashboardInfo = {
         id,
@@ -195,6 +180,7 @@ const PropertiesModal = ({
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
         isManagedExternally: is_managed_externally || false,
+        css: css || '',
         metadata,
       };
 
@@ -202,23 +188,27 @@ const PropertiesModal = ({
       setDashboardInfo(dashboardInfo);
       setOwners(owners);
       setRoles(roles);
-      setCurrentColorScheme(metadata.color_scheme);
+      setCustomCss(css || '');
+      setCurrentColorScheme(metadata?.color_scheme);
+      setSelectedThemeId(theme?.id || null);
 
       const metaDataCopy = omit(metadata, [
         'positions',
         'shared_label_colors',
         'map_label_colors',
         'color_scheme_domain',
+        'show_chart_timestamps',
       ]);
 
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
+      setRefreshFrequency(metadata?.refresh_frequency || 0);
+      setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
     },
     [form],
   );
 
   const fetchDashboardDetails = useCallback(() => {
-    setIsLoading(true);
     // We fetch the dashboard details because not all code
     // that renders this component have all the values we need.
     // At some point when we have a more consistent frontend
@@ -267,24 +257,6 @@ const PropertiesModal = ({
     setRoles(parsedRoles);
   };
 
-  const handleOwnersSelectValue = () => {
-    const parsedOwners = (owners || []).map((owner: Owner) => ({
-      value: owner.id,
-      label: getOwnerName(owner),
-    }));
-    return parsedOwners;
-  };
-
-  const handleRolesSelectValue = () => {
-    const parsedRoles = (roles || []).map(
-      (role: { id: number; name: string }) => ({
-        value: role.id,
-        label: `${role.name}`,
-      }),
-    );
-    return parsedRoles;
-  };
-
   const handleOnCancel = () => onHide();
 
   const onColorSchemeChange = (
@@ -297,11 +269,7 @@ const PropertiesModal = ({
 
     // only fire if the color_scheme is present and invalid
     if (colorScheme && !colorChoices.includes(colorScheme)) {
-      Modal.error({
-        title: t('Error'),
-        content: t('A valid color scheme is required'),
-        okButtonProps: { danger: true, className: 'btn-danger' },
-      });
+      addDangerToast(t('A valid color scheme is required'));
       onHide();
       throw new Error('A valid color scheme is required');
     }
@@ -358,11 +326,14 @@ const PropertiesModal = ({
         ? resettableCustomLabels
         : false;
     const jsonMetadataObj = getJsonMetadata();
+    jsonMetadataObj.refresh_frequency = refreshFrequency;
+    jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
       ...originalDashboardMetadata.current,
       label_colors: customLabelColors,
       color_scheme: updatedColorScheme,
+      show_chart_timestamps: showChartTimestamps,
     };
 
     originalDashboardMetadata.current = updatedDashboardMetadata;
@@ -378,16 +349,19 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
-    currentJsonMetadata = jsonStringify(metadata);
+    currentJsonMetadata = jsonStringify(jsonMetadataObj);
 
-    const moreOnSubmitProps: { roles?: Roles } = {};
-    const morePutProps: { roles?: number[]; tags?: (number | undefined)[] } =
-      {};
+    const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
+    const morePutProps: {
+      roles?: number[];
+      tags?: (string | number | undefined)[];
+    } = {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
     }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+      moreOnSubmitProps.tags = tags;
       morePutProps.tags = tags.map(tag => tag.id);
     }
     const onSubmitProps = {
@@ -400,26 +374,39 @@ const PropertiesModal = ({
       colorNamespace,
       certifiedBy,
       certificationDetails,
+      themeId: selectedThemeId,
+      css: customCss,
       ...moreOnSubmitProps,
     };
     if (onlyApply) {
-      onSubmit(onSubmitProps);
-      onHide();
-      addSuccessToast(t('Dashboard properties updated'));
+      setIsApplying(true);
+      try {
+        onSubmit(onSubmitProps);
+        onHide();
+        addSuccessToast(t('Dashboard properties updated'));
+      } catch (error) {
+        console.error('Apply failed:', error);
+      } finally {
+        setIsApplying(false);
+      }
     } else {
+      const saveData = {
+        dashboard_title: title,
+        slug: slug || null,
+        json_metadata: currentJsonMetadata || null,
+        owners: (owners || []).map(o => o.id),
+        certified_by: certifiedBy || null,
+        certification_details:
+          certifiedBy && certificationDetails ? certificationDetails : null,
+        css: customCss || null,
+        theme_id: selectedThemeId,
+        ...morePutProps,
+      };
+
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dashboard_title: title,
-          slug: slug || null,
-          json_metadata: currentJsonMetadata || null,
-          owners: (owners || []).map(o => o.id),
-          certified_by: certifiedBy || null,
-          certification_details:
-            certifiedBy && certificationDetails ? certificationDetails : null,
-          ...morePutProps,
-        }),
+        body: JSON.stringify(saveData),
       }).then(() => {
         onSubmit(onSubmitProps);
         onHide();
@@ -428,127 +415,50 @@ const PropertiesModal = ({
     }
   };
 
-  const getRowsWithoutRoles = () => {
-    const jsonMetadataObj = getJsonMetadata();
-    const hasCustomLabelsColor = !!Object.keys(
-      jsonMetadataObj?.label_colors || {},
-    ).length;
-
-    return (
-      <Row gutter={16}>
-        <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-          <StyledFormItem label={t('Owners')}>
-            <AsyncSelect
-              allowClear
-              ariaLabel={t('Owners')}
-              disabled={isLoading}
-              mode="multiple"
-              onChange={handleOnChangeOwners}
-              options={(input, page, pageSize) =>
-                loadAccessOptions('owners', input, page, pageSize)
-              }
-              value={handleOwnersSelectValue()}
-            />
-          </StyledFormItem>
-          <p className="help-block">
-            {t(
-              'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-            )}
-          </p>
-        </Col>
-        <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
-          <ColorSchemeControlWrapper
-            hasCustomLabelsColor={hasCustomLabelsColor}
-            onChange={onColorSchemeChange}
-            colorScheme={colorScheme}
-          />
-        </Col>
-      </Row>
-    );
-  };
-
-  const getRowsWithRoles = () => {
-    const jsonMetadataObj = getJsonMetadata();
-    const hasCustomLabelsColor = !!Object.keys(
-      jsonMetadataObj?.label_colors || {},
-    ).length;
-
-    return (
-      <>
-        <Row>
-          <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <StyledFormItem label={t('Owners')}>
-              <AsyncSelect
-                allowClear
-                allowNewOptions
-                ariaLabel={t('Owners')}
-                disabled={isLoading}
-                mode="multiple"
-                onChange={handleOnChangeOwners}
-                options={(input, page, pageSize) =>
-                  loadAccessOptions('owners', input, page, pageSize)
-                }
-                value={handleOwnersSelectValue()}
-              />
-            </StyledFormItem>
-            <p className="help-block">
-              {t(
-                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-              )}
-            </p>
-          </Col>
-          <Col xs={24} md={12}>
-            <StyledFormItem label={t('Roles')}>
-              <AsyncSelect
-                allowClear
-                ariaLabel={t('Roles')}
-                disabled={isLoading}
-                mode="multiple"
-                onChange={handleOnChangeRoles}
-                options={(input, page, pageSize) =>
-                  loadAccessOptions('roles', input, page, pageSize)
-                }
-                value={handleRolesSelectValue()}
-              />
-            </StyledFormItem>
-            <p className="help-block">
-              {t(
-                'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.',
-              )}
-            </p>
-          </Col>
-        </Row>
-        <Row>
-          <Col xs={24} md={12}>
-            <ColorSchemeControlWrapper
-              hasCustomLabelsColor={hasCustomLabelsColor}
-              onChange={onColorSchemeChange}
-              colorScheme={colorScheme}
-            />
-          </Col>
-        </Row>
-      </>
-    );
-  };
-
   useEffect(() => {
     if (show) {
+      // Reset loading state when modal opens
+      setIsLoading(true);
+
       if (!currentDashboardInfo) {
         fetchDashboardDetails();
       } else {
         handleDashboardData(currentDashboardInfo);
+        // Data is immediately available, so we can stop loading
+        setIsLoading(false);
       }
+
+      // Fetch themes (excluding system themes)
+      const themeQuery = rison.encode({
+        columns: ['id', 'theme_name', 'is_system'],
+        filters: [
+          {
+            col: 'is_system',
+            opr: 'eq',
+            value: false,
+          },
+        ],
+      });
+      SupersetClient.get({ endpoint: `/api/v1/theme/?q=${themeQuery}` })
+        .then(({ json }) => {
+          const fetchedThemes = json.result;
+          setThemes(fetchedThemes);
+        })
+        .catch(() => {
+          addDangerToast(
+            t('An error occurred while fetching available themes'),
+          );
+        });
     }
 
     JsonEditor.preload();
-  }, [currentDashboardInfo, fetchDashboardDetails, handleDashboardData, show]);
+  }, [
+    currentDashboardInfo,
+    fetchDashboardDetails,
+    handleDashboardData,
+    show,
+    addDangerToast,
+  ]);
 
   useEffect(() => {
     // the title can be changed inline in the dashboard, this catches it
@@ -591,186 +501,288 @@ const PropertiesModal = ({
     setTags(parsedTags);
   };
 
+  const handleClearTags = () => {
+    setTags([]);
+  };
+
+  // Section handlers for extracted components
+  const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
+  const handleRefreshFrequencyChange = (value: any) =>
+    setRefreshFrequency(value);
+
+  // Helper function for styling section
+  const hasCustomLabelsColor = !!Object.keys(
+    getJsonMetadata()?.label_colors || {},
+  ).length;
+
+  // Validation setup
+  const modalSections = useMemo(
+    () => [
+      {
+        key: 'basic',
+        name: t('General information'),
+        validator: () => {
+          const errors = [];
+          const values = form.getFieldsValue();
+
+          // Check validation - only add if title is empty
+          if (!values.title || values.title.trim().length === 0) {
+            errors.push(t('Dashboard name is required'));
+          }
+
+          return errors;
+        },
+      },
+      {
+        key: 'access',
+        name: t('Access & ownership'),
+        validator: () => [],
+      },
+      {
+        key: 'styling',
+        name: t('Styling'),
+        validator: () => [],
+      },
+      {
+        key: 'refresh',
+        name: t('Refresh settings'),
+        validator: () => {
+          const errors = [];
+          const refreshLimit =
+            dashboardInfo?.common?.conf
+              ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
+          if (
+            refreshLimit &&
+            refreshFrequency > 0 &&
+            refreshFrequency < refreshLimit
+          ) {
+            errors.push(
+              t(
+                'Refresh frequency must be at least %s seconds',
+                refreshLimit / 1000,
+              ),
+            );
+          }
+          return errors;
+        },
+      },
+      {
+        key: 'certification',
+        name: t('Certification'),
+        validator: () => [],
+      },
+      {
+        key: 'advanced',
+        name: t('Advanced settings'),
+        validator: () => {
+          if (jsonAnnotations.length > 0) {
+            return [t('Invalid JSON metadata')];
+          }
+          return [];
+        },
+      },
+    ],
+    [form, jsonAnnotations, refreshFrequency, dashboardInfo],
+  );
+
+  const {
+    validationStatus,
+    validateAll,
+    validateSection,
+    errorTooltip,
+    hasErrors,
+  } = useModalValidation({
+    sections: modalSections,
+  });
+
+  const isDataReady = !isLoading && dashboardInfo;
+
+  // Validate basic section when title changes or data loads
+  useEffect(() => {
+    if (isDataReady) {
+      validateSection('basic');
+    }
+  }, [dashboardTitle, validateSection, isDataReady]);
+
+  // Validate advanced section when JSON changes or data loads
+  useEffect(() => {
+    if (isDataReady) {
+      validateSection('advanced');
+    }
+  }, [jsonMetadata, validateSection, isDataReady]);
+
+  // Validate refresh section when frequency changes or data loads
+  useEffect(() => {
+    if (isDataReady) {
+      validateSection('refresh');
+    }
+  }, [refreshFrequency, validateSection, isDataReady]);
+
   return (
-    <Modal
+    <StandardModal
       show={show}
       onHide={handleOnCancel}
+      onSave={() => {
+        if (validateAll()) {
+          form.submit();
+        }
+      }}
       title={t('Dashboard properties')}
-      footer={
-        <>
-          <Button
-            htmlType="button"
-            buttonSize="small"
-            onClick={handleOnCancel}
-            data-test="properties-modal-cancel-button"
-            cta
-          >
-            {t('Cancel')}
-          </Button>
-          <Button
-            data-test="properties-modal-apply-button"
-            onClick={form.submit}
-            buttonSize="small"
-            buttonStyle="primary"
-            className="m-r-5"
-            cta
-            disabled={dashboardInfo?.isManagedExternally}
-            tooltip={
-              dashboardInfo?.isManagedExternally
-                ? t(
-                    "This dashboard is managed externally, and can't be edited in Superset",
-                  )
-                : ''
-            }
-          >
-            {saveLabel}
-          </Button>
-        </>
+      isEditMode
+      saveDisabled={dashboardInfo?.isManagedExternally || hasErrors}
+      saveLoading={isApplying}
+      contentLoading={isLoading}
+      errorTooltip={
+        dashboardInfo?.isManagedExternally
+          ? t(
+              "This dashboard is managed externally, and can't be edited in Superset",
+            )
+          : errorTooltip
       }
-      responsive
+      saveText={saveLabel}
+      wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <AntdForm
+      <Form
         form={form}
         onFinish={onFinish}
+        onFieldsChange={() => {
+          // Re-validate sections when form fields change
+          if (isDataReady) {
+            validateSection('basic');
+          }
+        }}
         data-test="dashboard-edit-properties-form"
         layout="vertical"
         initialValues={dashboardInfo}
       >
-        <Row>
-          <Col xs={24} md={24}>
-            <h3>{t('Basic information')}</h3>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <FormItem label={t('Name')} name="title">
-              <Input
-                data-test="dashboard-title-input"
-                type="text"
-                disabled={isLoading}
-              />
-            </FormItem>
-          </Col>
-          <Col xs={24} md={12}>
-            <StyledFormItem label={t('URL slug')} name="slug">
-              <Input type="text" disabled={isLoading} />
-            </StyledFormItem>
-            <p className="help-block">
-              {t('A readable URL for your dashboard')}
-            </p>
-          </Col>
-        </Row>
-        {isFeatureEnabled(FeatureFlag.DashboardRbac)
-          ? getRowsWithRoles()
-          : getRowsWithoutRoles()}
-        <Row>
-          <Col xs={24} md={24}>
-            <h3>{t('Certification')}</h3>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <StyledFormItem label={t('Certified by')} name="certifiedBy">
-              <Input type="text" disabled={isLoading} />
-            </StyledFormItem>
-            <p className="help-block">
-              {t('Person or group that has certified this dashboard.')}
-            </p>
-          </Col>
-          <Col xs={24} md={12}>
-            <StyledFormItem
-              label={t('Certification details')}
-              name="certificationDetails"
-            >
-              <Input type="text" disabled={isLoading} />
-            </StyledFormItem>
-            <p className="help-block">
-              {t('Any additional detail to show in the certification tooltip.')}
-            </p>
-          </Col>
-        </Row>
-        {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
-            </Col>
-          </Row>
-        ) : null}
-        {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <StyledFormItem>
-                <AsyncSelect
-                  ariaLabel="Tags"
-                  mode="multiple"
-                  value={tagsAsSelectValues}
-                  options={loadTags}
-                  onChange={handleChangeTags}
-                  allowClear
+        <Collapse
+          expandIconPosition="end"
+          defaultActiveKey="basic"
+          accordion
+          modalMode
+          items={[
+            {
+              key: 'basic',
+              label: (
+                <CollapseLabelInModal
+                  title={t('General information')}
+                  subtitle={t('Dashboard name and URL configuration')}
+                  validateCheckStatus={!validationStatus.basic?.hasErrors}
+                  testId="basic-section"
                 />
-              </StyledFormItem>
-              <p className="help-block">
-                {t('A list of tags that have been applied to this chart.')}
-              </p>
-            </Col>
-          </Row>
-        ) : null}
-        <Row>
-          <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>
-              <Button
-                buttonStyle="link"
-                onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-              >
-                <i
-                  className={`fa fa-angle-${isAdvancedOpen ? 'down' : 'right'}`}
-                  style={{ minWidth: '1em' }}
+              ),
+              children: (
+                <BasicInfoSection
+                  form={form}
+                  validationStatus={validationStatus}
                 />
-                {t('Advanced')}
-              </Button>
-            </h3>
-            {isAdvancedOpen && (
-              <>
-                <StyledFormItem label={t('JSON metadata')}>
-                  <StyledJsonEditor
-                    showLoadingForImport
-                    name="json_metadata"
-                    value={jsonMetadata}
-                    onChange={setJsonMetadata}
-                    tabSize={2}
-                    width="100%"
-                    height="200px"
-                    wrapEnabled
-                  />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t(
-                    'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
+              ),
+            },
+            {
+              key: 'access',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Access & ownership')}
+                  subtitle={t('Manage dashboard owners and access permissions')}
+                  validateCheckStatus={!validationStatus.access?.hasErrors}
+                  testId="access-section"
+                />
+              ),
+              children: (
+                <AccessSection
+                  isLoading={isLoading}
+                  owners={owners}
+                  roles={roles}
+                  tags={tags}
+                  onChangeOwners={handleOnChangeOwners}
+                  onChangeRoles={handleOnChangeRoles}
+                  onChangeTags={handleChangeTags}
+                  onClearTags={handleClearTags}
+                />
+              ),
+            },
+            {
+              key: 'styling',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Styling')}
+                  subtitle={t(
+                    'Configure dashboard appearance, colors, and custom CSS',
                   )}
-                  {onlyApply && (
-                    <>
-                      {' '}
-                      {t(
-                        'Please DO NOT overwrite the "filter_scopes" key.',
-                      )}{' '}
-                      <FilterScopeModal
-                        triggerNode={
-                          <span className="alert-link">
-                            {t('Use "%(menuName)s" menu instead.', {
-                              menuName: t('Set filter mapping'),
-                            })}
-                          </span>
-                        }
-                      />
-                    </>
-                  )}
-                </p>
-              </>
-            )}
-          </Col>
-        </Row>
-      </AntdForm>
-    </Modal>
+                  validateCheckStatus={!validationStatus.styling?.hasErrors}
+                  testId="styling-section"
+                />
+              ),
+              children: (
+                <StylingSection
+                  themes={themes}
+                  selectedThemeId={selectedThemeId}
+                  colorScheme={colorScheme}
+                  customCss={customCss}
+                  hasCustomLabelsColor={hasCustomLabelsColor}
+                  showChartTimestamps={showChartTimestamps}
+                  onThemeChange={handleThemeChange}
+                  onColorSchemeChange={onColorSchemeChange}
+                  onCustomCssChange={setCustomCss}
+                  onShowChartTimestampsChange={setShowChartTimestamps}
+                  addDangerToast={addDangerToast}
+                />
+              ),
+            },
+            {
+              key: 'refresh',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Refresh settings')}
+                  subtitle={t('Configure automatic dashboard refresh')}
+                  validateCheckStatus={!validationStatus.refresh?.hasErrors}
+                  testId="refresh-section"
+                />
+              ),
+              children: (
+                <RefreshSection
+                  refreshFrequency={refreshFrequency}
+                  onRefreshFrequencyChange={handleRefreshFrequencyChange}
+                />
+              ),
+            },
+            {
+              key: 'certification',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Certification')}
+                  subtitle={t('Add certification details for this dashboard')}
+                  validateCheckStatus={
+                    !validationStatus.certification?.hasErrors
+                  }
+                  testId="certification-section"
+                />
+              ),
+              children: <CertificationSection isLoading={isLoading} />,
+            },
+            {
+              key: 'advanced',
+              label: (
+                <CollapseLabelInModal
+                  title={t('Advanced settings')}
+                  subtitle={t('JSON metadata and advanced configuration')}
+                  validateCheckStatus={!validationStatus.advanced?.hasErrors}
+                  testId="advanced-section"
+                />
+              ),
+              children: (
+                <AdvancedSection
+                  jsonMetadata={jsonMetadata}
+                  jsonAnnotations={jsonAnnotations}
+                  validationStatus={validationStatus}
+                  onJsonMetadataChange={setJsonMetadata}
+                />
+              ),
+            },
+          ]}
+        />
+      </Form>
+    </StandardModal>
   );
 };
 

@@ -17,11 +17,9 @@
  * under the License.
  */
 
-/** Type checking is disabled for this file due to reselect only supporting
- * TS declarations for selectors with up to 12 arguments. */
-// @ts-nocheck
 import { RefObject } from 'react';
-import { createSelector } from 'reselect';
+import { createSelector, lruMemoize } from 'reselect';
+import { supersetTheme, SupersetTheme } from '@apache-superset/core/ui';
 import {
   AppSection,
   Behavior,
@@ -37,7 +35,6 @@ import {
   SetDataMaskHook,
 } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
-import { SupersetTheme } from '../../style';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
@@ -109,6 +106,11 @@ export interface ChartPropsConfig {
   theme: SupersetTheme;
   /* legend index */
   legendIndex?: number;
+<<<<<<< HEAD
+=======
+  inContextMenu?: boolean;
+  emitCrossFilters?: boolean;
+>>>>>>> origin/master
 }
 
 const DEFAULT_WIDTH = 800;
@@ -161,7 +163,11 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   theme: SupersetTheme;
 
-  constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
+  constructor(
+    config: ChartPropsConfig & { formData?: FormData } = {
+      theme: supersetTheme,
+    },
+  ) {
     const {
       annotationData = {},
       datasource = {},
@@ -276,5 +282,16 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         emitCrossFilters,
         theme,
       }),
+    // Below config is to retain usage of 1-sized `lruMemoize` object in Reselect v4
+    // Reselect v5 introduces `weakMapMemoize` which is more performant but potentially memory-leaky
+    // due to infinite cache size.
+    // Source: https://github.com/reduxjs/reselect/releases/tag/v5.0.1
+    {
+      memoize: lruMemoize,
+      argsMemoize: lruMemoize,
+      memoizeOptions: {
+        maxSize: 10,
+      },
+    },
   );
 };

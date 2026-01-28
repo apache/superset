@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { CrossFilterIndicator, IndicatorStatus } from '../../selectors';
 import CrossFilterTag from './CrossFilterTag';
@@ -77,7 +76,7 @@ test('Column and value should be visible', () => {
 
 test('Tag should be closable', () => {
   setup(mockedProps);
-  const close = screen.getByRole('button', { name: 'close' });
+  const close = screen.getByLabelText('Close');
   expect(close).toBeInTheDocument();
   userEvent.click(close);
   expect(mockedProps.removeCrossFilter).toHaveBeenCalledWith(1);
@@ -88,6 +87,6 @@ test('Close icon should have role="button"', () => {
     ...mockedProps,
     onClick: jest.fn(),
   });
-  const button = screen.getByRole('button');
+  const button = screen.getByLabelText('Close');
   expect(button).toBeInTheDocument();
 });

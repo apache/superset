@@ -17,21 +17,31 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { t, styled } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
-
-import Badge from 'src/components/Badge';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { ConfigEditor } from 'src/components/AsyncAceEditor';
-import { FAST_DEBOUNCE } from 'src/constants';
-import { Tooltip } from 'src/components/Tooltip';
+import {
+  Badge,
+  ConfigEditor,
+  InfoTooltip,
+  ModalTrigger,
+  Tooltip,
+  Constants,
+} from '@superset-ui/core/components';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 const StyledConfigEditor = styled(ConfigEditor)`
   &.ace_editor {
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border: 1px solid ${({ theme }) => theme.colorBorder};
   }
+`;
+
+const StyledParagraph = styled.p`
+  margin-top: 0;
+`;
+
+const Code = styled.code`
+  color: ${({ theme }) => theme.colorPrimary};
 `;
 
 export type TemplateParamsEditorProps = {
@@ -63,13 +73,11 @@ const TemplateParamsEditor = ({
 
   const modalBody = (
     <div>
-      <p>
-        {t('Assign a set of parameters as')}
-        <code>JSON</code>
-        {t('below (example:')}
-        <code>{'{"my_table": "foo"}'}</code>
-        {t('), and they become available in your SQL (example:')}
-        <code>SELECT * FROM {'{{ my_table }}'} </code>) {t('by using')}&nbsp;
+      <StyledParagraph>
+        {t('Assign a set of parameters as')} <Code>JSON</Code>{' '}
+        {t('below (example:')} <Code>{'{"my_table": "foo"}'}</Code>
+        {t('), and they become available in your SQL (example:')}{' '}
+        <Code>SELECT * FROM {'{{ my_table }}'} </Code>) {t('by using')}&nbsp;
         <a
           href="https://superset.apache.org/sqllab.html#templating-with-jinja"
           target="_blank"
@@ -78,12 +86,12 @@ const TemplateParamsEditor = ({
           {t('Jinja templating')}
         </a>{' '}
         {t('syntax.')}
-      </p>
+      </StyledParagraph>
       <StyledConfigEditor
         mode={language}
         minLines={25}
         maxLines={50}
-        onChange={debounce(onChange, FAST_DEBOUNCE)}
+        onChange={debounce(onChange, Constants.FAST_DEBOUNCE)}
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion
@@ -108,9 +116,8 @@ const TemplateParamsEditor = ({
             {t('Parameters ')}
             <Badge count={paramCount} />
             {!isValid && (
-              <InfoTooltipWithTrigger
-                icon="exclamation-triangle"
-                bsStyle="danger"
+              <InfoTooltip
+                type="error"
                 tooltip={t('Invalid JSON')}
                 label="invalid-json"
               />

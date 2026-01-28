@@ -289,6 +289,8 @@ supersetNode:
       enabled: false
       ssl_cert_reqs: CERT_NONE
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
+    # -- Database type for Superset metadata (Supported types: "postgresql", "mysql")
+    db_type: "postgresql"
     db_host: "{{ .Release.Name }}-postgresql"
     db_port: "5432"
     db_user: superset
@@ -610,7 +612,7 @@ supersetCeleryFlower:
 
 supersetWebsockets:
   # -- This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode
-  # see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
+  # see https://superset.apache.org/docs/contributing/misc#async-chart-queries
   enabled: false
   replicaCount: 1
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWebsockets pods
@@ -812,7 +814,7 @@ postgresql:
     database: superset
 
   image:
-    tag: "14.6.0-debian-11-r13"
+    tag: "14.17.0-debian-12-r3"
 
   ## PostgreSQL Primary parameters
   primary:

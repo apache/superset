@@ -20,6 +20,8 @@ import { ExtensibleFunction } from '../models';
 import { isRequired } from '../utils';
 import { NumberFormatFunction } from './types';
 
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
+
 export const PREVIEW_VALUE = 12345.432;
 
 export interface NumberFormatterConfig {

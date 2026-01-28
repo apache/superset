@@ -37,14 +37,14 @@ from trino.sqlalchemy import datatype
 from trino.sqlalchemy.dialect import TrinoDialect
 
 import superset.config
-from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
     ResultSetColumnType,
@@ -81,7 +81,7 @@ def _assert_columns_equal(actual_cols, expected_cols) -> None:
 @pytest.mark.parametrize(
     "extra,expected",
     [
-        ({}, {"engine_params": {"connect_args": {"source": USER_AGENT}}}),
+        ({}, {"engine_params": {"connect_args": {"source": "Apache Superset"}}}),
         (
             {
                 "first": 1,
@@ -110,7 +110,7 @@ def test_get_extra_params(extra: dict[str, Any], expected: dict[str, Any]) -> No
     assert TrinoEngineSpec.get_extra_params(database) == expected
 
 
-@patch("superset.utils.core.create_ssl_cert_file")
+@patch("superset.db_engine_specs.trino.create_ssl_cert_file")
 def test_get_extra_params_with_server_cert(mock_create_ssl_cert_file: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
@@ -118,6 +118,7 @@ def test_get_extra_params_with_server_cert(mock_create_ssl_cert_file: Mock) -> N
 
     database.extra = json.dumps({})
     database.server_cert = "TEST_CERT"
+    database.db_engine_spec = TrinoEngineSpec
     mock_create_ssl_cert_file.return_value = "/path/to/tls.crt"
     extra = TrinoEngineSpec.get_extra_params(database)
 
@@ -383,21 +384,30 @@ def test_prepare_cancel_query(
 
 
 @pytest.mark.parametrize("cancel_early", [True, False])
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
-@patch("sqlalchemy.engine.Engine.connect")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
 def test_handle_cursor_early_cancel(
-    engine_mock: Mock,
+    mock_app: Mock,
+    mock_db: Mock,
     cancel_query_mock: Mock,
+    mock_presto_handle_cursor: Mock,
     cancel_early: bool,
     mocker: MockerFixture,
 ) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
     from superset.models.sql_lab import Query
 
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
     query_id = "myQueryId"
 
-    cursor_mock = engine_mock.return_value.__enter__.return_value
+    # Use spec to prevent MagicMock from creating attributes automatically
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
     cursor_mock.query_id = query_id
+    # Set stats to FINISHED so the progress loop exits immediately
+    cursor_mock.stats = {"state": "FINISHED", "completedSplits": 0, "totalSplits": 0}
 
     query = Query()
 
@@ -910,3 +920,468 @@ def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
         spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)
     )
     assert actual == expected_result
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_progress_updates(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor updates query progress based on cursor stats."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
+    cursor_mock.query_id = "test-query-id"
+
+    # Simulate progress: 0/10 -> 5/10 -> 10/10 (FINISHED)
+    cursor_mock.stats = {"state": "RUNNING", "completedSplits": 0, "totalSplits": 10}
+
+    call_count = 0
+
+    def update_stats(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            cursor_mock.stats = {
+                "state": "RUNNING",
+                "completedSplits": 5,
+                "totalSplits": 10,
+            }
+        elif call_count >= 2:
+            cursor_mock.stats = {
+                "state": "FINISHED",
+                "completedSplits": 10,
+                "totalSplits": 10,
+            }
+
+    with patch("superset.db_engine_specs.trino.time.sleep", side_effect=update_stats):
+        query = Query()
+        query.status = "running"
+        TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    assert query.progress == 100.0
+    assert mock_db.session.commit.called
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_cancels_on_stopped_status(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor cancels query when status is STOPPED."""
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
+    cursor_mock.query_id = "test-query-id"
+    cursor_mock.stats = {"state": "RUNNING", "completedSplits": 0, "totalSplits": 10}
+
+    query = Query()
+    query.status = QueryStatus.STOPPED
+
+    with patch("superset.db_engine_specs.trino.time.sleep"):
+        TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    mock_cancel_query.assert_called_once_with(
+        cursor=cursor_mock,
+        query=query,
+        cancel_query_id="test-query-id",
+    )
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_cancels_on_timed_out_status(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor cancels query when status is TIMED_OUT."""
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
+    cursor_mock.query_id = "test-query-id"
+    cursor_mock.stats = {"state": "RUNNING", "completedSplits": 0, "totalSplits": 10}
+
+    query = Query()
+    query.status = QueryStatus.TIMED_OUT
+
+    with patch("superset.db_engine_specs.trino.time.sleep"):
+        TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    mock_cancel_query.assert_called_once_with(
+        cursor=cursor_mock,
+        query=query,
+        cancel_query_id="test-query-id",
+    )
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_breaks_on_execute_error(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor breaks the loop when execute_result has an error."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(
+        spec=["query_id", "stats", "info_uri", "_execute_result", "_execute_event"]
+    )
+    cursor_mock.query_id = "test-query-id"
+    cursor_mock.stats = {"state": "RUNNING", "completedSplits": 0, "totalSplits": 10}
+    cursor_mock._execute_result = {"error": Exception("Test error")}
+    cursor_mock._execute_event = None
+
+    query = Query()
+    query.status = "running"
+
+    # Should break immediately due to error in execute_result
+    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    # cancel_query should not be called since we broke due to error, not status
+    mock_cancel_query.assert_not_called()
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_breaks_on_execute_event_set(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor breaks the loop when execute_event is set."""
+    import threading
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(
+        spec=["query_id", "stats", "info_uri", "_execute_result", "_execute_event"]
+    )
+    cursor_mock.query_id = "test-query-id"
+    cursor_mock.stats = {"state": "RUNNING", "completedSplits": 5, "totalSplits": 10}
+
+    execute_event = threading.Event()
+    execute_event.set()  # Simulate thread completion
+
+    cursor_mock._execute_result = {}
+    cursor_mock._execute_event = execute_event
+
+    query = Query()
+    query.status = "running"
+
+    # Should break immediately since execute_event is set
+    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    # cancel_query should not be called since we broke due to event being set
+    mock_cancel_query.assert_not_called()
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_handles_zero_total_splits(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor handles zero totalSplits without division error."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
+    cursor_mock.query_id = "test-query-id"
+
+    call_count = 0
+
+    def update_stats(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count >= 1:
+            cursor_mock.stats = {
+                "state": "FINISHED",
+                "completedSplits": 0,
+                "totalSplits": 0,
+            }
+
+    # Start with zero splits
+    cursor_mock.stats = {"state": "RUNNING", "completedSplits": 0, "totalSplits": 0}
+
+    with patch("superset.db_engine_specs.trino.time.sleep", side_effect=update_stats):
+        query = Query()
+        query.status = "running"
+        # Should not raise ZeroDivisionError
+        TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    # Progress should be 0/1 = 0 when totalSplits is 0
+    assert query.progress == 0.0
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_only_commits_on_progress_change(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor only commits when progress changes."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
+    cursor_mock.query_id = "test-query-id"
+
+    call_count = 0
+
+    def update_stats(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        # Keep same progress for first two iterations, then finish
+        if call_count < 3:
+            cursor_mock.stats = {
+                "state": "RUNNING",
+                "completedSplits": 5,
+                "totalSplits": 10,
+            }
+        else:
+            cursor_mock.stats = {
+                "state": "FINISHED",
+                "completedSplits": 10,
+                "totalSplits": 10,
+            }
+
+    cursor_mock.stats = {"state": "RUNNING", "completedSplits": 5, "totalSplits": 10}
+
+    with patch("superset.db_engine_specs.trino.time.sleep", side_effect=update_stats):
+        query = Query()
+        query.status = "running"
+        TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    # Initial commit from set_extra_json_key, then commits only when progress changes
+    # Progress changes: None->0.5, 0.5->0.5 (no commit), 0.5->1.0
+    # So we expect: 1 (initial) + 1 (0.5) + 1 (1.0) = 3 commits total
+    commit_calls = mock_db.session.commit.call_count
+    assert commit_calls >= 2  # At least initial commit and one progress update
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_sets_progress_text_for_planning_state(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor sets progress_text to 'Scheduled' for PLANNING state."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
+    cursor_mock.query_id = "test-query-id"
+
+    call_count = 0
+
+    def update_stats(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count >= 1:
+            cursor_mock.stats = {
+                "state": "FINISHED",
+                "completedSplits": 10,
+                "totalSplits": 10,
+            }
+
+    # Start with PLANNING state
+    cursor_mock.stats = {"state": "PLANNING", "completedSplits": 0, "totalSplits": 10}
+
+    with patch("superset.db_engine_specs.trino.time.sleep", side_effect=update_stats):
+        query = Query()
+        query.status = "running"
+        TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    # Check that progress_text was set to "Scheduled" for PLANNING state
+    assert query.extra.get("progress_text") is not None
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_sets_progress_text_for_queued_state(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor sets progress_text to 'Queued' for QUEUED state."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
+    cursor_mock.query_id = "test-query-id"
+
+    call_count = 0
+
+    def update_stats(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count >= 1:
+            cursor_mock.stats = {
+                "state": "FINISHED",
+                "completedSplits": 10,
+                "totalSplits": 10,
+            }
+
+    # Start with QUEUED state
+    cursor_mock.stats = {"state": "QUEUED", "completedSplits": 0, "totalSplits": 0}
+
+    with patch("superset.db_engine_specs.trino.time.sleep", side_effect=update_stats):
+        query = Query()
+        query.status = "running"
+        TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    # Check that progress_text was set
+    assert query.extra.get("progress_text") is not None
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_sets_progress_text_to_state_for_unmapped_states(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor sets progress_text to raw state for unmapped states."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
+    cursor_mock.query_id = "test-query-id"
+
+    # Start directly with FINISHED state (not in the mapping)
+    cursor_mock.stats = {"state": "FINISHED", "completedSplits": 10, "totalSplits": 10}
+
+    query = Query()
+    query.status = "running"
+    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    # Check that progress_text was set to the raw state "FINISHED"
+    # since FINISHED is not in the mapping (only PLANNING and QUEUED are mapped)
+    assert query.extra.get("progress_text") == "FINISHED"
+
+
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_commits_on_progress_text_change(
+    mock_app: Mock,
+    mock_db: Mock,
+    mock_cancel_query: Mock,
+    mock_presto_handle_cursor: Mock,
+    mocker: MockerFixture,
+) -> None:
+    """Test that handle_cursor commits only when progress_text changes."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
+    cursor_mock.query_id = "test-query-id"
+
+    call_count = 0
+
+    def update_stats(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            # State changes from QUEUED to RUNNING but progress stays at 0
+            cursor_mock.stats = {
+                "state": "RUNNING",
+                "completedSplits": 0,
+                "totalSplits": 10,
+            }
+        elif call_count >= 2:
+            cursor_mock.stats = {
+                "state": "FINISHED",
+                "completedSplits": 10,
+                "totalSplits": 10,
+            }
+
+    # Start with QUEUED state and 0 progress
+    cursor_mock.stats = {"state": "QUEUED", "completedSplits": 0, "totalSplits": 10}
+
+    with patch("superset.db_engine_specs.trino.time.sleep", side_effect=update_stats):
+        query = Query()
+        query.status = "running"
+        TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    # There should be commits for progress_text changes
+    assert mock_db.session.commit.call_count >= 2

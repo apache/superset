@@ -48,6 +48,14 @@ class EstimateQueryCostSchema(Schema):
 class FormatQueryPayloadSchema(Schema):
     sql = fields.String(required=True)
     engine = fields.String(required=False, allow_none=True)
+    database_id = fields.Integer(
+        required=False, allow_none=True, metadata={"description": "The database id"}
+    )
+    template_params = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The SQL query template params as JSON string"},
+    )
 
 
 class ExecutePayloadSchema(Schema):
@@ -63,7 +71,6 @@ class ExecutePayloadSchema(Schema):
     templateParams = fields.String(allow_none=True)  # noqa: N815
     tmp_table_name = fields.String(allow_none=True)
     select_as_cta = fields.Boolean(allow_none=True)
-    json = fields.Boolean(allow_none=True)
     runAsync = fields.Boolean(allow_none=True)  # noqa: N815
     expand_data = fields.Boolean(allow_none=True)
 

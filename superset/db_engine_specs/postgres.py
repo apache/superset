@@ -21,7 +21,7 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
@@ -31,13 +31,17 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.types import Date, DateTime, String
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    DatabaseCategory,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql.parse import SQLScript
+from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, QuerySource
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -99,6 +103,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
     engine_name = "PostgreSQL"
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -201,6 +206,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
 class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
+    engine_name = "PostgreSQL"
     engine_aliases = {"postgres"}
 
     supports_dynamic_schema = True
@@ -211,6 +217,142 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     sqlalchemy_uri_placeholder = (
         "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
     )
+
+    metadata = {
+        "description": "PostgreSQL is an advanced open-source relational database.",
+        "logo": "postgresql.svg",
+        "homepage_url": "https://www.postgresql.org/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["psycopg2"],
+        "connection_string": (
+            "postgresql://{username}:{password}@{host}:{port}/{database}"
+        ),
+        "default_port": 5432,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "For localhost: localhost or 127.0.0.1. For AWS: endpoint URL",
+            "port": "Default 5432",
+            "database": "Database name",
+        },
+        "notes": "The psycopg2 library comes bundled with Superset Docker images.",
+        "connection_examples": [
+            {
+                "description": "Basic connection",
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+            },
+            {
+                "description": "With SSL required",
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                    "?sslmode=require"
+                ),
+            },
+        ],
+        "docs_url": "https://www.postgresql.org/docs/",
+        "sqlalchemy_docs_url": (
+            "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html"
+        ),
+        "compatible_databases": [
+            {
+                "name": "Hologres",
+                "description": (
+                    "Alibaba Cloud real-time interactive analytics service, "
+                    "fully compatible with PostgreSQL 11."
+                ),
+                "logo": "hologres.png",
+                "homepage_url": "https://www.alibabacloud.com/product/hologres",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql+psycopg2://{username}:{password}"
+                    "@{host}:{port}/{database}"
+                ),
+                "parameters": {
+                    "username": "AccessKey ID of your Alibaba Cloud account",
+                    "password": "AccessKey secret of your Alibaba Cloud account",
+                    "host": "Public endpoint of the Hologres instance",
+                    "port": "Port number of the Hologres instance",
+                    "database": "Name of the Hologres database",
+                },
+                "categories": [DatabaseCategory.PROPRIETARY],
+            },
+            {
+                "name": "TimescaleDB",
+                "description": (
+                    "Open-source relational database for time-series and analytics, "
+                    "built on PostgreSQL."
+                ),
+                "logo": "timescale.png",
+                "homepage_url": "https://www.timescale.com/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "connection_examples": [
+                    {
+                        "description": "Timescale Cloud (SSL required)",
+                        "connection_string": (
+                            "postgresql://{username}:{password}"
+                            "@{host}:{port}/{database}?sslmode=require"
+                        ),
+                    },
+                ],
+                "notes": "psycopg2 comes bundled with Superset Docker images.",
+                "docs_url": "https://docs.timescale.com/",
+                "categories": [DatabaseCategory.OPEN_SOURCE],
+            },
+            {
+                "name": "YugabyteDB",
+                "description": ("Distributed SQL database built on top of PostgreSQL."),
+                "logo": "yugabyte.png",
+                "homepage_url": "https://www.yugabyte.com/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "notes": "psycopg2 comes bundled with Superset Docker images.",
+                "docs_url": "https://www.yugabyte.com/",
+                "categories": [DatabaseCategory.OPEN_SOURCE],
+            },
+            {
+                "name": "Amazon Aurora PostgreSQL",
+                "description": (
+                    "Amazon Aurora PostgreSQL is a fully managed, "
+                    "PostgreSQL-compatible relational database with up to 5x "
+                    "the throughput of standard PostgreSQL."
+                ),
+                "logo": "aws-aurora.jpg",
+                "homepage_url": "https://aws.amazon.com/rds/aurora/",
+                "pypi_packages": ["sqlalchemy-aurora-data-api"],
+                "connection_string": (
+                    "postgresql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+                    "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+                    "secret_arn={secret_arn}&region_name={region_name}"
+                ),
+                "parameters": {
+                    "aws_access_id": "AWS Access Key ID",
+                    "aws_secret_access_key": "AWS Secret Access Key",
+                    "database_name": "Database name",
+                    "aurora_cluster_arn": "Aurora cluster ARN",
+                    "secret_arn": "Secrets Manager ARN for credentials",
+                    "region_name": "AWS region (e.g., us-east-1)",
+                },
+                "notes": (
+                    "Uses the Data API for serverless access. "
+                    "Standard PostgreSQL connections also work with psycopg2."
+                ),
+                "categories": [
+                    DatabaseCategory.CLOUD_AWS,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+        ],
+    }
     # https://www.postgresql.org/docs/9.1/libpq-ssl.html#LIBQ-SSL-CERTIFICATES
     encryption_parameters = {"sslmode": "require"}
 
@@ -280,6 +422,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         cls,
         database: Database,
         query: Query,
+        template_params: Optional[dict[str, Any]] = None,
     ) -> str | None:
         """
         Return the default schema for a given query.
@@ -287,7 +430,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         This method simply uses the parent method after checking that there are no
         malicious path setting in the query.
         """
-        script = SQLScript(query.sql, engine=cls.engine)
+        script = process_jinja_sql(query.sql, database, template_params).script
         settings = script.get_settings()
         if "search_path" in settings:
             raise SupersetSecurityException(
@@ -300,7 +443,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 )
             )
 
-        return super().get_default_schema_for_query(database, query)
+        return super().get_default_schema_for_query(database, query, template_params)
 
     @classmethod
     def adjust_engine_params(
@@ -319,7 +462,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return uri, connect_args
 
     @classmethod
-    def get_default_catalog(cls, database: Database) -> str | None:
+    def get_default_catalog(cls, database: Database) -> str:
         """
         Return the default catalog for a given database.
         """
@@ -411,7 +554,9 @@ WHERE datistemplate = false;
         )
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         For Postgres, the path to a SSL certificate is placed in `connect_args`.
 

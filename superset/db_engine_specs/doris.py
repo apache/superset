@@ -26,10 +26,14 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.utils.core import GenericDataType
+
+DEFAULT_CATALOG = "internal"
+DEFAULT_SCHEMA = "information_schema"
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
@@ -114,6 +118,34 @@ class DorisEngineSpec(MySQLEngineSpec):
     encryption_parameters = {"ssl": "0"}
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = True
+    # while technically supported by Doris, this generates invalid table identifiers
+    supports_cross_catalog_queries = False
+
+    metadata = {
+        "description": (
+            "Apache Doris is a high-performance real-time analytical database."
+        ),
+        "logo": "doris.png",
+        "homepage_url": "https://doris.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pydoris"],
+        "connection_string": (
+            "doris://{username}:{password}@{host}:{port}/{catalog}.{database}"
+        ),
+        "default_port": 9030,
+        "parameters": {
+            "username": "User name",
+            "password": "Password",
+            "host": "Doris FE Host",
+            "port": "Doris FE port",
+            "catalog": "Catalog name",
+            "database": "Database name",
+        },
+    }
 
     column_type_mappings = (  # type: ignore
         (
@@ -190,12 +222,12 @@ class DorisEngineSpec(MySQLEngineSpec):
         (
             re.compile(r"^datetime.*", re.IGNORECASE),
             types.DATETIME(),
-            GenericDataType.STRING,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
             types.DATE(),
-            GenericDataType.STRING,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^text.*", re.IGNORECASE),
@@ -248,29 +280,39 @@ class DorisEngineSpec(MySQLEngineSpec):
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> tuple[URL, dict[str, Any]]:
-        if catalog:
-            pass
-        elif uri.database and "." in uri.database:
-            catalog, _ = uri.database.split(".", 1)
+        if not uri.database:
+            raise ValueError("Doris requires a database to be specified in the URI.")
+        elif "." not in uri.database:
+            current_catalog, current_schema = None, uri.database
         else:
-            catalog = "internal"
+            current_catalog, current_schema = uri.database.split(".", 1)
 
-        # In Apache Doris, each catalog has an information_schema for BI tool
-        # compatibility. See: https://github.com/apache/doris/pull/28919
-        schema = schema or "information_schema"
-        database = ".".join([catalog or "", schema])
+        # and possibly override them
+        catalog = catalog or current_catalog
+        schema = schema or current_schema
+
+        database = ".".join(part for part in (catalog, schema) if part)
         uri = uri.set(database=database)
+
         return uri, connect_args
 
     @classmethod
-    def get_default_catalog(cls, database: Database) -> Optional[str]:
+    def get_default_catalog(cls, database: Database) -> str:
         """
         Return the default catalog.
         """
-        if database.url_object.database is None:
-            return None
+        # first check the URI to see if a default catalog is set
+        if database.url_object.database and "." in database.url_object.database:
+            return database.url_object.database.split(".")[0]
 
-        return database.url_object.database.split(".")[0]
+        # if not, iterate over existing catalogs and find the current one
+        with database.get_sqla_engine() as engine:
+            for catalog in engine.execute("SHOW CATALOGS"):
+                if catalog.IsCurrent:
+                    return catalog.CatalogName
+
+        # fallback to "internal"
+        return DEFAULT_CATALOG
 
     @classmethod
     def get_catalog_names(
@@ -301,9 +343,8 @@ class DorisEngineSpec(MySQLEngineSpec):
             doris://localhost:9030/catalog.database
 
         """
-        database = sqlalchemy_uri.database.strip("/")
-
-        if "." not in database:
+        if not sqlalchemy_uri.database:
             return None
 
-        return parse.unquote(database.split(".")[1])
+        schema = sqlalchemy_uri.database.split(".")[-1].strip("/")
+        return parse.unquote(schema)

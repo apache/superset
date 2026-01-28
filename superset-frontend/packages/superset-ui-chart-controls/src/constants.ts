@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DTTM_ALIAS,
-  GenericDataType,
-  QueryColumn,
-  QueryMode,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { DTTM_ALIAS, QueryColumn, QueryMode } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta, SortSeriesData, SortSeriesType } from './types';
 
 export const DEFAULT_MAX_ROW = 100000;
+export const DEFAULT_MAX_ROW_TABLE_SERVER = 500000;
 
 // eslint-disable-next-line import/prefer-default-export
 export const TIME_FILTER_LABELS = {

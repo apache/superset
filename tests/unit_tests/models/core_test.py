@@ -16,11 +16,10 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
-
-
 from datetime import datetime
 
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy import (
     Column,
@@ -38,7 +37,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.errors import SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import LimitMethod, Table
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -334,7 +333,7 @@ def test_get_all_catalog_names(mocker: MockerFixture) -> None:
         inspector.bind.execute.return_value = [("examples",), ("other",)]
 
     assert database.get_all_catalog_names(force=True) == {"examples", "other"}
-    get_inspector.assert_called_with(ssh_tunnel=None)
+    get_inspector.assert_called_with()
 
 
 def test_get_all_schema_names_needs_oauth2(mocker: MockerFixture) -> None:
@@ -406,6 +405,121 @@ def test_get_all_catalog_names_needs_oauth2(mocker: MockerFixture) -> None:
 
     with pytest.raises(OAuth2RedirectError) as excinfo:
         database.get_all_catalog_names()
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_table_names_in_schema_needs_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_table_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_table_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_table_names_in_schema(catalog=None, schema="public")
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_view_names_in_schema_needs_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_view_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_view_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_view_names_in_schema(catalog=None, schema="public")
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_materialized_view_names_in_schema_needs_oauth2(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `get_all_materialized_view_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_materialized_view_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_materialized_view_names_in_schema(
+            catalog=None, schema="public"
+        )
 
     assert excinfo.value.message == "You don't have permission to access the data."
     assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
@@ -554,10 +668,94 @@ def test_get_oauth2_config(app_context: None) -> None:
         "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
         "scope": "refresh_token session:role:USERADMIN",
         "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "data",  # Default value from BaseEngineSpec
+    }
+
+
+def test_get_oauth2_config_token_request_type_from_db_engine_specs(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Test that DB Engine Spec overrides for ``oauth2_token_request_type`` are respected.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_token_request_type",
+        "json",
+    )
+
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:USERADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
         "request_content_type": "json",
     }
 
 
+<<<<<<< HEAD
+=======
+def test_get_oauth2_config_custom_token_request_type_extra(app_context: None) -> None:
+    """
+    Test passing a custom ``token_request_type`` via ``encrypted_extra``
+    takes precedence.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    custom_oauth2_client_info = {
+        "oauth2_client_info": {
+            **oauth2_client_info["oauth2_client_info"],
+            "request_content_type": "json",
+        }
+    }
+
+    database.encrypted_extra = json.dumps(custom_oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:USERADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "json",
+    }
+
+
+def test_get_oauth2_config_redirect_uri_from_config(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that ``DATABASE_OAUTH2_REDIRECT_URI`` config takes precedence over
+    url_for default.
+    """
+    custom_redirect_uri = "https://custom.example.com/oauth/callback"
+    mocker.patch.dict(
+        "superset.utils.oauth2.app.config",
+        {"DATABASE_OAUTH2_REDIRECT_URI": custom_redirect_uri},
+    )
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+
+    config = database.get_oauth2_config()
+
+    assert config is not None
+    assert config["redirect_uri"] == custom_redirect_uri
+
+
+>>>>>>> origin/master
 def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
     """
     Test that we can start OAuth2 from `raw_connection()` errors.
@@ -660,6 +858,14 @@ def test_get_schema_access_for_file_upload() -> None:
     """
     Test the `get_schema_access_for_file_upload` method.
     """
+    # Skip if gsheets dialect is not available (Shillelagh not installed in Docker)
+    try:
+        from sqlalchemy import create_engine
+
+        create_engine("gsheets://")
+    except Exception:
+        pytest.skip("gsheets:// dialect not available (Shillelagh not installed)")
+
     database = Database(
         database_name="first-database",
         sqlalchemy_uri="gsheets://",
@@ -676,14 +882,16 @@ def test_get_schema_access_for_file_upload() -> None:
     assert database.get_schema_access_for_file_upload() == {"public"}
 
 
-def test_engine_context_manager(mocker: MockerFixture) -> None:
+def test_engine_context_manager(mocker: MockerFixture, app_context: None) -> None:
     """
     Test the engine context manager.
     """
-    engine_context_manager = mocker.MagicMock()
-    mocker.patch(
-        "superset.models.core.config",
-        new={"ENGINE_CONTEXT_MANAGER": engine_context_manager},
+    from unittest.mock import MagicMock
+
+    engine_context_manager = MagicMock()
+    mocker.patch.dict(
+        current_app.config,
+        {"ENGINE_CONTEXT_MANAGER": engine_context_manager},
     )
     _get_sqla_engine = mocker.patch.object(Database, "_get_sqla_engine")
 
@@ -910,3 +1118,228 @@ def test_get_all_view_names_in_schema(mocker: MockerFixture) -> None:
             ("third_view", "public", "examples"),
         }
     )
+
+
+@pytest.mark.parametrize(
+    "sql, limit, force, method, expected",
+    [
+        (
+            "SELECT * FROM table",
+            100,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 100",
+        ),
+        (
+            "SELECT * FROM table LIMIT 100",
+            10,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 10",
+        ),
+        (
+            "SELECT * FROM table LIMIT 10",
+            100,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 10",
+        ),
+        (
+            "SELECT * FROM table LIMIT 10",
+            100,
+            True,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 100",
+        ),
+        (
+            "SELECT * FROM a  \t \n   ; \t  \n  ",
+            1000,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM a\nLIMIT 1000",
+        ),
+        (
+            "SELECT 'LIMIT 777'",
+            1000,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777'\nLIMIT 1000",
+        ),
+        (
+            "SELECT * FROM table",
+            1000,
+            False,
+            LimitMethod.FETCH_MANY,
+            "SELECT\n  *\nFROM table",
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 9999",
+            1000,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            """SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM a
+  LIMIT 10
+)
+LIMIT 1000""",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+    table
+LIMIT 99990""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+table
+LIMIT         99990            ;""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+table
+LIMIT 99990, 999999""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000\nOFFSET 99990",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+table
+LIMIT 99990
+OFFSET 999999""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000\nOFFSET 999999",
+        ),
+    ],
+)
+def test_apply_limit_to_sql(
+    sql: str,
+    limit: int,
+    force: bool,
+    method: LimitMethod,
+    expected: str,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `apply_limit_to_sql` method.
+    """
+    db = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    db_engine_spec = mocker.MagicMock(limit_method=method)
+    db.get_db_engine_spec = mocker.MagicMock(return_value=db_engine_spec)
+
+    limited = db.apply_limit_to_sql(sql, limit, force)
+    assert limited == expected
+
+
+def test_database_execute_delegates_to_sql_executor(mocker: MockerFixture) -> None:
+    """Test that Database.execute() delegates to SQLExecutor.execute()."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_result = MagicMock()
+    mock_executor.execute.return_value = mock_result
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    mock_options = MagicMock()
+
+    result = database.execute("SELECT 1", mock_options)
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute.assert_called_once_with("SELECT 1", mock_options)
+    assert result == mock_result
+
+
+def test_database_execute_without_options(mocker: MockerFixture) -> None:
+    """Test that Database.execute() works without options."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_result = MagicMock()
+    mock_executor.execute.return_value = mock_result
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+
+    result = database.execute("SELECT 1")
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute.assert_called_once_with("SELECT 1", None)
+    assert result == mock_result
+
+
+def test_database_execute_async_delegates_to_sql_executor(
+    mocker: MockerFixture,
+) -> None:
+    """Test that Database.execute_async() delegates to SQLExecutor.execute_async()."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_handle = MagicMock()
+    mock_executor.execute_async.return_value = mock_handle
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    mock_options = MagicMock()
+
+    result = database.execute_async("SELECT 1", mock_options)
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute_async.assert_called_once_with("SELECT 1", mock_options)
+    assert result == mock_handle
+
+
+def test_database_execute_async_without_options(mocker: MockerFixture) -> None:
+    """Test that Database.execute_async() works without options."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_handle = MagicMock()
+    mock_executor.execute_async.return_value = mock_handle
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+
+    result = database.execute_async("SELECT 1")
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute_async.assert_called_once_with("SELECT 1", None)
+    assert result == mock_handle

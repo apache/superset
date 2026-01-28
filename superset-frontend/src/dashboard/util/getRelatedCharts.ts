@@ -24,6 +24,7 @@ import {
   isAppliedCrossFilterType,
   isAppliedNativeFilterType,
   isNativeFilter,
+  ChartCustomization,
 } from '@superset-ui/core';
 import { Slice } from 'src/types/Chart';
 
@@ -110,4 +111,35 @@ export function getRelatedCharts(
   }
 
   return related;
+}
+
+export function getRelatedChartsForChartCustomization(
+  customizationItem: ChartCustomization,
+  slices: Record<string, Slice>,
+): number[] {
+  const { chartsInScope, targets } = customizationItem;
+
+  if (Array.isArray(chartsInScope)) {
+    return chartsInScope;
+  }
+
+  const dataset = targets?.[0]?.datasetId;
+
+  if (!dataset) {
+    return [];
+  }
+
+  const targetDatasetId = String(dataset);
+
+  return Object.values(slices)
+    .filter(slice => {
+      const sliceDataset = slice.datasource;
+      if (!sliceDataset) return false;
+
+      const sliceDatasetParts = String(sliceDataset).split('__');
+      const sliceDatasetId = sliceDatasetParts[0];
+
+      return sliceDatasetId === targetDatasetId;
+    })
+    .map(slice => slice.slice_id);
 }
