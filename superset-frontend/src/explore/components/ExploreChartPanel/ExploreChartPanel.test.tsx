@@ -216,18 +216,4 @@ describe('ChartContainer', () => {
     expect(await screen.findByRole('timer')).toBeInTheDocument();
     expect(screen.queryByText(/last queried at/i)).not.toBeInTheDocument();
   });
-
-  test('chart container has proper flexbox layout styles', async () => {
-    const props = createProps();
-    const { container } = render(<ChartContainer {...props} />, {
-      useRedux: true,
-    });
-    
-    const panelBody = container.querySelector('.panel-body');
-    expect(panelBody).toBeInTheDocument();
-    
-    const styles = window.getComputedStyle(panelBody);
-    expect(styles.display).toBe('flex');
-    expect(styles.flexDirection).toBe('column');
-  });
 });

@@ -33,7 +33,7 @@ export default function useResizeDetectorByObserver() {
     () => (rawWidth ? Math.floor(rawWidth) : undefined),
     [rawWidth],
   );
-  
+
   const height = useMemo(
     () => (rawHeight ? Math.floor(rawHeight) : undefined),
     [rawHeight],
