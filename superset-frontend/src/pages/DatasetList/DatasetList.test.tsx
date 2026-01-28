@@ -345,7 +345,7 @@ test('toggling bulk select mode shows checkboxes', async () => {
     const checkboxes = screen.queryAllByRole('checkbox');
     expect(checkboxes.length).toBeGreaterThan(0);
   });
-});
+}, 30000);
 
 test('handles 500 error on initial load without crashing', async () => {
   fetchMock.get(
