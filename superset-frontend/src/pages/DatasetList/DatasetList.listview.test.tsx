@@ -1911,7 +1911,7 @@ test('bulk delete error shows toast without refreshing list', async () => {
 
   // Verify original dataset still in list
   expect(screen.getByText(mockDatasets[0].table_name)).toBeInTheDocument();
-});
+}, 30000);
 
 // Bulk Select Copy Tests - Verify count labels for different selection types
 

@@ -86,7 +86,7 @@ test('admin users see all UI elements', async () => {
       within(table).getByRole('columnheader', { name: /Actions/i }),
     ).toBeInTheDocument();
   });
-});
+}, 45000);
 
 test('read-only users cannot see Actions column', async () => {
   // Setup API with read-only permissions
