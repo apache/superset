@@ -24,6 +24,7 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  Currency,
   CurrencyFormatter,
   ensureIsArray,
   tooltipHtml,
@@ -38,7 +39,9 @@ import {
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
   resolveAutoCurrency,
+  QueryFormMetric,
   TimeseriesChartDataResponseResult,
+  TimeseriesDataRecord,
   NumberFormats,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
@@ -138,13 +141,16 @@ export default function transformProps(
     columnFormats = {},
     currencyFormats = {},
     currencyCodeColumn,
-  } = datasource;
+  } = datasource as typeof datasource & { currencyCodeColumn?: string };
   const [queryData] = queriesData;
+  const queryDataTyped = queryData as TimeseriesChartDataResponseResult & {
+    detected_currency?: string | null;
+  };
   const {
     data = [],
     label_map = {},
     detected_currency: backendDetectedCurrency,
-  } = queryData as TimeseriesChartDataResponseResult;
+  } = queryDataTyped;
 
   const dataTypes = getColtypesMapping(queryData);
   const annotationData = getAnnotationData(chartProps);
@@ -297,7 +303,17 @@ export default function transformProps(
         currency: resolvedCurrency,
       })
     : getNumberFormatter(yAxisFormat);
-  const customFormatters = buildCustomFormatters(
+  const customFormatters = (
+    buildCustomFormatters as (
+      metrics: QueryFormMetric | QueryFormMetric[] | undefined,
+      savedCurrencyFormats: Record<string, Currency>,
+      savedColumnFormats: Record<string, string>,
+      d3Format: string | undefined,
+      currencyFormat: Currency | undefined | null,
+      data?: TimeseriesDataRecord[],
+      currencyCodeColumn?: string,
+    ) => ReturnType<typeof buildCustomFormatters>
+  )(
     metrics,
     currencyFormats,
     columnFormats,
@@ -327,11 +343,11 @@ export default function transformProps(
     // - "metric__1 day ago" pattern (via hasTimeOffset)
     // - "1 day ago, groupby" pattern (via hasTimeOffset)
     // - exact match "1 day ago" (via seriesName parameter)
-    const derivedSeries = isDerivedSeries(
-      entry,
-      chartProps.rawFormData,
-      seriesName,
-    );
+    const derivedSeries = (isDerivedSeries as (
+      series: typeof entry,
+      formData: typeof chartProps.rawFormData,
+      seriesName?: string,
+    ) => boolean)(entry, chartProps.rawFormData, seriesName);
     const lineStyle: LineStyleOption = {};
     if (derivedSeries) {
       // Get the time offset for this series to assign different dash patterns
@@ -371,7 +387,11 @@ export default function transformProps(
     if (derivedSeries && array.includes(seriesName)) {
       const originalSeries = rawSeries.find(
         s =>
-          !isDerivedSeries(
+          !(isDerivedSeries as (
+            series: typeof s,
+            formData: typeof chartProps.rawFormData,
+            seriesName?: string,
+          ) => boolean)(
             s,
             chartProps.rawFormData,
             inverted[String(s.name || '')] || String(s.name || ''),
@@ -462,7 +482,7 @@ export default function transformProps(
         series.push(
           transformFormulaAnnotation(
             layer,
-            data,
+            rebasedData as TimeseriesDataRecord[],
             xAxisLabel,
             xAxisType,
             colorScale,
@@ -663,7 +683,9 @@ export default function transformProps(
     if (seriesType === EchartsTimeseriesSeriesType.Bar && showValue) {
       padding.right = Math.max(
         padding.right || 0,
-        TIMESERIES_CONSTANTS.horizontalBarLabelRightPadding,
+        (TIMESERIES_CONSTANTS as typeof TIMESERIES_CONSTANTS & {
+          horizontalBarLabelRightPadding: number;
+        }).horizontalBarLabelRightPadding,
       );
     }
   }

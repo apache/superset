@@ -23,6 +23,7 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  Currency,
   CurrencyFormatter,
   ensureIsArray,
   getCustomFormatter,
@@ -140,11 +141,17 @@ export default function transformProps(
     currencyFormats = {},
     columnFormats = {},
     currencyCodeColumn,
-  } = datasource;
+  } = datasource as typeof datasource & { currencyCodeColumn?: string };
+  const queryData0 = queriesData[0] as TimeseriesChartDataResponseResult & {
+    detected_currency?: string | null;
+  };
+  const queryData1 = queriesData[1] as TimeseriesChartDataResponseResult & {
+    detected_currency?: string | null;
+  };
   const { label_map: labelMap, detected_currency: backendDetectedCurrency } =
-    queriesData[0] as TimeseriesChartDataResponseResult;
+    queryData0;
   const { label_map: labelMapB, detected_currency: backendDetectedCurrencyB } =
-    queriesData[1] as TimeseriesChartDataResponseResult;
+    queryData1;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
@@ -313,7 +320,17 @@ export default function transformProps(
           currency: resolvedCurrencySecondary,
         })
       : getNumberFormatter(yAxisFormatSecondary);
-  const customFormatters = buildCustomFormatters(
+  const customFormatters = (
+    buildCustomFormatters as (
+      metrics: QueryFormMetric | QueryFormMetric[] | undefined,
+      savedCurrencyFormats: Record<string, Currency>,
+      savedColumnFormats: Record<string, string>,
+      d3Format: string | undefined,
+      currencyFormat: Currency | undefined | null,
+      data?: TimeseriesDataRecord[],
+      currencyCodeColumn?: string,
+    ) => ReturnType<typeof buildCustomFormatters>
+  )(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
     columnFormats,
@@ -322,7 +339,17 @@ export default function transformProps(
     data1,
     currencyCodeColumn,
   );
-  const customFormattersSecondary = buildCustomFormatters(
+  const customFormattersSecondary = (
+    buildCustomFormatters as (
+      metrics: QueryFormMetric | QueryFormMetric[] | undefined,
+      savedCurrencyFormats: Record<string, Currency>,
+      savedColumnFormats: Record<string, string>,
+      d3Format: string | undefined,
+      currencyFormat: Currency | undefined | null,
+      data?: TimeseriesDataRecord[],
+      currencyCodeColumn?: string,
+    ) => ReturnType<typeof buildCustomFormatters>
+  )(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
     columnFormats,
@@ -360,7 +387,7 @@ export default function transformProps(
         series.push(
           transformFormulaAnnotation(
             layer,
-            data1,
+            rebasedDataA as TimeseriesDataRecord[],
             xAxisLabel,
             xAxisType,
             colorScale,
