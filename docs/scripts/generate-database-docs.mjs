@@ -689,10 +689,12 @@ function generateReadmeLogos(databases) {
   const MAX_HEIGHT = 40;
   const MIN_HEIGHT = 24;
 
-  // Generate HTML img tags with aspect-ratio-preserving dimensions
+  const DOCS_BASE = 'https://superset.apache.org/docs/databases/supported';
+
+  // Generate linked logo tags with aspect-ratio-preserving dimensions
   const logoTags = dbsWithLogos.map(([name, db]) => {
     const logo = db.documentation.logo;
-    const alt = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const imgPath = path.join(IMAGES_DIR, logo);
 
     const dims = getImageDimensions(imgPath);
@@ -705,7 +707,8 @@ function generateReadmeLogos(databases) {
       sizeAttrs = `height="${MAX_HEIGHT}"`;
     }
 
-    return `  <img src="docs/static/img/databases/${logo}" alt="${alt}" ${sizeAttrs} />`;
+    const img = `<img src="docs/static/img/databases/${logo}" alt="${name}" ${sizeAttrs} />`;
+    return `  <a href="${DOCS_BASE}/${slug}" title="${name}">${img}</a>`;
   });
 
   return `<p align="center">
