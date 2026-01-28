@@ -108,6 +108,19 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = (
 )
 SQLLAB_CTAS_NO_LIMIT = True
 
+# Custom time grains
+TIME_GRAIN_ADDONS = {
+    "PT3H": "3 hours",
+}
+
+# Custom time grain SQL expressions for PostgreSQL
+TIME_GRAIN_ADDON_EXPRESSIONS = {
+    "postgresql": {
+        "PT3H": "DATE_TRUNC('hour', {col}) + INTERVAL '3 hours' * FLOOR(EXTRACT(HOUR FROM {col}) / 3)",
+        "PT6H": "DATE_TRUNC('hour', {col}) + INTERVAL '6 hours' * FLOOR(EXTRACT(HOUR FROM {col}) / 6)",
+    },
+}
+
 log_level_text = os.getenv("SUPERSET_LOG_LEVEL", "INFO")
 LOG_LEVEL = getattr(logging, log_level_text.upper(), logging.INFO)
 
