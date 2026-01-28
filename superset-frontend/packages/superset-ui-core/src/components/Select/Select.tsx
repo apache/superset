@@ -64,6 +64,7 @@ import {
 } from './styles';
 import {
   DEFAULT_SORT_COMPARATOR,
+  DROPDOWN_ALIGN_BOTTOM,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
@@ -777,6 +778,7 @@ const Select = forwardRef(
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
           css={props.css}
+          dropdownAlign={DROPDOWN_ALIGN_BOTTOM}
           {...props}
           showSearch={shouldShowSearch}
           ref={ref}
