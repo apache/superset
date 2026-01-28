@@ -3,7 +3,7 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - '5.0.0-custom'
+      - '6.0.0-custom'
   workflow_dispatch:
 
 env:
