@@ -60,6 +60,7 @@ interface TaskListProps {
 }
 
 function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
+  const theme = useTheme();
   const {
     state: { loading, resourceCount: tasksCount, resourceCollection: tasks },
     fetchData,
@@ -346,7 +347,6 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             original: { payload, properties, status },
           },
         }: any) => {
-          const theme = useTheme();
           const hasPayload = payload && Object.keys(payload).length > 0;
           const hasStackTrace = !!properties?.stack_trace;
 
@@ -481,7 +481,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         disableSortBy: true,
       },
     ],
-    [user.userId],
+    [user.userId, theme],
   );
 
   const filters: ListViewFilters = useMemo(
