@@ -36,16 +36,16 @@ function getComponentRegistry() {
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const antd = require('antd');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const SupersetComponents = require('@superset/components');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const CoreUI = require('@apache-superset/core/ui');
 
-    // Build component registry
-    componentRegistry = { ...SupersetComponents, ...CoreUI };
-
-    // Debug: log available components
-    console.log('[StorybookWrapper] Loaded components:', Object.keys(componentRegistry).slice(0, 20));
-    console.log('[StorybookWrapper] Has Button?', 'Button' in componentRegistry);
+    // Build component registry with antd as base fallback layer.
+    // Some Superset components (e.g., Typography) use styled-components that may
+    // fail to initialize in the docs build. Antd originals serve as fallbacks.
+    componentRegistry = { ...antd, ...SupersetComponents, ...CoreUI };
 
     return componentRegistry;
   } catch (error) {
@@ -97,12 +97,22 @@ function getProviders() {
   }
 }
 
+// Check if a value is a valid React component (function, forwardRef, memo, etc.)
+function isReactComponent(value) {
+  if (!value) return false;
+  // Function/class components
+  if (typeof value === 'function') return true;
+  // forwardRef, memo, lazy — React wraps these as objects with $$typeof
+  if (typeof value === 'object' && value.$$typeof) return true;
+  return false;
+}
+
 // Resolve component from string name or React component
 // Supports dot notation for nested components (e.g., 'Icons.InfoCircleOutlined')
 function resolveComponent(component) {
   if (!component) return null;
-  // If already a component (function/class), return as-is
-  if (typeof component === 'function') return component;
+  // If already a component (function/class/forwardRef), return as-is
+  if (isReactComponent(component)) return component;
   // If string, look up in registry
   if (typeof component === 'string') {
     const registry = getComponentRegistry();
@@ -113,7 +123,7 @@ function resolveComponent(component) {
       for (let i = 1; i < parts.length && current; i++) {
         current = current[parts[i]];
       }
-      return typeof current === 'function' ? current : null;
+      return isReactComponent(current) ? current : null;
     }
     return registry[component] || null;
   }
@@ -293,10 +303,15 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
   // Use sample children if provided, otherwise use props children
   const children = generateSampleChildren(sampleChildren, sampleChildrenStyle) || propsChildren;
 
-  // For components with a trigger (like Modal with show/onHide), add handlers
+  // For components with a trigger (like Modal with show/onHide), add handlers.
+  // onHideProp supports comma-separated names for components with multiple close
+  // callbacks (e.g., "onHide,handleSave,onConfirmNavigation").
   const triggerProps = {};
   if (triggerProp && onHideProp) {
-    triggerProps[onHideProp] = () => updateProp(triggerProp, false);
+    const closeHandler = () => updateProp(triggerProp, false);
+    onHideProp.split(',').forEach(prop => {
+      triggerProps[prop.trim()] = closeHandler;
+    });
   }
 
   // Get the Button component for trigger buttons
@@ -327,7 +342,7 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
             </>
           ) : (
             <div style={{ color: '#999' }}>
-              Component &quot;{String(component)}&quot; not found
+              Component &quot;{String(componentToRender)}&quot; not found
             </div>
           )}
         </div>

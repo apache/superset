@@ -54,7 +54,7 @@ InteractiveUnsavedChangesModal.argTypes = {
 InteractiveUnsavedChangesModal.parameters = {
   docs: {
     triggerProp: 'showModal',
-    onHideProp: 'onHide',
+    onHideProp: 'onHide,handleSave,onConfirmNavigation',
     liveExample: `function Demo() {
   const [show, setShow] = React.useState(false);
   return (

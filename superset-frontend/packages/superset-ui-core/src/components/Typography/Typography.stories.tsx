@@ -116,6 +116,7 @@ export const InteractiveTypography: TextStory = {
 
 InteractiveTypography.parameters = {
   docs: {
+    renderComponent: 'Typography.Text',
     description: {
       story: 'Text component with various styling options.',
     },
