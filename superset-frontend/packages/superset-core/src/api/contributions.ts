@@ -91,12 +91,7 @@ export interface EditorContribution {
 /**
  * Supported editor languages.
  */
-export type EditorLanguage =
-  | 'sql'
-  | 'json'
-  | 'yaml'
-  | 'markdown'
-  | 'css';
+export type EditorLanguage = 'sql' | 'json' | 'yaml' | 'markdown' | 'css';
 
 /**
  * Aggregates all contributions (commands, menus, views, and editors) provided by an extension or module.
