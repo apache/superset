@@ -477,9 +477,9 @@ def test_apply_series_others_grouping_sql_compilation(database: Database) -> Non
     has_single_quotes = "'Others'" in select_sql and "'Others'" in groupby_sql
     has_double_quotes = '"Others"' in select_sql and '"Others"' in groupby_sql
 
-    assert has_single_quotes or has_double_quotes, (
-        "Others literal should be quoted with either single or double quotes"
-    )
+    assert (
+        has_single_quotes or has_double_quotes
+    ), "Others literal should be quoted with either single or double quotes"
 
     # Verify the structure of the generated SQL
     assert "CASE WHEN" in select_sql
@@ -1121,13 +1121,13 @@ def test_process_select_expression_end_to_end(database: Database) -> None:
         # sqlglot may normalize the SQL slightly, so we check the result exists
         # and doesn't contain the SELECT prefix
         assert result is not None, f"Failed to process: {expression}"
-        assert not result.upper().startswith("SELECT"), (
-            f"Result still has SELECT prefix: {result}"
-        )
+        assert not result.upper().startswith(
+            "SELECT"
+        ), f"Result still has SELECT prefix: {result}"
         # The result should contain the core expression (case-insensitive check)
-        assert expected.replace(" ", "").lower() in result.replace(" ", "").lower(), (
-            f"Expected '{expected}' to be in result '{result}' for input '{expression}'"
-        )
+        assert (
+            expected.replace(" ", "").lower() in result.replace(" ", "").lower()
+        ), f"Expected '{expected}' to be in result '{result}' for input '{expression}'"
 
 
 def test_reapply_query_filters_with_granularity(database: Database) -> None:
@@ -1641,9 +1641,9 @@ def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> No
             )
         )
 
-    assert '"Order Total"' in sql_numeric, (
-        f"Expected quoted column name in SQL: {sql_numeric}"
-    )
+    assert (
+        '"Order Total"' in sql_numeric
+    ), f"Expected quoted column name in SQL: {sql_numeric}"
 
 
 def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
