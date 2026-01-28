@@ -144,14 +144,15 @@ export const InteractiveDropdownContainer = (
   );
 };
 
-InteractiveDropdownContainer.args = {
-  items: [],
-};
+InteractiveDropdownContainer.args = {};
 
 InteractiveDropdownContainer.argTypes = {};
 
 InteractiveDropdownContainer.parameters = {
   docs: {
+    staticProps: {
+      items: [],
+    },
     liveExample: `function Demo() {
   const items = Array.from({ length: 6 }, (_, i) => ({
     id: 'item-' + i,
