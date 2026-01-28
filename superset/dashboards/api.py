@@ -20,6 +20,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Callable, cast
+from urllib.parse import quote
 from zipfile import is_zipfile, ZipFile
 
 from flask import current_app, g, redirect, request, Response, send_file, url_for
@@ -1218,11 +1219,13 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
+        # Use quote() to properly encode filename for HTTP headers (#31158)
+        safe_filename = quote(filename, safe=".")
         response = send_file(
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            download_name=filename,
+            download_name=safe_filename,
         )
         if token := request.args.get("token"):
             response.set_cookie(token, "done", max_age=600)
@@ -2054,9 +2057,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
         log_to_statsd=False,
     )
     @with_dashboard
