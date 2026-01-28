@@ -187,3 +187,80 @@ ul.dropdown__menu svg {
 [data-theme='dark'] .ant-collapse-header {
   color: var(--ifm-font-base-color);
 }
+
+/* Hide the non-functional "Send API Request" button and Response block in API docs */
+/* The interactive API testing doesn't work due to CORS restrictions */
+.openapi-explorer__request-btn {
+  display: none !important;
+}
+
+.openapi-explorer__response-container {
+  display: none !important;
+}
+
+/* API Method Badge Colors - Swagger-style color coding */
+/* These override Infima badge classes used by docusaurus-openapi-docs */
+
+/* GET - Blue (badge--primary) */
+.openapi__method-endpoint .badge--primary {
+  background-color: #61affe !important;
+  border-color: #61affe !important;
+}
+
+/* POST - Green (badge--success) */
+.openapi__method-endpoint .badge--success {
+  background-color: #49cc90 !important;
+  border-color: #49cc90 !important;
+}
+
+/* PUT - Info/Cyan -> Orange (badge--info) */
+.openapi__method-endpoint .badge--info {
+  background-color: #fca130 !important;
+  border-color: #fca130 !important;
+}
+
+/* PATCH - Warning/Yellow -> Teal (badge--warning) */
+.openapi__method-endpoint .badge--warning {
+  background-color: #50e3c2 !important;
+  border-color: #50e3c2 !important;
+  color: #1b1b1d !important;
+}
+
+/* DELETE - Red (badge--danger) */
+.openapi__method-endpoint .badge--danger {
+  background-color: #f93e3e !important;
+  border-color: #f93e3e !important;
+}
+
+/* Sidebar method badges - colored dots before endpoint names */
+/* The method classes (get, post, etc.) are on the <li> (menu__list-item),
+   so we target the <a> (menu__link) inside using descendant selector */
+.menu__list-item.api-method > .menu__link::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.menu__list-item.get.api-method > .menu__link::before {
+  background-color: #61affe;
+}
+
+.menu__list-item.post.api-method > .menu__link::before {
+  background-color: #49cc90;
+}
+
+.menu__list-item.put.api-method > .menu__link::before {
+  background-color: #fca130;
+}
+
+.menu__list-item.patch.api-method > .menu__link::before {
+  background-color: #50e3c2;
+}
+
+.menu__list-item.delete.api-method > .menu__link::before {
+  background-color: #f93e3e;
+}

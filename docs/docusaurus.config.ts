@@ -19,6 +19,7 @@
 
 import type { Config } from '@docusaurus/types';
 import type { Options, ThemeConfig } from '@docusaurus/preset-classic';
+import type * as OpenApiPlugin from 'docusaurus-plugin-openapi-docs';
 import { themes } from 'prism-react-renderer';
 import remarkImportPartial from 'remark-import-partial';
 import remarkLocalizeBadges from './plugins/remark-localize-badges.mjs';
@@ -155,6 +156,10 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
         docId: 'contributing/overview',
         label: 'Contributing',
       },
+      {
+        label: 'API Reference',
+        href: '/docs/api',
+      },
     ],
   });
 }
@@ -177,6 +182,7 @@ const config: Config = {
     '@saucelabs/theme-github-codeblock',
     '@docusaurus/theme-mermaid',
     '@docusaurus/theme-live-codeblock',
+    'docusaurus-theme-openapi-docs',
   ],
   plugins: [
     require.resolve('./src/webpack.extend.ts'),
@@ -189,6 +195,29 @@ const config: Config = {
       },
     ],
     ...dynamicPlugins,
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: 'api',
+        docsPluginId: 'classic',
+        config: {
+          superset: {
+            specPath: 'static/resources/openapi.json',
+            outputDir: 'docs/api',
+            sidebarOptions: {
+              groupPathsBy: 'tag',
+              categoryLinkSource: 'tag',
+              sidebarCollapsible: true,
+              sidebarCollapsed: true,
+            },
+            showSchemas: true,
+            hideSendButton: true,
+            showInfoPage: false,
+            showExtensions: true,
+          } satisfies OpenApiPlugin.Options,
+        },
+      },
+    ],
     [
       '@docusaurus/plugin-client-redirects',
       {
@@ -362,6 +391,7 @@ const config: Config = {
           disableVersioning: false,
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
+          docItemComponent: '@theme/ApiItem', // Required for OpenAPI docs
         },
         blog: {
           showReadingTime: true,
