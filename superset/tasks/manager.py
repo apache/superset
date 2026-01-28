@@ -574,14 +574,11 @@ class TaskManager:
                 return existing
 
             # Race condition: task completed between check and here
-            # Try again to create new task
-            logger.warning(
-                "Race condition detected for task %s with key '%s' and "
-                "scope '%s', retrying",
+            # Do not recurse indefinitely; surface failure so caller can handle retry if desired
+            logger.error(
+                "Race condition detected for task %s with key '%s' and scope '%s' - failing task creation",
                 task_type,
                 task_key,
                 scope.value,
             )
-            return TaskManager.submit_task(
-                task_type, task_key, task_name, scope, timeout, args, kwargs
-            )
+            raise TaskCreateFailedError()
