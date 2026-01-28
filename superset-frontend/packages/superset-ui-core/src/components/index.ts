@@ -144,16 +144,10 @@ export {
   type ListViewCardProps,
 } from './ListViewCard';
 export { Loading, type LoadingProps } from './Loading';
-export {
-  default as MetadataBar,
-  type MetadataBarProps,
-} from './MetadataBar';
+export { default as MetadataBar, type MetadataBarProps } from './MetadataBar';
 
 export { Progress, type ProgressProps } from './Progress';
-export {
-  default as ProgressBar,
-  type ProgressBarProps,
-} from './ProgressBar';
+export { default as ProgressBar, type ProgressBarProps } from './ProgressBar';
 
 export { Pagination, type PaginationProps } from './Pagination';
 
@@ -173,11 +167,7 @@ export {
   type TabsProps,
 } from './Tabs';
 
-export {
-  default as Tree,
-  type TreeProps,
-  type TreeDataNode,
-} from './Tree';
+export { default as Tree, type TreeProps, type TreeDataNode } from './Tree';
 
 export { TreeSelect, type TreeSelectProps } from './TreeSelect';
 

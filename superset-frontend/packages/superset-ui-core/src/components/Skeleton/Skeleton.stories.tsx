@@ -17,12 +17,16 @@
  * under the License.
  */
 import type { Meta, StoryObj } from '@storybook/react';
-import { type SkeletonButtonProps } from 'antd/es/skeleton/Button';
 import { Space } from '../Space';
-import { AvatarProps } from '../Avatar/types';
 import { Skeleton, type SkeletonProps } from '.';
 
 const { Avatar, Button, Input, Image } = Skeleton;
+
+type SkeletonStoryArgs = SkeletonProps & {
+  shape?: 'circle' | 'square';
+  size?: 'large' | 'small' | 'default';
+  block?: boolean;
+};
 
 export default {
   title: 'Components/Skeleton',
@@ -38,7 +42,7 @@ export default {
   },
 } as Meta<typeof Skeleton>;
 
-type Story = StoryObj<typeof Skeleton>;
+type Story = StoryObj<SkeletonStoryArgs>;
 
 export const InteractiveSkeleton: Story = {
   args: {
@@ -82,7 +86,7 @@ export const InteractiveSkeleton: Story = {
       description: 'Option to fit button width to its parent width.',
     },
   },
-  render: (args: SkeletonProps & AvatarProps & SkeletonButtonProps) => {
+  render: args => {
     const avatar = {
       shape: args.shape,
       size: args.size,
@@ -120,7 +124,7 @@ export const InteractiveSkeleton: Story = {
 
 // Keep original for backwards compatibility
 export const SkeletonStory: Story = {
-  render: (args: SkeletonProps & AvatarProps & SkeletonButtonProps) => {
+  render: args => {
     const avatar = {
       shape: args.shape,
       size: args.size,
