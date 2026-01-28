@@ -19,6 +19,8 @@
 import {
   t,
   SMART_DATE_ID,
+  RELATIVE_DAY_ID,
+  RELATIVE_DAY_NO_TIME_ID,
   NumberFormats,
   getNumberFormatter,
 } from '@superset-ui/core';
@@ -76,6 +78,8 @@ export const D3_TIME_FORMAT_DOCS = t(
 
 export const D3_TIME_FORMAT_OPTIONS: [string, string][] = [
   [SMART_DATE_ID, t('Adaptive formatting')],
+  [RELATIVE_DAY_ID, t('Relative Day (Day 1: 12:00am)')],
+  [RELATIVE_DAY_NO_TIME_ID, t('Relative Day (Day 1)')],
   ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%d.%m.%Y', '%d.%m.%Y | 14.01.2019'],

@@ -45,6 +45,14 @@ export {
   SMART_DATE_VERBOSE_ID,
   createSmartDateVerboseFormatter,
 } from './formatters/smartDateVerbose';
+export {
+  RELATIVE_DAY_ID,
+  createRelativeDayFormatter,
+} from './formatters/relativeDayFormatter';
+export {
+  RELATIVE_DAY_NO_TIME_ID,
+  createRelativeDayFormatterNoTime,
+} from './formatters/relativeDayFormatterNoTime';
 export { default as finestTemporalGrainFormatter } from './formatters/finestTemporalGrain';
 
 export { default as normalizeTimestamp } from './utils/normalizeTimestamp';

@@ -25,6 +25,8 @@ import {
   isSavedMetric,
   NumberFormats,
   QueryFormMetric,
+  RELATIVE_DAY_ID,
+  RELATIVE_DAY_NO_TIME_ID,
   SMART_DATE_DETAILED_ID,
   SMART_DATE_ID,
   SMART_DATE_VERBOSE_ID,
@@ -91,6 +93,12 @@ export function getXAxisFormatter(
 ): TimeFormatter | StringConstructor | undefined {
   if (format === SMART_DATE_ID || !format) {
     return undefined;
+  }
+  if (format === RELATIVE_DAY_ID) {
+    return getTimeFormatter(RELATIVE_DAY_ID);
+  }
+  if (format === RELATIVE_DAY_NO_TIME_ID) {
+    return getTimeFormatter(RELATIVE_DAY_NO_TIME_ID);
   }
   if (format) {
     return getTimeFormatter(format);
