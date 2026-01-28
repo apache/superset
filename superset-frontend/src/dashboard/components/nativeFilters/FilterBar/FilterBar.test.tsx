@@ -541,7 +541,7 @@ describe('FilterBar', () => {
     });
 
     expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
-      filterState: { value: null },
+      filterState: { value: undefined },
       extraFormData: {},
     });
     updateDataMaskSpy.mockRestore();
@@ -665,7 +665,7 @@ describe('FilterBar', () => {
 
     expect(updateDataMaskSpy).toHaveBeenCalledTimes(1);
     expect(updateDataMaskSpy).toHaveBeenCalledWith(idInMask, {
-      filterState: { value: null },
+      filterState: { value: undefined },
       extraFormData: {},
     });
     updateDataMaskSpy.mockRestore();
