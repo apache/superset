@@ -320,17 +320,7 @@ export default function transformProps(
           currency: resolvedCurrencySecondary,
         })
       : getNumberFormatter(yAxisFormatSecondary);
-  const customFormatters = (
-    buildCustomFormatters as (
-      metrics: QueryFormMetric | QueryFormMetric[] | undefined,
-      savedCurrencyFormats: Record<string, Currency>,
-      savedColumnFormats: Record<string, string>,
-      d3Format: string | undefined,
-      currencyFormat: Currency | undefined | null,
-      data?: TimeseriesDataRecord[],
-      currencyCodeColumn?: string,
-    ) => ReturnType<typeof buildCustomFormatters>
-  )(
+  const customFormatters = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
     columnFormats,
@@ -339,17 +329,7 @@ export default function transformProps(
     data1,
     currencyCodeColumn,
   );
-  const customFormattersSecondary = (
-    buildCustomFormatters as (
-      metrics: QueryFormMetric | QueryFormMetric[] | undefined,
-      savedCurrencyFormats: Record<string, Currency>,
-      savedColumnFormats: Record<string, string>,
-      d3Format: string | undefined,
-      currencyFormat: Currency | undefined | null,
-      data?: TimeseriesDataRecord[],
-      currencyCodeColumn?: string,
-    ) => ReturnType<typeof buildCustomFormatters>
-  )(
+  const customFormattersSecondary = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
     columnFormats,
