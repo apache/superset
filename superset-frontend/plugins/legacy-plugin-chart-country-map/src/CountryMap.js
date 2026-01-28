@@ -134,8 +134,8 @@ function CountryMap(element, props) {
     return '';
   };
 
-  const svgHeight = svg.node().getBoundingClientRect().height;
   const updatePopupPosition = () => {
+    const svgHeight = svg.node().getBoundingClientRect().height;
     const [x, y] = d3.mouse(svg.node());
     hoverPopup
       .style('display', 'block')
