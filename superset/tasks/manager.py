@@ -555,7 +555,7 @@ class TaskManager:
 
             return task
 
-        except TaskCreateFailedError:
+        except TaskCreateFailedError as ex:
             # Task with same task_key already exists and is active
             # Return existing task instead of creating duplicate
             # Lazy import to avoid circular dependency
@@ -574,11 +574,13 @@ class TaskManager:
                 return existing
 
             # Race condition: task completed between check and here
-            # Do not recurse indefinitely; surface failure so caller can handle retry if desired
+            # Do not recurse indefinitely; surface failure so caller can handle
+            # retry if desired
             logger.error(
-                "Race condition detected for task %s with key '%s' and scope '%s' - failing task creation",
+                "Race condition detected for task %s with key '%s' and scope '%s' "
+                "- failing task creation",
                 task_type,
                 task_key,
                 scope.value,
             )
-            raise TaskCreateFailedError()
+            raise TaskCreateFailedError() from ex
