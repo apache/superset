@@ -168,32 +168,48 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   await userEvent.click(bulkSelectButton);
 
   // Wait for bulk select controls container to appear first (fast query)
-  await screen.findByTestId('bulk-select-controls');
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
 
-  // Then wait for checkboxes to render
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
+
+  // Select first dataset by name (row-scoped query is more robust than array index)
+  const firstRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  expect(firstRow).toBeInTheDocument();
+  await userEvent.click(within(firstRow!).getByRole('checkbox'));
+
+  // Wait for first selection to register before clicking second (prevents stale node)
   await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
   });
 
-  // Select first 2 items (skip select-all checkbox at index 0)
-  const checkboxes = screen.getAllByRole('checkbox');
-  await userEvent.click(checkboxes[1]);
-  await userEvent.click(checkboxes[2]);
+  // Select second dataset
+  const secondRow = screen.getByText(mockDatasets[1].table_name).closest('tr');
+  expect(secondRow).toBeInTheDocument();
+  await userEvent.click(within(secondRow!).getByRole('checkbox'));
 
-  // Wait for selections to register - assert on "selected" text which is what users see
-  await screen.findByText(/selected/i);
+  // Wait for both selections to register
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /2 Selected/i,
+    );
+  });
 
-  // 2. Execute bulk delete
-  // Multiple bulk actions share the same test ID, so filter by text content
-  const bulkActionButtons = await screen.findAllByTestId('bulk-select-action');
-  const bulkDeleteButton = bulkActionButtons.find(btn =>
-    btn.textContent?.includes('Delete'),
+  // 2. Execute bulk delete - scoped to toolbar to avoid row delete buttons
+  const bulkDeleteButton = await within(bulkSelectControls).findByRole(
+    'button',
+    { name: 'Delete' },
   );
-  expect(bulkDeleteButton).toBeTruthy();
-  await userEvent.click(bulkDeleteButton!);
+  await userEvent.click(bulkDeleteButton);
 
-  // Confirm in modal - type DELETE to enable button
+  // Confirm in modal - verify it's bulk delete modal by checking description
   const modal = await screen.findByRole('dialog');
+  expect(
+    within(modal).getByText(/delete the selected datasets/i),
+  ).toBeInTheDocument();
   const confirmInput = within(modal).getByTestId('delete-modal-input');
   await userEvent.clear(confirmInput);
   await userEvent.type(confirmInput, 'DELETE');

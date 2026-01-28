@@ -639,10 +639,9 @@ test('bulk select enables checkboxes', async () => {
   // Wait for bulk select controls container to appear first (fast query)
   await screen.findByTestId('bulk-select-controls');
 
-  // Then wait for checkboxes to render
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
 
   // Note: Bulk action buttons (Export, Delete) only appear after selecting items
   // This test only verifies checkboxes appear - button visibility tested in other tests
@@ -670,10 +669,9 @@ test('selecting all datasets shows correct count in toolbar', async () => {
   // Wait for bulk select controls container to appear first (fast query)
   await screen.findByTestId('bulk-select-controls');
 
-  // Then wait for checkboxes to render
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
 
   // Select all checkbox using semantic selector
   // Note: antd renders multiple checkboxes with same aria-label, use first one (table header)
@@ -709,10 +707,9 @@ test('bulk export triggers export with selected IDs', async () => {
   // Wait for bulk select controls container to appear first (fast query)
   await screen.findByTestId('bulk-select-controls');
 
-  // Then wait for checkboxes to render
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
 
   // Select row by dataset name (row-scoped query is more robust than array index)
   const datasetRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
@@ -749,12 +746,11 @@ test('bulk delete opens confirmation modal', async () => {
   await userEvent.click(bulkSelectButton);
 
   // Wait for bulk select controls container to appear first (fast query)
-  await screen.findByTestId('bulk-select-controls');
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
 
-  // Then wait for checkboxes to render
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
 
   // Select row by dataset name (row-scoped query is more robust than array index)
   const datasetRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
@@ -769,13 +765,18 @@ test('bulk delete opens confirmation modal', async () => {
     );
   });
 
-  // Find and click bulk delete button (use accessible name for specificity)
-  const deleteButton = await screen.findByRole('button', { name: 'Delete' });
+  // Find bulk delete button scoped to toolbar (avoids matching row delete buttons)
+  const deleteButton = await within(bulkSelectControls).findByRole('button', {
+    name: 'Delete',
+  });
   await userEvent.click(deleteButton);
 
-  // Confirmation modal should appear
+  // Confirmation modal should appear - verify it's the bulk delete modal by checking description
   const modal = await screen.findByRole('dialog');
   expect(modal).toBeInTheDocument();
+  expect(
+    within(modal).getByText(/delete the selected datasets/i),
+  ).toBeInTheDocument();
 });
 
 test('exit bulk select via close button returns to normal view', async () => {
@@ -794,10 +795,9 @@ test('exit bulk select via close button returns to normal view', async () => {
   // Wait for bulk select controls container to appear first (fast query)
   const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
 
-  // Then wait for checkboxes to render
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
 
   // Note: Not verifying export/delete buttons here as they only appear after selection
   // This test focuses on the close button functionality
@@ -1494,28 +1494,26 @@ test('bulk selection clears when filter changes', async () => {
   // Wait for bulk select controls container to appear first (fast query)
   await screen.findByTestId('bulk-select-controls');
 
-  // Then wait for checkboxes to render
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
 
-  // Verify multiple checkboxes exist (header + row checkboxes)
-  let checkboxes = screen.getAllByRole('checkbox');
-  expect(checkboxes.length).toBeGreaterThan(1);
+  // Select first dataset by name (row-scoped query is more robust than array index)
+  const firstRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  expect(firstRow).toBeInTheDocument();
+  await userEvent.click(within(firstRow!).getByRole('checkbox'));
 
-  // Select first item
-  await userEvent.click(checkboxes[1]);
-
-  // Wait for first selection to register
+  // Wait for first selection to register before clicking second (prevents stale node)
   await waitFor(() => {
     expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
       /1 Selected/i,
     );
   });
 
-  // Re-query checkboxes (DOM may have updated) and select second item
-  checkboxes = screen.getAllByRole('checkbox');
-  await userEvent.click(checkboxes[2]);
+  // Select second dataset by name (row-scoped query)
+  const secondRow = screen.getByText(mockDatasets[1].table_name).closest('tr');
+  expect(secondRow).toBeInTheDocument();
+  await userEvent.click(within(secondRow!).getByRole('checkbox'));
 
   // Wait for selections to register - assert specific count to avoid matching "0 Selected"
   await waitFor(() => {
@@ -1792,15 +1790,22 @@ test('bulk export error shows toast and clears loading state', async () => {
   // Wait for bulk select controls
   await screen.findByTestId('bulk-select-controls');
 
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
 
   // Select row by dataset name (row-scoped query is more robust than array index)
   const datasetRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
   expect(datasetRow).toBeInTheDocument();
   const rowCheckbox = within(datasetRow!).getByRole('checkbox');
   await userEvent.click(rowCheckbox);
+
+  // Wait for selection to register before clicking Export (prevents race condition)
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
+  });
 
   // Click bulk export
   const exportButton = await screen.findByRole('button', { name: /export/i });
@@ -1848,23 +1853,31 @@ test('bulk delete error shows toast without refreshing list', async () => {
   await userEvent.click(bulkSelectButton);
 
   // Wait for bulk select controls
-  await screen.findByTestId('bulk-select-controls');
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
 
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
+
+  // Select row by dataset name (row-scoped query is more robust than array index)
+  const datasetRow = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  expect(datasetRow).toBeInTheDocument();
+  const rowCheckbox = within(datasetRow!).getByRole('checkbox');
+  await userEvent.click(rowCheckbox);
+
+  // Wait for selection to register before clicking Delete (prevents race condition)
   await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
   });
 
-  // Select first row
-  const checkboxes = screen.getAllByRole('checkbox');
-  await userEvent.click(checkboxes[1]);
-
-  // Click bulk delete - find by test ID since multiple bulk actions exist
-  const bulkActionButtons = await screen.findAllByTestId('bulk-select-action');
-  const bulkDeleteButton = bulkActionButtons.find(btn =>
-    btn.textContent?.includes('Delete'),
+  // Click bulk delete - scoped to toolbar to avoid row delete buttons
+  const bulkDeleteButton = await within(bulkSelectControls).findByRole(
+    'button',
+    { name: 'Delete' },
   );
-  expect(bulkDeleteButton).toBeTruthy();
-  await userEvent.click(bulkDeleteButton!);
+  await userEvent.click(bulkDeleteButton);
 
   // Confirm delete in modal - type DELETE to enable button
   const modal = await screen.findByRole('dialog');
@@ -1917,13 +1930,15 @@ test('bulk select shows "N Selected (Virtual)" for virtual-only selection', asyn
 
   await screen.findByTestId('bulk-select-controls');
 
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
 
-  // Select first virtual dataset
-  const checkboxes = screen.getAllByRole('checkbox');
-  await userEvent.click(checkboxes[1]);
+  // Select first virtual dataset by name (row-scoped query is more robust than array index)
+  const virtualDataset = mockDatasets.find(d => d.kind === 'virtual')!;
+  const datasetRow = screen.getByText(virtualDataset.table_name).closest('tr');
+  expect(datasetRow).toBeInTheDocument();
+  await userEvent.click(within(datasetRow!).getByRole('checkbox'));
 
   // Wait for selection state to update, then verify label
   await waitFor(() => {
@@ -1962,13 +1977,16 @@ test('bulk select shows "N Selected (Physical)" for physical-only selection', as
 
   await screen.findByTestId('bulk-select-controls');
 
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
 
-  // Select first physical dataset
-  const checkboxes = screen.getAllByRole('checkbox');
-  await userEvent.click(checkboxes[1]);
+  // Select first physical dataset by name (row-scoped query is more robust than array index)
+  const datasetRow = screen
+    .getByText(physicalDatasets[0].table_name)
+    .closest('tr');
+  expect(datasetRow).toBeInTheDocument();
+  await userEvent.click(within(datasetRow!).getByRole('checkbox'));
 
   // Wait for selection state to update, then verify label
   await waitFor(() => {
@@ -2010,29 +2028,26 @@ test('bulk select shows mixed count for virtual and physical selection', async (
 
   await screen.findByTestId('bulk-select-controls');
 
-  await waitFor(() => {
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
-  });
+  // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
 
-  // Get checkboxes - [0] is select-all, [1] and [2] are row checkboxes
-  let checkboxes = screen.getAllByRole('checkbox');
-  expect(checkboxes.length).toBeGreaterThanOrEqual(3);
+  // Select first dataset by name (row-scoped query is more robust than array index)
+  const firstRow = screen.getByText(mixedDatasets[0].table_name).closest('tr');
+  expect(firstRow).toBeInTheDocument();
+  await userEvent.click(within(firstRow!).getByRole('checkbox'));
 
-  // Click first row checkbox
-  await userEvent.click(checkboxes[1]);
-
-  // Wait for first selection to register
+  // Wait for first selection to register before clicking second (prevents stale node)
   await waitFor(() => {
     expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
       /1 Selected/i,
     );
   });
 
-  // Re-query checkboxes (DOM may have updated after first selection)
-  checkboxes = screen.getAllByRole('checkbox');
-
-  // Click second row checkbox
-  await userEvent.click(checkboxes[2]);
+  // Select second dataset by name (row-scoped query)
+  const secondRow = screen.getByText(mixedDatasets[1].table_name).closest('tr');
+  expect(secondRow).toBeInTheDocument();
+  await userEvent.click(within(secondRow!).getByRole('checkbox'));
 
   // Wait for second selection and verify mixed count
   await waitFor(() => {

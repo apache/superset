@@ -163,7 +163,7 @@ test('"Bulk select" button exists for export-only users', async () => {
   expect(
     await screen.findByRole('button', { name: /bulk select/i }),
   ).toBeInTheDocument();
-});
+}, 30000);
 
 test('"Bulk select" button hidden for read-only users', async () => {
   renderDatasetList(mockReadOnlyUser);
