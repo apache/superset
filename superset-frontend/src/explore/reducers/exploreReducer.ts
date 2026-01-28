@@ -347,7 +347,9 @@ export default function exploreReducer(
       // Normalize server_page_length to number if it's a string
       const normalizedValue: unknown =
         controlName === 'server_page_length' && typeof value === 'string'
-          ? Number(value) || value
+          ? Number.isNaN(Number(value))
+            ? value
+            : Number(value)
           : value;
       let new_form_data: QueryFormData & { [key: string]: unknown } = {
         ...state.form_data,

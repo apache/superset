@@ -179,3 +179,24 @@ test('does not normalize other string control values', () => {
     (newState.form_data as unknown as { row_limit: unknown }).row_limit,
   ).toBe('50');
 });
+
+test('normalizes server_page_length from string "0" to number 0', () => {
+  const initialState: ExploreState = {
+    form_data: { viz_type: 'table' } as unknown as QueryFormData,
+    controls: {},
+  };
+
+  const action = setControlValue('server_page_length', '0') as Parameters<
+    typeof exploreReducer
+  >[1];
+  const newState = exploreReducer(initialState, action);
+
+  expect(
+    (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe(0);
+  expect(
+    typeof (newState.form_data as unknown as { server_page_length: unknown })
+      .server_page_length,
+  ).toBe('number');
+});
