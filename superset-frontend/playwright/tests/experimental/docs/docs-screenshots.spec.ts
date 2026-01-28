@@ -107,7 +107,6 @@ test('dashboard screenshot', async ({ page }) => {
     ).toBeVisible({ timeout: 5000 });
   }
 
-  await page.addStyleTag({ content: 'body { zoom: 0.8 }' });
   await page.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'dashboard.jpg'),
     type: 'jpeg',
