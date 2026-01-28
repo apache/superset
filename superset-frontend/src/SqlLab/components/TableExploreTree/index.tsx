@@ -185,7 +185,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     'schema',
     'catalog',
   ]);
-  const { dbId, catalog } = queryEditor;
+  const { dbId, catalog, schema: selectedSchema } = queryEditor;
   const pinnedTables = useMemo(
     () =>
       Object.fromEntries(
@@ -243,7 +243,12 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   // Tree data for react-arborist
   // children must be [] (not undefined) to make node expandable
   const treeData = useMemo((): TreeNodeData[] => {
-    const data = schemaData?.map(schema => {
+    // Filter schemas if a schema is selected, otherwise show all
+    const filteredSchemaData = selectedSchema
+      ? schemaData?.filter(schema => schema.value === selectedSchema)
+      : schemaData;
+
+    const data = filteredSchemaData?.map(schema => {
       const schemaKey = `${dbId}:${schema.value}`;
       const schemaId = `schema:${dbId}:${schema.value}`;
       const tablesData = tableData?.[schemaKey];
@@ -303,7 +308,14 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     });
 
     return data ?? [];
-  }, [dbId, schemaData, tableData, tableSchemaData, pinnedTables]);
+  }, [
+    dbId,
+    schemaData,
+    tableData,
+    tableSchemaData,
+    pinnedTables,
+    selectedSchema,
+  ]);
 
   // Custom search match function for react-arborist
   const searchMatch = useCallback(
@@ -628,59 +640,53 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
 
   return (
     <>
-      <Flex
-        css={css`
-          flex-direction: row-reverse;
-        `}
-      >
-        <PanelToolbar
-          viewId={ViewContribution.LeftSidebar}
-          defaultPrimaryActions={
-            <>
-              <Button
-                color="primary"
-                variant="text"
-                icon={<Icons.FolderOpenOutlined />}
-                onClick={() => {
-                  treeRef.current?.openAll();
-                  const allNodeIds: Record<string, boolean> = {};
-                  const collectNodeIds = (nodes: TreeNodeData[]) => {
-                    nodes.forEach(node => {
-                      if (node.type !== 'empty' && node.type !== 'column') {
-                        allNodeIds[node.id] = true;
-                        if (node.children) {
-                          collectNodeIds(node.children);
-                        }
+      <PanelToolbar
+        viewId={ViewContribution.LeftSidebar}
+        defaultPrimaryActions={
+          <>
+            <Button
+              color="primary"
+              variant="text"
+              icon={<Icons.PlusSquareOutlined />}
+              onClick={() => {
+                treeRef.current?.openAll();
+                const allNodeIds: Record<string, boolean> = {};
+                const collectNodeIds = (nodes: TreeNodeData[]) => {
+                  nodes.forEach(node => {
+                    if (node.type !== 'empty' && node.type !== 'column') {
+                      allNodeIds[node.id] = true;
+                      if (node.children) {
+                        collectNodeIds(node.children);
                       }
-                    });
-                  };
-                  collectNodeIds(treeData);
-                  setManuallyOpenedNodes(allNodeIds);
-                }}
-                tooltip={t('Expand all')}
-              />
-              <Button
-                color="primary"
-                variant="text"
-                icon={<Icons.FolderOutlined />}
-                onClick={() => {
-                  treeRef.current?.closeAll();
-                  setManuallyOpenedNodes({});
-                }}
-                tooltip={t('Collapse all')}
-              />
-              <Button
-                color="primary"
-                variant="text"
-                icon={<Icons.ReloadOutlined />}
-                onClick={() => refetch()}
-                loading={isFetching}
-                tooltip={t('Force refresh schema list')}
-              />
-            </>
-          }
-        />
-      </Flex>
+                    }
+                  });
+                };
+                collectNodeIds(treeData);
+                setManuallyOpenedNodes(allNodeIds);
+              }}
+              tooltip={t('Expand all')}
+            />
+            <Button
+              color="primary"
+              variant="text"
+              icon={<Icons.MinusSquareOutlined />}
+              onClick={() => {
+                treeRef.current?.closeAll();
+                setManuallyOpenedNodes({});
+              }}
+              tooltip={t('Collapse all')}
+            />
+            <Button
+              color="primary"
+              variant="text"
+              icon={<Icons.ReloadOutlined />}
+              onClick={() => refetch()}
+              loading={isFetching}
+              tooltip={t('Force refresh schema list')}
+            />
+          </>
+        }
+      />
       <Input
         allowClear
         type="text"

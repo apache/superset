@@ -153,13 +153,9 @@ test('catalog selector should be visible when enabled in the database', async ()
   const catalogSelect = getByRole('combobox', {
     name: 'Select catalog or type to search catalogs',
   });
-  const schemaSelect = getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
-  });
 
   expect(dbSelect).toBeInTheDocument();
   expect(catalogSelect).toBeInTheDocument();
-  expect(schemaSelect).toBeInTheDocument();
 });
 
 test('display no compatible schema found when schema api throws errors', async () => {

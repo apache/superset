@@ -26,7 +26,7 @@ import {
 } from 'react';
 import { t } from '@apache-superset/core';
 import { SupersetClient, SupersetError } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/ui';
 import rison from 'rison';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -42,7 +42,6 @@ import {
   Label,
   LabeledValue as AntdLabeledValue,
   Button,
-  Popconfirm,
   Icons,
 } from '@superset-ui/core/components';
 
@@ -182,8 +181,10 @@ export function DatabaseSelector({
   schema,
   readOnly = false,
   sqlLabMode = false,
+  onOpenModal,
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
+  console.log('db', db, showCatalogSelector);
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
   const [errorPayload, setErrorPayload] = useState<SupersetError | null>();
   const [currentCatalog, setCurrentCatalog] = useState<
@@ -197,27 +198,6 @@ export function DatabaseSelector({
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
   const { addSuccessToast } = useToasts();
-
-  // Modal state for sqlLabMode (Database/Catalog/Schema selector)
-  const [selectorModalOpen, setSelectorModalOpen] = useState(false);
-  const [modalDb, setModalDb] = useState<DatabaseObject | undefined>(undefined);
-  const [modalCatalog, setModalCatalog] = useState<
-    CatalogOption | null | undefined
-  >(undefined);
-  const [modalSchema, setModalSchema] = useState<SchemaOption | undefined>(
-    undefined,
-  );
-
-  const openSelectorModal = useCallback(() => {
-    setModalDb(currentDb);
-    setModalCatalog(currentCatalog);
-    setModalSchema(currentSchema);
-    setSelectorModalOpen(true);
-  }, [currentDb, currentCatalog, currentSchema]);
-
-  const closeSelectorModal = useCallback(() => {
-    setSelectorModalOpen(false);
-  }, []);
 
   const sortComparator = useCallback(
     (itemA: AntdLabeledValueWithOrder, itemB: AntdLabeledValueWithOrder) =>
@@ -390,40 +370,6 @@ export function DatabaseSelector({
 
   const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
 
-  const handleModalOk = useCallback(() => {
-    // Apply modal selections to actual state
-    if (modalDb && modalDb.id !== currentDb?.value) {
-      const databaseWithId = { ...modalDb, id: modalDb.id };
-      setCurrentDb(databaseWithId as DatabaseValue);
-      if (onDbChange) {
-        onDbChange(databaseWithId);
-      }
-    }
-    if (modalCatalog?.value !== currentCatalog?.value) {
-      setCurrentCatalog(modalCatalog);
-      if (onCatalogChange) {
-        onCatalogChange(modalCatalog?.value);
-      }
-    }
-    if (modalSchema?.value !== currentSchema?.value) {
-      setCurrentSchema(modalSchema);
-      if (onSchemaChange) {
-        onSchemaChange(modalSchema?.value);
-      }
-    }
-    setSelectorModalOpen(false);
-  }, [
-    modalDb,
-    modalCatalog,
-    modalSchema,
-    currentDb,
-    currentCatalog,
-    currentSchema,
-    onDbChange,
-    onCatalogChange,
-    onSchemaChange,
-  ]);
-
   function changeDatabase(
     value: { label: string; value: number },
     database: DatabaseValue,
@@ -465,7 +411,6 @@ export function DatabaseSelector({
             buttonStyle="tertiary"
             disabled={sqlLabModeConfig.disabled}
             loading={sqlLabModeConfig.loading}
-            onClick={openSelectorModal}
             empty={!sqlLabModeConfig.displayValue}
           >
             {displayValue}
@@ -620,86 +565,23 @@ export function DatabaseSelector({
     ) : null;
   }
 
-  function renderSelectorModal() {
-    const popconfirmDescription = (
-      <div
-        css={css`
-          min-width: 500px;
-        `}
-      >
-        <DatabaseSelector
-          db={modalDb}
-          emptyState={emptyState}
-          formMode={formMode}
-          getDbList={getDbList}
-          handleError={handleError}
-          onDbChange={setModalDb}
-          onEmptyResults={onEmptyResults}
-          onCatalogChange={catalog =>
-            setModalCatalog(
-              catalog
-                ? { label: catalog, value: catalog, title: catalog }
-                : undefined,
-            )
-          }
-          catalog={modalCatalog?.value}
-          onSchemaChange={schema =>
-            setModalSchema(
-              schema
-                ? { label: schema, value: schema, title: schema }
-                : undefined,
-            )
-          }
-          schema={modalSchema?.value}
-          sqlLabMode={false}
-          isDatabaseSelectEnabled={isDatabaseSelectEnabled}
-          readOnly={readOnly}
-        />
-      </div>
-    );
-
-    return (
-      <Popconfirm
-        title={t('Select Database and Schema')}
-        description={popconfirmDescription}
-        open={selectorModalOpen}
-        onOpenChange={open => !open && closeSelectorModal()}
-        onConfirm={e => {
-          e?.stopPropagation();
-          handleModalOk();
-        }}
-        onCancel={e => {
-          e?.stopPropagation();
-          closeSelectorModal();
-        }}
-        okText={t('Select')}
-        cancelText={t('Cancel')}
-        placement="bottomLeft"
-        icon={null}
-      >
-        <span />
-      </Popconfirm>
-    );
-  }
-
   return (
     <DatabaseSelectorWrapper
       data-test="DatabaseSelector"
       horizontal={Boolean(sqlLabMode)}
-      onClick={sqlLabMode ? openSelectorModal : undefined}
+      onClick={sqlLabMode ? onOpenModal : undefined}
       role={sqlLabMode ? 'button' : undefined}
       tabIndex={sqlLabMode ? 0 : undefined}
       onKeyDown={
         sqlLabMode
           ? e => {
               if (e.key === 'Enter' || e.key === ' ') {
-                openSelectorModal();
+                onOpenModal?.();
               }
             }
           : undefined
       }
     >
-      {renderSelectorModal()}
       {renderDatabaseSelect()}
       {renderError()}
       {showCatalogSelector && renderCatalogSelect()}

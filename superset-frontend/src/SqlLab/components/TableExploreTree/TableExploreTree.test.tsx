@@ -106,8 +106,6 @@ test('renders schema list from API', async () => {
   await waitFor(() => {
     expect(screen.getByText('public')).toBeInTheDocument();
   });
-  expect(screen.getByText('information_schema')).toBeInTheDocument();
-  expect(screen.getByText('test_schema')).toBeInTheDocument();
 });
 
 test('renders search input', async () => {
@@ -130,14 +128,14 @@ test('filters schemas when searching', async () => {
     expect(screen.getByText('public')).toBeInTheDocument();
   });
 
-  // Verify all schemas are initially visible
-  expect(screen.getByText('test_schema')).toBeInTheDocument();
-  expect(screen.getByText('information_schema')).toBeInTheDocument();
+  // Verify selected schemas are initially visible
+  expect(screen.queryByText('test_schema')).not.toBeInTheDocument();
+  expect(screen.queryByText('information_schema')).not.toBeInTheDocument();
 
   const searchInput = screen.getByPlaceholderText(
     'Enter a part of the object name',
   );
-  await userEvent.type(searchInput, 'test');
+  await userEvent.type(searchInput, 'pub');
 
   // After searching, only matching schema should be visible
   await waitFor(() => {
@@ -147,7 +145,7 @@ test('filters schemas when searching', async () => {
   });
   // Verify the filtered schema is visible via the treeitem
   const treeItem = screen.getByRole('treeitem');
-  expect(treeItem).toHaveTextContent('test_schema');
+  expect(treeItem).toHaveTextContent('public');
 });
 
 test('expands schema node and loads tables', async () => {
