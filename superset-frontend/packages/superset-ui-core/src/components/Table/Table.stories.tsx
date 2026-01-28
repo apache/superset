@@ -231,6 +231,18 @@ InteractiveTable.args = {
   resizable: false,
   reorderable: false,
   usePagination: false,
+  data: [
+    { key: 1, name: 'Floppy Disk 10 pack', category: 'Disk Storage', price: 9.99 },
+    { key: 2, name: 'DVD 100 pack', category: 'Optical Storage', price: 27.99 },
+    { key: 3, name: '128 GB SSD', category: 'Harddrive', price: 49.99 },
+    { key: 4, name: '4GB 144mhz', category: 'Memory', price: 19.99 },
+    { key: 5, name: '1GB USB Flash Drive', category: 'Portable Storage', price: 9.99 },
+  ],
+  columns: [
+    { title: 'Name', dataIndex: 'name', key: 'name', width: 200 },
+    { title: 'Category', dataIndex: 'category', key: 'category', width: 150 },
+    { title: 'Price', dataIndex: 'price', key: 'price', width: 100 },
+  ],
 };
 
 InteractiveTable.argTypes = {

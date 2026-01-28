@@ -77,6 +77,7 @@ export const InteractiveFaveStar: Story = {
     itemId: 1,
     isStarred: false,
     showTooltip: true,
+    saveFaveStar: () => {},
   },
   argTypes: {
     isStarred: {
@@ -100,12 +101,13 @@ export const InteractiveFaveStar: Story = {
       },
       liveExample: `function Demo() {
   const [starred, setStarred] = React.useState(false);
+  const toggle = React.useCallback(() => setStarred(prev => !prev), []);
   return (
     <FaveStar
       itemId={1}
       isStarred={starred}
       showTooltip
-      fetchFaveStar={() => setStarred(!starred)}
+      saveFaveStar={toggle}
     />
   );
 }`,

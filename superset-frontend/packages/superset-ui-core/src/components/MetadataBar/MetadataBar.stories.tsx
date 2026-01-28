@@ -112,7 +112,34 @@ export const InteractiveMetadataBar = (args: MetadataBarProps) => (
   <MetadataBar {...args} />
 );
 
-InteractiveMetadataBar.args = {};
+InteractiveMetadataBar.args = {
+  items: [
+    {
+      type: MetadataType.Sql,
+      title: 'Click to view query',
+    },
+    {
+      type: MetadataType.Owner,
+      createdBy: 'Jane Smith',
+      owners: ['John Doe', 'Mary Wilson'],
+      createdOn: A_WEEK_AGO,
+    },
+    {
+      type: MetadataType.LastModified,
+      value: A_WEEK_AGO,
+      modifiedBy: 'Jane Smith',
+    },
+    {
+      type: MetadataType.Tags,
+      values: ['management', 'research', 'poc'],
+    },
+    {
+      type: MetadataType.Dashboards,
+      title: 'Added to 3 dashboards',
+      description: 'To preview the list of dashboards go to More settings.',
+    },
+  ],
+};
 
 InteractiveMetadataBar.argTypes = {};
 

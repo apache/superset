@@ -18,6 +18,7 @@
  */
 import { Button } from '../Button';
 import type { ButtonProps } from '../Button/types';
+import type { ButtonGroupProps } from './types';
 import { ButtonGroup } from '.';
 
 export default {
@@ -32,8 +33,6 @@ export default {
     },
   },
 };
-
-import type { ButtonGroupProps } from './types';
 
 // Interactive demo showing ButtonGroup with its own props
 export const InteractiveButtonGroup = (args: ButtonGroupProps) => (

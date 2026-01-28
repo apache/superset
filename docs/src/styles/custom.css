@@ -449,3 +449,8 @@ ul.dropdown__menu svg {
   max-height: 400px;
   overflow: auto;
 }
+
+/* Hide sidebar items with sidebar_class_name: hidden in frontmatter */
+.menu__list-item.hidden {
+  display: none;
+}
