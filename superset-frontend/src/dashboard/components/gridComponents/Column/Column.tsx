@@ -46,7 +46,7 @@ import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import { FC } from 'react';
 
-type ColumnProps = {
+export type ColumnProps = {
   id: string;
   parentId: string;
   component: JsonObject;

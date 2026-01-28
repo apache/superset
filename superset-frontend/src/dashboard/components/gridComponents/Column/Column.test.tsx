@@ -27,7 +27,7 @@ import {
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { initialState } from 'src/SqlLab/fixtures';
-import Column from './Column';
+import Column, { ColumnProps } from './Column';
 
 jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Draggable: ({
@@ -83,28 +83,7 @@ const columnWithoutChildren = {
   children: [],
 };
 
-interface ColumnTestProps {
-  id: string;
-  parentId: string;
-  component: typeof mockLayout.present.COLUMN_ID;
-  parentComponent: typeof mockLayout.present.ROW_ID;
-  index: number;
-  depth: number;
-  editMode: boolean;
-  availableColumnCount: number;
-  minColumnWidth: number;
-  columnWidth: number;
-  onResizeStart: () => void;
-  onResize: () => void;
-  onResizeStop: () => void;
-  handleComponentDrop: () => void;
-  deleteComponent: () => void;
-  updateComponents: () => void;
-  isComponentVisible: boolean;
-  onChangeTab: () => void;
-}
-
-const props: ColumnTestProps = {
+const props: ColumnProps = {
   id: 'COLUMN_ID',
   parentId: 'ROW_ID',
   component: mockLayout.present.COLUMN_ID,
@@ -125,7 +104,7 @@ const props: ColumnTestProps = {
   onChangeTab: () => {},
 };
 
-function setup(overrideProps: Partial<ColumnTestProps> = {}): RenderResult {
+function setup(overrideProps: Partial<ColumnProps> = {}): RenderResult {
   // We have to wrap provide DragDropContext for the underlying DragDroppable
   // otherwise we cannot assert on DragDroppable children
   const mockStore = getMockStore({ ...initialState });
