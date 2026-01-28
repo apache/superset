@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import type { editors } from '@apache-superset/core';
 
 afterEach(() => {

@@ -149,10 +149,8 @@ const EditorWrapper = ({
   // by skipping access the unsaved query editor state
   const cursorPosition = useSelector<SqlLabRootState, CursorPosition>(
     ({ sqlLab: { queryEditors } }) => {
-      const { cursorPosition: pos } = {
-        ...queryEditors.find(({ id }) => id === queryEditorId),
-      };
-      return pos ?? { row: 0, column: 0 };
+      const editor = queryEditors.find(({ id }) => id === queryEditorId);
+      return editor?.cursorPosition ?? { row: 0, column: 0 };
     },
     shallowEqual,
   );

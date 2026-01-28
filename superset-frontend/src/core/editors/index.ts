@@ -24,16 +24,18 @@
  * and resolution functions declared in the API types.
  */
 
-import type { editors, contributions } from '@apache-superset/core';
+import type { contributions } from '@apache-superset/core';
+import { editors as editorsApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 import EditorProviders from './EditorProviders';
 
 type EditorLanguage = contributions.EditorLanguage;
-type EditorProvider = editors.EditorProvider;
-type EditorContribution = editors.EditorContribution;
-type EditorComponent = editors.EditorComponent;
-type EditorProviderRegisteredEvent = editors.EditorProviderRegisteredEvent;
-type EditorProviderUnregisteredEvent = editors.EditorProviderUnregisteredEvent;
+type EditorProvider = editorsApi.EditorProvider;
+type EditorContribution = editorsApi.EditorContribution;
+type EditorComponent = editorsApi.EditorComponent;
+type EditorProviderRegisteredEvent = editorsApi.EditorProviderRegisteredEvent;
+type EditorProviderUnregisteredEvent =
+  editorsApi.EditorProviderUnregisteredEvent;
 
 /**
  * Register an editor provider for specific languages.
@@ -111,7 +113,7 @@ export const onDidUnregisterEditorProvider = (
 /**
  * Editors API object for use in the extension system.
  */
-export const editorsApi: typeof editors = {
+export const editors: typeof editorsApi = {
   registerEditorProvider,
   getEditorProvider,
   hasEditorProvider,

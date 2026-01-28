@@ -66,15 +66,14 @@ const useEditorProvider = (language: EditorLanguage) => {
 
     // Check for provider on mount (in case it was registered before this component mounted)
     const currentProvider = manager.getProvider(language);
-    if (currentProvider !== provider) {
-      setProvider(currentProvider);
-    }
+    setProvider(prev => (currentProvider !== prev ? currentProvider : prev));
 
     return () => {
       registerDisposable.dispose();
       unregisterDisposable.dispose();
     };
-  }, [language, manager, provider]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, manager]);
 
   return provider;
 };

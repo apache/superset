@@ -301,6 +301,7 @@ class Markdown extends PureComponent {
         language="markdown"
         readOnly={false}
         lineNumbers={false}
+        wordWrap
         onReady={handle => {
           // The handle provides access to the underlying editor for resize
           if (handle && typeof handle.focus === 'function') {

@@ -24,7 +24,7 @@ import {
   authentication,
   core,
   commands,
-  editorsApi as editors,
+  editors,
   extensions,
   sqlLab,
 } from 'src/core';

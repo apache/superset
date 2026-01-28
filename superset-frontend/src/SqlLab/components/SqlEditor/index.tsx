@@ -500,7 +500,11 @@ const SqlEditor: FC<Props> = ({
             end = semicolonEnd;
           } else {
             // No semicolon found forward, use end of file
-            end = { line: totalLines, column: 0 };
+            const lastLineIndex = totalLines - 1;
+            end = {
+              line: lastLineIndex,
+              column: lines[lastLineIndex]?.length ?? 0,
+            };
           }
 
           // Find the start of the statement (previous semicolon or start of file)

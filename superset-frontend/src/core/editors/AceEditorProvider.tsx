@@ -296,6 +296,7 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
       <EditorComponent
         ref={aceEditorRef as Ref<never>}
         name={id}
+        mode={language}
         value={value}
         onChange={onChange}
         onBlur={handleBlur}
