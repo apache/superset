@@ -420,8 +420,7 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Row limit'),
               clearable: false,
-              mapStateToProps: (state, controlState) => ({
-                value: controlState?.value ?? 10000,
+              mapStateToProps: state => ({
                 maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
                 server_pagination: state?.form_data?.server_pagination,
                 maxValueWithoutServerPagination:
@@ -449,9 +448,6 @@ const config: ControlPanelConfig = {
               description: t(
                 'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
               ),
-            },
-            override: {
-              default: 1000,
             },
           },
         ],
