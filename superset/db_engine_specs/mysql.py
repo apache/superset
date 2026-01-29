@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import contextlib
+import logging
 import re
 from datetime import datetime
 from decimal import Decimal
@@ -22,8 +23,9 @@ from re import Pattern
 from typing import Any, Callable, Optional
 from urllib import parse
 
+import pandas as pd
 from flask_babel import gettext as __
-from sqlalchemy import types
+from sqlalchemy import Integer, types
 from sqlalchemy.dialects.mysql import (
     BIT,
     DECIMAL,
@@ -45,8 +47,12 @@ from superset.db_engine_specs.base import (
     DatabaseCategory,
 )
 from superset.errors import SupersetErrorType
+from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.sql.parse import Table
 from superset.utils.core import GenericDataType
+
+logger = logging.getLogger(__name__)
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
@@ -401,3 +407,122 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             return False
 
         return True
+
+    @classmethod
+    def _requires_primary_key(cls, engine: Any) -> bool:
+        """
+        Check if the MySQL database requires a primary key for table creation.
+
+        :param engine: SQLAlchemy engine
+        :return: True if primary key is required
+        """
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(
+                    "SELECT @@session.sql_require_primary_key"
+                ).scalar()
+                return bool(result)
+        except Exception:  # pylint: disable=broad-except
+            # If we can't determine the setting, assume it's not required
+            # to maintain backward compatibility
+            return False
+
+    @classmethod
+    def df_to_sql(
+        cls,
+        database: Database,
+        table: Table,
+        df: pd.DataFrame,
+        to_sql_kwargs: dict[str, Any],
+    ) -> None:
+        """
+        Upload data from a Pandas DataFrame to a MySQL database.
+
+        Automatically adds a primary key column when the database requires it
+        (e.g., sql_require_primary_key = ON) and the table is being created.
+
+        :param database: The database to upload the data to
+        :param table: The table to upload the data to
+        :param df: The dataframe with data to be uploaded
+        :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql
+        """
+        with cls.get_engine(
+            database,
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as engine:
+            # Check if we need to add a primary key
+            if_exists = to_sql_kwargs.get("if_exists", "fail")
+            needs_primary_key = (
+                if_exists == "fail"  # Only for new table creation
+                and not to_sql_kwargs.get("index", False)  # No index column exists
+            if needs_primary_key:
+                # Add an auto-incrementing primary key column
+                pk_column_name = "__superset_upload_id__"
+                # Ensure the column name doesn't conflict with existing columns
+                while pk_column_name in df.columns:
+                    pk_column_name = f"_{pk_column_name}"
+
+                # Create a copy of the dataframe with the primary key column
+                df_with_pk = df.copy()
+                df_with_pk.insert(0, pk_column_name, range(1, len(df) + 1))
+
+                # Use pandas to create table, then alter it to add PRIMARY KEY
+                # This is a two-step process because pandas doesn't support
+                # PRIMARY KEY or AUTO_INCREMENT in dtype specifications
+
+                to_sql_kwargs_temp = {**to_sql_kwargs}
+                to_sql_kwargs_temp["name"] = table.table
+                if table.schema:
+                    to_sql_kwargs_temp["schema"] = table.schema
+
+                if (
+                    engine.dialect.supports_multivalues_insert
+                    or cls.supports_multivalues_insert
+                ):
+                    to_sql_kwargs_temp["method"] = "multi"
+
+                logger.info(
+                    "Adding primary key column '%s' for CSV upload to %s.%s "
+                    "(sql_require_primary_key enabled)",
+                    pk_column_name,
+                    table.schema or "default",
+                    table.table,
+                )
+
+                # Write data with pandas
+                df_with_pk.to_sql(con=engine, **to_sql_kwargs_temp)
+
+                # Now alter the table to add PRIMARY KEY and AUTO_INCREMENT
+                full_table_name = (
+                    f"`{table.schema}`.`{table.table}`"
+                    if table.schema
+                    else f"`{table.table}`"
+                )
+
+                try:
+                    with engine.begin() as conn:  # Use transaction
+                        # Add AUTO_INCREMENT and PRIMARY KEY
+                        alter_sql = (
+                            f"ALTER TABLE {full_table_name} "
+                            f"MODIFY COLUMN `{pk_column_name}` INTEGER AUTO_INCREMENT, "
+                            f"ADD PRIMARY KEY (`{pk_column_name}`)"
+                        )
+                        conn.execute(alter_sql)
+                except Exception as ex:
+                    logger.error(
+                        "Failed to add PRIMARY KEY constraint to %s: %s",
+                        full_table_name,
+                        str(ex),
+                    )
+                    # Clean up the table if ALTER failed
+                    try:
+                        with engine.begin() as conn:
+                            conn.execute(f"DROP TABLE IF EXISTS {full_table_name}")
+
+                return
+
+        # Call parent implementation for normal case
+        super(MySQLEngineSpec, cls).df_to_sql(
+            database, table, df, to_sql_kwargs
+        )
