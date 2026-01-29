@@ -254,7 +254,7 @@ const Community = () => {
                 target="_blank"
                 rel="noreferrer"
               >
-                <img className="icon" src={`/img/community/${image}`} alt="" />
+                <img className="icon" src={`/img/community/${image}`} alt={title} />
                 <div className="card-body">
                   <div className="title">{title}</div>
                   <div className="description">{description}</div>
@@ -274,7 +274,7 @@ const Community = () => {
                 target="_blank"
                 rel="noreferrer"
               >
-                <img className="icon" src={`/img/community/${image}`} alt="" />
+                <img className="icon" src={`/img/community/${image}`} alt={title} />
                 <span className="title">{title}</span>
               </a>
             ))}
