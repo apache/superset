@@ -231,8 +231,10 @@ const EditorWrapper = ({
         return;
       }
 
-      // Skip 1-character selections (backspace triggers these)
-      // but still update cache to track state
+      // Skip 1-character selections to avoid noise from backspace operations
+      // which briefly select single characters. Trade-off: genuine single-char
+      // selections won't update Redux, but this is acceptable since running
+      // a single character as a query is not a practical use case.
       if (selectedText.length === 1) {
         currentSelectionCache.current = selectedText;
         return;

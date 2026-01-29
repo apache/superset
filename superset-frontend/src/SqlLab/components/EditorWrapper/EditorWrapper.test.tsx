@@ -17,7 +17,12 @@
  * under the License.
  */
 import reducerIndex from 'spec/helpers/reducerIndex';
-import { render, waitFor, createStore } from 'spec/helpers/testing-library';
+import {
+  render,
+  waitFor,
+  createStore,
+  act,
+} from 'spec/helpers/testing-library';
 import { QueryEditor } from 'src/SqlLab/types';
 import { Store } from 'redux';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
@@ -150,12 +155,16 @@ describe('EditorWrapper', () => {
       moveCursorToPosition: jest.fn(),
       scrollToLine: jest.fn(),
     };
-    onReady(mockHandle);
+    act(() => {
+      onReady(mockHandle);
+    });
 
     // Simulate selection change with empty selection (cursor moved without selecting)
-    onSelectionChange([
-      { start: { line: 0, column: 5 }, end: { line: 0, column: 5 } },
-    ]);
+    act(() => {
+      onSelectionChange([
+        { start: { line: 0, column: 5 }, end: { line: 0, column: 5 } },
+      ]);
+    });
 
     // Verify selectedText was cleared in the store
     await waitFor(() => {

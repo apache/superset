@@ -122,7 +122,7 @@ test('onSelectionChange uses latest callback after prop change', async () => {
   expect(secondCallback).not.toHaveBeenCalled();
   firstCallback.mockClear();
 
-  userEvent.click(screen.getByRole('button', { name: /switch/i }));
+  await userEvent.click(screen.getByRole('button', { name: /switch/i }));
   mockEventHandlers.changeSelection!();
 
   expect(secondCallback).toHaveBeenCalled();
@@ -161,7 +161,7 @@ test('onCursorPositionChange uses latest callback after prop change', async () =
   expect(secondCallback).not.toHaveBeenCalled();
   firstCallback.mockClear();
 
-  userEvent.click(screen.getByRole('button', { name: /switch/i }));
+  await userEvent.click(screen.getByRole('button', { name: /switch/i }));
   mockEventHandlers.changeCursor!();
 
   expect(secondCallback).toHaveBeenCalled();

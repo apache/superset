@@ -248,6 +248,9 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
     // Track if onReady has been called to prevent multiple calls
     const onReadyCalledRef = useRef(false);
 
+    // Track if event listeners have been registered to prevent duplicates
+    const listenersRegisteredRef = useRef(false);
+
     // Notify when ready (only once)
     useEffect(() => {
       if (
@@ -274,29 +277,34 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
           });
         }
 
-        // Set up cursor position change listener using ref to avoid stale closures
-        editor.selection.on('changeCursor', () => {
-          if (onCursorPositionChangeRef.current) {
-            const cursor = editor.getCursorPosition();
-            onCursorPositionChangeRef.current({
-              line: cursor.row,
-              column: cursor.column,
-            });
-          }
-        });
+        // Only register event listeners once to prevent duplicates
+        if (!listenersRegisteredRef.current) {
+          listenersRegisteredRef.current = true;
 
-        // Set up selection change listener using ref to avoid stale closures
-        editor.selection.on('changeSelection', () => {
-          if (onSelectionChangeRef.current) {
-            const range = editor.getSelection().getRange();
-            onSelectionChangeRef.current([
-              {
-                start: { line: range.start.row, column: range.start.column },
-                end: { line: range.end.row, column: range.end.column },
-              },
-            ]);
-          }
-        });
+          // Set up cursor position change listener using ref to avoid stale closures
+          editor.selection.on('changeCursor', () => {
+            if (onCursorPositionChangeRef.current) {
+              const cursor = editor.getCursorPosition();
+              onCursorPositionChangeRef.current({
+                line: cursor.row,
+                column: cursor.column,
+              });
+            }
+          });
+
+          // Set up selection change listener using ref to avoid stale closures
+          editor.selection.on('changeSelection', () => {
+            if (onSelectionChangeRef.current) {
+              const range = editor.getSelection().getRange();
+              onSelectionChangeRef.current([
+                {
+                  start: { line: range.start.row, column: range.start.column },
+                  end: { line: range.end.row, column: range.end.column },
+                },
+              ]);
+            }
+          });
+        }
 
         // Focus the editor
         editor.focus();
