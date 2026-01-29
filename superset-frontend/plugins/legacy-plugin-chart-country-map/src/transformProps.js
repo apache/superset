@@ -17,14 +17,26 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { width, height, formData, queriesData } = chartProps;
   const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks = {},
+    inContextMenu,
+    filterState,
+    emitCrossFilters,
+  } = chartProps;
+  const {
+    entity,
     linearColorScheme,
     numberFormat,
     selectCountry,
     colorScheme,
     sliceId,
   } = formData;
+
+  const { onContextMenu, setDataMask } = hooks;
 
   return {
     width,
@@ -35,5 +47,11 @@ export default function transformProps(chartProps) {
     numberFormat,
     colorScheme,
     sliceId,
+    entity,
+    onContextMenu,
+    inContextMenu,
+    setDataMask,
+    emitCrossFilters,
+    filterState,
   };
 }
