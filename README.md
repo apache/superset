@@ -89,7 +89,7 @@ Superset provides:
 
 **Craft Beautiful, Dynamic Dashboards**
 
-<kbd><img title="View Dashboards" src="https://superset.apache.org/img/screenshots/slack_dash.jpg"/></kbd><br/>
+<kbd><img title="View Dashboards" src="https://superset.apache.org/img/screenshots/dashboard.jpg"/></kbd><br/>
 
 **No-Code Chart Builder**
 
