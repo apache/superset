@@ -23,6 +23,7 @@ export const FoldersContainer = styled.div`
   flex-direction: column;
   position: relative;
   height: 70vh;
+  gap: ${({ theme }) => theme.paddingMD}px;
 `;
 
 export const FoldersToolbar = styled.div`

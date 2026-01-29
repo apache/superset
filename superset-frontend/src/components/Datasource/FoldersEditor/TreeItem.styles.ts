@@ -29,7 +29,7 @@ export const TreeItemContainer = styled.div<{
   isOverlay?: boolean;
 }>`
   ${({ theme, depth, isDragging, isOverlay }) => `
-    margin: ${theme.marginXXS}px ${isOverlay ? 0 : theme.marginMD}px;
+    margin: 0 ${isOverlay ? 0 : theme.marginMD}px;
     margin-left: ${isOverlay ? 0 : (depth - 1) * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
     padding-left: ${theme.paddingSM}px;
     display: flex;
@@ -47,7 +47,7 @@ export const ItemSeparator = styled.div<{
   ${({ theme, variant }) => `
     height: 1px;
     background-color: ${variant === 'visible' ? theme.colorBorderSecondary : 'transparent'};
-    margin: ${variant === 'visible' ? theme.marginLG : theme.marginSM}px ${theme.marginMD}px;
+    margin: ${variant === 'visible' ? theme.marginSM : theme.marginXS}px ${theme.marginMD}px;
     margin-left: ${theme.marginSM}px;
   `}
 `;
@@ -56,8 +56,8 @@ export const TreeFolderContainer = styled(TreeItemContainer)<{
   isForbiddenDropTarget?: boolean;
 }>`
   ${({ theme, depth, isForbiddenDropTarget, isOverlay }) => `
-    margin-top: ${isOverlay ? 0 : theme.marginLG}px;
-    margin-bottom: ${isOverlay ? 0 : theme.margin}px;
+    margin-top: 0;
+    margin-bottom: 0;
     margin-left: ${isOverlay ? 0 : depth * FOLDER_INDENTATION_WIDTH}px;
     border-radius: ${theme.borderRadius}px;
     padding-left: ${theme.paddingSM}px;
