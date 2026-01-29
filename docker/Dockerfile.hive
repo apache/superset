@@ -1,0 +1,16 @@
+FROM apache/superset:latest
+
+USER root
+
+# Install system dependencies for thrift-sasl
+RUN apt-get update -q \
+    && apt-get install -yq --no-install-recommends \
+       libsasl2-dev \
+       build-essential \
+       libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install python dependencies inside the virtual environment using uv
+RUN uv pip install --system --python /app/.venv pyhive thrift thrift-sasl psycopg2-binary
+
+USER superset
