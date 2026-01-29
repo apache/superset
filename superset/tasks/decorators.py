@@ -16,9 +16,11 @@
 # under the License.
 """Decorators for the Global Task Framework (GTF)"""
 
+from __future__ import annotations
+
 import inspect
 import logging
-from typing import Callable, cast, Generic, ParamSpec, TYPE_CHECKING, TypeVar
+from typing import Any, Callable, cast, Generic, ParamSpec, TYPE_CHECKING, TypeVar
 
 from superset_core.api.tasks import TaskOptions, TaskScope, TaskStatus
 
@@ -243,19 +245,21 @@ class TaskWrapper(Generic[P]):
             task = generate_thumbnail(chart_id)  # Blocks until completion
 
         Flow:
-        1. Create task entry in metastore (PENDING status)
-        2. Set ambient context (task + user)
-        3. Execute function synchronously in current thread
-        4. Return task entity upon success/failure
+        1. Submit task (create new or join existing via deduplication)
+        2. If joining existing task: wait for it to complete (blocking)
+        3. If new task: execute inline and return completed task
 
-        Perfect for testing since execution is immediate and in-process.
-        Returns the Task entity in SUCCESS or FAILURE state (blocking).
+        Sync execution always blocks until completion - even when joining an
+        existing task that's running in another process/worker.
+
+        Returns the Task entity in terminal state (SUCCESS, FAILURE, etc.).
 
         Raises:
             ValueError: If task validation fails
+            TimeoutError: If timeout expires while waiting for existing task
         """
+
         from superset.commands.tasks.submit import SubmitTaskCommand
-        from superset.commands.tasks.update import UpdateTaskCommand
 
         # Extract and merge options (decorator defaults + call-time overrides)
         override_options = cast(TaskOptions | None, kwargs.pop("options", None))
@@ -276,7 +280,8 @@ class TaskWrapper(Generic[P]):
         if options.timeout:
             properties["timeout"] = options.timeout
 
-        task = SubmitTaskCommand(
+        # Submit task - may create new or join existing
+        task, is_new = SubmitTaskCommand(
             {
                 "task_type": self.name,
                 "task_key": task_key,
@@ -284,7 +289,98 @@ class TaskWrapper(Generic[P]):
                 "scope": scope.value,
                 "properties": properties,
             }
-        ).run()
+        ).run_with_info()
+
+        # If joining existing task, wait for it to complete
+        if not is_new:
+            return self._wait_for_existing_task(task, options.timeout)
+
+        # New task - execute inline
+        return self._execute_inline(task, options, args, kwargs)
+
+    def _wait_for_existing_task(self, task: "Task", timeout: int | None) -> "Task":
+        """
+        Wait for an existing task to complete.
+
+        Called when sync execution joins a pre-existing task via deduplication.
+        Blocks until the task reaches a terminal state.
+
+        :param task: The existing task to wait for
+        :param timeout: Maximum time to wait in seconds (None = no limit)
+        :returns: Task in terminal state
+        :raises TimeoutError: If timeout expires before task completes
+        """
+        from flask import current_app
+
+        from superset.daos.tasks import TaskDAO
+
+        # Check if already in terminal state
+        if task.status in TaskManager.TERMINAL_STATES:
+            logger.info(
+                "Joined already-completed task %s (uuid=%s, status=%s)",
+                self.name,
+                task.uuid,
+                task.status,
+            )
+            return task
+
+        # Wait for the existing task to complete
+        logger.info(
+            "Joined active task %s (uuid=%s, status=%s), waiting for completion",
+            self.name,
+            task.uuid,
+            task.status,
+        )
+
+        try:
+            app = current_app._get_current_object()
+        except RuntimeError:
+            app = None
+
+        try:
+            task = TaskManager.wait_for_completion(
+                task_uuid=task.uuid,
+                timeout=float(timeout) if timeout else None,
+                poll_interval=1.0,
+                app=app,
+            )
+            logger.info(
+                "Task %s (uuid=%s) completed with status=%s",
+                self.name,
+                task.uuid,
+                task.status,
+            )
+            return task
+
+        except TimeoutError:
+            logger.warning(
+                "Timeout waiting for task %s (uuid=%s)",
+                self.name,
+                task.uuid,
+            )
+            # Return task in current state (caller can check status)
+            refreshed = TaskDAO.find_one_or_none(uuid=task.uuid)
+            return refreshed if refreshed else task
+
+    def _execute_inline(
+        self,
+        task: Task,
+        options: TaskOptions,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> Task:
+        """
+        Execute task function inline (synchronously).
+
+        Called when this is a new task (not joining existing).
+
+        :param task: The newly created task
+        :param options: Merged task options
+        :param args: Positional arguments for the task function
+        :param kwargs: Keyword arguments for the task function
+        :returns: Task in terminal state
+        """
+        from superset.commands.tasks.update import UpdateTaskCommand
 
         # Build context and execute synchronously
         ctx = TaskContext(task_uuid=task.uuid)
@@ -376,6 +472,10 @@ class TaskWrapper(Generic[P]):
         finally:
             # Always clean up timer and handlers
             ctx._run_cleanup()
+
+            # Publish completion notification for any waiters
+            if task.status in TaskManager.TERMINAL_STATES:
+                TaskManager.publish_completion(task.uuid, task.status)
 
     def schedule(self, *args: P.args, **kwargs: P.kwargs) -> "Task":
         """

@@ -41,6 +41,7 @@ from superset.stats_logger import BaseStatsLogger
 from superset.tasks.ambient_context import use_context
 from superset.tasks.context import TaskContext
 from superset.tasks.cron_util import cron_schedule_window
+from superset.tasks.manager import TaskManager
 from superset.tasks.registry import TaskRegistry
 from superset.utils.core import LoggerLevel
 from superset.utils.log import get_logger_from_status
@@ -388,5 +389,9 @@ def execute_task(  # noqa: C901
 
         db.session.merge(task)
         db.session.commit()
+
+        # Publish completion notification for any waiters (e.g., sync callers)
+        if task.status in TaskManager.TERMINAL_STATES:
+            TaskManager.publish_completion(task_uuid, task.status)
 
     return {"status": task.status, "task_uuid": task_uuid}

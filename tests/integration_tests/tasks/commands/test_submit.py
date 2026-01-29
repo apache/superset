@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
 import pytest
 from superset_core.api.tasks import TaskStatus
 
@@ -159,4 +160,63 @@ def test_submit_task_without_task_key(app_context, login_as) -> None:
     finally:
         # Cleanup
         db.session.delete(result)
+        db.session.commit()
+
+
+def test_submit_task_run_with_info_returns_is_new_true(app_context, login_as) -> None:
+    """Test run_with_info returns is_new=True for new task"""
+    login_as("admin")
+
+    command = SubmitTaskCommand(
+        data={
+            "task_type": "test-type",
+            "task_key": "unique-key-is-new",
+            "task_name": "Test Task",
+        }
+    )
+
+    try:
+        task, is_new = command.run_with_info()
+
+        assert is_new is True
+        assert task.task_key == "unique-key-is-new"
+    finally:
+        # Cleanup
+        db.session.delete(task)
+        db.session.commit()
+
+
+def test_submit_task_run_with_info_returns_is_new_false(app_context, login_as) -> None:
+    """Test run_with_info returns is_new=False when joining existing task"""
+    login_as("admin")
+
+    # Create first task
+    command1 = SubmitTaskCommand(
+        data={
+            "task_type": "test-type",
+            "task_key": "shared-key-is-new",
+            "task_name": "First Task",
+        }
+    )
+    task1, is_new1 = command1.run_with_info()
+    assert is_new1 is True
+
+    try:
+        # Submit second task with same key
+        command2 = SubmitTaskCommand(
+            data={
+                "task_type": "test-type",
+                "task_key": "shared-key-is-new",
+                "task_name": "Second Task",
+            }
+        )
+        task2, is_new2 = command2.run_with_info()
+
+        # Should return existing task with is_new=False
+        assert is_new2 is False
+        assert task2.id == task1.id
+        assert task2.uuid == task1.uuid
+    finally:
+        # Cleanup
+        db.session.delete(task1)
         db.session.commit()

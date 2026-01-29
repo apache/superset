@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from typing import Any, Callable, TYPE_CHECKING
 
 import redis
@@ -103,8 +104,19 @@ class TaskManager:
     # Class-level Redis state (initialized once via init_app)
     _redis: redis.Redis[Any] | None = None
     _channel_prefix: str = "gtf:abort:"
+    _completion_channel_prefix: str = "gtf:complete:"
     _config: dict[str, Any] | None = None
     _initialized: bool = False
+
+    # Terminal states that indicate a task has completed
+    TERMINAL_STATES = frozenset(
+        {
+            TaskStatus.SUCCESS.value,
+            TaskStatus.FAILURE.value,
+            TaskStatus.ABORTED.value,
+            TaskStatus.TIMED_OUT.value,
+        }
+    )
 
     @classmethod
     def init_app(cls, app: Flask) -> None:
@@ -120,6 +132,9 @@ class TaskManager:
 
         cls._config = app.config.get("TASKS_BACKEND")
         cls._channel_prefix = app.config.get("TASKS_ABORT_CHANNEL_PREFIX", "gtf:abort:")
+        cls._completion_channel_prefix = app.config.get(
+            "TASKS_COMPLETION_CHANNEL_PREFIX", "gtf:complete:"
+        )
 
         if cls._config is None:
             logger.info(
@@ -276,6 +291,214 @@ class TaskManager:
         except redis.RedisError as ex:
             logger.error("Failed to publish abort for task %s: %s", task_uuid, ex)
             return False
+
+    @classmethod
+    def get_completion_channel(cls, task_uuid: str) -> str:
+        """
+        Get the completion channel name for a task.
+
+        :param task_uuid: UUID of the task
+        :returns: Channel name for the task's completion notifications
+        """
+        return f"{cls._completion_channel_prefix}{task_uuid}"
+
+    @classmethod
+    def publish_completion(cls, task_uuid: str, status: str) -> bool:
+        """
+        Publish a completion message to the task's channel.
+
+        Called when task reaches terminal state (SUCCESS, FAILURE, ABORTED, TIMED_OUT).
+        This notifies any waiters (e.g., sync callers waiting for an existing task).
+
+        :param task_uuid: UUID of the completed task
+        :param status: Final status of the task
+        :returns: True if message was published, False if Redis unavailable
+        """
+        if not cls._redis:
+            return False
+
+        try:
+            channel = cls.get_completion_channel(task_uuid)
+            subscriber_count = cls._redis.publish(channel, status)
+            logger.debug(
+                "Published completion to channel %s (status=%s, %d subscribers)",
+                channel,
+                status,
+                subscriber_count,
+            )
+            return True
+        except redis.RedisError as ex:
+            logger.error("Failed to publish completion for task %s: %s", task_uuid, ex)
+            return False
+
+    @classmethod
+    def wait_for_completion(
+        cls,
+        task_uuid: str,
+        timeout: float | None = None,
+        poll_interval: float = 1.0,
+        app: Any = None,
+    ) -> "Task":
+        """
+        Block until task reaches terminal state.
+
+        Uses Redis pub/sub if available for low-latency, low-CPU waiting.
+        Falls back to database polling if Redis is unavailable.
+
+        :param task_uuid: UUID of the task to wait for
+        :param timeout: Maximum time to wait in seconds (None = no limit)
+        :param poll_interval: Interval for database polling fallback (seconds)
+        :param app: Flask app for database access
+        :returns: Task in terminal state
+        :raises TimeoutError: If timeout expires before task completes
+        :raises ValueError: If task not found
+        """
+        from superset.daos.tasks import TaskDAO
+
+        start_time = time.monotonic()
+
+        def time_remaining() -> float | None:
+            if timeout is None:
+                return None
+            elapsed = time.monotonic() - start_time
+            remaining = timeout - elapsed
+            return remaining if remaining > 0 else 0
+
+        def get_task() -> "Task | None":
+            if app:
+                with app.app_context():
+                    return TaskDAO.find_one_or_none(uuid=task_uuid)
+            return TaskDAO.find_one_or_none(uuid=task_uuid)
+
+        # Check current state first
+        task = get_task()
+        if not task:
+            raise ValueError(f"Task {task_uuid} not found")
+
+        if task.status in cls.TERMINAL_STATES:
+            return task
+
+        logger.info(
+            "Waiting for task %s to complete (current status=%s, timeout=%s)",
+            task_uuid,
+            task.status,
+            timeout,
+        )
+
+        # Try Redis pub/sub first for low-latency waiting
+        if cls._redis is not None:
+            try:
+                task = cls._wait_via_pubsub(
+                    task_uuid, timeout, poll_interval, get_task, time_remaining
+                )
+                if task:
+                    return task
+            except redis.RedisError as ex:
+                logger.warning(
+                    "Redis error waiting for task %s: %s. Falling back to polling.",
+                    task_uuid,
+                    ex,
+                )
+                # Fall through to polling
+
+        # Fallback: Database polling
+        return cls._wait_via_polling(task_uuid, poll_interval, get_task, time_remaining)
+
+    @classmethod
+    def _wait_via_pubsub(
+        cls,
+        task_uuid: str,
+        timeout: float | None,
+        poll_interval: float,
+        get_task: Callable[[], "Task | None"],
+        time_remaining: Callable[[], float | None],
+    ) -> "Task | None":
+        """
+        Wait for task completion using Redis pub/sub.
+
+        :returns: Task if completed, None if should fall back to polling
+        :raises TimeoutError: If timeout expires
+        """
+        pubsub = cls._redis.pubsub()  # type: ignore[union-attr]
+        channel = cls.get_completion_channel(task_uuid)
+        pubsub.subscribe(channel)
+
+        try:
+            while True:
+                remaining = time_remaining()
+                if remaining is not None and remaining <= 0:
+                    raise TimeoutError(
+                        f"Timeout waiting for task {task_uuid} to complete"
+                    )
+
+                # Wait for message with short timeout for responsive checking
+                wait_time = min(1.0, remaining) if remaining else 1.0
+                message = pubsub.get_message(
+                    ignore_subscribe_messages=True,
+                    timeout=wait_time,
+                )
+
+                if message and message.get("type") == "message":
+                    # Completion received - fetch fresh task state
+                    logger.debug(
+                        "Received completion message for task %s: %s",
+                        task_uuid,
+                        message.get("data"),
+                    )
+                    task = get_task()
+                    if task and task.status in cls.TERMINAL_STATES:
+                        return task
+
+                # Also check database periodically in case we missed the message
+                # (e.g., task completed before we subscribed)
+                task = get_task()
+                if task and task.status in cls.TERMINAL_STATES:
+                    logger.debug(
+                        "Task %s completed (detected via db check): status=%s",
+                        task_uuid,
+                        task.status,
+                    )
+                    return task
+
+        finally:
+            pubsub.unsubscribe()
+            pubsub.close()
+
+    @classmethod
+    def _wait_via_polling(
+        cls,
+        task_uuid: str,
+        poll_interval: float,
+        get_task: Callable[[], "Task | None"],
+        time_remaining: Callable[[], float | None],
+    ) -> "Task":
+        """
+        Wait for task completion using database polling.
+
+        :returns: Task when completed
+        :raises TimeoutError: If timeout expires
+        :raises ValueError: If task not found
+        """
+        while True:
+            remaining = time_remaining()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError(f"Timeout waiting for task {task_uuid} to complete")
+
+            task = get_task()
+            if not task:
+                raise ValueError(f"Task {task_uuid} not found")
+
+            if task.status in cls.TERMINAL_STATES:
+                logger.debug(
+                    "Task %s completed (detected via polling): status=%s",
+                    task_uuid,
+                    task.status,
+                )
+                return task
+
+            # Sleep with timeout awareness
+            sleep_time = min(poll_interval, remaining) if remaining else poll_interval
+            time.sleep(sleep_time)
 
     @classmethod
     def listen_for_abort(

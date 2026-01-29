@@ -339,3 +339,199 @@ class TestTaskManagerListenForAbort:
 
             # Should fall back to polling
             assert listener._pubsub is None
+
+
+class TestTaskManagerCompletion:
+    """Tests for TaskManager completion pub/sub and wait_for_completion"""
+
+    def setup_method(self):
+        """Reset TaskManager state before each test"""
+        TaskManager._redis = None
+        TaskManager._config = None
+        TaskManager._initialized = False
+        TaskManager._channel_prefix = "gtf:abort:"
+        TaskManager._completion_channel_prefix = "gtf:complete:"
+
+    def teardown_method(self):
+        """Reset TaskManager state after each test"""
+        TaskManager._redis = None
+        TaskManager._config = None
+        TaskManager._initialized = False
+        TaskManager._channel_prefix = "gtf:abort:"
+        TaskManager._completion_channel_prefix = "gtf:complete:"
+
+    def test_get_completion_channel(self):
+        """Test get_completion_channel returns correct channel name"""
+        task_uuid = "abc-123-def-456"
+        channel = TaskManager.get_completion_channel(task_uuid)
+        assert channel == "gtf:complete:abc-123-def-456"
+
+    def test_get_completion_channel_custom_prefix(self):
+        """Test get_completion_channel with custom prefix"""
+        TaskManager._completion_channel_prefix = "custom:complete:"
+        task_uuid = "test-uuid"
+        channel = TaskManager.get_completion_channel(task_uuid)
+        assert channel == "custom:complete:test-uuid"
+
+    def test_publish_completion_no_redis(self):
+        """Test publish_completion returns False when Redis not available"""
+        result = TaskManager.publish_completion("test-uuid", "success")
+        assert result is False
+
+    def test_publish_completion_success(self):
+        """Test publish_completion publishes message successfully"""
+        mock_redis = MagicMock()
+        mock_redis.publish.return_value = 1  # One subscriber
+        TaskManager._redis = mock_redis
+
+        result = TaskManager.publish_completion("test-uuid", "success")
+
+        assert result is True
+        mock_redis.publish.assert_called_once_with("gtf:complete:test-uuid", "success")
+
+    def test_publish_completion_redis_error(self):
+        """Test publish_completion handles Redis errors gracefully"""
+        mock_redis = MagicMock()
+        mock_redis.publish.side_effect = redis.RedisError("Connection lost")
+        TaskManager._redis = mock_redis
+
+        result = TaskManager.publish_completion("test-uuid", "success")
+
+        assert result is False
+
+    @patch("superset.tasks.manager.TaskDAO")
+    def test_wait_for_completion_task_not_found(self, mock_dao):
+        """Test wait_for_completion raises ValueError for missing task"""
+        import pytest
+
+        mock_dao.find_one_or_none.return_value = None
+
+        with pytest.raises(ValueError, match="not found"):
+            TaskManager.wait_for_completion("nonexistent-uuid")
+
+    @patch("superset.tasks.manager.TaskDAO")
+    def test_wait_for_completion_already_complete(self, mock_dao):
+        """Test wait_for_completion returns immediately for terminal state"""
+        mock_task = MagicMock()
+        mock_task.uuid = "test-uuid"
+        mock_task.status = "success"
+        mock_dao.find_one_or_none.return_value = mock_task
+
+        result = TaskManager.wait_for_completion("test-uuid")
+
+        assert result == mock_task
+        # Should only call find_one_or_none once (initial check)
+        mock_dao.find_one_or_none.assert_called_once()
+
+    @patch("superset.tasks.manager.TaskDAO")
+    def test_wait_for_completion_timeout(self, mock_dao):
+        """Test wait_for_completion raises TimeoutError when timeout expires"""
+        import pytest
+
+        mock_task = MagicMock()
+        mock_task.uuid = "test-uuid"
+        mock_task.status = "in_progress"  # Never completes
+        mock_dao.find_one_or_none.return_value = mock_task
+
+        with pytest.raises(TimeoutError, match="Timeout waiting"):
+            TaskManager.wait_for_completion("test-uuid", timeout=0.1)
+
+    @patch("superset.tasks.manager.TaskDAO")
+    def test_wait_for_completion_polling_success(self, mock_dao):
+        """Test wait_for_completion returns when task completes via polling"""
+        mock_task_pending = MagicMock()
+        mock_task_pending.uuid = "test-uuid"
+        mock_task_pending.status = "pending"
+
+        mock_task_complete = MagicMock()
+        mock_task_complete.uuid = "test-uuid"
+        mock_task_complete.status = "success"
+
+        # First call returns pending, second returns complete
+        mock_dao.find_one_or_none.side_effect = [
+            mock_task_pending,
+            mock_task_complete,
+        ]
+
+        result = TaskManager.wait_for_completion(
+            "test-uuid",
+            timeout=5.0,
+            poll_interval=0.1,
+        )
+
+        assert result.status == "success"
+
+    @patch("superset.tasks.manager.TaskDAO")
+    def test_wait_for_completion_with_pubsub(self, mock_dao):
+        """Test wait_for_completion uses pub/sub when Redis available"""
+        mock_task_pending = MagicMock()
+        mock_task_pending.uuid = "test-uuid"
+        mock_task_pending.status = "pending"
+
+        mock_task_complete = MagicMock()
+        mock_task_complete.uuid = "test-uuid"
+        mock_task_complete.status = "success"
+
+        # First call returns pending, second returns complete
+        mock_dao.find_one_or_none.side_effect = [
+            mock_task_pending,
+            mock_task_complete,
+        ]
+
+        # Set up mock Redis with pub/sub
+        mock_redis = MagicMock()
+        mock_pubsub = MagicMock()
+        # Simulate receiving a completion message
+        mock_pubsub.get_message.return_value = {
+            "type": "message",
+            "data": "success",
+        }
+        mock_redis.pubsub.return_value = mock_pubsub
+        TaskManager._redis = mock_redis
+
+        result = TaskManager.wait_for_completion(
+            "test-uuid",
+            timeout=5.0,
+        )
+
+        assert result.status == "success"
+        # Should have subscribed to completion channel
+        mock_pubsub.subscribe.assert_called_once_with("gtf:complete:test-uuid")
+        # Should have cleaned up
+        mock_pubsub.unsubscribe.assert_called_once()
+        mock_pubsub.close.assert_called_once()
+
+    @patch("superset.tasks.manager.TaskDAO")
+    def test_wait_for_completion_pubsub_fallback_on_error(self, mock_dao):
+        """Test wait_for_completion falls back to polling on Redis error"""
+        mock_task_pending = MagicMock()
+        mock_task_pending.uuid = "test-uuid"
+        mock_task_pending.status = "pending"
+
+        mock_task_complete = MagicMock()
+        mock_task_complete.uuid = "test-uuid"
+        mock_task_complete.status = "success"
+
+        mock_dao.find_one_or_none.side_effect = [
+            mock_task_pending,
+            mock_task_complete,
+        ]
+
+        # Set up mock Redis that fails
+        mock_redis = MagicMock()
+        mock_redis.pubsub.side_effect = redis.RedisError("Connection failed")
+        TaskManager._redis = mock_redis
+
+        result = TaskManager.wait_for_completion(
+            "test-uuid",
+            timeout=5.0,
+            poll_interval=0.1,
+        )
+
+        # Should still complete via polling fallback
+        assert result.status == "success"
+
+    def test_terminal_states_constant(self):
+        """Test TERMINAL_STATES contains expected values"""
+        expected = {"success", "failure", "aborted", "timed_out"}
+        assert TaskManager.TERMINAL_STATES == expected

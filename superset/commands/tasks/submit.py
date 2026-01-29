@@ -61,6 +61,22 @@ class SubmitTaskCommand(BaseCommand):
 
         Acquires lock based on dedup_key, then checks for existing task
         and either creates new or joins existing (adding subscriber).
+
+        :returns: Task model (either newly created or existing)
+        """
+        task, _ = self.run_with_info()
+        return task
+
+    @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
+    def run_with_info(self) -> tuple["Task", bool]:
+        """
+        Execute the command and return (task, is_new) tuple.
+
+        This variant allows callers to distinguish between creating a new task
+        and joining an existing one. Useful for sync execution where the caller
+        needs to wait for an existing task to complete rather than executing again.
+
+        :returns: Tuple of (Task, is_new) where is_new is True if task was created
         """
         from superset.daos.tasks import TaskDAO
 
@@ -97,11 +113,11 @@ class SubmitTaskCommand(BaseCommand):
                         effective_user_id,
                         task_key,
                     )
-                return existing
+                return existing, False  # is_new=False: joined existing task
 
             # Create new task (DAO is now a pure data operation)
             try:
-                return TaskDAO.create_task(
+                task = TaskDAO.create_task(
                     task_type=task_type,
                     task_key=task_key,
                     scope=scope,
@@ -110,6 +126,7 @@ class SubmitTaskCommand(BaseCommand):
                     payload=self._properties.get("payload", {}),
                     properties=self._properties.get("properties", {}),
                 )
+                return task, True  # is_new=True: created new task
             except DAOCreateFailedError as ex:
                 raise TaskCreateFailedError() from ex
 

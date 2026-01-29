@@ -295,6 +295,20 @@ When a task with matching key already exists, the user is added as a subscriber 
 
 Deduplication only applies to active tasks (pending/in-progress). Once a task completes, a new task with the same key can be created.
 
+### Sync Join-and-Wait
+
+When a sync call joins an existing task, it blocks until the task completes:
+
+```python
+# Schedule async task
+task = my_task.schedule(options=TaskOptions(task_key="report_123"))
+
+# Later sync call with same key blocks until completion of the active task
+task2 = my_task(options=TaskOptions(task_key="report_123"))
+assert task.uuid == task2.uuid  # True
+print(task2.status)  # "success" (terminal status)
+```
+
 ## Task Scopes
 
 ```python
