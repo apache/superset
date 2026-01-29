@@ -18,24 +18,28 @@
  */
 
 /**
- * Documentation Screenshot Tests
+ * Documentation Screenshot Generator
  *
- * Captures screenshots for the Superset documentation site.
- * Depends on example data loaded via `superset load_examples` in CI.
+ * Captures screenshots for the Superset documentation site and README.
+ * Depends on example data loaded via `superset load_examples`.
  *
- * Run with: INCLUDE_EXPERIMENTAL=true npx playwright test experimental/docs/
+ * Run locally:
+ *   cd superset-frontend
+ *   npm run docs:screenshots
  *
- * Screenshots are saved to docs/static/img/screenshots/ for use in
- * the README and documentation site.
+ * Or directly:
+ *   npx playwright test --config=playwright/generators/playwright.config.ts docs/
+ *
+ * Screenshots are saved to docs/static/img/screenshots/.
  */
 
 import path from 'path';
 import { test, expect } from '@playwright/test';
-import { URL } from '../../../utils/urls';
+import { URL } from '../../utils/urls';
 
 const SCREENSHOTS_DIR = path.resolve(
   __dirname,
-  '../../../../../docs/static/img/screenshots',
+  '../../../../docs/static/img/screenshots',
 );
 
 test('chart gallery screenshot', async ({ page }) => {
