@@ -69,24 +69,23 @@ def create_app(
             if not app.config["STATIC_ASSETS_PREFIX"]:
                 app.config["STATIC_ASSETS_PREFIX"] = app_root
             # Prefix APP_ICON path with subdirectory root for subdirectory deployments
-            if (
-                app.config.get("APP_ICON", "").startswith("/static/")
-                and app_root != "/"
-            ):
-                app.config["APP_ICON"] = f"{app_root}{app.config['APP_ICON']}"
-                # Also update theme tokens for subdirectory deployments
-                for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
-                    theme = app.config[theme_key]
-                    token = theme.get("token", {})
-                    # Update brandSpinnerUrl if it points to /static/
-                    if token.get("brandSpinnerUrl", "").startswith("/static/"):
-                        token["brandSpinnerUrl"] = f"{app_root}{token['brandSpinnerUrl']}"
-                    # Update brandLogoUrl if it points to /static/
-                    if token.get("brandLogoUrl", "").startswith("/static/"):
-                        token["brandLogoUrl"] = f"{app_root}{token['brandLogoUrl']}"
-                    # Update brandLogoHref if it's the default "/"
-                    if token.get("brandLogoHref") == "/":
-                        token["brandLogoHref"] = app_root
+            app_icon = app.config.get("APP_ICON", "")
+            if app_icon.startswith("/static/"):
+                app.config["APP_ICON"] = f"{app_root}{app_icon}"
+
+            # Also update theme tokens for subdirectory deployments
+            for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
+                theme = app.config[theme_key]
+                token = theme.get("token", {})
+
+                # Update URLs if they point to /static/
+                for url_key in ("brandSpinnerUrl", "brandLogoUrl"):
+                    url = token.get(url_key, "")
+                    if url.startswith("/static/"):
+                        token[url_key] = f"{app_root}{url}"
+                # Update brandLogoHref if it's the default "/"
+                if token.get("brandLogoHref") == "/":
+                    token["brandLogoHref"] = app_root
             if app.config["APPLICATION_ROOT"] == "/":
                 app.config["APPLICATION_ROOT"] = app_root
 
