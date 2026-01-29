@@ -621,7 +621,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         while the code_challenge (derived from the verifier) is sent to the
         authorization server.
         """
-        # prevent circular import
+        # Prevent circular import.
         from superset.daos.key_value import KeyValueDAO
 
         tab_id = str(uuid4())
@@ -643,7 +643,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             key=UUID(tab_id),
             expires_on=datetime.now() + timedelta(minutes=5),
         )
-        db.session.flush()
+        # We need to commit here because we're going to raise an exception, which will
+        # revert any non-commited changes.
+        db.session.commit()
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then

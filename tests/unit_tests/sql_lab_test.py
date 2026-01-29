@@ -206,6 +206,7 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         "superset.db_engine_specs.base.generate_code_verifier",
         return_value="xkBPVZoFChVcy3VZ2l5u7d0FZPTU-olO7HtsAOok2IUGigyoZ62tG_oldy2xg9_HdqPKrWUmKZLmU-CUqz_SQ",
     )
+    mocker.patch("superset.daos.key_value.KeyValueDAO.delete_expired_entries")
     mocker.patch("superset.daos.key_value.KeyValueDAO.create_entry")
     mocker.patch("superset.db_engine_specs.base.db.session.commit")
 
