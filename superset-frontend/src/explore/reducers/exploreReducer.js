@@ -124,10 +124,13 @@ export default function exploreReducer(state = {}, action) {
     },
     [actions.SET_FIELD_VALUE]() {
       const { controlName, value, validationErrors } = action;
-      // Normalize server_page_length to number if it's a string
+      // Normalize server_page_length to number if it's a non-empty string representing an integer
       const normalizedValue =
-        controlName === 'server_page_length' && typeof value === 'string'
-          ? (isNaN(Number(value)) ? value : Number(value))
+        controlName === 'server_page_length' &&
+        typeof value === 'string' &&
+        value.trim() !== '' &&
+        Number.isInteger(Number(value))
+          ? Number(value)
           : value;
       let new_form_data = { ...state.form_data, [controlName]: normalizedValue };
       const old_metrics_data = state.form_data.metrics;
