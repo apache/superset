@@ -97,7 +97,13 @@ export function VirtualizedTreeList({
     if (!isDragging) {
       listRef.current?.resetAfterIndex(0);
     }
-  }, [flattenedItems, collapsedIds, folderChildCounts, itemSeparatorInfo, isDragging]);
+  }, [
+    flattenedItems,
+    collapsedIds,
+    folderChildCounts,
+    itemSeparatorInfo,
+    isDragging,
+  ]);
 
   // Calculate item size for react-window
   const getItemSize = useCallback(

@@ -29,7 +29,11 @@ import {
   EmptyState,
   Tooltip,
 } from '@superset-ui/core/components';
-import { ColumnMeta, ColumnTypeLabel, Metric } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  ColumnTypeLabel,
+  Metric,
+} from '@superset-ui/chart-controls';
 import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import {
   OptionControlContainer,
@@ -328,26 +332,34 @@ function TreeItemComponent({
     </>
   );
 
+  // Separator appears BELOW items (after content)
+  // Wrapped together with item so they move as one unit during drag
+  const showSeparator = !isFolder && separatorType;
+
+  // Extract transform style to apply to wrapper
+  const { style: transformStyle, ...restContainerProps } = containerProps;
+
   return (
     <>
-      {isFolder ? (
-        <TreeFolderContainer
-          {...containerProps}
-          data-folder-id={id}
-          data-drop-target={isDropTarget ? 'true' : undefined}
-          isForbiddenDropTarget={isForbiddenDrop}
-        >
-          {containerContent}
-        </TreeFolderContainer>
-      ) : (
-        <TreeItemContainer {...containerProps}>
-          {containerContent}
-        </TreeItemContainer>
-      )}
+      {/* Wrapper div receives the transform so item + separator move together */}
+      <div ref={setNodeRef} style={transformStyle}>
+        {isFolder ? (
+          <TreeFolderContainer
+            {...restContainerProps}
+            data-folder-id={id}
+            data-drop-target={isDropTarget ? 'true' : undefined}
+            isForbiddenDropTarget={isForbiddenDrop}
+          >
+            {containerContent}
+          </TreeFolderContainer>
+        ) : (
+          <TreeItemContainer {...restContainerProps}>
+            {containerContent}
+          </TreeItemContainer>
+        )}
 
-      {separatorType && !isDragging && (
-        <ItemSeparator variant={separatorType} />
-      )}
+        {showSeparator && <ItemSeparator variant={separatorType} />}
+      </div>
 
       {isFolder && showEmptyState && !isCollapsed && (
         <EmptyFolderDropZone

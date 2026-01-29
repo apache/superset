@@ -90,7 +90,10 @@ export function useAutoScroll({
       }
 
       // Near bottom edge - scroll down
-      if (relativeY > listHeight - SCROLL_THRESHOLD && relativeY <= listHeight) {
+      if (
+        relativeY > listHeight - SCROLL_THRESHOLD &&
+        relativeY <= listHeight
+      ) {
         const distanceFromBottom = listHeight - relativeY;
         const proximity = 1 - distanceFromBottom / SCROLL_THRESHOLD;
         state.direction = 'down';
@@ -128,7 +131,9 @@ export function useAutoScroll({
       }
 
       // Calculate time delta for frame-rate independent scrolling
-      const deltaTime = state.lastTime ? (currentTime - state.lastTime) / 16 : 1;
+      const deltaTime = state.lastTime
+        ? (currentTime - state.lastTime) / 16
+        : 1;
       state.lastTime = currentTime;
 
       const currentScroll = outerElement.scrollTop;

@@ -29,8 +29,8 @@ export const TreeItemContainer = styled.div<{
   isOverlay?: boolean;
 }>`
   ${({ theme, depth, isDragging, isOverlay }) => `
-    margin: 0 ${isOverlay ? 0 : theme.marginMD}px;
-    margin-left: ${isOverlay ? 0 : (depth - 1) * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
+    margin: 0 ${theme.marginMD}px;
+    margin-left: ${isOverlay ? ITEM_INDENTATION_WIDTH : (depth - 1) * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
     padding-left: ${theme.paddingSM}px;
     display: flex;
     align-items: center;
@@ -44,12 +44,28 @@ export const TreeItemContainer = styled.div<{
 export const ItemSeparator = styled.div<{
   variant: 'visible' | 'transparent';
 }>`
-  ${({ theme, variant }) => `
-    height: 1px;
-    background-color: ${variant === 'visible' ? theme.colorBorderSecondary : 'transparent'};
-    margin: ${variant === 'visible' ? theme.marginSM : theme.marginXS}px ${theme.marginMD}px;
-    margin-left: ${theme.marginSM}px;
-  `}
+  ${({ theme, variant }) => {
+    // Use explicit height instead of margins so dnd-kit measures correctly.
+    // getBoundingClientRect doesn't include margins, causing transform mismatches during drag.
+    const verticalPadding =
+      variant === 'visible' ? theme.marginSM : theme.marginXS;
+    const totalHeight = 1 + verticalPadding * 2;
+    return `
+      height: ${totalHeight}px;
+      display: flex;
+      align-items: center;
+      margin-left: ${theme.marginSM}px;
+      margin-right: ${theme.marginMD}px;
+
+      &::after {
+        content: '';
+        display: block;
+        width: 100%;
+        height: 1px;
+        background-color: ${variant === 'visible' ? theme.colorBorderSecondary : 'transparent'};
+      }
+    `;
+  }}
 `;
 
 export const TreeFolderContainer = styled(TreeItemContainer)<{
@@ -58,11 +74,12 @@ export const TreeFolderContainer = styled(TreeItemContainer)<{
   ${({ theme, depth, isForbiddenDropTarget, isOverlay }) => `
     margin-top: 0;
     margin-bottom: 0;
-    margin-left: ${isOverlay ? 0 : depth * FOLDER_INDENTATION_WIDTH}px;
+    padding-top: ${theme.marginXS}px;
+    margin-left: ${depth * FOLDER_INDENTATION_WIDTH}px;
     border-radius: ${theme.borderRadius}px;
     padding-left: ${theme.paddingSM}px;
     padding-right: ${theme.paddingSM}px;
-    margin-right: ${isOverlay ? 0 : theme.marginMD}px;
+    margin-right: ${theme.marginMD}px;
     transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 
     /* Drop target styles - controlled via data attributes for performance */
