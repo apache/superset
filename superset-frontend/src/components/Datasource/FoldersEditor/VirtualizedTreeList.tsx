@@ -49,6 +49,7 @@ interface VirtualizedTreeListProps {
   isDragging: boolean;
   activeId: UniqueIdentifier | null;
   forbiddenDropFolderIds: Set<string>;
+  currentDropTargetId: string | null;
   onToggleCollapse: (id: string) => void;
   onSelect: (id: string, selected: boolean) => void;
   onStartEdit: (id: string) => void;
@@ -73,6 +74,7 @@ export function VirtualizedTreeList({
   isDragging,
   activeId,
   forbiddenDropFolderIds,
+  currentDropTargetId,
   onToggleCollapse,
   onSelect,
   onStartEdit,
@@ -175,6 +177,7 @@ export function VirtualizedTreeList({
       columnsMap,
       activeId,
       forbiddenDropFolderIds,
+      currentDropTargetId,
       onToggleCollapse,
       onSelect,
       onStartEdit,
@@ -193,6 +196,7 @@ export function VirtualizedTreeList({
       columnsMap,
       activeId,
       forbiddenDropFolderIds,
+      currentDropTargetId,
       onToggleCollapse,
       onSelect,
       onStartEdit,

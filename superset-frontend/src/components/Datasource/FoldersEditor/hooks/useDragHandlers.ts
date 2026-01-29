@@ -62,82 +62,15 @@ export function useDragHandlers({
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [dragOverlayWidth, setDragOverlayWidth] = useState<number | null>(null);
   const offsetLeftRef = useRef(0);
-  // Use ref for projectedParentId to avoid re-renders during drag
-  const projectedParentIdRef = useRef<string | null>(null);
+  // Track current drop target - use state so virtualized items can render correctly
+  const [currentDropTargetId, setCurrentDropTargetId] = useState<string | null>(
+    null,
+  );
   const [draggedItemIds, setDraggedItemIds] = useState<Set<string>>(new Set());
-
-  const rafIdRef = useRef<number | null>(null);
 
   // Store the flattened items at drag start to keep them stable during drag
   // This prevents react-window from re-rendering due to flattenedItems reference changes
   const dragStartFlattenedItemsRef = useRef<FlattenedTreeItem[] | null>(null);
-
-  // Update visual drop target indicators via DOM manipulation to avoid re-renders
-  const updateDropTargetVisuals = useCallback(
-    (newParentId: string | null) => {
-      const oldParentId = projectedParentIdRef.current;
-      if (oldParentId === newParentId) return;
-
-      // Remove highlight from old target
-      if (oldParentId) {
-        const oldElement = document.querySelector(
-          `[data-folder-id="${oldParentId}"]`,
-        );
-        if (oldElement) {
-          oldElement.removeAttribute('data-drop-target');
-          oldElement.removeAttribute('data-forbidden-drop');
-        }
-      }
-
-      // Add highlight to new target
-      if (newParentId) {
-        const newElement = document.querySelector(
-          `[data-folder-id="${newParentId}"]`,
-        );
-        if (newElement) {
-          newElement.setAttribute('data-drop-target', 'true');
-          // Check if it's a forbidden drop target
-          const draggedTypes = new Set<FoldersEditorItemType>();
-          draggedItemIds.forEach((id: string) => {
-            const item = fullFlattenedItems.find(i => i.uuid === id);
-            if (item) draggedTypes.add(item.type);
-          });
-
-          const isForbidden =
-            (newParentId === DEFAULT_COLUMNS_FOLDER_UUID &&
-              draggedTypes.has(FoldersEditorItemType.Metric)) ||
-            (newParentId === DEFAULT_METRICS_FOLDER_UUID &&
-              draggedTypes.has(FoldersEditorItemType.Column)) ||
-            ((newParentId === DEFAULT_COLUMNS_FOLDER_UUID ||
-              newParentId === DEFAULT_METRICS_FOLDER_UUID) &&
-              draggedTypes.has(FoldersEditorItemType.Folder));
-
-          if (isForbidden) {
-            newElement.setAttribute('data-forbidden-drop', 'true');
-          }
-        }
-      }
-
-      projectedParentIdRef.current = newParentId;
-    },
-    [draggedItemIds, fullFlattenedItems],
-  );
-
-  const scheduleProjectedParentUpdate = useCallback(
-    (newParentId: string | null) => {
-      // Only schedule if not already scheduled
-      if (rafIdRef.current === null) {
-        rafIdRef.current = requestAnimationFrame(() => {
-          rafIdRef.current = null;
-          updateDropTargetVisuals(newParentId);
-        });
-      } else {
-        // Update pending value for next frame
-        projectedParentIdRef.current = newParentId;
-      }
-    },
-    [updateDropTargetVisuals],
-  );
 
   // Compute flattened items, but during drag use the stable snapshot from drag start
   // This prevents react-window from re-rendering/re-measuring when flattenedItems changes
@@ -168,17 +101,12 @@ export function useDragHandlers({
     setActiveId(null);
     setOverId(null);
     offsetLeftRef.current = 0;
-    // Clear visual indicators
-    updateDropTargetVisuals(null);
+    setCurrentDropTargetId(null);
     setDraggedItemIds(new Set());
     setDragOverlayWidth(null);
     // Clear the stable snapshot so next render uses fresh computed items
     dragStartFlattenedItemsRef.current = null;
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-  }, [updateDropTargetVisuals]);
+  }, []);
 
   const handleDragStart = ({ active }: DragStartEvent) => {
     // Capture the current flattened items BEFORE setting activeId
@@ -206,7 +134,7 @@ export function useDragHandlers({
       if (activeId && overId) {
         if (typeof overId === 'string' && overId.endsWith('-empty')) {
           const folderId = overId.replace('-empty', '');
-          scheduleProjectedParentUpdate(folderId);
+          setCurrentDropTargetId(folderId);
           return;
         }
 
@@ -219,7 +147,7 @@ export function useDragHandlers({
           flattenedItemsIndexMap,
         );
         const newParentId = projection?.parentId ?? null;
-        scheduleProjectedParentUpdate(newParentId);
+        setCurrentDropTargetId(newParentId);
       }
     },
     [
@@ -227,7 +155,7 @@ export function useDragHandlers({
       overId,
       flattenedItems,
       flattenedItemsIndexMap,
-      scheduleProjectedParentUpdate,
+      setCurrentDropTargetId,
     ],
   );
 
@@ -238,7 +166,7 @@ export function useDragHandlers({
       if (activeId && over) {
         if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
           const folderId = over.id.replace('-empty', '');
-          scheduleProjectedParentUpdate(folderId);
+          setCurrentDropTargetId(folderId);
           return;
         }
 
@@ -251,16 +179,16 @@ export function useDragHandlers({
           flattenedItemsIndexMap,
         );
         const newParentId = projection?.parentId ?? null;
-        scheduleProjectedParentUpdate(newParentId);
+        setCurrentDropTargetId(newParentId);
       } else {
-        scheduleProjectedParentUpdate(null);
+        setCurrentDropTargetId(null);
       }
     },
     [
       activeId,
       flattenedItems,
       flattenedItemsIndexMap,
-      scheduleProjectedParentUpdate,
+      setCurrentDropTargetId,
     ],
   );
 
@@ -622,6 +550,7 @@ export function useDragHandlers({
     flattenedItems,
     dragOverlayItems,
     forbiddenDropFolderIds,
+    currentDropTargetId,
     handleDragStart,
     handleDragMove,
     handleDragOver,
