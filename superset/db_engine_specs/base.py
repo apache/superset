@@ -60,9 +60,11 @@ from sqlalchemy.types import TypeEngine
 
 from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
+from superset.daos.key_value import KeyValueDAO
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
@@ -148,7 +150,9 @@ builtin_time_grains: dict[str | None, str] = {
 }
 
 
-class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method, too-many-ancestors
+class TimestampExpression(
+    ColumnClause
+):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be used to render native column elements respecting
         engine-specific quoting rules as part of a string-based expression.
@@ -527,9 +531,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     max_column_name_length: int | None = None
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
-    custom_errors: dict[
-        Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
-    ] = {}
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = (
+        {}
+    )
 
     # List of JSON path to fields in `encrypted_extra` that should be masked when the
     # database is edited. By default everything is masked.
@@ -618,9 +622,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         while the code_challenge (derived from the verifier) is sent to the
         authorization server.
         """
-        from superset.daos.key_value import KeyValueDAO
-        from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
-
         tab_id = str(uuid4())
         default_redirect_uri = app.config.get(
             "DATABASE_OAUTH2_REDIRECT_URI",
@@ -632,6 +633,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         # Store the code_verifier server-side in the KV store, keyed by tab_id.
         # This avoids exposing it in the URL/browser history via the JWT state.
+        KeyValueDAO.delete_expired_entries(KeyValueResource.PKCE_CODE_VERIFIER)
         KeyValueDAO.create_entry(
             resource=KeyValueResource.PKCE_CODE_VERIFIER,
             value={"code_verifier": code_verifier},
@@ -639,7 +641,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             key=UUID(tab_id),
             expires_on=datetime.now() + timedelta(minutes=5),
         )
-        db.session.commit()
+        db.session.flush()
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then
@@ -668,7 +670,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise OAuth2Error("No configuration found for OAuth2")
 
         oauth_url = cls.get_oauth2_authorization_uri(
-            oauth2_config, state, code_verifier=code_verifier
+            oauth2_config,
+            state,
+            code_verifier=code_verifier,
         )
 
         raise OAuth2RedirectError(oauth_url, tab_id, default_redirect_uri)

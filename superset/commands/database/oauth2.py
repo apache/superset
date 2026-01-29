@@ -68,7 +68,7 @@ class OAuth2StoreTokenCommand(BaseCommand):
                 codec=JsonKeyValueCodec(),
             )
             if kv_value:
-                code_verifier = kv_value["code_verifier"]
+                code_verifier = kv_value.get("code_verifier")
                 KeyValueDAO.delete_entry(KeyValueResource.PKCE_CODE_VERIFIER, tab_uuid)
 
         token_response = self._database.db_engine_spec.get_oauth2_token(
