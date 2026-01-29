@@ -2800,6 +2800,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col = self.convert_tbl_column_to_sqla_col(
                     columns_by_name[col], template_processor=template_processor
                 )
+            elif isinstance(col, str) and columns:
+                # Check if this is a label reference to an adhoc column
+                adhoc_col = next(
+                    (
+                        c
+                        for c in columns
+                        if utils.is_adhoc_column(c) and c.get("label") == col
+                    ),
+                    None,
+                )
+                if adhoc_col:
+                    col = self.adhoc_column_to_sqla(
+                        col=adhoc_col,
+                        template_processor=template_processor,
+                    )
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)
