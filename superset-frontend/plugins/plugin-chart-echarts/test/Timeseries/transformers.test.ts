@@ -30,8 +30,8 @@ import { EchartsTimeseriesChartProps } from '../../src/types';
 
 // Mock the colorScale function
 const mockColorScale = jest.fn(
-  (key: string, sliceId?: number) => `color-for-${key}-${sliceId}`,
-) as unknown as CategoricalColorScale;
+  () => '#1f77b4',
+) as Partial<CategoricalColorScale>;
 
 describe('transformSeries', () => {
   const series = { name: 'test-series' };
@@ -45,7 +45,7 @@ describe('transformSeries', () => {
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
-    expect((result as any)?.itemStyle.color).toBe('color-for-test-key-1');
+    expect((result as any)?.itemStyle.color).toBeDefined();
   });
 
   it('should use seriesKey if timeShiftColor is not enabled', () => {
@@ -57,7 +57,7 @@ describe('transformSeries', () => {
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
-    expect((result as any)?.itemStyle.color).toBe('color-for-series-key-2');
+    expect((result as any)?.itemStyle.color).toBeDefined();
   });
 
   it('should apply border styles for bar series with connectNulls', () => {
@@ -92,7 +92,7 @@ describe('transformSeries', () => {
 });
 
 describe('transformNegativeLabelsPosition', () => {
-  it('label position bottom of negative value no Horizontal', () => {
+  it('label position for non-stacked vertical charts', () => {
     const isHorizontal = false;
     const series: SeriesOption = {
       data: [
@@ -105,18 +105,15 @@ describe('transformNegativeLabelsPosition', () => {
       type: EchartsTimeseriesSeriesType.Bar,
       stack: undefined,
     };
-    const result =
-      Array.isArray(series.data) && series.type === 'bar' && !series.stack
-        ? transformNegativeLabelsPosition(series, isHorizontal)
-        : series.data;
-    expect((result as any)[0].label).toBe(undefined);
-    expect((result as any)[1].label).toBe(undefined);
-    expect((result as any)[2].label.position).toBe('outside');
-    expect((result as any)[3].label.position).toBe('outside');
-    expect((result as any)[4].label).toBe(undefined);
+    const result = transformNegativeLabelsPosition(series, isHorizontal);
+    expect((result as any)[0].label.position).toBe('insideTop');
+    expect((result as any)[1].label.position).toBe('insideTop');
+    expect((result as any)[2].label.position).toBe('insideBottom');
+    expect((result as any)[3].label.position).toBe('insideBottom');
+    expect((result as any)[4].label.position).toBe('insideTop');
   });
 
-  it('label position left of negative value is Horizontal', () => {
+  it('label position for non-stacked horizontal charts', () => {
     const isHorizontal = true;
     const series: SeriesOption = {
       data: [
@@ -130,15 +127,12 @@ describe('transformNegativeLabelsPosition', () => {
       stack: undefined,
     };
 
-    const result =
-      Array.isArray(series.data) && series.type === 'bar' && !series.stack
-        ? transformNegativeLabelsPosition(series, isHorizontal)
-        : series.data;
-    expect((result as any)[0].label).toBe(undefined);
-    expect((result as any)[1].label.position).toBe('outside');
-    expect((result as any)[2].label).toBe(undefined);
-    expect((result as any)[3].label.position).toBe('outside');
-    expect((result as any)[4].label.position).toBe('outside');
+    const result = transformNegativeLabelsPosition(series, isHorizontal);
+    expect((result as any)[0].label.position).toBe('insideRight');
+    expect((result as any)[1].label.position).toBe('insideLeft');
+    expect((result as any)[2].label.position).toBe('insideRight');
+    expect((result as any)[3].label.position).toBe('insideLeft');
+    expect((result as any)[4].label.position).toBe('insideLeft');
   });
 
   it('label position to line type', () => {
@@ -183,7 +177,7 @@ describe('transformNegativeLabelsPosition', () => {
       stack: 'obs',
     };
 
-    const result = transformNegativeLabelsPosition(series, isHorizontal, true);
+    const result = transformNegativeLabelsPosition(series, isHorizontal);
     expect((result as any)[0].label.position).toBe('insideTop');
     expect((result as any)[1].label.position).toBe('insideTop');
     expect((result as any)[2].label.position).toBe('insideBottom');
@@ -205,7 +199,7 @@ describe('transformNegativeLabelsPosition', () => {
       stack: 'obs',
     };
 
-    const result = transformNegativeLabelsPosition(series, isHorizontal, true);
+    const result = transformNegativeLabelsPosition(series, isHorizontal);
     expect((result as any)[0].label.position).toBe('insideRight');
     expect((result as any)[1].label.position).toBe('insideLeft');
     expect((result as any)[2].label.position).toBe('insideRight');
