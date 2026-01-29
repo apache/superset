@@ -47,6 +47,7 @@ const customIcons = [
   'Queued',
   'Redo',
   'Running',
+  'Sigma',
   'Slack',
   'Square',
   'SortAsc',
