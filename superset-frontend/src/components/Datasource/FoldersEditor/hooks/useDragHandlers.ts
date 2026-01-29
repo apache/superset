@@ -39,7 +39,6 @@ import {
 import { buildTree, getProjection, serializeForAPI } from '../treeUtils';
 
 interface UseDragHandlersProps {
-  items: TreeItemType[];
   setItems: React.Dispatch<React.SetStateAction<TreeItemType[]>>;
   computeFlattenedItems: (
     activeId: UniqueIdentifier | null,
@@ -51,7 +50,6 @@ interface UseDragHandlersProps {
 }
 
 export function useDragHandlers({
-  items,
   setItems,
   computeFlattenedItems,
   fullFlattenedItems,
@@ -97,6 +95,58 @@ export function useDragHandlers({
     });
     return map;
   }, [flattenedItems]);
+
+  // Shared lookup maps for O(1) access - used by handleDragEnd and forbiddenDropFolderIds
+  const fullItemsByUuid = useMemo(() => {
+    const map = new Map<string, FlattenedTreeItem>();
+    fullFlattenedItems.forEach(item => {
+      map.set(item.uuid, item);
+    });
+    return map;
+  }, [fullFlattenedItems]);
+
+  const fullItemsIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    fullFlattenedItems.forEach((item, index) => {
+      map.set(item.uuid, index);
+    });
+    return map;
+  }, [fullFlattenedItems]);
+
+  const childrenByParentId = useMemo(() => {
+    const map = new Map<string, FlattenedTreeItem[]>();
+    fullFlattenedItems.forEach(item => {
+      if (item.parentId) {
+        const children = map.get(item.parentId) ?? [];
+        children.push(item);
+        map.set(item.parentId, children);
+      }
+    });
+    return map;
+  }, [fullFlattenedItems]);
+
+  // Shared helper to calculate max folder descendant depth
+  // Only counts folder depths, not items (columns/metrics)
+  const getMaxFolderDescendantDepth = useCallback(
+    (parentId: string, baseDepth: number): number => {
+      const children = childrenByParentId.get(parentId);
+      if (!children || children.length === 0) {
+        return baseDepth;
+      }
+      let maxDepth = baseDepth;
+      for (const child of children) {
+        if (child.type === FoldersEditorItemType.Folder) {
+          maxDepth = Math.max(maxDepth, child.depth);
+          maxDepth = Math.max(
+            maxDepth,
+            getMaxFolderDescendantDepth(child.uuid, child.depth),
+          );
+        }
+      }
+      return maxDepth;
+    },
+    [childrenByParentId],
+  );
 
   const resetDragState = useCallback(() => {
     setActiveId(null);
@@ -151,13 +201,7 @@ export function useDragHandlers({
         setCurrentDropTargetId(newParentId);
       }
     },
-    [
-      activeId,
-      overId,
-      flattenedItems,
-      flattenedItemsIndexMap,
-      setCurrentDropTargetId,
-    ],
+    [activeId, overId, flattenedItems, flattenedItemsIndexMap],
   );
 
   const handleDragOver = useCallback(
@@ -185,7 +229,7 @@ export function useDragHandlers({
         setCurrentDropTargetId(null);
       }
     },
-    [activeId, flattenedItems, flattenedItemsIndexMap, setCurrentDropTargetId],
+    [activeId, flattenedItems, flattenedItemsIndexMap],
   );
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -208,19 +252,17 @@ export function useDragHandlers({
       }
     }
 
-    const activeIndex = fullFlattenedItems.findIndex(
-      ({ uuid }) => uuid === active.id,
-    );
-    const overIndex = fullFlattenedItems.findIndex(
-      ({ uuid }) => uuid === targetOverId,
-    );
+    const activeIndex = fullItemsIndexMap.get(active.id as string) ?? -1;
+    const overIndex = fullItemsIndexMap.get(targetOverId as string) ?? -1;
 
     if (activeIndex === -1 || overIndex === -1) {
       return;
     }
 
+    // Use Set for O(1) lookup instead of Array.includes
+    const itemsBeingDraggedSet = new Set(itemsBeingDragged);
     const draggedItems = fullFlattenedItems.filter((item: FlattenedTreeItem) =>
-      itemsBeingDragged.includes(item.uuid),
+      itemsBeingDraggedSet.has(item.uuid),
     );
 
     let projectedPosition = getProjection(
@@ -229,6 +271,7 @@ export function useDragHandlers({
       targetOverId,
       finalOffsetLeft,
       DRAG_INDENTATION_WIDTH,
+      flattenedItemsIndexMap,
     );
 
     if (isEmptyDrop) {
@@ -250,9 +293,21 @@ export function useDragHandlers({
       }
     }
 
-    const hasNonFolderItems = draggedItems.some(
-      item => item.type !== FoldersEditorItemType.Folder,
-    );
+    // Single pass to gather info about dragged items
+    let hasNonFolderItems = false;
+    let hasDraggedFolder = false;
+    let hasDraggedDefaultFolder = false;
+    for (const item of draggedItems) {
+      if (item.type === FoldersEditorItemType.Folder) {
+        hasDraggedFolder = true;
+        if (isDefaultFolder(item.uuid)) {
+          hasDraggedDefaultFolder = true;
+        }
+      } else {
+        hasNonFolderItems = true;
+      }
+    }
+
     if (hasNonFolderItems) {
       if (!projectedPosition || !projectedPosition.parentId) {
         return;
@@ -260,9 +315,7 @@ export function useDragHandlers({
     }
 
     if (projectedPosition && projectedPosition.parentId) {
-      const targetFolder = fullFlattenedItems.find(
-        ({ uuid }) => uuid === projectedPosition.parentId,
-      );
+      const targetFolder = fullItemsByUuid.get(projectedPosition.parentId);
 
       if (targetFolder && isDefaultFolder(targetFolder.uuid)) {
         const isDefaultMetricsFolder =
@@ -293,55 +346,13 @@ export function useDragHandlers({
       }
     }
 
-    const hasDraggedDefaultFolder = draggedItems.some(
-      item =>
-        item.type === FoldersEditorItemType.Folder &&
-        isDefaultFolder(item.uuid),
-    );
     if (hasDraggedDefaultFolder && projectedPosition?.parentId) {
       addWarningToast(t('Default folders cannot be nested'));
       return;
     }
 
     // Check max depth for folders
-    const hasDraggedFolder = draggedItems.some(
-      item => item.type === FoldersEditorItemType.Folder,
-    );
     if (hasDraggedFolder && projectedPosition) {
-      // Build a children map for O(1) lookups
-      const childrenByParentId = new Map<string, FlattenedTreeItem[]>();
-      fullFlattenedItems.forEach((item: FlattenedTreeItem) => {
-        if (item.parentId) {
-          const children = childrenByParentId.get(item.parentId) ?? [];
-          children.push(item);
-          childrenByParentId.set(item.parentId, children);
-        }
-      });
-
-      // Calculate the maximum depth among FOLDER descendants only
-      // (items like columns/metrics don't count toward the folder nesting limit)
-      const getMaxFolderDescendantDepth = (
-        parentId: string,
-        baseDepth: number,
-      ): number => {
-        const children = childrenByParentId.get(parentId);
-        if (!children || children.length === 0) {
-          return baseDepth;
-        }
-        let maxDepth = baseDepth;
-        for (const child of children) {
-          // Only count folder depths, not items (columns/metrics)
-          if (child.type === FoldersEditorItemType.Folder) {
-            maxDepth = Math.max(maxDepth, child.depth);
-            maxDepth = Math.max(
-              maxDepth,
-              getMaxFolderDescendantDepth(child.uuid, child.depth),
-            );
-          }
-        }
-        return maxDepth;
-      };
-
       for (const draggedItem of draggedItems) {
         if (draggedItem.type === FoldersEditorItemType.Folder) {
           const currentDepth = draggedItem.depth;
@@ -390,8 +401,10 @@ export function useDragHandlers({
         parentId: string,
         parentDepthChange: number,
       ) => {
-        fullFlattenedItems.forEach((item: FlattenedTreeItem) => {
-          if (item.parentId === parentId && !itemsToUpdate.has(item.uuid)) {
+        const children = childrenByParentId.get(parentId);
+        if (!children) return;
+        for (const item of children) {
+          if (!itemsToUpdate.has(item.uuid)) {
             itemsToUpdate.set(item.uuid, {
               depth: item.depth + parentDepthChange,
               parentId: undefined,
@@ -400,7 +413,7 @@ export function useDragHandlers({
               collectDescendants(item.uuid, parentDepthChange);
             }
           }
-        });
+        }
       };
 
       draggedItems.forEach((item: FlattenedTreeItem) => {
@@ -427,14 +440,16 @@ export function useDragHandlers({
     const itemsToMoveIds = new Set(itemsBeingDragged);
 
     const collectDescendantIds = (parentId: string) => {
-      fullFlattenedItems.forEach((item: FlattenedTreeItem) => {
-        if (item.parentId === parentId && !itemsToMoveIds.has(item.uuid)) {
+      const children = childrenByParentId.get(parentId);
+      if (!children) return;
+      for (const item of children) {
+        if (!itemsToMoveIds.has(item.uuid)) {
           itemsToMoveIds.add(item.uuid);
           if (item.type === FoldersEditorItemType.Folder) {
             collectDescendantIds(item.uuid);
           }
         }
-      });
+      }
     };
 
     draggedItems.forEach((item: FlattenedTreeItem) => {
@@ -443,17 +458,18 @@ export function useDragHandlers({
       }
     });
 
+    // Indices are already in ascending order since we iterate fullFlattenedItems sequentially
     const itemsToMoveIndices: number[] = [];
     fullFlattenedItems.forEach((item: FlattenedTreeItem, idx: number) => {
       if (itemsToMoveIds.has(item.uuid)) {
         itemsToMoveIndices.push(idx);
       }
     });
-    itemsToMoveIndices.sort((a, b) => a - b);
 
     const subtree = itemsToMoveIndices.map(idx => newItems[idx]);
+    const itemsToMoveIndicesSet = new Set(itemsToMoveIndices);
     const remaining = newItems.filter(
-      (_: FlattenedTreeItem, idx: number) => !itemsToMoveIndices.includes(idx),
+      (_: FlattenedTreeItem, idx: number) => !itemsToMoveIndicesSet.has(idx),
     );
 
     let insertionIndex = 0;
@@ -537,48 +553,12 @@ export function useDragHandlers({
       return forbidden;
     }
 
-    // Build a children map for O(1) lookups instead of O(n) scans
-    const childrenByParentId = new Map<string, FlattenedTreeItem[]>();
-    const itemsByUuid = new Map<string, FlattenedTreeItem>();
-    fullFlattenedItems.forEach((item: FlattenedTreeItem) => {
-      itemsByUuid.set(item.uuid, item);
-      if (item.parentId) {
-        const children = childrenByParentId.get(item.parentId) ?? [];
-        children.push(item);
-        childrenByParentId.set(item.parentId, children);
-      }
-    });
-
-    // Helper to calculate max FOLDER descendant depth offset (items don't count)
-    const getMaxFolderDescendantDepthOffset = (
-      parentId: string,
-      baseDepth: number,
-    ): number => {
-      const children = childrenByParentId.get(parentId);
-      if (!children || children.length === 0) {
-        return 0;
-      }
-      let maxOffset = 0;
-      for (const child of children) {
-        // Only count folder depths, not items (columns/metrics)
-        if (child.type === FoldersEditorItemType.Folder) {
-          const offset = child.depth - baseDepth;
-          maxOffset = Math.max(maxOffset, offset);
-          maxOffset = Math.max(
-            maxOffset,
-            getMaxFolderDescendantDepthOffset(child.uuid, baseDepth),
-          );
-        }
-      }
-      return maxOffset;
-    };
-
     const draggedTypes = new Set<FoldersEditorItemType>();
     let hasDraggedDefaultFolder = false;
     let maxDraggedFolderDescendantOffset = 0;
 
     draggedItemIds.forEach((id: string) => {
-      const item = itemsByUuid.get(id);
+      const item = fullItemsByUuid.get(id);
       if (item) {
         draggedTypes.add(item.type);
         if (
@@ -589,10 +569,11 @@ export function useDragHandlers({
         }
         // Track the deepest folder descendant offset for dragged folders
         if (item.type === FoldersEditorItemType.Folder) {
-          const descendantOffset = getMaxFolderDescendantDepthOffset(
+          const maxDescendantDepth = getMaxFolderDescendantDepth(
             item.uuid,
             item.depth,
           );
+          const descendantOffset = maxDescendantDepth - item.depth;
           maxDraggedFolderDescendantOffset = Math.max(
             maxDraggedFolderDescendantOffset,
             descendantOffset,
@@ -656,7 +637,12 @@ export function useDragHandlers({
     });
 
     return forbidden;
-  }, [draggedItemIds, fullFlattenedItems]);
+  }, [
+    draggedItemIds,
+    fullFlattenedItems,
+    fullItemsByUuid,
+    getMaxFolderDescendantDepth,
+  ]);
 
   return {
     isDragging: activeId !== null,
@@ -667,6 +653,7 @@ export function useDragHandlers({
     dragOverlayItems,
     forbiddenDropFolderIds,
     currentDropTargetId,
+    fullItemsByUuid,
     handleDragStart,
     handleDragMove,
     handleDragOver,

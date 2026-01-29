@@ -38,7 +38,6 @@ import {
   flattenTree,
   buildTree,
   removeChildrenOf,
-  getChildCount,
   serializeForAPI,
 } from './treeUtils';
 import {
@@ -93,23 +92,19 @@ export default function FoldersEditor({
 
   const fullFlattenedItems = useMemo(() => flattenTree(items), [items]);
 
-  const collapsedFolderIds = useMemo(
-    () =>
-      fullFlattenedItems.reduce<UniqueIdentifier[]>(
-        (acc, { uuid, type, children }) => {
-          if (
-            type === FoldersEditorItemType.Folder &&
-            collapsedIds.has(uuid) &&
-            children?.length
-          ) {
-            return [...acc, uuid];
-          }
-          return acc;
-        },
-        [],
-      ),
-    [fullFlattenedItems, collapsedIds],
-  );
+  const collapsedFolderIds = useMemo(() => {
+    const result: UniqueIdentifier[] = [];
+    for (const { uuid, type, children } of fullFlattenedItems) {
+      if (
+        type === FoldersEditorItemType.Folder &&
+        collapsedIds.has(uuid) &&
+        children?.length
+      ) {
+        result.push(uuid);
+      }
+    }
+    return result;
+  }, [fullFlattenedItems, collapsedIds]);
 
   const computeFlattenedItems = useCallback(
     (activeId: UniqueIdentifier | null) =>
@@ -150,13 +145,13 @@ export default function FoldersEditor({
     dragOverlayItems,
     forbiddenDropFolderIds,
     currentDropTargetId,
+    fullItemsByUuid,
     handleDragStart,
     handleDragMove,
     handleDragOver,
     handleDragEnd,
     handleDragCancel,
   } = useDragHandlers({
-    items,
     setItems,
     computeFlattenedItems,
     fullFlattenedItems,
@@ -186,19 +181,19 @@ export default function FoldersEditor({
 
   const allVisibleSelected = useMemo(() => {
     const selectableItems = Array.from(visibleItemIds).filter(id => {
-      const item = fullFlattenedItems.find(i => i.uuid === id);
+      const item = fullItemsByUuid.get(id);
       return item && item.type !== FoldersEditorItemType.Folder;
     });
     return (
       selectableItems.length > 0 &&
       selectableItems.every(id => selectedItemIds.has(id))
     );
-  }, [fullFlattenedItems, visibleItemIds, selectedItemIds]);
+  }, [fullItemsByUuid, visibleItemIds, selectedItemIds]);
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     const itemsToSelect = new Set(
       Array.from(visibleItemIds).filter(id => {
-        const item = fullFlattenedItems.find(i => i.uuid === id);
+        const item = fullItemsByUuid.get(id);
         return item && item.type !== FoldersEditorItemType.Folder;
       }),
     );
@@ -208,7 +203,7 @@ export default function FoldersEditor({
     } else {
       setSelectedItemIds(itemsToSelect);
     }
-  };
+  }, [visibleItemIds, fullItemsByUuid, allVisibleSelected]);
 
   const handleResetToDefault = () => {
     setShowResetConfirm(true);
@@ -382,13 +377,20 @@ export default function FoldersEditor({
 
   const folderChildCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    flattenedItems.forEach(item => {
+    // Initialize all folders with 0
+    for (const item of flattenedItems) {
       if (item.type === FoldersEditorItemType.Folder) {
-        counts.set(item.uuid, getChildCount(items, item.uuid));
+        counts.set(item.uuid, 0);
       }
-    });
+    }
+    // Single pass: count children by parentId
+    for (const item of flattenedItems) {
+      if (item.parentId && counts.has(item.parentId)) {
+        counts.set(item.parentId, counts.get(item.parentId)! + 1);
+      }
+    }
     return counts;
-  }, [flattenedItems, items]);
+  }, [flattenedItems]);
 
   return (
     <FoldersContainer>
