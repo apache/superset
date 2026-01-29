@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { debounce } from 'lodash';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
@@ -83,6 +83,7 @@ export default function FoldersEditor({
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(
     new Set(),
   );
+  const lastSelectedItemIdRef = useRef<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
@@ -238,17 +239,51 @@ export default function FoldersEditor({
     });
   }, []);
 
-  const handleSelect = useCallback((itemId: string, selected: boolean) => {
-    setSelectedItemIds(prev => {
-      const newSet = new Set(prev);
+  const handleSelect = useCallback(
+    (itemId: string, selected: boolean, shiftKey?: boolean) => {
+      // Capture ref value before setState to avoid timing issues with React 18 batching
+      const lastSelectedId = lastSelectedItemIdRef.current;
+
+      // Update ref immediately for next interaction
       if (selected) {
-        newSet.add(itemId);
-      } else {
-        newSet.delete(itemId);
+        lastSelectedItemIdRef.current = itemId;
       }
-      return newSet;
-    });
-  }, []);
+
+      setSelectedItemIds(prev => {
+        const newSet = new Set(prev);
+
+        // Range selection when shift is held and we have a previous selection
+        if (shiftKey && selected && lastSelectedId) {
+          const selectableItems = flattenedItems.filter(
+            item => item.type !== FoldersEditorItemType.Folder,
+          );
+
+          const currentIndex = selectableItems.findIndex(
+            item => item.uuid === itemId,
+          );
+          const lastIndex = selectableItems.findIndex(
+            item => item.uuid === lastSelectedId,
+          );
+
+          if (currentIndex !== -1 && lastIndex !== -1) {
+            const startIndex = Math.min(currentIndex, lastIndex);
+            const endIndex = Math.max(currentIndex, lastIndex);
+
+            for (let i = startIndex; i <= endIndex; i += 1) {
+              newSet.add(selectableItems[i].uuid);
+            }
+          }
+        } else if (selected) {
+          newSet.add(itemId);
+        } else {
+          newSet.delete(itemId);
+        }
+
+        return newSet;
+      });
+    },
+    [flattenedItems],
+  );
 
   const handleStartEdit = useCallback((folderId: string) => {
     setEditingFolderId(folderId);
