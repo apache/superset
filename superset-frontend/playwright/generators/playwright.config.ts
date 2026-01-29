@@ -27,8 +27,12 @@
 
 /// <reference types="node" />
 
+import path from 'path';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineConfig } from '@playwright/test';
+
+const serverURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
+const baseURL = serverURL.endsWith('/') ? serverURL : `${serverURL}/`;
 
 export default defineConfig({
   testDir: '.',
@@ -45,10 +49,7 @@ export default defineConfig({
   reporter: [['list']],
 
   use: {
-    baseURL: (() => {
-      const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
-      return url.endsWith('/') ? url : `${url}/`;
-    })(),
+    baseURL,
 
     headless: true,
     viewport: { width: 1280, height: 1024 },
@@ -64,7 +65,7 @@ export default defineConfig({
       use: {
         browserName: 'chromium',
         testIdAttribute: 'data-test',
-        storageState: '../.auth/user.json',
+        storageState: path.resolve(__dirname, '../.auth/user.json'),
       },
     },
   ],
@@ -72,8 +73,8 @@ export default defineConfig({
   webServer: process.env.CI
     ? undefined
     : {
-        command: 'curl -f http://localhost:8088/health',
-        url: 'http://localhost:8088/health',
+        command: `curl -f ${serverURL}/health`,
+        url: `${serverURL}/health`,
         reuseExistingServer: true,
         timeout: 5000,
       },

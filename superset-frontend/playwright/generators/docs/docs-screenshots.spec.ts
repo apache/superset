@@ -119,16 +119,16 @@ test('dashboard screenshot', async ({ page }) => {
 test('chart editor screenshot', async ({ page }) => {
   await page.goto(URL.CHART_LIST);
 
-  // Wait for chart list to load
-  const listView = page.locator('[data-test="listview-table"]');
-  await expect(listView).toBeVisible({ timeout: 15000 });
+  // Search for the Scatter Plot chart by name
+  const searchInput = page.getByPlaceholder('Type a value');
+  await expect(searchInput).toBeVisible({ timeout: 15000 });
+  await searchInput.fill('Scatter Plot');
+  await searchInput.press('Enter');
 
-  // Click the first chart link in the list to open explore
-  const firstChartLink = page
-    .locator('[data-test="table-row"] a[href*="/explore"]')
-    .first();
-  await expect(firstChartLink).toBeVisible();
-  await firstChartLink.click();
+  // Click the Scatter Plot link to open explore
+  const chartLink = page.getByRole('link', { name: /scatter plot/i });
+  await expect(chartLink).toBeVisible({ timeout: 10000 });
+  await chartLink.click();
 
   // Wait for explore page to fully load
   await page.waitForURL('**/explore/**', { timeout: 15000 });
