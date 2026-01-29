@@ -467,8 +467,11 @@ export default class AdhocMetricEditPopover extends PureComponent<
                           value: savedMetric.metric_name,
                           label: this.renderMetricOption(savedMetric),
                           key: savedMetric.id,
+                          metric_name: savedMetric.metric_name,
+                          verbose_name: savedMetric.verbose_name ?? '',
                         }),
                       )}
+                      optionFilterProps={['metric_name', 'verbose_name']}
                       {...savedSelectProps}
                     />
                   </FormItem>
@@ -526,7 +529,10 @@ export default class AdhocMetricEditPopover extends PureComponent<
                         value: column.column_name,
                         key: (column as { id?: unknown }).id,
                         label: this.renderColumnOption(column),
+                        column_name: column.column_name,
+                        verbose_name: column.verbose_name ?? '',
                       }))}
+                      optionFilterProps={['column_name', 'verbose_name']}
                       {...columnSelectProps}
                     />
                   </FormItem>
