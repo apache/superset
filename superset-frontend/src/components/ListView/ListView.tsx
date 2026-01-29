@@ -28,6 +28,7 @@ import {
   Icons,
   EmptyState,
   Loading,
+  Tooltip,
   Pagination,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
@@ -201,28 +202,32 @@ const ViewModeToggle = ({
   setMode: (mode: 'table' | 'card') => void;
 }) => (
   <ViewModeContainer>
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => {
-        e.currentTarget.blur();
-        setMode('card');
-      }}
-      className={cx('toggle-button', { active: mode === 'card' })}
-    >
-      <Icons.AppstoreOutlined iconSize="xl" />
-    </div>
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => {
-        e.currentTarget.blur();
-        setMode('table');
-      }}
-      className={cx('toggle-button', { active: mode === 'table' })}
-    >
-      <Icons.UnorderedListOutlined iconSize="xl" />
-    </div>
+    <Tooltip title={t('Grid view')}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={e => {
+          e.currentTarget.blur();
+          setMode('card');
+        }}
+        className={cx('toggle-button', { active: mode === 'card' })}
+      >
+        <Icons.AppstoreOutlined iconSize="xl" />
+      </div>
+    </Tooltip>
+    <Tooltip title={t('List view')}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={e => {
+          e.currentTarget.blur();
+          setMode('table');
+        }}
+        className={cx('toggle-button', { active: mode === 'table' })}
+      >
+        <Icons.UnorderedListOutlined iconSize="xl" />
+      </div>
+    </Tooltip>
   </ViewModeContainer>
 );
 
