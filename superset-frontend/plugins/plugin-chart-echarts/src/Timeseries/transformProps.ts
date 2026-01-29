@@ -141,14 +141,11 @@ export default function transformProps(
     currencyCodeColumn,
   } = datasource as typeof datasource & { currencyCodeColumn?: string };
   const [queryData] = queriesData;
-  const queryDataTyped = queryData as TimeseriesChartDataResponseResult & {
-    detected_currency?: string | null;
-  };
   const {
     data = [],
     label_map = {},
     detected_currency: backendDetectedCurrency,
-  } = queryDataTyped;
+  } = queryData as TimeseriesChartDataResponseResult;
 
   const dataTypes = getColtypesMapping(queryData);
   const annotationData = getAnnotationData(chartProps);

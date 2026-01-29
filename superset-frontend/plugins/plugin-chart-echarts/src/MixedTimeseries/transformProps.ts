@@ -141,16 +141,10 @@ export default function transformProps(
     columnFormats = {},
     currencyCodeColumn,
   } = datasource as typeof datasource & { currencyCodeColumn?: string };
-  const queryData0 = queriesData[0] as TimeseriesChartDataResponseResult & {
-    detected_currency?: string | null;
-  };
-  const queryData1 = queriesData[1] as TimeseriesChartDataResponseResult & {
-    detected_currency?: string | null;
-  };
   const { label_map: labelMap, detected_currency: backendDetectedCurrency } =
-    queryData0;
+    queriesData[0] as TimeseriesChartDataResponseResult;
   const { label_map: labelMapB, detected_currency: backendDetectedCurrencyB } =
-    queryData1;
+    queriesData[1] as TimeseriesChartDataResponseResult;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
