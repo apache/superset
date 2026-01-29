@@ -23,7 +23,12 @@ import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { isEmpty } from 'lodash';
 import { t } from '@apache-superset/core';
-import { SupersetClient, getExtensionsRegistry } from '@superset-ui/core';
+import {
+  SupersetClient,
+  getExtensionsRegistry,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   Tag,
@@ -489,15 +494,17 @@ const RightMenu = ({
             ),
           });
         }
-        userItems.push({
-          key: 'logout',
-          label: (
-            <Typography.Link href={navbarRight.user_logout_url}>
-              {t('Logout')}
-            </Typography.Link>
-          ),
-          onClick: handleLogout,
-        });
+        if (!isFeatureEnabled(FeatureFlag.DisableEmbeddedSupersetLogout)) {
+          userItems.push({
+            key: 'logout',
+            label: (
+              <Typography.Link href={navbarRight.user_logout_url}>
+                {t('Logout')}
+              </Typography.Link>
+            ),
+            onClick: handleLogout,
+          });
+        }
 
         items.push({
           type: 'group',
