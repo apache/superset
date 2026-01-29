@@ -18,7 +18,7 @@
  */
 
 import { memo } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Modal } from '@superset-ui/core/components';
 
 interface ResetConfirmModalProps {

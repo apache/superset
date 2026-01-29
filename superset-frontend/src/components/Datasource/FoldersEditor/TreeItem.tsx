@@ -21,8 +21,7 @@ import { CSSProperties, useState, memo, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { css } from '@apache-superset/core/ui';
-import { Metric, t } from '@superset-ui/core';
+import { css, t } from '@apache-superset/core/ui';
 import {
   Checkbox,
   Input,
@@ -30,7 +29,7 @@ import {
   EmptyState,
   Tooltip,
 } from '@superset-ui/core/components';
-import { ColumnMeta, ColumnTypeLabel } from '@superset-ui/chart-controls';
+import { ColumnMeta, ColumnTypeLabel, Metric } from '@superset-ui/chart-controls';
 import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import {
   OptionControlContainer,

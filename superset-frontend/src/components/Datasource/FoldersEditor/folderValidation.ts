@@ -23,7 +23,7 @@
  */
 
 import { Metric, ColumnMeta } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 import { UniqueIdentifier } from '@dnd-kit/core';
 import { FoldersEditorItemType } from '../types';

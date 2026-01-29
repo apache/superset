@@ -18,7 +18,7 @@
  */
 
 import { memo } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Button, Input } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { FoldersToolbar, FoldersSearch, FoldersActions } from '../styles';
