@@ -28,27 +28,36 @@ describe('SupersetClient', () => {
 
   afterEach(() => SupersetClient.reset());
 
-  it('exposes reset, configure, init, get, post, postForm, isAuthenticated, and reAuthenticate methods', () => {
+  it('exposes configure, init, get, post, postForm, delete, put, request, reset, getGuestToken, getCSRFToken, getUrl, isAuthenticated, and reAuthenticate methods', () => {
     expect(typeof SupersetClient.configure).toBe('function');
     expect(typeof SupersetClient.init).toBe('function');
     expect(typeof SupersetClient.get).toBe('function');
     expect(typeof SupersetClient.post).toBe('function');
     expect(typeof SupersetClient.postForm).toBe('function');
-    expect(typeof SupersetClient.isAuthenticated).toBe('function');
-    expect(typeof SupersetClient.reAuthenticate).toBe('function');
-    expect(typeof SupersetClient.getGuestToken).toBe('function');
+    expect(typeof SupersetClient.delete).toBe('function');
+    expect(typeof SupersetClient.put).toBe('function');
     expect(typeof SupersetClient.request).toBe('function');
     expect(typeof SupersetClient.reset).toBe('function');
+    expect(typeof SupersetClient.getGuestToken).toBe('function');
+    expect(typeof SupersetClient.getCSRFToken).toBe('function');
+    expect(typeof SupersetClient.getUrl).toBe('function');
+    expect(typeof SupersetClient.isAuthenticated).toBe('function');
+    expect(typeof SupersetClient.reAuthenticate).toBe('function');
   });
 
-  it('throws if you call init, get, post, postForm, isAuthenticated, or reAuthenticate before configure', () => {
+  it('throws if you call init, get, post, postForm, delete, put, request, getGuestToken, getCSRFToken, getUrl, isAuthenticated, or reAuthenticate before configure', () => {
     expect(SupersetClient.init).toThrow();
     expect(SupersetClient.get).toThrow();
     expect(SupersetClient.post).toThrow();
     expect(SupersetClient.postForm).toThrow();
+    expect(SupersetClient.delete).toThrow();
+    expect(SupersetClient.put).toThrow();
+    expect(SupersetClient.request).toThrow();
+    expect(SupersetClient.getGuestToken).toThrow();
+    expect(SupersetClient.getCSRFToken).toThrow();
+    expect(SupersetClient.getUrl).toThrow();
     expect(SupersetClient.isAuthenticated).toThrow();
     expect(SupersetClient.reAuthenticate).toThrow();
-    expect(SupersetClient.request).toThrow();
     expect(SupersetClient.configure).not.toThrow();
   });
 
