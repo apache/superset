@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { UniqueIdentifier } from '@dnd-kit/core';
 import { Metric, ColumnMeta } from '@superset-ui/chart-controls';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 
@@ -25,34 +24,4 @@ export interface FoldersEditorProps {
   metrics: Metric[];
   columns: ColumnMeta[];
   onChange: (folders: DatasourceFolder[]) => void;
-  isEditMode: boolean;
-}
-
-export interface DragState {
-  activeId: UniqueIdentifier | null;
-  draggedType: 'folder' | 'item' | null;
-  draggedItems: string[];
-  overId: UniqueIdentifier | null;
-}
-
-export interface SortableItemProps {
-  id: string;
-  children: React.ReactNode;
-  isDragging?: boolean;
-  onSelect: (selected: boolean) => void;
-  isSelected: boolean;
-}
-
-export interface SortableFolderProps {
-  folder: DatasourceFolder;
-  isExpanded: boolean;
-  isEditing: boolean;
-  onToggle: () => void;
-  onEdit: () => void;
-  onNameChange: (name: string) => void;
-  isDragOver: boolean;
-  canAcceptDrop: boolean;
-  visibleItemIds: Set<string>;
-  children: React.ReactNode;
-  isNested?: boolean;
 }

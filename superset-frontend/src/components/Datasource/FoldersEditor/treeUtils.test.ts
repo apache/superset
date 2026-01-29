@@ -21,20 +21,14 @@ import {
   TreeItem,
   FlattenedTreeItem,
   DRAG_INDENTATION_WIDTH,
-  DEFAULT_COLUMNS_FOLDER_UUID,
-  DEFAULT_METRICS_FOLDER_UUID,
 } from './constants';
 import {
   flattenTree,
   buildTree,
-  findItemDeep,
   removeChildrenOf,
-  getChildCount,
   serializeForAPI,
-  getDescendantIds,
   getProjection,
 } from './treeUtils';
-import { canAcceptDrop, canNestFolder } from './folderValidation';
 import { FoldersEditorItemType } from '../types';
 
 const createMetricItem = (uuid: string, name: string): TreeItem => ({
@@ -170,41 +164,6 @@ test('buildTree handles orphan items by placing them at root', () => {
   expect(tree[0].uuid).toBe('metric1');
 });
 
-test('findItemDeep finds item at root level', () => {
-  const tree: TreeItem[] = [
-    createFolderItem('folder1', 'Folder 1', []),
-    createFolderItem('folder2', 'Folder 2', []),
-  ];
-
-  const found = findItemDeep(tree, 'folder2');
-
-  expect(found).toBeDefined();
-  expect(found?.uuid).toBe('folder2');
-});
-
-test('findItemDeep finds deeply nested item', () => {
-  const tree: TreeItem[] = [
-    createFolderItem('folder1', 'Folder 1', [
-      createFolderItem('folder2', 'Folder 2', [
-        createMetricItem('metric1', 'Metric 1'),
-      ]),
-    ]),
-  ];
-
-  const found = findItemDeep(tree, 'metric1');
-
-  expect(found).toBeDefined();
-  expect(found?.uuid).toBe('metric1');
-});
-
-test('findItemDeep returns undefined for non-existent item', () => {
-  const tree: TreeItem[] = [createFolderItem('folder1', 'Folder 1', [])];
-
-  const found = findItemDeep(tree, 'nonexistent');
-
-  expect(found).toBeUndefined();
-});
-
 test('removeChildrenOf filters out children of specified parents', () => {
   const items: FlattenedTreeItem[] = [
     {
@@ -284,56 +243,6 @@ test('removeChildrenOf recursively removes nested children when parent has child
   expect(filtered[0].uuid).toBe('folder1');
 });
 
-test('getChildCount returns correct count for folder', () => {
-  const tree: TreeItem[] = [
-    createFolderItem('folder1', 'Folder 1', [
-      createMetricItem('metric1', 'Metric 1'),
-      createMetricItem('metric2', 'Metric 2'),
-      createMetricItem('metric3', 'Metric 3'),
-    ]),
-  ];
-
-  const count = getChildCount(tree, 'folder1');
-
-  expect(count).toBe(3);
-});
-
-test('getChildCount includes nested children', () => {
-  const tree: TreeItem[] = [
-    createFolderItem('folder1', 'Folder 1', [
-      createFolderItem('folder2', 'Folder 2', [
-        createMetricItem('metric1', 'Metric 1'),
-        createMetricItem('metric2', 'Metric 2'),
-      ]),
-    ]),
-  ];
-
-  const count = getChildCount(tree, 'folder1');
-
-  // folder2 + metric1 + metric2 = 3
-  expect(count).toBe(3);
-});
-
-test('getChildCount returns 0 for non-folder items', () => {
-  const tree: TreeItem[] = [
-    createFolderItem('folder1', 'Folder 1', [
-      createMetricItem('metric1', 'Metric 1'),
-    ]),
-  ];
-
-  const count = getChildCount(tree, 'metric1');
-
-  expect(count).toBe(0);
-});
-
-test('getChildCount returns 0 for non-existent items', () => {
-  const tree: TreeItem[] = [createFolderItem('folder1', 'Folder 1', [])];
-
-  const count = getChildCount(tree, 'nonexistent');
-
-  expect(count).toBe(0);
-});
-
 test('serializeForAPI excludes empty folders', () => {
   const tree: TreeItem[] = [
     createFolderItem('folder1', 'Folder 1', []),
@@ -398,196 +307,6 @@ test('serializeForAPI excludes nested empty folders', () => {
     uuid: 'metric1',
     type: FoldersEditorItemType.Metric,
   });
-});
-
-test('getDescendantIds returns all descendants of a folder', () => {
-  const tree: TreeItem[] = [
-    createFolderItem('folder1', 'Folder 1', [
-      createMetricItem('metric1', 'Metric 1'),
-      createFolderItem('folder2', 'Folder 2', [
-        createColumnItem('column1', 'Column 1'),
-      ]),
-    ]),
-  ];
-
-  const descendants = getDescendantIds(tree, 'folder1');
-
-  expect(descendants).toContain('metric1');
-  expect(descendants).toContain('folder2');
-  expect(descendants).toContain('column1');
-  expect(descendants).toHaveLength(3);
-});
-
-test('getDescendantIds returns empty array for non-folder items', () => {
-  const tree: TreeItem[] = [
-    createFolderItem('folder1', 'Folder 1', [
-      createMetricItem('metric1', 'Metric 1'),
-    ]),
-  ];
-
-  const descendants = getDescendantIds(tree, 'metric1');
-
-  expect(descendants).toHaveLength(0);
-});
-
-test('getDescendantIds returns empty array for non-existent items', () => {
-  const tree: TreeItem[] = [createFolderItem('folder1', 'Folder 1', [])];
-
-  const descendants = getDescendantIds(tree, 'nonexistent');
-
-  expect(descendants).toHaveLength(0);
-});
-
-test('canAcceptDrop allows metrics in default Metrics folder', () => {
-  const targetFolder: FlattenedTreeItem = {
-    uuid: DEFAULT_METRICS_FOLDER_UUID,
-    type: FoldersEditorItemType.Folder,
-    name: 'Metrics',
-    parentId: null,
-    depth: 0,
-    index: 0,
-  };
-  const draggedItems: FlattenedTreeItem[] = [
-    {
-      uuid: 'metric1',
-      type: FoldersEditorItemType.Metric,
-      name: 'Metric 1',
-      parentId: null,
-      depth: 1,
-      index: 0,
-    },
-  ];
-
-  expect(canAcceptDrop(targetFolder, draggedItems)).toBe(true);
-});
-
-test('canAcceptDrop rejects columns in default Metrics folder', () => {
-  const targetFolder: FlattenedTreeItem = {
-    uuid: DEFAULT_METRICS_FOLDER_UUID,
-    type: FoldersEditorItemType.Folder,
-    name: 'Metrics',
-    parentId: null,
-    depth: 0,
-    index: 0,
-  };
-  const draggedItems: FlattenedTreeItem[] = [
-    {
-      uuid: 'column1',
-      type: FoldersEditorItemType.Column,
-      name: 'Column 1',
-      parentId: null,
-      depth: 1,
-      index: 0,
-    },
-  ];
-
-  expect(canAcceptDrop(targetFolder, draggedItems)).toBe(false);
-});
-
-test('canAcceptDrop allows columns in default Columns folder', () => {
-  const targetFolder: FlattenedTreeItem = {
-    uuid: DEFAULT_COLUMNS_FOLDER_UUID,
-    type: FoldersEditorItemType.Folder,
-    name: 'Columns',
-    parentId: null,
-    depth: 0,
-    index: 0,
-  };
-  const draggedItems: FlattenedTreeItem[] = [
-    {
-      uuid: 'column1',
-      type: FoldersEditorItemType.Column,
-      name: 'Column 1',
-      parentId: null,
-      depth: 1,
-      index: 0,
-    },
-  ];
-
-  expect(canAcceptDrop(targetFolder, draggedItems)).toBe(true);
-});
-
-test('canAcceptDrop rejects metrics in default Columns folder', () => {
-  const targetFolder: FlattenedTreeItem = {
-    uuid: DEFAULT_COLUMNS_FOLDER_UUID,
-    type: FoldersEditorItemType.Folder,
-    name: 'Columns',
-    parentId: null,
-    depth: 0,
-    index: 0,
-  };
-  const draggedItems: FlattenedTreeItem[] = [
-    {
-      uuid: 'metric1',
-      type: FoldersEditorItemType.Metric,
-      name: 'Metric 1',
-      parentId: null,
-      depth: 1,
-      index: 0,
-    },
-  ];
-
-  expect(canAcceptDrop(targetFolder, draggedItems)).toBe(false);
-});
-
-test('canAcceptDrop allows any items in custom folders', () => {
-  const targetFolder: FlattenedTreeItem = {
-    uuid: 'custom-folder',
-    type: FoldersEditorItemType.Folder,
-    name: 'Custom Folder',
-    parentId: null,
-    depth: 0,
-    index: 0,
-  };
-  const draggedItems: FlattenedTreeItem[] = [
-    {
-      uuid: 'metric1',
-      type: FoldersEditorItemType.Metric,
-      name: 'Metric 1',
-      parentId: null,
-      depth: 1,
-      index: 0,
-    },
-    {
-      uuid: 'column1',
-      type: FoldersEditorItemType.Column,
-      name: 'Column 1',
-      parentId: null,
-      depth: 1,
-      index: 1,
-    },
-  ];
-
-  expect(canAcceptDrop(targetFolder, draggedItems)).toBe(true);
-});
-
-test('canNestFolder prevents folder from being nested inside itself', () => {
-  const tree: TreeItem[] = [createFolderItem('folder1', 'Folder 1', [])];
-
-  expect(canNestFolder(tree, 'folder1', 'folder1')).toBe(false);
-});
-
-test('canNestFolder prevents folder from being nested inside its descendants', () => {
-  const tree: TreeItem[] = [
-    createFolderItem('parent', 'Parent', [
-      createFolderItem('child', 'Child', [
-        createFolderItem('grandchild', 'Grandchild', []),
-      ]),
-    ]),
-  ];
-
-  expect(canNestFolder(tree, 'parent', 'child')).toBe(false);
-  expect(canNestFolder(tree, 'parent', 'grandchild')).toBe(false);
-});
-
-test('canNestFolder allows valid nesting', () => {
-  const tree: TreeItem[] = [
-    createFolderItem('folder1', 'Folder 1', []),
-    createFolderItem('folder2', 'Folder 2', []),
-  ];
-
-  expect(canNestFolder(tree, 'folder1', 'folder2')).toBe(true);
-  expect(canNestFolder(tree, 'folder2', 'folder1')).toBe(true);
 });
 
 test('getProjection calculates correct depth when dragging down', () => {
