@@ -18,20 +18,24 @@
  */
 import { useState } from 'react';
 import styled from '@emotion/styled';
-import { List } from 'antd';
 import Layout from '@theme/Layout';
 import { mq } from '../utils';
 import SectionHeader from '../components/SectionHeader';
 import BlurredSection from '../components/BlurredSection';
 
-const communityLinks = [
+interface CommunityLink {
+  url: string;
+  title: string;
+  description: string;
+  image: string;
+}
+
+const communityLinks: CommunityLink[] = [
   {
     url: 'http://bit.ly/join-superset-slack',
     title: 'Slack',
     description: 'Interact with other Superset users and community members.',
     image: 'slack-symbol.jpg',
-    ariaLabel:
-      'Interact with other Superset users and community members on Slack',
   },
   {
     url: 'https://github.com/apache/superset',
@@ -39,95 +43,147 @@ const communityLinks = [
     description:
       'Create tickets to report issues, report bugs, and suggest new features.',
     image: 'github-symbol.jpg',
-    ariaLabel:
-      'Create tickets to report issues, report bugs, and suggest new features on Superset GitHub repo',
   },
   {
     url: 'https://lists.apache.org/list.html?dev@superset.apache.org',
     title: 'dev@ Mailing List',
     description:
-      'Participate in conversations with committers and contributors.',
+      'Participate in conversations with committers and contributors. Subscribe by emailing dev-subscribe@superset.apache.org.',
     image: 'email-symbol.png',
-    ariaLabel:
-      'Participate in conversations with committers and contributors on Superset mailing list',
   },
   {
-    url: 'https://stackoverflow.com/questions/tagged/apache-superset',
-    title: 'Stack Overflow',
-    description: 'Our growing knowledge base.',
-    image: 'stackoverflow-symbol.jpg',
-    ariaLabel: 'See Superset issues on Stack Overflow',
-  },
-  {
-    url: 'https://www.meetup.com/Global-Apache-Superset-Community-Meetup/',
-    title: 'Superset Meetup Group',
-    description:
-      'Join our monthly virtual meetups and register for any upcoming events.',
-    image: 'coffee-symbol.png',
-    ariaLabel:
-      'Join our monthly virtual meetups and register for any upcoming events on Meetup',
-  },
-  {
-    url: 'https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md',
+    url: 'https://superset.apache.org/inTheWild',
     title: 'Organizations',
     description:
       'A list of some of the organizations using Superset in production.',
-    image: 'note-symbol.png',
-    ariaLabel: 'See a list of the organizations using Superset in production',
+    image: 'globe-symbol.svg',
   },
   {
-    url: 'https://github.com/apache-superset/awesome-apache-superset',
+    url: 'https://superset.apache.org/developer_portal/contributing/overview',
     title: 'Contributors Guide',
     description:
       'Interested in contributing? Learn how to contribute and best practices.',
     image: 'writing-symbol.png',
-    ariaLabel: 'Learn how to contribute and best practices on Superset GitHub',
   },
 ];
 
-const StyledJoinCommunity = styled('section')`
-  background-color: var(--ifm-background-color);
-  border-bottom: 1px solid var(--ifm-border-color);
-  .list {
-    max-width: 540px;
-    margin: 0 auto;
-    padding: 40px 20px 20px 35px;
+interface SocialLink {
+  url: string;
+  title: string;
+  image: string;
+}
+
+const socialLinks: SocialLink[] = [
+  {
+    url: 'https://x.com/ApacheSuperset',
+    title: 'X (Twitter)',
+    image: 'x-symbol.svg',
+  },
+  {
+    url: 'https://www.linkedin.com/company/apache-superset/',
+    title: 'LinkedIn',
+    image: 'linkedin-symbol.svg',
+  },
+  {
+    url: 'https://bsky.app/profile/apachesuperset.bsky.social',
+    title: 'Bluesky',
+    image: 'bluesky-symbol.svg',
+  },
+];
+
+const StyledCardGrid = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  ${mq[2]} {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .item {
-    padding: 0;
-    border: 0;
+  ${mq[1]} {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+    border: 1px solid var(--ifm-border-color);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+    &:hover {
+      border-color: var(--ifm-color-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      text-decoration: none;
+      color: inherit;
+    }
   }
   .icon {
     width: 40px;
-    margin-top: 5px;
-    ${mq[1]} {
-      width: 40px;
-      margin-top: 0;
-    }
+    height: 40px;
+    flex-shrink: 0;
+  }
+  .card-body {
+    min-width: 0;
   }
   .title {
-    font-size: 20px;
-    line-height: 36px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--ifm-font-base-color);
-    ${mq[1]} {
-      font-size: 23px;
-      line-height: 26px;
-    }
+    margin-bottom: 4px;
   }
   .description {
     font-size: 14px;
-    line-height: 20px;
-    color: var(--ifm-font-base-color);
-    margin-top: -8px;
-    margin-bottom: 23px;
-    ${mq[1]} {
-      font-size: 17px;
-      line-height: 22px;
-      color: var(--ifm-primary-text);
-      margin-bottom: 35px;
-      margin-top: 0;
+    line-height: 1.4;
+    color: var(--ifm-secondary-text);
+  }
+`;
+
+const StyledSocialGrid = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  ${mq[1]} {
+    grid-template-columns: 1fr;
+    max-width: 300px;
+  }
+  .card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border: 1px solid var(--ifm-border-color);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+    &:hover {
+      border-color: var(--ifm-color-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      text-decoration: none;
+      color: inherit;
     }
+  }
+  .icon {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+  .title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ifm-font-base-color);
   }
 `;
 
@@ -169,10 +225,10 @@ const FinePrint = styled('div')`
 `;
 
 const Community = () => {
-  const [showCalendar, setShowCalendar] = useState(false); // State to control calendar visibility
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const toggleCalendar = () => {
-    setShowCalendar(!showCalendar); // Toggle calendar visibility
+    setShowCalendar(!showCalendar);
   };
 
   return (
@@ -188,39 +244,42 @@ const Community = () => {
             subtitle="Get involved in our welcoming, fast growing community!"
           />
         </BlurredSection>
-        <StyledJoinCommunity>
-          <List
-            className="list"
-            itemLayout="horizontal"
-            dataSource={communityLinks}
-            renderItem={({ url, title, description, image, ariaLabel }) => (
-              <List.Item className="item">
-                <List.Item.Meta
-                  avatar={
-                    <a
-                      className="title"
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={ariaLabel}
-                    >
-                      <img className="icon" src={`/img/community/${image}`} />
-                    </a>
-                  }
-                  title={
-                    <a href={url} target="_blank" rel="noreferrer">
-                      <p className="title" style={{ marginBottom: 0 }}>
-                        {title}
-                      </p>
-                    </a>
-                  }
-                  description={<p className="description">{description}</p>}
-                  aria-label="Community link"
-                />
-              </List.Item>
-            )}
-          />
-        </StyledJoinCommunity>
+        <section>
+          <StyledCardGrid>
+            {communityLinks.map(({ url, title, description, image }) => (
+              <a
+                key={title}
+                className="card"
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <img className="icon" src={`/img/community/${image}`} alt={title} />
+                <div className="card-body">
+                  <div className="title">{title}</div>
+                  <div className="description">{description}</div>
+                </div>
+              </a>
+            ))}
+          </StyledCardGrid>
+        </section>
+        <BlurredSection>
+          <SectionHeader level="h2" title="Follow Us" />
+          <StyledSocialGrid>
+            {socialLinks.map(({ url, title, image }) => (
+              <a
+                key={title}
+                className="card"
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <img className="icon" src={`/img/community/${image}`} alt={title} />
+                <span className="title">{title}</span>
+              </a>
+            ))}
+          </StyledSocialGrid>
+        </BlurredSection>
         <BlurredSection>
           <SectionHeader
             level="h2"
