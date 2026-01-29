@@ -74,7 +74,27 @@ export interface ViewContribution {
 }
 
 /**
- * Aggregates all contributions (commands, menus, and views) provided by an extension or module.
+ * Describes an editor that can be contributed to the application.
+ * Extensions declare editor contributions in their extension.json manifest.
+ */
+export interface EditorContribution {
+  /** Unique identifier for the editor (e.g., "acme.monaco-sql") */
+  id: string;
+  /** Display name of the editor */
+  name: string;
+  /** Languages this editor supports */
+  languages: EditorLanguage[];
+  /** Optional description of the editor */
+  description?: string;
+}
+
+/**
+ * Supported editor languages.
+ */
+export type EditorLanguage = 'sql' | 'json' | 'yaml' | 'markdown' | 'css';
+
+/**
+ * Aggregates all contributions (commands, menus, views, and editors) provided by an extension or module.
  */
 export interface Contributions {
   /** List of command contributions. */
@@ -87,4 +107,6 @@ export interface Contributions {
   views: {
     [key: string]: ViewContribution[];
   };
+  /** List of editor contributions. */
+  editors?: EditorContribution[];
 }

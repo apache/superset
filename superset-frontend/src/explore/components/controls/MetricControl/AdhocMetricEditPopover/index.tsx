@@ -21,6 +21,7 @@ import { PureComponent, createRef } from 'react';
 import PropTypes from 'prop-types';
 import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import { t } from '@apache-superset/core';
+import type { editors } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -147,7 +148,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
   // "Saved" is a default tab unless there are no saved metrics for dataset
   defaultActiveTabKey = this.getDefaultTab();
 
-  aceEditorRef: RefObject<HTMLDivElement>;
+  aceEditorRef: RefObject<editors.EditorHandle>;
 
   dragStartX = 0;
 
@@ -560,21 +561,17 @@ export default class AdhocMetricEditPopover extends PureComponent<
               children: (
                 <SQLEditorWithValidation
                   data-test="sql-editor"
-                  showLoadingForImport
                   ref={this.aceEditorRef}
                   keywords={keywords}
                   height={`${this.state.height - 120}px`}
                   onChange={this.onSqlExpressionChange}
                   width="100%"
-                  showGutter={false}
+                  lineNumbers={false}
                   value={
                     adhocMetric.sqlExpression ||
                     adhocMetric.translateToSql({ transformCountDistinct: true })
                   }
-                  editorProps={{ $blockScrolling: true }}
-                  enableLiveAutocompletion
-                  className="filter-sql-editor"
-                  wrapEnabled
+                  wordWrap
                   showValidation
                   expressionType="metric"
                   datasourceId={datasource?.id}

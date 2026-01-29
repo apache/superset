@@ -24,12 +24,13 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { styled, Alert } from '@apache-superset/core/ui';
-import { CssEditor, Select, Switch } from '@superset-ui/core/components';
+import { Select, Switch } from '@superset-ui/core/components';
+import { EditorHost } from 'src/core/editors';
 import rison from 'rison';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import { ModalFormField } from 'src/components/Modal';
 
-const StyledCssEditor = styled(CssEditor)`
+const StyledEditorHost = styled(EditorHost)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colorBorder};
 `;
@@ -254,14 +255,14 @@ const StylingSection = ({
         )}
         bottomSpacing={false}
       >
-        <StyledCssEditor
+        <StyledEditorHost
+          id="dashboard-css-editor"
           data-test="dashboard-css-editor"
           onChange={onCustomCssChange}
           value={customCss}
+          language="css"
           width="100%"
-          minLines={10}
-          maxLines={50}
-          editorProps={{ $blockScrolling: true }}
+          height="160px"
         />
       </ModalFormField>
     </>

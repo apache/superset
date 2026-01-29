@@ -18,11 +18,32 @@
  */
 import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
-import { JsonEditor } from '@superset-ui/core/components';
+import type { editors } from '@apache-superset/core';
+import { EditorHost } from 'src/core/editors';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';
 
-const StyledJsonEditor = styled(JsonEditor)`
+type EditorAnnotation = editors.EditorAnnotation;
+
+/**
+ * Convert Ace annotation format to EditorAnnotation format.
+ */
+const toEditorAnnotations = (
+  aceAnnotations: Array<{
+    type: string;
+    row: number;
+    column: number;
+    text: string;
+  }>,
+): EditorAnnotation[] =>
+  aceAnnotations.map(ann => ({
+    severity: ann.type as EditorAnnotation['severity'],
+    line: ann.row,
+    column: ann.column,
+    message: ann.text,
+  }));
+
+const StyledEditorHost = styled(EditorHost)`
   /* Border is already applied by AceEditor itself */
 `;
 
@@ -54,17 +75,17 @@ const AdvancedSection = ({
     }
     bottomSpacing={false}
   >
-    <StyledJsonEditor
+    <StyledEditorHost
+      id="dashboard-json-metadata"
       data-test="dashboard-metadata-editor"
-      showLoadingForImport
-      name="json_metadata"
       value={jsonMetadata}
       onChange={onJsonMetadataChange}
+      language="json"
       tabSize={2}
+      wordWrap
       width="100%"
       height="200px"
-      wrapEnabled
-      annotations={jsonAnnotations}
+      annotations={toEditorAnnotations(jsonAnnotations)}
     />
   </ModalFormField>
 );

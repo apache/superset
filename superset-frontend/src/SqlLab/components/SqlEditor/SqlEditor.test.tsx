@@ -206,7 +206,7 @@ describe('SqlEditor', () => {
   });
 
   // Update other similar tests with timeouts
-  test('render an AceEditorWrapper', async () => {
+  test('render an EditorWrapper', async () => {
     const { findByTestId, unmount } = setup(mockedProps, store);
 
     await waitFor(
@@ -217,7 +217,7 @@ describe('SqlEditor', () => {
     unmount();
   }, 15000);
 
-  test('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
+  test('skip rendering an EditorWrapper when the current tab is inactive', async () => {
     const { queryByTestId } = setup(
       {
         ...mockedProps,
