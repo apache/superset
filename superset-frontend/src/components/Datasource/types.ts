@@ -73,6 +73,7 @@ export interface CRUDCollectionProps {
   tableLayout?: 'fixed' | 'auto';
   sortColumns: string[];
   stickyHeader?: boolean;
+  pagination?: boolean | { pageSize?: number; showSizeChanger?: boolean; pageSizeOptions?: number[] };
 }
 
 export type Sort = number | string | boolean | any;
@@ -89,4 +90,6 @@ export interface CRUDCollectionState {
   expandedColumns: Record<PropertyKey, any>;
   sortColumn: string;
   sort: SortOrder;
+  currentPage: number;
+  pageSize: number;
 }

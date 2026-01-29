@@ -60,7 +60,7 @@ import {
   Flex,
   FormLabel,
   Icons,
-  InfoTooltip,
+  Input,
   Loading,
   Row,
   Select,
@@ -635,6 +635,9 @@ class DatasourceEditor extends PureComponent {
         : DATASOURCE_TYPES.physical.key,
       usageCharts: [],
       usageChartsCount: 0,
+      metricSearchTerm: '',
+      columnSearchTerm: '',
+      calculatedColumnSearchTerm: '',
     };
 
     this.isComponentMounted = false;
@@ -1723,11 +1726,30 @@ class DatasourceEditor extends PureComponent {
   }
 
   renderMetricCollection() {
-    const { datasource } = this.state;
+    const { datasource, metricSearchTerm } = this.state;
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
+    const filteredMetrics = metricSearchTerm
+      ? sortedMetrics.filter(
+          metric =>
+            metric.metric_name
+              ?.toLowerCase()
+              .includes(metricSearchTerm.toLowerCase()) ||
+            metric.verbose_name
+              ?.toLowerCase()
+              .includes(metricSearchTerm.toLowerCase()),
+        )
+      : sortedMetrics;
     return (
-      <CollectionTable
+      <div>
+        <Input.Search
+          placeholder={t('Search metrics by key or label')}
+          value={metricSearchTerm}
+          onChange={e => this.setState({ metricSearchTerm: e.target.value })}
+          style={{ marginBottom: 16, width: 300 }}
+          allowClear
+        />
+        <CollectionTable
         tableColumns={['metric_name', 'verbose_name', 'expression']}
         sortColumns={['metric_name', 'verbose_name', 'expression']}
         columnLabels={{
@@ -1741,6 +1763,11 @@ class DatasourceEditor extends PureComponent {
               'the metric to charts. It is also used as the alias in the ' +
               'SQL query.',
           ),
+        }}
+        pagination={{
+          pageSize: 25,
+          showSizeChanger: true,
+          pageSizeOptions: [10, 25, 50, 100],
         }}
         expandFieldset={
           <FormContainer>
@@ -1816,7 +1843,7 @@ class DatasourceEditor extends PureComponent {
             </Fieldset>
           </FormContainer>
         }
-        collection={sortedMetrics}
+        collection={filteredMetrics}
         allowAddItem
         onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
         itemGenerator={() => ({
@@ -1883,6 +1910,7 @@ class DatasourceEditor extends PureComponent {
         allowDeletes
         stickyHeader
       />
+      </div>
     );
   }
 
@@ -1939,10 +1967,6 @@ class DatasourceEditor extends PureComponent {
               ),
               children: (
                 <StyledTableTabWrapper>
-                  {this.renderDefaultColumnSettings()}
-                  <DefaultColumnSettingsTitle>
-                    {t('Column Settings')}
-                  </DefaultColumnSettingsTitle>
                   <ColumnButtonWrapper>
                     <StyledButtonWrapper>
                       <Button
@@ -1957,9 +1981,28 @@ class DatasourceEditor extends PureComponent {
                       </Button>
                     </StyledButtonWrapper>
                   </ColumnButtonWrapper>
+                  <Input.Search
+                    placeholder={t('Search columns by name')}
+                    value={this.state.columnSearchTerm}
+                    onChange={e =>
+                      this.setState({ columnSearchTerm: e.target.value })
+                    }
+                    style={{ marginBottom: 16, width: 300 }}
+                    allowClear
+                  />
                   <ColumnCollectionTable
                     className="columns-table"
-                    columns={this.state.databaseColumns}
+                    columns={
+                      this.state.columnSearchTerm
+                        ? this.state.databaseColumns.filter(col =>
+                            col.column_name
+                              ?.toLowerCase()
+                              .includes(
+                                this.state.columnSearchTerm.toLowerCase(),
+                              ),
+                          )
+                        : this.state.databaseColumns
+                    }
                     datasource={datasource}
                     onColumnsChange={databaseColumns =>
                       this.setColumns({ databaseColumns })
@@ -1980,12 +2023,29 @@ class DatasourceEditor extends PureComponent {
               ),
               children: (
                 <StyledTableTabWrapper>
-                  {this.renderDefaultColumnSettings()}
-                  <DefaultColumnSettingsTitle>
-                    {t('Column Settings')}
-                  </DefaultColumnSettingsTitle>
+                  <Input.Search
+                    placeholder={t('Search calculated columns by name')}
+                    value={this.state.calculatedColumnSearchTerm}
+                    onChange={e =>
+                      this.setState({
+                        calculatedColumnSearchTerm: e.target.value,
+                      })
+                    }
+                    style={{ marginBottom: 16, width: 300 }}
+                    allowClear
+                  />
                   <ColumnCollectionTable
-                    columns={this.state.calculatedColumns}
+                    columns={
+                      this.state.calculatedColumnSearchTerm
+                        ? this.state.calculatedColumns.filter(col =>
+                            col.column_name
+                              ?.toLowerCase()
+                              .includes(
+                                this.state.calculatedColumnSearchTerm.toLowerCase(),
+                              ),
+                          )
+                        : this.state.calculatedColumns
+                    }
                     onColumnsChange={calculatedColumns =>
                       this.setColumns({ calculatedColumns })
                     }
