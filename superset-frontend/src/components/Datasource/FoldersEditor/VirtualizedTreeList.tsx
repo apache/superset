@@ -102,6 +102,7 @@ export function VirtualizedTreeList({
     collapsedIds,
     folderChildCounts,
     itemSeparatorInfo,
+    visibleItemIds,
     isDragging,
   ]);
 
