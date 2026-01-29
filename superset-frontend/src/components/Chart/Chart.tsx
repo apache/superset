@@ -202,7 +202,7 @@ class Chart extends PureComponent<ChartProps, {}> {
 
   runQuery() {
     if (
-      isFeatureEnabled(FeatureFlag.DashboardLoadDataVirtualization) &&
+      isFeatureEnabled(FeatureFlag.DashboardVirtualizationDeferData) &&
       !this.shouldRenderChart()
     ) {
       return;

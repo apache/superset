@@ -700,7 +700,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
-    "DASHBOARD_LOAD_DATA_VIRTUALIZATION": False,
+    "DASHBOARD_VIRTUALIZATION_DEFER_DATA": False,
     # Data panel closed by default in chart builder
     # @lifecycle: stable
     # @category: runtime_config
