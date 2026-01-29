@@ -442,8 +442,7 @@ function ThemesList({
             canApply
               ? {
                   label: 'apply-action',
-                  tooltip: t(
-                    'Set local theme for testing'),
+                  tooltip: t('Set local theme for testing'),
                   placement: 'bottom',
                   icon: 'ThunderboltOutlined',
                   onClick: handleApply,
@@ -452,9 +451,7 @@ function ThemesList({
             canEdit
               ? {
                   label: 'edit-action',
-                  tooltip: original.is_system
-                    ? t('View')
-                    : t('Edit'),
+                  tooltip: original.is_system ? t('View') : t('Edit'),
                   placement: 'bottom',
                   icon: original.is_system ? 'EyeOutlined' : 'EditOutlined',
                   onClick: handleEdit,
