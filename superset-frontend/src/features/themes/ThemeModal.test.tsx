@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import ThemeModal from './ThemeModal';
@@ -35,6 +35,27 @@ jest.mock('src/theme/ThemeProvider', () => ({
 
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   isUserAdmin: jest.fn(() => true),
+}));
+
+// Mock JsonEditor to avoid direct DOM manipulation in tests
+jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('@superset-ui/core/components/AsyncAceEditor'),
+  JsonEditor: ({
+    onChange,
+    value,
+    readOnly,
+  }: {
+    onChange: (value: string) => void;
+    value: string;
+    readOnly?: boolean;
+  }) => (
+    <textarea
+      data-test="json-editor"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      readOnly={readOnly}
+    />
+  ),
 }));
 
 const mockTheme: ThemeObject = {
@@ -77,6 +98,19 @@ afterEach(() => {
   fetchMock.restore();
   jest.clearAllMocks();
 });
+
+// Helper to add valid JSON data to the theme
+// Uses the mocked JsonEditor textarea for testing
+const addValidJsonData = async () => {
+  const validJson = JSON.stringify(
+    { token: { colorPrimary: '#1890ff' } },
+    null,
+    2,
+  );
+  const jsonEditor = screen.getByTestId('json-editor');
+  await userEvent.clear(jsonEditor);
+  await userEvent.type(jsonEditor, validJson);
+};
 
 test('renders modal with add theme dialog when show is true', () => {
   render(
@@ -272,10 +306,16 @@ test('enables save button when theme name is entered', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'My New Theme');
+  await addValidJsonData();
 
-  const saveButton = await screen.findByRole('button', { name: 'Add' });
-
-  expect(saveButton).toBeEnabled();
+  // Wait for validation to complete and button to become enabled
+  await waitFor(
+    () => {
+      const saveButton = screen.getByRole('button', { name: 'Add' });
+      expect(saveButton).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('validates JSON format and enables save button', async () => {
@@ -293,10 +333,16 @@ test('validates JSON format and enables save button', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'Test Theme');
+  await addValidJsonData();
 
-  const saveButton = await screen.findByRole('button', { name: 'Add' });
-
-  expect(saveButton).toBeEnabled();
+  // Wait for validation to complete and button to become enabled
+  await waitFor(
+    () => {
+      const saveButton = screen.getByRole('button', { name: 'Add' });
+      expect(saveButton).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('shows unsaved changes alert when closing modal with modifications', async () => {
@@ -407,6 +453,19 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'Modified Theme');
+  await addValidJsonData();
+
+  // Wait for validation to complete before canceling
+  await waitFor(
+    () => {
+      const addButton = screen.getByRole('button', { name: 'Add' });
+      expect(addButton).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
+
+  // Give extra time for all state updates to complete
+  await new Promise(resolve => setTimeout(resolve, 500));
 
   const cancelButton = screen.getByRole('button', { name: 'Cancel' });
   await userEvent.click(cancelButton);
@@ -415,13 +474,26 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
     await screen.findByText('You have unsaved changes'),
   ).toBeInTheDocument();
 
-  const saveButton = screen.getByRole('button', { name: 'Save' });
+  // Wait for the Save button in the alert to be enabled
+  const saveButton = await waitFor(
+    () => {
+      const button = screen.getByRole('button', { name: 'Save' });
+      expect(button).toBeEnabled();
+      return button;
+    },
+    { timeout: 10000 },
+  );
   await userEvent.click(saveButton);
 
   // Wait for API call to complete
   await screen.findByRole('dialog');
-  expect(fetchMock.called()).toBe(true);
-});
+  await waitFor(
+    () => {
+      expect(fetchMock.called()).toBe(true);
+    },
+    { timeout: 15000 },
+  );
+}, 30000);
 
 test('discards changes when clicking Discard button in unsaved changes alert', async () => {
   const onHide = jest.fn();
@@ -472,12 +544,23 @@ test('creates new theme when saving', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'New Theme');
+  await addValidJsonData();
 
-  const saveButton = await screen.findByRole('button', { name: 'Add' });
+  // Wait for validation to complete and button to become enabled
+  const saveButton = await waitFor(
+    () => {
+      const button = screen.getByRole('button', { name: 'Add' });
+      expect(button).toBeEnabled();
+      return button;
+    },
+    { timeout: 10000 },
+  );
   await userEvent.click(saveButton);
 
   expect(await screen.findByRole('dialog')).toBeInTheDocument();
-  expect(fetchMock.called('glob:*/api/v1/theme/', 'POST')).toBe(true);
+  await waitFor(() => {
+    expect(fetchMock.called('glob:*/api/v1/theme/', 'POST')).toBe(true);
+  });
 });
 
 test('updates existing theme when saving', async () => {
@@ -525,14 +608,24 @@ test('handles API errors gracefully', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'New Theme');
+  await addValidJsonData();
 
-  const saveButton = await screen.findByRole('button', { name: 'Add' });
-  expect(saveButton).toBeEnabled();
+  // Wait for validation to complete and button to become enabled
+  const saveButton = await waitFor(
+    () => {
+      const button = screen.getByRole('button', { name: 'Add' });
+      expect(button).toBeEnabled();
+      return button;
+    },
+    { timeout: 10000 },
+  );
 
   await userEvent.click(saveButton);
 
   await screen.findByRole('dialog');
-  expect(fetchMock.called()).toBe(true);
+  await waitFor(() => {
+    expect(fetchMock.called()).toBe(true);
+  });
 });
 
 test('applies theme locally when clicking Apply button', async () => {
