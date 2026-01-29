@@ -46,6 +46,7 @@ import {
   waitForPut,
 } from '../../../helpers/api/intercepts';
 import { expectStatusOneOf } from '../../../helpers/api/assertions';
+import { TIMEOUT } from '../../../utils/constants';
 
 /**
  * Extend testWithAssets with datasetListPage navigation (beforeEach equivalent).
@@ -374,7 +375,7 @@ test('should edit dataset name via modal', async ({
 
   // Handle the "Confirm save" dialog that may appear for datasets with sync columns enabled
   const confirmDialog = new ConfirmDialog(page);
-  await confirmDialog.clickOk({ timeout: 2000 });
+  await confirmDialog.clickOk({ timeout: TIMEOUT.CONFIRM_DIALOG });
 
   // Wait for save to complete and verify success
   expectStatusOneOf(await saveResponsePromise, [200, 201]);
@@ -566,7 +567,7 @@ test.describe('import dataset', () => {
     }
 
     // Modal should close on success
-    await importModal.waitForHidden({ timeout: 30000 });
+    await importModal.waitForHidden({ timeout: TIMEOUT.FILE_IMPORT });
 
     // Verify success toast appears
     const toast = new Toast(page);
@@ -628,7 +629,7 @@ test('should edit column date format via modal', async ({
 
   // Save and handle confirmation dialog conditionally
   await editModal.clickSave();
-  await new ConfirmDialog(page).clickOk({ timeout: 2000 });
+  await new ConfirmDialog(page).clickOk({ timeout: TIMEOUT.CONFIRM_DIALOG });
   await editModal.waitForHidden();
 
   // Verify via API
@@ -671,7 +672,7 @@ test('should edit dataset description via modal', async ({
 
   // Save and handle confirmation dialog conditionally
   await editModal.clickSave();
-  await new ConfirmDialog(page).clickOk({ timeout: 2000 });
+  await new ConfirmDialog(page).clickOk({ timeout: TIMEOUT.CONFIRM_DIALOG });
   await editModal.waitForHidden();
 
   // Verify via API
