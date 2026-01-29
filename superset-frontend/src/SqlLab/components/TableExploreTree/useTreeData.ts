@@ -57,8 +57,6 @@ function treeDataReducer(
       return {
         ...state,
         tableData: { ...state.tableData, [action.key]: action.data },
-        // Force tree re-render to apply search filter to new data
-        // dataVersion: state.dataVersion + 1,
       };
     case 'SET_TABLE_SCHEMA_DATA':
       return {
@@ -67,8 +65,6 @@ function treeDataReducer(
           ...state.tableSchemaData,
           [action.key]: action.data,
         },
-        // Force tree re-render to apply search filter to new data
-        // dataVersion: state.dataVersion + 1,
       };
     case 'SET_LOADING_NODE':
       return {
@@ -95,7 +91,6 @@ interface UseTreeDataResult {
   isFetching: boolean;
   refetch: () => void;
   loadingNodes: Record<string, boolean>;
-  dataVersion: number;
   handleToggle: (id: string, isOpen: boolean) => Promise<void>;
   fetchLazyTables: ReturnType<typeof useLazyTablesQuery>[0];
 }
