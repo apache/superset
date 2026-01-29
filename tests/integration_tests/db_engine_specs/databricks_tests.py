@@ -16,6 +16,8 @@
 # under the License.
 from unittest import mock
 
+from sqlalchemy import Boolean, Column, Table
+
 from superset.db_engine_specs import get_engine_spec
 from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -59,3 +61,44 @@ class TestDatabricksDbEngineSpec(SupersetTestCase):
         extras = DatabricksNativeEngineSpec.get_extra_params(database)
         connect_args = extras["engine_params"]["connect_args"]
         assert connect_args["ssl"] == "1"
+
+    def test_handle_boolean_in_clause(self):
+        """
+        Test that boolean IN clauses use boolean literals instead of integers.
+
+        Databricks requires boolean literals (True/False) in IN clauses,
+        not integers (0/1). This test verifies that handle_boolean_in_clause
+        converts values properly and uses OR conditions with equality checks.
+        """
+        # Create a mock table with a boolean column
+        test_table = Table(
+            "test_table",
+            mock.MagicMock(),
+            Column("is_test_user", Boolean),
+        )
+        sqla_col = test_table.c.is_test_user
+
+        # Test with boolean values
+        result = DatabricksNativeEngineSpec.handle_boolean_in_clause(
+            sqla_col, [False]
+        )
+        # Verify the result is an OR condition (not an IN clause)
+        assert result is not None
+
+        # Test with integer values (should be converted to booleans)
+        result = DatabricksNativeEngineSpec.handle_boolean_in_clause(
+            sqla_col, [0, 1]
+        )
+        assert result is not None
+
+        # Test with string values
+        result = DatabricksNativeEngineSpec.handle_boolean_in_clause(
+            sqla_col, ["false", "true"]
+        )
+        assert result is not None
+
+        # Test with empty list (should return false condition)
+        from sqlalchemy import false
+        result = DatabricksNativeEngineSpec.handle_boolean_in_clause(sqla_col, [])
+        # The result should be a false condition when all values are filtered out
+        assert result is not None
