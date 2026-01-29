@@ -76,7 +76,7 @@ const createProps = (additionalProps = {}) =>
         link_length: '25',
         x_axis_label: 'age',
         y_axis_label: 'count',
-        server_pagination: false as any,
+        server_pagination: false,
       },
       chartStatus: 'rendered' as const,
       chartAlert: null,
