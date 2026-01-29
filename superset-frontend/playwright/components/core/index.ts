@@ -21,5 +21,7 @@
 export { Button } from './Button';
 export { Form } from './Form';
 export { Input } from './Input';
+export { Menu } from './Menu';
 export { Modal } from './Modal';
 export { Table } from './Table';
+export { Toast } from './Toast';

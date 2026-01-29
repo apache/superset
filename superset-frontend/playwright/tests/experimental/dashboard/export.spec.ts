@@ -19,6 +19,7 @@
 
 import { test, expect } from '@playwright/test';
 import { DashboardPage } from '../../../pages/DashboardPage';
+import { Toast } from '../../../components/core';
 import { TIMEOUT } from '../../../utils/constants';
 
 /**
@@ -31,74 +32,56 @@ import { TIMEOUT } from '../../../utils/constants';
  * Prerequisites:
  * - Superset running with example dashboards loaded
  * - Admin user authenticated (via global-setup)
- *
- * SKIP REASON: Ant Design Menu submenu hover behavior is not reliably
- * triggered by Playwright. The submenu popup doesn't appear consistently
- * when hovering over the Download menu item. This functionality is
- * covered by unit tests in DownloadMenuItems.test.tsx.
- *
- * TODO: Investigate Ant Design Menu triggerSubMenuAction or alternative
- * approaches for E2E testing of nested menus.
  */
 
 let dashboardPage: DashboardPage;
+const downloads: { delete: () => Promise<void> }[] = [];
 
-test.describe.skip('Dashboard Export', () => {
+test.describe('Dashboard Export', () => {
+  // Dashboard with multiple charts needs extra time for cold-cache CI runs:
+  // waitForLoad (10s) + waitForChartsToLoad (15s) + menu + download + toast
+  test.setTimeout(60_000);
+
   test.beforeEach(async ({ page }) => {
     dashboardPage = new DashboardPage(page);
 
     // Navigate to World Health dashboard (standard example)
     await dashboardPage.gotoBySlug('world_health');
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.PAGE_LOAD });
+    // Wait for charts to finish loading - Download menu may be disabled while loading
+    await dashboardPage.waitForChartsToLoad();
   });
 
-  test('should download ZIP when clicking Export YAML', async ({ page }) => {
-    // Open the header actions menu (three-dot menu)
-    await dashboardPage.openHeaderActionsMenu();
-
-    // Open the Download submenu
-    await dashboardPage.openDownloadMenu();
-
-    // Click Export YAML and wait for download
-    const download = await dashboardPage.clickExportYaml();
-
-    // Verify the download
-    const filename = download.suggestedFilename();
-    expect(filename).toMatch(/\.zip$/);
+  test.afterEach(async () => {
+    // Clean up downloaded files
+    await Promise.all(downloads.map(d => d.delete().catch(() => {})));
+    downloads.length = 0;
   });
 
-  test('should download example bundle when clicking Export as Example', async ({
+  test('should download ZIP and show success toast when clicking Export YAML', async ({
     page,
   }) => {
-    // Open the header actions menu
-    await dashboardPage.openHeaderActionsMenu();
+    const toast = new Toast(page);
+    const download = await dashboardPage.selectDownloadOption('Export YAML');
+    downloads.push(download);
 
-    // Open the Download submenu
-    await dashboardPage.openDownloadMenu();
-
-    // Click Export as Example and wait for download
-    const download = await dashboardPage.clickExportAsExample();
-
-    // Verify the download
-    const filename = download.suggestedFilename();
-    expect(filename).toMatch(/_example\.zip$/);
+    expect(download.suggestedFilename()).toMatch(/\.zip$/);
+    await expect(toast.getSuccess()).toBeVisible({
+      timeout: TIMEOUT.API_RESPONSE,
+    });
   });
 
-  test('should show success toast after Export as Example', async ({
+  test('should download example bundle and show success toast when clicking Export as Example', async ({
     page,
   }) => {
-    // Open the header actions menu
-    await dashboardPage.openHeaderActionsMenu();
+    const toast = new Toast(page);
+    const download =
+      await dashboardPage.selectDownloadOption('Export as Example');
+    downloads.push(download);
 
-    // Open the Download submenu
-    await dashboardPage.openDownloadMenu();
-
-    // Click Export as Example
-    await dashboardPage.clickExportAsExample();
-
-    // Verify success toast appears
-    await expect(
-      page.locator('.ant-message-success, [data-test="toast-success"]'),
-    ).toBeVisible({ timeout: TIMEOUT.API_RESPONSE });
+    expect(download.suggestedFilename()).toMatch(/_example\.zip$/);
+    await expect(toast.getSuccess()).toBeVisible({
+      timeout: TIMEOUT.API_RESPONSE,
+    });
   });
 });
