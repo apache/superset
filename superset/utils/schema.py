@@ -50,4 +50,37 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         json.validate_json(value)
     except json.JSONDecodeError as ex:
-        raise ValidationError("JSON not valid") from ex
+        error_msg = "JSON not valid"
+        raise ValidationError(error_msg) from ex
+
+
+def validate_query_context_metadata(value: Union[bytes, bytearray, str, None]) -> None:
+    """
+    Validator for query_context field to ensure it contains required metadata.
+
+    Validates that the query_context JSON contains the required 'datasource' and
+    'queries' fields needed for chart data retrieval.
+
+    :raises ValidationError: if value is not valid JSON or missing required fields
+    :param value: a JSON string that should contain datasource and queries metadata
+    """
+    if value is None or value == "":
+        return  # Allow None values and empty strings
+
+    # Reuse existing JSON validation logic
+    validate_json(value)
+
+    # Parse and validate the structure
+    parsed_data = json.loads(value)
+
+    # Validate required fields exist in the query_context
+    if not isinstance(parsed_data, dict):
+        error_msg = "Query context must be a valid JSON object"
+        raise ValidationError(error_msg)
+
+    # When query_context is provided (not None), validate it has required fields
+    required_fields = {"datasource", "queries"}
+    missing_fields: set[str] = required_fields - parsed_data.keys()
+    if missing_fields:
+        fields_str = ", ".join(sorted(missing_fields))
+        raise ValidationError(f"Query context is missing required fields: {fields_str}")
