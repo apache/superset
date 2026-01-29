@@ -49,6 +49,8 @@ const propTypes = {
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   directPathLastUpdated: PropTypes.number,
   isComponentVisible: PropTypes.bool,
+  onDrop: PropTypes.func,
+  onHover: PropTypes.func,
   availableColumnCount: PropTypes.number,
   columnWidth: PropTypes.number,
   onResizeStart: PropTypes.func,

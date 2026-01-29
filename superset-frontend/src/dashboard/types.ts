@@ -127,6 +127,8 @@ export type DashboardState = {
     data: JsonObject;
   };
   chartStates?: Record<string, any>;
+  lastRefreshTime?: number;
+  tabActivationTimes?: Record<string, number>;
 };
 export type DashboardInfo = {
   id: number;
