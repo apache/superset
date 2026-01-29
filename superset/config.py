@@ -1911,6 +1911,10 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
+# External link redirection in alert/report emails
+ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
+# Show visual indicators for external links in emails
+ALERT_REPORTS_EXTERNAL_LINK_INDICATOR = True
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
 # You can also assign a function to the config that returns the expected integer
@@ -2188,6 +2192,11 @@ PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 #     r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"
 # ]
 DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
+
+# Optional custom URL for external redirect warning page.
+# If not set, will use the built-in redirect warning page.
+# Example: REDIRECT_URL_PAGE = "https://mycompany.com/external-link-warning"
+REDIRECT_URL_PAGE: str | None = None
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
