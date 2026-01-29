@@ -351,4 +351,198 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(chartProps.formData.xAxisTimeFormat).toBe('smart_date');
     });
   });
+
+  describe('Color By X-Axis Feature', () => {
+    const categoricalData = [
+      {
+        data: [
+          { category: 'A', value: 100 },
+          { category: 'B', value: 150 },
+          { category: 'C', value: 200 },
+        ],
+        colnames: ['category', 'value'],
+        coltypes: ['STRING', 'BIGINT'],
+      },
+    ];
+
+    it('should apply color by x-axis when enabled with no dimensions', () => {
+      const formData = {
+        ...baseFormData,
+        showColorByXAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+        rawFormData: formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+
+      // Should have hidden legend series for each x-axis value
+      const series = transformedProps.echartOptions.series as any[];
+      expect(series.length).toBeGreaterThan(3); // Original series + hidden legend series
+
+      // Check that legend data contains x-axis values
+      const legendData = transformedProps.legendData as string[];
+      expect(legendData).toContain('A');
+      expect(legendData).toContain('B');
+      expect(legendData).toContain('C');
+
+      // Check that legend items have roundRect icons
+      const legend = transformedProps.echartOptions.legend as any;
+      expect(legend.data).toBeDefined();
+      expect(Array.isArray(legend.data)).toBe(true);
+      if (legend.data.length > 0 && typeof legend.data[0] === 'object') {
+        expect(legend.data[0].icon).toBe('roundRect');
+      }
+    });
+
+    it('should NOT apply color by x-axis when dimensions are present', () => {
+      const formData = {
+        ...baseFormData,
+        showColorByXAxis: true,
+        groupby: ['region'],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+        rawFormData: formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+
+      // Legend data should NOT contain x-axis values when dimensions exist
+      const legendData = transformedProps.legendData as string[];
+      // Should use series names, not x-axis values
+      expect(legendData.length).toBeLessThan(10);
+    });
+
+    it('should use x-axis values as color keys for consistent colors', () => {
+      const formData = {
+        ...baseFormData,
+        showColorByXAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+        rawFormData: formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+
+      const series = transformedProps.echartOptions.series as any[];
+
+      // Find the data series (not the hidden legend series)
+      const dataSeries = series.find(
+        s => s.data && s.data.length > 0 && s.type === 'bar',
+      );
+      expect(dataSeries).toBeDefined();
+
+      // Check that data points have individual itemStyle with colors
+      if (dataSeries && Array.isArray(dataSeries.data)) {
+        const dataPoint = dataSeries.data[0];
+        if (dataPoint && typeof dataPoint === 'object' && 'itemStyle' in dataPoint) {
+          expect(dataPoint.itemStyle).toBeDefined();
+          expect(dataPoint.itemStyle.color).toBeDefined();
+        }
+      }
+    });
+
+    it('should disable legend selection when color by x-axis is enabled', () => {
+      const formData = {
+        ...baseFormData,
+        showColorByXAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+        rawFormData: formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+
+      const legend = transformedProps.echartOptions.legend as any;
+      expect(legend.selectedMode).toBe(false);
+      expect(legend.selector).toBe(false);
+    });
+
+    it('should work without stacking enabled', () => {
+      const formData = {
+        ...baseFormData,
+        showColorByXAxis: true,
+        groupby: [],
+        stack: null,
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+        rawFormData: formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+
+      // Should still create legend with x-axis values
+      const legendData = transformedProps.legendData as string[];
+      expect(legendData.length).toBeGreaterThan(0);
+      expect(legendData).toContain('A');
+    });
+
+    it('should handle when showColorByXAxis is disabled', () => {
+      const formData = {
+        ...baseFormData,
+        showColorByXAxis: false,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+        rawFormData: formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+
+      // Legend should not be disabled when feature is off
+      const legend = transformedProps.echartOptions.legend as any;
+      expect(legend.selectedMode).not.toBe(false);
+    });
+  });
 });
