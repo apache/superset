@@ -51,7 +51,7 @@ interface VirtualizedTreeListProps {
   forbiddenDropFolderIds: Set<string>;
   currentDropTargetId: string | null;
   onToggleCollapse: (id: string) => void;
-  onSelect: (id: string, selected: boolean) => void;
+  onSelect: (id: string, selected: boolean, shiftKey?: boolean) => void;
   onStartEdit: (id: string) => void;
   onFinishEdit: (id: string, newName: string) => void;
 }

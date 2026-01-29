@@ -34,7 +34,6 @@ import {
   ColumnTypeLabel,
   Metric,
 } from '@superset-ui/chart-controls';
-import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import {
   OptionControlContainer,
   Label,
@@ -70,7 +69,7 @@ interface TreeItemProps {
   isSelected?: boolean;
   isEditing?: boolean;
   onToggleCollapse?: (id: string) => void;
-  onSelect?: (id: string, selected: boolean) => void;
+  onSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void;
   onStartEdit?: (id: string) => void;
   onFinishEdit?: (id: string, newName: string) => void;
   isDefaultFolder?: boolean;
@@ -274,10 +273,10 @@ function TreeItemComponent({
         <Checkbox
           checked={isSelected}
           disabled={isOverlay}
-          onChange={(e: CheckboxChangeEvent) => {
+          onClick={(e: React.MouseEvent) => {
             if (!isOverlay) {
               e.stopPropagation();
-              onSelect?.(id, e.target.checked);
+              onSelect?.(id, !isSelected, e.shiftKey);
             }
           }}
           css={theme => css`

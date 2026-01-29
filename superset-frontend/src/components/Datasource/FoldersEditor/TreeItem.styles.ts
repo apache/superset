@@ -187,7 +187,8 @@ export const EmptyFolderDropZone = styled.div<{
   isForbidden: boolean;
 }>`
   ${({ theme, depth, isOver, isForbidden }) => css`
-    margin: ${theme.marginXS}px ${depth * ITEM_INDENTATION_WIDTH + theme.marginMD}px 0;
+    margin: ${theme.marginXS}px
+      ${depth * ITEM_INDENTATION_WIDTH + theme.marginMD}px 0;
     padding: ${theme.paddingLG}px;
     border: 2px dashed
       ${isOver
