@@ -344,12 +344,14 @@ export default function exploreReducer(
     [actions.SET_FIELD_VALUE]() {
       const typedAction = action as SetFieldValueAction;
       const { controlName, value, validationErrors } = typedAction;
-      // Normalize server_page_length to number if it's a string
+      // Normalize server_page_length to number if it's a non-empty string
+      // representing an integer
       const normalizedValue: unknown =
-        controlName === 'server_page_length' && typeof value === 'string'
-          ? Number.isNaN(Number(value))
-            ? value
-            : Number(value)
+        controlName === 'server_page_length' &&
+        typeof value === 'string' &&
+        value.trim() !== '' &&
+        Number.isInteger(Number(value))
+          ? Number(value)
           : value;
       let new_form_data: QueryFormData & { [key: string]: unknown } = {
         ...state.form_data,
