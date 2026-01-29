@@ -121,11 +121,9 @@ export function VirtualizedTreeList({
         return 0;
       }
 
-      // If this is the active dragged item, return 0 to hide it
-      // (it will be rendered in DragOverlay instead)
-      if (activeId === item.uuid) {
-        return 0;
-      }
+      // Keep the slot height for the active dragged item so horizontal drag
+      // can detect "over self" for depth changes. The visual is hidden but
+      // the droppable area remains.
 
       let totalHeight = 0;
 
