@@ -80,7 +80,7 @@ bottleneck==1.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-brotli==1.1.0
+brotli==1.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-compress
@@ -179,7 +179,6 @@ cryptography==44.0.3
     #   paramiko
     #   pyjwt
     #   pyopenssl
-    #   secretstorage
 cycler==0.12.1
     # via matplotlib
 cyclopts==4.2.4
@@ -235,8 +234,10 @@ fakeredis==2.32.1
     # via pydocket
 fastmcp==2.14.3
     # via apache-superset
-filelock==3.12.2
-    # via virtualenv
+filelock==3.20.3
+    # via
+    #   -c requirements/base-constraint.txt
+    #   virtualenv
 flask==2.3.3
     # via
     #   -c requirements/base-constraint.txt
@@ -373,7 +374,6 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
-    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -448,10 +448,6 @@ jaraco-context==6.0.1
     # via keyring
 jaraco-functools==4.3.0
     # via keyring
-jeepney==0.9.0
-    # via
-    #   keyring
-    #   secretstorage
 jinja2==3.1.6
     # via
     #   -c requirements/base-constraint.txt
@@ -714,7 +710,7 @@ pyarrow==16.1.0
     #   apache-superset
     #   db-dtypes
     #   pandas-gbq
-pyasn1==0.6.1
+pyasn1==0.6.2
     # via
     #   -c requirements/base-constraint.txt
     #   pyasn1-modules
@@ -913,8 +909,6 @@ rsa==4.9.1
     #   google-auth
 ruff==0.9.7
     # via apache-superset
-secretstorage==3.5.0
-    # via keyring
 selenium==4.32.0
     # via
     #   -c requirements/base-constraint.txt
@@ -1061,7 +1055,7 @@ url-normalize==2.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   requests-cache
-urllib3==2.6.0
+urllib3==2.6.3
     # via
     #   -c requirements/base-constraint.txt
     #   docker
@@ -1095,7 +1089,7 @@ websocket-client==1.8.0
     #   selenium
 websockets==15.0.1
     # via fastmcp
-werkzeug==3.1.3
+werkzeug==3.1.5
     # via
     #   -c requirements/base-constraint.txt
     #   flask
