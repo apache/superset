@@ -614,6 +614,11 @@ WHERE datistemplate = false;
         :param cancel_query_id: Postgres PID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # PostgreSQL pg_backend_pid() returns an integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             cursor.execute(
                 "SELECT pg_terminate_backend(pid) "  # noqa: S608

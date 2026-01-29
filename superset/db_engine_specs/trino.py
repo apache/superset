@@ -426,6 +426,13 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param cancel_query_id: Trino `queryId`
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Trino query IDs are in format: yyyymmdd_hhmmss_nnnnn_xxxxx (alphanumeric with underscores)
+        if not cls.validate_cancel_query_id(
+            cancel_query_id, r"^[a-zA-Z0-9_]+$"
+        ):
+            return False
+
         try:
             cursor.execute(
                 f"CALL system.runtime.kill_query(query_id => '{cancel_query_id}',"
