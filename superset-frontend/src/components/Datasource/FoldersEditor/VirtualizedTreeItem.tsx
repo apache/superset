@@ -39,6 +39,7 @@ export interface VirtualizedTreeItemData {
   columnsMap: Map<string, ColumnMeta>;
   activeId: UniqueIdentifier | null;
   forbiddenDropFolderIds: Set<string>;
+  currentDropTargetId: string | null;
   onToggleCollapse: (id: string) => void;
   onSelect: (id: string, selected: boolean) => void;
   onStartEdit: (id: string) => void;
@@ -56,6 +57,7 @@ interface TreeItemWrapperProps {
   showEmptyState: boolean;
   separatorType?: 'visible' | 'transparent';
   isForbiddenDrop: boolean;
+  isDropTarget: boolean;
   metric?: Metric;
   column?: ColumnMeta;
   onToggleCollapse?: (id: string) => void;
@@ -74,6 +76,7 @@ const TreeItemWrapper = memo(function TreeItemWrapper({
   showEmptyState,
   separatorType,
   isForbiddenDrop,
+  isDropTarget,
   metric,
   column,
   onToggleCollapse,
@@ -96,6 +99,7 @@ const TreeItemWrapper = memo(function TreeItemWrapper({
         showEmptyState={showEmptyState}
         separatorType={separatorType}
         isForbiddenDrop={isForbiddenDrop}
+        isDropTarget={isDropTarget}
         onToggleCollapse={onToggleCollapse}
         onSelect={onSelect}
         onStartEdit={onStartEdit}
@@ -125,6 +129,7 @@ function VirtualizedTreeItemComponent({
     columnsMap,
     activeId,
     forbiddenDropFolderIds,
+    currentDropTargetId,
     onToggleCollapse,
     onSelect,
     onStartEdit,
@@ -155,8 +160,12 @@ function VirtualizedTreeItemComponent({
   // isForbiddenDrop is calculated from props (changes when dragged items change)
   const isForbiddenDrop = isFolder && forbiddenDropFolderIds.has(item.uuid);
 
+  // isDropTarget indicates this folder is the current drop target
+  const isDropTarget = isFolder && currentDropTargetId === item.uuid;
+
   return (
     <TreeItemWrapper
+      key={item.uuid}
       item={item}
       style={style}
       isFolder={isFolder}
@@ -166,6 +175,7 @@ function VirtualizedTreeItemComponent({
       showEmptyState={showEmptyState}
       separatorType={itemSeparatorInfo.get(item.uuid)}
       isForbiddenDrop={isForbiddenDrop}
+      isDropTarget={isDropTarget}
       metric={metricsMap.get(item.uuid)}
       column={columnsMap.get(item.uuid)}
       onToggleCollapse={isFolder ? onToggleCollapse : undefined}

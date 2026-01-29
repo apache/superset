@@ -144,11 +144,11 @@ export default function FoldersEditor({
   const {
     isDragging,
     activeId,
-    draggedItemIds,
     dragOverlayWidth,
     flattenedItems,
     dragOverlayItems,
     forbiddenDropFolderIds,
+    currentDropTargetId,
     handleDragStart,
     handleDragMove,
     handleDragOver,
@@ -404,6 +404,7 @@ export default function FoldersEditor({
                   isDragging={isDragging}
                   activeId={activeId}
                   forbiddenDropFolderIds={forbiddenDropFolderIds}
+                  currentDropTargetId={currentDropTargetId}
                   onToggleCollapse={handleToggleCollapse}
                   onSelect={handleSelect}
                   onStartEdit={handleStartEdit}

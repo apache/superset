@@ -73,6 +73,7 @@ interface TreeItemProps {
   showEmptyState?: boolean;
   separatorType?: 'visible' | 'transparent';
   isForbiddenDrop?: boolean;
+  isDropTarget?: boolean;
   metric?: Metric;
   column?: ColumnMeta;
   isOverlay?: boolean;
@@ -95,6 +96,7 @@ function TreeItemComponent({
   showEmptyState = false,
   separatorType,
   isForbiddenDrop = false,
+  isDropTarget = false,
   metric,
   column,
   isOverlay = false,
@@ -332,6 +334,7 @@ function TreeItemComponent({
         <TreeFolderContainer
           {...containerProps}
           data-folder-id={id}
+          data-drop-target={isDropTarget ? 'true' : undefined}
           isForbiddenDropTarget={isForbiddenDrop}
         >
           {containerContent}
