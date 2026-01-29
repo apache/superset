@@ -97,7 +97,7 @@ class TaskManager:
     3. Handling deduplication (returning existing active task if duplicate)
     4. Managing real-time abort notifications (optional)
 
-    Redis pub/sub is opt-in via TASKS_BACKEND configuration. When not configured,
+    Redis pub/sub is opt-in via PUBSUB_BACKEND configuration. When not configured,
     tasks fall back to database polling for abort detection.
     """
 
@@ -130,7 +130,7 @@ class TaskManager:
         if cls._initialized:
             return
 
-        cls._config = app.config.get("TASKS_BACKEND")
+        cls._config = app.config.get("PUBSUB_BACKEND")
         cls._channel_prefix = app.config.get("TASKS_ABORT_CHANNEL_PREFIX", "gtf:abort:")
         cls._completion_channel_prefix = app.config.get(
             "TASKS_COMPLETION_CHANNEL_PREFIX", "gtf:complete:"
@@ -138,7 +138,7 @@ class TaskManager:
 
         if cls._config is None:
             logger.info(
-                "TASKS_BACKEND not configured, using database polling for abort"
+                "PUBSUB_BACKEND not configured, using database polling for abort"
             )
             cls._initialized = True
             return
@@ -151,7 +151,7 @@ class TaskManager:
             cls._init_redis_sentinel()
         else:
             logger.warning(
-                "Unsupported TASKS_BACKEND cache type: %s, falling back to polling",
+                "Unsupported PUBSUB_BACKEND cache type: %s, falling back to polling",
                 cache_type,
             )
 

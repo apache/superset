@@ -2434,14 +2434,14 @@ EXTENSIONS_PATH: str | None = None
 TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 
 # ---------------------------------------------------
-# Global Task Framework (GTF) Backend Configuration
+# Redis Pub/Sub Backend Configuration
 # ---------------------------------------------------
-# Tasks backend configuration for GTF pub/sub abort notifications.
-# Set to None to use database polling (default behavior).
-# Set to a Redis configuration dict to enable real-time pub/sub abort.
+# Shared Redis configuration for pub/sub messaging.
+# Defaults to database polling.
+# Set to a Redis configuration dict to enable real-time pub/sub features.
 #
 # Example with Redis:
-# TASKS_BACKEND = {
+# PUBSUB_BACKEND = {
 #     "CACHE_TYPE": "RedisCache",
 #     "CACHE_REDIS_HOST": "localhost",
 #     "CACHE_REDIS_PORT": 6379,
@@ -2450,7 +2450,7 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 # }
 #
 # Example with Redis Sentinel (High Availability):
-# TASKS_BACKEND = {
+# PUBSUB_BACKEND = {
 #     "CACHE_TYPE": "RedisSentinelCache",
 #     "CACHE_REDIS_SENTINELS": [
 #         ("sentinel1.example.com", 26379),
@@ -2465,7 +2465,7 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 # }
 #
 # Example with SSL:
-# TASKS_BACKEND = {
+# PUBSUB_BACKEND = {
 #     "CACHE_TYPE": "RedisCache",
 #     "CACHE_REDIS_HOST": "redis.example.com",
 #     "CACHE_REDIS_PORT": 6380,
@@ -2474,7 +2474,7 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 #     "CACHE_REDIS_SSL_KEYFILE": "/path/to/key.pem",
 #     "CACHE_REDIS_SSL_CA_CERTS": "/path/to/ca.pem",
 # }
-TASKS_BACKEND: dict[str, Any] | None = None
+PUBSUB_BACKEND: dict[str, Any] | None = None
 
 # Channel prefix for task abort pub/sub messages
 TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"

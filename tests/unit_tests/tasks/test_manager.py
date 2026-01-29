@@ -83,10 +83,10 @@ class TestTaskManagerInitApp:
         TaskManager._channel_prefix = "gtf:abort:"
 
     def test_init_app_without_config(self):
-        """Test init_app with no TASKS_BACKEND configured"""
+        """Test init_app with no PUBSUB_BACKEND configured"""
         app = MagicMock()
         app.config.get.side_effect = lambda key, default=None: {
-            "TASKS_BACKEND": None,
+            "PUBSUB_BACKEND": None,
             "TASKS_ABORT_CHANNEL_PREFIX": "gtf:abort:",
         }.get(key, default)
 
@@ -114,7 +114,7 @@ class TestTaskManagerInitApp:
 
         app = MagicMock()
         app.config.get.side_effect = lambda key, default=None: {
-            "TASKS_BACKEND": {
+            "PUBSUB_BACKEND": {
                 "CACHE_TYPE": "RedisCache",
                 "CACHE_REDIS_HOST": "localhost",
                 "CACHE_REDIS_PORT": 6379,
@@ -139,7 +139,7 @@ class TestTaskManagerInitApp:
 
         app = MagicMock()
         app.config.get.side_effect = lambda key, default=None: {
-            "TASKS_BACKEND": {
+            "PUBSUB_BACKEND": {
                 "CACHE_TYPE": "RedisCache",
                 "CACHE_REDIS_HOST": "localhost",
             },
@@ -161,7 +161,7 @@ class TestTaskManagerInitApp:
 
         app = MagicMock()
         app.config.get.side_effect = lambda key, default=None: {
-            "TASKS_BACKEND": {
+            "PUBSUB_BACKEND": {
                 "CACHE_TYPE": "RedisSentinelCache",
                 "CACHE_REDIS_SENTINELS": [("sentinel1", 26379)],
                 "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
@@ -179,7 +179,7 @@ class TestTaskManagerInitApp:
         """Test init_app with unsupported cache type falls back gracefully"""
         app = MagicMock()
         app.config.get.side_effect = lambda key, default=None: {
-            "TASKS_BACKEND": {
+            "PUBSUB_BACKEND": {
                 "CACHE_TYPE": "MemcachedCache",  # Unsupported
             },
             "TASKS_ABORT_CHANNEL_PREFIX": "gtf:abort:",
@@ -399,7 +399,7 @@ class TestTaskManagerCompletion:
 
         assert result is False
 
-    @patch("superset.tasks.manager.TaskDAO")
+    @patch("superset.daos.tasks.TaskDAO")
     def test_wait_for_completion_task_not_found(self, mock_dao):
         """Test wait_for_completion raises ValueError for missing task"""
         import pytest
@@ -409,7 +409,7 @@ class TestTaskManagerCompletion:
         with pytest.raises(ValueError, match="not found"):
             TaskManager.wait_for_completion("nonexistent-uuid")
 
-    @patch("superset.tasks.manager.TaskDAO")
+    @patch("superset.daos.tasks.TaskDAO")
     def test_wait_for_completion_already_complete(self, mock_dao):
         """Test wait_for_completion returns immediately for terminal state"""
         mock_task = MagicMock()
@@ -423,7 +423,7 @@ class TestTaskManagerCompletion:
         # Should only call find_one_or_none once (initial check)
         mock_dao.find_one_or_none.assert_called_once()
 
-    @patch("superset.tasks.manager.TaskDAO")
+    @patch("superset.daos.tasks.TaskDAO")
     def test_wait_for_completion_timeout(self, mock_dao):
         """Test wait_for_completion raises TimeoutError when timeout expires"""
         import pytest
@@ -436,7 +436,7 @@ class TestTaskManagerCompletion:
         with pytest.raises(TimeoutError, match="Timeout waiting"):
             TaskManager.wait_for_completion("test-uuid", timeout=0.1)
 
-    @patch("superset.tasks.manager.TaskDAO")
+    @patch("superset.daos.tasks.TaskDAO")
     def test_wait_for_completion_polling_success(self, mock_dao):
         """Test wait_for_completion returns when task completes via polling"""
         mock_task_pending = MagicMock()
@@ -461,7 +461,7 @@ class TestTaskManagerCompletion:
 
         assert result.status == "success"
 
-    @patch("superset.tasks.manager.TaskDAO")
+    @patch("superset.daos.tasks.TaskDAO")
     def test_wait_for_completion_with_pubsub(self, mock_dao):
         """Test wait_for_completion uses pub/sub when Redis available"""
         mock_task_pending = MagicMock()
@@ -501,7 +501,7 @@ class TestTaskManagerCompletion:
         mock_pubsub.unsubscribe.assert_called_once()
         mock_pubsub.close.assert_called_once()
 
-    @patch("superset.tasks.manager.TaskDAO")
+    @patch("superset.daos.tasks.TaskDAO")
     def test_wait_for_completion_pubsub_fallback_on_error(self, mock_dao):
         """Test wait_for_completion falls back to polling on Redis error"""
         mock_task_pending = MagicMock()

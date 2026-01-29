@@ -51,6 +51,11 @@ def mock_task_abortable():
     task.uuid = "test-uuid-timeout"
     task.status = "in_progress"
     task.properties = {"is_abortable": True}
+    # Set real values for dedup_key generation (used by UpdateTaskCommand lock)
+    task.scope = "shared"
+    task.task_type = "test_task"
+    task.task_key = "test_key"
+    task.user_id = 1
     return task
 
 
@@ -61,6 +66,11 @@ def mock_task_not_abortable():
     task.uuid = "test-uuid-timeout"
     task.status = "in_progress"
     task.properties = {}  # No is_abortable means it's not abortable
+    # Set real values for dedup_key generation (used by UpdateTaskCommand lock)
+    task.scope = "shared"
+    task.task_type = "test_task"
+    task.task_key = "test_key"
+    task.user_id = 1
     return task
 
 
@@ -351,6 +361,7 @@ class TestTimeoutTrigger:
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand"),
         ):
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
@@ -499,6 +510,7 @@ class TestTimeoutTerminalState:
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand"),
         ):
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
@@ -536,6 +548,7 @@ class TestTimeoutTerminalState:
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand"),
         ):
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app

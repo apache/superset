@@ -350,27 +350,9 @@ The prune job only removes tasks in terminal states (`SUCCESS`, `FAILURE`, `ABOR
 
 See `superset/config.py` for a complete example configuration.
 
-## Configuration
-
-### Redis Abort Notifications (Optional)
-
-By default, abort detection uses database polling. For faster response, configure Redis pub/sub:
-
-```python
-# superset_config.py
-TASKS_BACKEND = {
-    "CACHE_TYPE": "RedisCache",
-    "CACHE_REDIS_HOST": "localhost",
-    "CACHE_REDIS_PORT": 6379,
-    "CACHE_REDIS_DB": 0,
-}
-```
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `TASKS_BACKEND` | None | Redis config for pub/sub |
-| `TASKS_ABORT_CHANNEL_PREFIX` | `"gtf:abort:"` | Channel prefix |
-| `TASK_ABORT_POLLING_DEFAULT_INTERVAL` | 10 | Polling interval (seconds, only relevant for database polling) |
+:::tip Redis Pub/Sub for Faster Abort and Completion Notifications
+By default, abort detection and sync join-and-wait use database polling. Configure `PUBSUB_BACKEND` in `superset_config.py` to enable Redis pub/sub for near-instant notifications.
+:::
 
 ## API Reference
 
