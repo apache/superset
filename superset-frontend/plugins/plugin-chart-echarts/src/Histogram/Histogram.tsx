@@ -29,6 +29,7 @@ export default function Histogram(props: HistogramTransformedProps) {
     onLegendStateChanged,
     refs,
     formData,
+    isRefreshing,
   } = props;
 
   const eventHandlers: EventHandlers = {
@@ -57,6 +58,7 @@ export default function Histogram(props: HistogramTransformedProps) {
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       vizType={formData.vizType}
+      isRefreshing={isRefreshing}
     />
   );
 }

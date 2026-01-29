@@ -23,7 +23,6 @@ import {
   getTimeFormatter,
   SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
-  BRAND_COLOR,
   BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
@@ -51,14 +50,11 @@ function BigNumberVis({
   kickerFontSize = PROPORTION.KICKER,
   metricNameFontSize = PROPORTION.METRIC_NAME,
   showMetricName = true,
-  mainColor = BRAND_COLOR,
   showTimestamp = false,
   showTrendLine = false,
-  startYAxisAtZero = true,
   subheader = '',
   subheaderFontSize = PROPORTION.SUBHEADER,
   subtitleFontSize = PROPORTION.SUBHEADER,
-  timeRangeFixed = false,
   ...props
 }: BigNumberVizProps) {
   const theme = useTheme();
@@ -341,6 +337,7 @@ function BigNumberVis({
       onContextMenu,
       formData,
       xValueFormatter,
+      isRefreshing,
     } = props;
 
     // if can't find any non-null values, no point rendering the trendline
@@ -380,6 +377,7 @@ function BigNumberVis({
           echartOptions={echartOptions}
           eventHandlers={eventHandlers}
           vizType={formData?.vizType}
+          isRefreshing={isRefreshing}
         />
       )
     );

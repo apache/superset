@@ -20,7 +20,7 @@ import { HeatmapTransformedProps } from './types';
 import Echart from '../components/Echart';
 
 export default function Heatmap(props: HeatmapTransformedProps) {
-  const { height, width, echartOptions, refs, formData } = props;
+  const { height, width, echartOptions, refs, formData, isRefreshing } = props;
   return (
     <Echart
       refs={refs}
@@ -28,6 +28,7 @@ export default function Heatmap(props: HeatmapTransformedProps) {
       width={width}
       echartOptions={echartOptions}
       vizType={formData.vizType}
+      isRefreshing={isRefreshing}
     />
   );
 }

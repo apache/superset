@@ -129,6 +129,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     legendIndex,
+    isRefreshing,
   } = chartProps;
 
   let focusedSeries: string | null = null;
@@ -842,6 +843,7 @@ export default function transformProps(
     formData,
     groupby: groupBy,
     height,
+    isRefreshing,
     labelMap,
     selectedValues,
     setDataMask,

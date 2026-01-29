@@ -134,6 +134,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     datasource,
+    isRefreshing,
   } = chartProps;
   const {
     columnFormats = {},
@@ -481,5 +482,6 @@ export default function transformProps(
     refs,
     emitCrossFilters,
     coltypeMapping,
+    isRefreshing,
   };
 }

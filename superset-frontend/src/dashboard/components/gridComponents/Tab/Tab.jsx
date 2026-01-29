@@ -22,12 +22,20 @@ import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { t, styled } from '@apache-superset/core/ui';
 
-import { EditableTitle, EmptyState } from '@superset-ui/core/components';
+import {
+  Button,
+  EditableTitle,
+  EmptyState,
+} from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import { Typography } from '@superset-ui/core/components/Typography';
+import {
+  useIsAutoRefreshing,
+  useIsRefreshInFlight,
+} from 'src/dashboard/contexts/AutoRefreshContext';
 import {
   DragDroppable,
   Droppable,
@@ -121,64 +129,93 @@ const renderDraggableContent = dropProps =>
 
 const Tab = props => {
   const dispatch = useDispatch();
+  const {
+    id,
+    renderType,
+    isComponentVisible,
+    component,
+    parentComponent,
+    index,
+    depth,
+    availableColumnCount,
+    columnWidth,
+    onResizeStart,
+    onResize,
+    onResizeStop,
+    editMode,
+    dashboardId,
+    handleComponentDrop,
+    updateComponents,
+    setDirectPathToChild,
+    onDropOnTab,
+    onHoverTab,
+    onTabTitleEditingChange,
+    embeddedMode,
+    onDropPositionChange,
+    onDragTab,
+    isFocused,
+    isHighlighted,
+  } = props;
   const canEdit = useSelector(state => state.dashboardInfo.dash_edit_perm);
   const dashboardLayout = useSelector(state => state.dashboardLayout.present);
   const lastRefreshTime = useSelector(
     state => state.dashboardState.lastRefreshTime,
   );
   const tabActivationTime = useSelector(
-    state => state.dashboardState.tabActivationTimes?.[props.id] || 0,
+    state => state.dashboardState.tabActivationTimes?.[id] || 0,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
+  const isAutoRefreshing = useIsAutoRefreshing();
+  const isRefreshInFlight = useIsRefreshInFlight();
 
   // Track which refresh we've already handled to prevent duplicates
   const handledRefreshRef = useRef(null);
 
   useEffect(() => {
-    if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
+    if (renderType === RENDER_TAB_CONTENT && isComponentVisible) {
       if (
         lastRefreshTime &&
         tabActivationTime &&
         lastRefreshTime > tabActivationTime
       ) {
-        // Create a unique key for this specific refresh
-        const refreshKey = `${props.id}-${lastRefreshTime}`;
-
-        // Only proceed if we haven't already handled this refresh
-        if (handledRefreshRef.current !== refreshKey) {
-          handledRefreshRef.current = refreshKey;
-
-          const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
-          if (chartIds.length > 0) {
-            // Use lazy load flag to avoid updating global refresh time
-            setTimeout(() => {
-              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id, true));
-            }, CHART_MOUNT_DELAY);
+        const chartIds = getChartIdsFromComponent(id, dashboardLayout);
+        if (chartIds.length > 0) {
+          // Skip if auto-refresh is in progress to avoid duplicate refreshes
+          if (isAutoRefreshing || isRefreshInFlight) {
+            return;
           }
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              dispatch(
+                onRefresh(chartIds, true, 0, dashboardInfo.id, false, true),
+              );
+            }, CHART_MOUNT_DELAY);
+          });
         }
       }
     }
   }, [
-    props.isComponentVisible,
-    props.renderType,
-    props.id,
+    isComponentVisible,
+    renderType,
+    id,
     lastRefreshTime,
     tabActivationTime,
     dashboardLayout,
     dashboardInfo.id,
     dispatch,
+    isAutoRefreshing,
+    isRefreshInFlight,
   ]);
 
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }) => {
-      props.setDirectPathToChild(pathToTabIndex);
+      setDirectPathToChild(pathToTabIndex);
     },
-    [props.setDirectPathToChild],
+    [setDirectPathToChild],
   );
 
   const handleChangeText = useCallback(
     nextTabText => {
-      const { updateComponents, component } = props;
       if (nextTabText && nextTabText !== component.meta.text) {
         updateComponents({
           [component.id]: {
@@ -191,25 +228,25 @@ const Tab = props => {
         });
       }
     },
-    [props.updateComponents, props.component],
+    [updateComponents, component],
   );
 
   const handleDrop = useCallback(
     dropResult => {
-      props.handleComponentDrop(dropResult);
-      props.onDropOnTab(dropResult);
+      handleComponentDrop(dropResult);
+      onDropOnTab(dropResult);
     },
-    [props.handleComponentDrop, props.onDropOnTab],
+    [handleComponentDrop, onDropOnTab],
   );
 
   const handleHoverTab = useCallback(() => {
-    props.onHoverTab?.();
-  }, [props.onHoverTab]);
+    onHoverTab?.();
+  }, [onHoverTab]);
 
   const handleTopDropTargetDrop = useCallback(
     dropResult => {
       if (dropResult) {
-        props.handleComponentDrop({
+        handleComponentDrop({
           ...dropResult,
           destination: {
             ...dropResult.destination,
@@ -219,53 +256,40 @@ const Tab = props => {
         });
       }
     },
-    [props.handleComponentDrop],
+    [handleComponentDrop],
   );
 
   const shouldDropToChild = useCallback(item => item.type !== TAB_TYPE, []);
 
   const renderTabContent = useCallback(() => {
-    const {
-      component: tabComponent,
-      depth,
-      availableColumnCount,
-      columnWidth,
-      onResizeStart,
-      onResize,
-      onResizeStop,
-      editMode,
-      isComponentVisible,
-      dashboardId,
-    } = props;
-
-    const shouldDisplayEmptyState = tabComponent.children.length === 0;
+    const shouldDisplayEmptyState = component.children.length === 0;
     return (
       <div className="dashboard-component-tabs-content">
         {/* Make top of tab droppable */}
         {editMode && (
           <Droppable
-            component={tabComponent}
+            component={component}
             orientation="column"
             index={0}
             depth={depth}
             onDrop={
-              tabComponent.children.length === 0
+              component.children.length === 0
                 ? handleTopDropTargetDrop
                 : handleDrop
             }
             editMode
             className={classNames({
               'empty-droptarget': true,
-              'empty-droptarget--full': tabComponent.children.length === 0,
+              'empty-droptarget--full': component.children.length === 0,
             })}
-            dropToChild={tabComponent.children.length === 0}
+            dropToChild={component.children.length === 0}
           >
             {renderDraggableContent}
           </Droppable>
         )}
         {shouldDisplayEmptyState && (
           <Droppable
-            component={tabComponent}
+            component={component}
             orientation="column"
             index={editMode ? 1 : 0}
             depth={depth}
@@ -314,11 +338,11 @@ const Tab = props => {
             )}
           </Droppable>
         )}
-        {tabComponent.children.map((componentId, componentIndex) => (
+        {component.children.map((componentId, componentIndex) => (
           <Fragment key={componentId}>
             <DashboardComponent
               id={componentId}
-              parentId={tabComponent.id}
+              parentId={component.id}
               depth={depth} // see isValidChild.js for why tabs don't increment child depth
               index={componentIndex}
               onDrop={handleDrop}
@@ -334,7 +358,7 @@ const Tab = props => {
             {/* Make bottom of tab droppable */}
             {editMode && (
               <Droppable
-                component={tabComponent}
+                component={component}
                 orientation="column"
                 index={componentIndex + 1}
                 depth={depth}
@@ -351,98 +375,71 @@ const Tab = props => {
     );
   }, [
     dispatch,
-    props.component,
-    props.depth,
-    props.availableColumnCount,
-    props.columnWidth,
-    props.onResizeStart,
-    props.onResize,
-    props.onResizeStop,
-    props.editMode,
-    props.isComponentVisible,
-    props.dashboardId,
-    props.handleComponentDrop,
-    props.onDropOnTab,
-    props.setDirectPathToChild,
-    props.updateComponents,
+    component,
+    depth,
+    availableColumnCount,
+    columnWidth,
+    onResizeStart,
+    onResize,
+    onResizeStop,
+    editMode,
+    isComponentVisible,
+    dashboardId,
     handleHoverTab,
     canEdit,
     handleChangeTab,
-    handleChangeText,
     handleDrop,
     handleTopDropTargetDrop,
-    shouldDropToChild,
   ]);
 
   const renderTabChild = useCallback(
-    ({ dropIndicatorProps, dragSourceRef, draggingTabOnTab }) => {
-      const {
-        component,
-        index,
-        editMode,
-        isFocused,
-        isHighlighted,
-        dashboardId,
-        embeddedMode,
-        onTabTitleEditingChange,
-      } = props;
-      return (
-        <TabTitleContainer
-          isHighlighted={isHighlighted}
-          className="dragdroppable-tab"
-          ref={dragSourceRef}
-        >
-          <EditableTitle
-            title={component.meta.text}
-            defaultTitle={component.meta.defaultText}
-            placeholder={component.meta.placeholder}
-            canEdit={editMode && isFocused}
-            onSaveTitle={handleChangeText}
-            showTooltip={false}
-            editing={editMode && isFocused}
-            onEditingChange={onTabTitleEditingChange}
+    ({ dropIndicatorProps, dragSourceRef, draggingTabOnTab }) => (
+      <TabTitleContainer
+        isHighlighted={isHighlighted}
+        className="dragdroppable-tab"
+        ref={dragSourceRef}
+      >
+        <EditableTitle
+          title={component.meta.text}
+          defaultTitle={component.meta.defaultText}
+          placeholder={component.meta.placeholder}
+          canEdit={editMode && isFocused}
+          onSaveTitle={handleChangeText}
+          showTooltip={false}
+          editing={editMode && isFocused}
+          onEditingChange={onTabTitleEditingChange}
+        />
+        {!editMode && !embeddedMode && (
+          <AnchorLink
+            id={component.id}
+            dashboardId={dashboardId}
+            placement={index >= 5 ? 'left' : 'right'}
           />
-          {!editMode && !embeddedMode && (
-            <AnchorLink
-              id={component.id}
-              dashboardId={dashboardId}
-              placement={index >= 5 ? 'left' : 'right'}
-            />
-          )}
+        )}
 
-          {dropIndicatorProps && !draggingTabOnTab && (
-            <TitleDropIndicator
-              className={dropIndicatorProps.className}
-              data-test="title-drop-indicator"
-            />
-          )}
-        </TabTitleContainer>
-      );
-    },
+        {dropIndicatorProps && !draggingTabOnTab && (
+          <TitleDropIndicator
+            className={dropIndicatorProps.className}
+            data-test="title-drop-indicator"
+          />
+        )}
+      </TabTitleContainer>
+    ),
     [
-      props.component,
-      props.index,
-      props.editMode,
-      props.isFocused,
-      props.isHighlighted,
-      props.dashboardId,
-      props.onTabTitleEditingChange,
+      component,
+      index,
+      editMode,
+      isFocused,
+      isHighlighted,
+      dashboardId,
+      embeddedMode,
+      onTabTitleEditingChange,
       handleChangeText,
     ],
   );
 
-  const renderTab = useCallback(() => {
-    const {
-      component,
-      parentComponent,
-      index,
-      depth,
-      editMode,
-      onDropPositionChange,
-      onDragTab,
-    } = props;
-
-    return (
+  const renderTab = useCallback(
+    () => (
       <DragDroppable
         component={component}
         parentComponent={parentComponent}
@@ -458,20 +455,23 @@ const Tab = props => {
       >
         {renderTabChild}
       </DragDroppable>
-    );
-  }, [
-    props.component,
-    props.parentComponent,
-    props.index,
-    props.depth,
-    props.editMode,
-    handleDrop,
-    handleHoverTab,
-    shouldDropToChild,
-    renderTabChild,
-  ]);
+    ),
+    [
+      component,
+      parentComponent,
+      index,
+      depth,
+      editMode,
+      onDropPositionChange,
+      onDragTab,
+      handleDrop,
+      handleHoverTab,
+      shouldDropToChild,
+      renderTabChild,
+    ],
+  );
 
-  return props.renderType === RENDER_TAB ? renderTab() : renderTabContent();
+  return renderType === RENDER_TAB ? renderTab() : renderTabContent();
 };
 
 Tab.propTypes = propTypes;

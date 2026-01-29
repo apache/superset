@@ -21,8 +21,15 @@ import { allEventHandlers } from '../utils/eventHandlers';
 import { BoxPlotChartTransformedProps } from './types';
 
 export default function EchartsBoxPlot(props: BoxPlotChartTransformedProps) {
-  const { height, width, echartOptions, selectedValues, refs, formData } =
-    props;
+  const {
+    height,
+    width,
+    echartOptions,
+    selectedValues,
+    refs,
+    formData,
+    isRefreshing,
+  } = props;
 
   const eventHandlers = allEventHandlers(props);
 
@@ -35,6 +42,7 @@ export default function EchartsBoxPlot(props: BoxPlotChartTransformedProps) {
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
       vizType={formData.vizType}
+      isRefreshing={isRefreshing}
     />
   );
 }
