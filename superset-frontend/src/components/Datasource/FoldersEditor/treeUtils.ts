@@ -247,30 +247,6 @@ export function buildTree(flattenedItems: FlattenedTreeItem[]): TreeItem[] {
   return root;
 }
 
-export function findItemDeep(
-  items: TreeItem[],
-  itemId: UniqueIdentifier,
-): TreeItem | undefined {
-  for (const item of items) {
-    if (item.uuid === itemId) {
-      return item;
-    }
-
-    if (
-      item.type === FoldersEditorItemType.Folder &&
-      'children' in item &&
-      item.children?.length
-    ) {
-      const child = findItemDeep(item.children, itemId);
-      if (child) {
-        return child;
-      }
-    }
-  }
-
-  return undefined;
-}
-
 export function removeChildrenOf(
   items: FlattenedTreeItem[],
   ids: UniqueIdentifier[],
@@ -287,68 +263,6 @@ export function removeChildrenOf(
 
     return true;
   });
-}
-
-function countChildren(items: TreeItem[], count: number = 0): number {
-  return items.reduce((acc, item) => {
-    if (
-      item.type === FoldersEditorItemType.Folder &&
-      'children' in item &&
-      item.children?.length
-    ) {
-      return countChildren(item.children, acc + 1);
-    }
-    return acc + 1;
-  }, count);
-}
-
-export function getChildCount(items: TreeItem[], id: UniqueIdentifier): number {
-  const item = findItemDeep(items, id);
-
-  if (
-    item &&
-    item.type === FoldersEditorItemType.Folder &&
-    'children' in item &&
-    item.children
-  ) {
-    return countChildren(item.children);
-  }
-
-  return 0;
-}
-
-export function getDescendantIds(
-  items: TreeItem[],
-  folderId: string,
-): string[] {
-  const folder = findItemDeep(items, folderId);
-
-  if (
-    !folder ||
-    folder.type !== FoldersEditorItemType.Folder ||
-    !('children' in folder) ||
-    !folder.children
-  ) {
-    return [];
-  }
-
-  const descendants: string[] = [];
-
-  function collectIds(children: TreeItem[]) {
-    for (const child of children) {
-      descendants.push(child.uuid);
-      if (
-        child.type === FoldersEditorItemType.Folder &&
-        'children' in child &&
-        child.children
-      ) {
-        collectIds(child.children);
-      }
-    }
-  }
-
-  collectIds(folder.children);
-  return descendants;
 }
 
 /**

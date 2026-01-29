@@ -18,7 +18,6 @@
  */
 
 import {
-  PointerSensor,
   PointerSensorOptions,
   MeasuringConfiguration,
   MeasuringStrategy,
@@ -29,8 +28,6 @@ export const pointerSensorOptions: PointerSensorOptions = {
     distance: 8,
   },
 };
-
-export const createPointerSensor = () => PointerSensor;
 
 // Use BeforeDragging strategy to measure items once at drag start rather than continuously.
 // This is critical for virtualized lists where items get unmounted during scroll.
@@ -47,9 +44,4 @@ export const measuringConfig: MeasuringConfiguration = {
 // which causes dnd-kit to lose track of the dragged item and reset the drag operation.
 export const autoScrollConfig = {
   enabled: false,
-};
-
-export const sensorConfig = {
-  PointerSensor: createPointerSensor(),
-  options: pointerSensorOptions,
 };

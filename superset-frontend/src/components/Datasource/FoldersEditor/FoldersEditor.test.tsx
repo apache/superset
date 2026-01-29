@@ -129,7 +129,6 @@ const defaultProps = {
   metrics: mockMetrics,
   columns: mockColumns,
   onChange: jest.fn(),
-  isEditMode: true,
 };
 
 test('renders FoldersEditor with folders', () => {
@@ -150,16 +149,6 @@ test('renders search input', () => {
 test('renders action buttons when in edit mode', () => {
   renderEditor(<FoldersEditor {...defaultProps} />);
 
-  expect(screen.getByText('Add folder')).toBeInTheDocument();
-  expect(screen.getByText('Select all')).toBeInTheDocument();
-  expect(screen.getByText('Reset all folders to default')).toBeInTheDocument();
-});
-
-test('renders action buttons (always enabled regardless of isEditMode)', () => {
-  renderEditor(<FoldersEditor {...defaultProps} isEditMode={false} />);
-
-  // Buttons should be enabled even when isEditMode is false
-  // The Folders feature is always editable when the tab is visible
   expect(screen.getByText('Add folder')).toBeInTheDocument();
   expect(screen.getByText('Select all')).toBeInTheDocument();
   expect(screen.getByText('Reset all folders to default')).toBeInTheDocument();
