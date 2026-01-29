@@ -67,7 +67,7 @@
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
     "antd": "^6.2.2",
-    "babel-loader": "^9.2.1",
+    "babel-loader": "^10.0.0",
     "caniuse-lite": "^1.0.30001766",
     "docusaurus-plugin-less": "^2.0.2",
     "docusaurus-plugin-openapi-docs": "^4.6.0",
