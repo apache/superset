@@ -146,14 +146,13 @@ export const getBaselineSeriesForStream = (
 export function transformNegativeLabelsPosition(
   series: SeriesOption,
   isHorizontal: boolean,
-  isStacked = false,
 ): TimeseriesDataRecord[] {
   /*
-   * Adjusts label position for negative values in bar series
-   * For stacked charts, positions labels inside bars at appropriate edges
+   * Adjusts label position for all values in bar series
+   * Positions labels inside bars at appropriate edges to avoid axis overlap
    * @param series - Array of series options
    * @param isHorizontal - Whether chart is horizontal
-   * @returns data with adjusted label positions for negative values
+   * @returns data with adjusted label positions for all values
    */
   const transformValue = (value: any) => {
     const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
@@ -163,28 +162,20 @@ export function transformNegativeLabelsPosition(
       return value;
     }
 
-    if (isStacked) {
-      const labelPosition =
-        axisValue < 0
-          ? isHorizontal
-            ? 'insideLeft'
-            : 'insideBottom'
-          : isHorizontal
-            ? 'insideRight'
-            : 'insideTop';
+    // Use inside positioning for all bar charts to avoid axis overlap
+    const labelPosition =
+      axisValue < 0
+        ? isHorizontal
+          ? 'insideLeft'
+          : 'insideBottom'
+        : isHorizontal
+          ? 'insideRight'
+          : 'insideTop';
 
-      return {
-        value,
-        label: { position: labelPosition },
-      };
-    } else if (axisValue < 0) {
-      return {
-        value,
-        label: { position: 'outside' },
-      };
-    }
-
-    return value;
+    return {
+      value,
+      label: { position: labelPosition },
+    };
   };
 
   return (series.data as TimeseriesDataRecord[]).map(transformValue);
@@ -360,7 +351,7 @@ export function transformSeries(
     ...series,
     ...(Array.isArray(data) && seriesType === 'bar'
       ? {
-          data: transformNegativeLabelsPosition(series, isHorizontal, !!stack),
+          data: transformNegativeLabelsPosition(series, isHorizontal),
         }
       : null),
     connectNulls,
@@ -395,9 +386,10 @@ export function transformSeries(
     label: {
       show: !!showValue,
       position: stack ? 'inside' : isHorizontal ? 'right' : 'top',
-      color: stack
-        ? getContrastingColor(String(itemStyle.color))
-        : theme?.colorText,
+      color:
+        stack || seriesType === 'bar'
+          ? getContrastingColor(String(itemStyle.color))
+          : theme?.colorText,
       textBorderWidth: 0,
       formatter: (params: any) => {
         // don't show confidence band value labels, as they're already visible on the tooltip
