@@ -43,6 +43,7 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
+import { i18nLoadJob } from '../preamble';
 
 setupPlugins();
 setupCodeOverrides({ embedded: true });
@@ -164,28 +165,30 @@ function start() {
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
   });
-  return getMeWithRole().then(
-    ({ result }) => {
-      // fill in some missing bootstrap data
-      // (because at pageload, we don't have any auth yet)
-      // this allows the frontend's permissions checks to work.
-      bootstrapData.user = result;
-      store.dispatch({
-        type: USER_LOADED,
-        user: result,
-      });
-      ReactDOM.render(<EmbeddedApp />, appMountPoint);
-    },
-    err => {
-      // something is most likely wrong with the guest token
-      logging.error(err);
-      showFailureMessage(
-        t(
-          'Something went wrong with embedded authentication. Check the dev console for details.',
-        ),
-      );
-    },
-  );
+  return i18nLoadJob
+    .then(() => getMeWithRole())
+    .then(
+      ({ result }) => {
+        // fill in some missing bootstrap data
+        // (because at pageload, we don't have any auth yet)
+        // this allows the frontend's permissions checks to work.
+        bootstrapData.user = result;
+        store.dispatch({
+          type: USER_LOADED,
+          user: result,
+        });
+        ReactDOM.render(<EmbeddedApp />, appMountPoint);
+      },
+      err => {
+        // something is most likely wrong with the guest token
+        logging.error(err);
+        showFailureMessage(
+          t(
+            'Something went wrong with embedded authentication. Check the dev console for details.',
+          ),
+        );
+      },
+    );
 }
 
 /**

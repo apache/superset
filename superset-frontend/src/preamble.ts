@@ -56,6 +56,12 @@ setupFormatters(
 // Setup SupersetClient early so we can fetch language pack
 setupClient({ appRoot: applicationRoot() });
 
+let i18nLoadResolve: (value?: unknown) => void;
+
+export const i18nLoadJob = new Promise(resolve => {
+  i18nLoadResolve = resolve;
+});
+
 // Load language pack before anything else
 (async () => {
   const lang = bootstrapData.common.locale || 'en';
@@ -101,4 +107,4 @@ setupClient({ appRoot: applicationRoot() });
       }
     });
   }
-})();
+})().then(() => i18nLoadResolve());
