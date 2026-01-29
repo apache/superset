@@ -24,8 +24,18 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+  typeof isFeatureEnabled
+>;
 
 jest.mock('react-redux', () => ({
   ...jest.requireActual('react-redux'),
@@ -160,6 +170,7 @@ const getDatabaseWithNameFilterMockUrl =
   'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))';
 
 beforeEach(async () => {
+  mockIsFeatureEnabled.mockReturnValue(false);
   useSelectorMock.mockReset();
   fetchMock.get(
     getDatabaseWithFileFiterMockUrl,
@@ -394,4 +405,32 @@ test('Logs out and clears local storage item redux', async () => {
     expect(localStorage.getItem('redux')).toBeNull();
     expect(sessionStorage.getItem('login_attempted')).toBeNull();
   });
+});
+
+test('shows logout button when DISABLE_EMBEDDED_SUPERSET_LOGOUT is false', async () => {
+  mockIsFeatureEnabled.mockReturnValue(false);
+  resetUseSelectorMock();
+  render(<RightMenu {...createProps()} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useTheme: true,
+  });
+
+  userEvent.hover(await screen.findByText(/Settings/i));
+  expect(await screen.findByText('Logout')).toBeInTheDocument();
+});
+
+test('hides logout button when DISABLE_EMBEDDED_SUPERSET_LOGOUT is true', async () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.DisableEmbeddedSupersetLogout,
+  );
+  resetUseSelectorMock();
+  render(<RightMenu {...createProps()} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useTheme: true,
+  });
+
+  userEvent.hover(await screen.findByText(/Settings/i));
+  expect(screen.queryByText('Logout')).not.toBeInTheDocument();
 });
