@@ -28,7 +28,7 @@ import type { FaveStarProps } from './types';
 const StyledLink = styled.a`
   ${({ theme }) => css`
     font-size: ${theme.fontSizeXL}px;
-    display: inline-flex;
+    display: flex;
     padding: 0 0 0 ${theme.sizeUnit * 2}px;
   `};
 `;
