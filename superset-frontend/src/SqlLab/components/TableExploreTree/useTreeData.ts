@@ -27,6 +27,7 @@ import {
   useLazyTableExtendedMetadataQuery,
 } from 'src/hooks/apiResources';
 import type { TreeNodeData } from './types';
+import { SupersetError } from '@superset-ui/core';
 
 export const EMPTY_NODE_ID_PREFIX = 'empty:';
 
@@ -35,17 +36,20 @@ interface TreeDataState {
   tableData: Record<string, { options: Table[] }>;
   tableSchemaData: Record<string, TableMetaData>;
   loadingNodes: Record<string, boolean>;
+  errorPayload: SupersetError | null;
 }
 
 type TreeDataAction =
   | { type: 'SET_TABLE_DATA'; key: string; data: { options: Table[] } }
   | { type: 'SET_TABLE_SCHEMA_DATA'; key: string; data: TableMetaData }
-  | { type: 'SET_LOADING_NODE'; nodeId: string; loading: boolean };
+  | { type: 'SET_LOADING_NODE'; nodeId: string; loading: boolean }
+  | { type: 'SET_ERROR'; errorPayload: SupersetError | null };
 
 const initialState: TreeDataState = {
   tableData: {},
   tableSchemaData: {},
   loadingNodes: {},
+  errorPayload: null,
 };
 
 function treeDataReducer(
@@ -56,6 +60,7 @@ function treeDataReducer(
     case 'SET_TABLE_DATA':
       return {
         ...state,
+        errorPayload: null,
         tableData: { ...state.tableData, [action.key]: action.data },
       };
     case 'SET_TABLE_SCHEMA_DATA':
@@ -74,6 +79,12 @@ function treeDataReducer(
           [action.nodeId]: action.loading,
         },
       };
+    case 'SET_ERROR':
+      return {
+        ...state,
+        errorPayload: action.errorPayload,
+      };
+
     default:
       return state;
   }
@@ -93,6 +104,7 @@ interface UseTreeDataResult {
   loadingNodes: Record<string, boolean>;
   handleToggle: (id: string, isOpen: boolean) => Promise<void>;
   fetchLazyTables: ReturnType<typeof useLazyTablesQuery>[0];
+  errorPayload: SupersetError | null;
 }
 
 const createEmptyNode = (parentId: string): TreeNodeData => ({
@@ -120,7 +132,7 @@ const useTreeData = ({
 
   // Combined state for table data, schema data, loading nodes, and data version
   const [state, dispatch] = useReducer(treeDataReducer, initialState);
-  const { tableData, tableSchemaData, loadingNodes } = state;
+  const { tableData, tableSchemaData, loadingNodes, errorPayload } = state;
 
   // Handle async loading when node is toggled open
   const handleToggle = useCallback(
@@ -152,6 +164,12 @@ const useTreeData = ({
               if (data) {
                 dispatch({ type: 'SET_TABLE_DATA', key: schemaKey, data });
               }
+            })
+            .catch(error => {
+              dispatch({
+                type: 'SET_ERROR',
+                errorPayload: error?.errors?.[0] ?? null,
+              });
             })
             .finally(() => {
               dispatch({
@@ -314,6 +332,7 @@ const useTreeData = ({
     loadingNodes,
     handleToggle,
     fetchLazyTables,
+    errorPayload,
   };
 };
 

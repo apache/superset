@@ -44,6 +44,7 @@ import { ViewContribution } from 'src/SqlLab/contributions';
 import TreeNodeRenderer from './TreeNodeRenderer';
 import useTreeData, { EMPTY_NODE_ID_PREFIX } from './useTreeData';
 import type { TreeNodeData } from './types';
+import { ErrorMessageWithStackTrace } from 'src/components';
 
 type Props = {
   queryEditorId: string;
@@ -138,6 +139,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     loadingNodes,
     handleToggle,
     fetchLazyTables,
+    errorPayload,
   } = useTreeData({
     dbId,
     catalog,
@@ -267,6 +269,9 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         onChange={handleSearchChange}
         value={searchTerm}
       />
+      {errorPayload && (
+        <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
+      )}
       <StyledTreeContainer>
         <AutoSizer disableWidth>
           {({ height }) => {
